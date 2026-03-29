@@ -5,3 +5,6 @@ export * from './discoverDeviceUseCase';
 export * from './listPendingInboxUseCase';
 export * from './assignDeviceUseCase';
 export * from './executeDeviceCommandUseCase';
+export * from './syncDeviceStateUseCase';
+export * from './getDeviceStateUseCase';
+export * from './getDeviceActivityHistoryUseCase';

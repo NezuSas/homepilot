@@ -1,5 +1,6 @@
 import { DeviceRepository } from '../domain/repositories/DeviceRepository';
 import { DeviceEventPublisher } from '../domain/events/DeviceEventPublisher';
+import { ActivityLogRepository } from '../domain/repositories/ActivityLogRepository';
 import { TopologyReferencePort } from './ports/TopologyReferencePort';
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
 import { isValidCommand, InvalidDeviceCommandError } from '../domain';
@@ -19,6 +20,7 @@ export interface ExecuteDeviceCommandDependencies {
   eventPublisher: DeviceEventPublisher;
   topologyPort: TopologyReferencePort;
   dispatcherPort: DeviceCommandDispatcherPort;
+  activityLogRepository: ActivityLogRepository;
   idGenerator: IdGenerator;
   clock: Clock;
 }
@@ -73,10 +75,24 @@ export async function executeDeviceCommandUseCase(
       // Silencio: El error del publisher no debe opacar el error de dispatch real
     }
 
+    // Registro en el log de actividad (Best-effort observability)
+    try {
+      await deps.activityLogRepository.saveActivity({
+        timestamp: deps.clock.now(),
+        deviceId: device.id,
+        type: 'COMMAND_FAILED',
+        description: `Command ${command} failed. Reason: ${reason}`,
+        data: { command, reason }
+      });
+    } catch (_logErr: unknown) {
+      // Silencio: El error del historial no debe opacar el error técnico de integración
+    }
+
     throw new DispatchIntegrationError(device.id, reason);
   }
 
   // 6. Éxito: Notificación de despacho exitoso (Best-effort publishing)
+  const now = deps.clock.now();
   try {
     const dispatchedEvent = createDeviceCommandDispatchedEvent(
       { deviceId: device.id, homeId: device.homeId, command },
@@ -86,5 +102,18 @@ export async function executeDeviceCommandUseCase(
     await deps.eventPublisher.publish(dispatchedEvent);
   } catch (_pubErr: unknown) {
     // Silencio: Si falla la telemetría de éxito, el caso de uso sigue siendo exitoso
+  }
+
+  // Registro en el log de actividad de éxito (Best-effort)
+  try {
+    await deps.activityLogRepository.saveActivity({
+      timestamp: now,
+      deviceId: device.id,
+      type: 'COMMAND_DISPATCHED',
+      description: `Command ${command} dispatched correctly to gateway.`,
+      data: { command }
+    });
+  } catch (_logErr: unknown) {
+    // Silencio
   }
 }
