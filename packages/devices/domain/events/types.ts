@@ -42,6 +42,12 @@ export interface DeviceCommandFailedPayload {
   readonly reason: string;
 }
 
+export interface DeviceStateUpdatedPayload {
+  readonly deviceId: string;
+  readonly homeId: string;
+  readonly newState: Record<string, unknown> | null;
+}
+
 // Cierre estricto resolviendo la ambigüedad del eventType genérico
 export interface DeviceDiscoveredEvent extends DomainEvent<DeviceDiscoveredPayload> {
   readonly eventType: 'DeviceDiscoveredEvent';
@@ -59,9 +65,14 @@ export interface DeviceCommandFailedEvent extends DomainEvent<DeviceCommandFaile
   readonly eventType: 'DeviceCommandFailedEvent';
 }
 
+export interface DeviceStateUpdatedEvent extends DomainEvent<DeviceStateUpdatedPayload> {
+  readonly eventType: 'DeviceStateUpdatedEvent';
+}
+
 // Unión cerrada y restrictiva de eventos válidos para la agregación Devices
 export type DeviceDomainEvent = 
   | DeviceDiscoveredEvent 
   | DeviceAssignedToRoomEvent 
   | DeviceCommandDispatchedEvent 
-  | DeviceCommandFailedEvent;
+  | DeviceCommandFailedEvent
+  | DeviceStateUpdatedEvent;

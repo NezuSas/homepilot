@@ -62,6 +62,7 @@ export function createDiscoveredDevice(
     type: payload.type.trim(),
     vendor: payload.vendor.trim(),
     status: 'PENDING',
+    lastKnownState: null,
     entityVersion: 1,
     createdAt: now,
     updatedAt: now

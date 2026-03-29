@@ -4,10 +4,12 @@ import {
   DeviceAssignedToRoomEvent, 
   DeviceCommandDispatchedEvent,
   DeviceCommandFailedEvent,
+  DeviceStateUpdatedEvent,
   DeviceDiscoveredPayload, 
   DeviceAssignedToRoomPayload,
   DeviceCommandDispatchedPayload,
-  DeviceCommandFailedPayload
+  DeviceCommandFailedPayload,
+  DeviceStateUpdatedPayload
 } from './types';
 
 const SCHEMA_VERSION = '1.0';
@@ -89,6 +91,25 @@ export function createDeviceCommandFailedEvent(
   return {
     eventId: deps.idGenerator.generate(),
     eventType: 'DeviceCommandFailedEvent',
+    schemaVersion: SCHEMA_VERSION,
+    source: EVENT_SOURCE,
+    timestamp: deps.clock.now(),
+    correlationId,
+    payload
+  };
+}
+
+/**
+ * Factoría pura para generar el evento de actualización de estado atómico.
+ */
+export function createDeviceStateUpdatedEvent(
+  payload: DeviceStateUpdatedPayload,
+  correlationId: string,
+  deps: EventDependencies
+): DeviceStateUpdatedEvent {
+  return {
+    eventId: deps.idGenerator.generate(),
+    eventType: 'DeviceStateUpdatedEvent',
     schemaVersion: SCHEMA_VERSION,
     source: EVENT_SOURCE,
     timestamp: deps.clock.now(),

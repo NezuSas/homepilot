@@ -13,6 +13,7 @@ export interface Device {
   readonly type: string;
   readonly vendor: string;
   readonly status: DeviceStatus;
+  readonly lastKnownState: Record<string, unknown> | null;
   readonly entityVersion: number;
   readonly createdAt: string;
   readonly updatedAt: string;
