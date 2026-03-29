@@ -4,3 +4,4 @@ export * from './commands';
 export * from './state';
 export * from './createDiscoveredDevice';
 export * from './assignDeviceToRoom';
+export * from './capabilities';

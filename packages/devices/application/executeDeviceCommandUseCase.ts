@@ -3,7 +3,12 @@ import { DeviceEventPublisher } from '../domain/events/DeviceEventPublisher';
 import { ActivityLogRepository } from '../domain/repositories/ActivityLogRepository';
 import { TopologyReferencePort } from './ports/TopologyReferencePort';
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
-import { isValidCommand, InvalidDeviceCommandError } from '../domain';
+import { 
+  isValidCommand, 
+  InvalidDeviceCommandError, 
+  canDeviceExecuteCommand, 
+  UnsupportedCommandError 
+} from '../domain';
 import { 
   DeviceNotFoundError, 
   DevicePendingStateError, 
@@ -56,7 +61,14 @@ export async function executeDeviceCommandUseCase(
     throw new InvalidDeviceCommandError(command);
   }
 
-  // 5. Instigación Física Transaccional - Side-Effect Puro (202 / 502)
+  // 5. VALIDAR CAPACIDADES (Nuevo Guardián de Hardware V1)
+  // Verificamos si el hardware físico del dispositivo soporta la acción solicitada.
+  // Rechazamos de forma determinista antes de tocar el dispatcher o ensuciar el log.
+  if (!canDeviceExecuteCommand(device.type, command)) {
+    throw new UnsupportedCommandError(device.type, command);
+  }
+
+  // 6. DESPACHAR COMANDO (Infraestructura) - Side-Effect Puro (202 / 502)
   try {
     // El try-catch principal envuelve el despacho físico para aislar su resultado técnico
     await deps.dispatcherPort.dispatch(device.id, command);

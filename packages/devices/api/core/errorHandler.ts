@@ -1,5 +1,5 @@
 import { HttpResponse } from '../../../topology/api/core/http';
-import { DeviceDomainError } from '../../domain/errors';
+import { DeviceDomainError, UnsupportedCommandError } from '../../domain/errors';
 import { 
   DeviceApplicationError, 
   DeviceNotFoundError, 
@@ -45,8 +45,12 @@ export function handleError(error: unknown): HttpResponse {
     };
   }
 
-  // Traducción a BadRequest para violaciones genéricas contractuales
-  if (error instanceof DeviceDomainError || error instanceof DeviceApplicationError) {
+  // Traducción a BadRequest para violaciones genéricas contractuales o incompatibilidad de hardware
+  if (
+    error instanceof UnsupportedCommandError || 
+    error instanceof DeviceDomainError || 
+    error instanceof DeviceApplicationError
+  ) {
     return {
       statusCode: 400,
       body: { error: 'Bad Request', message: error.message }

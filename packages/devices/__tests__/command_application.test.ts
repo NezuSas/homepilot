@@ -1,5 +1,6 @@
 import { executeDeviceCommandUseCase } from '../application/executeDeviceCommandUseCase';
 import { InMemoryDeviceRepository } from '../infrastructure/repositories';
+import { InMemoryActivityLogRepository } from '../infrastructure/repositories/InMemoryActivityLogRepository';
 import { InMemoryDeviceEventPublisher } from '../domain/events';
 import { InMemoryDeviceCommandDispatcher } from '../infrastructure/adapters/InMemoryDeviceCommandDispatcher';
 import { 
@@ -12,6 +13,7 @@ import { TopologyReferencePort } from '../application/ports/TopologyReferencePor
 
 describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
   let repo: InMemoryDeviceRepository;
+  let log: InMemoryActivityLogRepository;
   let publisher: InMemoryDeviceEventPublisher;
   let dispatcher: InMemoryDeviceCommandDispatcher;
   let topologyPort: TopologyReferencePort;
@@ -23,6 +25,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
 
   beforeEach(() => {
     repo = new InMemoryDeviceRepository();
+    log = new InMemoryActivityLogRepository();
     publisher = new InMemoryDeviceEventPublisher();
     dispatcher = new InMemoryDeviceCommandDispatcher();
     topologyPort = {
@@ -33,13 +36,13 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
   });
 
   const deviceBase = {
-    id: 'd1', homeId: 'h1', externalId: 'ex', name: 'n', type: 't', vendor: 'v',
-    entityVersion: 1, createdAt: 'x', updatedAt: 'x'
+    id: 'd1', homeId: 'h1', externalId: 'ex', name: 'n', type: 'switch', vendor: 'v',
+    lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x'
   };
 
   it('debe lanzar DeviceNotFoundError si el dispositivo no existe en el repositorio', async () => {
     await expect(executeDeviceCommandUseCase('missing', 'turn_on', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(DeviceNotFoundError);
   });
 
@@ -47,7 +50,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     await repo.saveDevice({ ...deviceBase, status: 'PENDING', roomId: null });
     
     await expect(executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(DevicePendingStateError);
   });
 
@@ -55,7 +58,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1' });
     
     await expect(executeDeviceCommandUseCase('d1', 'invalid_cmd', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(InvalidDeviceCommandError);
   });
 
@@ -63,7 +66,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1' });
     
     await executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     });
     
     const events = publisher.getEvents();
@@ -80,7 +83,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     dispatcher.forceFailureSimulation(true);
     
     await expect(executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(DispatchIntegrationError);
     
     const events = publisher.getEvents();
@@ -96,7 +99,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     publisherWithFailure.publish = jest.fn().mockRejectedValue(new Error('Event Store Down'));
 
     await executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisherWithFailure, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisherWithFailure, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     });
     
     // El caso de uso no debe haber lanzado error pese al fallo del publisher
@@ -112,7 +115,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     publisherWithFailure.publish = jest.fn().mockRejectedValue(new Error('Event Store Down'));
 
     await expect(executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
-      deviceRepository: repo, eventPublisher: publisherWithFailure, topologyPort, dispatcherPort: dispatcher, ...mockDeps
+      deviceRepository: repo, eventPublisher: publisherWithFailure, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(DispatchIntegrationError);
   });
 });

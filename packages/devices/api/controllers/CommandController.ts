@@ -5,6 +5,7 @@ import { DeviceRepository } from '../../domain/repositories';
 import { DeviceEventPublisher } from '../../domain/events';
 import { TopologyReferencePort } from '../../application/ports/TopologyReferencePort';
 import { DeviceCommandDispatcherPort } from '../../application/ports/DeviceCommandDispatcherPort';
+import { ActivityLogRepository } from '../../domain/repositories/ActivityLogRepository';
 import { IdGenerator, Clock } from '../../../shared/domain/types';
 
 export class CommandController {
@@ -13,6 +14,7 @@ export class CommandController {
     private readonly eventPublisher: DeviceEventPublisher,
     private readonly topologyPort: TopologyReferencePort,
     private readonly dispatcherPort: DeviceCommandDispatcherPort,
+    private readonly activityLogRepository: ActivityLogRepository,
     private readonly idGenerator: IdGenerator,
     private readonly clock: Clock
   ) {}
@@ -64,6 +66,7 @@ export class CommandController {
           eventPublisher: this.eventPublisher,
           topologyPort: this.topologyPort,
           dispatcherPort: this.dispatcherPort,
+          activityLogRepository: this.activityLogRepository,
           idGenerator: this.idGenerator,
           clock: this.clock
         }

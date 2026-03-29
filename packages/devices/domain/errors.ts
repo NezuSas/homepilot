@@ -51,3 +51,8 @@ export class InvalidDeviceCommandError extends DeviceDomainError {
     super(`Command '${command}' is not supported by the strictly guarded V1 definitions.`);
   }
 }
+export class UnsupportedCommandError extends DeviceDomainError {
+  constructor(deviceType: string, command: string) {
+    super(`Command '${command}' is not supported by device type '${deviceType}'.`);
+  }
+}

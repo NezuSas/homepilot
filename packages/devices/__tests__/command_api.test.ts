@@ -1,6 +1,7 @@
 import { CommandController, handleError } from '../api';
 import { InMemoryDeviceRepository } from '../infrastructure/repositories';
 import { InMemoryDeviceEventPublisher } from '../domain/events';
+import { InMemoryActivityLogRepository } from '../infrastructure/repositories/InMemoryActivityLogRepository';
 import { InMemoryDeviceCommandDispatcher } from '../infrastructure/adapters/InMemoryDeviceCommandDispatcher';
 import { TopologyReferencePort } from '../application/ports/TopologyReferencePort';
 import { AuthenticatedHttpRequest } from '../../topology/api/core/http';
@@ -8,6 +9,7 @@ import { AuthenticatedHttpRequest } from '../../topology/api/core/http';
 describe('Módulo Devices - Pruebas de Comando (API)', () => {
   let repo: InMemoryDeviceRepository;
   let publisher: InMemoryDeviceEventPublisher;
+  let log: InMemoryActivityLogRepository;
   let dispatcher: InMemoryDeviceCommandDispatcher;
   let topologyPort: TopologyReferencePort;
   let ctrl: CommandController;
@@ -20,18 +22,19 @@ describe('Módulo Devices - Pruebas de Comando (API)', () => {
   beforeEach(() => {
     repo = new InMemoryDeviceRepository();
     publisher = new InMemoryDeviceEventPublisher();
+    log = new InMemoryActivityLogRepository();
     dispatcher = new InMemoryDeviceCommandDispatcher();
     topologyPort = {
       validateHomeExists: jest.fn().mockResolvedValue(undefined),
       validateHomeOwnership: jest.fn().mockResolvedValue(undefined),
       validateRoomBelongsToHome: jest.fn().mockResolvedValue(undefined)
     };
-    ctrl = new CommandController(repo, publisher, topologyPort, dispatcher, mockDeps.idGenerator, mockDeps.clock);
+    ctrl = new CommandController(repo, publisher, topologyPort, dispatcher, log, mockDeps.idGenerator, mockDeps.clock);
   });
 
   const deviceBase = {
-    id: 'd1', homeId: 'h1', externalId: 'ex', name: 'n', type: 't', vendor: 'v',
-    entityVersion: 1, createdAt: 'x', updatedAt: 'x'
+    id: 'd1', homeId: 'h1', externalId: 'ex', name: 'n', type: 'switch', vendor: 'v',
+    lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x'
   };
 
   it('debe retornar 400 si falta el deviceId o es inválido', async () => {
