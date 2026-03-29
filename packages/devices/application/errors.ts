@@ -26,3 +26,9 @@ export class DeviceConflictError extends DeviceApplicationError {
     super(`Device with externalId ${externalId} already exists in Home ${homeId}.`);
   }
 }
+
+export class TopologyResourceNotFoundError extends DeviceApplicationError {
+  constructor(resourceType: string, resourceId: string) {
+    super(`Topology resource ${resourceType} with id ${resourceId} was not found.`);
+  }
+}
