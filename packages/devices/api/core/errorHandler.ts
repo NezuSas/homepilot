@@ -5,7 +5,9 @@ import {
   DeviceNotFoundError, 
   ForbiddenOwnershipError, 
   DeviceConflictError,
-  TopologyResourceNotFoundError
+  TopologyResourceNotFoundError,
+  DevicePendingStateError,
+  DispatchIntegrationError
 } from '../../application/errors';
 
 /**
@@ -14,7 +16,7 @@ import {
  * Aísla lógicas transaccionales de los frameworks expresivos.
  */
 export function handleError(error: unknown): HttpResponse {
-  if (error instanceof DeviceConflictError) {
+  if (error instanceof DeviceConflictError || error instanceof DevicePendingStateError) {
     return {
       statusCode: 409,
       body: { error: 'Conflict', message: error.message }
@@ -33,6 +35,13 @@ export function handleError(error: unknown): HttpResponse {
     return {
       statusCode: 403,
       body: { error: 'Forbidden', message: error.message }
+    };
+  }
+
+  if (error instanceof DispatchIntegrationError) {
+    return {
+      statusCode: 502,
+      body: { error: 'Bad Gateway', message: error.message }
     };
   }
 

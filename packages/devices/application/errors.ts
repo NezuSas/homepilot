@@ -32,3 +32,15 @@ export class TopologyResourceNotFoundError extends DeviceApplicationError {
     super(`Topology resource ${resourceType} with id ${resourceId} was not found.`);
   }
 }
+
+export class DevicePendingStateError extends DeviceApplicationError {
+  constructor(deviceId: string) {
+    super(`Device ${deviceId} is currently in PENDING state and cannot accept operational commands.`);
+  }
+}
+
+export class DispatchIntegrationError extends DeviceApplicationError {
+  constructor(deviceId: string, reason: string) {
+    super(`Gateway failed to dispatch command for device ${deviceId}. Reason: ${reason}`);
+  }
+}
