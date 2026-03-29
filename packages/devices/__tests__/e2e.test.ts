@@ -6,7 +6,7 @@ import { TopologyResourceNotFoundError, ForbiddenOwnershipError } from '../appli
 import { Device } from '../domain';
 import { HttpRequest, AuthenticatedHttpRequest } from '../../topology/api/core/http';
 
-describe('Devices Module E2E Spec (AC1-AC5)', () => {
+describe('Especificación E2E del Módulo Devices (AC1-AC5)', () => {
   let repo: InMemoryDeviceRepository;
   let publisher: InMemoryDeviceEventPublisher;
   let topologyPort: TopologyReferencePort;
@@ -47,7 +47,7 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
     expect(device.roomId).toBeNull();
   });
 
-  it('AC2: inbox del owner -> 200 con devices PENDING', async () => {
+  it('AC2: inbox del owner -> 200 con array de devices PENDING', async () => {
     await integrationsController.discoverDevice({
       body: { homeId: 'home1', externalId: 'ext1', name: 'Sensor', type: 'TEMP', vendor: 'V' }
     });
@@ -77,7 +77,7 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
     expect(response.statusCode).toBe(403);
   });
 
-  it('AC4: assign válido -> 200 y luego desaparece del inbox / queda ASSIGNED', async () => {
+  it('AC4: assign válido -> 200 y el dispositivo transacciona a ASSIGNED desapareciendo del Inbox', async () => {
     const resDiscover = await integrationsController.discoverDevice({
       body: { homeId: 'home1', externalId: 'ext1', name: 'Sensor', type: 'TEMP', vendor: 'V' }
     });
@@ -102,7 +102,7 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
     expect((resInbox.body as ReadonlyArray<Device>).length).toBe(0);
   });
 
-  it('AC5: intento de asignación cruzada inválida -> 403', async () => {
+  it('AC5: validación cruzada para evitar asignaciones furtivas entre hogares -> 403', async () => {
     const resDiscover = await integrationsController.discoverDevice({
       body: { homeId: 'home1', externalId: 'ext1', name: 'Sensor', type: 'TEMP', vendor: 'V' }
     });
@@ -120,8 +120,8 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
     expect(resAssign.statusCode).toBe(403);
   });
 
-  describe('Edge Cases Extra', () => {
-    it('discovery duplicado -> 409', async () => {
+  describe('Casos Límite y de Borde', () => {
+    it('comportamiento idempotente ante discovery duplicado -> 409', async () => {
       const req: HttpRequest = {
         body: { homeId: 'home1', externalId: 'ext1', name: 'Sensor', type: 'TEMP', vendor: 'V' }
       };
@@ -130,7 +130,7 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
       expect(resDup.statusCode).toBe(409);
     });
 
-    it('home inexistente en discovery -> 404', async () => {
+    it('interceptación orillada a 404 si el homeId no figura en registros durante discovery', async () => {
       topologyPort.validateHomeExists = jest.fn().mockRejectedValue(new TopologyResourceNotFoundError('Home', '404'));
       
       const req: HttpRequest = {
@@ -140,7 +140,7 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it('body inválido -> 400', async () => {
+    it('cercenado restrictivo originando 400 frente a deficiencia inyectada en Body', async () => {
       const req: HttpRequest = {
         body: { homeId: '', externalId: 'ext' } // missing fields
       };
@@ -148,7 +148,7 @@ describe('Devices Module E2E Spec (AC1-AC5)', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('asimetría de parámetros inyectados rebotando transparentemente 400', async () => {
+    it('asimetría de parámetros originando choque de dominio a nivel de Edge resolviendo limpio 400', async () => {
       const req: AuthenticatedHttpRequest = {
         params: { deviceId: 'd1' },
         body: {}, // Missing roomId

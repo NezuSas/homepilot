@@ -2,8 +2,12 @@ import { IdGenerator, Clock } from '../../../shared/domain/types';
 import { 
   DeviceDiscoveredEvent, 
   DeviceAssignedToRoomEvent, 
+  DeviceCommandDispatchedEvent,
+  DeviceCommandFailedEvent,
   DeviceDiscoveredPayload, 
-  DeviceAssignedToRoomPayload 
+  DeviceAssignedToRoomPayload,
+  DeviceCommandDispatchedPayload,
+  DeviceCommandFailedPayload
 } from './types';
 
 const SCHEMA_VERSION = '1.0';
@@ -47,6 +51,44 @@ export function createDeviceAssignedToRoomEvent(
   return {
     eventId: deps.idGenerator.generate(),
     eventType: 'DeviceAssignedToRoomEvent',
+    schemaVersion: SCHEMA_VERSION,
+    source: EVENT_SOURCE,
+    timestamp: deps.clock.now(),
+    correlationId,
+    payload
+  };
+}
+
+/**
+ * Factoría pura para generar el evento de confirmación de despacho exitoso hacia red externa.
+ */
+export function createDeviceCommandDispatchedEvent(
+  payload: DeviceCommandDispatchedPayload,
+  correlationId: string,
+  deps: EventDependencies
+): DeviceCommandDispatchedEvent {
+  return {
+    eventId: deps.idGenerator.generate(),
+    eventType: 'DeviceCommandDispatchedEvent',
+    schemaVersion: SCHEMA_VERSION,
+    source: EVENT_SOURCE,
+    timestamp: deps.clock.now(),
+    correlationId,
+    payload
+  };
+}
+
+/**
+ * Factoría pura para registrar el rebote o rechazo frontal de comunicaciones con el dispatcher remoto.
+ */
+export function createDeviceCommandFailedEvent(
+  payload: DeviceCommandFailedPayload,
+  correlationId: string,
+  deps: EventDependencies
+): DeviceCommandFailedEvent {
+  return {
+    eventId: deps.idGenerator.generate(),
+    eventType: 'DeviceCommandFailedEvent',
     schemaVersion: SCHEMA_VERSION,
     source: EVENT_SOURCE,
     timestamp: deps.clock.now(),

@@ -45,3 +45,9 @@ export class DeviceAlreadyAssignedError extends DeviceDomainError {
     super(`Device ${deviceId} is already assigned to a room and cannot be reassigned or mutated in Inbox state.`);
   }
 }
+
+export class InvalidDeviceCommandError extends DeviceDomainError {
+  constructor(command: string) {
+    super(`Command '${command}' is not supported by the strictly guarded V1 definitions.`);
+  }
+}

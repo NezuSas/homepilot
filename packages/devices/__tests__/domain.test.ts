@@ -6,14 +6,14 @@ import {
   DeviceAlreadyAssignedError 
 } from '../domain/errors';
 
-describe('Devices Domain', () => {
+describe('Módulo Devices - Capa de Dominio', () => {
   const mockDeps = {
     idGenerator: { generate: () => 'fixed-id' },
     clock: { now: () => '2026-01-01T00:00:00Z' }
   };
 
   describe('createDiscoveredDevice', () => {
-    it('should create a valid pending device', () => {
+    it('debe crear un dispositivo pendiente (PENDING) válido', () => {
       const device = createDiscoveredDevice(
         { homeId: 'home-1', externalId: 'ext-1', name: 'Sensor', type: 'TEMPERATURE', vendor: 'Acme' },
         mockDeps
@@ -24,14 +24,14 @@ describe('Devices Domain', () => {
       expect(device.name).toBe('Sensor');
     });
 
-    it('should throw error if homeId is empty or invalid', () => {
+    it('debe lanzar error si el homeId está vacío o es estructuralmente inválido', () => {
       expect(() => createDiscoveredDevice(
         { homeId: '', externalId: 'ext-1', name: 'N', type: 'T', vendor: 'V' },
         mockDeps
       )).toThrow(InvalidTopologyReferenceError);
     });
 
-    it('should throw error if strict names are missing rejecting fallbacks', () => {
+    it('debe lanzar error si faltan nombres estrictos o el externalId es inválido rechazando fallbacks', () => {
       expect(() => createDiscoveredDevice(
         { homeId: 'h1', externalId: 'ext-1', name: '  ', type: 'T', vendor: 'V' },
         mockDeps
@@ -45,7 +45,7 @@ describe('Devices Domain', () => {
   });
 
   describe('assignDeviceToRoom', () => {
-    it('should assign a pending device to a room and strictly increment version mutating updatedAt', () => {
+    it('debe asignar un dispositivo pendiente a un Room e incrementar estrictamente su versión mutando el updatedAt', () => {
       const pendingDevice = createDiscoveredDevice(
         { homeId: 'home-1', externalId: 'ext-1', name: 'Sensor', type: 'TEMPERATURE', vendor: 'Acme' },
         mockDeps
@@ -58,7 +58,7 @@ describe('Devices Domain', () => {
       expect(assignedDevice.entityVersion).toBe(2);
     });
 
-    it('should rigidly throw DeviceAlreadyAssignedError protecting state if already assigned', () => {
+    it('debe lanzar rígidamente DeviceAlreadyAssignedError protegiendo el estado si ya fue asignado previamente', () => {
       const pendingDevice = createDiscoveredDevice(
         { homeId: 'home-1', externalId: 'ext-1', name: 'S', type: 'T', vendor: 'V' },
         mockDeps

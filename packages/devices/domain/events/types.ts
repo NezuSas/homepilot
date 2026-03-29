@@ -1,6 +1,7 @@
 /**
  * Contratos de Eventos de Dominio para el Módulo Devices.
  */
+import { DeviceCommandV1 } from '../commands';
 
 // Tipo base genérico para estructurar la emisión homogeneizada
 export interface DomainEvent<T> {
@@ -28,6 +29,19 @@ export interface DeviceAssignedToRoomPayload {
   readonly previousState: 'PENDING';
 }
 
+export interface DeviceCommandDispatchedPayload {
+  readonly deviceId: string;
+  readonly homeId: string;
+  readonly command: DeviceCommandV1;
+}
+
+export interface DeviceCommandFailedPayload {
+  readonly deviceId: string;
+  readonly homeId: string;
+  readonly command: DeviceCommandV1;
+  readonly reason: string;
+}
+
 // Cierre estricto resolviendo la ambigüedad del eventType genérico
 export interface DeviceDiscoveredEvent extends DomainEvent<DeviceDiscoveredPayload> {
   readonly eventType: 'DeviceDiscoveredEvent';
@@ -37,5 +51,17 @@ export interface DeviceAssignedToRoomEvent extends DomainEvent<DeviceAssignedToR
   readonly eventType: 'DeviceAssignedToRoomEvent';
 }
 
+export interface DeviceCommandDispatchedEvent extends DomainEvent<DeviceCommandDispatchedPayload> {
+  readonly eventType: 'DeviceCommandDispatchedEvent';
+}
+
+export interface DeviceCommandFailedEvent extends DomainEvent<DeviceCommandFailedPayload> {
+  readonly eventType: 'DeviceCommandFailedEvent';
+}
+
 // Unión cerrada y restrictiva de eventos válidos para la agregación Devices
-export type DeviceDomainEvent = DeviceDiscoveredEvent | DeviceAssignedToRoomEvent;
+export type DeviceDomainEvent = 
+  | DeviceDiscoveredEvent 
+  | DeviceAssignedToRoomEvent 
+  | DeviceCommandDispatchedEvent 
+  | DeviceCommandFailedEvent;
