@@ -31,51 +31,51 @@ export interface ExecuteDeviceCommandDependencies {
 }
 
 /**
- * Orquesta monolíticamente la ejecución de Side-Effects (Comandos físicos) interceptando
- * reglas de Zero-Trust, inhabilitando mutaciones sobre entidades PENDING, asegurando el diccionario V1
- * y emitiendo los eventos correspondientes asincrónicamente al desenlace del dispatch empírico.
+ * Orquesta monolíticamente la ejecución de Side-Effects (Comandos físicos).
+ * Implementa Zero-Trust, validación de capacidades y auditoría.
  */
 export async function executeDeviceCommandUseCase(
   deviceId: string,
   command: string,
   userId: string,
   correlationId: string,
-  deps: ExecuteDeviceCommandDependencies
+  deps: ExecuteDeviceCommandDependencies,
+  options?: {
+    customDescription?: string;
+    isAutomation?: boolean;
+  }
 ): Promise<void> {
-  // 1. Aserción ontológica de base: Existencia estática
+  // 1. Localización y Validación de Existencia
   const device = await deps.deviceRepository.findDeviceById(deviceId);
   if (!device) {
     throw new DeviceNotFoundError(deviceId);
   }
 
-  // 2. Control de Acceso Zero-Trust: Propiedad transversal confirmada mediante Topología (403)
+  // 2. Control de Acceso Zero-Trust
   await deps.topologyPort.validateHomeOwnership(device.homeId, userId);
 
-  // 3. Regla Formativa: Un Device en Inbox no tiene parentesco Físico real u host para comandarlo (409)
+  // 3. Validación de Estado (No inbox/pending)
   if (device.status === 'PENDING') {
     throw new DevicePendingStateError(deviceId);
   }
 
-  // 4. Auditoría V1 Restrictiva: Filtrado puro de diccionario limitante (400)
+  // 4. Validación de Diccionario V1
   if (!isValidCommand(command)) {
     throw new InvalidDeviceCommandError(command);
   }
 
-  // 5. VALIDAR CAPACIDADES (Nuevo Guardián de Hardware V1)
-  // Verificamos si el hardware físico del dispositivo soporta la acción solicitada.
-  // Rechazamos de forma determinista antes de tocar el dispatcher o ensuciar el log.
+  // 5. Validación de Capacidades (Hardware)
   if (!canDeviceExecuteCommand(device.type, command)) {
     throw new UnsupportedCommandError(device.type, command);
   }
 
-  // 6. DESPACHAR COMANDO (Infraestructura) - Side-Effect Puro (202 / 502)
+  // 6. Ejecución del Efecto (Despacho físico)
   try {
-    // El try-catch principal envuelve el despacho físico para aislar su resultado técnico
     await deps.dispatcherPort.dispatch(device.id, command);
   } catch (error: unknown) {
     const reason = error instanceof Error ? error.message : 'Unknown integration error';
     
-    // Intento de publicación de evento de fallo: se absorbe cualquier error interno del publisher
+    // Telemetría: Publicación del evento de fallo
     try {
       const failedEvent = createDeviceCommandFailedEvent(
         { deviceId: device.id, homeId: device.homeId, command, reason },
@@ -83,28 +83,29 @@ export async function executeDeviceCommandUseCase(
         { idGenerator: deps.idGenerator, clock: deps.clock }
       );
       await deps.eventPublisher.publish(failedEvent);
-    } catch (_pubErr: unknown) {
-      // Silencio: El error del publisher no debe opacar el error de dispatch real
-    }
+    } catch (_pubErr) { /* silenciar */ }
 
-    // Registro en el log de actividad (Best-effort observability)
-    try {
-      await deps.activityLogRepository.saveActivity({
-        timestamp: deps.clock.now(),
-        deviceId: device.id,
-        type: 'COMMAND_FAILED',
-        description: `Command ${command} failed. Reason: ${reason}`,
-        data: { command, reason }
-      });
-    } catch (_logErr: unknown) {
-      // Silencio: El error del historial no debe opacar el error técnico de integración
+    // Auditoría de Fallo (SOLO para comandos manuales)
+    // Las automatizaciones son registradas por el AutomationEngine para evitar redundancia
+    if (!options?.isAutomation) {
+      try {
+        await deps.activityLogRepository.saveActivity({
+          timestamp: deps.clock.now(),
+          deviceId: device.id,
+          type: 'COMMAND_FAILED',
+          description: `Command ${command} failed. Reason: ${reason}`,
+          data: { command, reason, isAutomation: false }
+        });
+      } catch (_logErr) { /* silenciar */ }
     }
 
     throw new DispatchIntegrationError(device.id, reason);
   }
 
-  // 6. Éxito: Notificación de despacho exitoso (Best-effort publishing)
+  // 7. Éxito: Registro y Telemetría
   const now = deps.clock.now();
+  
+  // Publicar evento de despacho exitoso
   try {
     const dispatchedEvent = createDeviceCommandDispatchedEvent(
       { deviceId: device.id, homeId: device.homeId, command },
@@ -112,20 +113,16 @@ export async function executeDeviceCommandUseCase(
       { idGenerator: deps.idGenerator, clock: deps.clock }
     );
     await deps.eventPublisher.publish(dispatchedEvent);
-  } catch (_pubErr: unknown) {
-    // Silencio: Si falla la telemetría de éxito, el caso de uso sigue siendo exitoso
-  }
+  } catch (_pubErr) { /* silenciar */ }
 
-  // Registro en el log de actividad de éxito (Best-effort)
+  // Registro en el log de actividad (Audit Log)
   try {
     await deps.activityLogRepository.saveActivity({
       timestamp: now,
       deviceId: device.id,
       type: 'COMMAND_DISPATCHED',
-      description: `Command ${command} dispatched correctly to gateway.`,
-      data: { command }
+      description: options?.customDescription || `Command ${command} dispatched correctly to gateway.`,
+      data: { command, isAutomation: options?.isAutomation || false }
     });
-  } catch (_logErr: unknown) {
-    // Silencio
-  }
+  } catch (_logErr) { /* silenciar */ }
 }

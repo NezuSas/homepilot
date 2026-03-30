@@ -4,3 +4,4 @@ export * from './DeviceController';
 export * from './CommandController';
 export * from './StateIngestionController';
 export * from './ObservabilityController';
+export * from './AutomationController';

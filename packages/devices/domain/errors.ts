@@ -51,8 +51,21 @@ export class InvalidDeviceCommandError extends DeviceDomainError {
     super(`Command '${command}' is not supported by the strictly guarded V1 definitions.`);
   }
 }
+
 export class UnsupportedCommandError extends DeviceDomainError {
   constructor(deviceType: string, command: string) {
     super(`Command '${command}' is not supported by device type '${deviceType}'.`);
+  }
+}
+
+export class AutomationLoopError extends DeviceDomainError {
+  constructor() {
+    super('Automation rule rejected: local loop detected (trigger and target are the same device).');
+  }
+}
+
+export class InvalidAutomationRuleError extends DeviceDomainError {
+  constructor(field: string) {
+    super(`Invalid Automation Rule: ${field} must be a valid non-empty value.`);
   }
 }

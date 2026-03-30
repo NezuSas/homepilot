@@ -44,3 +44,9 @@ export class DispatchIntegrationError extends DeviceApplicationError {
     super(`Gateway failed to dispatch command for device ${deviceId}. Reason: ${reason}`);
   }
 }
+
+export class AutomationRuleNotFoundError extends DeviceApplicationError {
+  constructor(id: string) {
+    super(`Automation rule with id ${id} was not found.`);
+  }
+}

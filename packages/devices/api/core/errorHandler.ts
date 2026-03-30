@@ -7,7 +7,8 @@ import {
   DeviceConflictError,
   TopologyResourceNotFoundError,
   DevicePendingStateError,
-  DispatchIntegrationError
+  DispatchIntegrationError,
+  AutomationRuleNotFoundError
 } from '../../application/errors';
 
 /**
@@ -24,7 +25,11 @@ export function handleError(error: unknown): HttpResponse {
   }
 
   // Comprobación de tipos resolviendo polimórficamente los origenes nulos
-  if (error instanceof DeviceNotFoundError || error instanceof TopologyResourceNotFoundError) {
+  if (
+    error instanceof DeviceNotFoundError || 
+    error instanceof TopologyResourceNotFoundError || 
+    error instanceof AutomationRuleNotFoundError
+  ) {
     return {
       statusCode: 404,
       body: { error: 'Not Found', message: error.message }

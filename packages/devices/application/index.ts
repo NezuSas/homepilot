@@ -8,3 +8,7 @@ export * from './executeDeviceCommandUseCase';
 export * from './syncDeviceStateUseCase';
 export * from './getDeviceStateUseCase';
 export * from './getDeviceActivityHistoryUseCase';
+export * from './usecases/automation/CreateAutomationRuleUseCase';
+export * from './usecases/automation/ListAutomationRulesUseCase';
+export * from './usecases/automation/DeleteAutomationRuleUseCase';
+export * from './automation/AutomationEngine';
