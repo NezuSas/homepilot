@@ -5,6 +5,9 @@ import {
   listAutomationRulesUseCase, 
   deleteAutomationRuleUseCase 
 } from '../../application';
+import { enableAutomationRuleUseCase } from '../../application/usecases/automation/EnableAutomationRuleUseCase';
+import { disableAutomationRuleUseCase } from '../../application/usecases/automation/DisableAutomationRuleUseCase';
+import { updateAutomationRuleUseCase, UpdateAutomationRuleRequest } from '../../application/usecases/automation/UpdateAutomationRuleUseCase';
 import { AutomationRuleRepository } from '../../domain/repositories/AutomationRuleRepository';
 import { DeviceRepository } from '../../domain/repositories/DeviceRepository';
 import { TopologyReferencePort } from '../../application/ports/TopologyReferencePort';
@@ -15,7 +18,7 @@ import { isValidCommand } from '../../domain/commands';
 /**
  * Controller agnóstico para la gestión de Reglas de Automatización V1.
  * Traduce las solicitudes HTTP AuthenticatedHttpRequest al lenguaje de Casos de Uso del Dominio.
- * Alineado estrictamente con el Spec V1: /homes/:homeId/rules
+ * Cubre el CRUD original y el ciclo de vida completo: enable, disable, update.
  */
 export class AutomationController {
   constructor(
@@ -39,19 +42,17 @@ export class AutomationController {
         };
       }
 
-      // 1. Narrowing estructural contra 'unknown' para evitar 'any'
+      // Narrowing estructural para evitar 'any'
       const body = req.body as Record<string, unknown> | null | undefined;
       if (!body || typeof body !== 'object') {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid request body.' } };
       }
 
-      // 2. Validación de campos de primer nivel
       const { name, trigger, action } = body;
       if (typeof name !== 'string' || name.trim() === '') {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: name.' } };
       }
 
-      // 3. Validación y Narrowing del Trigger
       if (!trigger || typeof trigger !== 'object') {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: trigger.' } };
       }
@@ -63,26 +64,24 @@ export class AutomationController {
       if (typeof tDeviceId !== 'string' || typeof tStateKey !== 'string') {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid trigger structure.' } };
       }
-      
-      // Validación estricta del tipo de expectedValue según Spec
+
       if (
-        typeof tExpectedValue !== 'string' && 
-        typeof tExpectedValue !== 'number' && 
+        typeof tExpectedValue !== 'string' &&
+        typeof tExpectedValue !== 'number' &&
         typeof tExpectedValue !== 'boolean'
       ) {
-        return { 
-          statusCode: 400, 
-          body: { error: 'Bad Request', message: 'expectedValue must be string, number or boolean.' } 
+        return {
+          statusCode: 400,
+          body: { error: 'Bad Request', message: 'expectedValue must be string, number or boolean.' }
         };
       }
-      
+
       const triggerFinal: AutomationTrigger = {
         deviceId: tDeviceId,
         stateKey: tStateKey,
         expectedValue: tExpectedValue
       };
 
-      // 4. Validación y Narrowing de la Acción
       if (!action || typeof action !== 'object') {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: action.' } };
       }
@@ -95,11 +94,10 @@ export class AutomationController {
       }
 
       const actionFinal: AutomationAction = {
-        targetDeviceId: aDeviceId, // Mapeo semántico Payload (deviceId) -> Dominio (targetDeviceId)
+        targetDeviceId: aDeviceId,
         command: aCommand
       };
 
-      // 5. Ejecución del Caso de Uso (Lógica de Negocio y Zero-Trust)
       const rule = await createAutomationRuleUseCase(
         {
           homeId,
@@ -116,10 +114,7 @@ export class AutomationController {
         }
       );
 
-      return {
-        statusCode: 201,
-        body: rule
-      };
+      return { statusCode: 201, body: rule };
     } catch (error) {
       return handleError(error);
     }
@@ -144,10 +139,7 @@ export class AutomationController {
         topologyReferencePort: this.topologyPort
       });
 
-      return {
-        statusCode: 200,
-        body: rules
-      };
+      return { statusCode: 200, body: rules };
     } catch (error) {
       return handleError(error);
     }
@@ -172,9 +164,162 @@ export class AutomationController {
         topologyReferencePort: this.topologyPort
       });
 
-      return {
-        statusCode: 204
+      return { statusCode: 204 };
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * PATCH /rules/:ruleId/enable
+   * Habilita una regla desactivada. Operación idempotente.
+   */
+  async enableRule(req: AuthenticatedHttpRequest): Promise<HttpResponse> {
+    try {
+      const ruleId = req.params?.ruleId;
+      if (!ruleId || ruleId.trim() === '') {
+        return {
+          statusCode: 400,
+          body: { error: 'Bad Request', message: 'Missing or invalid ruleId parameter.' }
+        };
+      }
+
+      const rule = await enableAutomationRuleUseCase(ruleId, req.userId, {
+        automationRuleRepository: this.automationRuleRepository,
+        topologyReferencePort: this.topologyPort
+      });
+
+      return { statusCode: 200, body: rule };
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * PATCH /rules/:ruleId/disable
+   * Deshabilita una regla activa. Operación idempotente.
+   */
+  async disableRule(req: AuthenticatedHttpRequest): Promise<HttpResponse> {
+    try {
+      const ruleId = req.params?.ruleId;
+      if (!ruleId || ruleId.trim() === '') {
+        return {
+          statusCode: 400,
+          body: { error: 'Bad Request', message: 'Missing or invalid ruleId parameter.' }
+        };
+      }
+
+      const rule = await disableAutomationRuleUseCase(ruleId, req.userId, {
+        automationRuleRepository: this.automationRuleRepository,
+        topologyReferencePort: this.topologyPort
+      });
+
+      return { statusCode: 200, body: rule };
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * PATCH /rules/:ruleId
+   * Actualización parcial (PATCH semántico) de name, trigger y/o action.
+   * Si el body no contiene ningún campo reconocido → 400.
+   */
+  async updateRule(req: AuthenticatedHttpRequest): Promise<HttpResponse> {
+    try {
+      const ruleId = req.params?.ruleId;
+      if (!ruleId || ruleId.trim() === '') {
+        return {
+          statusCode: 400,
+          body: { error: 'Bad Request', message: 'Missing or invalid ruleId parameter.' }
+        };
+      }
+
+      const body = req.body as Record<string, unknown> | null | undefined;
+      if (!body || typeof body !== 'object') {
+        return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid request body.' } };
+      }
+
+      // Acumulador mutable local — el tipo final se convierte al interface readonly al pasarlo
+      let patchName: string | undefined;
+      let patchTrigger: AutomationTrigger | undefined;
+      let patchAction: AutomationAction | undefined;
+
+      // Narrowing de name
+      if ('name' in body) {
+        if (typeof body.name !== 'string') {
+          return { statusCode: 400, body: { error: 'Bad Request', message: 'Field name must be a string.' } };
+        }
+        patchName = body.name;
+      }
+
+      // Narrowing de trigger
+      if ('trigger' in body) {
+        if (!body.trigger || typeof body.trigger !== 'object') {
+          return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid trigger structure.' } };
+        }
+        const t = body.trigger as Record<string, unknown>;
+
+        if (typeof t.deviceId !== 'string' || typeof t.stateKey !== 'string') {
+          return { statusCode: 400, body: { error: 'Bad Request', message: 'trigger.deviceId and stateKey must be strings.' } };
+        }
+        if (
+          typeof t.expectedValue !== 'string' &&
+          typeof t.expectedValue !== 'number' &&
+          typeof t.expectedValue !== 'boolean'
+        ) {
+          return {
+            statusCode: 400,
+            body: { error: 'Bad Request', message: 'trigger.expectedValue must be string, number or boolean.' }
+          };
+        }
+
+        patchTrigger = {
+          deviceId: t.deviceId,
+          stateKey: t.stateKey,
+          expectedValue: t.expectedValue
+        };
+      }
+
+      // Narrowing de action
+      if ('action' in body) {
+        if (!body.action || typeof body.action !== 'object') {
+          return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid action structure.' } };
+        }
+        const a = body.action as Record<string, unknown>;
+
+        if (typeof a.deviceId !== 'string' || typeof a.command !== 'string' || !isValidCommand(a.command)) {
+          return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid action.command value.' } };
+        }
+
+        patchAction = {
+          targetDeviceId: a.deviceId,
+          command: a.command
+        };
+      }
+
+      // Rechazar bodies vacíos sin campos reconocidos
+      if (patchName === undefined && patchTrigger === undefined && patchAction === undefined) {
+        return {
+          statusCode: 400,
+          body: { error: 'Bad Request', message: 'Body must contain at least one updatable field: name, trigger, action.' }
+        };
+      }
+
+      // Construir patch final tipado a partir del acumulador
+      const patch: UpdateAutomationRuleRequest = {
+        ...(patchName !== undefined && { name: patchName }),
+        ...(patchTrigger !== undefined && { trigger: patchTrigger }),
+        ...(patchAction !== undefined && { action: patchAction })
       };
+
+      const rule = await updateAutomationRuleUseCase(ruleId, req.userId, patch, {
+        automationRuleRepository: this.automationRuleRepository,
+        deviceRepository: this.deviceRepository,
+        topologyReferencePort: this.topologyPort
+      });
+
+      return { statusCode: 200, body: rule };
     } catch (error) {
       return handleError(error);
     }

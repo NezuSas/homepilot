@@ -9,3 +9,4 @@ export * from './repositories/DeviceRepository';
 export * from './repositories/AutomationRuleRepository';
 export * from './automation/types';
 export * from './automation/createAutomationRule';
+export * from './automation/updateAutomationRule';

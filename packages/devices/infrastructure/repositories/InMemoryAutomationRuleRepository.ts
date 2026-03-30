@@ -4,49 +4,72 @@ import { AutomationRule } from '../../domain/automation/types';
 /**
  * Adaptador de persistencia volátil para las reglas de automatización.
  * Diseñado para ejecución en el Edge y pruebas de integración rápidas.
- * Garantiza la integridad de los datos mediante copias congeladas (Object.freeze).
+ *
+ * save() funciona como upsert: crea la regla si no existe o la reemplaza completamente si ya existe.
+ * No se necesita un método update() separado — Map.set() es idempotente y determinista.
+ *
+ * Garantías de inmutabilidad:
+ * - La copia almacenada internamente y todas las copias retornadas son profundamente congeladas.
+ * - No se exponen referencias mutables al estado interno.
  */
 export class InMemoryAutomationRuleRepository implements AutomationRuleRepository {
-  private rules: Map<string, AutomationRule> = new Map();
+  private readonly rules: Map<string, AutomationRule> = new Map();
 
+  /**
+   * Guarda o reemplaza una regla de forma atómica (upsert).
+   * Si ya existe una regla con el mismo id, es reemplazada completamente.
+   */
   async save(rule: AutomationRule): Promise<void> {
-    // Almacenamiento hermético aislando apuntadores mediante una copia congelada
-    this.rules.set(rule.id, Object.freeze({ ...rule }));
+    // Almacenamos una copia congelada en profundidad para evitar mutaciones externas
+    this.rules.set(rule.id, this.freeze(rule));
   }
 
   async findById(id: string): Promise<AutomationRule | null> {
     const rule = this.rules.get(id);
     if (!rule) return null;
-    return Object.freeze({ ...rule });
+    // Retornar copia congelada para evitar que el llamador mute el estado interno
+    return this.freeze(rule);
   }
 
   async findByTriggerDevice(deviceId: string): Promise<ReadonlyArray<AutomationRule>> {
     const matching: AutomationRule[] = [];
-    
-    // Filtramos solo reglas habilitadas que coincidan con el dispositivo disparador
+
+    // El engine solo debe evaluar reglas habilitadas, el filtro ocurre aquí como optimización
     for (const rule of this.rules.values()) {
       if (rule.trigger.deviceId === deviceId && rule.enabled) {
-        matching.push(Object.freeze({ ...rule }));
+        matching.push(this.freeze(rule));
       }
     }
-    
+
     return Object.freeze(matching);
   }
 
   async findByHomeId(homeId: string): Promise<ReadonlyArray<AutomationRule>> {
     const homeRules: AutomationRule[] = [];
-    
+
     for (const rule of this.rules.values()) {
       if (rule.homeId === homeId) {
-        homeRules.push(Object.freeze({ ...rule }));
+        homeRules.push(this.freeze(rule));
       }
     }
-    
+
     return Object.freeze(homeRules);
   }
 
   async delete(id: string): Promise<void> {
-    // Eliminación silenciosa si la regla no existe, consistente con Adaptadores InMemory
+    // Eliminación silenciosa si la regla no existe, patrón consistente con adaptadores InMemory
     this.rules.delete(id);
+  }
+
+  /**
+   * Congela profundamente la entidad: top-level, trigger y action.
+   * Garantiza que ningún consumidor pueda mutar el estado almacenado internamente.
+   */
+  private freeze(rule: AutomationRule): AutomationRule {
+    return Object.freeze({
+      ...rule,
+      trigger: Object.freeze({ ...rule.trigger }),
+      action: Object.freeze({ ...rule.action })
+    });
   }
 }
