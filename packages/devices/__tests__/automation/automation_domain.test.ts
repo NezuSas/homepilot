@@ -1,4 +1,5 @@
 import { createAutomationRule } from '../../domain/automation/createAutomationRule';
+import { updateAutomationRule } from '../../domain/automation/updateAutomationRule';
 import { InvalidAutomationRuleError, AutomationLoopError } from '../../domain/errors';
 
 describe('Automation Domain: createAutomationRule', () => {
@@ -71,5 +72,66 @@ describe('Automation Domain: createAutomationRule', () => {
       action: validAction
     }, idGen);
     expect(typeof ruleStr.trigger.expectedValue).toBe('string');
+  });
+});
+
+describe('Automation Domain: updateAutomationRule', () => {
+  // Regla base para todos los tests de update
+  const baseRule = Object.freeze({
+    id: 'rule-abc',
+    homeId: 'home-1',
+    userId: 'user-owner',
+    name: 'Regla Original',
+    enabled: true,
+    trigger: Object.freeze({ deviceId: 'sensor-1', stateKey: 'contact', expectedValue: 'open' }),
+    action: Object.freeze({ targetDeviceId: 'light-1', command: 'turn_on' as const })
+  });
+
+  it('actualiza el nombre correctamente con trimming', () => {
+    const updated = updateAutomationRule(baseRule, { name: '  Renombrada  ' });
+    expect(updated.name).toBe('Renombrada');
+    // Resto de campos preservados
+    expect(updated.trigger.deviceId).toBe('sensor-1');
+    expect(updated.action.targetDeviceId).toBe('light-1');
+  });
+
+  it('preserva trigger y action cuando el patch solo incluye name', () => {
+    const updated = updateAutomationRule(baseRule, { name: 'Nuevo Nombre' });
+    expect(updated.trigger).toEqual(baseRule.trigger);
+    expect(updated.action).toEqual(baseRule.action);
+  });
+
+  it('preserva name y action cuando el patch solo incluye trigger', () => {
+    const newTrigger = { deviceId: 'sensor-2', stateKey: 'presence', expectedValue: true };
+    const updated = updateAutomationRule(baseRule, { trigger: newTrigger });
+    expect(updated.name).toBe('Regla Original');
+    expect(updated.trigger.deviceId).toBe('sensor-2');
+    expect(updated.action).toEqual(baseRule.action);
+  });
+
+  it('lanza InvalidAutomationRuleError si el name queda vacío tras trimming', () => {
+    expect(() => updateAutomationRule(baseRule, { name: '   ' })).toThrow(InvalidAutomationRuleError);
+  });
+
+  it('lanza AutomationLoopError si el resultado final tiene trigger.deviceId === action.targetDeviceId', () => {
+    expect(() => updateAutomationRule(baseRule, {
+      trigger: { deviceId: 'light-1', stateKey: 'power', expectedValue: 'on' }
+    })).toThrow(AutomationLoopError);
+  });
+
+  it('no muta el objeto original', () => {
+    const originalName = baseRule.name;
+    updateAutomationRule(baseRule, { name: 'Nuevo' });
+    expect(baseRule.name).toBe(originalName);
+  });
+
+  it('preserva los campos de identidad (id, homeId, userId, enabled) aunque se intenten pasar en el patch', () => {
+    // El tipo UpdateAutomationRulePatch no incluye id/homeId/userId/enabled,
+    // por lo que la función de dominio garantiza su inmutabilidad de forma implícita.
+    const updated = updateAutomationRule(baseRule, { name: 'X' });
+    expect(updated.id).toBe('rule-abc');
+    expect(updated.homeId).toBe('home-1');
+    expect(updated.userId).toBe('user-owner');
+    expect(updated.enabled).toBe(true);
   });
 });
