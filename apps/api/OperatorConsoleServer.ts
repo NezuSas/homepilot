@@ -8,6 +8,7 @@ import { enableAutomationRuleUseCase } from '../../packages/devices/application/
 import { disableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DisableAutomationRuleUseCase';
 import { createAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/CreateAutomationRuleUseCase';
 import { deleteAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DeleteAutomationRuleUseCase';
+import { updateAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase';
 import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
 import { AutomationRule } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
@@ -175,6 +176,32 @@ export class OperatorConsoleServer {
           const name = error instanceof Error ? error.constructor.name : '';
           let code = 500;
           if (name === 'DeviceNotFoundError') code = 404;
+          else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') code = 400;
+          this.sendError(res, code, error instanceof Error ? error.message : 'Error');
+        }
+      });
+      return;
+    }
+
+    // PATCH /api/v1/automations/:id
+    const patchAutoMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
+    if (patchAutoMatch) {
+      const ruleId = patchAutoMatch[1];
+      let body = ''; req.on('data', c => body += c);
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
+          const result = await updateAutomationRuleUseCase(ruleId, 'local-op', payload, {
+            automationRuleRepository: this.container.repositories.automationRuleRepository,
+            deviceRepository: this.container.repositories.deviceRepository,
+            topologyReferencePort: ports
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+        } catch (error: unknown) {
+          const name = error instanceof Error ? error.constructor.name : '';
+          let code = 500;
+          if (name === 'AutomationRuleNotFoundError') code = 404;
           else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') code = 400;
           this.sendError(res, code, error instanceof Error ? error.message : 'Error');
         }

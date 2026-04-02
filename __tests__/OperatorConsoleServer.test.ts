@@ -27,7 +27,9 @@ describe('OperatorConsoleServer Integration Tests', () => {
       .run(now, now);
     db.prepare("INSERT INTO rooms (id, home_id, name, entity_version, created_at, updated_at) VALUES ('r-01', 'h-01', 'Living', 1, ?, ?)")
       .run(now, now);
-    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01', 'h-01', 'ext-1', 'L', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
+    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01', 'h-01', 'ext-1', 'L1', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
+      .run(JSON.stringify({ on: false }), now, now);
+    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-02', 'h-01', 'ext-2', 'L2', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
       .run(JSON.stringify({ on: false }), now, now);
 
     server = new OperatorConsoleServer(container, DB_PATH, PORT);
@@ -45,7 +47,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
       await container.repositories.automationRuleRepository.save({
         id: rid, homeId: 'h-01', userId: 'u-01', name: 'R', enabled: true,
         trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
-        action: { targetDeviceId: 'd-01', command: 'turn_off' }
+        action: { targetDeviceId: 'd-02', command: 'turn_off' }
       });
     });
 
@@ -54,6 +56,29 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(res.status).toBe(200);
       const data = (await res.json()) as AutomationRule[];
       expect(data.some(r => r.id === rid)).toBe(true);
+    });
+
+    it('PATCH /api/v1/automations/:id: update name', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Updated Name' })
+      });
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as AutomationRule;
+      expect(data.name).toBe('Updated Name');
+    });
+
+    it('PATCH /api/v1/automations/:id: 400 loop', async () => {
+      // Intentar crear un bucle: trigger d-01 -> target d-01
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: { targetDeviceId: 'd-01', command: 'turn_off' }
+        })
+      });
+      expect(res.status).toBe(400);
     });
 
     it('PATCH /api/v1/automations/:id/disable: deactivate rule', async () => {
@@ -70,8 +95,12 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(inDb).toBeNull();
     });
 
-    it('DELETE /api/v1/automations/:id: 404', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/fake`, { method: 'DELETE' });
+    it('PATCH /api/v1/automations/:id: 404', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/fake`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'New Name' })
+      });
       expect(res.status).toBe(404);
     });
   });

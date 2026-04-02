@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Ghost, Cpu, Plus, X, CheckCircle2, Trash2 } from 'lucide-react';
+import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Ghost, Cpu, Plus, X, CheckCircle2, Trash2, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 /**
@@ -46,8 +46,9 @@ export const AutomationWorkbenchView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para creación
+  // Estados para creación y edición
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -128,7 +129,26 @@ export const AutomationWorkbenchView: React.FC = () => {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const startEditing = (rule: AutomationRule) => {
+    setEditingId(rule.id);
+    setShowForm(false);
+    setFormData({
+      name: rule.name,
+      triggerDeviceId: rule.trigger.deviceId,
+      stateKey: rule.trigger.stateKey,
+      expectedValue: String(rule.trigger.expectedValue),
+      targetDeviceId: rule.action.targetDeviceId,
+      command: rule.action.command
+    });
+    setCreateError(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setFormData({ name: '', triggerDeviceId: '', stateKey: 'occupancy', expectedValue: 'true', targetDeviceId: '', command: 'turn_on' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setCreateError(null);
@@ -146,19 +166,23 @@ export const AutomationWorkbenchView: React.FC = () => {
         }
       };
 
-      const res = await fetch(`${API_URL}/automations`, {
-        method: 'POST',
+      const method = editingId ? 'PATCH' : 'POST';
+      const endpoint = editingId ? `${API_URL}/automations/${editingId}` : `${API_URL}/automations`;
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = (await res.json()) as AutomationRule | { error: string };
 
-      if (!res.ok) throw new Error('error' in data ? data.error : 'Error al crear la regla');
+      if (!res.ok) throw new Error('error' in data ? data.error : 'Error en la operación');
 
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
         setShowForm(false);
+        setEditingId(null);
         setFormData({ name: '', triggerDeviceId: '', stateKey: 'occupancy', expectedValue: 'true', targetDeviceId: '', command: 'turn_on' });
         fetchRules();
       }, 1500);
@@ -189,23 +213,26 @@ export const AutomationWorkbenchView: React.FC = () => {
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{rules.length} Active Recipes</span>
         </div>
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (editingId) cancelEditing();
+            setShowForm(!showForm);
+          }}
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg",
-            showForm ? "bg-muted text-foreground border" : "bg-primary text-white shadow-primary/20 hover:scale-105 active:scale-95"
+            (showForm || editingId) ? "bg-muted text-foreground border" : "bg-primary text-white shadow-primary/20 hover:scale-105 active:scale-95"
           )}
         >
-          {showForm ? <><X className="w-4 h-4" /> Cancel</> : <><Plus className="w-4 h-4" /> Create Rule</>}
+          {showForm ? <><X className="w-4 h-4" /> Cancel</> : editingId ? <><X className="w-4 h-4" /> Cancel Edit</> : <><Plus className="w-4 h-4" /> Create Rule</>}
         </button>
       </div>
 
-      {/* Creation Form */}
-      {showForm && (
-        <form onSubmit={handleCreate} className="bg-card border-2 border-primary/20 rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
+      {/* Form (Creation or Edition) */}
+      {(showForm || editingId) && (
+        <form onSubmit={handleSubmit} className="bg-card border-2 border-primary/20 rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
           {success && (
             <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-white z-10 animate-in fade-in">
               <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
-              <span className="text-xl font-black uppercase tracking-tighter">Regla Creada Exitosamente</span>
+              <span className="text-xl font-black uppercase tracking-tighter">{editingId ? 'Regla Actualizada' : 'Regla Creada Exitosamente'}</span>
             </div>
           )}
 
@@ -309,7 +336,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                   type="submit"
                   className="w-full bg-primary text-white py-5 rounded-[2rem] text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 group"
                 >
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>SAVE AUTOMATION <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" /></>}
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{editingId ? 'UPDATE AUTOMATION' : 'SAVE AUTOMATION'} <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" /></>}
                 </button>
               </div>
             </div>
@@ -317,7 +344,7 @@ export const AutomationWorkbenchView: React.FC = () => {
         </form>
       )}
 
-      {rules.length === 0 && !loading && !showForm ? (
+      {rules.length === 0 && !loading && !showForm && !editingId ? (
         <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed rounded-[3rem] text-center p-12 bg-card/20">
           <Ghost className="w-16 h-16 text-muted-foreground opacity-10 mb-8" />
           <h3 className="text-2xl font-black tracking-tight">No hay reglas locales</h3>
@@ -329,7 +356,8 @@ export const AutomationWorkbenchView: React.FC = () => {
             <div key={rule.id} className={cn(
               "relative flex flex-col md:flex-row border border-border rounded-[2.5rem] bg-card overflow-hidden transition-all duration-500 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5",
               !rule.enabled && "opacity-60 grayscale-[0.5]",
-              rule._processing && "pointer-events-none cursor-wait"
+              rule._processing && "pointer-events-none cursor-wait",
+              editingId === rule.id && "border-primary ring-2 ring-primary/20 shadow-2xl"
             )}>
               <div className={cn(
                 "w-full md:w-56 p-10 flex flex-col items-center justify-center gap-5 border-b md:border-b-0 md:border-r border-border/40",
@@ -349,16 +377,26 @@ export const AutomationWorkbenchView: React.FC = () => {
                      {rule.enabled ? 'Disable' : 'Enable'}
                    </button>
                    
-                   {rule._confirmingDelete ? (
-                     <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
-                       <button onClick={() => handleDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-white rounded-xl text-[9px] font-black uppercase tracking-tighter">Confirm</button>
-                       <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: false } : r))} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase">X</button>
-                     </div>
-                   ) : (
-                     <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: true } : r))} className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                   <div className="flex flex-col gap-1.5 pt-1.5 border-t border-border/40 mt-1.5">
+                     <button 
+                        onClick={() => startEditing(rule)}
+                        disabled={rule._processing}
+                        className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors"
+                     >
+                        <Edit2 className="w-3.5 h-3.5" /> Edit
                      </button>
-                   )}
+
+                     {rule._confirmingDelete ? (
+                       <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
+                         <button onClick={() => handleDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-white rounded-xl text-[9px] font-black uppercase tracking-tighter">Confirm</button>
+                         <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: false } : r))} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase">X</button>
+                       </div>
+                     ) : (
+                       <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: true } : r))} className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                       </button>
+                     )}
+                   </div>
                  </div>
                  {rule._error && <span className="absolute top-4 left-4 right-4 bg-destructive text-white text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl">{rule._error}</span>}
               </div>
