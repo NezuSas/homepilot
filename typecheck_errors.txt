@@ -1,0 +1,146 @@
+
+> homepilot-workspace@1.0.0 typecheck
+> tsc --noEmit
+
+apps/operator-console/src/App.tsx(3,30): error TS6142: Module './views/TopologyView' was resolved to 'C:/Users/ocuen/Developer/Nezu/homepilot/apps/operator-console/src/views/TopologyView.tsx', but '--jsx' is not set.
+apps/operator-console/src/App.tsx(4,27): error TS6142: Module './views/InboxView' was resolved to 'C:/Users/ocuen/Developer/Nezu/homepilot/apps/operator-console/src/views/InboxView.tsx', but '--jsx' is not set.
+apps/operator-console/src/App.tsx(10,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(12,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(13,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(14,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(15,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(16,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(18,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(21,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(22,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(23,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(24,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(31,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(35,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(36,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(43,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(47,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(48,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(53,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(57,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(58,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(63,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(70,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(71,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(72,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(79,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(80,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(81,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(84,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(92,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(93,42): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/App.tsx(94,39): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/main.tsx(4,17): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+apps/operator-console/src/main.tsx(4,17): error TS6142: Module './App.tsx' was resolved to 'C:/Users/ocuen/Developer/Nezu/homepilot/apps/operator-console/src/App.tsx', but '--jsx' is not set.
+apps/operator-console/src/main.tsx(7,3): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/main.tsx(8,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(55,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(56,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(57,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(64,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(65,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(66,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(75,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(76,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(77,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(78,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(80,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(84,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(86,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(91,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(101,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(102,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(103,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(105,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(109,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(111,14): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(115,43): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(177,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(182,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(183,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(187,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(188,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(189,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(190,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(192,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(193,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(194,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(197,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(197,75): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(200,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(201,10): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(202,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(203,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(205,10): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(206,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(207,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(211,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(212,14): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(213,16): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(214,16): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(220,40): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(220,103): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(223,14): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(228,35): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(230,24): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(230,109): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(235,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(236,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(237,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(238,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/InboxView.tsx(245,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(57,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(58,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(59,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(65,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(68,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(69,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(70,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(72,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(78,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(80,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(84,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(88,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(98,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(99,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(100,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(104,27): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(106,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(111,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(118,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(119,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(132,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(134,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(135,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(136,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(137,26): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(142,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(143,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(144,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(147,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(149,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(154,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(158,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(159,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(160,27): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(162,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(164,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(165,26): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(166,26): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(177,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(178,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(179,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(181,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/src/views/TopologyView.tsx(182,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+apps/operator-console/vite.config.ts(1,30): error TS2307: Cannot find module 'vite' or its corresponding type declarations.
+  There are types at 'C:/Users/ocuen/Developer/Nezu/homepilot/node_modules/vite/dist/node/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+apps/operator-console/vite.config.ts(2,19): error TS2307: Cannot find module '@vitejs/plugin-react' or its corresponding type declarations.
+  There are types at 'C:/Users/ocuen/Developer/Nezu/homepilot/node_modules/@vitejs/plugin-react/dist/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+packages/topology/__tests__/api.test.ts(90,43): error TS2345: Argument of type '{ homeRepository: { saveHome: () => Promise<void>; findHomesByUserId: () => Promise<never[]>; findHomeById: () => Promise<{ id: string; ownerId: string; name: string; entityVersion: number; createdAt: string; updatedAt: string; }>; }; roomRepository: { ...; }; eventPublisher: { ...; }; idGenerator: { ...; }; clock: ...' is not assignable to parameter of type 'CreateRoomUseCaseDependencies'.
+  Types of property 'roomRepository' are incompatible.
+    Property 'findRoomById' is missing in type '{ saveRoom: () => Promise<void>; findRoomsByHomeId: () => Promise<never[]>; }' but required in type 'RoomRepository'.

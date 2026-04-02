@@ -15,4 +15,10 @@ export interface RoomRepository {
    * Retorna una lista inmutable de todas las habitaciones adscritas a un hogar específico.
    */
   findRoomsByHomeId(homeId: string): Promise<ReadonlyArray<Room>>;
+
+  /**
+   * Busca una habitación específica por su identificador único.
+   * Retorna null si no existe.
+   */
+  findRoomById(roomId: string): Promise<Room | null>;
 }

@@ -23,6 +23,11 @@ export class InMemoryRoomRepository implements RoomRepository {
     return Promise.resolve(Object.freeze(results));
   }
 
+  async findRoomById(roomId: string): Promise<Room | null> {
+    const room = this.store.get(roomId);
+    return Promise.resolve(room ? Object.freeze({ ...room }) : null);
+  }
+
   /**
    * Limpia el estado interno de la memoria temporal.
    */

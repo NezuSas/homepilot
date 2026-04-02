@@ -56,6 +56,18 @@ export class SQLiteRoomRepository implements RoomRepository {
   }
 
   /**
+   * Busca una habitación específica por su identificador único.
+   */
+  public async findRoomById(roomId: string): Promise<Room | null> {
+    const stmt = this.db.prepare('SELECT * FROM rooms WHERE id = ?');
+    const row = stmt.get(roomId) as RoomRow | undefined;
+
+    if (!row) return null;
+
+    return this.mapToEntity(row);
+  }
+
+  /**
    * Realiza la transformación de fila de base de datos a entidad de dominio.
    */
   private mapToEntity(row: RoomRow): Room {

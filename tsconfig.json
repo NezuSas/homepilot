@@ -8,15 +8,20 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "jsx": "react-jsx"
   },
   "include": [
     "packages/**/*",
-    "apps/**/*",
-    "services/**/*"
+    "apps/api/**/*",
+    "services/**/*",
+    "__tests__/**/*",
+    "main.ts",
+    "bootstrap.ts"
   ],
   "exclude": [
     "node_modules",
-    "**/*.js"
+    "**/*.js",
+    "apps/operator-console"
   ]
 }
