@@ -3,6 +3,8 @@ import * as crypto from 'crypto';
 import { BootstrapContainer } from '../../bootstrap';
 import { SqliteDatabaseManager } from '../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { assignDeviceUseCase } from '../../packages/devices/application/assignDeviceUseCase';
+import { executeDeviceCommandUseCase } from '../../packages/devices/application/executeDeviceCommandUseCase';
+import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
 
 interface LocalHomeRow {
   id: string;
@@ -28,6 +30,10 @@ interface LocalDeviceRow {
   updated_at: string;
 }
 
+/**
+ * Servidor de API local para la Operator Console.
+ * Proporciona acceso administrativo directo a la topología y dispositivos.
+ */
 export class OperatorConsoleServer {
   private server: http.Server;
 
@@ -167,7 +173,7 @@ export class OperatorConsoleServer {
               const home = await this.container.repositories.homeRepository.findHomeById(homeId);
               if (!home) throw new Error('Home not found');
             },
-            validateHomeOwnership: async (_homeId: string, _userId: string) => { /* Trust local operator */ },
+            validateHomeOwnership: async (_homeId: string, _userId: string) => { /* Trust local */ },
             validateRoomBelongsToHome: async (roomId: string, homeId: string) => {
               const room = await this.container.repositories.roomRepository.findRoomById(roomId);
               if (!room) throw new Error('Room not found');
@@ -195,12 +201,83 @@ export class OperatorConsoleServer {
           const msg = error instanceof Error ? error.message : 'Unknown error';
           const errorName = error instanceof Error ? error.constructor.name : '';
           
-          console.error(`[API] Error assigning device ${deviceId}:`, msg);
-          
           if (errorName === 'DeviceNotFoundError' || msg.includes('Room not found')) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
           } else if (errorName === 'DeviceAlreadyAssignedError' || msg.includes('does not belong to the device home')) {
             res.writeHead(409, { 'Content-Type': 'application/json' });
+          } else {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+          }
+          res.end(JSON.stringify({ error: msg }));
+        }
+      });
+      return;
+    }
+
+    // POST /api/v1/devices/:id/command
+    const commandMatch = method === 'POST' && url?.match(/^\/api\/v1\/devices\/([^\/]+)\/command$/);
+    if (commandMatch) {
+      const deviceId = commandMatch[1];
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          if (!payload.command) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Missing command in JSON body' }));
+          }
+
+          const idGenerator = { generate: () => crypto.randomUUID() };
+          const clock = { now: () => new Date().toISOString() };
+          const eventPublisher = { publish: async () => {} };
+
+          // Inyección del despachador local (simulación de telemetría reactiva)
+          const dispatcherPort = new LocalConsoleCommandDispatcher(
+            this.container.repositories.deviceRepository,
+            {
+              deviceRepository: this.container.repositories.deviceRepository,
+              eventPublisher,
+              activityLogRepository: this.container.repositories.activityLogRepository,
+              idGenerator,
+              clock
+            }
+          );
+
+          await executeDeviceCommandUseCase(
+            deviceId,
+            payload.command,
+            'local-operator',
+            'op-console-command',
+            {
+              deviceRepository: this.container.repositories.deviceRepository,
+              eventPublisher,
+              topologyPort: { 
+                validateHomeExists: async () => {}, 
+                validateHomeOwnership: async () => {}, 
+                validateRoomBelongsToHome: async () => {} 
+              },
+              dispatcherPort,
+              activityLogRepository: this.container.repositories.activityLogRepository,
+              idGenerator,
+              clock
+            }
+          );
+
+          // Retornar dispositivo actualizado tras simulación
+          const updated = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(updated));
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : 'Unknown error';
+          const errorName = error instanceof Error ? error.constructor.name : '';
+          
+          if (errorName === 'DeviceNotFoundError') {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+          } else if (errorName === 'DevicePendingStateError') {
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+          } else if (errorName === 'InvalidDeviceCommandError' || errorName === 'UnsupportedCommandError') {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
           } else {
             res.writeHead(500, { 'Content-Type': 'application/json' });
           }
