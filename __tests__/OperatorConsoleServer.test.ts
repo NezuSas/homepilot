@@ -87,6 +87,58 @@ describe('OperatorConsoleServer Integration Tests (Hardened Final)', () => {
       const data = await res.json() as { error: string };
       expect(data.error).toContain('fake-id');
     });
+
+    it('POST /api/v1/automations: debe crear una regla correctamente', async () => {
+      const payload = {
+        name: 'New Cool Rule',
+        trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
+        action: { targetDeviceId: 'd-01-target', command: 'turn_on' }
+      };
+
+      // Mocking target device in DB to pass UseCase validation
+      const db = SqliteDatabaseManager.getInstance(DB_PATH);
+      db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01-target', 'h-01', 'ext-2', 'T', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
+        .run(JSON.stringify({ on: false }), new Date().toISOString(), new Date().toISOString());
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      expect(res.status).toBe(201);
+      const data = await res.json() as AutomationRule;
+      expect(data.name).toBe('New Cool Rule');
+      expect(data.id).toBeDefined();
+    });
+
+    it('POST /api/v1/automations: debe fallar con 400 si hay un bucle (self-trigger)', async () => {
+      const payload = {
+        name: 'Loop Rule',
+        trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
+        action: { targetDeviceId: 'd-01', command: 'turn_off' }
+      };
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json() as { error: string };
+      expect(data.error).toContain('loop');
+    });
+
+    it('POST /api/v1/automations: debe fallar con 400 si faltan campos obligatorios', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Incomplete' })
+      });
+
+      expect(res.status).toBe(400);
+    });
   });
 
   describe('Legacy Slice Integrity (Assign & Command)', () => {

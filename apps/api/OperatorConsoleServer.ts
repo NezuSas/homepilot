@@ -6,6 +6,7 @@ import { assignDeviceUseCase } from '../../packages/devices/application/assignDe
 import { executeDeviceCommandUseCase } from '../../packages/devices/application/executeDeviceCommandUseCase';
 import { enableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/EnableAutomationRuleUseCase';
 import { disableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DisableAutomationRuleUseCase';
+import { createAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/CreateAutomationRuleUseCase';
 import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
 import { AutomationRule } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
@@ -149,6 +150,50 @@ export class OperatorConsoleServer {
       } catch (error: unknown) {
         this.sendError(res, 500, error instanceof Error ? error.message : 'Rule access error');
       }
+      return;
+    }
+
+    // POST /api/v1/automations
+    if (method === 'POST' && pathname === '/api/v1/automations') {
+      let body = ''; req.on('data', c => body += c);
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          if (!payload.name) return this.sendError(res, 400, 'Missing rule name');
+          if (!payload.trigger?.deviceId) return this.sendError(res, 400, 'Missing trigger deviceId');
+          if (!payload.action?.targetDeviceId) return this.sendError(res, 400, 'Missing action targetDeviceId');
+          if (!payload.action?.command) return this.sendError(res, 400, 'Missing action command');
+
+          // Obtener el primer hogal local (V1 solo soporta un hogar en Edge)
+          const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
+          if (!home) return this.sendError(res, 500, 'No local home found for rule placement');
+
+          const result = await createAutomationRuleUseCase({
+            homeId: home.id,
+            userId: 'local-op',
+            name: payload.name,
+            trigger: payload.trigger,
+            action: payload.action
+          }, {
+            automationRuleRepository: this.container.repositories.automationRuleRepository,
+            deviceRepository: this.container.repositories.deviceRepository,
+            topologyReferencePort: { 
+              validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, 
+              validateRoomBelongsToHome: async () => {} 
+            },
+            idGenerator: { generate: () => crypto.randomUUID() }
+          });
+
+          res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+        } catch (error: unknown) {
+          const name = error instanceof Error ? error.constructor.name : '';
+          const msg = error instanceof Error ? error.message : 'Creation failed';
+          let code = 500;
+          if (name === 'DeviceNotFoundError') code = 404;
+          else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') code = 400;
+          this.sendError(res, code, msg);
+        }
+      });
       return;
     }
 
