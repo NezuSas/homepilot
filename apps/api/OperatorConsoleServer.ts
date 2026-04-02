@@ -4,7 +4,11 @@ import { BootstrapContainer } from '../../bootstrap';
 import { SqliteDatabaseManager } from '../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { assignDeviceUseCase } from '../../packages/devices/application/assignDeviceUseCase';
 import { executeDeviceCommandUseCase } from '../../packages/devices/application/executeDeviceCommandUseCase';
+import { enableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/EnableAutomationRuleUseCase';
+import { disableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DisableAutomationRuleUseCase';
 import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
+import { AutomationRule } from '../../packages/devices/domain/automation/types';
+import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
 
 interface LocalHomeRow {
   id: string;
@@ -31,8 +35,8 @@ interface LocalDeviceRow {
 }
 
 /**
- * Servidor de API local para la Operator Console.
- * Proporciona acceso administrativo directo a la topología y dispositivos.
+ * Servidor de API local para la Operator Console V1.
+ * Finalización y endurecimiento total del slice.
  */
 export class OperatorConsoleServer {
   private server: http.Server;
@@ -47,54 +51,38 @@ export class OperatorConsoleServer {
 
   public start(): void {
     this.server.listen(this.port, '0.0.0.0', () => {
-      console.log(`[OperatorConsoleServer] API local escuchando en http://localhost:${this.port}`);
+      console.log(`[OperatorConsoleServer] API local en http://localhost:${this.port}`);
     });
   }
 
   public stop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.server.close((err) => {
-        if (err) return reject(err);
-        resolve();
-      });
+    return new Promise((resolve) => {
+      this.server.close(() => resolve());
     });
   }
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    // CORS básico para el entorno local
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
+      res.writeHead(204).end();
       return;
     }
 
     const { url, method } = req;
-    
+    const db = SqliteDatabaseManager.getInstance(this.dbPath);
+
     // GET /api/v1/homes
     if (method === 'GET' && url === '/api/v1/homes') {
       try {
-        const db = SqliteDatabaseManager.getInstance(this.dbPath);
         const rows = db.prepare('SELECT * FROM homes').all() as LocalHomeRow[];
-        
-        const homes = rows.map(r => ({
-          id: r.id,
-          ownerId: r.owner_id,
-          name: r.name,
-          entityVersion: r.entity_version,
-          createdAt: r.created_at,
-          updatedAt: r.updated_at
-        }));
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(homes));
-      } catch (error) {
-        console.error('[API] Error in GET /api/v1/homes:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Internal Server Error' }));
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
+          id: r.id, ownerId: r.owner_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
+        }))));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Registry access error');
       }
       return;
     }
@@ -102,53 +90,43 @@ export class OperatorConsoleServer {
     // GET /api/v1/devices
     if (method === 'GET' && url === '/api/v1/devices') {
       try {
-        const db = SqliteDatabaseManager.getInstance(this.dbPath);
         const rows = db.prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC').all() as LocalDeviceRow[];
-        
-        const devices = rows.map(r => ({
-          id: r.id,
-          homeId: r.home_id,
-          roomId: r.room_id,
-          externalId: r.external_id,
-          name: r.name,
-          type: r.type,
-          vendor: r.vendor,
-          status: r.status,
-          lastKnownState: r.last_known_state ? JSON.parse(r.last_known_state) : null,
-          entityVersion: r.entity_version,
-          createdAt: r.created_at,
-          updatedAt: r.updated_at
-        }));
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(devices));
-      } catch (error) {
-        console.error('[API] Error in GET /api/v1/devices:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Internal Server Error' }));
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
+          id: r.id, homeId: r.home_id, roomId: r.room_id, externalId: r.external_id, name: r.name, type: r.type, vendor: r.vendor,
+          status: r.status, lastKnownState: r.last_known_state ? JSON.parse(r.last_known_state) : null,
+          entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
+        }))));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Telemetry access error');
       }
       return;
     }
 
-    // GET /api/v1/homes/:homeId/rooms
-    const roomsMatch = method === 'GET' && url?.match(/^\/api\/v1\/homes\/([^\/]+)\/rooms$/);
-    if (roomsMatch) {
-      const homeId = roomsMatch[1];
+    // GET /api/v1/automations
+    if (method === 'GET' && url === '/api/v1/automations') {
       try {
-        const home = await this.container.repositories.homeRepository.findHomeById(homeId);
-        if (!home) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Home not found' }));
-          return;
-        }
+        const rules = await this.container.repositories.automationRuleRepository.findAll();
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rules));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Rule access error');
+      }
+      return;
+    }
 
-        const rooms = await this.container.repositories.roomRepository.findRoomsByHomeId(homeId);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(rooms));
-      } catch (error) {
-        console.error(`[API] Error in GET /api/v1/homes/${homeId}/rooms:`, error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Internal Server Error' }));
+    // PATCH /api/v1/automations/:id/(enable|disable)
+    const autoMatch = method === 'PATCH' && url?.match(/^\/api\/v1\/automations\/([^\/]+)\/(enable|disable)$/);
+    if (autoMatch) {
+      const ruleId = autoMatch[1];
+      const act = autoMatch[2];
+      try {
+        const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
+        const result = act === 'enable' 
+          ? await enableAutomationRuleUseCase(ruleId, 'local-op', { automationRuleRepository: this.container.repositories.automationRuleRepository, topologyReferencePort: ports })
+          : await disableAutomationRuleUseCase(ruleId, 'local-op', { automationRuleRepository: this.container.repositories.automationRuleRepository, topologyReferencePort: ports });
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+      } catch (error: unknown) {
+        const name = error instanceof Error ? error.constructor.name : '';
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, error instanceof Error ? error.message : 'Patch failed');
       }
       return;
     }
@@ -156,59 +134,32 @@ export class OperatorConsoleServer {
     // POST /api/v1/devices/:id/assign
     const assignMatch = method === 'POST' && url?.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
     if (assignMatch) {
-      const deviceId = assignMatch[1];
-      
-      let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
+      let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body || '{}');
-          if (!payload.roomId) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Missing roomId in JSON body' }));
-          }
-
-          const topologyPort = {
-            validateHomeExists: async (homeId: string) => {
-              const home = await this.container.repositories.homeRepository.findHomeById(homeId);
-              if (!home) throw new Error('Home not found');
+          if (!payload.roomId) return this.sendError(res, 400, 'Missing roomId');
+          const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, 'local-op', 'op-console', {
+            deviceRepository: this.container.repositories.deviceRepository,
+            eventPublisher: { publish: async () => {} },
+            topologyPort: { 
+              validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, 
+              validateRoomBelongsToHome: async (r, h) => { 
+                const room = await this.container.repositories.roomRepository.findRoomById(r); 
+                if (!room) throw new Error('Room not found');
+                if (room.homeId !== h) throw new Error('Home mismatch');
+              }
             },
-            validateHomeOwnership: async (_homeId: string, _userId: string) => { /* Trust local */ },
-            validateRoomBelongsToHome: async (roomId: string, homeId: string) => {
-              const room = await this.container.repositories.roomRepository.findRoomById(roomId);
-              if (!room) throw new Error('Room not found');
-              if (room.homeId !== homeId) throw new Error('Room does not belong to the device home');
-            }
-          };
-
-          const assignedDevice = await assignDeviceUseCase(
-            deviceId,
-            payload.roomId,
-            'local-operator',
-            'op-console-correlation',
-            {
-              deviceRepository: this.container.repositories.deviceRepository,
-              eventPublisher: { publish: async () => {} },
-              topologyPort,
-              idGenerator: { generate: () => crypto.randomUUID() },
-              clock: { now: () => new Date().toISOString() }
-            }
-          );
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(assignedDevice));
-        } catch (error) {
+            idGenerator: { generate: () => crypto.randomUUID() }, clock: { now: () => new Date().toISOString() }
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+        } catch (error: unknown) {
+          const name = error instanceof Error ? error.constructor.name : '';
           const msg = error instanceof Error ? error.message : 'Unknown error';
-          const errorName = error instanceof Error ? error.constructor.name : '';
-          
-          if (errorName === 'DeviceNotFoundError' || msg.includes('Room not found')) {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-          } else if (errorName === 'DeviceAlreadyAssignedError' || msg.includes('does not belong to the device home')) {
-            res.writeHead(409, { 'Content-Type': 'application/json' });
-          } else {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-          }
-          res.end(JSON.stringify({ error: msg }));
+          let code = 500;
+          if (name === 'DeviceNotFoundError' || msg.includes('not found')) code = 404;
+          else if (name === 'DeviceAlreadyAssignedError' || msg.includes('mismatch')) code = 409;
+          this.sendError(res, code, msg);
         }
       });
       return;
@@ -217,77 +168,48 @@ export class OperatorConsoleServer {
     // POST /api/v1/devices/:id/command
     const commandMatch = method === 'POST' && url?.match(/^\/api\/v1\/devices\/([^\/]+)\/command$/);
     if (commandMatch) {
-      const deviceId = commandMatch[1];
-      let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
+      let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body || '{}');
-          if (!payload.command) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Missing command in JSON body' }));
-          }
+          const cmd = payload.command;
+          if (!cmd || !isValidCommand(cmd)) return this.sendError(res, 400, 'Invalid or missing command. Use: turn_on, turn_off, toggle');
 
-          const idGenerator = { generate: () => crypto.randomUUID() };
-          const clock = { now: () => new Date().toISOString() };
-          const eventPublisher = { publish: async () => {} };
+          const dispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, {
+            deviceRepository: this.container.repositories.deviceRepository,
+            eventPublisher: { publish: async () => {} },
+            activityLogRepository: this.container.repositories.activityLogRepository,
+            idGenerator: { generate: () => crypto.randomUUID() },
+            clock: { now: () => new Date().toISOString() }
+          });
 
-          // Inyección del despachador local (simulación de telemetría reactiva)
-          const dispatcherPort = new LocalConsoleCommandDispatcher(
-            this.container.repositories.deviceRepository,
-            {
-              deviceRepository: this.container.repositories.deviceRepository,
-              eventPublisher,
-              activityLogRepository: this.container.repositories.activityLogRepository,
-              idGenerator,
-              clock
-            }
-          );
-
-          await executeDeviceCommandUseCase(
-            deviceId,
-            payload.command,
-            'local-operator',
-            'op-console-command',
-            {
-              deviceRepository: this.container.repositories.deviceRepository,
-              eventPublisher,
-              topologyPort: { 
-                validateHomeExists: async () => {}, 
-                validateHomeOwnership: async () => {}, 
-                validateRoomBelongsToHome: async () => {} 
-              },
-              dispatcherPort,
-              activityLogRepository: this.container.repositories.activityLogRepository,
-              idGenerator,
-              clock
-            }
-          );
-
-          // Retornar dispositivo actualizado tras simulación
-          const updated = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(updated));
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : 'Unknown error';
-          const errorName = error instanceof Error ? error.constructor.name : '';
-          
-          if (errorName === 'DeviceNotFoundError') {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-          } else if (errorName === 'DevicePendingStateError') {
-            res.writeHead(409, { 'Content-Type': 'application/json' });
-          } else if (errorName === 'InvalidDeviceCommandError' || errorName === 'UnsupportedCommandError') {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-          } else {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-          }
-          res.end(JSON.stringify({ error: msg }));
+          await executeDeviceCommandUseCase(commandMatch[1], cmd as DeviceCommandV1, 'local-op', 'op-console', {
+            deviceRepository: this.container.repositories.deviceRepository,
+            eventPublisher: { publish: async () => {} },
+            topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
+            dispatcherPort: dispatcher,
+            activityLogRepository: this.container.repositories.activityLogRepository,
+            idGenerator: { generate: () => crypto.randomUUID() },
+            clock: { now: () => new Date().toISOString() }
+          });
+          const upd = await this.container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(upd));
+        } catch (error: unknown) {
+          const name = error instanceof Error ? error.constructor.name : '';
+          let code = 500;
+          if (name === 'DeviceNotFoundError') code = 404;
+          else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') code = 400;
+          else if (name === 'DevicePendingStateError') code = 409;
+          this.sendError(res, code, error instanceof Error ? error.message : 'Command execution failed');
         }
       });
       return;
     }
 
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Route Not Found' }));
+    this.sendError(res, 404, 'Route Not Found');
+  }
+
+  private sendError(res: http.ServerResponse, code: number, msg: string) {
+    res.writeHead(code, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: msg }));
   }
 }

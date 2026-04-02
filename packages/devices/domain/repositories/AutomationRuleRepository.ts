@@ -14,9 +14,12 @@ export interface AutomationRuleRepository {
   /** Encuentra todas las reglas que dependen de un dispositivo disparador específico */
   findByTriggerDevice(deviceId: string): Promise<ReadonlyArray<AutomationRule>>;
   
-  /** Lista todas las reglas configuradas para un hogar */
+  /** Lista todas las reglas configuradas para un hogar específico */
   findByHomeId(homeId: string): Promise<ReadonlyArray<AutomationRule>>;
-  
+
+  /** Lista todas las reglas del sistema (Operador Local) */
+  findAll(): Promise<ReadonlyArray<AutomationRule>>;
+
   /** Elimina una regla del sistema */
   delete(id: string): Promise<void>;
 }

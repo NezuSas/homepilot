@@ -102,6 +102,16 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
   }
 
   /**
+   * Lista todas las reglas del sistema.
+   * Utilizado por la consola del operador local para gestión global.
+   */
+  public async findAll(): Promise<ReadonlyArray<AutomationRule>> {
+    const stmt = this.db.prepare('SELECT * FROM automation_rules ORDER BY created_at DESC');
+    const rows = stmt.all() as AutomationRuleRow[];
+    return rows.map(row => this.mapToEntity(row));
+  }
+
+  /**
    * Elimina silenciosamente una regla del sistema por su ID.
    */
   public async delete(id: string): Promise<void> {

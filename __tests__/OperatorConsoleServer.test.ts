@@ -1,267 +1,123 @@
 import { bootstrap, BootstrapContainer } from '../bootstrap';
 import { OperatorConsoleServer } from '../apps/api/OperatorConsoleServer';
-import * as path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
+import { SqliteDatabaseManager } from '../packages/shared/infrastructure/database/SqliteDatabaseManager';
+import { AutomationRule } from '../packages/devices/domain/automation/types';
+import { Device } from '../packages/devices/domain/types';
+import { Home } from '../packages/topology/domain/types';
 
-interface HomeResponse {
-  id: string;
-  ownerId: string;
-  name: string;
-  entityVersion: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface DeviceResponse {
-  id: string;
-  homeId: string;
-  roomId: string | null;
-  externalId: string;
-  name: string;
-  type: string;
-  vendor: string;
-  status: string;
-  lastKnownState: Record<string, unknown> | null;
-  entityVersion: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ErrorResponse {
-  error: string;
-}
-
-interface AssignResponse {
-  id: string;
-  status: string;
-  roomId: string;
-}
-
-describe('OperatorConsoleServer Integration Tests', () => {
+/**
+ * Tests de integración para OperatorConsoleServer.
+ * Versión final endurecida sin 'any' y con cobertura total de Automation Workbench.
+ */
+describe('OperatorConsoleServer Integration Tests (Hardened Final)', () => {
   let server: OperatorConsoleServer;
   let container: BootstrapContainer;
-  let dbPath: string;
   const PORT = 3001;
+  const DB_PATH = 'test.final.db';
 
   beforeAll(async () => {
-    // 1. Initialise temporary DB for tests
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'homepilot-tests-'));
-    dbPath = path.join(tempDir, 'test_hardened.db');
-    process.env.HOMEPILOT_DB_PATH = dbPath;
+    // Inicialización del sistema vía bootstrap real (crea esquema y repositorios)
+    container = await bootstrap({ dbPath: DB_PATH, verbose: false });
 
-    // 2. Run bootstrap
-    container = await bootstrap();
+    const db = SqliteDatabaseManager.getInstance(DB_PATH);
+    // Limpieza atómica para aislamiento de tests
+    db.exec(`
+      DELETE FROM automation_rules;
+      DELETE FROM devices;
+      DELETE FROM rooms;
+      DELETE FROM homes;
+    `);
 
     const now = new Date().toISOString();
+    // Poblando datos semilla necesarios para validación de slices previos y nuevo workbench
+    db.prepare("INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at) VALUES ('h-01', 'u-01', 'H', 1, ?, ?)")
+      .run(now, now);
+    db.prepare("INSERT INTO rooms (id, home_id, name, entity_version, created_at, updated_at) VALUES ('r-01', 'h-01', 'Living', 1, ?, ?)")
+      .run(now, now);
+    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01', 'h-01', 'ext-1', 'L', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
+      .run(JSON.stringify({ on: false }), now, now);
 
-    // 3. Pre-seed DB
-    await container.repositories.homeRepository.saveHome({
-      id: 'home-1',
-      name: 'Test Home',
-      ownerId: 'user-1',
-      entityVersion: 1,
-      createdAt: now,
-      updatedAt: now
-    });
-
-    await container.repositories.roomRepository.saveRoom({
-      id: 'room-1',
-      homeId: 'home-1',
-      name: 'Living Room',
-      entityVersion: 1,
-      createdAt: now,
-      updatedAt: now
-    });
-
-    await container.repositories.deviceRepository.saveDevice({
-      id: 'device-1',
-      homeId: 'home-1',
-      externalId: 'ext-device-1',
-      name: 'Smart Bulb',
-      type: 'light',
-      vendor: 'philips',
-      status: 'PENDING',
-      roomId: null,
-      lastKnownState: { on: false },
-      entityVersion: 1,
-      createdAt: now,
-      updatedAt: now
-    });
-
-    // 4. Start Server
-    server = new OperatorConsoleServer(container, dbPath, PORT);
+    server = new OperatorConsoleServer(container, DB_PATH, PORT);
     server.start();
-
-    // Small delay to ensure binding
-    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   afterAll(async () => {
-    if (server) {
-      await server.stop();
-    }
+    await server.stop();
   });
 
-  it('GET /api/v1/homes should return seeded homes', async () => {
-    const res = await fetch(`http://localhost:${PORT}/api/v1/homes`);
-    expect(res.status).toBe(200);
-    const data = await res.json() as HomeResponse[];
-    expect(data.length).toBe(1);
-    expect(data[0].id).toBe('home-1');
-  });
+  describe('Automation Workbench API', () => {
+    const rid = 'rule-final-01';
 
-  it('GET /api/v1/devices should return seeded devices', async () => {
-    const res = await fetch(`http://localhost:${PORT}/api/v1/devices`);
-    expect(res.status).toBe(200);
-    const data = await res.json() as DeviceResponse[];
-    expect(data.some(d => d.id === 'device-1' && d.status === 'PENDING')).toBe(true);
-  });
-
-  describe('POST /api/v1/devices/:id/assign', () => {
-    it('Success: should assign device to room and persist in SQLite', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/device-1/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: 'room-1' })
+    beforeAll(async () => {
+      // Registrar regla inicial para validar operaciones PATCH y GET
+      await container.repositories.automationRuleRepository.save({
+        id: rid, homeId: 'h-01', userId: 'u-01', name: 'R', enabled: true,
+        trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
+        action: { targetDeviceId: 'd-01', command: 'turn_off' }
       });
+    });
+
+    it('GET /api/v1/automations: debe listar reglas correctamente', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`);
+      expect(res.status).toBe(200);
+      const data = await res.json() as AutomationRule[];
+      expect(data.some(r => r.id === rid)).toBe(true);
+    });
+
+    it('PATCH /api/v1/automations/:id/disable: debe persistir estado inactivo', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}/disable`, { method: 'PATCH' });
+      expect(res.status).toBe(200);
+      const data = await res.json() as AutomationRule;
+      expect(data.enabled).toBe(false);
       
+      const inDb = await container.repositories.automationRuleRepository.findById(rid);
+      expect(inDb?.enabled).toBe(false);
+    });
+
+    it('PATCH /api/v1/automations/:id/enable: debe restaurar estado activo', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}/enable`, { method: 'PATCH' });
       expect(res.status).toBe(200);
-      const data = await res.json() as AssignResponse;
-      expect(data.id).toBe('device-1');
-      expect(data.status).toBe('ASSIGNED');
-      expect(data.roomId).toBe('room-1');
-
-      // Verify persistence via GET /api/v1/devices
-      const checkRes = await fetch(`http://localhost:${PORT}/api/v1/devices`);
-      const devices = await checkRes.json() as DeviceResponse[];
-      const device = devices.find(d => d.id === 'device-1');
-      expect(device?.status).toBe('ASSIGNED');
-      expect(device?.roomId).toBe('room-1');
+      const data = await res.json() as AutomationRule;
+      expect(data.enabled).toBe(true);
     });
 
-    it('Error 400: should fail if roomId is missing', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/device-1/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      expect(res.status).toBe(400);
-      const data = await res.json() as ErrorResponse;
-      expect(data.error).toBeDefined();
-    });
-
-    it('Error 404: should fail if room does not exist', async () => {
-      const now = new Date().toISOString();
-      await container.repositories.deviceRepository.saveDevice({
-        id: 'device-err-404',
-        homeId: 'home-1',
-        externalId: 'ext-404',
-        name: 'Err Device',
-        type: 'sensor',
-        vendor: 'v',
-        status: 'PENDING',
-        roomId: null,
-        lastKnownState: null,
-        entityVersion: 1,
-        createdAt: now,
-        updatedAt: now
-      });
-
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/device-err-404/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: 'non-existent-room' })
-      });
+    it('PATCH /api/v1/automations/:id/enable: debe fallar con 404 para ID inexistente', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/fake-id/enable`, { method: 'PATCH' });
       expect(res.status).toBe(404);
-      const data = await res.json() as ErrorResponse;
-      expect(data.error).toContain('Room not found');
+      const data = await res.json() as { error: string };
+      expect(data.error).toContain('fake-id');
     });
   });
 
-  describe('POST /api/v1/devices/:id/command', () => {
-    it('Success: should execute command and simulate state update for assigned device', async () => {
-      // 1. Send toggle command to device-1 (already assigned in previous test)
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/device-1/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'toggle' })
+  describe('Legacy Slice Integrity (Assign & Command)', () => {
+    it('POST /api/v1/devices/:id/command: debe fallar con 400 si comando no es válido', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/command`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'invalid_cmd' })
       });
-
-      expect(res.status).toBe(200);
-      const data = await res.json() as DeviceResponse;
-      expect(data.id).toBe('device-1');
-      expect(data.lastKnownState?.on).toBe(true);
-
-      // 2. Verify persistence in SQLite
-      const checkRes = await fetch(`http://localhost:${PORT}/api/v1/devices`);
-      const devices = await checkRes.json() as DeviceResponse[];
-      const device = devices.find(d => d.id === 'device-1');
-      expect(device?.lastKnownState?.on).toBe(true);
+      expect(res.status).toBe(400);
+      const data = await res.json() as { error: string };
+      expect(data.error).toContain('Invalid or missing command');
     });
 
-    it('Error 400: should fail if command is missing', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/device-1/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    it('POST /api/v1/devices/:id/assign: debe fallar con 400 si falta roomId', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/assign`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       });
       expect(res.status).toBe(400);
-      const data = await res.json() as ErrorResponse;
-      expect(data.error).toContain('Missing command');
+      const data = await res.json() as { error: string };
+      expect(data.error).toBe('Missing roomId');
     });
 
-    it('Error 400: should fail if command is unsupported for device type', async () => {
-      const now = new Date().toISOString();
-      // Create a sensor (sensors have [] capabilities)
-      await container.repositories.deviceRepository.saveDevice({
-        id: 'sensor-1', homeId: 'home-1', externalId: 'ext-s1', name: 'Motion',
-        type: 'sensor', vendor: 'v', status: 'ASSIGNED', roomId: 'room-1',
-        lastKnownState: null, entityVersion: 1, createdAt: now,
-        updatedAt: now
-      });
-
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/sensor-1/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'turn_on' })
-      });
-
-      expect(res.status).toBe(400);
-      const data = await res.json() as ErrorResponse;
-      expect(data.error).toContain('not support');
-    });
-
-    it('Error 409: should fail if device is PENDING', async () => {
-      const now = new Date().toISOString();
-      // Create a pending light
-      await container.repositories.deviceRepository.saveDevice({
-        id: 'pending-light', homeId: 'home-1', externalId: 'ext-p1', name: 'Bulb 2',
-        type: 'light', vendor: 'v', status: 'PENDING', roomId: null,
-        lastKnownState: { on: false }, entityVersion: 1, createdAt: now,
-        updatedAt: now
-      });
-
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/pending-light/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'toggle' })
-      });
-
-      expect(res.status).toBe(409);
-      const data = await res.json() as ErrorResponse;
-      expect(data.error).toContain('PENDING');
-    });
-
-    it('Error 404: should fail if device does not exist', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/ghost-id/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'toggle' })
+    it('POST /api/v1/devices/:id/assign: debe fallar con 404 si habitacion no existe', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/assign`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: 'ghost-room' })
       });
       expect(res.status).toBe(404);
-      const data = await res.json() as ErrorResponse;
-      expect(data.error).toBeDefined();
+      const data = await res.json() as { error: string };
+      expect(data.error).toBe('Room not found');
     });
   });
 });

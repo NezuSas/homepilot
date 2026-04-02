@@ -56,6 +56,14 @@ export class InMemoryAutomationRuleRepository implements AutomationRuleRepositor
     return Object.freeze(homeRules);
   }
 
+  async findAll(): Promise<ReadonlyArray<AutomationRule>> {
+    const allRules: AutomationRule[] = [];
+    for (const rule of this.rules.values()) {
+      allRules.push(this.freeze(rule));
+    }
+    return Object.freeze(allRules);
+  }
+
   async delete(id: string): Promise<void> {
     // Eliminación silenciosa si la regla no existe, patrón consistente con adaptadores InMemory
     this.rules.delete(id);

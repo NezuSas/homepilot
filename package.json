@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit && npm run typecheck --prefix apps/operator-console",
     "dev:api": "ts-node main.ts",
     "dev:ui": "npm run dev --prefix apps/operator-console",
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\""
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
+    "db:seed": "ts-node scripts/seed-demo.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

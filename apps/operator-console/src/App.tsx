@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu } from 'lucide-react';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
+import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
 
+/**
+ * Union de vistas posibles para tipado estricto.
+ */
+type View = 'topology' | 'inbox' | 'automations';
+
+/**
+ * App Component
+ * Aplicación principal de la Operator Console V1.
+ * Gestiona el enrutamiento básico y el layout global.
+ */
 function App() {
-  const [currentView, setCurrentView] = useState<'topology' | 'inbox'>('topology');
+  const [currentView, setCurrentView] = useState<View>('topology');
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground">
@@ -20,50 +31,29 @@ function App() {
         
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="grid gap-1 px-3">
-            <li>
-              <a 
-                href="#" 
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  currentView === 'topology' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-                onClick={(e) => { e.preventDefault(); setCurrentView('topology'); }}
-              >
-                <Network className="w-4 h-4" />
-                Topology
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  currentView === 'inbox' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-                onClick={(e) => { e.preventDefault(); setCurrentView('inbox'); }}
-              >
-                <Server className="w-4 h-4" />
-                Inbox & Devices
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-40 cursor-not-allowed"
-                onClick={(e) => e.preventDefault()}
-              >
-                <PlaySquare className="w-4 h-4" />
-                Automations
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-40 cursor-not-allowed"
-                onClick={(e) => e.preventDefault()}
-              >
-                <ShieldAlert className="w-4 h-4" />
-                Audit Logs
-              </a>
-            </li>
+            <NavItem 
+              icon={<Network className="w-4 h-4" />} 
+              label="Topology" 
+              active={currentView === 'topology'} 
+              onClick={() => setCurrentView('topology')} 
+            />
+            <NavItem 
+              icon={<Server className="w-4 h-4" />} 
+              label="Inbox & Devices" 
+              active={currentView === 'inbox'} 
+              onClick={() => setCurrentView('inbox')} 
+            />
+            <NavItem 
+              icon={<PlaySquare className="w-4 h-4" />} 
+              label="Automations" 
+              active={currentView === 'automations'} 
+              onClick={() => setCurrentView('automations')} 
+            />
+            <NavItem 
+              icon={<ShieldAlert className="w-4 h-4" />} 
+              label="Audit Logs" 
+              disabled 
+            />
           </ul>
         </nav>
         
@@ -79,12 +69,14 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
         <header className="border-b px-8 py-7 bg-card/60 backdrop-blur-sm">
           <h1 className="text-2xl font-bold tracking-tight">
-             {currentView === 'topology' ? 'Topology View' : 'Device Inbox & Manager'}
+             {currentView === 'topology' ? 'Topology View' : currentView === 'inbox' ? 'Device Inbox & Manager' : 'Automation Workbench'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
              {currentView === 'topology' 
                 ? 'Read-only hierarchy of assigned physical layout and structural domains.'
-                : 'Manage device lifecycle, view pending unassigned nodes and monitor active telemetry.'
+                : currentView === 'inbox'
+                ? 'Manage device lifecycle, view pending unassigned nodes and monitor active telemetry.'
+                : 'Configure and monitor IF-THEN rules for reactive device behavior.'
              }
           </p>
         </header>
@@ -92,10 +84,47 @@ function App() {
         <section className="flex-1 overflow-y-auto p-8 relative">
           {currentView === 'topology' && <TopologyView />}
           {currentView === 'inbox' && <InboxView />}
+          {currentView === 'automations' && <AutomationWorkbenchView />}
         </section>
       </main>
     </div>
   );
 }
+
+interface NavItemProps {
+  icon: ReactNode;
+  label: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}
+
+const NavItem = ({ icon, label, active, disabled, onClick }: NavItemProps) => {
+  if (disabled) {
+    return (
+      <li>
+        <span className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-40 cursor-not-allowed">
+          {icon}
+          {label}
+        </span>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <a 
+        href="#" 
+        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+          active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        }`}
+        onClick={(e) => { e.preventDefault(); onClick?.(); }}
+      >
+        {icon}
+        {label}
+      </a>
+    </li>
+  );
+};
 
 export default App;
