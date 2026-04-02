@@ -126,6 +126,33 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/devices/:id/activity-logs
+    const deviceLogsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/activity-logs$/);
+    if (deviceLogsMatch) {
+      try {
+        const deviceId = deviceLogsMatch[1];
+        const logs = await this.container.repositories.activityLogRepository.findRecentByDeviceId(deviceId, 20);
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(logs));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
+    // GET /api/v1/devices/:id
+    const deviceDetailMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)$/);
+    if (deviceDetailMatch) {
+      try {
+        const deviceId = deviceDetailMatch[1];
+        const device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'Device not found');
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
     // GET /api/v1/devices
     if (method === 'GET' && pathname === '/api/v1/devices') {
       try {
@@ -285,6 +312,7 @@ export class OperatorConsoleServer {
           let code = 500;
           if (name === 'DeviceNotFoundError' || msg.includes('not found')) code = 404;
           else if (name === 'DeviceAlreadyAssignedError' || msg.includes('assigned')) code = 409;
+          else if (msg.includes('Missing')) code = 400;
           this.sendError(res, code, msg);
         }
       });

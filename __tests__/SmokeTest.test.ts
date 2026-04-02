@@ -5,19 +5,21 @@ import { bootstrap } from '../bootstrap';
 import { OperatorConsoleServer } from '../apps/api/OperatorConsoleServer';
 import { seed } from '../scripts/seed-demo';
 import { SqliteDatabaseManager } from '../packages/shared/infrastructure/database/SqliteDatabaseManager';
+import { Device } from '../packages/devices/domain/types';
+import { AutomationRule } from '../packages/devices/domain/automation/types';
+import { ActivityRecord } from '../packages/devices/domain/repositories/ActivityLogRepository';
 
 describe('HomePilot Operator Console V1 Smoke Test', () => {
   const TEST_DB = path.join(__dirname, 'smoke.test.db');
-  const PORT = 3001;
+  const PORT = 3005; // Puerto exclusivo para el smoke test, evitando colisión con tests integ (3001)
   let server: OperatorConsoleServer;
 
   beforeAll(async () => {
-    // Asegurar que el Singleton esté limpio antes de empezar el test
+    // Limpieza de Singleton y archivo de base de datos
     SqliteDatabaseManager.close();
-
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
     
-    // 1. Bootstrap & Seed
+    // 1. Bootstrap & Seed garantizando estado PENDING para el flujo
     const container = await bootstrap({ dbPath: TEST_DB, verbose: false });
     await seed(TEST_DB);
 
@@ -32,22 +34,31 @@ describe('HomePilot Operator Console V1 Smoke Test', () => {
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
   });
 
-  const request = (path: string, method: string = 'GET', body?: any): Promise<any> => {
+  // Helper tipado para peticiones HTTP
+  async function request<T>(path: string, method: string = 'GET', body?: unknown): Promise<{ status: number; data: T }> {
     return new Promise((resolve, reject) => {
-      const req = http.request({
+      const options = {
         hostname: 'localhost',
         port: PORT,
         path,
         method,
         headers: body ? { 'Content-Type': 'application/json' } : {}
-      }, (res) => {
+      };
+
+      const req = http.request(options, (res) => {
         let data = '';
         res.on('data', (chunk) => data += chunk);
         res.on('end', () => {
           try {
-            resolve({ status: res.statusCode, data: JSON.parse(data) });
+            resolve({ 
+              status: res.statusCode || 500, 
+              data: data ? JSON.parse(data) : {} as T 
+            });
           } catch {
-            resolve({ status: res.statusCode, data });
+            resolve({ 
+              status: res.statusCode || 500, 
+              data: data as unknown as T
+            });
           }
         });
       });
@@ -55,53 +66,57 @@ describe('HomePilot Operator Console V1 Smoke Test', () => {
       if (body) req.write(JSON.stringify(body));
       req.end();
     });
-  };
+  }
 
   it('should complete a full operational cycle', async () => {
     // 1. Check Homes & Rooms
-    const homes = await request('/api/v1/homes');
+    const homes = await request<Array<{ id: string }>>('/api/v1/homes');
     expect(homes.status).toBe(200);
     expect(homes.data.length).toBeGreaterThan(0);
     const homeId = homes.data[0].id;
 
-    const rooms = await request(`/api/v1/homes/${homeId}/rooms`);
+    const rooms = await request<Array<{ id: string }>>(`/api/v1/homes/${homeId}/rooms`);
     expect(rooms.status).toBe(200);
     expect(rooms.data.length).toBeGreaterThan(0);
     const roomId = rooms.data[0].id;
 
-    // 2. Check Devices
-    const devices = await request('/api/v1/devices');
-    expect(devices.status).toBe(200);
-    const pending = devices.data.find((d: any) => d.status === 'PENDING');
+    // 2. Check Devices & PENDING presence
+    const devicesList = await request<Device[]>('/api/v1/devices');
+    expect(devicesList.status).toBe(200);
+    const pending = devicesList.data.find(d => d.status === 'PENDING');
     expect(pending).toBeDefined();
 
-    // 3. Assign Device
-    const assign = await request(`/api/v1/devices/${pending.id}/assign`, 'POST', { roomId });
+    // 3. Assign Device (Transición de PENDING a ASSIGNED)
+    const assign = await request<Device>(`/api/v1/devices/${pending!.id}/assign`, 'POST', { roomId });
     expect(assign.status).toBe(200);
     expect(assign.data.status).toBe('ASSIGNED');
     expect(assign.data.roomId).toBe(roomId);
 
-    // 4. Execute Command
-    const light = devices.data.find((d: any) => d.type === 'light' && d.status === 'ASSIGNED');
-    const command = await request(`/api/v1/devices/${light.id}/command`, 'POST', { command: 'turn_on' });
-    expect(command.status).toBe(200);
-    expect(command.data.lastKnownState.on).toBe(true);
+    // 4. Execute Command on an Assigned Device (Light)
+    // Buscamos una luz de los dispositivos originales ya asignados en el seed o el recién asignado
+    const currentDevices = await request<Device[]>('/api/v1/devices');
+    const light = currentDevices.data.find(d => d.type === 'light' && d.status === 'ASSIGNED');
+    expect(light).toBeDefined();
 
-    // 5. Check Automations
-    const rules = await request('/api/v1/automations');
+    const command = await request<Device>(`/api/v1/devices/${light!.id}/command`, 'POST', { command: 'turn_on' });
+    expect(command.status).toBe(200);
+    expect(command.data.lastKnownState?.on).toBe(true);
+
+    // 5. Manage Automations
+    const rules = await request<AutomationRule[]>('/api/v1/automations');
     expect(rules.status).toBe(200);
     expect(rules.data.length).toBeGreaterThan(0);
     const ruleId = rules.data[0].id;
     const enabled = rules.data[0].enabled;
 
-    const toggle = await request(`/api/v1/automations/${ruleId}/${enabled ? 'disable' : 'enable'}`, 'PATCH');
+    const toggle = await request<AutomationRule>(`/api/v1/automations/${ruleId}/${enabled ? 'disable' : 'enable'}`, 'PATCH');
     expect(toggle.status).toBe(200);
     expect(toggle.data.enabled).toBe(!enabled);
 
-    // 6. Verify Activity Logs (should have command execution)
-    const logs = await request('/api/v1/activity-logs');
+    // 6. Verify Activity Logs (Observabilidad)
+    const logs = await request<ActivityRecord[]>('/api/v1/activity-logs');
     expect(logs.status).toBe(200);
-    const commandLog = logs.data.find((l: any) => l.type === 'COMMAND_DISPATCHED' && l.deviceId === light.id);
+    const commandLog = logs.data.find(l => l.type === 'COMMAND_DISPATCHED' && l.deviceId === light!.id);
     expect(commandLog).toBeDefined();
   });
 });

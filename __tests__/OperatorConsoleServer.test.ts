@@ -2,6 +2,8 @@ import { bootstrap, BootstrapContainer } from '../bootstrap';
 import { OperatorConsoleServer } from '../apps/api/OperatorConsoleServer';
 import { SqliteDatabaseManager } from '../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { AutomationRule } from '../packages/devices/domain/automation/types';
+import { ActivityRecord } from '../packages/devices/domain/repositories/ActivityLogRepository';
+import { Device } from '../packages/devices/domain/types';
 
 /**
  * Tests de integración para OperatorConsoleServer.
@@ -20,6 +22,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
       DELETE FROM devices;
       DELETE FROM rooms;
       DELETE FROM homes;
+      DELETE FROM activity_logs;
     `);
 
     const now = new Date().toISOString();
@@ -70,7 +73,6 @@ describe('OperatorConsoleServer Integration Tests', () => {
     });
 
     it('PATCH /api/v1/automations/:id: 400 loop', async () => {
-      // Intentar crear un bucle: trigger d-01 -> target d-01
       const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -106,6 +108,36 @@ describe('OperatorConsoleServer Integration Tests', () => {
   });
 
   describe('Device API', () => {
+    it('GET /api/v1/devices/:id: success', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01`);
+      expect(res.status).toBe(200);
+      const data = await res.json() as Device;
+      expect(data.id).toBe('d-01');
+      expect(data.name).toBe('L1');
+    });
+
+    it('GET /api/v1/devices/:id: 404', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/fake-dev`);
+      expect(res.status).toBe(404);
+    });
+
+    it('GET /api/v1/devices/:id/activity-logs: success', async () => {
+      // Registrar un log primero usando el nombre de método correcto (saveActivity)
+      await container.repositories.activityLogRepository.saveActivity({
+        timestamp: new Date().toISOString(),
+        deviceId: 'd-01',
+        type: 'COMMAND_DISPATCHED',
+        description: 'Test Log',
+        data: {}
+      });
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/activity-logs`);
+      expect(res.status).toBe(200);
+      const data = await res.json() as ActivityRecord[];
+      expect(data.length).toBeGreaterThan(0);
+      expect(data[0].deviceId).toBe('d-01');
+    });
+
     it('POST /api/v1/devices/:id/command: success', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/command`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
