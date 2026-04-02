@@ -29,4 +29,10 @@ export interface ActivityLogRepository {
    * Debe garantizar ordenación cronológica descendente (LIFO).
    */
   findRecentByDeviceId(deviceId: string, limit: number): Promise<ReadonlyArray<ActivityRecord>>;
+
+  /**
+   * Recupera las entradas más recientes de todo el sistema.
+   * Debe garantizar ordenación cronológica descendente (LIFO).
+   */
+  findAllRecent(limit: number): Promise<ReadonlyArray<ActivityRecord>>;
 }

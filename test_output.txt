@@ -1,0 +1,76 @@
+  console.log
+    [Bootstrap] Inicializando persistencia SQLite en: test.audit.db
+
+      at bootstrap (bootstrap.ts:39:11)
+
+  console.log
+    [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:45:11)
+
+  console.log
+    [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:49:13)
+
+  console.log
+    [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:57:11)
+
+  console.log
+    [Bootstrap] Repositorios inyectados exitosamente. Secuencia terminada.
+
+      at bootstrap (bootstrap.ts:76:11)
+
+FAIL __tests__/AuditLogsServer.test.ts
+  ÔùÅ Audit Logs API Integration (Hardened) ÔÇ║ GET /api/v1/activity-logs: debe retornar logs t├®cnicos en orden descendente
+
+    SqliteError: FOREIGN KEY constraint failed
+
+      43 |     `);
+      44 |
+    > 45 |     stmt.run(
+         |          ^
+      46 |       record.deviceId,
+      47 |       record.type,
+      48 |       record.description,
+
+      at SQLiteActivityLogRepository.saveActivity (packages/devices/infrastructure/repositories/SQLiteActivityLogRepository.ts:45:10)
+      at Object.<anonymous> (__tests__/AuditLogsServer.test.ts:24:56)
+
+  ÔùÅ Audit Logs API Integration (Hardened) ÔÇ║ GET /api/v1/activity-logs: debe manejar errores internos de forma segura
+
+    SqliteError: FOREIGN KEY constraint failed
+
+      43 |     `);
+      44 |
+    > 45 |     stmt.run(
+         |          ^
+      46 |       record.deviceId,
+      47 |       record.type,
+      48 |       record.description,
+
+      at SQLiteActivityLogRepository.saveActivity (packages/devices/infrastructure/repositories/SQLiteActivityLogRepository.ts:45:10)
+      at Object.<anonymous> (__tests__/AuditLogsServer.test.ts:24:56)
+
+
+  ÔùÅ Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'stop')
+
+      43 |
+      44 |   afterAll(async () => {
+    > 45 |     await server.stop();
+         |                  ^
+      46 |   });
+      47 |
+      48 |   it('GET /api/v1/activity-logs: debe retornar logs t├®cnicos en orden descendente', async () => {
+
+      at Object.<anonymous> (__tests__/AuditLogsServer.test.ts:45:18)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        1.234 s, estimated 2 s
+Ran all test suites matching /__tests__\\AuditLogsServer.test.ts/i.

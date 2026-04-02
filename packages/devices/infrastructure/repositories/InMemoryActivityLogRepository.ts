@@ -24,6 +24,10 @@ export class InMemoryActivityLogRepository implements ActivityLogRepository {
     return Object.freeze([...deviceLogs]);
   }
 
+  async findAllRecent(limit: number): Promise<ReadonlyArray<ActivityRecord>> {
+    return Object.freeze([...this.logs.slice(0, limit)]);
+  }
+
   /**
    * Método de utilidad para purga de estados en suites de pruebas unitarias.
    */

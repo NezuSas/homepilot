@@ -69,6 +69,18 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
     return rows.map(row => this.mapToEntity(row));
   }
 
+  public async findAllRecent(limit: number): Promise<ReadonlyArray<ActivityRecord>> {
+    const stmt = this.db.prepare(`
+      SELECT * FROM activity_logs 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `);
+
+    const rows = stmt.all(limit) as ActivityLogRow[];
+    
+    return rows.map(row => this.mapToEntity(row));
+  }
+
   /**
    * Mapea de fila de base de datos a registro atómico del modelo de lectura.
    */

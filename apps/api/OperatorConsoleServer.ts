@@ -102,6 +102,18 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/activity-logs
+    if (method === 'GET' && url === '/api/v1/activity-logs') {
+      try {
+        const logs = await this.container.repositories.activityLogRepository.findAllRecent(50);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(logs));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error retrieving activity logs');
+      }
+      return;
+    }
+
     // GET /api/v1/automations
     if (method === 'GET' && url === '/api/v1/automations') {
       try {

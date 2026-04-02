@@ -3,11 +3,12 @@ import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu } from 'lucide-
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
 import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
+import { AuditLogsView } from './views/AuditLogsView';
 
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'topology' | 'inbox' | 'automations';
+type View = 'topology' | 'inbox' | 'automations' | 'audit-logs';
 
 /**
  * App Component
@@ -52,7 +53,8 @@ function App() {
             <NavItem 
               icon={<ShieldAlert className="w-4 h-4" />} 
               label="Audit Logs" 
-              disabled 
+              active={currentView === 'audit-logs'}
+              onClick={() => setCurrentView('audit-logs')}
             />
           </ul>
         </nav>
@@ -69,14 +71,16 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
         <header className="border-b px-8 py-7 bg-card/60 backdrop-blur-sm">
           <h1 className="text-2xl font-bold tracking-tight">
-             {currentView === 'topology' ? 'Topology View' : currentView === 'inbox' ? 'Device Inbox & Manager' : 'Automation Workbench'}
+             {currentView === 'topology' ? 'Topology View' : currentView === 'inbox' ? 'Device Inbox & Manager' : currentView === 'automations' ? 'Automation Workbench' : 'Audit Logs & Observability'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
              {currentView === 'topology' 
                 ? 'Read-only hierarchy of assigned physical layout and structural domains.'
                 : currentView === 'inbox'
                 ? 'Manage device lifecycle, view pending unassigned nodes and monitor active telemetry.'
-                : 'Configure and monitor IF-THEN rules for reactive device behavior.'
+                : currentView === 'automations'
+                ? 'Configure and monitor IF-THEN rules for reactive device behavior.'
+                : 'Technical history of system events, commands and state transitions for debugging.'
              }
           </p>
         </header>
@@ -85,6 +89,7 @@ function App() {
           {currentView === 'topology' && <TopologyView />}
           {currentView === 'inbox' && <InboxView />}
           {currentView === 'automations' && <AutomationWorkbenchView />}
+          {currentView === 'audit-logs' && <AuditLogsView />}
         </section>
       </main>
     </div>
