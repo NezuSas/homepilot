@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Database, Ghost } from 'lucide-react';
+import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Database, Ghost, Cpu } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 /**

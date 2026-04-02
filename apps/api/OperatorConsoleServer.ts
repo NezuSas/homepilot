@@ -34,6 +34,15 @@ interface LocalDeviceRow {
   updated_at: string;
 }
 
+interface LocalRoomRow {
+  id: string;
+  home_id: string;
+  name: string;
+  entity_version: number;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Servidor de API local para la Operator Console V1.
  * Finalización y endurecimiento total del slice.
@@ -71,11 +80,14 @@ export class OperatorConsoleServer {
       return;
     }
 
-    const { url, method } = req;
+    const { url = '', method = 'GET' } = req;
+    const pathname = new URL(url, `http://${req.headers.host || 'localhost'}`).pathname;
+    
+    console.log(`[OperatorConsoleServer] ${method} ${pathname}`);
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
     // GET /api/v1/homes
-    if (method === 'GET' && url === '/api/v1/homes') {
+    if (method === 'GET' && pathname === '/api/v1/homes') {
       try {
         const rows = db.prepare('SELECT * FROM homes').all() as LocalHomeRow[];
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
@@ -87,8 +99,23 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/homes/:id/rooms
+    const roomsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/homes\/([^\/]+)\/rooms$/);
+    if (roomsMatch) {
+      try {
+        const homeId = roomsMatch[1];
+        const rows = db.prepare('SELECT * FROM rooms WHERE home_id = ?').all(homeId) as LocalRoomRow[];
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
+          id: r.id, homeId: r.home_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
+        }))));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Telemetry access error');
+      }
+      return;
+    }
+
     // GET /api/v1/devices
-    if (method === 'GET' && url === '/api/v1/devices') {
+    if (method === 'GET' && pathname === '/api/v1/devices') {
       try {
         const rows = db.prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC').all() as LocalDeviceRow[];
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
@@ -103,7 +130,7 @@ export class OperatorConsoleServer {
     }
 
     // GET /api/v1/activity-logs
-    if (method === 'GET' && url === '/api/v1/activity-logs') {
+    if (method === 'GET' && pathname === '/api/v1/activity-logs') {
       try {
         const logs = await this.container.repositories.activityLogRepository.findAllRecent(50);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -115,7 +142,7 @@ export class OperatorConsoleServer {
     }
 
     // GET /api/v1/automations
-    if (method === 'GET' && url === '/api/v1/automations') {
+    if (method === 'GET' && pathname === '/api/v1/automations') {
       try {
         const rules = await this.container.repositories.automationRuleRepository.findAll();
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rules));
@@ -126,7 +153,7 @@ export class OperatorConsoleServer {
     }
 
     // PATCH /api/v1/automations/:id/(enable|disable)
-    const autoMatch = method === 'PATCH' && url?.match(/^\/api\/v1\/automations\/([^\/]+)\/(enable|disable)$/);
+    const autoMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)\/(enable|disable)$/);
     if (autoMatch) {
       const ruleId = autoMatch[1];
       const act = autoMatch[2];
@@ -144,7 +171,7 @@ export class OperatorConsoleServer {
     }
 
     // POST /api/v1/devices/:id/assign
-    const assignMatch = method === 'POST' && url?.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
+    const assignMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
     if (assignMatch) {
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
@@ -178,7 +205,7 @@ export class OperatorConsoleServer {
     }
 
     // POST /api/v1/devices/:id/command
-    const commandMatch = method === 'POST' && url?.match(/^\/api\/v1\/devices\/([^\/]+)\/command$/);
+    const commandMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/command$/);
     if (commandMatch) {
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {

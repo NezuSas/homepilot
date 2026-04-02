@@ -5,11 +5,11 @@ import * as crypto from 'crypto';
  * Script de seeding para el entorno de desarrollo local.
  * Población mínima para validación de la Operator Console V1.
  */
-async function seed() {
-  const dbPath = process.env.HOMEPILOT_DB_PATH || 'homepilot.local.db';
-  console.log(`[Seed] Pobloneando base de datos: ${dbPath}`);
+export async function seed(dbPath?: string) {
+  const finalDbPath = dbPath || process.env.HOMEPILOT_DB_PATH || 'homepilot.local.db';
+  console.log(`[Seed] Pobloneando base de datos: ${finalDbPath}`);
   
-  const db = SqliteDatabaseManager.getInstance(dbPath);
+  const db = SqliteDatabaseManager.getInstance(finalDbPath);
   const now = new Date().toISOString();
 
   // 1. Home (1)
@@ -75,7 +75,9 @@ async function seed() {
   console.log('[Seed] Poblado con éxito: 1 Home, 1 Room, 3 Devices, 2 Rules.');
 }
 
-seed().catch(err => {
-  console.error('[Seed] Error fatal:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  seed().catch(err => {
+    console.error('[Seed] Error fatal:', err);
+    process.exit(1);
+  });
+}

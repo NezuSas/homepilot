@@ -43,7 +43,7 @@ export const TopologyView: React.FC = () => {
     fetch(`${API_URL}/homes/${home.id}/rooms`)
       .then((res) => res.json())
       .then((data) => {
-        setRooms(data || []);
+        setRooms(Array.isArray(data) ? data : []);
         setLoadingRooms(false);
       })
       .catch((err) => {

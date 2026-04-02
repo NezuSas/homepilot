@@ -43,7 +43,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
     const stmt = this.db.prepare(`
       INSERT INTO automation_rules (
         id, home_id, user_id, name, enabled, trigger, action, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
       ON CONFLICT(id) DO UPDATE SET
         home_id = excluded.home_id,
         user_id = excluded.user_id,
@@ -51,7 +51,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
         enabled = excluded.enabled,
         trigger = excluded.trigger,
         action = excluded.action,
-        updated_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
+        updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW')
     `);
 
     stmt.run(

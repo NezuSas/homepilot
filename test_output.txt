@@ -1,5 +1,15 @@
   console.log
-    [Bootstrap] Inicializando persistencia SQLite en: test.audit.db
+    [Seed] Pobloneando base de datos: homepilot.local.db
+
+      at seed (scripts/seed-demo.ts:10:11)
+
+  console.log
+    [Seed] Poblado con ├®xito: 1 Home, 1 Room, 3 Devices, 2 Rules.
+
+      at seed (scripts/seed-demo.ts:75:11)
+
+  console.log
+    [Bootstrap] Inicializando persistencia SQLite en: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\smoke.test.db
 
       at bootstrap (bootstrap.ts:39:11)
 
@@ -23,54 +33,64 @@
 
       at bootstrap (bootstrap.ts:76:11)
 
-FAIL __tests__/AuditLogsServer.test.ts
-  ÔùÅ Audit Logs API Integration (Hardened) ÔÇ║ GET /api/v1/activity-logs: debe retornar logs t├®cnicos en orden descendente
+  console.log
+    [Seed] Pobloneando base de datos: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\smoke.test.db
 
-    SqliteError: FOREIGN KEY constraint failed
+      at seed (scripts/seed-demo.ts:10:11)
 
-      43 |     `);
-      44 |
-    > 45 |     stmt.run(
-         |          ^
-      46 |       record.deviceId,
-      47 |       record.type,
-      48 |       record.description,
+  console.log
+    [Seed] Poblado con ├®xito: 1 Home, 1 Room, 3 Devices, 2 Rules.
 
-      at SQLiteActivityLogRepository.saveActivity (packages/devices/infrastructure/repositories/SQLiteActivityLogRepository.ts:45:10)
-      at Object.<anonymous> (__tests__/AuditLogsServer.test.ts:24:56)
+      at seed (scripts/seed-demo.ts:75:11)
 
-  ÔùÅ Audit Logs API Integration (Hardened) ÔÇ║ GET /api/v1/activity-logs: debe manejar errores internos de forma segura
+  console.log
+    [OperatorConsoleServer] API local en http://localhost:3001
 
-    SqliteError: FOREIGN KEY constraint failed
+      at Server.<anonymous> (apps/api/OperatorConsoleServer.ts:63:15)
 
-      43 |     `);
-      44 |
-    > 45 |     stmt.run(
-         |          ^
-      46 |       record.deviceId,
-      47 |       record.type,
-      48 |       record.description,
+  console.log
+    [OperatorConsoleServer] GET /api/v1/homes
 
-      at SQLiteActivityLogRepository.saveActivity (packages/devices/infrastructure/repositories/SQLiteActivityLogRepository.ts:45:10)
-      at Object.<anonymous> (__tests__/AuditLogsServer.test.ts:24:56)
+      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
 
+  console.log
+    [OperatorConsoleServer] GET /api/v1/homes/home-demo/rooms
 
-  ÔùÅ Test suite failed to run
+      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
 
-    TypeError: Cannot read properties of undefined (reading 'stop')
+  console.log
+    [OperatorConsoleServer] GET /api/v1/devices
 
-      43 |
-      44 |   afterAll(async () => {
-    > 45 |     await server.stop();
-         |                  ^
-      46 |   });
-      47 |
-      48 |   it('GET /api/v1/activity-logs: debe retornar logs t├®cnicos en orden descendente', async () => {
+      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
 
-      at Object.<anonymous> (__tests__/AuditLogsServer.test.ts:45:18)
+  console.log
+    [OperatorConsoleServer] POST /api/v1/devices/dev-pending-01/assign
+
+      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
+
+FAIL __tests__/SmokeTest.test.ts
+  HomePilot Operator Console V1 Smoke Test
+    ├ù should complete a full operational cycle (26 ms)
+
+  ÔùÅ HomePilot Operator Console V1 Smoke Test ÔÇ║ should complete a full operational cycle
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 409
+
+      75 |     // 3. Assign Device
+      76 |     const assign = await request(`/api/v1/devices/${pending.id}/assign`, 'POST', { roomId });
+    > 77 |     expect(assign.status).toBe(200);
+         |                           ^
+      78 |     expect(assign.data.status).toBe('ASSIGNED');
+      79 |     expect(assign.data.roomId).toBe(roomId);
+      80 |
+
+      at Object.<anonymous> (__tests__/SmokeTest.test.ts:77:27)
 
 Test Suites: 1 failed, 1 total
-Tests:       2 failed, 2 total
+Tests:       1 failed, 1 total
 Snapshots:   0 total
-Time:        1.234 s, estimated 2 s
-Ran all test suites matching /__tests__\\AuditLogsServer.test.ts/i.
+Time:        1.305 s, estimated 2 s
+Ran all test suites matching /__tests__\\SmokeTest.test.ts/i.
