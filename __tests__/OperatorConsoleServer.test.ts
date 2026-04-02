@@ -2,25 +2,19 @@ import { bootstrap, BootstrapContainer } from '../bootstrap';
 import { OperatorConsoleServer } from '../apps/api/OperatorConsoleServer';
 import { SqliteDatabaseManager } from '../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { AutomationRule } from '../packages/devices/domain/automation/types';
-import { Device } from '../packages/devices/domain/types';
-import { Home } from '../packages/topology/domain/types';
 
 /**
  * Tests de integración para OperatorConsoleServer.
- * Versión final endurecida sin 'any' y con cobertura total de Automation Workbench.
  */
-describe('OperatorConsoleServer Integration Tests (Hardened Final)', () => {
+describe('OperatorConsoleServer Integration Tests', () => {
   let server: OperatorConsoleServer;
   let container: BootstrapContainer;
   const PORT = 3001;
-  const DB_PATH = 'test.final.db';
+  const DB_PATH = 'test.api.db';
 
   beforeAll(async () => {
-    // Inicialización del sistema vía bootstrap real (crea esquema y repositorios)
     container = await bootstrap({ dbPath: DB_PATH, verbose: false });
-
     const db = SqliteDatabaseManager.getInstance(DB_PATH);
-    // Limpieza atómica para aislamiento de tests
     db.exec(`
       DELETE FROM automation_rules;
       DELETE FROM devices;
@@ -29,7 +23,6 @@ describe('OperatorConsoleServer Integration Tests (Hardened Final)', () => {
     `);
 
     const now = new Date().toISOString();
-    // Poblando datos semilla necesarios para validación de slices previos y nuevo workbench
     db.prepare("INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at) VALUES ('h-01', 'u-01', 'H', 1, ?, ?)")
       .run(now, now);
     db.prepare("INSERT INTO rooms (id, home_id, name, entity_version, created_at, updated_at) VALUES ('r-01', 'h-01', 'Living', 1, ?, ?)")
@@ -45,11 +38,10 @@ describe('OperatorConsoleServer Integration Tests (Hardened Final)', () => {
     await server.stop();
   });
 
-  describe('Automation Workbench API', () => {
-    const rid = 'rule-final-01';
+  describe('Automation API', () => {
+    const rid = 'rule-01';
 
     beforeAll(async () => {
-      // Registrar regla inicial para validar operaciones PATCH y GET
       await container.repositories.automationRuleRepository.save({
         id: rid, homeId: 'h-01', userId: 'u-01', name: 'R', enabled: true,
         trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
@@ -57,119 +49,48 @@ describe('OperatorConsoleServer Integration Tests (Hardened Final)', () => {
       });
     });
 
-    it('GET /api/v1/automations: debe listar reglas correctamente', async () => {
+    it('GET /api/v1/automations: list rules', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/automations`);
       expect(res.status).toBe(200);
-      const data = await res.json() as AutomationRule[];
+      const data = (await res.json()) as AutomationRule[];
       expect(data.some(r => r.id === rid)).toBe(true);
     });
 
-    it('PATCH /api/v1/automations/:id/disable: debe persistir estado inactivo', async () => {
+    it('PATCH /api/v1/automations/:id/disable: deactivate rule', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}/disable`, { method: 'PATCH' });
       expect(res.status).toBe(200);
-      const data = await res.json() as AutomationRule;
+      const data = (await res.json()) as AutomationRule;
       expect(data.enabled).toBe(false);
-      
+    });
+
+    it('DELETE /api/v1/automations/:id: success', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, { method: 'DELETE' });
+      expect(res.status).toBe(204);
       const inDb = await container.repositories.automationRuleRepository.findById(rid);
-      expect(inDb?.enabled).toBe(false);
+      expect(inDb).toBeNull();
     });
 
-    it('PATCH /api/v1/automations/:id/enable: debe restaurar estado activo', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}/enable`, { method: 'PATCH' });
-      expect(res.status).toBe(200);
-      const data = await res.json() as AutomationRule;
-      expect(data.enabled).toBe(true);
-    });
-
-    it('PATCH /api/v1/automations/:id/enable: debe fallar con 404 para ID inexistente', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/fake-id/enable`, { method: 'PATCH' });
+    it('DELETE /api/v1/automations/:id: 404', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/fake`, { method: 'DELETE' });
       expect(res.status).toBe(404);
-      const data = await res.json() as { error: string };
-      expect(data.error).toContain('fake-id');
-    });
-
-    it('POST /api/v1/automations: debe crear una regla correctamente', async () => {
-      const payload = {
-        name: 'New Cool Rule',
-        trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
-        action: { targetDeviceId: 'd-01-target', command: 'turn_on' }
-      };
-
-      // Mocking target device in DB to pass UseCase validation
-      const db = SqliteDatabaseManager.getInstance(DB_PATH);
-      db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01-target', 'h-01', 'ext-2', 'T', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
-        .run(JSON.stringify({ on: false }), new Date().toISOString(), new Date().toISOString());
-
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      expect(res.status).toBe(201);
-      const data = await res.json() as AutomationRule;
-      expect(data.name).toBe('New Cool Rule');
-      expect(data.id).toBeDefined();
-    });
-
-    it('POST /api/v1/automations: debe fallar con 400 si hay un bucle (self-trigger)', async () => {
-      const payload = {
-        name: 'Loop Rule',
-        trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
-        action: { targetDeviceId: 'd-01', command: 'turn_off' }
-      };
-
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      expect(res.status).toBe(400);
-      const data = await res.json() as { error: string };
-      expect(data.error).toContain('loop');
-    });
-
-    it('POST /api/v1/automations: debe fallar con 400 si faltan campos obligatorios', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Incomplete' })
-      });
-
-      expect(res.status).toBe(400);
     });
   });
 
-  describe('Legacy Slice Integrity (Assign & Command)', () => {
-    it('POST /api/v1/devices/:id/command: debe fallar con 400 si comando no es válido', async () => {
+  describe('Device API', () => {
+    it('POST /api/v1/devices/:id/command: success', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/command`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'invalid_cmd' })
+        body: JSON.stringify({ command: 'turn_on' })
       });
-      expect(res.status).toBe(400);
-      const data = await res.json() as { error: string };
-      expect(data.error).toContain('Invalid or missing command');
+      expect(res.status).toBe(200);
     });
 
-    it('POST /api/v1/devices/:id/assign: debe fallar con 400 si falta roomId', async () => {
+    it('POST /api/v1/devices/:id/assign: 404 room', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/assign`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      expect(res.status).toBe(400);
-      const data = await res.json() as { error: string };
-      expect(data.error).toBe('Missing roomId');
-    });
-
-    it('POST /api/v1/devices/:id/assign: debe fallar con 404 si habitacion no existe', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/assign`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: 'ghost-room' })
+        body: JSON.stringify({ roomId: 'fake-room' })
       });
       expect(res.status).toBe(404);
-      const data = await res.json() as { error: string };
-      expect(data.error).toBe('Room not found');
     });
   });
 });

@@ -7,6 +7,7 @@ import { executeDeviceCommandUseCase } from '../../packages/devices/application/
 import { enableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/EnableAutomationRuleUseCase';
 import { disableAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DisableAutomationRuleUseCase';
 import { createAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/CreateAutomationRuleUseCase';
+import { deleteAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DeleteAutomationRuleUseCase';
 import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
 import { AutomationRule } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
@@ -46,7 +47,6 @@ interface LocalRoomRow {
 
 /**
  * Servidor de API local para la Operator Console V1.
- * Finalización y endurecimiento total del slice.
  */
 export class OperatorConsoleServer {
   private server: http.Server;
@@ -73,7 +73,7 @@ export class OperatorConsoleServer {
 
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
@@ -83,8 +83,6 @@ export class OperatorConsoleServer {
 
     const { url = '', method = 'GET' } = req;
     const pathname = new URL(url, `http://${req.headers.host || 'localhost'}`).pathname;
-    
-    console.log(`[OperatorConsoleServer] ${method} ${pathname}`);
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
     // GET /api/v1/homes
@@ -95,7 +93,7 @@ export class OperatorConsoleServer {
           id: r.id, ownerId: r.owner_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
         }))));
       } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Registry access error');
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
       }
       return;
     }
@@ -110,7 +108,7 @@ export class OperatorConsoleServer {
           id: r.id, homeId: r.home_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
         }))));
       } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Telemetry access error');
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
       }
       return;
     }
@@ -125,7 +123,7 @@ export class OperatorConsoleServer {
           entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
         }))));
       } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Telemetry access error');
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
       }
       return;
     }
@@ -134,10 +132,9 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/activity-logs') {
       try {
         const logs = await this.container.repositories.activityLogRepository.findAllRecent(50);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(logs));
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(logs));
       } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error retrieving activity logs');
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
       }
       return;
     }
@@ -148,7 +145,7 @@ export class OperatorConsoleServer {
         const rules = await this.container.repositories.automationRuleRepository.findAll();
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rules));
       } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Rule access error');
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
       }
       return;
     }
@@ -159,21 +156,11 @@ export class OperatorConsoleServer {
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body || '{}');
-          if (!payload.name) return this.sendError(res, 400, 'Missing rule name');
-          if (!payload.trigger?.deviceId) return this.sendError(res, 400, 'Missing trigger deviceId');
-          if (!payload.action?.targetDeviceId) return this.sendError(res, 400, 'Missing action targetDeviceId');
-          if (!payload.action?.command) return this.sendError(res, 400, 'Missing action command');
-
-          // Obtener el primer hogal local (V1 solo soporta un hogar en Edge)
           const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
-          if (!home) return this.sendError(res, 500, 'No local home found for rule placement');
+          if (!home) return this.sendError(res, 500, 'No local home found');
 
           const result = await createAutomationRuleUseCase({
-            homeId: home.id,
-            userId: 'local-op',
-            name: payload.name,
-            trigger: payload.trigger,
-            action: payload.action
+            homeId: home.id, userId: 'local-op', name: payload.name, trigger: payload.trigger, action: payload.action
           }, {
             automationRuleRepository: this.container.repositories.automationRuleRepository,
             deviceRepository: this.container.repositories.deviceRepository,
@@ -183,15 +170,13 @@ export class OperatorConsoleServer {
             },
             idGenerator: { generate: () => crypto.randomUUID() }
           });
-
           res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
         } catch (error: unknown) {
           const name = error instanceof Error ? error.constructor.name : '';
-          const msg = error instanceof Error ? error.message : 'Creation failed';
           let code = 500;
           if (name === 'DeviceNotFoundError') code = 404;
           else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') code = 400;
-          this.sendError(res, code, msg);
+          this.sendError(res, code, error instanceof Error ? error.message : 'Error');
         }
       });
       return;
@@ -210,7 +195,25 @@ export class OperatorConsoleServer {
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
       } catch (error: unknown) {
         const name = error instanceof Error ? error.constructor.name : '';
-        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, error instanceof Error ? error.message : 'Patch failed');
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
+    // DELETE /api/v1/automations/:id
+    const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
+    if (deleteMatch) {
+      const ruleId = deleteMatch[1];
+      try {
+        const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
+        await deleteAutomationRuleUseCase(ruleId, 'local-op', { 
+          automationRuleRepository: this.container.repositories.automationRuleRepository, 
+          topologyReferencePort: ports 
+        });
+        res.writeHead(204).end();
+      } catch (error: unknown) {
+        const name = error instanceof Error ? error.constructor.name : '';
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, error instanceof Error ? error.message : 'Error');
       }
       return;
     }
@@ -222,7 +225,6 @@ export class OperatorConsoleServer {
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body || '{}');
-          if (!payload.roomId) return this.sendError(res, 400, 'Missing roomId');
           const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, 'local-op', 'op-console', {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
@@ -239,10 +241,11 @@ export class OperatorConsoleServer {
           res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
         } catch (error: unknown) {
           const name = error instanceof Error ? error.constructor.name : '';
-          const msg = error instanceof Error ? error.message : 'Unknown error';
+          const msg = error instanceof Error ? error.message : 'Error';
           let code = 500;
           if (name === 'DeviceNotFoundError' || msg.includes('not found')) code = 404;
-          else if (name === 'DeviceAlreadyAssignedError' || msg.includes('mismatch')) code = 409;
+          else if (name === 'DeviceAlreadyAssignedError' || msg.includes('assigned')) code = 409;
+          else if (msg.includes('Missing')) code = 400;
           this.sendError(res, code, msg);
         }
       });
@@ -256,8 +259,7 @@ export class OperatorConsoleServer {
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body || '{}');
-          const cmd = payload.command;
-          if (!cmd || !isValidCommand(cmd)) return this.sendError(res, 400, 'Invalid or missing command. Use: turn_on, turn_off, toggle');
+          if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'Invalid or missing command');
 
           const dispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, {
             deviceRepository: this.container.repositories.deviceRepository,
@@ -267,7 +269,7 @@ export class OperatorConsoleServer {
             clock: { now: () => new Date().toISOString() }
           });
 
-          await executeDeviceCommandUseCase(commandMatch[1], cmd as DeviceCommandV1, 'local-op', 'op-console', {
+          await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, 'local-op', 'op-console', {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
             topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
@@ -283,14 +285,13 @@ export class OperatorConsoleServer {
           let code = 500;
           if (name === 'DeviceNotFoundError') code = 404;
           else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') code = 400;
-          else if (name === 'DevicePendingStateError') code = 409;
-          this.sendError(res, code, error instanceof Error ? error.message : 'Command execution failed');
+          this.sendError(res, code, error instanceof Error ? error.message : 'Error');
         }
       });
       return;
     }
 
-    this.sendError(res, 404, 'Route Not Found');
+    this.sendError(res, 404, 'Not Found');
   }
 
   private sendError(res: http.ServerResponse, code: number, msg: string) {

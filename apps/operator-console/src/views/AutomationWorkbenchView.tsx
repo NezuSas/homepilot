@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Database, Ghost, Cpu, Plus, X, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Ghost, Cpu, Plus, X, CheckCircle2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 /**
@@ -34,6 +34,7 @@ interface Device {
 interface RuleUI extends AutomationRule {
   _processing?: boolean;
   _error?: string | null;
+  _confirmingDelete?: boolean;
 }
 
 /**
@@ -68,8 +69,8 @@ export const AutomationWorkbenchView: React.FC = () => {
       setLoading(true);
       const res = await fetch(`${API_URL}/automations`);
       if (!res.ok) throw new Error('Error de conexión con el motor de reglas');
-      const data = await res.json() as AutomationRule[];
-      setRules(data.map(r => ({ ...r, _processing: false, _error: null })));
+      const data = (await res.json()) as AutomationRule[];
+      setRules(data.map(r => ({ ...r, _processing: false, _error: null, _confirmingDelete: false })));
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error de red fatal');
@@ -82,7 +83,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     try {
       const res = await fetch(`${API_URL}/devices`);
       if (res.ok) {
-        const data = await res.json() as Device[];
+        const data = (await res.json()) as Device[];
         setDevices(data.filter(d => d.status === 'ASSIGNED'));
       }
     } catch (err) {
@@ -100,7 +101,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     try {
       const act = currentlyEnabled ? 'disable' : 'enable';
       const res = await fetch(`${API_URL}/automations/${id}/${act}`, { method: 'PATCH' });
-      const data = await res.json() as AutomationRule | { error: string };
+      const data = (await res.json()) as AutomationRule | { error: string };
 
       if (!res.ok) throw new Error('error' in data ? data.error : 'Fallo en la operación');
       
@@ -109,6 +110,21 @@ export const AutomationWorkbenchView: React.FC = () => {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: false, _error: msg } : r));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: true, _error: null } : r));
+    try {
+      const res = await fetch(`${API_URL}/automations/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = (await res.json()) as { error: string };
+        throw new Error(data.error || 'Error al eliminar la regla');
+      }
+      setRules(prev => prev.filter(r => r.id !== id));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar';
+      setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: false, _error: msg, _confirmingDelete: false } : r));
     }
   };
 
@@ -135,9 +151,9 @@ export const AutomationWorkbenchView: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json() as any;
+      const data = (await res.json()) as AutomationRule | { error: string };
 
-      if (!res.ok) throw new Error(data.error || 'Error al crear la regla');
+      if (!res.ok) throw new Error('error' in data ? data.error : 'Error al crear la regla');
 
       setSuccess(true);
       setTimeout(() => {
@@ -325,12 +341,25 @@ export const AutomationWorkbenchView: React.FC = () => {
                  )}>
                    {rule._processing ? <Loader2 className="w-8 h-8 animate-spin" /> : rule.enabled ? <Play className="fill-current w-8 h-8" /> : <Pause className="fill-current w-8 h-8" />}
                  </div>
-                 <button disabled={rule._processing} onClick={() => toggle(rule.id, rule.enabled)} className={cn(
-                   "w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                   rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white" : "bg-primary text-white"
-                 )}>
-                   {rule.enabled ? 'Disable' : 'Enable'}
-                 </button>
+                 <div className="flex flex-col w-full gap-2">
+                   <button disabled={rule._processing} onClick={() => toggle(rule.id, rule.enabled)} className={cn(
+                     "w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                     rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white" : "bg-primary text-white"
+                   )}>
+                     {rule.enabled ? 'Disable' : 'Enable'}
+                   </button>
+                   
+                   {rule._confirmingDelete ? (
+                     <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
+                       <button onClick={() => handleDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-white rounded-xl text-[9px] font-black uppercase tracking-tighter">Confirm</button>
+                       <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: false } : r))} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase">X</button>
+                     </div>
+                   ) : (
+                     <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: true } : r))} className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                     </button>
+                   )}
+                 </div>
                  {rule._error && <span className="absolute top-4 left-4 right-4 bg-destructive text-white text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl">{rule._error}</span>}
               </div>
               <div className="flex-1 p-10 flex flex-col justify-center">
