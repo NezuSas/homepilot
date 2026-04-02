@@ -39,7 +39,7 @@ interface RuleUI extends AutomationRule {
 
 /**
  * AutomationWorkbenchView
- * Vista final endurecida para la gestión de reglas locales.
+ * Vista final endurecida y pulida para la gestión de reglas locales.
  */
 export const AutomationWorkbenchView: React.FC = () => {
   const [rules, setRules] = useState<RuleUI[]>([]);
@@ -64,6 +64,21 @@ export const AutomationWorkbenchView: React.FC = () => {
   });
 
   const API_URL = 'http://localhost:3000/api/v1';
+
+  /**
+   * Helper robusto para parsear el expectedValue desde el input string.
+   * Soporta: "true" (boolean), "false" (boolean), números y strings.
+   */
+  const parseExpectedValue = (val: string): string | number | boolean => {
+    const raw = val.trim();
+    if (raw.toLowerCase() === 'true') return true;
+    if (raw.toLowerCase() === 'false') return false;
+    
+    const num = Number(raw);
+    if (!isNaN(num) && raw !== '') return num;
+    
+    return raw;
+  };
 
   const fetchRules = useCallback(async () => {
     try {
@@ -141,6 +156,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       command: rule.action.command
     });
     setCreateError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelEditing = () => {
@@ -158,7 +174,7 @@ export const AutomationWorkbenchView: React.FC = () => {
         trigger: {
           deviceId: formData.triggerDeviceId,
           stateKey: formData.stateKey,
-          expectedValue: formData.expectedValue === 'true' ? true : formData.expectedValue === 'false' ? false : formData.expectedValue
+          expectedValue: parseExpectedValue(formData.expectedValue)
         },
         action: {
           targetDeviceId: formData.targetDeviceId,
@@ -204,7 +220,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     <div className="flex flex-col gap-8 max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* Header with Create Button */}
-      <div className="flex items-center justify-between bg-card/40 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm">
+      <div className="flex items-center justify-between bg-card/40 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm shadow-sm">
         <div className="flex flex-col">
           <h2 className="text-xl font-black tracking-tight flex items-center gap-3">
             <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -218,8 +234,8 @@ export const AutomationWorkbenchView: React.FC = () => {
             setShowForm(!showForm);
           }}
           className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg",
-            (showForm || editingId) ? "bg-muted text-foreground border" : "bg-primary text-white shadow-primary/20 hover:scale-105 active:scale-95"
+            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95",
+            (showForm || editingId) ? "bg-muted text-foreground border border-border/40" : "bg-primary text-white shadow-primary/20 hover:scale-105"
           )}
         >
           {showForm ? <><X className="w-4 h-4" /> Cancel</> : editingId ? <><X className="w-4 h-4" /> Cancel Edit</> : <><Plus className="w-4 h-4" /> Create Rule</>}
@@ -230,7 +246,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       {(showForm || editingId) && (
         <form onSubmit={handleSubmit} className="bg-card border-2 border-primary/20 rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
           {success && (
-            <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-white z-10 animate-in fade-in">
+            <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-white z-10 animate-in fade-in transition-all">
               <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
               <span className="text-xl font-black uppercase tracking-tighter">{editingId ? 'Regla Actualizada' : 'Regla Creada Exitosamente'}</span>
             </div>
@@ -245,7 +261,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="e.g. Turn on Living Room Light on Motion"
-                  className="bg-muted/30 border-2 border-border/40 rounded-2xl p-4 text-sm font-bold focus:border-primary/40 outline-none transition-all"
+                  className="bg-muted/30 border-2 border-border/40 rounded-2xl p-4 text-sm font-bold focus:border-primary/40 outline-none transition-all placeholder:text-muted-foreground/30"
                 />
               </div>
 
@@ -260,7 +276,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                     required
                     value={formData.triggerDeviceId}
                     onChange={e => setFormData({...formData, triggerDeviceId: e.target.value})}
-                    className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-bold outline-none focus:border-primary/40 appearance-none"
+                    className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-bold outline-none focus:border-primary/40 appearance-none shadow-sm cursor-pointer"
                   >
                     <option value="">Select Device...</option>
                     {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
@@ -274,16 +290,16 @@ export const AutomationWorkbenchView: React.FC = () => {
                       required
                       value={formData.stateKey}
                       onChange={e => setFormData({...formData, stateKey: e.target.value})}
-                      className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-mono font-bold"
+                      className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-mono font-bold focus:border-primary/40 outline-none transition-all"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[9px] font-bold text-muted-foreground">Value</label>
+                    <label className="text-[9px] font-bold text-muted-foreground">Value (Bool/Num/Text)</label>
                     <input 
                       required
                       value={formData.expectedValue}
                       onChange={e => setFormData({...formData, expectedValue: e.target.value})}
-                      className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-mono font-bold"
+                      className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-mono font-bold focus:border-primary/40 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -291,7 +307,7 @@ export const AutomationWorkbenchView: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-6 justify-between">
-              <div className="p-8 bg-primary/[0.03] rounded-[2.5rem] border-2 border-primary/10 flex flex-col gap-5">
+              <div className="p-8 bg-primary/[0.03] rounded-[2.5rem] border-2 border-primary/10 flex flex-col gap-5 shadow-inner">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary mb-2 flex items-center gap-2">
                   <Zap className="w-3 h-3 fill-current" /> Action Result
                 </span>
@@ -302,7 +318,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                     required
                     value={formData.targetDeviceId}
                     onChange={e => setFormData({...formData, targetDeviceId: e.target.value})}
-                    className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-bold outline-none focus:border-primary/40 appearance-none"
+                    className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-bold outline-none focus:border-primary/40 appearance-none shadow-sm cursor-pointer"
                   >
                     <option value="">Select Target...</option>
                     {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
@@ -315,7 +331,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                     required
                     value={formData.command}
                     onChange={e => setFormData({...formData, command: e.target.value})}
-                    className="bg-primary text-white rounded-xl p-3 text-xs font-black uppercase tracking-widest outline-none shadow-lg shadow-primary/20 appearance-none text-center cursor-pointer"
+                    className="bg-primary text-white rounded-xl p-3 text-xs font-black uppercase tracking-widest outline-none shadow-lg shadow-primary/20 appearance-none text-center cursor-pointer active:scale-95 transition-transform"
                   >
                     <option value="turn_on">TURN ON</option>
                     <option value="turn_off">TURN OFF</option>
@@ -334,7 +350,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                 <button 
                   disabled={submitting}
                   type="submit"
-                  className="w-full bg-primary text-white py-5 rounded-[2rem] text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 group"
+                  className="w-full bg-primary text-white py-5 rounded-[2rem] text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 group disabled:opacity-50 disabled:grayscale"
                 >
                   {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{editingId ? 'UPDATE AUTOMATION' : 'SAVE AUTOMATION'} <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" /></>}
                 </button>
@@ -345,7 +361,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       )}
 
       {rules.length === 0 && !loading && !showForm && !editingId ? (
-        <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed rounded-[3rem] text-center p-12 bg-card/20">
+        <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed rounded-[3rem] text-center p-12 bg-card/20 animate-in fade-in duration-1000">
           <Ghost className="w-16 h-16 text-muted-foreground opacity-10 mb-8" />
           <h3 className="text-2xl font-black tracking-tight">No hay reglas locales</h3>
           <p className="text-sm text-muted-foreground max-w-xs mt-3 mb-10 leading-relaxed font-medium">Crea tu primera regla usando el botón superior para empezar a automatizar tu hogar local.</p>
@@ -354,11 +370,21 @@ export const AutomationWorkbenchView: React.FC = () => {
         <div className="flex flex-col gap-8">
           {rules.map(rule => (
             <div key={rule.id} className={cn(
-              "relative flex flex-col md:flex-row border border-border rounded-[2.5rem] bg-card overflow-hidden transition-all duration-500 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5",
+              "relative flex flex-col md:flex-row border border-border rounded-[2.5rem] bg-card overflow-hidden transition-all duration-500",
               !rule.enabled && "opacity-60 grayscale-[0.5]",
-              rule._processing && "pointer-events-none cursor-wait",
-              editingId === rule.id && "border-primary ring-2 ring-primary/20 shadow-2xl"
+              rule._processing && "pointer-events-none opacity-80 backdrop-blur-sm",
+              editingId === rule.id ? "border-primary ring-2 ring-primary/20 shadow-2xl scale-[1.02]" : "hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1"
             )}>
+              {/* Overlay for processing states */}
+              {rule._processing && (
+                <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[2.5rem] animate-in fade-in">
+                  <div className="bg-card px-6 py-3 rounded-full shadow-2xl border border-primary/20 flex items-center gap-3">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Procesando...</span>
+                  </div>
+                </div>
+              )}
+
               <div className={cn(
                 "w-full md:w-56 p-10 flex flex-col items-center justify-center gap-5 border-b md:border-b-0 md:border-r border-border/40",
                 rule.enabled ? "bg-primary/[0.03]" : "bg-muted/20"
@@ -367,13 +393,18 @@ export const AutomationWorkbenchView: React.FC = () => {
                    "p-6 rounded-[2rem] shadow-xl border-2 transition-all duration-700 transform group-hover:scale-110",
                    rule.enabled ? "bg-primary text-white border-primary/20" : "bg-background text-muted-foreground border-border"
                  )}>
-                   {rule._processing ? <Loader2 className="w-8 h-8 animate-spin" /> : rule.enabled ? <Play className="fill-current w-8 h-8" /> : <Pause className="fill-current w-8 h-8" />}
+                   {rule.enabled ? <Play className="fill-current w-8 h-8" /> : <Pause className="fill-current w-8 h-8" />}
                  </div>
+                 
                  <div className="flex flex-col w-full gap-2">
-                   <button disabled={rule._processing} onClick={() => toggle(rule.id, rule.enabled)} className={cn(
-                     "w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                     rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white" : "bg-primary text-white"
-                   )}>
+                   <button 
+                     disabled={rule._processing} 
+                     onClick={() => toggle(rule.id, rule.enabled)} 
+                     className={cn(
+                       "w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+                       rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white" : "bg-primary text-white"
+                     )}
+                   >
                      {rule.enabled ? 'Disable' : 'Enable'}
                    </button>
                    
@@ -381,49 +412,85 @@ export const AutomationWorkbenchView: React.FC = () => {
                      <button 
                         onClick={() => startEditing(rule)}
                         disabled={rule._processing}
-                        className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors"
+                        className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
                      >
                         <Edit2 className="w-3.5 h-3.5" /> Edit
                      </button>
 
                      {rule._confirmingDelete ? (
                        <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
-                         <button onClick={() => handleDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-white rounded-xl text-[9px] font-black uppercase tracking-tighter">Confirm</button>
-                         <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: false } : r))} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase">X</button>
+                         <button onClick={() => handleDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-white rounded-xl text-[9px] font-black uppercase tracking-tighter shadow-lg shadow-destructive/20">Confirm</button>
+                         <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: false } : r))} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase transition-colors hover:bg-muted/80">X</button>
                        </div>
                      ) : (
-                       <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: true } : r))} className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors">
+                       <button 
+                          onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, _confirmingDelete: true } : r))} 
+                          className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
+                       >
                           <Trash2 className="w-3.5 h-3.5" /> Delete
                        </button>
                      )}
                    </div>
                  </div>
-                 {rule._error && <span className="absolute top-4 left-4 right-4 bg-destructive text-white text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl">{rule._error}</span>}
+                 {rule._error && (
+                   <div className="absolute top-4 left-4 right-4 bg-destructive text-white text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl flex items-center justify-center gap-2">
+                     <AlertCircle className="w-3 h-3" /> {rule._error}
+                   </div>
+                 )}
               </div>
+
               <div className="flex-1 p-10 flex flex-col justify-center">
                  <div className="flex items-center gap-4 mb-8">
-                    <Zap className={cn("w-6 h-6", rule.enabled ? "text-amber-500 fill-amber-500 animate-pulse" : "text-muted-foreground")} />
+                    <div className={cn(
+                      "w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-lg",
+                      rule.enabled ? "bg-amber-100 text-amber-500 shadow-amber-500/10" : "bg-muted text-muted-foreground"
+                    )}>
+                      <Zap className={cn("w-5 h-5", rule.enabled && "fill-amber-500 animate-pulse")} />
+                    </div>
                     <div className="flex flex-col">
-                      <h4 className="text-2xl font-black tracking-tighter text-foreground/90">{rule.name}</h4>
-                      <span className="text-[10px] font-mono font-bold text-muted-foreground/30">{rule.id}</span>
+                      <h4 className="text-2xl font-black tracking-tighter text-foreground/90 leading-tight">{rule.name}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-mono font-bold text-muted-foreground/30 px-1.5 py-0.5 bg-muted/40 rounded uppercase tracking-tighter">ID: {rule.id}</span>
+                        {!rule.enabled && <span className="text-[8px] font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">Inactive</span>}
+                      </div>
                     </div>
                  </div>
+
                  <div className="grid lg:grid-cols-[1fr,auto,1fr] gap-8 items-center">
-                    <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-[2rem] font-mono text-[11px] shadow-inner relative group/node">
+                    <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-[2rem] font-mono text-[11px] shadow-inner relative group/node overflow-hidden">
+                       <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
                        <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-[9px] font-black text-muted-foreground">IF TRIGGER</span>
-                       <div className="font-bold flex flex-col gap-2 pt-2">
-                         <span className="text-primary/40 italic">Device:</span> {rule.trigger.deviceId}
+                       <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
+                         <div className="flex items-center gap-2">
+                           <span className="text-primary/40 italic">Device:</span> 
+                           <span className="text-foreground/70">{rule.trigger.deviceId}</span>
+                         </div>
                          <div className="h-[1px] w-full bg-border/40" />
-                         <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{rule.trigger.stateKey}</span> == {String(rule.trigger.expectedValue)}
+                         <div className="flex items-center gap-2 flex-wrap">
+                           <span className="text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded border border-blue-200/50">{rule.trigger.stateKey}</span> 
+                           <span className="text-muted-foreground opacity-30">==</span> 
+                           <span className="text-amber-600 bg-amber-100/50 px-2 py-0.5 rounded border border-amber-200/50">
+                             {typeof rule.trigger.expectedValue === 'boolean' ? (rule.trigger.expectedValue ? 'TRUE' : 'FALSE') : String(rule.trigger.expectedValue).toUpperCase()}
+                           </span>
+                         </div>
                        </div>
                     </div>
-                    <ArrowRight className="opacity-10 hidden lg:block" />
-                    <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-[2rem] font-mono text-[11px] relative">
+
+                    <div className="flex flex-col items-center gap-1 opacity-20">
+                      <ArrowRight className="hidden lg:block w-6 h-6" />
+                      <div className="w-[2px] h-10 bg-primary lg:hidden" />
+                    </div>
+
+                    <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-[2rem] font-mono text-[11px] relative shadow-sm group/node overflow-hidden">
+                       <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
                        <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-[9px] font-black text-primary/70">THEN ACTION</span>
-                       <div className="font-bold flex flex-col gap-2 pt-2">
-                          <span className="text-primary/40 italic">Target:</span> {rule.action.targetDeviceId}
+                       <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
+                          <div className="flex items-center gap-2">
+                             <span className="text-primary/40 italic">Target:</span> 
+                             <span className="text-foreground/70">{rule.action.targetDeviceId}</span>
+                          </div>
                           <div className="h-[1px] w-full bg-primary/10" />
-                          <div className="inline-flex items-center gap-2 py-1.5 px-3 bg-primary text-white rounded-lg self-start shadow-lg shadow-primary/20">
+                          <div className="inline-flex items-center gap-2 py-1.5 px-3 bg-primary text-white rounded-xl self-start shadow-lg shadow-primary/20 border border-white/10 group-hover:scale-105 transition-transform duration-300">
                              <Cpu className="w-3.5 h-3.5 opacity-60" />
                              <span className="font-black uppercase tracking-tighter">{rule.action.command}</span>
                           </div>
@@ -437,10 +504,13 @@ export const AutomationWorkbenchView: React.FC = () => {
       )}
 
       {error && !loading && rules.length > 0 && (
-        <div className="fixed bottom-10 right-10 bg-destructive text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-right-4">
-          <AlertCircle className="w-5 h-5" />
-          <span className="text-xs font-black uppercase tracking-widest">{error}</span>
-          <button onClick={fetchRules} className="bg-white/20 p-2 rounded-xl hover:bg-white/40 transition-colors">
+        <div className="fixed bottom-10 right-10 bg-destructive text-white p-5 rounded-[2rem] shadow-2xl flex items-center gap-5 animate-in slide-in-from-right-4 z-[100] border border-white/20 backdrop-blur-md">
+          <AlertCircle className="w-6 h-6" />
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Error del Sistema</span>
+            <span className="text-xs font-bold">{error}</span>
+          </div>
+          <button onClick={fetchRules} className="bg-white/20 p-2.5 rounded-2xl hover:bg-white/40 transition-colors shadow-inner">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>

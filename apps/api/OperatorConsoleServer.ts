@@ -10,7 +10,7 @@ import { createAutomationRuleUseCase } from '../../packages/devices/application/
 import { deleteAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DeleteAutomationRuleUseCase';
 import { updateAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase';
 import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
-import { AutomationRule } from '../../packages/devices/domain/automation/types';
+import { AutomationRule, AutomationTrigger, AutomationAction } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
 
 interface LocalHomeRow {
@@ -44,6 +44,18 @@ interface LocalRoomRow {
   entity_version: number;
   created_at: string;
   updated_at: string;
+}
+
+interface CreateAutomationPayload {
+  name: string;
+  trigger: AutomationTrigger;
+  action: AutomationAction;
+}
+
+interface UpdateAutomationPayload {
+  name?: string;
+  trigger?: AutomationTrigger;
+  action?: AutomationAction;
 }
 
 /**
@@ -156,7 +168,7 @@ export class OperatorConsoleServer {
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
-          const payload = JSON.parse(body || '{}');
+          const payload = JSON.parse(body || '{}') as CreateAutomationPayload;
           const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
           if (!home) return this.sendError(res, 500, 'No local home found');
 
@@ -190,7 +202,7 @@ export class OperatorConsoleServer {
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
-          const payload = JSON.parse(body || '{}');
+          const payload = JSON.parse(body || '{}') as UpdateAutomationPayload;
           const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
           const result = await updateAutomationRuleUseCase(ruleId, 'local-op', payload, {
             automationRuleRepository: this.container.repositories.automationRuleRepository,
@@ -251,7 +263,8 @@ export class OperatorConsoleServer {
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
-          const payload = JSON.parse(body || '{}');
+          const payload = JSON.parse(body || '{}') as { roomId?: string };
+          if (!payload.roomId) return this.sendError(res, 400, 'Missing roomId');
           const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, 'local-op', 'op-console', {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
@@ -272,7 +285,6 @@ export class OperatorConsoleServer {
           let code = 500;
           if (name === 'DeviceNotFoundError' || msg.includes('not found')) code = 404;
           else if (name === 'DeviceAlreadyAssignedError' || msg.includes('assigned')) code = 409;
-          else if (msg.includes('Missing')) code = 400;
           this.sendError(res, code, msg);
         }
       });
@@ -285,7 +297,7 @@ export class OperatorConsoleServer {
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
-          const payload = JSON.parse(body || '{}');
+          const payload = JSON.parse(body || '{}') as { command?: string };
           if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'Invalid or missing command');
 
           const dispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, {
