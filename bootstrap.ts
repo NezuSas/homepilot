@@ -6,6 +6,7 @@ import { SQLiteRoomRepository } from './packages/topology/infrastructure/reposit
 import { SQLiteDeviceRepository } from './packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
+import { HomeAssistantClient } from './packages/devices/infrastructure/adapters/HomeAssistantClient';
 
 export interface BootstrapContainer {
   repositories: {
@@ -14,6 +15,9 @@ export interface BootstrapContainer {
     deviceRepository: SQLiteDeviceRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
+  };
+  adapters: {
+    homeAssistantClient: HomeAssistantClient;
   };
 }
 
@@ -62,6 +66,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const automationRuleRepository = new SQLiteAutomationRuleRepository(dbPath);
   const activityLogRepository = new SQLiteActivityLogRepository(dbPath);
 
+  // 4.1. Adaptadores Externos (Bridge V1)
+  const haUrl = process.env.HOME_ASSISTANT_URL || 'http://homeassistant.local:8123';
+  const haToken = process.env.HOME_ASSISTANT_TOKEN || '';
+  const homeAssistantClient = new HomeAssistantClient(haUrl, haToken);
+
   // 5. Devolución controlada del contenedor (Container) a la capa llamadora
   const container: BootstrapContainer = {
     repositories: {
@@ -70,6 +79,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       deviceRepository,
       automationRuleRepository,
       activityLogRepository,
+    },
+    adapters: {
+      homeAssistantClient
     }
   };
 

@@ -41,6 +41,11 @@ export async function seed(dbPath?: string) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
   `).run('dev-sensor-01', 'home-01', 'zigbee:mock:sensor', 'Motion Sensor', 'sensor', 'MockVendor', 'ASSIGNED', 'room-01', JSON.stringify({ occupancy: false }), now, now);
 
+  db.prepare(`
+    INSERT OR IGNORE INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `).run('dev-ha-light-01', 'home-01', 'ha:light.kitchen', 'Kitchen HA Light', 'light', 'HomeAssistant', 'ASSIGNED', 'room-01', JSON.stringify({ on: false }), now, now);
+
   // 5. Automations (1 Enabled, 1 Disabled)
   db.prepare(`
     INSERT OR IGNORE INTO automation_rules (id, home_id, user_id, name, enabled, trigger, action, created_at, updated_at)

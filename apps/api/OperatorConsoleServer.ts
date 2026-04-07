@@ -10,6 +10,9 @@ import { createAutomationRuleUseCase } from '../../packages/devices/application/
 import { deleteAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/DeleteAutomationRuleUseCase';
 import { updateAutomationRuleUseCase } from '../../packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase';
 import { LocalConsoleCommandDispatcher } from './LocalConsoleCommandDispatcher';
+import { HomeAssistantCommandDispatcher } from './HomeAssistantCommandDispatcher';
+import { CompositeCommandDispatcher } from './CompositeCommandDispatcher';
+import { syncDeviceStateUseCase } from '../../packages/devices/application/syncDeviceStateUseCase';
 import { AutomationRule, AutomationTrigger, AutomationAction } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
 
@@ -146,6 +149,10 @@ export class OperatorConsoleServer {
         const deviceId = deviceDetailMatch[1];
         const device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'Device not found');
+        
+        // V1: El detalle devuelve el estado local persistido de forma sobria.
+        // Se preserva la lógica de despacho híbrido, pero no se fuerza refresh automático en el GET.
+        
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
       } catch (error: unknown) {
         this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
@@ -328,19 +335,31 @@ export class OperatorConsoleServer {
           const payload = JSON.parse(body || '{}') as { command?: string };
           if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'Invalid or missing command');
 
-          const dispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, {
+          const syncDeps = {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
             activityLogRepository: this.container.repositories.activityLogRepository,
             idGenerator: { generate: () => crypto.randomUUID() },
             clock: { now: () => new Date().toISOString() }
-          });
+          };
+
+          const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
+          const haDispatcher = new HomeAssistantCommandDispatcher(
+            this.container.adapters.homeAssistantClient,
+            this.container.repositories.deviceRepository,
+            syncDeps
+          );
+          const compositeDispatcher = new CompositeCommandDispatcher(
+            this.container.repositories.deviceRepository,
+            localDispatcher,
+            haDispatcher
+          );
 
           await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, 'local-op', 'op-console', {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
             topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
-            dispatcherPort: dispatcher,
+            dispatcherPort: compositeDispatcher,
             activityLogRepository: this.container.repositories.activityLogRepository,
             idGenerator: { generate: () => crypto.randomUUID() },
             clock: { now: () => new Date().toISOString() }
