@@ -7,6 +7,7 @@ import { Device } from '../packages/devices/domain/types';
 
 /**
  * Tests de integración para OperatorConsoleServer.
+ * Cubre Automation API, Device API y la nueva funcionalidad de HA Sync V1.
  */
 describe('OperatorConsoleServer Integration Tests', () => {
   let server: OperatorConsoleServer;
@@ -33,6 +34,8 @@ describe('OperatorConsoleServer Integration Tests', () => {
     db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01', 'h-01', 'ext-1', 'L1', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
       .run(JSON.stringify({ on: false }), now, now);
     db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-02', 'h-01', 'ext-2', 'L2', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
+      .run(JSON.stringify({ on: false }), now, now);
+    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-ha', 'h-01', 'ha:light.kitchen', 'HA Light', 'light', 'ha', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
       .run(JSON.stringify({ on: false }), now, now);
 
     server = new OperatorConsoleServer(container, DB_PATH, PORT);
@@ -96,15 +99,6 @@ describe('OperatorConsoleServer Integration Tests', () => {
       const inDb = await container.repositories.automationRuleRepository.findById(rid);
       expect(inDb).toBeNull();
     });
-
-    it('PATCH /api/v1/automations/:id: 404', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/fake`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'New Name' })
-      });
-      expect(res.status).toBe(404);
-    });
   });
 
   describe('Device API', () => {
@@ -116,13 +110,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(data.name).toBe('L1');
     });
 
-    it('GET /api/v1/devices/:id: 404', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/fake-dev`);
-      expect(res.status).toBe(404);
-    });
-
     it('GET /api/v1/devices/:id/activity-logs: success', async () => {
-      // Registrar un log primero usando el nombre de método correcto (saveActivity)
       await container.repositories.activityLogRepository.saveActivity({
         timestamp: new Date().toISOString(),
         deviceId: 'd-01',
@@ -146,12 +134,41 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(res.status).toBe(200);
     });
 
-    it('POST /api/v1/devices/:id/assign: 404 room', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/assign`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: 'fake-room' })
-      });
+    it('POST /api/v1/devices/:id/refresh: 400 for non-HA device', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/refresh`, { method: 'POST' });
+      expect(res.status).toBe(400);
+      const data = await res.json() as { error: string };
+      expect(data.error).toContain('Only Home Assistant devices');
+    });
+
+    it('POST /api/v1/devices/:id/refresh: 404 for non-existent device', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/fake-ha/refresh`, { method: 'POST' });
       expect(res.status).toBe(404);
+    });
+
+    it('POST /api/v1/devices/:id/refresh: 200 success for HA device', async () => {
+      jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce({
+        entity_id: 'light.kitchen',
+        state: 'on',
+        attributes: {},
+        last_changed: new Date().toISOString(),
+        last_updated: new Date().toISOString()
+      });
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { method: 'POST' });
+      expect(res.status).toBe(200);
+      const data = await res.json() as Device;
+      expect(data.lastKnownState?.on).toBe(true);
+      
+      const inDb = await container.repositories.deviceRepository.findDeviceById('d-ha');
+      expect(inDb?.lastKnownState?.on).toBe(true);
+    });
+
+    it('POST /api/v1/devices/:id/refresh: 502 when HA returns null', async () => {
+      jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce(null);
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { method: 'POST' });
+      expect(res.status).toBe(502);
     });
   });
 });

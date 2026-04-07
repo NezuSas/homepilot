@@ -149,10 +149,6 @@ export class OperatorConsoleServer {
         const deviceId = deviceDetailMatch[1];
         const device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'Device not found');
-        
-        // V1: El detalle devuelve el estado local persistido de forma sobria.
-        // Se preserva la lógica de despacho híbrido, pero no se fuerza refresh automático en el GET.
-        
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
       } catch (error: unknown) {
         this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
@@ -291,6 +287,39 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // POST /api/v1/devices/:id/refresh
+    const refreshMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/refresh$/);
+    if (refreshMatch) {
+      try {
+        const deviceId = refreshMatch[1];
+        let device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'Device not found');
+        if (!device.externalId.startsWith('ha:')) {
+          return this.sendError(res, 400, 'Only Home Assistant devices can be refreshed via this endpoint');
+        }
+        const entityId = device.externalId.split(':')[1];
+        const haState = await this.container.adapters.homeAssistantClient.getEntityState(entityId);
+        if (!haState) return this.sendError(res, 502, 'Could not retrieve state from Home Assistant');
+        
+        const newState: Record<string, unknown> = { ...device.lastKnownState };
+        if (haState.state === 'on') newState.on = true;
+        else if (haState.state === 'off') newState.on = false;
+        
+        await syncDeviceStateUseCase(deviceId, newState, 'manual-ha-refresh', {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        });
+        const updated = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(updated));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
     // POST /api/v1/devices/:id/assign
     const assignMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
     if (assignMatch) {
@@ -319,7 +348,6 @@ export class OperatorConsoleServer {
           let code = 500;
           if (name === 'DeviceNotFoundError' || msg.includes('not found')) code = 404;
           else if (name === 'DeviceAlreadyAssignedError' || msg.includes('assigned')) code = 409;
-          else if (msg.includes('Missing')) code = 400;
           this.sendError(res, code, msg);
         }
       });
@@ -334,7 +362,6 @@ export class OperatorConsoleServer {
         try {
           const payload = JSON.parse(body || '{}') as { command?: string };
           if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'Invalid or missing command');
-
           const syncDeps = {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
@@ -342,19 +369,9 @@ export class OperatorConsoleServer {
             idGenerator: { generate: () => crypto.randomUUID() },
             clock: { now: () => new Date().toISOString() }
           };
-
           const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
-          const haDispatcher = new HomeAssistantCommandDispatcher(
-            this.container.adapters.homeAssistantClient,
-            this.container.repositories.deviceRepository,
-            syncDeps
-          );
-          const compositeDispatcher = new CompositeCommandDispatcher(
-            this.container.repositories.deviceRepository,
-            localDispatcher,
-            haDispatcher
-          );
-
+          const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantClient, this.container.repositories.deviceRepository, syncDeps);
+          const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
           await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, 'local-op', 'op-console', {
             deviceRepository: this.container.repositories.deviceRepository,
             eventPublisher: { publish: async () => {} },
@@ -376,7 +393,6 @@ export class OperatorConsoleServer {
       });
       return;
     }
-
     this.sendError(res, 404, 'Not Found');
   }
 
