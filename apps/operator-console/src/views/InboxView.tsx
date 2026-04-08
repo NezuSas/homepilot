@@ -57,6 +57,7 @@ const DeviceTile: React.FC<{
   const isAssigned = device.status === 'ASSIGNED';
   const isPending = device.status === 'PENDING';
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState('');
 
   // Determine state for visual cues
@@ -76,6 +77,7 @@ const DeviceTile: React.FC<{
     if (isProcessing || !supportsCommands) return;
     
     setIsProcessing(true);
+    setError(null);
     try {
       const command = isOn ? 'turn_off' : 'turn_on';
       const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
@@ -85,7 +87,12 @@ const DeviceTile: React.FC<{
       });
       if (res.ok && onUpdate) {
         onUpdate(await res.json());
+      } else {
+        const data = await res.json();
+        setError(data?.error?.message || 'Toggle failed');
       }
+    } catch (err) {
+      setError('Connection error');
     } finally {
       setIsProcessing(false);
     }
@@ -95,6 +102,7 @@ const DeviceTile: React.FC<{
     e.stopPropagation();
     if (!selectedRoomId || isProcessing) return;
     setIsProcessing(true);
+    setError(null);
     try {
       const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
         method: 'POST',
@@ -103,7 +111,11 @@ const DeviceTile: React.FC<{
       });
       if (res.ok && onUpdate) {
         onUpdate(await res.json());
+      } else {
+        setError('Assign failed');
       }
+    } catch {
+      setError('Connection error');
     } finally {
       setIsProcessing(false);
     }
@@ -120,13 +132,16 @@ const DeviceTile: React.FC<{
         "aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2",
         "bg-card hover:shadow-xl hover:border-primary/40",
         isOn && isAssigned ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-border shadow-sm",
-        isProcessing && "opacity-50 pointer-events-none"
+        isProcessing && "opacity-70 scale-[0.98] bg-muted/50",
+        error && "border-destructive/40 bg-destructive/5"
       )}
     >
+      {/* Top: Icon & State Toggle */}
       <div className="flex justify-between items-start">
         <div className={cn(
-          "p-2.5 rounded-xl transition-colors duration-300",
-          isOn && isAssigned ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+          "p-2.5 rounded-xl transition-all duration-300",
+          isOn && isAssigned ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-muted text-muted-foreground",
+          isProcessing && "animate-pulse"
         )}>
           <Icon className="w-5 h-5" />
         </div>
@@ -134,17 +149,34 @@ const DeviceTile: React.FC<{
         {supportsCommands && isAssigned && (
           <button
             onClick={handleToggle}
+            disabled={isProcessing}
             className={cn(
-              "p-2 rounded-full border-2 transition-all",
-              isOn ? "bg-primary border-primary text-white shadow-md" : "bg-background border-border text-muted-foreground hover:border-primary/50"
+              "p-2 rounded-full border-2 transition-all flex items-center justify-center",
+              isOn ? "bg-primary border-primary text-white shadow-md" : "bg-background border-border text-muted-foreground hover:border-primary/50",
+              isProcessing && "bg-muted border-primary/20"
             )}
           >
-             {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className={cn("w-4 h-4", isOn && "rotate-180")} />}
           </button>
         )}
       </div>
 
-      <div className="flex flex-col gap-1 overflow-hidden">
+      {/* Center: Error Layer */}
+      {error && !isProcessing && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-[1px] rounded-2xl p-2 text-center">
+            <AlertCircle className="w-5 h-5 text-destructive mb-1" />
+            <span className="text-[8px] font-black uppercase text-destructive leading-tight">{error}</span>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setError(null); }}
+              className="mt-1 text-[7px] font-black uppercase text-muted-foreground border-b border-muted-foreground/30"
+            >
+              Dismiss
+            </button>
+        </div>
+      )}
+
+      {/* Bottom: Info */}
+      <div className={cn("flex flex-col gap-1 overflow-hidden transition-opacity", (isProcessing || error) && "opacity-30")}>
         <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
         <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
         
@@ -159,6 +191,7 @@ const DeviceTile: React.FC<{
           <div className="mt-2 flex flex-col gap-2">
              <select 
                onClick={(e) => e.stopPropagation()}
+               disabled={isProcessing}
                className="bg-muted/50 border border-border rounded px-1.5 py-1 text-[9px] font-bold outline-none w-full"
                value={selectedRoomId}
                onChange={(e) => setSelectedRoomId(e.target.value)}
@@ -168,10 +201,10 @@ const DeviceTile: React.FC<{
              </select>
              <button 
                onClick={handleAssign}
-               disabled={!selectedRoomId}
+               disabled={!selectedRoomId || isProcessing}
                className="w-full bg-primary/10 text-primary py-1 rounded text-[8px] font-black uppercase border border-primary/20 hover:bg-primary/20 transition-colors"
              >
-               Assign
+               {isProcessing ? '...' : 'Assign'}
              </button>
           </div>
         )}
@@ -257,25 +290,25 @@ export const InboxView: React.FC = () => {
       <HomeAssistantDiscoverySection onImported={fetchData} />
 
       {/* Control Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-border/50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-border/50">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 text-primary rounded-2xl">
+          <div className="p-3 bg-primary/10 text-primary rounded-2xl shrink-0">
             <Inbox className="w-6 h-6" />
           </div>
-          <div className="flex flex-col">
-            <h2 className="text-xl font-black tracking-tight">Device Manager</h2>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">Appliance-Style Controller v3.0</span>
+          <div className="flex flex-col min-w-0">
+            <h2 className="text-xl font-black tracking-tight truncate">Device Manager</h2>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 truncate">Appliance-Style Controller v3.1</span>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50">
+        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
           {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                 filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
               )}
             >
@@ -289,17 +322,20 @@ export const InboxView: React.FC = () => {
       <div className="flex flex-col gap-12">
         {Object.entries(grouped).map(([id, group]) => (
           <section key={id} className="flex flex-col gap-6">
-            <div className="flex items-center justify-between group/header">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/header">
               <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-primary rounded-full" />
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.3)]" />
                 {group.name}
               </h3>
-              <span className="px-3 py-1 bg-muted rounded-full text-[10px] font-black border border-border opacity-50">
-                {group.devices.length} {group.devices.length === 1 ? 'Unit' : 'Units'}
-              </span>
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border/30 hidden sm:block min-w-[20px]" />
+                <span className="px-3 py-1 bg-muted rounded-full text-[10px] font-black border border-border opacity-50 whitespace-nowrap">
+                  {group.devices.length} {group.devices.length === 1 ? 'Unit' : 'Units'}
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
               {group.devices.map(device => (
                 <DeviceTile 
                   key={device.id} 
