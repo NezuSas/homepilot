@@ -113,6 +113,10 @@ export class HomeAssistantSettingsService {
     if (this.syncManager) {
       this.syncManager.reconnect(sanitizedUrl, newToken);
     }
+
+    // Reset status to unknown to prevent stale indicators from previous config
+    this.lastConnectivityStatus = 'unknown';
+    this.lastCheckedAt = null;
   }
 
   /**

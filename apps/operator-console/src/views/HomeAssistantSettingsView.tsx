@@ -77,6 +77,9 @@ export const HomeAssistantSettingsView: React.FC = () => {
       });
       const data = await response.json();
       setTestResult(data);
+      if (data.success) {
+        fetchStatus();
+      }
     } catch (error) {
       setTestResult({ success: false, message: 'Error de red' });
     } finally {
