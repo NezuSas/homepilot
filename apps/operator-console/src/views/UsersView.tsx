@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, RefreshCcw, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
@@ -13,6 +14,7 @@ interface PublicUserDto {
 }
 
 export function UsersView() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<PublicUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,7 +51,7 @@ export function UsersView() {
     e.preventDefault();
     setCreateError('');
     if (newPassword.length < 8) {
-      return setCreateError('Password must be at least 8 characters');
+      return setCreateError(t('change_password.error_length'));
     }
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
@@ -95,7 +97,7 @@ export function UsersView() {
     return (
       <div className="flex items-center justify-center p-12">
         <Activity className="w-8 h-8 animate-pulse text-muted-foreground mr-3" />
-        <span className="text-muted-foreground font-medium">Loading user directory...</span>
+        <span className="text-muted-foreground font-medium">{t('users.loading')}</span>
       </div>
     );
   }
@@ -116,14 +118,14 @@ export function UsersView() {
           <div className="border-b px-5 py-4 bg-muted/30">
             <h3 className="font-semibold flex items-center gap-2">
               <Plus className="w-4 h-4 text-primary" />
-              Register New Organization User
+              {t('users.create_form.title')}
             </h3>
           </div>
           <form className="px-5 py-4 flex flex-col gap-4" onSubmit={handleCreateUser}>
             {createError && <p className="text-red-500 text-sm font-medium">{createError}</p>}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">Username</label>
+                <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.username')}</label>
                 <input 
                   type="text" 
                   value={newUsername} 
@@ -134,7 +136,7 @@ export function UsersView() {
                 />
               </div>
               <div className="col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">Initial Password</label>
+                <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.password')}</label>
                 <input 
                   type="password" 
                   value={newPassword} 
@@ -143,34 +145,34 @@ export function UsersView() {
                   placeholder="••••••••"
                   required 
                 />
-                <p className="text-[10px] text-muted-foreground mt-1 text-right">Min 8 chars required</p>
+                <p className="text-[10px] text-muted-foreground mt-1 text-right">{t('users.create_form.password_hint')}</p>
               </div>
               <div className="col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">Role Allocation</label>
+                <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.role')}</label>
                 <select 
                   className="w-full bg-background border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   value={newRole}
                   onChange={e => setNewRole(e.target.value as any)}
                 >
-                  <option value="operator">Operator (Standard Access)</option>
-                  <option value="admin">Admin (System Wide)</option>
+                  <option value="operator">{t('users.create_form.operator_desc')}</option>
+                  <option value="admin">{t('users.create_form.admin_desc')}</option>
                 </select>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-2 pt-4 border-t">
-              <button 
-                type="button"
-                onClick={() => setShowCreate(false)}
-                className="px-4 py-2 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg transition-colors border"
-              >
-                Cancel
-              </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowCreate(false)}
+                  className="px-4 py-2 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg transition-colors border"
+                >
+                  {t('common.cancel')}
+                </button>
               <button 
                 type="submit"
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors shadow-sm"
                 disabled={!newUsername || !newPassword}
               >
-                Create Security Context
+                {t('users.create_form.submit')}
               </button>
             </div>
           </form>
@@ -178,15 +180,15 @@ export function UsersView() {
       ) : (
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Active Edge Directory</h2>
-            <p className="text-sm text-muted-foreground">Manage organizational access and session boundaries.</p>
+            <h2 className="text-lg font-semibold tracking-tight">{t('users.header.title')}</h2>
+            <p className="text-sm text-muted-foreground">{t('users.header.subtitle')}</p>
           </div>
           <button 
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            Add User
+            {t('users.header.add_button')}
           </button>
         </div>
       )}
@@ -197,10 +199,10 @@ export function UsersView() {
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-muted/50 border-b">
                 <tr>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">User Identity</th>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">Access Level</th>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">Operational Status</th>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider text-right">Security Controls</th>
+                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{t('users.table.identity')}</th>
+                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{t('users.table.access')}</th>
+                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{t('users.table.status')}</th>
+                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider text-right">{t('users.table.controls')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -231,11 +233,11 @@ export function UsersView() {
                       <div className="flex flex-col gap-1.5 items-start">
                         <span className={`flex items-center text-[11px] font-bold ${u.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                           <span className={`w-2 h-2 rounded-full mr-2 ${u.isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}></span>
-                          {u.isActive ? 'ACCOUNT ACTIVE' : 'ACCOUNT SUSPENDED'}
+                          {u.isActive ? t('users.status.active') : t('users.status.suspended')}
                         </span>
                         {u.hasActiveSessions && (
                           <span className="inline-flex items-center gap-1.5 text-[10px] bg-muted/80 px-2 py-0.5 rounded border text-muted-foreground font-bold italic">
-                            <Activity className="w-3 h-3 text-primary" /> LIVE TELEMETRY / SESSION
+                            <Activity className="w-3 h-3 text-primary" /> {t('users.status.live')}
                           </span>
                         )}
                       </div>
@@ -301,8 +303,7 @@ export function UsersView() {
       <div className="bg-muted/30 border border-dashed rounded-xl p-6 text-center">
         <p className="text-xs text-muted-foreground max-w-lg mx-auto leading-relaxed">
           <ShieldAlert className="w-4 h-4 inline-block mr-1 mb-0.5" />
-          <strong>System Protection Rule:</strong> HomePilot Edge requires at least one active Admin user. 
-          Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout.
+          {t('users.protection_rule')}
         </p>
       </div>
     </div>

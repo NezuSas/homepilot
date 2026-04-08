@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
@@ -39,6 +40,7 @@ interface DiagnosticEvent {
 }
 
 export function DiagnosticsView() {
+  const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<DiagnosticsSnapshot | null>(null);
   const [events, setEvents] = useState<DiagnosticEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +75,7 @@ export function DiagnosticsView() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <RefreshCw className="w-8 h-8 animate-spin mb-4" />
-        <p className="text-sm font-medium">Gathering diagnostics heartbeat...</p>
+        <p className="text-sm font-medium">{t('diagnostics.loading', { defaultValue: 'Gathering diagnostics heartbeat...' })}</p>
       </div>
     );
   }
@@ -83,7 +85,7 @@ export function DiagnosticsView() {
       <div className="p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl flex items-start gap-4">
         <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
         <div>
-          <h3 className="font-bold text-sm">Error loading diagnostics</h3>
+          <h3 className="font-bold text-sm">{t('diagnostics.error_loading')}</h3>
           <p className="text-xs opacity-80 mt-1">{error || 'Unknown error'}</p>
         </div>
       </div>
@@ -91,7 +93,7 @@ export function DiagnosticsView() {
   }
 
   // --- Helpers ---
-  const formatTime = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString() : 'Never';
+  const formatTime = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString() : t('common.never');
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -139,7 +141,7 @@ export function DiagnosticsView() {
            snapshot.overallStatus === 'degraded' ? <AlertTriangle className="w-10 h-10 text-amber-500" /> :
            <XCircle className="w-10 h-10 text-red-500" />}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight capitalize">System {snapshot.overallStatus}</h2>
+            <h2 className="text-2xl font-bold tracking-tight capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${snapshot.overallStatus}`) })}</h2>
             <p className="text-sm text-foreground/60 mt-1">
               {snapshot.overallStatus === 'healthy' 
                 ? 'All core services and integrations are operational.' 
@@ -148,7 +150,7 @@ export function DiagnosticsView() {
           </div>
         </div>
         <div className="sm:text-right">
-          <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">Last Telemetry Event</div>
+          <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.last_event')}</div>
           <div className="font-mono font-bold mt-1 text-sm">{formatTime(snapshot.lastEventAt)}</div>
         </div>
       </div>
@@ -156,7 +158,7 @@ export function DiagnosticsView() {
       {/* ISSUES ALERT (only if there are issues) */}
       {snapshot.issues.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">Active Issues</h3>
+          <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.active_issues')}</h3>
           {snapshot.issues.map((issue, idx) => (
             <div key={idx} className={cn(
               "flex items-start gap-4 p-4 rounded-xl border",
@@ -173,7 +175,8 @@ export function DiagnosticsView() {
       )}
 
       {/* CORE SUBSYSTEMS */}
-      <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50 mt-8 mb-4">Diagnostic Probes</h3>
+      {/* CORE SUBSYSTEMS */}
+      <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50 mt-8 mb-4">{t('diagnostics.probes.title')}</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Core: HA Bridge */}
         <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
@@ -185,15 +188,15 @@ export function DiagnosticsView() {
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground">WebSocket Sync</span>
+              <span className="text-xs font-semibold text-muted-foreground">{t('diagnostics.probes.ws_sync')}</span>
               <StatusBadge status={snapshot.websocketStatus} />
             </div>
             <div className="flex justify-between text-xs pt-3 border-t border-border/50">
-              <span className="font-bold text-muted-foreground/70">Connections Lost</span>
+              <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.connections_lost')}</span>
               <span className="font-mono font-bold text-amber-500">{snapshot.counters.recentReconnects}</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="font-bold text-muted-foreground/70">Last Reconnect</span>
+              <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_reconnect')}</span>
               <span className="font-mono">{formatTime(snapshot.lastReconnectAt)}</span>
             </div>
           </div>
@@ -209,7 +212,7 @@ export function DiagnosticsView() {
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-end pb-3">
-              <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">Recent Activity Volume</span>
+              <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.activity_volume')}</span>
               <div className="text-xs font-mono font-bold flex items-center gap-2">
                 <span className="text-green-500">+{snapshot.counters.recentAutomationSuccess}</span> 
                 <span className="text-muted-foreground/30">/</span> 
@@ -217,11 +220,11 @@ export function DiagnosticsView() {
               </div>
             </div>
             <div className="flex justify-between text-[11px] border-t border-border/50 pt-3">
-              <span className="font-bold text-muted-foreground/70">Evaluations Failed</span>
+              <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.eval_failed')}</span>
               <span className="font-mono font-bold text-red-500">{snapshot.counters.recentAutomationFailures}</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="font-bold text-muted-foreground/70">Last Execution</span>
+              <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_execution')}</span>
               <span className="font-mono">{formatTime(snapshot.lastAutomationExecutionAt)}</span>
             </div>
           </div>
@@ -237,17 +240,17 @@ export function DiagnosticsView() {
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-end pb-3">
-              <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">State Delta Alignment</span>
+              <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.state_delta')}</span>
               <div className="text-xs font-mono font-bold">
                  {snapshot.counters.recentReconciliations} cycles 
               </div>
             </div>
             <div className="flex justify-between text-[11px] border-t border-border/50 pt-3">
-              <span className="font-bold text-muted-foreground/70">Divergences Fixed</span>
+              <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.divergences_fixed')}</span>
               <span className="font-mono font-bold">{snapshot.counters.recentReconciliations}</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="font-bold text-muted-foreground/70">Last Cycle</span>
+              <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_cycle')}</span>
               <span className="font-mono">{formatTime(snapshot.lastReconciliationAt)}</span>
             </div>
           </div>
@@ -262,7 +265,7 @@ export function DiagnosticsView() {
             {events.length === 0 ? (
               <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
                 <Activity className="w-8 h-8 mb-4 text-muted-foreground" />
-                <p className="text-[10px] font-black uppercase tracking-widest">No diagnostic events recorded recently.</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">{t('diagnostics.no_events')}</p>
               </div>
             ) : (
               events.map((ev, i) => (

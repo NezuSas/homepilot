@@ -1,5 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu } from 'lucide-react';
+import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
@@ -24,12 +25,18 @@ type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' 
  * Gestiona el enrutamiento básico y el layout global.
  */
 function App() {
+  const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<View>('topology');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('hp_session_token'));
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [setupStatus, setSetupStatus] = useState<any>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language.startsWith('es') ? 'en' : 'es';
+    i18n.changeLanguage(nextLang);
+  };
 
   // Check setup status once authenticated
   useEffect(() => {
@@ -109,6 +116,16 @@ function App() {
     setIsSidebarOpen(false);
   };
 
+  const menuItems = [
+    { id: 'topology', label: t('nav.topology'), icon: Network },
+    { id: 'inbox', label: t('nav.inbox'), icon: Server },
+    { id: 'automations', label: t('nav.automations'), icon: PlaySquare },
+    { id: 'audit-logs', label: t('nav.audit_logs'), icon: ShieldAlert },
+    { id: 'ha-settings', label: t('nav.ha_settings'), icon: Settings },
+    { id: 'diagnostics', label: t('nav.diagnostics'), icon: Activity },
+    { id: 'users', label: t('nav.user_management'), icon: Users },
+  ];
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10">
       
@@ -129,35 +146,35 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary">
               <Cpu className="w-6 h-6" />
-              <h2 className="font-black tracking-tighter text-xl">HomePilot <span className="text-foreground">Edge</span></h2>
+              <h2 className="font-black tracking-tighter text-xl">{t('shell.app_title')} <span className="text-foreground">{t('shell.app_edge')}</span></h2>
             </div>
           </div>
-          <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground opacity-50 mt-1">Operator Console v3.5</span>
+          <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground opacity-50 mt-1">{t('shell.subtitle')}</span>
         </div>
         
         <nav className="flex-1 overflow-y-auto py-6">
           <ul className="grid gap-1 px-4">
             <NavItem 
               icon={<Network className="w-4 h-4" />} 
-              label="Topology" 
+              label={t('nav.topology')} 
               active={currentView === 'topology'} 
               onClick={() => navigateTo('topology')} 
             />
             <NavItem 
               icon={<Server className="w-4 h-4" />} 
-              label="Inbox & Devices" 
+              label={t('nav.inbox')} 
               active={currentView === 'inbox'} 
               onClick={() => navigateTo('inbox')} 
             />
             <NavItem 
               icon={<PlaySquare className="w-4 h-4" />} 
-              label="Automations" 
+              label={t('nav.automations')} 
               active={currentView === 'automations'} 
               onClick={() => navigateTo('automations')} 
             />
             <NavItem 
               icon={<ShieldAlert className="w-4 h-4" />} 
-              label="Audit Logs" 
+              label={t('nav.audit_logs')} 
               active={currentView === 'audit-logs'}
               onClick={() => navigateTo('audit-logs')}
             />
@@ -173,7 +190,7 @@ function App() {
             )}
           >
             <Activity className="w-4 h-4" />
-            Diagnostics
+            {t('nav.diagnostics')}
           </button>
           <button 
             onClick={() => navigateTo('ha-settings')}
@@ -183,7 +200,7 @@ function App() {
             )}
           >
             <Settings className="w-4 h-4" />
-            HA Settings
+            {t('nav.ha_settings')}
           </button>
 
           {user?.role === 'admin' && (
@@ -195,7 +212,7 @@ function App() {
               )}
             >
               <Users className="w-4 h-4" />
-              User Management
+              {t('nav.user_management')}
             </button>
           )}
           
@@ -207,6 +224,13 @@ function App() {
               </div>
               <div className="flex items-center gap-1">
                 <button 
+                  onClick={toggleLanguage}
+                  className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
+                  title="Switch Language"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+                <button 
                   onClick={() => setShowPwdModal(true)}
                   className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
                   title="Change Password"
@@ -217,7 +241,7 @@ function App() {
                   onClick={handleLogout}
                   className="text-muted-foreground hover:text-rose-500 transition-all p-2 rounded-lg hover:bg-rose-500/10 font-black text-[10px] uppercase tracking-tighter"
                 >
-                  Logout
+                  {t('nav.logout')}
                 </button>
               </div>
             </div>
@@ -238,42 +262,41 @@ function App() {
                <Menu className="w-6 h-6" />
              </button>
              <h2 className="text-sm font-black uppercase tracking-widest truncate">
-               {currentView === 'topology' ? 'Topology' : 
-                currentView === 'inbox' ? 'Devices' : 
-                currentView === 'automations' ? 'Workbench' : 
-                currentView === 'ha-settings' ? 'HA Config' : 
-                currentView === 'users' ? 'Admin' : 
-                currentView === 'diagnostics' ? 'Health' : 'Observability'}
+               {menuItems.find(m => m.id === currentView)?.label || t('shell.app_title')}
              </h2>
           </div>
-          <Cpu className="w-5 h-5 text-primary opacity-50" />
+          <div className="flex items-center gap-3">
+             <button
+               onClick={toggleLanguage}
+               className="p-2 text-muted-foreground"
+             >
+               <Globe className="w-5 h-5" />
+             </button>
+             <Cpu className="w-5 h-5 text-primary opacity-50" />
+          </div>
         </header>
 
         {/* Desktop Title Header */}
         <header className="hidden lg:block border-b px-12 py-10 bg-card/40 backdrop-blur-sm shadow-sm">
           <div className="max-w-7xl mx-auto w-full">
             <h1 className="text-3xl font-black tracking-tighter text-foreground/90 leading-tight">
-               {currentView === 'topology' ? 'System Topology' : 
-                currentView === 'inbox' ? 'Device Manager' : 
-                currentView === 'automations' ? 'Automation Workbench' : 
-                currentView === 'ha-settings' ? 'Home Assistant Settings' : 
-                currentView === 'users' ? 'User Administration' : 
-                currentView === 'diagnostics' ? 'System Diagnostics' : 'Observability Stack'}
+               {currentView === 'topology' ? t('topology.title') : 
+                currentView === 'inbox' ? t('inbox.title') : 
+                currentView === 'automations' ? t('nav.automations') : 
+                currentView === 'ha-settings' ? t('ha_settings.title') : 
+                currentView === 'users' ? t('nav.user_management') : 
+                currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2 max-w-2xl font-medium leading-relaxed">
                {currentView === 'topology' 
-                  ? 'Hierarchical structural mapping of physical domains and technical node relationships.'
+                  ? t('topology.select_home')
                   : currentView === 'inbox'
-                  ? 'Unified device lifecycle management and real-time telemetry orchestration.'
+                  ? t('inbox.subtitle')
                   : currentView === 'automations'
-                  ? 'Local event-driven logic workbench for reactive edge behaviors.'
+                  ? t('nav.automations_hint')
                   : currentView === 'ha-settings'
-                  ? 'Core bridge configuration for Home Assistant integration and credential lifecycle.'
-                  : currentView === 'users'
-                  ? 'Security policy enforcement and role-based access control for edge operators.'
-                  : currentView === 'diagnostics'
-                  ? 'Real-time telemetry and health diagnostics for resilient system operations.'
-                  : 'Immutable audit trails and tactical technical history for system auditing.'
+                  ? t('ha_settings.status_card.title')
+                  : t('nav.audit_trail')
                }
             </p>
           </div>

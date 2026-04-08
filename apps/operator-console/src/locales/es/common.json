@@ -1,0 +1,296 @@
+{
+  "nav": {
+    "topology": "Topología",
+    "inbox": "Administrador de Dispositivos",
+    "automations": "Automatizaciones",
+    "audit_logs": "Auditoría de Seguridad",
+    "ha_settings": "Configuración HA",
+    "diagnostics": "Diagnósticos",
+    "users": "Directorio de Usuarios",
+    "logout": "Cerrar Sesión",
+    "user_management": "Gestión de Usuarios",
+    "observability": "Stack de Observabilidad",
+    "audit_trail": "Rastros de auditoría inmutables e historial técnico táctico para auditoría del sistema.",
+    "automations_hint": "Workbench de lógica local basada en eventos para comportamientos reactivos en el edge."
+  },
+  "shell": {
+    "app_title": "HomePilot",
+    "app_edge": "Edge",
+    "subtitle": "Consola de Operador v3.5"
+  },
+  "inbox": {
+    "title": "Gestor de Dispositivos",
+    "subtitle": "Controlador de Estilo Appliance v3.1",
+    "no_rooms": "Sin Habitaciones",
+    "empty_state": "No hay dispositivos conectados",
+    "filters": {
+      "all": "Todo",
+      "light": "Luces",
+      "switch": "Interruptores",
+      "sensor": "Sensores"
+    },
+    "rooms": {
+      "unassigned": "Sin Asignar / Pendiente de Puesta en Marcha",
+      "device_count_one": "1 Unidad",
+      "device_count_other": "{{count}} Unidades",
+      "device_count": "{{count}} Unidades"
+    },
+    "inspector": {
+      "title": "Inspector Técnico",
+      "no_logs": "No hay registros grabados",
+      "tabs": {
+        "info": "Información",
+        "logs": "Registros",
+        "state": "Estado"
+      },
+      "actions": {
+        "force_on": "ENCENDIDO FORZADO",
+        "force_off": "APAGADO FORZADO",
+        "toggle": "CONMUTAR"
+      },
+      "alias_only": "Solo Alias Local",
+      "home_cluster": "Cluster de Hogar",
+      "placement": "Ubicación",
+      "actions_header": "Acciones Soportadas",
+      "data_object": "Objeto de Datos Core HomePilot v2.0",
+      "label_alias": "Alias Local / Sobrescritura de Identidad",
+      "label_room": "Ubicación de Habitación"
+    },
+    "discovery": {
+      "title": "Descubrimiento Manual",
+      "discover_hint": "Buscar entidades compatibles en Home Assistant",
+      "discover_button": "Descubrir Entidades",
+      "close_button": "Cerrar Descubrimiento",
+      "no_entities": "No se encontraron nuevas entidades",
+      "import_action": "Importar",
+      "importing": "Importando...",
+      "refresh_hint": "Sincronización Manual desde Home Assistant",
+      "import_success": "Entidad importada correctamente",
+      "import_error": "Error al importar entidad"
+    }
+  },
+  "topology": {
+    "title": "Topología Estructural",
+    "homes_title": "Hogares Registrados",
+    "rooms_title": "Registro de Habitaciones",
+    "add_room": "Añadir Habitación",
+    "placeholder": "Nombre de la habitación...",
+    "creating": "Creando...",
+    "select_home": "Selecciona un hogar para gestionar sus espacios."
+  },
+  "automations": {
+    "title": "Reglas de Automatización",
+    "loading": "Sincronizando Workbench...",
+    "active_recipes_one": "1 Receta Activa",
+    "active_recipes_other": "{{count}} Recetas Activas",
+    "active_recipes": "{{count}} Recetas Activas",
+    "create_rule": "Crear Regla",
+    "rule_created": "Regla Creada Exitosamente",
+    "rule_updated": "Regla Actualizada Exitosamente",
+    "update_button": "ACTUALIZAR AUTOMATIZACIÓN",
+    "save_button": "GUARDAR AUTOMATIZACIÓN",
+    "empty_state": {
+      "title": "No hay reglas locales",
+      "description": "Crea tu primera regla usando el botón superior para empezar a automatizar tu hogar local."
+    },
+    "form": {
+      "rule_name": "Nombre de la Regla",
+      "trigger_config": "Configuración del Disparador",
+      "source_device": "Dispositivo Origen",
+      "select_device": "Seleccionar Dispositivo...",
+      "state_key": "Clave de Estado",
+      "value_label": "Valor (Bool/Num/Txt)",
+      "action_result": "Resultado de la Acción",
+      "target_device": "Dispositivo Destino",
+      "select_target": "Seleccionar Destino...",
+      "command": "Comando"
+    },
+    "rule": {
+      "inactive": "Inactiva",
+      "if_trigger": "SI OCURRE",
+      "then_action": "ENTONCES",
+      "device": "Disp:",
+      "target": "Destino:"
+    }
+  },
+  "ha_settings": {
+    "title": "Bridge de Integración",
+    "status_card": {
+      "title": "Configuración de Home Assistant",
+      "subtitle": "Estado actual del bridge",
+      "active_source": "Fuente Activa",
+      "last_checked": "Última Verificación",
+      "endpoint": "API Endpoint",
+      "token": "Token de Acceso",
+      "save_button": "Guardar Cambios",
+      "testing": "Probando conexión...",
+      "test_button": "Probar Conexión",
+      "success": "Conexión exitosa",
+      "error": "Fallo de conexión"
+    },
+    "security": {
+      "title": "Seguridad V1",
+      "description": "Los tokens se consumen para operaciones en el Edge. La Consola de Operador solo expone versiones enmascaradas por seguridad.",
+      "badge": "ALMACENAMIENTO DURADERO"
+    },
+    "config": {
+      "title": "Configuración de Conexión",
+      "subtitle": "Define el endpoint y las credenciales de tu instancia de Home Assistant.",
+      "token_label": "Token de Acceso de Larga Duración",
+      "token_masked": "Enmascarado: {{token}}",
+      "token_placeholder": "Introduce el token aquí...",
+      "token_hint": "Genera este token en tu perfil de Home Assistant (sección inferior)."
+    },
+    "test": {
+      "success": "Conexión Exitosa",
+      "failure": "Fallo de Conexión",
+      "success_msg": "HomePilot puede comunicarse con HA correctamente.",
+      "failure_msg": "Verifica la URL y el Token.",
+      "url_hint": "URL completa incluyendo puerto. Ejemplo: http://homeassistant.local:8123"
+    },
+    "status": {
+      "label": "Estado de Conectividad",
+      "reachable": "En línea",
+      "unreachable": "Desconectado",
+      "auth_error": "Error Auth",
+      "unknown": "Desconocido"
+    }
+  },
+  "diagnostics": {
+    "loading": "Obteniendo latido de diagnósticos...",
+    "system_status": "Sistema {{status}}",
+    "last_event": "Último Evento de Telemetría",
+    "no_events": "No se registraron eventos de diagnóstico recientemente.",
+    "status": {
+      "healthy": "Sano",
+      "degraded": "Degradado",
+      "offline": "Desconectado"
+    },
+    "error_loading": "Error al cargar diagnósticos",
+    "active_issues": "Problemas Activos",
+    "probes": {
+      "title": "Sondas de Diagnóstico",
+      "ws_sync": "Sincronización WebSocket",
+      "connections_lost": "Conexiones Perdidas",
+      "last_reconnect": "Última Reconexión",
+      "activity_volume": "Volumen de Actividad Reciente",
+      "eval_failed": "Evaluaciones Fallidas",
+      "last_execution": "Última Ejecución",
+      "state_delta": "Alineación de Delta de Estado",
+      "divergences_fixed": "Divergencias Corregidas",
+      "last_cycle": "Último Ciclo"
+    },
+    "timeline": "Línea de Tiempo Filtrada"
+  },
+  "audit_logs": {
+    "loading": "Recuperando registros de seguridad...",
+    "fetch_error": "Error al sincronizar el historial técnico",
+    "error_title": "Error de Observabilidad",
+    "retry": "REINTENTAR SINCRONIZACIÓN",
+    "empty_title": "Registro Vacío",
+    "empty_description": "Aún no se han generado eventos auditables en este Edge. Realiza acciones como asignar dispositivos o ejecutar comandos para ver actividad técnica aquí.",
+    "refresh": "Refrescar estado",
+    "v1_title": "Auditoría Técnica V1",
+    "payload_button": "Ver JSON Payload"
+  },
+  "users": {
+    "loading": "Cargando directorio de usuarios...",
+    "create_form": {
+      "title": "Registrar Nuevo Usuario de la Organización",
+      "username": "Nombre de Usuario",
+      "password": "Contraseña Inicial",
+      "role": "Asignación de Rol",
+      "operator_desc": "Operador (Acceso Estándar)",
+      "admin_desc": "Admin (Todo el Sistema)",
+      "submit": "Crear Contexto de Seguridad",
+      "password_hint": "Mínimo 8 caracteres requeridos"
+    },
+    "header": {
+      "title": "Directorio de Edge Activo",
+      "subtitle": "Gestionar acceso organizacional y límites de sesión.",
+      "add_button": "Añadir Usuario"
+    },
+    "table": {
+      "identity": "Identidad del Usuario",
+      "access": "Nivel de Acceso",
+      "status": "Estado Operativo",
+      "controls": "Controles de Seguridad"
+    },
+    "status": {
+      "active": "CUENTA ACTIVA",
+      "suspended": "CUENTA SUSPENDIDA",
+      "live": "TELEMETRÍA EN VIVO / SESIÓN"
+    },
+    "protection_rule": "Regla de Protección del Sistema: HomePilot Edge requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes."
+  },
+  "login": {
+    "title": "HomePilot Edge",
+    "subtitle": "Inicia sesión para acceder a la Consola de Operador",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "button": "Iniciar sesión",
+    "error_credentials": "Credenciales inválidas",
+    "error_failed": "Fallo al iniciar sesión. Por favor verifica tus credenciales."
+  },
+  "onboarding": {
+    "title": "Configuración Inicial",
+    "subtitle": "Bienvenido a HomePilot Edge. Vamos a configurar tu red local.",
+    "error_save": "Error al guardar la conexión",
+    "error_complete": "Error al finalizar la configuración inicial",
+    "step1": {
+      "title": "Diagnóstico del Sistema",
+      "admin": "Acceso Administrador",
+      "ha_config": "Configuración Home Assistant",
+      "connection": "Último Estado de Conexión",
+      "ok": "OK",
+      "missing": "Rol Faltante",
+      "config_present": "Presente",
+      "config_missing": "Faltante",
+      "valid": "Válida",
+      "unknown": "Desocnocida / Inalcanzable",
+      "continue": "Continuar a la Integración"
+    },
+    "step2": {
+      "title": "Home Assistant Core",
+      "url": "URL Local",
+      "token": "Token de Acceso de Larga Duración",
+      "docker_hint": "¿Corriendo en Docker? Usa <code class=\"bg-muted px-1 py-0.5 rounded text-xs font-mono\">http://homeassistant:8123</code> para acceso a la red interna.",
+      "test": "Probar Conexión",
+      "save": "Guardar y Continuar",
+      "success": "¡Conexión exitosa!"
+    },
+    "step3": {
+      "title": "Sistema Listo",
+      "subtitle": "Tu appliance HomePilot Edge está configurado y vinculado de forma segura con tu red de Home Assistant.",
+      "complete": "Finalizar Configuración e Iniciar Workspace"
+    }
+  },
+  "change_password": {
+    "title": "Cambiar Contraseña",
+    "subtitle": "Tus sesiones activas serán revocadas.",
+    "current_password": "Contraseña Actual",
+    "new_password": "Nueva Contraseña",
+    "confirm_password": "Confirmar Nueva Contraseña",
+    "success_message": "Contraseña actualizada con éxito.\nPor favor inicia sesión de nuevo.",
+    "error_match": "Las nuevas contraseñas no coinciden",
+    "error_length": "La contraseña debe tener al menos 8 caracteres",
+    "error_failed": "Contraseña actual incorrecta o error del servidor",
+    "error_generic": "Error al cambiar la contraseña"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error del Sistema",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "edit": "Editar",
+    "never": "Nunca",
+    "actions": "Acciones",
+    "on": "ON",
+    "off": "OFF",
+    "processing": "Procesando..."
+  }
+}

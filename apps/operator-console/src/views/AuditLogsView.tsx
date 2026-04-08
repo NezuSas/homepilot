@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, ShieldAlert, AlertCircle, Database, Clock, Zap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
@@ -19,6 +20,7 @@ interface ActivityRecord {
  * Vista técnica para la observabilidad del sistema local.
  */
 export const AuditLogsView: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<ActivityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +29,12 @@ export const AuditLogsView: React.FC = () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/api/v1/activity-logs`);
-      if (!res.ok) throw new Error('No se pudo sincronizar el historial técnico');
+      if (!res.ok) throw new Error(t('audit_logs.fetch_error', { defaultValue: 'No se pudo sincronizar el historial técnico' }));
       const data = await res.json() as ActivityRecord[];
       setLogs(data);
       setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Fallo en la comunicación con el Edge');
+      setError(err instanceof Error ? err.message : t('common.error', { defaultValue: 'Fallo en la comunicación con el Edge' }));
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export const AuditLogsView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground animate-pulse">
         <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
-        <p className="text-sm font-black uppercase tracking-widest italic">Recuperando registros de auditoría...</p>
+        <p className="text-sm font-black uppercase tracking-widest italic">{t('audit_logs.loading')}</p>
       </div>
     );
   }
@@ -55,13 +57,13 @@ export const AuditLogsView: React.FC = () => {
     return (
       <div className="p-12 border-2 border-dashed border-destructive/20 bg-destructive/5 rounded-[3rem] text-center max-w-3xl mx-auto mt-10">
         <AlertCircle className="w-14 h-14 text-destructive mx-auto mb-6" />
-        <h3 className="text-xl font-black text-destructive/80 mb-2">Error de Observabilidad</h3>
+        <h3 className="text-xl font-black text-destructive/80 mb-2">{t('audit_logs.error_title')}</h3>
         <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{error}</p>
         <button 
            onClick={fetchLogs}
            className="px-8 py-3 bg-destructive text-white rounded-2xl text-xs font-black hover:scale-105 transition-transform"
         >
-          REINTENTAR SINCRONIZACIÓN
+          {t('audit_logs.retry')}
         </button>
       </div>
     );
@@ -74,16 +76,15 @@ export const AuditLogsView: React.FC = () => {
            <div className="absolute -inset-4 bg-primary/5 rounded-full blur-2xl animate-pulse" />
            <ShieldAlert className="relative w-16 h-16 text-muted-foreground/30" />
         </div>
-        <h3 className="text-2xl font-black text-foreground/80 mb-4">Registro Vacío</h3>
+        <h3 className="text-2xl font-black text-foreground/80 mb-4">{t('audit_logs.empty_title')}</h3>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-10 leading-relaxed font-medium">
-          Aún no se han generado eventos auditables en este Edge. 
-          Realiza acciones como asignar dispositivos o ejecutar comandos para ver actividad técnica aquí.
+          {t('audit_logs.empty_description')}
         </p>
         <button 
           onClick={fetchLogs}
           className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest"
         >
-          Refrescar estado
+          {t('audit_logs.refresh')}
         </button>
       </div>
     );
@@ -94,7 +95,7 @@ export const AuditLogsView: React.FC = () => {
       <div className="flex items-center justify-between mb-2">
          <div className="flex items-center gap-3">
             <Info className="w-5 h-5 text-primary opacity-40 px-0.5" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Auditoría Técnica V1</span>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{t('audit_logs.v1_title')}</span>
          </div>
          <button onClick={fetchLogs} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
             <RefreshIcon className="w-3.5 h-3.5" />
@@ -141,7 +142,7 @@ export const AuditLogsView: React.FC = () => {
                  <details className="w-full cursor-pointer group/data">
                     <summary className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest list-none flex items-center gap-2 group-hover/data:text-primary transition-colors">
                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
-                       View JSON Payload
+                       {t('audit_logs.payload_button')}
                     </summary>
                     <pre className="mt-3 p-3 bg-background border rounded-xl text-[10px] font-mono text-foreground/80 overflow-x-auto shadow-inner max-h-32">
                        {JSON.stringify(log.data, null, 2)}

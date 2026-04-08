@@ -1,0 +1,296 @@
+{
+  "nav": {
+    "topology": "Topology",
+    "inbox": "Device Manager",
+    "automations": "Automations",
+    "audit_logs": "Security Audit",
+    "ha_settings": "HA Settings",
+    "diagnostics": "Diagnostics",
+    "users": "User Directory",
+    "logout": "Logout",
+    "user_management": "User Management",
+    "observability": "Observability Stack",
+    "audit_trail": "Immutable audit trails and tactical technical history for system auditing.",
+    "automations_hint": "Local event-driven logic workbench for reactive edge behaviors."
+  },
+  "shell": {
+    "app_title": "HomePilot",
+    "app_edge": "Edge",
+    "subtitle": "Operator Console v3.5"
+  },
+  "inbox": {
+    "title": "Device Manager",
+    "subtitle": "Appliance-Style Controller v3.1",
+    "no_rooms": "No Rooms",
+    "empty_state": "No devices connected",
+    "filters": {
+      "all": "All",
+      "light": "Lights",
+      "switch": "Switches",
+      "sensor": "Sensors"
+    },
+    "rooms": {
+      "unassigned": "Unassigned / Pending Commissioning",
+      "device_count_one": "1 Unit",
+      "device_count_other": "{{count}} Units",
+      "device_count": "{{count}} Units"
+    },
+    "inspector": {
+      "title": "Technical Inspector",
+      "no_logs": "No logs recorded",
+      "tabs": {
+        "info": "Info",
+        "logs": "Logs",
+        "state": "State"
+      },
+      "actions": {
+        "force_on": "FORCE ON",
+        "force_off": "FORCE OFF",
+        "toggle": "TOGGLE"
+      },
+      "alias_only": "Local Alias Only",
+      "home_cluster": "Home Cluster",
+      "placement": "Placement",
+      "actions_header": "Supported Actions",
+      "data_object": "HomePilot Core Data Object v2.0",
+      "label_alias": "Local Alias / Identity Override",
+      "label_room": "Room Placement"
+    },
+    "discovery": {
+      "title": "Manual Discovery",
+      "discover_hint": "Search for compatible entities in Home Assistant",
+      "discover_button": "Discover Entities",
+      "close_button": "Close Discovery",
+      "no_entities": "No new entities found",
+      "import_action": "Import",
+      "importing": "Importing...",
+      "refresh_hint": "Manual Refresh from Home Assistant",
+      "import_success": "Entity imported successfully",
+      "import_error": "Failed to import entity"
+    }
+  },
+  "topology": {
+    "title": "Structural Topology",
+    "homes_title": "Registered Homes",
+    "rooms_title": "Room Registry",
+    "add_room": "Add Room",
+    "placeholder": "Room name...",
+    "creating": "Creating...",
+    "select_home": "Select a home to manage its spaces."
+  },
+  "automations": {
+    "title": "Automation Rules",
+    "loading": "Synchronizing Workbench...",
+    "active_recipes_one": "1 Active Recipe",
+    "active_recipes_other": "{{count}} Active Recipes",
+    "active_recipes": "{{count}} Active Recipes",
+    "create_rule": "Create Rule",
+    "rule_created": "Rule Created Successfully",
+    "rule_updated": "Rule Updated Successfully",
+    "update_button": "UPDATE AUTOMATION",
+    "save_button": "SAVE AUTOMATION",
+    "empty_state": {
+      "title": "No local rules",
+      "description": "Create your first rule using the button above to start automating your local home."
+    },
+    "form": {
+      "rule_name": "Rule Name",
+      "trigger_config": "Trigger Configuration",
+      "source_device": "Source Device",
+      "select_device": "Select Device...",
+      "state_key": "State Key",
+      "value_label": "Value (Bool/Num/Text)",
+      "action_result": "Action Result",
+      "target_device": "Target Device",
+      "select_target": "Select Target...",
+      "command": "Command"
+    },
+    "rule": {
+      "inactive": "Inactive",
+      "if_trigger": "IF TRIGGER",
+      "then_action": "THEN ACTION",
+      "device": "Device:",
+      "target": "Target:"
+    }
+  },
+  "ha_settings": {
+    "title": "Integration Bridge",
+    "status_card": {
+      "title": "Home Assistant Configuration",
+      "subtitle": "Current bridge state",
+      "active_source": "Active Source",
+      "last_checked": "Last Verification",
+      "endpoint": "API Endpoint",
+      "token": "Access Token",
+      "save_button": "Save Changes",
+      "testing": "Testing connection...",
+      "test_button": "Test Connection",
+      "success": "Connection successful",
+      "error": "Connection failed"
+    },
+    "security": {
+      "title": "V1 Security",
+      "description": "Tokens are consumed for Edge operations. The Operator Console only exposes masked versions for safety.",
+      "badge": "DURABLE STORAGE"
+    },
+    "config": {
+      "title": "Connection Configuration",
+      "subtitle": "Define the endpoint and credentials for your Home Assistant instance.",
+      "token_label": "Long-Lived Access Token",
+      "token_masked": "Masked: {{token}}",
+      "token_placeholder": "Enter token here...",
+      "token_hint": "Generate this token in your Home Assistant profile (bottom section)."
+    },
+    "test": {
+      "success": "Connection Successful",
+      "failure": "Connection Failed",
+      "success_msg": "HomePilot can communicate with HA correctly.",
+      "failure_msg": "Verify URL and Token.",
+      "url_hint": "Full URL including port. Example: http://homeassistant.local:8123"
+    },
+    "status": {
+      "label": "Connectivity Status",
+      "reachable": "Online",
+      "unreachable": "Disconnected",
+      "auth_error": "Auth Error",
+      "unknown": "Unknown"
+    }
+  },
+  "diagnostics": {
+    "loading": "Gathering diagnostics heartbeat...",
+    "system_status": "System {{status}}",
+    "last_event": "Last Telemetry Event",
+    "no_events": "No diagnostic events recorded recently.",
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "offline": "Offline"
+    },
+    "error_loading": "Error loading diagnostics",
+    "active_issues": "Active Issues",
+    "probes": {
+      "title": "Diagnostic Probes",
+      "ws_sync": "WebSocket Sync",
+      "connections_lost": "Connections Lost",
+      "last_reconnect": "Last Reconnect",
+      "activity_volume": "Recent Activity Volume",
+      "eval_failed": "Evaluations Failed",
+      "last_execution": "Last Execution",
+      "state_delta": "State Delta Alignment",
+      "divergences_fixed": "Divergences Fixed",
+      "last_cycle": "Last Cycle"
+    },
+    "timeline": "Filtered Timeline"
+  },
+  "audit_logs": {
+    "loading": "Retrieving security logs...",
+    "fetch_error": "Failed to synchronize technical history",
+    "error_title": "Observability Error",
+    "retry": "RETRY SYNCHRONIZATION",
+    "empty_title": "Empty Log",
+    "empty_description": "No auditable events have been generated on this Edge yet. Perform actions like assigning devices or running commands to see technical activity here.",
+    "refresh": "Refresh status",
+    "v1_title": "Technical Audit V1",
+    "payload_button": "View JSON Payload"
+  },
+  "users": {
+    "loading": "Loading user directory...",
+    "create_form": {
+      "title": "Register New Organization User",
+      "username": "Username",
+      "password": "Initial Password",
+      "role": "Role Allocation",
+      "operator_desc": "Operator (Standard Access)",
+      "admin_desc": "Admin (System Wide)",
+      "submit": "Create Security Context",
+      "password_hint": "Min 8 chars required"
+    },
+    "header": {
+      "title": "Active Edge Directory",
+      "subtitle": "Manage organizational access and session boundaries.",
+      "add_button": "Add User"
+    },
+    "table": {
+      "identity": "User Identity",
+      "access": "Access Level",
+      "status": "Operational Status",
+      "controls": "Security Controls"
+    },
+    "status": {
+      "active": "ACCOUNT ACTIVE",
+      "suspended": "ACCOUNT SUSPENDED",
+      "live": "LIVE TELEMETRY / SESSION"
+    },
+    "protection_rule": "System Protection Rule: HomePilot Edge requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout."
+  },
+  "login": {
+    "title": "HomePilot Edge",
+    "subtitle": "Sign in to access Operator Console",
+    "username": "Username",
+    "password": "Password",
+    "button": "Log in",
+    "error_credentials": "Invalid credentials",
+    "error_failed": "Login failed. Please verify your credentials."
+  },
+  "onboarding": {
+    "title": "First-Run Setup",
+    "subtitle": "Welcome to HomePilot Edge. Let's get your local network configured.",
+    "error_save": "Failed to save connection",
+    "error_complete": "Failed to complete onboarding",
+    "step1": {
+      "title": "System Diagnostic",
+      "admin": "Admin Access",
+      "ha_config": "Home Assistant Config",
+      "connection": "Last Connection State",
+      "ok": "OK",
+      "missing": "Missing Role",
+      "config_present": "Present",
+      "config_missing": "Missing",
+      "valid": "Valid",
+      "unknown": "Unknown / Unreachable",
+      "continue": "Continue to Integration"
+    },
+    "step2": {
+      "title": "Home Assistant Core",
+      "url": "Local URL",
+      "token": "Long-Lived Access Token",
+      "docker_hint": "Running in Docker? Use <code class=\"bg-muted px-1 py-0.5 rounded text-xs font-mono\">http://homeassistant:8123</code> for internal network access.",
+      "test": "Test Connection",
+      "save": "Save & Continue",
+      "success": "Connection successful!"
+    },
+    "step3": {
+      "title": "System Ready",
+      "subtitle": "Your HomePilot Edge appliance is configured and securely bonded with your Home Assistant network.",
+      "complete": "Complete Setup & Boot Workspace"
+    }
+  },
+  "change_password": {
+    "title": "Change Password",
+    "subtitle": "Your active sessions will be revoked.",
+    "current_password": "Current Password",
+    "new_password": "New Password",
+    "confirm_password": "Confirm New Password",
+    "success_message": "Password updated successfully.\nPlease log in again.",
+    "error_match": "New passwords do not match",
+    "error_length": "Password must be at least 8 characters",
+    "error_failed": "Incorrect current password or server error",
+    "error_generic": "Failed to change password"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "System Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "enable": "Enable",
+    "disable": "Disable",
+    "edit": "Edit",
+    "never": "Never",
+    "actions": "Actions",
+    "on": "ON",
+    "off": "OFF",
+    "processing": "Processing..."
+  }
+}

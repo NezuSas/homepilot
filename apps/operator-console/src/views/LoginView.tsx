@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Cpu, Lock, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
@@ -7,6 +8,7 @@ interface LoginViewProps {
 }
 
 export function LoginView({ onLoginSuccess }: LoginViewProps) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,13 +29,13 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
       });
 
       if (!resp.ok) {
-        throw new Error('Invalid credentials');
+        throw new Error(t('login.error_credentials', { defaultValue: 'Invalid credentials' }));
       }
 
       const data = await resp.json();
       onLoginSuccess(data.token, data.user);
     } catch (e: any) {
-      setError(e.message || 'Login failed. Please verify your credentials.');
+      setError(e.message || t('login.error_failed', { defaultValue: 'Login failed. Please verify your credentials.' }));
     } finally {
       setLoading(false);
     }
@@ -47,8 +49,8 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
             <Cpu className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">HomePilot Edge</h1>
-            <p className="text-sm text-muted-foreground mt-1">Sign in to access Operator Console</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('login.title')}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t('login.subtitle')}</p>
           </div>
         </div>
 
@@ -62,7 +64,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Username
+              {t('login.username')}
             </label>
             <input 
               type="text" 
@@ -77,7 +79,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Password
+              {t('login.password')}
             </label>
             <input 
               type="password"
@@ -95,7 +97,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
             disabled={loading}
             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-4"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Log in'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('login.button')}
           </button>
         </form>
       </div>

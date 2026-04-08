@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Ghost, Cpu, Plus, X, CheckCircle2, Trash2, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
@@ -43,6 +44,7 @@ interface RuleUI extends AutomationRule {
  * Vista final endurecida y pulida para la gestión de reglas locales.
  */
 export const AutomationWorkbenchView: React.FC = () => {
+  const { t } = useTranslation();
   const [rules, setRules] = useState<RuleUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -214,7 +216,7 @@ export const AutomationWorkbenchView: React.FC = () => {
   if (loading && rules.length === 0) return (
     <div className="p-20 text-center flex flex-col items-center gap-4 text-muted-foreground animate-pulse">
       <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
-      <span className="text-sm font-black uppercase tracking-widest">Sincronizando Workbench...</span>
+      <span className="text-sm font-black uppercase tracking-widest">{t('automations.loading')}</span>
     </div>
   );
 
@@ -226,9 +228,9 @@ export const AutomationWorkbenchView: React.FC = () => {
         <div className="flex flex-col">
           <h2 className="text-xl font-black tracking-tight flex items-center gap-3">
             <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-            Automation Rules
+            {t('automations.title')}
           </h2>
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{rules.length} Active Recipes</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t('automations.active_recipes', { count: rules.length })}</span>
         </div>
         <button 
           onClick={() => {
@@ -240,7 +242,7 @@ export const AutomationWorkbenchView: React.FC = () => {
             (showForm || editingId) ? "bg-muted text-foreground border border-border/40" : "bg-primary text-white shadow-primary/20 hover:scale-105"
           )}
         >
-          {showForm ? <><X className="w-4 h-4" /> Cancel</> : editingId ? <><X className="w-4 h-4" /> Cancel Edit</> : <><Plus className="w-4 h-4" /> Create Rule</>}
+          {showForm ? <><X className="w-4 h-4" /> {t('common.cancel')}</> : editingId ? <><X className="w-4 h-4" /> {t('common.cancel')}</> : <><Plus className="w-4 h-4" /> {t('automations.create_rule')}</>}
         </button>
       </div>
 
@@ -250,14 +252,14 @@ export const AutomationWorkbenchView: React.FC = () => {
           {success && (
             <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-white z-10 animate-in fade-in transition-all">
               <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
-              <span className="text-xl font-black uppercase tracking-tighter">{editingId ? 'Regla Actualizada' : 'Regla Creada Exitosamente'}</span>
+              <span className="text-xl font-black uppercase tracking-tighter">{editingId ? t('automations.rule_updated') : t('automations.rule_created')}</span>
             </div>
           )}
 
           <div className="grid md:grid-cols-2 gap-10">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Rule Name</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">{t('automations.form.rule_name')}</label>
                 <input 
                   required
                   value={formData.name}
@@ -269,25 +271,25 @@ export const AutomationWorkbenchView: React.FC = () => {
 
               <div className="p-8 bg-muted/20 rounded-[2.5rem] border border-border/40 flex flex-col gap-5">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60 mb-2 flex items-center gap-2">
-                  <Play className="w-3 h-3 fill-current" /> Trigger Configuration
+                  <Play className="w-3 h-3 fill-current" /> {t('automations.form.trigger_config')}
                 </span>
                 
                 <div className="flex flex-col gap-2">
-                  <label className="text-[9px] font-bold text-muted-foreground">Source Device</label>
+                  <label className="text-[9px] font-bold text-muted-foreground">{t('automations.form.source_device')}</label>
                   <select 
                     required
                     value={formData.triggerDeviceId}
                     onChange={e => setFormData({...formData, triggerDeviceId: e.target.value})}
                     className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-bold outline-none focus:border-primary/40 appearance-none shadow-sm cursor-pointer"
                   >
-                    <option value="">Select Device...</option>
+                    <option value="">{t('automations.form.select_device')}</option>
                     {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
                   </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[9px] font-bold text-muted-foreground">State Key</label>
+                    <label className="text-[9px] font-bold text-muted-foreground">{t('automations.form.state_key')}</label>
                     <input 
                       required
                       value={formData.stateKey}
@@ -296,7 +298,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[9px] font-bold text-muted-foreground">Value (Bool/Num/Text)</label>
+                    <label className="text-[9px] font-bold text-muted-foreground">{t('automations.form.value_label')}</label>
                     <input 
                       required
                       value={formData.expectedValue}
@@ -311,24 +313,24 @@ export const AutomationWorkbenchView: React.FC = () => {
             <div className="flex flex-col gap-6 justify-between">
               <div className="p-8 bg-primary/[0.03] rounded-[2.5rem] border-2 border-primary/10 flex flex-col gap-5 shadow-inner">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary mb-2 flex items-center gap-2">
-                  <Zap className="w-3 h-3 fill-current" /> Action Result
+                  <Zap className="w-3 h-3 fill-current" /> {t('automations.form.action_result')}
                 </span>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-[9px] font-bold text-muted-foreground">Target Device</label>
+                  <label className="text-[9px] font-bold text-muted-foreground">{t('automations.form.target_device')}</label>
                   <select 
                     required
                     value={formData.targetDeviceId}
                     onChange={e => setFormData({...formData, targetDeviceId: e.target.value})}
                     className="bg-background border-2 border-border/40 rounded-xl p-3 text-xs font-bold outline-none focus:border-primary/40 appearance-none shadow-sm cursor-pointer"
                   >
-                    <option value="">Select Target...</option>
+                    <option value="">{t('automations.form.select_target')}</option>
                     {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
                   </select>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-[9px] font-bold text-muted-foreground">Command</label>
+                  <label className="text-[9px] font-bold text-muted-foreground">{t('automations.form.command')}</label>
                   <select 
                     required
                     value={formData.command}
@@ -354,7 +356,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                   type="submit"
                   className="w-full bg-primary text-white py-5 rounded-[2rem] text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 group disabled:opacity-50 disabled:grayscale"
                 >
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{editingId ? 'UPDATE AUTOMATION' : 'SAVE AUTOMATION'} <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" /></>}
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{editingId ? t('automations.update_button') : t('automations.save_button')} <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" /></>}
                 </button>
               </div>
             </div>
@@ -365,8 +367,8 @@ export const AutomationWorkbenchView: React.FC = () => {
       {rules.length === 0 && !loading && !showForm && !editingId ? (
         <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed rounded-[3rem] text-center p-12 bg-card/20 animate-in fade-in duration-1000">
           <Ghost className="w-16 h-16 text-muted-foreground opacity-10 mb-8" />
-          <h3 className="text-2xl font-black tracking-tight">No hay reglas locales</h3>
-          <p className="text-sm text-muted-foreground max-w-xs mt-3 mb-10 leading-relaxed font-medium">Crea tu primera regla usando el botón superior para empezar a automatizar tu hogar local.</p>
+          <h3 className="text-2xl font-black tracking-tight">{t('automations.empty_state.title')}</h3>
+          <p className="text-sm text-muted-foreground max-w-xs mt-3 mb-10 leading-relaxed font-medium">{t('automations.empty_state.description')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-8">
@@ -382,7 +384,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                 <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[2.5rem] animate-in fade-in">
                   <div className="bg-card px-6 py-3 rounded-full shadow-2xl border border-primary/20 flex items-center gap-3">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Procesando...</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('common.processing')}</span>
                   </div>
                 </div>
               )}
@@ -407,7 +409,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                        rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white" : "bg-primary text-white"
                      )}
                    >
-                     {rule.enabled ? 'Disable' : 'Enable'}
+                     {rule.enabled ? t('common.disable') : t('common.enable')}
                    </button>
                    
                    <div className="flex flex-col gap-1.5 pt-1.5 border-t border-border/40 mt-1.5">
@@ -453,7 +455,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                       <h4 className="text-2xl font-black tracking-tighter text-foreground/90 leading-tight">{rule.name}</h4>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[9px] font-mono font-bold text-muted-foreground/30 px-1.5 py-0.5 bg-muted/40 rounded uppercase tracking-tighter">ID: {rule.id}</span>
-                        {!rule.enabled && <span className="text-[8px] font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">Inactive</span>}
+                        {!rule.enabled && <span className="text-[8px] font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">{t('automations.rule.inactive')}</span>}
                       </div>
                     </div>
                  </div>
@@ -461,7 +463,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                  <div className="grid lg:grid-cols-[1fr,auto,1fr] gap-8 items-center">
                     <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-[2rem] font-mono text-[11px] shadow-inner relative group/node overflow-hidden">
                        <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
-                       <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-[9px] font-black text-muted-foreground">IF TRIGGER</span>
+                       <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-[9px] font-black text-muted-foreground">{t('automations.rule.if_trigger')}</span>
                        <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
                          <div className="flex items-center gap-2">
                            <span className="text-primary/40 italic">Device:</span> 
@@ -485,7 +487,7 @@ export const AutomationWorkbenchView: React.FC = () => {
 
                     <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-[2rem] font-mono text-[11px] relative shadow-sm group/node overflow-hidden">
                        <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
-                       <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-[9px] font-black text-primary/70">THEN ACTION</span>
+                       <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-[9px] font-black text-primary/70">{t('automations.rule.then_action')}</span>
                        <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
                           <div className="flex items-center gap-2">
                              <span className="text-primary/40 italic">Target:</span> 
@@ -509,7 +511,7 @@ export const AutomationWorkbenchView: React.FC = () => {
         <div className="fixed bottom-10 right-10 bg-destructive text-white p-5 rounded-[2rem] shadow-2xl flex items-center gap-5 animate-in slide-in-from-right-4 z-[100] border border-white/20 backdrop-blur-md">
           <AlertCircle className="w-6 h-6" />
           <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Error del Sistema</span>
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('common.error')}</span>
             <span className="text-xs font-bold">{error}</span>
           </div>
           <button onClick={fetchRules} className="bg-white/20 p-2.5 rounded-2xl hover:bg-white/40 transition-colors shadow-inner">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Inbox, RadioTower, Box, Activity,
   Loader2, RefreshCw, X, AlertCircle, ArrowRight,
@@ -54,6 +55,7 @@ const DeviceTile: React.FC<{
   onUpdate?: (updated: Device) => void;
   onInspect?: () => void;
 }> = ({ device, rooms, onUpdate, onInspect }) => {
+  const { t } = useTranslation();
   const isAssigned = device.status === 'ASSIGNED';
   const isPending = device.status === 'PENDING';
   const [isProcessing, setIsProcessing] = useState(false);
@@ -170,7 +172,7 @@ const DeviceTile: React.FC<{
               onClick={(e) => { e.stopPropagation(); setError(null); }}
               className="mt-1 text-[7px] font-black uppercase text-muted-foreground border-b border-muted-foreground/30"
             >
-              Dismiss
+              {t('common.cancel')}
             </button>
         </div>
       )}
@@ -184,7 +186,7 @@ const DeviceTile: React.FC<{
           <div className="flex items-center gap-1.5 mt-1">
             <div className={cn("w-1.5 h-1.5 rounded-full", isOn ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", isOn ? "text-primary" : "text-muted-foreground")}>
-              {isOn ? 'Active' : 'Standby'}
+              {isOn ? t('common.on') : (device.type === 'sensor' ? 'Reading' : t('common.off'))}
             </span>
           </div>
         ) : (
@@ -197,14 +199,14 @@ const DeviceTile: React.FC<{
                onChange={(e) => setSelectedRoomId(e.target.value)}
              >
                {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-               {rooms.length === 0 && <option value="">No Rooms</option>}
+               {rooms.length === 0 && <option value="">{t('inbox.no_rooms', { defaultValue: 'No Rooms' })}</option>}
              </select>
              <button 
                onClick={handleAssign}
                disabled={!selectedRoomId || isProcessing}
                className="w-full bg-primary/10 text-primary py-1 rounded text-[8px] font-black uppercase border border-primary/20 hover:bg-primary/20 transition-colors"
              >
-               {isProcessing ? '...' : 'Assign'}
+               {isProcessing ? t('common.processing') : t('common.save')}
              </button>
           </div>
         )}
@@ -217,6 +219,7 @@ const DeviceTile: React.FC<{
  * Vista de Inbox principal para la Operator Console.
  */
 export const InboxView: React.FC = () => {
+  const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
   const [roomsByHome, setRoomsByHome] = useState<Record<string, Room[]>>({});
   const [loading, setLoading] = useState(true);
@@ -261,7 +264,7 @@ export const InboxView: React.FC = () => {
     const isPending = dev.status === 'PENDING';
     const room = roomsFlattened.find((r: Room) => r.id === dev.roomId);
     const groupId = isPending || !room ? 'UNASSIGNED' : room.id;
-    const groupName = isPending || !room ? 'Unassigned / Pending Commissioning' : room.name;
+    const groupName = isPending || !room ? t('inbox.rooms.unassigned') : room.name;
     
     if (!acc[groupId]) acc[groupId] = { name: groupName, devices: [] };
     acc[groupId].devices.push(dev);
@@ -296,8 +299,8 @@ export const InboxView: React.FC = () => {
             <Inbox className="w-6 h-6" />
           </div>
           <div className="flex flex-col min-w-0">
-            <h2 className="text-xl font-black tracking-tight truncate">Device Manager</h2>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 truncate">Appliance-Style Controller v3.1</span>
+            <h2 className="text-xl font-black tracking-tight truncate">{t('inbox.title')}</h2>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 truncate">{t('inbox.subtitle')}</span>
           </div>
         </div>
 
@@ -309,10 +312,10 @@ export const InboxView: React.FC = () => {
               onClick={() => setFilter(f)}
               className={cn(
                 "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
+               filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
               )}
             >
-              {f}
+              {t(`inbox.filters.${f}`)}
             </button>
           ))}
         </div>
@@ -330,7 +333,7 @@ export const InboxView: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border/30 hidden sm:block min-w-[20px]" />
                 <span className="px-3 py-1 bg-muted rounded-full text-[10px] font-black border border-border opacity-50 whitespace-nowrap">
-                  {group.devices.length} {group.devices.length === 1 ? 'Unit' : 'Units'}
+                  {t('inbox.rooms.device_count', { count: group.devices.length })}
                 </span>
               </div>
             </div>
@@ -352,7 +355,7 @@ export const InboxView: React.FC = () => {
         {devices.length === 0 && (
           <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-20">
              <Cpu className="w-12 h-12 mb-4" />
-             <p className="text-sm font-black uppercase tracking-widest">No devices connected</p>
+             <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state', { defaultValue: 'No devices connected' })}</p>
           </div>
         )}
       </div>
@@ -365,6 +368,7 @@ const DeviceInspector: React.FC<{
   onClose: () => void;
   onUpdate: (updated: Device) => void;
 }> = ({ deviceId, onClose, onUpdate }) => {
+  const { t } = useTranslation();
   const [device, setDevice] = useState<Device | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -496,8 +500,8 @@ const DeviceInspector: React.FC<{
                </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Technical Inspector</span>
-                    <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">Local Alias Only</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title', { defaultValue: 'Technical Inspector' })}</span>
+                    <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">{t('inbox.inspector.alias_only')}</span>
                   </div>
                  {isRenaming ? (
                    <div className="flex items-center gap-2 mt-1">
@@ -573,7 +577,7 @@ const DeviceInspector: React.FC<{
 
               <div className="mt-4 p-8 bg-black/5 border-2 border-dashed border-border/50 rounded-[2.5rem] flex flex-col gap-6">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Supported Actions</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{t('inbox.inspector.actions_header')}</span>
                   <Activity className="w-4 h-4 opacity-20" />
                 </div>
                 
@@ -583,19 +587,19 @@ const DeviceInspector: React.FC<{
                       onClick={() => handleCommand('turn_on')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10"
                     >
-                      FORCE ON
+                       {t('inbox.inspector.actions.force_on', { defaultValue: 'FORCE ON' })}
                     </button>
                     <button 
                       onClick={() => handleCommand('turn_off')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors"
                     >
-                      FORCE OFF
+                      {t('inbox.inspector.actions.force_off', { defaultValue: 'FORCE OFF' })}
                     </button>
                     <button 
                       onClick={() => handleCommand('toggle')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                     >
-                      TOGGLE
+                      {t('inbox.inspector.actions.toggle', { defaultValue: 'TOGGLE' })}
                     </button>
                   </div>
                 )}
@@ -624,14 +628,14 @@ const DeviceInspector: React.FC<{
                  <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
                    <div className="flex items-center gap-2 mb-2">
                      <Box className="w-4 h-4 opacity-40 text-primary" />
-                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Placement</span>
+                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.placement')}</span>
                    </div>
                    <span className="text-sm font-bold truncate">{device.roomId || 'UNASSIGNED_LOGICAL_UNIT'}</span>
                  </div>
                  <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
                    <div className="flex items-center gap-2 mb-2 text-primary">
                      <Cpu className="w-4 h-4 opacity-40" />
-                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Home Cluster</span>
+                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.home_cluster')}</span>
                    </div>
                    <span className="text-sm font-bold truncate">{device.homeId}</span>
                  </div>
@@ -657,7 +661,7 @@ const DeviceInspector: React.FC<{
               {logs.length === 0 && (
                 <div className="text-center py-20 flex flex-col items-center justify-center opacity-10">
                    <Terminal className="w-12 h-12 mb-4" />
-                   <div className="text-xs font-black uppercase tracking-[0.2em]">No logs recorded</div>
+                   <div className="text-xs font-black uppercase tracking-[0.2em]">{t('inbox.inspector.no_logs')}</div>
                 </div>
               )}
             </div>
@@ -678,7 +682,7 @@ const DeviceInspector: React.FC<{
 
         {/* Footer info */}
         <div className="p-6 border-t border-border/50 bg-muted/10 text-center">
-           <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-20">HomePilot Core Data Object v2.0</p>
+           <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-20">{t('inbox.inspector.data_object')}</p>
         </div>
       </div>
     </div>
@@ -693,6 +697,7 @@ interface HaEntityCandidate {
 }
 
 const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ onImported }) => {
+  const { t } = useTranslation();
   const [entities, setEntities] = useState<HaEntityCandidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -754,7 +759,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
           className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-secondary border border-border rounded-xl hover:bg-secondary/80 transition-all flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className={cn("w-3.5 h-3.5", showDiscovery && "rotate-180")} />}
-          {showDiscovery ? 'Close Discovery' : 'Discover Entities'}
+          {showDiscovery ? t('inbox.discovery.close_button', { defaultValue: 'Close Discovery' }) : t('inbox.discovery.discover_button')}
         </button>
       </div>
 
@@ -784,7 +789,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
           ))}
           {entities.length === 0 && !loading && (
             <div className="col-span-full py-8 text-center border-2 border-dashed rounded-xl opacity-40">
-              <p className="text-[10px] font-black uppercase tracking-widest">No new entities found</p>
+              <p className="text-[10px] font-black uppercase tracking-widest">{t('inbox.discovery.no_entities', { defaultValue: 'No new entities found' })}</p>
             </div>
           )}
         </div>
