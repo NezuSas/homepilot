@@ -2,6 +2,7 @@ import { AutomationRuleRepository } from '../../devices/domain/repositories/Auto
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
 import { SystemStateChangeEvent } from '../../integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
+import { ObservableAutomationEngineStateProvider, AutomationEngineObservableState } from '../../system-observability/domain/ObservableStateProviders';
 
 /**
  * Puerto de Entrada simple para el Dispatch. 
@@ -16,10 +17,16 @@ export interface AutomationCommandDispatcher {
   ): Promise<void>;
 }
 
-export class AutomationEngine {
+export class AutomationEngine implements ObservableAutomationEngineStateProvider {
   // Ventana de deduplicación in-memory (2000 ms) para evitar ecos.
   private readonly loopPreventionCache = new Map<string, number>();
   private readonly DEDUPLICATION_WINDOW_MS = 2000;
+
+  // ─── Observability State ─────────────────────────────────────────────────────
+  private lastExecutionAt: string | null = null;
+  private totalSuccesses: number = 0;
+  private totalFailures: number = 0;
+  private lastStatus: 'active' | 'idle' | 'error' = 'idle';
 
   constructor(
     private readonly ruleRepository: AutomationRuleRepository,
@@ -50,6 +57,7 @@ export class AutomationEngine {
         }
       }
     } catch (globalError: any) {
+      this.lastStatus = 'error';
       console.error(`[AutomationEngine] Falla severa procesando evento:`, globalError.message);
     }
   }
@@ -114,8 +122,14 @@ export class AutomationEngine {
         event.eventId
       );
       
+      this.totalSuccesses++;
+      this.lastExecutionAt = new Date().toISOString();
+      this.lastStatus = 'active';
       await this.logExecution(rule, event, 'success', `Automation successful.`);
     } catch (dispatchError: any) {
+      this.totalFailures++;
+      this.lastExecutionAt = new Date().toISOString();
+      this.lastStatus = 'error';
       await this.logExecution(rule, event, 'error', `Command dispatch failed: ${dispatchError.message}`);
     }
   }
@@ -160,5 +174,26 @@ export class AutomationEngine {
         this.loopPreventionCache.delete(key);
       }
     }
+  }
+
+  // ─── Observable State Provider ───────────────────────────────────────────────
+
+  public getObservableState(): AutomationEngineObservableState {
+    let currentStatus = this.lastStatus;
+    
+    // Si han pasado más de 5 minutos desde la última ejecución activa, se considera idle
+    if (currentStatus === 'active' && this.lastExecutionAt) {
+      const msSinceLast = Date.now() - new Date(this.lastExecutionAt).getTime();
+      if (msSinceLast > 5 * 60 * 1000) {
+        currentStatus = 'idle';
+      }
+    }
+
+    return {
+      status: currentStatus,
+      lastExecutionAt: this.lastExecutionAt,
+      totalSuccesses: this.totalSuccesses,
+      totalFailures: this.totalFailures
+    };
   }
 }

@@ -101,6 +101,28 @@ export class OperatorConsoleServer {
     const pathname = new URL(url, `http://${req.headers.host || 'localhost'}`).pathname;
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
+    // GET /api/v1/system/diagnostics
+    if (method === 'GET' && pathname === '/api/v1/system/diagnostics') {
+      try {
+        const snapshot = await this.container.services.diagnosticsService.getSnapshot();
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(snapshot));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
+    // GET /api/v1/system/diagnostics/events
+    if (method === 'GET' && pathname === '/api/v1/system/diagnostics/events') {
+      try {
+        const events = await this.container.services.diagnosticsService.getRecentEvents(50);
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(events));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
     // GET /api/v1/homes
     if (method === 'GET' && pathname === '/api/v1/homes') {
       try {

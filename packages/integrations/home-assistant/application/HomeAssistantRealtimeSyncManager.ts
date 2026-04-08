@@ -4,6 +4,7 @@ import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRep
 import { ActivityLogRepository } from '../../../devices/domain/repositories/ActivityLogRepository';
 import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 import { HomeAssistantClient } from '../../../devices/infrastructure/adapters/HomeAssistantClient';
+import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
 
 export interface SystemStateChangeEvent {
   eventId: string;
@@ -30,10 +31,15 @@ type CloseReason = 'stop_manual' | 'reconfigure' | 'auth_error' | 'network_drop'
 /** Secuencia de backoff en milisegundos: 1s → 2s → 5s → 10s (fijo) */
 const BACKOFF_DELAYS_MS = [1000, 2000, 5000, 10000];
 
-export class HomeAssistantRealtimeSyncManager extends EventEmitter {
+export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {
   private client: HomeAssistantWebSocketClient | null = null;
   private currentUrl: string | null = null;
   private currentToken: string | null = null;
+
+  // ─── Observability State ─────────────────────────────────────────────────────
+  private lastEventAt: string | null = null;
+  private lastReconnectAt: string | null = null;
+  private lastReconciliationAt: string | null = null;
 
   // ─── Resilience State ────────────────────────────────────────────────────────
   /** Timer único activo para el siguiente reintento. null = sin retry pendiente. */
@@ -155,6 +161,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter {
       this.retryIndex = 0;
       this.retryAttempt = 0;
       this.lastCloseReason = 'network_drop'; // Habilitar retrofit
+      this.lastReconnectAt = new Date().toISOString();
 
       this._logResilienceEvent('reconnect', this.retryAttempt, 0, 'WebSocket connection established.');
 
@@ -211,6 +218,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter {
 
   private async processEvent(data: any): Promise<void> {
     if (!data || !data.entity_id || !data.new_state) return;
+    this.lastEventAt = new Date().toISOString();
 
     try {
       const entityId = data.entity_id as string;
@@ -338,12 +346,37 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter {
       }
 
       console.log(`[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${skippedCount} omitidos.`);
+      this.lastReconciliationAt = new Date().toISOString();
       this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
         `State reconciliation completed.`, reconciledCount, skippedCount);
 
     } finally {
       this.isReconciling = false;
     }
+  }
+
+  // ─── Observable State Provider ───────────────────────────────────────────────
+
+  public getObservableState(): RealtimeSyncObservableState {
+    let websocketStatus: 'connected' | 'reconnecting' | 'stopped' = 'stopped';
+    if (this.reconnectTimer !== null) {
+      websocketStatus = 'reconnecting';
+    } else if (this.client) {
+      websocketStatus = 'connected';
+    }
+
+    let reconciliationStatus: 'idle' | 'running' | 'failed' = 'idle';
+    if (this.isReconciling) {
+      reconciliationStatus = 'running';
+    }
+
+    return {
+      websocketStatus,
+      reconciliationStatus,
+      lastEventAt: this.lastEventAt,
+      lastReconnectAt: this.lastReconnectAt,
+      lastReconciliationAt: this.lastReconciliationAt
+    };
   }
 
   // ─── Structured Logging ──────────────────────────────────────────────────────

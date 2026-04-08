@@ -1,15 +1,16 @@
 import { useState, type ReactNode } from 'react';
-import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu } from 'lucide-react';
+import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity } from 'lucide-react';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
 import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
 import { AuditLogsView } from './views/AuditLogsView';
 import { HomeAssistantSettingsView } from './views/HomeAssistantSettingsView';
+import { DiagnosticsView } from './views/DiagnosticsView';
 
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings';
+type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' | 'diagnostics';
 
 /**
  * App Component
@@ -60,7 +61,16 @@ function App() {
           </ul>
         </nav>
         
-        <div className="p-4 border-t mt-auto">
+        <div className="p-4 border-t mt-auto flex flex-col gap-2">
+          <button 
+            onClick={() => setCurrentView('diagnostics')}
+            className={`flex items-center gap-2 text-sm transition-colors w-full p-2.5 rounded-lg font-medium ${
+              currentView === 'diagnostics' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Diagnostics
+          </button>
           <button 
             onClick={() => setCurrentView('ha-settings')}
             className={`flex items-center gap-2 text-sm transition-colors w-full p-2.5 rounded-lg font-medium ${
@@ -80,7 +90,8 @@ function App() {
              {currentView === 'topology' ? 'Topology View' : 
               currentView === 'inbox' ? 'Device Inbox & Manager' : 
               currentView === 'automations' ? 'Automation Workbench' : 
-              currentView === 'ha-settings' ? 'Home Assistant Settings' : 'Audit Logs & Observability'}
+              currentView === 'ha-settings' ? 'Home Assistant Settings' : 
+              currentView === 'diagnostics' ? 'System Diagnostics' : 'Audit Logs & Observability'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
              {currentView === 'topology' 
@@ -91,6 +102,8 @@ function App() {
                 ? 'Configure and monitor IF-THEN rules for reactive device behavior.'
                 : currentView === 'ha-settings'
                 ? 'Configure Home Assistant connection, manage hot-swap credentials and monitor bridge connectivity status.'
+                : currentView === 'diagnostics'
+                ? 'Real-time operational health, resilience status and anomaly detection for system operators.'
                 : 'Technical history of system events, commands and state transitions for debugging.'
              }
           </p>
@@ -102,6 +115,7 @@ function App() {
           {currentView === 'automations' && <AutomationWorkbenchView />}
           {currentView === 'audit-logs' && <AuditLogsView />}
           {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
+          {currentView === 'diagnostics' && <DiagnosticsView />}
         </section>
       </main>
     </div>

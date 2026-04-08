@@ -11,8 +11,8 @@ import { SQLiteSettingsRepository } from './packages/integrations/home-assistant
 import { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import { HomeAssistantSettingsService } from './packages/integrations/home-assistant/application/HomeAssistantSettingsService';
 import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
-
 import { AutomationEngine } from './packages/automation/application/AutomationEngine';
+import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -25,6 +25,7 @@ export interface BootstrapContainer {
   };
   services: {
     homeAssistantSettingsService: HomeAssistantSettingsService;
+    diagnosticsService: DiagnosticsService;
   };
   adapters: {
     homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
@@ -147,6 +148,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     automationEngine.handleSystemEvent(event).catch(e => console.error('[Engine] Fallo asíncrono:', e.message));
   });
 
+  const diagnosticsService = new DiagnosticsService(
+    settingsService,
+    syncManager,
+    automationEngine,
+    activityLogRepository
+  );
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -157,7 +165,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       settingsRepository,
     },
     services: {
-      homeAssistantSettingsService: settingsService
+      homeAssistantSettingsService: settingsService,
+      diagnosticsService
     },
     adapters: {
       homeAssistantConnectionProvider: connectionProvider,
