@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Globe, Database, Cpu } from 'lucide-react';
+import { Save, RefreshCw, CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Globe, Database, Cpu, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface HASettingsStatus {
   baseUrl: string;
@@ -19,15 +20,19 @@ export const HomeAssistantSettingsView: React.FC = () => {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch('/api/v1/settings/home-assistant');
+      setError(null);
+      const response = await fetch(`${API_BASE_URL}/api/v1/settings/home-assistant`);
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
       const data = await response.json();
       setStatus(data);
       setBaseUrl(data.baseUrl || '');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching HA status:', error);
+      setError(error.message || 'Error de conexión');
     }
   };
 
@@ -40,7 +45,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/v1/settings/home-assistant', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/settings/home-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl, accessToken: token || undefined })
@@ -65,7 +70,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
     setTesting(true);
     setTestResult(null);
     try {
-      const response = await fetch('/api/v1/settings/home-assistant/test', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/settings/test-ha-connection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl, accessToken: token || '' })
@@ -87,6 +92,24 @@ export const HomeAssistantSettingsView: React.FC = () => {
       default: return <RefreshCw className="w-5 h-5 text-muted-foreground animate-spin-slow" />;
     }
   };
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-4 animate-in fade-in">
+      <div className="p-3 bg-rose-500/10 rounded-full">
+        <AlertCircle className="w-8 h-8 text-rose-500" />
+      </div>
+      <div className="text-center">
+        <h3 className="font-semibold text-foreground">Error de Carga</h3>
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
+        <button 
+          onClick={fetchStatus}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all"
+        >
+          Reintentar
+        </button>
+      </div>
+    </div>
+  );
 
   if (!status) return (
     <div className="flex items-center justify-center h-64">
