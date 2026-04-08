@@ -80,7 +80,8 @@ export class OperatorConsoleServer {
     'HA_AUTH_ERROR': 'Error de autenticación con Home Assistant.',
     'INTERNAL_ERROR': 'Error interno del sistema. Contacte a soporte.',
     'SETUP_REQUIRED': 'El sistema requiere configuración inicial.',
-    'ALREADY_INITIALIZED': 'El sistema ya ha sido configurado.'
+    'ALREADY_INITIALIZED': 'El sistema ya ha sido configurado.',
+    'DEVICE_ALREADY_EXISTS': 'El dispositivo ya fue importado.'
   };
 
   private static readonly DEFAULT_STATUS_CODES: Record<string, number> = {
@@ -91,7 +92,8 @@ export class OperatorConsoleServer {
     'VALIDATION_ERROR': 400,
     'HA_CONNECTION_ERROR': 502,
     'HA_AUTH_ERROR': 502,
-    'INTERNAL_ERROR': 500
+    'INTERNAL_ERROR': 500,
+    'DEVICE_ALREADY_EXISTS': 409
   };
 
   constructor(private readonly container: BootstrapContainer, private readonly dbPath: string, port: number = 3000) {
@@ -856,16 +858,25 @@ export class OperatorConsoleServer {
   }
 
   private async handleHaDiscovery(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    const db = SqliteDatabaseManager.getInstance(this.dbPath);
     try {
+      // 1. Obtener todas las entidades de HA
       const allStates = await this.container.adapters.homeAssistantConnectionProvider.getClient().getAllStates();
       
       this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
 
-      // Filtrar dominios soportados en V1
+      // 2. Obtener lista de IDs externos ya registrados para Home Assistant
+      const existingRows = db.prepare('SELECT external_id FROM devices WHERE external_id LIKE "ha:%"').all() as { external_id: string }[];
+      const existingEntityIds = new Set(existingRows.map(r => r.external_id.replace('ha:', '')));
+
+      // 3. Filtrar dominios soportados y entidades no importadas
       const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor'];
       
       const entities = allStates
-        .filter(s => supportedDomains.includes(s.entity_id.split('.')[0]))
+        .filter(s => {
+          const domain = s.entity_id.split('.')[0];
+          return supportedDomains.includes(domain) && !existingEntityIds.has(s.entity_id);
+        })
         .map(s => ({
           entityId: s.entity_id,
           state: s.state,

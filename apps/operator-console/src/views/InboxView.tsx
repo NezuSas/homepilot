@@ -62,7 +62,7 @@ const DeviceTile: React.FC<{
 
   // Determine state for visual cues
   const lastState = (device.lastKnownState || {}) as DeviceState;
-  const isOn = lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
+  const isOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
   
   const supportsCommands = device.type === 'light' || device.type === 'switch';
 
@@ -335,7 +335,7 @@ export const InboxView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
               {group.devices.map(device => (
                 <DeviceTile 
                   key={device.id} 
@@ -759,7 +759,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
       </div>
 
       {showDiscovery && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
           {entities.map((entity: HaEntityCandidate) => (
             <div key={entity.entityId} className="p-4 bg-card border border-border rounded-xl flex flex-col gap-3 group relative overflow-hidden">
                <div className="absolute top-0 right-0 p-2 opacity-5">
