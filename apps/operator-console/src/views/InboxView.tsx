@@ -246,21 +246,36 @@ const DeviceCard: React.FC<{
         </div>
         
         {!isAssigned && (
-          <div className="col-span-2 pt-2 border-t border-border/20 mt-1 flex flex-col gap-3">
-             <select 
-               className="bg-background border border-border rounded px-2 py-1.5 text-[11px]"
-               value={selectedRoomId}
-               onChange={(e) => setSelectedRoomId(e.target.value)}
-             >
-               {rooms.map(room => (
-                 <option key={room.id} value={room.id}>{room.name}</option>
-               ))}
-             </select>
+          <div className="col-span-2 pt-2 border-t border-border/20 mt-1 flex flex-col gap-3 relative z-20">
+             {rooms.length > 0 ? (
+               <select 
+                 className="bg-background border border-border rounded px-2 py-1.5 text-[11px] focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer w-full appearance-none pr-8"
+                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0/0/24/24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
+                 value={selectedRoomId}
+                 onChange={(e) => setSelectedRoomId(e.target.value)}
+               >
+                 {rooms.map(room => (
+                   <option key={room.id} value={room.id}>{room.name}</option>
+                 ))}
+               </select>
+             ) : (
+               <div className="bg-muted/50 border border-dashed border-border rounded-lg p-3 text-center flex flex-col gap-2">
+                 <p className="text-[10px] text-muted-foreground italic font-medium">No rooms available yet</p>
+                 <a 
+                   href="/topology" 
+                   onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('nav', { detail: 'topology' })); }}
+                   className="text-[9px] font-black uppercase text-primary hover:underline"
+                 >
+                   + Create a Room in Topology
+                 </a>
+               </div>
+             )}
              <button 
                onClick={handleAssign}
-               className="w-full bg-primary text-white py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+               disabled={!selectedRoomId || isProcessing}
+               className="w-full bg-primary text-white py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-primary/10"
              >
-               Assign <ArrowRight className="w-3 h-3" />
+               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Assign <ArrowRight className="w-3 h-3" /></>}
              </button>
           </div>
         )}

@@ -15,6 +15,7 @@ import { CompositeCommandDispatcher } from './CompositeCommandDispatcher';
 import { syncDeviceStateUseCase } from '../../packages/devices/application/syncDeviceStateUseCase';
 import { AutomationRule, AutomationTrigger, AutomationAction } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
+import { createRoomUseCase } from '../../packages/topology/application/createRoomUseCase';
 
 interface LocalHomeRow {
   id: string;
@@ -489,6 +490,35 @@ export class OperatorConsoleServer {
         })));
       } catch (error: any) {
         this.sendError(res, 500, 'DB_ERROR', error.message);
+      }
+      return;
+    }
+
+    // POST /api/v1/homes/:id/rooms
+    const createRoomMatch = method === 'POST' && pathname.match(/^\/api\/v1\/homes\/([^\/]+)\/rooms$/);
+    if (createRoomMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+      try {
+        const homeId = createRoomMatch[1];
+        const payload = await this.parseBody<{ name: string }>(req);
+        if (!payload.name) return this.sendError(res, 400, 'INVALID_INPUT', 'Room name is required');
+        
+        const room = await createRoomUseCase(
+          payload.name,
+          homeId,
+          authReq.user.id,
+          crypto.randomUUID(),
+          {
+            homeRepository: this.container.repositories.homeRepository,
+            roomRepository: this.container.repositories.roomRepository,
+            eventPublisher: { publish: async () => {} },
+            idGenerator: { generate: () => crypto.randomUUID() },
+            clock: { now: () => new Date().toISOString() }
+          }
+        );
+        this.sendJson(res, room, 201);
+      } catch (error: any) {
+        this.sendError(res, 500, 'ROOM_CREATE_ERROR', error.message);
       }
       return;
     }

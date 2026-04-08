@@ -21,6 +21,8 @@ export const TopologyView: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loadingHomes, setLoadingHomes] = useState(true);
   const [loadingRooms, setLoadingRooms] = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
   // En entorno Local/Edge, la API v1 expuesta en el puerto contiguo soluciona el binding
   const API_URL = `${API_BASE_URL}/api/v1`;
@@ -30,6 +32,9 @@ export const TopologyView: React.FC = () => {
       .then((res) => res.json())
       .then((data) => {
         setHomes(data || []);
+        if (data.length > 0 && !selectedHome) {
+           handleSelectHome(data[0]);
+        }
         setLoadingHomes(false);
       })
       .catch((err) => {
@@ -51,6 +56,26 @@ export const TopologyView: React.FC = () => {
         console.error('Error fetching rooms:', err);
         setLoadingRooms(false);
       });
+  };
+
+  const handleAddRoom = async () => {
+    if (!selectedHome || !newRoomName.trim()) return;
+    setIsCreatingRoom(true);
+    try {
+      const res = await fetch(`${API_URL}/homes/${selectedHome.id}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newRoomName.trim() })
+      });
+      if (res.ok) {
+        setNewRoomName('');
+        handleSelectHome(selectedHome); // Refresh
+      }
+    } catch (err) {
+      console.error('Error creating room:', err);
+    } finally {
+      setIsCreatingRoom(false);
+    }
   };
 
   if (loadingHomes) {
@@ -133,10 +158,27 @@ export const TopologyView: React.FC = () => {
       <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-4">
         {selectedHome ? (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                 Rooms en <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
               </h3>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text"
+                  placeholder="New Room Name"
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                  className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-primary outline-none transition-all"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
+                />
+                <button 
+                  onClick={handleAddRoom}
+                  disabled={isCreatingRoom || !newRoomName.trim()}
+                  className="bg-primary text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
+                >
+                  {isCreatingRoom ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Add Room'}
+                </button>
+              </div>
             </div>
 
             {loadingRooms ? (
