@@ -6,6 +6,8 @@ import {
 } from '../domain/HomeAssistantSettings';
 import { HomeAssistantConnectionProvider } from './HomeAssistantConnectionProvider';
 
+import { HomeAssistantRealtimeSyncManager } from './HomeAssistantRealtimeSyncManager';
+
 /**
  * HomeAssistantSettingsService
  * 
@@ -15,12 +17,18 @@ import { HomeAssistantConnectionProvider } from './HomeAssistantConnectionProvid
 export class HomeAssistantSettingsService {
   private lastConnectivityStatus: ConnectivityStatus = 'unknown';
   private lastCheckedAt: string | null = null;
+  private syncManager: HomeAssistantRealtimeSyncManager | null = null;
 
   constructor(
     private readonly repository: SettingsRepository,
     private readonly provider: HomeAssistantConnectionProvider,
     private readonly envFallback: { baseUrl?: string; token?: string }
   ) {}
+
+  public setRealtimeSyncManager(manager: HomeAssistantRealtimeSyncManager): void {
+    this.syncManager = manager;
+  }
+
 
   /**
    * Obtiene la configuración actual y su estado consolidado.
@@ -100,6 +108,11 @@ export class HomeAssistantSettingsService {
     
     // Notificar al provider para hot-reload
     this.provider.reconfigure(sanitizedUrl, newToken);
+    
+    // Notificar al WebSocket sync manager para hot-reload nativo
+    if (this.syncManager) {
+      this.syncManager.reconnect(sanitizedUrl, newToken);
+    }
   }
 
   /**

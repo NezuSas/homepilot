@@ -113,7 +113,24 @@ export class SQLiteDeviceRepository implements DeviceRepository {
   }
 
   /**
+   * Localiza un dispositivo globalmente usando sólo el external_id.
+   */
+  public async findByExternalId(externalId: string): Promise<Device | null> {
+    const stmt = this.db.prepare(`
+      SELECT * FROM devices 
+      WHERE external_id = ?
+    `);
+    
+    // Asumidos unívocos localmente o tomamos el primero
+    const row = stmt.get(externalId) as DeviceRow | undefined;
+    
+    if (!row) return null;
+    return this.mapToEntity(row);
+  }
+
+  /**
    * Mapea de fila de base de datos a entidad de Dominio.
+
    */
   private mapToEntity(row: DeviceRow): Device {
     return {

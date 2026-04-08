@@ -25,4 +25,8 @@ export interface DeviceRepository {
    * provista por la interacción de hardware para garantizar la idempotencia.
    */
   findByExternalIdAndHomeId(externalId: string, homeId: string): Promise<Device | null>;
+  /**
+   * Localiza un dispositivo basándose en su external_id independientemente de su hogar.
+   */
+  findByExternalId(externalId: string): Promise<Device | null>;
 }

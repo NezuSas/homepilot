@@ -10,6 +10,7 @@ import { HomeAssistantClient } from './packages/devices/infrastructure/adapters/
 import { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import { HomeAssistantSettingsService } from './packages/integrations/home-assistant/application/HomeAssistantSettingsService';
+import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 
 export interface BootstrapContainer {
   repositories: {
@@ -81,14 +82,23 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     envFallback
   );
 
+  const syncManager = new HomeAssistantRealtimeSyncManager(
+    settingsService,
+    deviceRepository,
+    activityLogRepository
+  );
+  settingsService.setRealtimeSyncManager(syncManager);
+
   // Carga inicial de configuración
   const dbSettings = await settingsRepository.getSettings();
   if (dbSettings) {
     console.log('[Bootstrap] Cargando configuración de HA desde Base de Datos.');
     connectionProvider.reconfigure(dbSettings.baseUrl, dbSettings.accessToken);
+    syncManager.reconnect(dbSettings.baseUrl, dbSettings.accessToken);
   } else if (envFallback.baseUrl && envFallback.token) {
     console.log('[Bootstrap] Cargando configuración de HA desde Variables de Entorno (fallback).');
     connectionProvider.reconfigure(envFallback.baseUrl, envFallback.token);
+    syncManager.reconnect(envFallback.baseUrl, envFallback.token);
   } else {
     console.warn('[Bootstrap] Home Assistant no configurado (ni DB ni ENV).');
   }
