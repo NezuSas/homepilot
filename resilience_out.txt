@@ -1,0 +1,59 @@
+=== Verificaci├│n Home Assistant Sync Resilience V2 ===
+
+
+--- Test 1: Single Timer (no parallel retries) ---
+[HA-Sync] Reintento #1 en 1000ms...
+  Ô£à Second scheduleReconnect() must NOT create a new timer (same timer reference)
+  Ô£à stop() must cancel the retry timer
+
+--- Test 2: Auth Error Aborts Retry (no backoff loop) ---
+  Ô£à auth_error must NOT schedule a reconnect timer
+  Ô£à lastCloseReason must be auth_error after auth failure
+  Ô£à auth_error status must be propagated to SettingsService
+
+--- Test 3: reconfigure() cancels existing retry timer ---
+[HA-Sync] Reintento #1 en 1000ms...
+  Ô£à A timer must exist before reconfigure()
+  Ô£à reconnect() must cancel the existing timer before creating a new connection
+
+--- Test 4: Silent reconciliation does NOT emit system_event ---
+[HA-Sync] Iniciando reconciliaci├│n de estado...
+[HA-Sync] Reconciliaci├│n completada: 1 actualizados, 0 omitidos.
+  Ô£à Reconciliation must NOT emit system_event to AutomationEngine
+  Ô£à getAllStates() must be called once
+  Ô£à lastKnownState.state must be updated to "on" after reconciliation
+  Ô£à Reconciliation must produce a HA_RESILIENCE log entry
+  Ô£à reconciledDevices must be 1
+
+--- Test 5: /api/states failure does NOT crash the manager ---
+[HA-Sync] Iniciando reconciliaci├│n de estado...
+[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo. Simulated /api/states failure
+  Ô£à getAllStates() failure must be caught safely without throwing
+  Ô£à isReconciling must be false after failed reconciliation (finally block)
+  Ô£à Failed /api/states must produce a warning HA_RESILIENCE log
+
+--- Test 6: Concurrent reconciliation calls do not overlap ---
+[HA-Sync] Iniciando reconciliaci├│n de estado...
+  Ô£à isReconciling must be true while first reconciliation is running
+[HA-Sync] Reconciliaci├│n ya en curso. Omitiendo solapamiento.
+  Ô£à getAllStates() must only be called ONCE (second reconciliation must be skipped)
+[HA-Sync] Reconciliaci├│n completada: 0 actualizados, 0 omitidos.
+  Ô£à isReconciling must be false after reconciliation completes
+
+--- Test 7: getAllStates() timeout does not block isReconciling ---
+[HA-Sync] Iniciando reconciliaci├│n de estado...
+[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo. getAllStates() timed out after 8000ms
+  Ô£à Timeout error must be caught internally and not propagate to caller
+  Ô£à isReconciling must be false after timeout (finally block)
+  Ô£à Timeout must NOT emit any system_event
+  Ô£à Timeout must produce a HA_RESILIENCE warning log
+
+--- Test 8: auth_error cancels stale reconnectTimer (race condition guard) ---
+[HA-Sync] Reintento #1 en 1000ms...
+  Ô£à Stale timer must exist before auth_error arrives
+  Ô£à auth_error must cancel the stale retry timer
+  Ô£à lastCloseReason must be auth_error
+[HA-Sync] Reintento #2 en 2000ms...
+  Ô£à No timer must remain after auth_error sequence
+
+=== Completado: 26 Ô£à  0 ÔØî ===

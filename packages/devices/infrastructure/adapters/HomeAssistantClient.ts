@@ -64,19 +64,40 @@ export class HomeAssistantClient {
   /**
    * Obtiene todos los estados de las entidades de Home Assistant.
    */
+  /**
+   * Timeout configurable en ms para la reconciliación. Por defecto: 8 segundos.
+   */
+  private static readonly RECONCILIATION_TIMEOUT_MS = 8000;
+
   public async getAllStates(): Promise<HomeAssistantState[]> {
     const url = `${this.baseUrl}/api/states`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json'
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      HomeAssistantClient.RECONCILIATION_TIMEOUT_MS
+    );
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Home Assistant API Error: ${response.status} ${response.statusText}`);
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`Home Assistant API Error: ${response.status} ${response.statusText}`);
+      return await response.json() as HomeAssistantState[];
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error(`getAllStates() timed out after ${HomeAssistantClient.RECONCILIATION_TIMEOUT_MS}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    return await response.json() as HomeAssistantState[];
   }
 }

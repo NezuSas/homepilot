@@ -84,10 +84,23 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     envFallback
   );
 
+  // Crear un proxy de cliente que siempre lee del provider activo,
+  // permitiendo que la reconciliación use credenciales actualizadas post-reconfigure.
+  // Se construye como un objeto que delega a getClient() en runtime.
+  const haClientProxy = new Proxy({} as HomeAssistantClient, {
+    get(_target, prop) {
+      return (...args: any[]) => {
+        const client = connectionProvider.getClient();
+        return (client as any)[prop](...args);
+      };
+    }
+  });
+
   const syncManager = new HomeAssistantRealtimeSyncManager(
     settingsService,
     deviceRepository,
-    activityLogRepository
+    activityLogRepository,
+    haClientProxy
   );
   settingsService.setRealtimeSyncManager(syncManager);
 
