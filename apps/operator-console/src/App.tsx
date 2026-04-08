@@ -6,6 +6,9 @@ import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
 import { AuditLogsView } from './views/AuditLogsView';
 import { HomeAssistantSettingsView } from './views/HomeAssistantSettingsView';
 import { DiagnosticsView } from './views/DiagnosticsView';
+import { LoginView } from './views/LoginView';
+import { ChangePasswordModal } from './views/ChangePasswordModal';
+import { KeyRound } from 'lucide-react';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -19,6 +22,40 @@ type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' 
  */
 function App() {
   const [currentView, setCurrentView] = useState<View>('topology');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('hp_session_token'));
+  const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
+
+  const handleLoginSuccess = (token: string, user: any) => {
+    localStorage.setItem('hp_session_token', token);
+    localStorage.setItem('hp_user_ctx', JSON.stringify(user));
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:3000/api/v1/auth/logout', { method: 'POST' });
+    } catch (e) {
+      // Ignore errors if network is down or token is garbage, we still log out locally.
+    } finally {
+      localStorage.removeItem('hp_session_token');
+      localStorage.removeItem('hp_user_ctx');
+      setIsAuthenticated(false);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <LoginView onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  const handlePasswordChanged = () => {
+    localStorage.removeItem('hp_session_token');
+    localStorage.removeItem('hp_user_ctx');
+    setIsAuthenticated(false);
+    setShowPwdModal(false);
+  };
+
+  const userCtxStr = localStorage.getItem('hp_user_ctx');
+  const user = userCtxStr ? JSON.parse(userCtxStr) : null;
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground">
@@ -80,6 +117,31 @@ function App() {
             <Settings className="w-4 h-4" />
             HA Settings
           </button>
+          
+          <div className="pt-2 border-t mt-2">
+            <div className="flex items-center justify-between p-2">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium leading-none">{user?.username || 'user'}</span>
+                <span className="text-[10px] text-muted-foreground uppercase mt-0.5">{user?.role || 'operator'}</span>
+              </div>
+              <div className="flex items-center">
+                <button 
+                  onClick={() => setShowPwdModal(true)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-muted text-sm"
+                  title="Change Password"
+                >
+                  <KeyRound className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="text-muted-foreground hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-500/10 text-sm font-medium ml-1"
+                  title="Log out"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -118,6 +180,12 @@ function App() {
           {currentView === 'diagnostics' && <DiagnosticsView />}
         </section>
       </main>
+
+      <ChangePasswordModal 
+        isOpen={showPwdModal} 
+        onClose={() => setShowPwdModal(false)}
+        onSuccess={handlePasswordChanged}
+      />
     </div>
   );
 }

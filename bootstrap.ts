@@ -14,6 +14,12 @@ import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-a
 import { AutomationEngine } from './packages/automation/application/AutomationEngine';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 
+import { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
+import { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
+import { CryptoService } from './packages/auth/infrastructure/CryptoService';
+import { AuthService } from './packages/auth/application/AuthService';
+import { AuthGuard } from './packages/auth/infrastructure/AuthGuard';
+
 export interface BootstrapContainer {
   repositories: {
     homeRepository: SQLiteHomeRepository;
@@ -22,10 +28,16 @@ export interface BootstrapContainer {
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
     settingsRepository: SQLiteSettingsRepository;
+    userRepository: SqliteUserRepository;
+    sessionRepository: SqliteSessionRepository;
   };
   services: {
     homeAssistantSettingsService: HomeAssistantSettingsService;
     diagnosticsService: DiagnosticsService;
+    authService: AuthService;
+  };
+  guards: {
+    authGuard: AuthGuard;
   };
   adapters: {
     homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
@@ -155,6 +167,24 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     activityLogRepository
   );
 
+  // -- INIT AUTH V1 --
+  const userRepository = new SqliteUserRepository(db);
+  const sessionRepository = new SqliteSessionRepository(db);
+  const cryptoService = new CryptoService();
+  const authService = new AuthService(userRepository, sessionRepository, cryptoService);
+  const authGuard = new AuthGuard(authService);
+
+  const adminHook = await authService.getBootstrapAdmin();
+  if (adminHook) {
+    console.log('\n===============================================================');
+    console.log(' [SECURITY] FIRST BOOT: DEFAULT SYSTEM ADMINISTRATOR GENERATED');
+    console.log(` -> Username: ${adminHook.admin.username}`);
+    console.log(` -> Password: ${adminHook.generatedPlaintext}`);
+    console.log(' => PLEASE COPY AND SAFEGUARD THIS PASSWORD.');
+    console.log(' => IT WILL NEVER BE DISPLAYED AGAIN.');
+    console.log('===============================================================\n');
+  }
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -163,10 +193,16 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       automationRuleRepository,
       activityLogRepository,
       settingsRepository,
+      userRepository,
+      sessionRepository
     },
     services: {
       homeAssistantSettingsService: settingsService,
-      diagnosticsService
+      diagnosticsService,
+      authService
+    },
+    guards: {
+      authGuard
     },
     adapters: {
       homeAssistantConnectionProvider: connectionProvider,

@@ -1,0 +1,15 @@
+
+=== Verificaci├│n Auth & RBAC V1 ===
+
+  Ô£à Bootstrap first admin works
+  Ô£à Login con credenciales v├ílidas
+  Ô£à Rechazo por contrase├▒a inv├ílida
+  Ô£à Verificaci├│n JWT / Opaque session
+  Ô£à Expiraci├│n estricta rechazada 401
+  Ô£à Bloqueo de usuarios inactivos / eliminados
+  Ô£à RBAC Matrix y Roles Enforcements
+  Ô£à Instant Session Revocation
+  Ô£à Cambio de contrase├▒a blindado y sesiones limpiadas
+
+=== Completado: 9/9 tests ejecutados y correctos ===
+

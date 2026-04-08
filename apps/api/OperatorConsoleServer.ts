@@ -101,6 +101,85 @@ export class OperatorConsoleServer {
     const pathname = new URL(url, `http://${req.headers.host || 'localhost'}`).pathname;
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
+    // -- AUTH V1 ENDPOINTS --
+    if (pathname.startsWith('/api/v1/auth/')) {
+      if (method === 'POST' && pathname === '/api/v1/auth/login') {
+        let body = ''; req.on('data', c => body += c);
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            if (!payload.username || !payload.password) return this.sendError(res, 400, 'Missing credentials');
+            const result = await this.container.services.authService.login(payload.username, payload.password);
+            
+            if (!result) {
+              await this.container.repositories.activityLogRepository.saveActivity({
+                deviceId: 'system-auth', type: 'AUTH_FAILED' as any, timestamp: new Date().toISOString(), description: `Failed login attempt for user ${payload.username}`, data: {}
+              });
+              return this.sendError(res, 401, 'Invalid credentials');
+            }
+
+            await this.container.repositories.activityLogRepository.saveActivity({
+              deviceId: 'system-auth', type: 'AUTH_SUCCESS' as any, timestamp: new Date().toISOString(), description: `User ${result.user.username} logged in`, data: { username: result.user.username }
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+          } catch (e) {
+            this.sendError(res, 500, 'Internal Error');
+          }
+        });
+        return;
+      }
+
+      // Rest of Auth Endpoints require token to be decoded, but logout won't crash if bad
+      const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return; // Response is handled by the guard
+
+      const authReq = req as any;
+
+      if (method === 'POST' && pathname === '/api/v1/auth/logout') {
+        const token = req.headers['authorization']?.replace('Bearer ', '').trim();
+        if (token) {
+          await this.container.services.authService.logout(token);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+        return;
+      }
+
+      if (method === 'GET' && pathname === '/api/v1/auth/me') {
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(authReq.user));
+        return;
+      }
+
+      if (method === 'POST' && pathname === '/api/v1/auth/change-password') {
+        let body = ''; req.on('data', c => body += c);
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            if (!payload.currentPassword || !payload.newPassword) return this.sendError(res, 400, 'Missing fields');
+            
+            const result = await this.container.services.authService.changePassword(authReq.user.id, payload.currentPassword, payload.newPassword);
+            if (!result.success) return this.sendError(res, 400, 'Failed to change password');
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+          } catch (e) {
+            this.sendError(res, 500, 'Internal Error');
+          }
+        });
+        return;
+      }
+
+      // 404 for unknown auth routes
+      this.sendError(res, 404, 'Auth route not found');
+      return;
+    }
+
+    // -- PROTECTED SYSTEM ROUTES --
+    const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
+    if (!isProtected) return;
+
+    // From here, req.user is guaranteed populated
+    const authReq = req as any;
+
     // GET /api/v1/system/diagnostics
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics') {
       try {
@@ -217,6 +296,7 @@ export class OperatorConsoleServer {
 
     // POST /api/v1/automations
     if (method === 'POST' && pathname === '/api/v1/automations') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
@@ -250,6 +330,7 @@ export class OperatorConsoleServer {
     // PATCH /api/v1/automations/:id
     const patchAutoMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
     if (patchAutoMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       const ruleId = patchAutoMatch[1];
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
@@ -276,6 +357,7 @@ export class OperatorConsoleServer {
     // PATCH /api/v1/automations/:id/(enable|disable)
     const autoMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)\/(enable|disable)$/);
     if (autoMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       const ruleId = autoMatch[1];
       const act = autoMatch[2];
       try {
@@ -294,6 +376,7 @@ export class OperatorConsoleServer {
     // DELETE /api/v1/automations/:id
     const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
     if (deleteMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       const ruleId = deleteMatch[1];
       try {
         const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
@@ -322,6 +405,7 @@ export class OperatorConsoleServer {
 
     // POST /api/v1/settings/home-assistant
     if (method === 'POST' && pathname === '/api/v1/settings/home-assistant') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
@@ -338,6 +422,7 @@ export class OperatorConsoleServer {
 
     // POST /api/v1/settings/home-assistant/test
     if (method === 'POST' && pathname === '/api/v1/settings/home-assistant/test') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
@@ -368,17 +453,20 @@ export class OperatorConsoleServer {
 
     // GET /api/v1/ha/entities
     if (method === 'GET' && pathname === '/api/v1/ha/entities') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       return this.handleHaDiscovery(req, res);
     }
 
     // POST /api/v1/ha/import
     if (method === 'POST' && pathname === '/api/v1/ha/import') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       return this.handleHaImport(req, res);
     }
 
     // POST /api/v1/devices/:id/refresh
     const refreshMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/refresh$/);
     if (refreshMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       try {
         const deviceId = refreshMatch[1];
         let device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
@@ -419,6 +507,7 @@ export class OperatorConsoleServer {
     // POST /api/v1/devices/:id/assign
     const assignMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
     if (assignMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       let body = ''; req.on('data', c => body += c);
       req.on('end', async () => {
         try {
