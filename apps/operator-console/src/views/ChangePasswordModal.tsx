@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Loader2, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
     setError(null);
 
     try {
-      const resp = await fetch('http://localhost:3000/api/v1/auth/change-password', {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

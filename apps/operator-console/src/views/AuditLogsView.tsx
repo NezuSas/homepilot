@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Loader2, ShieldAlert, AlertCircle, Database, Clock, Zap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { API_BASE_URL } from '../config';
 
 /**
  * Registro de actividad atómico para la UI.
@@ -25,7 +26,7 @@ export const AuditLogsView: React.FC = () => {
   const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3000/api/v1/activity-logs');
+      const res = await fetch(`${API_BASE_URL}/api/v1/activity-logs`);
       if (!res.ok) throw new Error('No se pudo sincronizar el historial técnico');
       const data = await res.json() as ActivityRecord[];
       setLogs(data);
@@ -96,7 +97,7 @@ export const AuditLogsView: React.FC = () => {
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Auditoría Técnica V1</span>
          </div>
          <button onClick={fetchLogs} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshIcon className="w-3.5 h-3.5" />
             LIVE UPDATE
          </button>
       </div>
@@ -155,6 +156,6 @@ export const AuditLogsView: React.FC = () => {
   );
 };
 
-const RefreshCw = ({ className }: { className?: string }) => (
+const RefreshIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
 );

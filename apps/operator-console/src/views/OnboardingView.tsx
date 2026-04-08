@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Home, Server, KeyRound, Loader2, PlayCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface SetupStatus {
   isInitialized: boolean;
@@ -32,7 +33,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setTestResult('idle');
     setErrorMsg(null);
     try {
-      const res = await fetch('http://localhost:3000/api/v1/settings/test-ha-connection', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/settings/test-ha-connection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl: haUrl, accessToken: haToken })
@@ -57,7 +58,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('http://localhost:3000/api/v1/settings/home-assistant', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/settings/home-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl: haUrl, accessToken: haToken })
@@ -75,7 +76,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('http://localhost:3000/api/v1/system/setup-status/complete', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/system/setup/initialize`, {
         method: 'POST'
       });
       

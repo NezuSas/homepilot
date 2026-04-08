@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Server, Inbox, RadioTower, Box, CheckCircle2, AlertCircle, 
-  Loader2, ArrowRight, Power, RefreshCw, Eye, X, Activity, 
-  Settings, Database, Info, Clock, Terminal, Cpu
+  Loader2, ArrowRight, RefreshCw, Eye, X, Activity, 
+  Settings, Database, Clock, Terminal, Cpu
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { API_BASE_URL } from '../config';
 
 interface Device {
   id: string;
@@ -43,7 +44,8 @@ export const InboxView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
-  const API_URL = 'http://localhost:3000/api/v1';
+  const API_URL = `${API_BASE_URL}/api/v1`;
+
 
   const fetchData = useCallback(async () => {
     try {
@@ -151,7 +153,8 @@ const DeviceCard: React.FC<{
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const API_URL = 'http://localhost:3000/api/v1';
+  const API_URL = `${API_BASE_URL}/api/v1`;
+
 
   const supportsCommands = device.type === 'light' || device.type === 'switch';
 
@@ -308,7 +311,8 @@ const DeviceInspector: React.FC<{
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'logs' | 'state'>('info');
-  const API_URL = 'http://localhost:3000/api/v1';
+  const API_URL = `${API_BASE_URL}/api/v1`;
+
 
   const fetchDetails = useCallback(async () => {
     try {
@@ -574,7 +578,8 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
   const [error, setError] = useState<string | null>(null);
   const [showDiscovery, setShowDiscovery] = useState(false);
   const [importingId, setImportingId] = useState<string | null>(null);
-  const API_URL = 'http://localhost:3000/api/v1';
+  const API_URL = `${API_BASE_URL}/api/v1`;
+
 
   const fetchCandidates = async () => {
     setLoading(true);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, RefreshCcw, Activity } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface PublicUserDto {
   id: string;
@@ -27,7 +28,7 @@ export function UsersView() {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch('http://localhost:3000/api/v1/admin/users');
+      const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`);
       if (!res.ok) {
         throw new Error('Failed to fetch users');
       }
@@ -51,7 +52,7 @@ export function UsersView() {
       return setCreateError('Password must be at least 8 characters');
     }
     try {
-      const res = await fetch('http://localhost:3000/api/v1/admin/users', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -244,8 +245,8 @@ export function UsersView() {
                         {/* TOGGLE ACTIVE */}
                         <button
                           onClick={() => handleAction(
-                            () => fetch(`http://localhost:3000/api/v1/admin/users/${u.id}/active`, { 
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !u.isActive }) 
+                            () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/active`, { 
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }, body: JSON.stringify({ isActive: !u.isActive }) 
                             }),
                             `WARNING: Are you sure you want to ${u.isActive ? 'SUSPEND' : 'RESTORE'} this user? Suspension instantly kills all active sessions.`
                           )}
@@ -262,8 +263,8 @@ export function UsersView() {
                         {/* CHANGE ROLE */}
                         <button
                           onClick={() => handleAction(
-                            () => fetch(`http://localhost:3000/api/v1/admin/users/${u.id}/role`, { 
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
+                            () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
                             }),
                             `Confirm ROLE CHANGE for "${u.username}"? Elevating or demoting accounts affects system-wide permissions.`
                           )}
@@ -276,7 +277,10 @@ export function UsersView() {
                         {/* REVOKE SESSIONS */}
                         <button
                           onClick={() => handleAction(
-                            () => fetch(`http://localhost:3000/api/v1/admin/users/${u.id}/revoke-sessions`, { method: 'POST' }),
+                            () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/revoke-sessions`, { 
+                              method: 'POST',
+                              headers: { 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }
+                            }),
                             `EMERGENCY: Force logout "${u.username}" and invalidate all active session tokens immediately?`
                           )}
                           className="p-2 bg-background border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-500 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"

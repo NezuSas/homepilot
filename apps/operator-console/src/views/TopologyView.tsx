@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Home as HomeIcon, Box, ArrowRight, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import { cn } from '../lib/utils';
 
 interface Home {
@@ -22,7 +23,7 @@ export const TopologyView: React.FC = () => {
   const [loadingRooms, setLoadingRooms] = useState(false);
 
   // En entorno Local/Edge, la API v1 expuesta en el puerto contiguo soluciona el binding
-  const API_URL = 'http://localhost:3000/api/v1';
+  const API_URL = `${API_BASE_URL}/api/v1`;
 
   useEffect(() => {
     fetch(`${API_URL}/homes`)

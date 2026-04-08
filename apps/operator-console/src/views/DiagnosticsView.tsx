@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { API_BASE_URL } from '../config';
 
 interface DiagnosticsCounters {
   recentReconnects: number;
@@ -46,8 +47,8 @@ export function DiagnosticsView() {
   const fetchDiagnostics = async () => {
     try {
       const [snapshotRes, eventsRes] = await Promise.all([
-        fetch('http://localhost:3000/api/v1/system/diagnostics'),
-        fetch('http://localhost:3000/api/v1/system/diagnostics/events')
+        fetch(`${API_BASE_URL}/api/v1/system/diagnostics`),
+        fetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`)
       ]);
 
       if (!snapshotRes.ok || !eventsRes.ok) throw new Error('API Request failed');

@@ -41,4 +41,13 @@ export class InMemoryDeviceRepository implements DeviceRepository {
     }
     return null;
   }
+
+  async findByExternalId(externalId: string): Promise<Device | null> {
+    for (const device of this.devices.values()) {
+      if (device.externalId === externalId) {
+        return Object.freeze({ ...device });
+      }
+    }
+    return null;
+  }
 }

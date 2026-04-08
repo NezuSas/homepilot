@@ -65,14 +65,37 @@ interface UpdateAutomationPayload {
  * Servidor de API local para la Operator Console V1.
  */
 export class OperatorConsoleServer {
-  private server: http.Server;
+  private readonly port: number;
+  private readonly server: http.Server;
 
-  constructor(
-    private readonly container: BootstrapContainer,
-    private readonly dbPath: string,
-    private readonly port: number = 3000
-  ) {
-    this.server = http.createServer(this.handleRequest.bind(this));
+  // Mapa de mensajes seguros para el cliente (Sanitización)
+  private static readonly SAFE_MESSAGES: Record<string, string> = {
+    'AUTH_FAILED': 'Credenciales inválidas o cuenta desactivada.',
+    'UNAUTHORIZED': 'Sesión inválida o expirada.',
+    'FORBIDDEN': 'No tiene permisos para realizar esta acción.',
+    'NOT_FOUND': 'El recurso solicitado no existe.',
+    'VALIDATION_ERROR': 'Los datos proporcionados no son válidos.',
+    'HA_CONNECTION_ERROR': 'Error de comunicación con Home Assistant.',
+    'HA_AUTH_ERROR': 'Error de autenticación con Home Assistant.',
+    'INTERNAL_ERROR': 'Error interno del sistema. Contacte a soporte.',
+    'SETUP_REQUIRED': 'El sistema requiere configuración inicial.',
+    'ALREADY_INITIALIZED': 'El sistema ya ha sido configurado.'
+  };
+
+  private static readonly DEFAULT_STATUS_CODES: Record<string, number> = {
+    'AUTH_FAILED': 401,
+    'UNAUTHORIZED': 401,
+    'FORBIDDEN': 403,
+    'NOT_FOUND': 404,
+    'VALIDATION_ERROR': 400,
+    'HA_CONNECTION_ERROR': 502,
+    'HA_AUTH_ERROR': 502,
+    'INTERNAL_ERROR': 500
+  };
+
+  constructor(private readonly container: BootstrapContainer, private readonly dbPath: string, port: number = 3000) {
+    this.port = port;
+    this.server = http.createServer((req, res) => this.handleRequest(req, res));
   }
 
   public start(): void {
@@ -100,6 +123,14 @@ export class OperatorConsoleServer {
     const { url = '', method = 'GET' } = req;
     const pathname = new URL(url, `http://${req.headers.host || 'localhost'}`).pathname;
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
+
+    // ---------------------------------------------------------
+    // PUBLIC HEALTH ENDPOINT (Docker Healthcheck)
+    // ---------------------------------------------------------
+    if (method === 'GET' && pathname === '/health') {
+      this.sendJson(res, { status: 'ok' });
+      return;
+    }
 
     // ---------------------------------------------------------
     // SETUP STATUS PUBLIC / OPERATOR ENDPOINT
@@ -838,13 +869,22 @@ export class OperatorConsoleServer {
     res.end(JSON.stringify(data));
   }
 
-  private sendError(res: http.ServerResponse, status: number, code: string, message: string): void {
-    res.writeHead(status, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      error: {
-        code,
-        message
-      }
+  private sendError(res: http.ServerResponse, status: number, code: string, internalMessage?: string): void {
+    const safeMessage = OperatorConsoleServer.SAFE_MESSAGES[code] || OperatorConsoleServer.SAFE_MESSAGES['INTERNAL_ERROR'];
+    const finalStatus = status || OperatorConsoleServer.DEFAULT_STATUS_CODES[code] || 500;
+
+    // Log interno profundo para auditoría
+    if (internalMessage) {
+      console.error(`[API-ERROR] [${code}] ${internalMessage}`);
+    }
+
+    res.writeHead(finalStatus, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      error: { 
+        code, 
+        message: safeMessage,
+        timestamp: new Date().toISOString()
+      } 
     }));
   }
 }

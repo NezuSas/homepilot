@@ -45,19 +45,27 @@ export class HomeAssistantClient {
   /**
    * Ejecuta un servicio en Home Assistant.
    */
+  /**
+   * Ejecuta un servicio en Home Assistant.
+   */
   public async callService(domain: string, service: string, entityId: string): Promise<void> {
     const url = `${this.baseUrl}/api/services/${domain}/${service}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ entity_id: entityId })
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ entity_id: entityId })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Home Assistant Service Error: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Home Assistant Service Error: ${response.status} ${response.statusText}`);
+      }
+    } catch (error: any) {
+      // Re-lanzar con mensaje limpio sin filtrar parámetros sensibles que pudieran estar en el objeto error
+      throw new Error(`HA_SERVICE_CALL_FAILED: ${error.message}`);
     }
   }
 

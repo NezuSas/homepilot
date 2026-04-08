@@ -10,6 +10,7 @@ import { LoginView } from './views/LoginView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
 import { UsersView } from './views/UsersView';
+import { API_BASE_URL } from './config';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -32,7 +33,7 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       setLoadingSetup(true);
-      fetch('http://localhost:3000/api/v1/system/setup-status')
+      fetch(`${API_BASE_URL}/api/v1/system/setup-status`)
         .then(res => res.json())
         .then(data => {
           setSetupStatus(data);
@@ -50,7 +51,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:3000/api/v1/auth/logout', { method: 'POST' });
+      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, { method: 'POST' });
     } catch (e) {
       // Ignore errors if network is down or token is garbage, we still log out locally.
     } finally {

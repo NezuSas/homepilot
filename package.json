@@ -13,6 +13,8 @@
     "dev:api": "ts-node main.ts",
     "dev:ui": "npm run dev --prefix apps/operator-console",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
+    "build": "tsc",
+    "start": "node dist/main.js",
     "db:seed": "ts-node scripts/seed-demo.ts"
   },
   "devDependencies": {

@@ -1,0 +1,13 @@
+# Artifacts
+node_modules
+dist
+data
+ha-config
+.git
+.env
+*.db
+*.db-wal
+*.db-shm
+apps/api/node_modules
+apps/operator-console/node_modules
+apps/operator-console/dist

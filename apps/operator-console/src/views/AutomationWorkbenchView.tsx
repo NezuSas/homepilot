@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Ghost, Cpu, Plus, X, CheckCircle2, Trash2, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { API_BASE_URL } from '../config';
 
 /**
  * Tipado estricto para AutomationRule V1.
@@ -63,7 +64,8 @@ export const AutomationWorkbenchView: React.FC = () => {
     command: 'turn_on'
   });
 
-  const API_URL = 'http://localhost:3000/api/v1';
+  const API_URL = `${API_BASE_URL}/api/v1`;
+
 
   /**
    * Helper robusto para parsear el expectedValue desde el input string.

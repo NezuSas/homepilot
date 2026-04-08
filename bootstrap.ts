@@ -95,7 +95,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const connectionProvider = new HomeAssistantConnectionProvider();
   
   const envFallback = {
-    baseUrl: process.env.HOME_ASSISTANT_URL,
+    baseUrl: process.env.INTERNAL_HA_URL || process.env.HOME_ASSISTANT_URL,
     token: process.env.HOME_ASSISTANT_TOKEN
   };
 
@@ -156,6 +156,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
         if (command === 'toggle') service = 'toggle';
         
         if (service) {
+           console.log(`[AutomationEngine] Dispatching HA command: ${domain}.${service} for ${fullEntityId}`);
            await connectionProvider.getClient().callService(domain, service, fullEntityId);
         }
       }
