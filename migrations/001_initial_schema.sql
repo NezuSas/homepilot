@@ -59,13 +59,12 @@ CREATE TABLE IF NOT EXISTS automation_rules (
 -- 5. Activity Logs (Append-only)
 CREATE TABLE IF NOT EXISTS activity_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    device_id TEXT NOT NULL,
+    device_id TEXT, -- Null for system-level events, populated for device events
     type TEXT NOT NULL,
     description TEXT NOT NULL,
     data TEXT, -- Raw JSON payload for audits
     timestamp DATETIME DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')),
-    correlation_id TEXT,
-    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+    correlation_id TEXT
 );
 
 -- Se eliminan los triggers automáticos de updated_at para evitar "magia implícita".
