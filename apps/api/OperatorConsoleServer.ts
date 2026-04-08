@@ -681,58 +681,8 @@ export class OperatorConsoleServer {
       return;
     }
 
-    // GET /api/v1/settings/home-assistant
-    if (method === 'GET' && pathname === '/api/v1/settings/home-assistant') {
-      try {
-        const result = await this.container.services.homeAssistantSettingsService.getStatus();
-        this.sendJson(res, result);
-      } catch (error: any) {
-        this.sendError(res, 500, 'HA_SETTINGS_ERROR', error.message);
-      }
-      return;
-    }
-
-    // POST /api/v1/settings/home-assistant
-    if (method === 'POST' && pathname === '/api/v1/settings/home-assistant') {
-      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
-      try {
-        const payload = await this.parseBody<{ baseUrl: string; accessToken?: string }>(req);
-        if (!payload.baseUrl) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing baseUrl');
-        await this.container.services.homeAssistantSettingsService.saveSettings(payload.baseUrl, payload.accessToken);
-        this.sendJson(res, { success: true });
-      } catch (error: any) {
-        this.sendError(res, 400, 'HA_SAVE_ERROR', error.message);
-      }
-      return;
-    }
-
-    // POST /api/v1/settings/home-assistant/test
-    if (method === 'POST' && pathname === '/api/v1/settings/home-assistant/test') {
-      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
-      try {
-        const payload = await this.parseBody<{ baseUrl: string; accessToken: string }>(req);
-        if (!payload.baseUrl || !payload.accessToken) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing parameters');
-        const result = await this.container.services.homeAssistantSettingsService.testConnection(payload.baseUrl, payload.accessToken);
-        this.sendJson(res, result);
-      } catch (error: any) {
-        this.sendError(res, 500, 'HA_TEST_ERROR', error.message);
-      }
-      return;
-    }
-
-    // GET /api/v1/settings/home-assistant/status
-    if (method === 'GET' && pathname === '/api/v1/settings/home-assistant/status') {
-      try {
-        const result = await this.container.services.homeAssistantSettingsService.getStatus();
-        this.sendJson(res, {
-          connectivityStatus: result.connectivityStatus,
-          lastCheckedAt: result.lastCheckedAt
-        });
-      } catch (error: any) {
-        this.sendError(res, 500, 'HA_STATUS_ERROR', error.message);
-      }
-      return;
-    }
+    // HA Settings Routes are already handled above (Set 1 canonical). 
+    // Legacy/duplicate routes removed.
 
     // GET /api/v1/ha/entities
     if (method === 'GET' && pathname === '/api/v1/ha/entities') {
@@ -867,6 +817,41 @@ export class OperatorConsoleServer {
       }
       return;
     }
+    // PATCH /api/v1/devices/:id
+    const devicePatchMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)$/);
+    if (devicePatchMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+      try {
+        const deviceId = devicePatchMatch[1];
+        const payload = await this.parseBody<{ name?: string }>(req);
+        
+        const device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found');
+        
+        // Ownership validation
+        const home = await this.container.repositories.homeRepository.findHomeById(device.homeId);
+        if (!home || home.ownerId !== authReq.user.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo');
+        }
+        
+        if (payload.name) {
+          const updatedDevice = {
+            ...device,
+            name: payload.name,
+            updatedAt: new Date().toISOString(),
+            entityVersion: device.entityVersion + 1
+          };
+          await this.container.repositories.deviceRepository.saveDevice(updatedDevice);
+          this.sendJson(res, updatedDevice);
+        } else {
+          this.sendJson(res, device);
+        }
+      } catch (error: any) {
+        this.sendError(res, 500, 'UPDATE_ERROR', error.message);
+      }
+      return;
+    }
+
     this.sendError(res, 404, 'NOT_FOUND', 'Not Found');
   }
 

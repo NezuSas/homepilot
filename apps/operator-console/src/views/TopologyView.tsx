@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Home as HomeIcon, Box, ArrowRight, Loader2 } from 'lucide-react';
+import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { cn } from '../lib/utils';
 
@@ -30,10 +30,11 @@ export const TopologyView: React.FC = () => {
   useEffect(() => {
     fetch(`${API_URL}/homes`)
       .then((res) => res.json())
-      .then((data) => {
+      .then((data: Home[]) => {
         setHomes(data || []);
-        if (data.length > 0 && !selectedHome) {
-           handleSelectHome(data[0]);
+        if (data.length > 0) {
+          // Si solo hay uno, o no hay ninguno seleccionado, seleccionamos el primero
+          handleSelectHome(data[0]);
         }
         setLoadingHomes(false);
       })
@@ -115,35 +116,48 @@ export const TopologyView: React.FC = () => {
                     key={home.id}
                     onClick={() => handleSelectHome(home)}
                     className={cn(
-                      "group flex flex-col p-4 cursor-pointer transition-all border-l-[3px]",
+                      "group flex flex-col p-4 cursor-pointer transition-all border-l-[4px] relative",
                       isSelected 
                         ? "bg-primary/5 border-l-primary" 
-                        : "border-l-transparent hover:bg-muted/50"
+                        : "border-l-transparent hover:bg-muted/50 border-muted/20"
                     )}
                   >
+                    {isSelected && loadingRooms && (
+                      <div className="absolute inset-0 bg-primary/5 animate-pulse rounded-r-xl pointer-events-none" />
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={cn(
-                          "p-2 rounded-lg transition-colors",
-                          isSelected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground group-hover:text-foreground"
+                          "p-2.5 rounded-xl transition-all duration-300",
+                          isSelected ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground group-hover:bg-muted/80"
                         )}>
                           <HomeIcon className="w-4 h-4" />
                         </div>
-                        <span className={cn(
-                          "font-medium text-sm transition-colors",
-                          isSelected ? "text-primary" : "text-foreground"
-                        )}>{home.name}</span>
+                        <div className="flex flex-col">
+                          <span className={cn(
+                            "font-bold text-sm transition-colors",
+                            isSelected ? "text-primary" : "text-foreground"
+                          )}>{home.name}</span>
+                          {isSelected && (
+                            <span className="text-[9px] font-black tracking-tighter uppercase text-primary/60">Active Cluster</span>
+                          )}
+                        </div>
                       </div>
-                      <ArrowRight className={cn(
-                        "w-4 h-4 transition-all duration-200", 
-                        isSelected 
-                          ? "text-primary translate-x-0 opacity-100" 
-                          : "text-muted-foreground -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
-                      )} />
+                      <div className="flex items-center gap-2">
+                        {isSelected && !loadingRooms && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-primary opacity-50" />
+                        )}
+                        <ArrowRight className={cn(
+                          "w-4 h-4 transition-all duration-300", 
+                          isSelected 
+                            ? "text-primary translate-x-0 opacity-100" 
+                            : "text-muted-foreground -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
+                        )} />
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between mt-3 ml-11">
-                      <span className="text-[11px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
-                        {home.id.split('-')[0] + '...'}
+                    <div className="flex items-center justify-between mt-3 ml-12">
+                      <span className="text-[10px] text-muted-foreground/50 font-mono bg-muted/30 px-2 py-0.5 rounded border border-border/10">
+                        {home.id}
                       </span>
                     </div>
                   </li>

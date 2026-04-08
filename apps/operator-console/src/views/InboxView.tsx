@@ -36,138 +36,25 @@ interface ActivityLog {
   data: Record<string, unknown>;
 }
 
-/**
- * Vista de Inbox principal para la Operator Console.
- */
-export const InboxView: React.FC = () => {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null); // REMOVED: unused
-  const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
-  const API_URL = `${API_BASE_URL}/api/v1`;
-
-
-  const fetchData = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/devices`);
-      if (!res.ok) throw new Error('Error al recuperar dispositivos');
-      const data = await res.json() as Device[];
-      setDevices(data || []);
-      setLoading(false);
-    } catch {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleDeviceUpdate = (deviceId: string, updatedDevice: Device) => {
-    setDevices(prev => prev.map(d => d.id === deviceId ? updatedDevice : d));
-  };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin mb-4" />
-        <p className="text-sm font-medium">Sincronizando estado...</p>
-      </div>
-    );
-  }
-
-  const pendingDevices = devices.filter(d => d.status === 'PENDING');
-  const assignedDevices = devices.filter(d => d.status === 'ASSIGNED');
-
-  return (
-    <div className="flex flex-col gap-10 relative">
-      {inspectingDeviceId && (
-        <DeviceInspector 
-          deviceId={inspectingDeviceId} 
-          onClose={() => setInspectingDeviceId(null)} 
-          onUpdate={(updated) => handleDeviceUpdate(inspectingDeviceId, updated)}
-        />
-      )}
-
-      {/* Discovery Section */}
-      <HomeAssistantDiscoverySection onImported={fetchData} />
-
-      {/* Inbox Section */}
-      <section className="flex flex-col gap-5">
-        <div className="flex justify-between items-end">
-          <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-            <Inbox className="w-4 h-4" /> Device Inbox 
-            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] font-black">
-              {pendingDevices.length}
-            </span>
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {pendingDevices.map(device => (
-            <DeviceCard 
-              key={device.id} 
-              device={device} 
-              onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
-              onInspect={() => setInspectingDeviceId(device.id)}
-            />
-          ))}
-          {pendingDevices.length === 0 && (
-            <div className="col-span-full py-12 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-muted-foreground bg-muted/20">
-               <Box className="w-8 h-8 mb-2 opacity-20" />
-               <p className="text-xs font-medium italic">Inbox is empty</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Assigned Section */}
-      <section className="flex flex-col gap-5 border-t border-border pt-8">
-        <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-          <Server className="w-4 h-4" /> Assigned Devices
-          <span className="bg-muted text-foreground px-2 py-0.5 rounded-full text-[10px] font-black">
-            {assignedDevices.length}
-          </span>
-        </h3>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {assignedDevices.map(device => (
-            <DeviceCard 
-              key={device.id} 
-              device={device} 
-              onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
-              onInspect={() => setInspectingDeviceId(device.id)}
-            />
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-};
+const API_URL = `${API_BASE_URL}/api/v1`;
 
 const DeviceCard: React.FC<{ 
   device: Device; 
+  rooms: Room[];
   onUpdate?: (updated: Device) => void;
   onInspect?: () => void;
-}> = ({ device, onUpdate, onInspect }) => {
+}> = ({ device, rooms, onUpdate, onInspect }) => {
   const isAssigned = device.status === 'ASSIGNED';
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const API_URL = `${API_BASE_URL}/api/v1`;
-
 
   const supportsCommands = device.type === 'light' || device.type === 'switch';
 
   useEffect(() => {
-    if (!isAssigned && device.homeId) {
-      fetch(`${API_URL}/homes/${device.homeId}/rooms`)
-        .then(res => res.json())
-        .then((data: Room[]) => {
-          setRooms(data || []);
-          if (data.length > 0) setSelectedRoomId(data[0].id);
-        })
-        .catch(console.error);
+    if (!isAssigned && rooms.length > 0 && !selectedRoomId) {
+      setSelectedRoomId(rooms[0].id);
     }
-  }, [device.homeId, isAssigned]);
+  }, [rooms, isAssigned, selectedRoomId]);
 
   const handleAssign = async () => {
     if (!selectedRoomId) return;
@@ -230,7 +117,10 @@ const DeviceCard: React.FC<{
           {isAssigned ? (
             <CheckCircle2 className="w-5 h-5 text-primary" />
           ) : (
-            <span className="px-2 py-1 bg-primary/20 text-primary text-[10px] font-bold rounded">PENDING</span>
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-tighter rounded border border-primary/20">Awaiting Assignment</span>
+              <span className="text-[8px] text-muted-foreground italic font-medium opacity-70">Ready to commission</span>
+            </div>
           )}
         </div>
       </div>
@@ -314,6 +204,125 @@ const DeviceCard: React.FC<{
   );
 };
 
+/**
+ * Vista de Inbox principal para la Operator Console.
+ */
+export const InboxView: React.FC = () => {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [roomsByHome, setRoomsByHome] = useState<Record<string, Room[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/devices`);
+      if (!res.ok) throw new Error('Error al recuperar dispositivos');
+      const data = await res.json() as Device[];
+      setDevices(data || []);
+      
+      // Centralized Room Fetching: Only fetch unique homes found in the devices list
+      const homeIds = Array.from(new Set(data.map(d => d.homeId)));
+      const roomsData: Record<string, Room[]> = {};
+      await Promise.all(homeIds.map(async (hId) => {
+        const rRes = await fetch(`${API_URL}/homes/${hId}/rooms`);
+        if (rRes.ok) {
+          roomsData[hId] = await rRes.json();
+        }
+      }));
+      setRoomsByHome(roomsData);
+
+      setLoading(false);
+    } catch {
+      setLoading(false);
+    }
+  }, []); // Stable stable!
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleDeviceUpdate = (deviceId: string, updatedDevice: Device) => {
+    setDevices(prev => prev.map(d => d.id === deviceId ? updatedDevice : d));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin mb-4" />
+        <p className="text-sm font-medium">Sincronizando estado...</p>
+      </div>
+    );
+  }
+
+  const pendingDevices = devices.filter(d => d.status === 'PENDING');
+  const assignedDevices = devices.filter(d => d.status === 'ASSIGNED');
+
+  return (
+    <div className="flex flex-col gap-10 relative">
+      {inspectingDeviceId && (
+        <DeviceInspector 
+          deviceId={inspectingDeviceId} 
+          onClose={() => setInspectingDeviceId(null)} 
+          onUpdate={(updated) => handleDeviceUpdate(inspectingDeviceId, updated)}
+        />
+      )}
+
+      {/* Discovery Section */}
+      <HomeAssistantDiscoverySection onImported={fetchData} />
+
+      {/* Inbox Section */}
+      <section className="flex flex-col gap-5">
+        <div className="flex justify-between items-end">
+          <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+            <Inbox className="w-4 h-4" /> Device Inbox 
+            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] font-black">
+              {pendingDevices.length}
+            </span>
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {pendingDevices.map(device => (
+            <DeviceCard 
+              key={device.id} 
+              device={device} 
+              rooms={roomsByHome[device.homeId] || []}
+              onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
+              onInspect={() => setInspectingDeviceId(device.id)}
+            />
+          ))}
+          {pendingDevices.length === 0 && (
+            <div className="col-span-full py-12 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-muted-foreground bg-muted/20">
+               <Box className="w-8 h-8 mb-2 opacity-20" />
+               <p className="text-xs font-medium italic">Inbox is empty</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Assigned Section */}
+      <section className="flex flex-col gap-5 border-t border-border pt-8">
+        <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+          <Server className="w-4 h-4" /> Assigned Devices
+          <span className="bg-muted text-foreground px-2 py-0.5 rounded-full text-[10px] font-black">
+            {assignedDevices.length}
+          </span>
+        </h3>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {assignedDevices.map(device => (
+            <DeviceCard 
+              key={device.id} 
+              device={device} 
+              rooms={roomsByHome[device.homeId] || []}
+              onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
+              onInspect={() => setInspectingDeviceId(device.id)}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};
+
 const DeviceInspector: React.FC<{ 
   deviceId: string; 
   onClose: () => void;
@@ -323,14 +332,16 @@ const DeviceInspector: React.FC<{
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'logs' | 'state'>('info');
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState('');
   const API_URL = `${API_BASE_URL}/api/v1`;
 
-
-  const fetchDetails = useCallback(async () => {
+  const fetchDetails = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const [devRes, logsRes] = await Promise.all([
         fetch(`${API_URL}/devices/${deviceId}`),
         fetch(`${API_URL}/devices/${deviceId}/activity-logs`)
@@ -338,39 +349,70 @@ const DeviceInspector: React.FC<{
       if (devRes.ok) {
         const devData = await devRes.json() as Device;
         setDevice(devData);
+        setNewName(devData.name);
       }
       if (logsRes.ok) {
         const logsData = await logsRes.json() as ActivityLog[];
         setLogs(logsData);
       }
-      setLoading(false);
     } catch {
       setError('Failed to fetch details');
-      setLoading(false);
+    } finally {
+      if (isInitial) setLoading(false);
     }
-  }, [deviceId]);
+  }, [deviceId, API_URL]);
 
   useEffect(() => {
-    fetchDetails();
+    fetchDetails(true);
   }, [fetchDetails]);
 
+  const handleRename = async () => {
+    if (!device || !newName.trim() || newName === device.name) {
+      setIsRenaming(false);
+      return;
+    }
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/devices/${device.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName.trim() })
+      });
+      if (res.ok) {
+        const updated = await res.json() as Device;
+        setDevice(updated);
+        onUpdate(updated);
+        setIsRenaming(false);
+      }
+    } catch {
+      setError('Failed to rename device');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleCommand = async (command: 'turn_on' | 'turn_off' | 'toggle') => {
-    if (!device) return;
-    const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command })
-    });
-    if (res.ok) {
-      const updated = await res.json() as Device;
-      setDevice(updated);
-      onUpdate(updated);
-      fetchDetails();
+    if (!device || isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+      });
+      if (res.ok) {
+        const updated = await res.json() as Device;
+        setDevice(updated);
+        onUpdate(updated);
+        // REMOVED: redundant activity-logs fetch. Logs updated only when explicitly requested.
+      }
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
   const handleRefresh = async () => {
-    if (!device) return;
+    if (!device || isRefreshing) return;
     setIsRefreshing(true);
     setError(null);
     try {
@@ -381,6 +423,7 @@ const DeviceInspector: React.FC<{
         const updated = await res.json() as Device;
         setDevice(updated);
         onUpdate(updated);
+        // REMOVED: redundant HA sync log fetch.
       } else {
         const data = await res.json() as { error: string };
         throw new Error(data.error || 'Failed to refresh state from Home Assistant');
@@ -415,9 +458,36 @@ const DeviceInspector: React.FC<{
                <div className="p-3 bg-primary/10 text-primary rounded-xl">
                  <RadioTower className="w-6 h-6" />
                </div>
-               <div className="flex flex-col">
-                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Technical Inspector</span>
-                 <h2 className="text-2xl font-black tracking-tight">{device.name}</h2>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Technical Inspector</span>
+                    <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">Local Alias Only</span>
+                  </div>
+                 {isRenaming ? (
+                   <div className="flex items-center gap-2 mt-1">
+                     <input 
+                       className="bg-background border border-primary/40 rounded px-2 py-1 text-lg font-black outline-none focus:ring-2 focus:ring-primary/20"
+                       value={newName}
+                       onChange={(e) => setNewName(e.target.value)}
+                       autoFocus
+                       onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+                     />
+                     <button onClick={handleRename} className="p-1 px-2 bg-primary text-white text-[10px] font-black rounded uppercase">Save</button>
+                     <button onClick={() => { setIsRenaming(false); setNewName(device.name); }} className="text-[10px] uppercase font-bold text-muted-foreground group">
+                       <span className="border-b border-transparent group-hover:border-muted-foreground transition-all ml-1">Cancel</span>
+                     </button>
+                   </div>
+                 ) : (
+                   <div className="flex items-center gap-2 group/title">
+                     <h2 className="text-2xl font-black tracking-tight">{device.name}</h2>
+                     <button 
+                       onClick={() => setIsRenaming(true)}
+                       className="p-1 opacity-0 group-hover/title:opacity-100 transition-opacity hover:bg-muted rounded text-muted-foreground"
+                     >
+                       <Settings className="w-4 h-4" />
+                     </button>
+                   </div>
+                 )}
                </div>
              </div>
              <button 
