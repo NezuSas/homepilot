@@ -15,8 +15,9 @@ services:
       - PORT=3000
       - HOMEPILOT_DB_PATH=/app/data/homepilot.db
       - INTERNAL_HA_URL=http://homeassistant:8123
+      - HOMEPILOT_DEV_BOOTSTRAP=${HOMEPILOT_DEV_BOOTSTRAP:-false}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -47,9 +48,9 @@ services:
     environment:
       - TZ=UTC
     ports:
-      - "8123:8123"
+      - "18123:8123"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8123"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8123" ]
       interval: 60s
       timeout: 10s
       retries: 5

@@ -188,6 +188,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const authGuard = new AuthGuard(authService);
 
   const isDevBootstrap = process.env.HOMEPILOT_DEV_BOOTSTRAP === 'true';
+
+  if (isDevBootstrap) {
+    console.warn('[Bootstrap] ⚠️  [DEV BOOTSTRAP ENABLED] admin/admin will be used — NOT safe for production.');
+  } else {
+    console.log('[Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.');
+  }
+
   const adminHook = await authService.getBootstrapAdmin(isDevBootstrap);
 
   if (adminHook) {
