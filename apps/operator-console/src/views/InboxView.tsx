@@ -42,7 +42,7 @@ interface ActivityLog {
 export const InboxView: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null); // REMOVED: unused
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
   const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -54,8 +54,7 @@ export const InboxView: React.FC = () => {
       const data = await res.json() as Device[];
       setDevices(data || []);
       setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+    } catch {
       setLoading(false);
     }
   }, []);
@@ -330,7 +329,7 @@ const DeviceInspector: React.FC<{
         setLogs(logsData);
       }
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch details');
       setLoading(false);
     }
@@ -615,7 +614,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
         const msg = data.error?.message || (typeof data.error === 'string' ? data.error : 'Import failed');
         setError(`Error: ${msg}`);
       }
-    } catch (err) {
+    } catch {
       setError('Import failed');
     } finally {
       setImportingId(null);

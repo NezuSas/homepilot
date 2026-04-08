@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { SqliteDatabaseManager } from './packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { SqliteMigrationsRunner } from './packages/shared/infrastructure/database/SqliteMigrationsRunner';
@@ -65,7 +66,10 @@ export interface BootstrapOptions {
  */
 export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapContainer> {
   const dbPath = options?.dbPath || process.env.HOMEPILOT_DB_PATH || path.join(__dirname, 'homepilot.local.db');
-  const migrationsDir = options?.migrationsDir || path.join(__dirname, 'migrations');
+  const migrationsDir = options?.migrationsDir || 
+    (fs.existsSync('/app/migrations') 
+      ? '/app/migrations' 
+      : path.resolve(process.cwd(), 'migrations'));
   const isVerbose = options?.verbose ?? process.env.NODE_ENV !== 'production';
   
   console.log(`[Bootstrap] Inicializando persistencia SQLite en: ${dbPath}`);

@@ -1,5 +1,5 @@
 # Stage 1: Build React app
-FROM node:20-slim AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
@@ -7,11 +7,8 @@ WORKDIR /app
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-COPY package*.json ./
-COPY apps/operator-console/package*.json ./apps/operator-console/
-RUN npm install && cd apps/operator-console && npm install
-
 COPY . .
+RUN npm install
 
 # Build the UI
 RUN npm run build --workspace=apps/operator-console

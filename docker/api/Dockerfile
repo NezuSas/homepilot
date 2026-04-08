@@ -1,23 +1,11 @@
 # Stage 1: Build
-FROM node:20-slim AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
-# Install dependencies for building
-COPY package*.json ./
-COPY packages/shared/package*.json ./packages/shared/
-COPY packages/topology/package*.json ./packages/topology/
-COPY packages/devices/package*.json ./packages/devices/
-COPY packages/automation/package*.json ./packages/automation/
-COPY packages/integrations/home-assistant/package*.json ./packages/integrations/home-assistant/
-COPY packages/auth/package*.json ./packages/auth/
-COPY packages/system-setup/package*.json ./packages/system-setup/
-COPY packages/system-observability/package*.json ./packages/system-observability/
-
-RUN npm install
-
-# Copy source and build
+# Install dependencies
 COPY . .
+RUN npm install
 RUN npm run build
 
 # Stage 2: Production Runtime
@@ -30,6 +18,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy build artifacts and production-only dependencies
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 # (Note: In a more complex setup, we would run 'npm prune --production' here, 

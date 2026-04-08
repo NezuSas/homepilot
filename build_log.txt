@@ -1,0 +1,14 @@
+
+> operator-console@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v8.0.3 [32mbuilding client environment for production...[36m[39m
+[2K
+transforming...Ô£ô 1735 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.47 kB Ôöé gzip:  0.30 kB
+dist/assets/index-Bj_rdsMo.css   41.44 kB Ôöé gzip:  7.70 kB
+dist/assets/index-DJWzFQi-.js   328.91 kB Ôöé gzip: 91.53 kB
+
+[32mÔ£ô built in 991ms[39m
