@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor } from 'lucide-react';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
 import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
@@ -8,7 +8,7 @@ import { HomeAssistantSettingsView } from './views/HomeAssistantSettingsView';
 import { DiagnosticsView } from './views/DiagnosticsView';
 import { LoginView } from './views/LoginView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
-import { KeyRound } from 'lucide-react';
+import { OnboardingView } from './views/OnboardingView';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -24,6 +24,22 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('topology');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('hp_session_token'));
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
+  const [setupStatus, setSetupStatus] = useState<any>(null);
+  const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
+
+  // Check setup status once authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLoadingSetup(true);
+      fetch('http://localhost:3000/api/v1/system/setup-status')
+        .then(res => res.json())
+        .then(data => {
+          setSetupStatus(data);
+        })
+        .catch(console.error)
+        .finally(() => setLoadingSetup(false));
+    }
+  }, [isAuthenticated]);
 
   const handleLoginSuccess = (token: string, user: any) => {
     localStorage.setItem('hp_session_token', token);
@@ -56,6 +72,33 @@ function App() {
 
   const userCtxStr = localStorage.getItem('hp_user_ctx');
   const user = userCtxStr ? JSON.parse(userCtxStr) : null;
+
+  if (loadingSetup) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Monitor className="w-8 h-8 animate-pulse text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Si requiere onboarding (no inicializado), bloqueamos todo el sidebar y forzamos onboarding.
+  if (setupStatus?.requiresOnboarding) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background text-foreground font-sans">
+        <header className="h-16 border-b flex items-center px-6 bg-card shrink-0">
+          <Monitor className="w-6 h-6 mr-3 text-primary" />
+          <h1 className="text-lg font-bold tracking-tight">HomePilot Edge</h1>
+        </header>
+        <main className="flex-1 flex overflow-hidden">
+          <OnboardingView 
+            statusProvider={setupStatus} 
+            userContext={user} 
+            onCompleted={() => setSetupStatus((prev: any) => ({ ...prev, requiresOnboarding: false }))} 
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground">

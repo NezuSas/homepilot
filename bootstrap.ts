@@ -20,6 +20,9 @@ import { CryptoService } from './packages/auth/infrastructure/CryptoService';
 import { AuthService } from './packages/auth/application/AuthService';
 import { AuthGuard } from './packages/auth/infrastructure/AuthGuard';
 
+import { SqliteSystemSetupRepository } from './packages/system-setup/infrastructure/SqliteSystemSetupRepository';
+import { SystemSetupService } from './packages/system-setup/application/SystemSetupService';
+
 export interface BootstrapContainer {
   repositories: {
     homeRepository: SQLiteHomeRepository;
@@ -30,11 +33,13 @@ export interface BootstrapContainer {
     settingsRepository: SQLiteSettingsRepository;
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
+    systemSetupRepository: SqliteSystemSetupRepository;
   };
   services: {
     homeAssistantSettingsService: HomeAssistantSettingsService;
     diagnosticsService: DiagnosticsService;
     authService: AuthService;
+    systemSetupService: SystemSetupService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -185,6 +190,16 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     console.log('===============================================================\n');
   }
 
+  // -- INIT SYSTEM SETUP V1 --
+  const systemSetupRepository = new SqliteSystemSetupRepository(dbPath);
+  const systemSetupService = new SystemSetupService(
+    systemSetupRepository,
+    userRepository,
+    settingsRepository,
+    settingsService,
+    activityLogRepository
+  );
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -194,12 +209,14 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       activityLogRepository,
       settingsRepository,
       userRepository,
-      sessionRepository
+      sessionRepository,
+      systemSetupRepository
     },
     services: {
       homeAssistantSettingsService: settingsService,
       diagnosticsService,
-      authService
+      authService,
+      systemSetupService
     },
     guards: {
       authGuard

@@ -101,6 +101,54 @@ export class OperatorConsoleServer {
     const pathname = new URL(url, `http://${req.headers.host || 'localhost'}`).pathname;
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
+    // ---------------------------------------------------------
+    // SETUP STATUS PUBLIC / OPERATOR ENDPOINT
+    // ---------------------------------------------------------
+    if (method === 'GET' && pathname === '/api/v1/system/setup-status') {
+      const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return;
+      const authReq = req as any;
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'operator')) return;
+
+      try {
+        const status = await this.container.services.systemSetupService.getSetupStatus();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(status));
+      } catch (e: any) {
+        this.sendError(res, 500, e.message);
+      }
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // SYSTEM SETUP COMPLETE (ADMIN ONLY)
+    // ---------------------------------------------------------
+    if (method === 'POST' && pathname === '/api/v1/system/setup-status/complete') {
+      const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return;
+      
+      const authReq = req as any;
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+
+      try {
+        await this.container.services.systemSetupService.completeOnboarding(authReq.user!.id);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e: any) {
+        const msg = e.message;
+        if (msg === 'NO_CONFIG') {
+          this.sendError(res, 400, 'Home Assistant Configuration is missing (NO_CONFIG)');
+        } else if (msg === 'AUTH_ERROR') {
+          this.sendError(res, 400, 'Home Assistant Access Token is invalid (HA_AUTH_ERROR)');
+        } else if (msg === 'UNREACHABLE') {
+          this.sendError(res, 400, 'Home Assistant Server is unreachable (HA_UNREACHABLE)');
+        } else {
+          this.sendError(res, 500, e.message);
+        }
+      }
+      return;
+    }
+
     // -- AUTH V1 ENDPOINTS --
     if (pathname.startsWith('/api/v1/auth/')) {
       if (method === 'POST' && pathname === '/api/v1/auth/login') {
