@@ -12,6 +12,8 @@ import { HomeAssistantConnectionProvider } from './packages/integrations/home-as
 import { HomeAssistantSettingsService } from './packages/integrations/home-assistant/application/HomeAssistantSettingsService';
 import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 
+import { AutomationEngine } from './packages/automation/application/AutomationEngine';
+
 export interface BootstrapContainer {
   repositories: {
     homeRepository: SQLiteHomeRepository;
@@ -26,9 +28,9 @@ export interface BootstrapContainer {
   };
   adapters: {
     homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
-    /** @deprecated Use homeAssistantConnectionProvider.getClient() */
     homeAssistantClient: HomeAssistantClient;
   };
+  engine?: AutomationEngine;
 }
 
 export interface BootstrapOptions {
@@ -103,6 +105,35 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     console.warn('[Bootstrap] Home Assistant no configurado (ni DB ni ENV).');
   }
 
+  const automationEngine = new AutomationEngine(
+    automationRuleRepository,
+    deviceRepository,
+    {
+      dispatchCommand: async (homeId, deviceId, command, correlationId) => {
+        const target = await deviceRepository.findDeviceById(deviceId);
+        if (!target || !target.externalId.startsWith('ha:')) return;
+        
+        const fullEntityId = target.externalId.split(':')[1];
+        const [domain] = fullEntityId.split('.');
+        
+        let service = '';
+        if (command === 'turn_on') service = 'turn_on';
+        if (command === 'turn_off') service = 'turn_off';
+        if (command === 'toggle') service = 'toggle';
+        
+        if (service) {
+           await connectionProvider.getClient().callService(domain, service, fullEntityId);
+        }
+      }
+    },
+    activityLogRepository
+  );
+
+  syncManager.removeAllListeners('system_event');
+  syncManager.on('system_event', (event) => {
+    automationEngine.handleSystemEvent(event).catch(e => console.error('[Engine] Fallo asíncrono:', e.message));
+  });
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -120,7 +151,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       get homeAssistantClient() {
         return connectionProvider.getClient();
       }
-    }
+    },
+    engine: automationEngine
   };
 
   console.log('[Bootstrap] Repositorios y servicios inyectados exitosamente.');

@@ -1,96 +1,39 @@
-  console.log
-    [Seed] Pobloneando base de datos: homepilot.local.db
+=== Iniciando Verificaci├│n Automation Engine V2 ===
+[Bootstrap] Inicializando persistencia SQLite en: C:\Users\ocuen\Developer\Nezu\homepilot\test.automation.db
+[Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+[Bootstrap] Migraciones aplicadas/validadas correctamente.
+[Bootstrap] Instanciando repositorios SQLite...
+[Bootstrap] Home Assistant no configurado (ni DB ni ENV).
+[Bootstrap] Repositorios y servicios inyectados exitosamente.
+-> Insertando mock devices y reglas...
 
-      at seed (scripts/seed-demo.ts:10:11)
+--- Test 1: Match Exitoso ---
+Logs Test 1: [
+  {
+    "timestamp": "2026-04-08T02:34:57.948Z",
+    "deviceId": "13203cbf-cb9d-413a-86b6-193ed2a1a3a3",
+    "type": "AUTOMATION_FAILED",
+    "description": "Command dispatch failed: Home Assistant Client not configured. Please check your settings.",
+    "data": {
+      "ruleId": "7bbe368c-10ea-40e5-b915-da4abee38798",
+      "targetDeviceId": "da568041-49b8-4190-98fb-fb5a9ded6d98",
+      "command": "turn_on",
+      "status": "error",
+      "executedAt": "2026-04-08T02:34:57.948Z",
+      "eventId": "857b346c-5bab-4aea-bdf7-b0edabab9657"
+    }
+  }
+]
+Ô£à Test 1 Pasado: Evento ejecutado exitosamente.
 
-  console.log
-    [Seed] Poblado con ├®xito: 1 Home, 1 Room, 3 Devices, 2 Rules.
+--- Test 2: Deduplicaci├│n Corta (Loop temporal) ---
+Ô£à Test 2 Pasado: Evento duplicado bloqueado por ventana temporal.
 
-      at seed (scripts/seed-demo.ts:75:11)
+--- Test 3: Negative Match Inactivo ---
+Ô£à Test 3 Pasado: Evento no coincidente descartado limpiamente.
 
-  console.log
-    [Bootstrap] Inicializando persistencia SQLite en: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\smoke.test.db
+--- Test 4: Prevenci├│n L├│gica Base (Target Check) ---
+Esperando 2200ms para expiraci├│n de loop temporal...
+Ô£à Test 4 Pasado: Bloqueo seguro porque el target ya estaba On.
 
-      at bootstrap (bootstrap.ts:39:11)
-
-  console.log
-    [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
-
-      at bootstrap (bootstrap.ts:45:11)
-
-  console.log
-    [Bootstrap] Migraciones aplicadas/validadas correctamente.
-
-      at bootstrap (bootstrap.ts:49:13)
-
-  console.log
-    [Bootstrap] Instanciando repositorios SQLite...
-
-      at bootstrap (bootstrap.ts:57:11)
-
-  console.log
-    [Bootstrap] Repositorios inyectados exitosamente. Secuencia terminada.
-
-      at bootstrap (bootstrap.ts:76:11)
-
-  console.log
-    [Seed] Pobloneando base de datos: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\smoke.test.db
-
-      at seed (scripts/seed-demo.ts:10:11)
-
-  console.log
-    [Seed] Poblado con ├®xito: 1 Home, 1 Room, 3 Devices, 2 Rules.
-
-      at seed (scripts/seed-demo.ts:75:11)
-
-  console.log
-    [OperatorConsoleServer] API local en http://localhost:3001
-
-      at Server.<anonymous> (apps/api/OperatorConsoleServer.ts:63:15)
-
-  console.log
-    [OperatorConsoleServer] GET /api/v1/homes
-
-      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
-
-  console.log
-    [OperatorConsoleServer] GET /api/v1/homes/home-demo/rooms
-
-      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
-
-  console.log
-    [OperatorConsoleServer] GET /api/v1/devices
-
-      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
-
-  console.log
-    [OperatorConsoleServer] POST /api/v1/devices/dev-pending-01/assign
-
-      at OperatorConsoleServer.handleRequest (apps/api/OperatorConsoleServer.ts:86:13)
-
-FAIL __tests__/SmokeTest.test.ts
-  HomePilot Operator Console V1 Smoke Test
-    ├ù should complete a full operational cycle (26 ms)
-
-  ÔùÅ HomePilot Operator Console V1 Smoke Test ÔÇ║ should complete a full operational cycle
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: 200
-    Received: 409
-
-      75 |     // 3. Assign Device
-      76 |     const assign = await request(`/api/v1/devices/${pending.id}/assign`, 'POST', { roomId });
-    > 77 |     expect(assign.status).toBe(200);
-         |                           ^
-      78 |     expect(assign.data.status).toBe('ASSIGNED');
-      79 |     expect(assign.data.roomId).toBe(roomId);
-      80 |
-
-      at Object.<anonymous> (__tests__/SmokeTest.test.ts:77:27)
-
-Test Suites: 1 failed, 1 total
-Tests:       1 failed, 1 total
-Snapshots:   0 total
-Time:        1.305 s, estimated 2 s
-Ran all test suites matching /__tests__\\SmokeTest.test.ts/i.
+=== Completado ===

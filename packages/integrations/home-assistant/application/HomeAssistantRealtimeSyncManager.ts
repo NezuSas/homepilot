@@ -1,9 +1,26 @@
+import { EventEmitter } from 'events';
 import { HomeAssistantWebSocketClient } from './HomeAssistantWebSocketClient';
 import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository } from '../../../devices/domain/repositories/ActivityLogRepository';
 import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 
-export class HomeAssistantRealtimeSyncManager {
+export interface SystemStateChangeEvent {
+  eventId: string;
+  occurredAt: string;
+  source: 'home_assistant' | 'local_sensor' | 'other';
+  deviceId: string;
+  externalId: string;
+  previousState?: {
+    state?: string;
+    attributes?: Record<string, unknown>;
+  };
+  newState: {
+    state?: string;
+    attributes?: Record<string, unknown>;
+  };
+}
+
+export class HomeAssistantRealtimeSyncManager extends EventEmitter {
   private client: HomeAssistantWebSocketClient | null = null;
   private currentUrl: string | null = null;
   private currentToken: string | null = null;
@@ -12,7 +29,9 @@ export class HomeAssistantRealtimeSyncManager {
     private readonly settingsService: HomeAssistantSettingsService,
     private readonly deviceRepository: DeviceRepository,
     private readonly activityLogRepository: ActivityLogRepository
-  ) {}
+  ) {
+    super();
+  }
 
   public reconnect(baseUrl: string, token: string): void {
     if (this.currentUrl === baseUrl && this.currentToken === token && this.client) {
@@ -101,6 +120,21 @@ export class HomeAssistantRealtimeSyncManager {
       await this.deviceRepository.saveDevice(updatedDevice);
 
       try {
+        const cryptoRandom = typeof crypto !== 'undefined' ? crypto : (await import('crypto')).webcrypto;
+        const systemEvent: SystemStateChangeEvent = {
+          eventId: cryptoRandom.randomUUID(),
+          occurredAt: new Date().toISOString(),
+          source: 'home_assistant',
+          deviceId: device.id,
+          externalId: externalId,
+          newState: {
+            state: String(newState),
+            attributes: attributes
+          }
+        };
+
+        this.emit('system_event', systemEvent);
+
         await this.activityLogRepository.saveActivity({
           timestamp: new Date().toISOString(),
           deviceId: device.id,
