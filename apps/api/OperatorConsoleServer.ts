@@ -16,6 +16,7 @@ import { syncDeviceStateUseCase } from '../../packages/devices/application/syncD
 import { AutomationRule, AutomationTrigger, AutomationAction } from '../../packages/devices/domain/automation/types';
 import { DeviceCommandV1, isValidCommand } from '../../packages/devices/domain/commands';
 import { createRoomUseCase } from '../../packages/topology/application/createRoomUseCase';
+import { HomeAssistantState } from '../../packages/devices/infrastructure/adapters/HomeAssistantClient';
 
 interface LocalHomeRow {
   id: string;
@@ -861,17 +862,35 @@ export class OperatorConsoleServer {
 
   private async handleHaDiscovery(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
-    try {
-      // 1. Obtener todas las entidades de HA
-      const allStates = await this.container.adapters.homeAssistantConnectionProvider.getClient().getAllStates();
-      
-      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+    let allStates: HomeAssistantState[] = [];
 
-      // 2. Obtener lista de IDs externos ya registrados para Home Assistant
+    // Fase A: Llamada a transporte HA
+    try {
+      allStates = await this.container.adapters.homeAssistantConnectionProvider.getClient().getAllStates();
+      // Si el transporte fue exitoso, marcamos como reachable
+      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+    } catch (error: any) {
+      // Clasificación de error de transporte
+      const errorMsg = error.message || '';
+      const isAuthError = errorMsg.includes('401') || errorMsg.includes('auth_invalid');
+      const isUnreachable = errorMsg.includes('timeout') || errorMsg.includes('FetchError') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('ECONNRESET');
+
+      if (isAuthError) {
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('auth_error');
+      } else if (isUnreachable) {
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
+      }
+      // Si no es ninguno de los anteriores, mantenemos el estado previo pero reportamos el error de descubrimiento
+
+      return this.sendError(res, 502, 'HA_DISCOVERY_ERROR', `Error de comunicación con HA: ${error.message}`);
+    }
+
+    // Fase B: Procesamiento local y filtrado
+    try {
+      // Obtener lista de IDs externos ya registrados para Home Assistant
       const existingRows = db.prepare('SELECT external_id FROM devices WHERE external_id LIKE "ha:%"').all() as { external_id: string }[];
       const existingEntityIds = new Set(existingRows.map(r => r.external_id.replace('ha:', '')));
 
-      // 3. Filtrar dominios soportados y entidades no importadas
       const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor'];
       
       const entities = allStates
@@ -888,8 +907,9 @@ export class OperatorConsoleServer {
 
       this.sendJson(res, entities);
     } catch (error: any) {
-      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-      this.sendError(res, 502, 'HA_DISCOVERY_ERROR', error.message || 'HA Connection Error');
+      // Error en procesamiento local (DB, filtrado, etc.)
+      // NO actualizamos el estado de HA, ya que la conexión (Fase A) fue exitosa.
+      this.sendError(res, 502, 'HA_DISCOVERY_ERROR', `Error local de procesamiento: ${error.message}`);
     }
   }
 
