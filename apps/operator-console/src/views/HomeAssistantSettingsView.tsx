@@ -121,7 +121,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
   );
 
   return (
-    <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Status Card */}
         <div className="md:col-span-2 bg-card/40 border rounded-2xl p-6 backdrop-blur-xl flex flex-col gap-4 shadow-sm border-white/10 ring-1 ring-black/5">

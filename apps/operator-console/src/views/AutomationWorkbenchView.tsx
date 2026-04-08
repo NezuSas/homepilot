@@ -219,7 +219,7 @@ export const AutomationWorkbenchView: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex flex-col gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* Header with Create Button */}
       <div className="flex items-center justify-between bg-card/40 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm shadow-sm">

@@ -81,7 +81,8 @@ export class OperatorConsoleServer {
     'INTERNAL_ERROR': 'Error interno del sistema. Contacte a soporte.',
     'SETUP_REQUIRED': 'El sistema requiere configuración inicial.',
     'ALREADY_INITIALIZED': 'El sistema ya ha sido configurado.',
-    'DEVICE_ALREADY_EXISTS': 'El dispositivo ya fue importado.'
+    'DEVICE_ALREADY_EXISTS': 'El dispositivo ya fue importado.',
+    'HA_DISCOVERY_ERROR': 'No se pudo consultar Home Assistant. Verifica la conexión y la configuración.'
   };
 
   private static readonly DEFAULT_STATUS_CODES: Record<string, number> = {
@@ -93,7 +94,8 @@ export class OperatorConsoleServer {
     'HA_CONNECTION_ERROR': 502,
     'HA_AUTH_ERROR': 502,
     'INTERNAL_ERROR': 500,
-    'DEVICE_ALREADY_EXISTS': 409
+    'DEVICE_ALREADY_EXISTS': 409,
+    'HA_DISCOVERY_ERROR': 502
   };
 
   constructor(private readonly container: BootstrapContainer, private readonly dbPath: string, port: number = 3000) {
