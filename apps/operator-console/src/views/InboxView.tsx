@@ -1,11 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Server, Inbox, RadioTower, Box, CheckCircle2, AlertCircle, 
-  Loader2, ArrowRight, RefreshCw, Eye, X, Activity, 
+  Inbox, RadioTower, Box, Activity,
+  Loader2, RefreshCw, X, AlertCircle, ArrowRight,
   Settings, Database, Clock, Terminal, Cpu
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+
+interface DeviceState {
+  state?: 'on' | 'off';
+  brightness?: number;
+  power?: number;
+  [key: string]: unknown;
+}
 
 interface Device {
   id: string;
@@ -38,26 +45,55 @@ interface ActivityLog {
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
-const DeviceCard: React.FC<{ 
+/**
+ * Appliance-style compact device tile.
+ */
+const DeviceTile: React.FC<{ 
   device: Device; 
   rooms: Room[];
   onUpdate?: (updated: Device) => void;
   onInspect?: () => void;
 }> = ({ device, rooms, onUpdate, onInspect }) => {
   const isAssigned = device.status === 'ASSIGNED';
-  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const isPending = device.status === 'PENDING';
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState('');
 
+  // Determine state for visual cues
+  const lastState = (device.lastKnownState || {}) as DeviceState;
+  const isOn = lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
+  
   const supportsCommands = device.type === 'light' || device.type === 'switch';
 
   useEffect(() => {
-    if (!isAssigned && rooms.length > 0 && !selectedRoomId) {
+    if (isPending && rooms.length > 0 && !selectedRoomId) {
       setSelectedRoomId(rooms[0].id);
     }
-  }, [rooms, isAssigned, selectedRoomId]);
+  }, [rooms, isPending, selectedRoomId]);
 
-  const handleAssign = async () => {
-    if (!selectedRoomId) return;
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Mandatory: action only
+    if (isProcessing || !supportsCommands) return;
+    
+    setIsProcessing(true);
+    try {
+      const command = isOn ? 'turn_off' : 'turn_on';
+      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+      });
+      if (res.ok && onUpdate) {
+        onUpdate(await res.json());
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAssign = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedRoomId || isProcessing) return;
     setIsProcessing(true);
     try {
       const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
@@ -73,132 +109,72 @@ const DeviceCard: React.FC<{
     }
   };
 
-  const handleCommand = async (command: 'turn_on' | 'turn_off' | 'toggle') => {
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command })
-      });
-      if (res.ok && onUpdate) {
-        onUpdate(await res.json());
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  // Get Icon based on type
+  const Icon = device.type === 'light' ? RadioTower : (device.type === 'switch' ? Box : Cpu);
 
   return (
-    <div className={cn(
-      "flex flex-col p-5 border border-border rounded-xl bg-card shadow-sm hover:border-primary/40 transition-all group relative",
-      isProcessing && "opacity-60 pointer-events-none"
-    )}>
-      <div className="flex justify-between items-start mb-5">
-        <div className="flex items-center gap-4">
-          <div className={cn(
-            "p-3 rounded-lg",
-            isAssigned ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-          )}>
-            <RadioTower className="w-5 h-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-base leading-none mb-1.5">{device.name}</span>
-            <span className="text-[11px] text-muted-foreground font-mono">{device.externalId}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={onInspect}
-            className="p-1.5 hover:bg-muted rounded-md text-muted-foreground transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          {isAssigned ? (
-            <CheckCircle2 className="w-5 h-5 text-primary" />
-          ) : (
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-tighter rounded border border-primary/20">Awaiting Assignment</span>
-              <span className="text-[8px] text-muted-foreground italic font-medium opacity-70">Ready to commission</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-5 p-3 bg-muted/40 rounded-lg text-xs border border-border/50">
-        <div className="flex flex-col">
-          <span className="text-[9px] uppercase font-bold opacity-50 mb-0.5">Type</span>
-          <span className="font-medium capitalize">{device.type}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[9px] uppercase font-bold opacity-50 mb-0.5">Vendor</span>
-          <span className="font-medium">{device.vendor}</span>
+    <div 
+      onClick={onInspect}
+      className={cn(
+        "relative group cursor-pointer transition-all duration-300",
+        "aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2",
+        "bg-card hover:shadow-xl hover:border-primary/40",
+        isOn && isAssigned ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-border shadow-sm",
+        isProcessing && "opacity-50 pointer-events-none"
+      )}
+    >
+      <div className="flex justify-between items-start">
+        <div className={cn(
+          "p-2.5 rounded-xl transition-colors duration-300",
+          isOn && isAssigned ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+        )}>
+          <Icon className="w-5 h-5" />
         </div>
         
-        {!isAssigned && (
-          <div className="col-span-2 pt-2 border-t border-border/20 mt-1 flex flex-col gap-3 relative z-20">
-             {rooms.length > 0 ? (
-               <select 
-                 className="bg-background border border-border rounded px-2 py-1.5 text-[11px] focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer w-full appearance-none pr-8"
-                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0/0/24/24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
-                 value={selectedRoomId}
-                 onChange={(e) => setSelectedRoomId(e.target.value)}
-               >
-                 {rooms.map(room => (
-                   <option key={room.id} value={room.id}>{room.name}</option>
-                 ))}
-               </select>
-             ) : (
-               <div className="bg-muted/50 border border-dashed border-border rounded-lg p-3 text-center flex flex-col gap-2">
-                 <p className="text-[10px] text-muted-foreground italic font-medium">No rooms available yet</p>
-                 <a 
-                   href="/topology" 
-                   onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('nav', { detail: 'topology' })); }}
-                   className="text-[9px] font-black uppercase text-primary hover:underline"
-                 >
-                   + Create a Room in Topology
-                 </a>
-               </div>
-             )}
+        {supportsCommands && isAssigned && (
+          <button
+            onClick={handleToggle}
+            className={cn(
+              "p-2 rounded-full border-2 transition-all",
+              isOn ? "bg-primary border-primary text-white shadow-md" : "bg-background border-border text-muted-foreground hover:border-primary/50"
+            )}
+          >
+             {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1 overflow-hidden">
+        <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
+        <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
+        
+        {isAssigned ? (
+          <div className="flex items-center gap-1.5 mt-1">
+            <div className={cn("w-1.5 h-1.5 rounded-full", isOn ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+            <span className={cn("text-[9px] font-black uppercase tracking-widest", isOn ? "text-primary" : "text-muted-foreground")}>
+              {isOn ? 'Active' : 'Standby'}
+            </span>
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-col gap-2">
+             <select 
+               onClick={(e) => e.stopPropagation()}
+               className="bg-muted/50 border border-border rounded px-1.5 py-1 text-[9px] font-bold outline-none w-full"
+               value={selectedRoomId}
+               onChange={(e) => setSelectedRoomId(e.target.value)}
+             >
+               {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+               {rooms.length === 0 && <option value="">No Rooms</option>}
+             </select>
              <button 
                onClick={handleAssign}
-               disabled={!selectedRoomId || isProcessing}
-               className="w-full bg-primary text-white py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-primary/10"
+               disabled={!selectedRoomId}
+               className="w-full bg-primary/10 text-primary py-1 rounded text-[8px] font-black uppercase border border-primary/20 hover:bg-primary/20 transition-colors"
              >
-               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Assign <ArrowRight className="w-3 h-3" /></>}
+               Assign
              </button>
           </div>
         )}
-
-        {isAssigned && supportsCommands && (
-          <div className="col-span-2 pt-3 border-t border-border/20 mt-2 flex gap-2">
-            <button 
-              onClick={() => handleCommand('turn_on')}
-              className="flex-1 bg-primary/10 text-primary p-2 rounded text-[10px] font-bold hover:bg-primary/20 transition-colors"
-            >
-              ON
-            </button>
-            <button 
-              onClick={() => handleCommand('turn_off')}
-              className="flex-1 bg-muted text-foreground p-2 rounded text-[10px] font-bold hover:bg-muted/80 transition-colors"
-            >
-              OFF
-            </button>
-            <button 
-              onClick={() => handleCommand('toggle')}
-              className="aspect-square bg-secondary text-secondary-foreground p-2 rounded flex items-center justify-center hover:bg-secondary/80 transition-all font-bold"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5", isProcessing && "animate-spin")} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="relative">
-        <div className="absolute top-2 right-3 text-[8px] font-mono opacity-30">STATE_SNAPSHOT</div>
-        <pre className="bg-black/90 text-green-400 p-3 rounded-lg text-[10px] font-mono shadow-inner overflow-x-auto custom-scrollbar leading-relaxed">
-          {JSON.stringify(device.lastKnownState, null, 2)}
-        </pre>
       </div>
     </div>
   );
@@ -212,53 +188,63 @@ export const InboxView: React.FC = () => {
   const [roomsByHome, setRoomsByHome] = useState<Record<string, Room[]>>({});
   const [loading, setLoading] = useState(true);
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'light' | 'switch' | 'sensor'>('all');
 
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/devices`);
-      if (!res.ok) throw new Error('Error al recuperar dispositivos');
+      if (!res.ok) throw new Error('Refresh error');
       const data = await res.json() as Device[];
       setDevices(data || []);
       
-      // Centralized Room Fetching: Only fetch unique homes found in the devices list
       const homeIds = Array.from(new Set(data.map(d => d.homeId)));
       const roomsData: Record<string, Room[]> = {};
       await Promise.all(homeIds.map(async (hId) => {
         const rRes = await fetch(`${API_URL}/homes/${hId}/rooms`);
-        if (rRes.ok) {
-          roomsData[hId] = await rRes.json();
-        }
+        if (rRes.ok) roomsData[hId] = await rRes.json();
       }));
       setRoomsByHome(roomsData);
-
       setLoading(false);
     } catch {
       setLoading(false);
     }
-  }, []); // Stable stable!
+  }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDeviceUpdate = (deviceId: string, updatedDevice: Device) => {
-    setDevices(prev => prev.map(d => d.id === deviceId ? updatedDevice : d));
+  const handleDeviceUpdate = (deviceId: string, updated: Device) => {
+    setDevices((prev: Device[]) => prev.map((d: Device) => d.id === deviceId ? updated : d));
   };
+
+  // Grouping logic
+  const filtered = devices.filter((d: Device) => {
+    if (filter === 'all') return true;
+    return d.type === filter;
+  });
+
+  const roomsFlattened = Object.values(roomsByHome).flat();
+  
+  const grouped = filtered.reduce((acc: Record<string, { name: string, devices: Device[] }>, dev: Device) => {
+    const isPending = dev.status === 'PENDING';
+    const room = roomsFlattened.find((r: Room) => r.id === dev.roomId);
+    const groupId = isPending || !room ? 'UNASSIGNED' : room.id;
+    const groupName = isPending || !room ? 'Unassigned / Pending Commissioning' : room.name;
+    
+    if (!acc[groupId]) acc[groupId] = { name: groupName, devices: [] };
+    acc[groupId].devices.push(dev);
+    return acc;
+  }, {} as Record<string, { name: string, devices: Device[] }>);
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin mb-4" />
-        <p className="text-sm font-medium">Sincronizando estado...</p>
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+        <Loader2 className="w-10 h-10 animate-spin text-primary opacity-20" />
       </div>
     );
   }
 
-  const pendingDevices = devices.filter(d => d.status === 'PENDING');
-  const assignedDevices = devices.filter(d => d.status === 'ASSIGNED');
-
   return (
-    <div className="flex flex-col gap-10 relative">
+    <div className="flex flex-col gap-10 p-2">
       {inspectingDeviceId && (
         <DeviceInspector 
           deviceId={inspectingDeviceId} 
@@ -267,58 +253,73 @@ export const InboxView: React.FC = () => {
         />
       )}
 
-      {/* Discovery Section */}
+      {/* Discovery Layer */}
       <HomeAssistantDiscoverySection onImported={fetchData} />
 
-      {/* Inbox Section */}
-      <section className="flex flex-col gap-5">
-        <div className="flex justify-between items-end">
-          <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-            <Inbox className="w-4 h-4" /> Device Inbox 
-            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] font-black">
-              {pendingDevices.length}
-            </span>
-          </h3>
+      {/* Control Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-primary/10 text-primary rounded-2xl">
+            <Inbox className="w-6 h-6" />
+          </div>
+          <div className="flex flex-col">
+            <h2 className="text-xl font-black tracking-tight">Device Manager</h2>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">Appliance-Style Controller v3.0</span>
+          </div>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {pendingDevices.map(device => (
-            <DeviceCard 
-              key={device.id} 
-              device={device} 
-              rooms={roomsByHome[device.homeId] || []}
-              onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
-              onInspect={() => setInspectingDeviceId(device.id)}
-            />
-          ))}
-          {pendingDevices.length === 0 && (
-            <div className="col-span-full py-12 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-muted-foreground bg-muted/20">
-               <Box className="w-8 h-8 mb-2 opacity-20" />
-               <p className="text-xs font-medium italic">Inbox is empty</p>
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* Assigned Section */}
-      <section className="flex flex-col gap-5 border-t border-border pt-8">
-        <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-          <Server className="w-4 h-4" /> Assigned Devices
-          <span className="bg-muted text-foreground px-2 py-0.5 rounded-full text-[10px] font-black">
-            {assignedDevices.length}
-          </span>
-        </h3>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {assignedDevices.map(device => (
-            <DeviceCard 
-              key={device.id} 
-              device={device} 
-              rooms={roomsByHome[device.homeId] || []}
-              onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
-              onInspect={() => setInspectingDeviceId(device.id)}
-            />
+        {/* Filters */}
+        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50">
+          {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
+              )}
+            >
+              {f}
+            </button>
           ))}
         </div>
-      </section>
+      </div>
+
+      {/* Adaptive Grid Rendering */}
+      <div className="flex flex-col gap-12">
+        {Object.entries(grouped).map(([id, group]) => (
+          <section key={id} className="flex flex-col gap-6">
+            <div className="flex items-center justify-between group/header">
+              <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-primary rounded-full" />
+                {group.name}
+              </h3>
+              <span className="px-3 py-1 bg-muted rounded-full text-[10px] font-black border border-border opacity-50">
+                {group.devices.length} {group.devices.length === 1 ? 'Unit' : 'Units'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-5">
+              {group.devices.map(device => (
+                <DeviceTile 
+                  key={device.id} 
+                  device={device} 
+                  rooms={roomsByHome[device.homeId] || []}
+                  onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
+                  onInspect={() => setInspectingDeviceId(device.id)}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {devices.length === 0 && (
+          <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-20">
+             <Cpu className="w-12 h-12 mb-4" />
+             <p className="text-sm font-black uppercase tracking-widest">No devices connected</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -337,7 +338,6 @@ const DeviceInspector: React.FC<{
   const [activeTab, setActiveTab] = useState<'info' | 'logs' | 'state'>('info');
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
-  const API_URL = `${API_BASE_URL}/api/v1`;
 
   const fetchDetails = useCallback(async (isInitial = false) => {
     try {
@@ -605,7 +605,7 @@ const DeviceInspector: React.FC<{
 
           {activeTab === 'logs' && (
             <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4 duration-500">
-              {logs.map((log, index) => (
+              {logs.map((log: ActivityLog, index: number) => (
                 <div key={index} className="p-5 bg-muted/10 border border-border/20 rounded-[1.5rem] flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-tighter">
@@ -690,10 +690,10 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
       });
       if (res.ok) {
         onImported();
-        setEntities(prev => prev.filter(e => e.entityId !== entity.entityId));
+        setEntities((prev: HaEntityCandidate[]) => prev.filter((e: HaEntityCandidate) => e.entityId !== entity.entityId));
       } else if (res.status === 409) {
         setError('Device already imported');
-        setEntities(prev => prev.filter(e => e.entityId !== entity.entityId));
+        setEntities((prev: HaEntityCandidate[]) => prev.filter((e: HaEntityCandidate) => e.entityId !== entity.entityId));
       } else {
         const data = await res.json();
         const msg = data.error?.message || (typeof data.error === 'string' ? data.error : 'Import failed');
@@ -724,7 +724,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
 
       {showDiscovery && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
-          {entities.map(entity => (
+          {entities.map((entity: HaEntityCandidate) => (
             <div key={entity.entityId} className="p-4 bg-card border border-border rounded-xl flex flex-col gap-3 group relative overflow-hidden">
                <div className="absolute top-0 right-0 p-2 opacity-5">
                  <RadioTower className="w-8 h-8" />
