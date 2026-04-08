@@ -90,7 +90,7 @@ export class OperatorConsoleServer {
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204).end();
@@ -165,25 +165,41 @@ export class OperatorConsoleServer {
           const result = await this.container.services.authService.login(payload.username, payload.password);
           
           if (!result) {
-            await this.container.repositories.activityLogRepository.saveActivity({
-              deviceId: 'system-auth', 
-              type: 'AUTH_FAILED' as any, 
-              timestamp: new Date().toISOString(), 
-              description: `Failed login attempt for user ${payload.username}`, 
-              data: {}
-            });
+            try {
+              await this.container.repositories.activityLogRepository.saveActivity({
+                deviceId: 'system-auth', 
+                type: 'AUTH_FAILED' as any, 
+                timestamp: new Date().toISOString(), 
+                description: `Failed login attempt for user ${payload.username}`, 
+                data: {}
+              });
+            } catch (err) {
+              console.error('[OperatorConsoleServer] Failed to log AUTH_FAILED:', err);
+            }
             return this.sendError(res, 401, 'AUTH_FAILED', 'Invalid credentials');
           }
 
-          await this.container.repositories.activityLogRepository.saveActivity({
-            deviceId: 'system-auth', 
-            type: 'AUTH_SUCCESS' as any, 
-            timestamp: new Date().toISOString(), 
-            description: `User ${result.user.username} logged in`, 
-            data: { username: result.user.username }
-          });
+          try {
+            await this.container.repositories.activityLogRepository.saveActivity({
+              deviceId: 'system-auth', 
+              type: 'AUTH_SUCCESS' as any, 
+              timestamp: new Date().toISOString(), 
+              description: `User ${result.user.username} logged in`, 
+              data: { username: result.user.username }
+            });
+          } catch (err) {
+            console.error('[OperatorConsoleServer] Failed to log AUTH_SUCCESS:', err);
+          }
 
-          this.sendJson(res, result);
+          this.sendJson(res, {
+            token: result.token,
+            user: {
+              id: result.user.id,
+              username: result.user.username,
+              role: result.user.role,
+              isActive: result.user.isActive
+            }
+          });
         } catch (e) {
           this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Login Error');
         }

@@ -24,6 +24,8 @@ describe('OperatorConsoleServer Integration Tests', () => {
       DELETE FROM rooms;
       DELETE FROM homes;
       DELETE FROM activity_logs;
+      DELETE FROM sessions;
+      DELETE FROM users;
     `);
 
     const now = new Date().toISOString();
@@ -210,6 +212,55 @@ describe('OperatorConsoleServer Integration Tests', () => {
         body: JSON.stringify({ entityId })
       });
       expect(res2.status).toBe(409);
+    });
+  });
+
+  describe('Auth API', () => {
+    it('OPTIONS /api/v1/auth/login: returns CORS headers with Authorization', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/auth/login`, {
+        method: 'OPTIONS'
+      });
+      expect(res.status).toBe(204);
+      expect(res.headers.get('Access-Control-Allow-Headers')).toContain('Authorization');
+    });
+
+    it('POST /api/v1/auth/login: sanitizes user object and removes passwordHash', async () => {
+      // Seed a user manually for testing
+      const db = SqliteDatabaseManager.getInstance(DB_PATH);
+      const now = new Date().toISOString();
+      const passHash = await container.services.authService['cryptoService'].hashPassword('testPass123');
+      db.prepare("INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at) VALUES ('u-test-auth', 'testauth', ?, 'operator', 1, ?, ?)")
+        .run(passHash, now, now);
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'testauth', password: 'testPass123' })
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      
+      expect(data).toHaveProperty('token');
+      expect(data).toHaveProperty('user');
+      expect(data.user).toHaveProperty('id', 'u-test-auth');
+      expect(data.user).toHaveProperty('username', 'testauth');
+      expect(data.user).toHaveProperty('role', 'operator');
+      expect(data.user).toHaveProperty('isActive', true);
+      
+      // CRITICAL CHECK: passwordHash must NOT be in the response
+      expect(data.user).not.toHaveProperty('passwordHash');
+      expect(data.user).not.toHaveProperty('password_hash');
+      expect(JSON.stringify(data)).not.toContain('passwordHash');
+      expect(JSON.stringify(data)).not.toContain('$2b$'); // Common bcrypt prefix
+
+      // VERIFY POST-LOGIN REQUEST: /api/v1/system/setup-status
+      const setupRes = await fetch(`http://localhost:${PORT}/api/v1/system/setup-status`, {
+        headers: { 'Authorization': `Bearer ${data.token}` }
+      });
+      expect(setupRes.status).toBe(200);
+      const setupData = await setupRes.json();
+      expect(setupData).toHaveProperty('setupComplete');
     });
   });
 });
