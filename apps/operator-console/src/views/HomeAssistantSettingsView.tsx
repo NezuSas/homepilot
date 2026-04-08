@@ -51,7 +51,8 @@ export const HomeAssistantSettingsView: React.FC = () => {
         fetchStatus();
       } else {
         const err = await response.json();
-        setMessage({ type: 'error', text: err.error || 'Error al guardar' });
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Error al guardar');
+        setMessage({ type: 'error', text: msg });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error de red al conectar con el servidor' });

@@ -93,6 +93,11 @@ export class AuthGuard {
   }
 
   private sendError(res: http.ServerResponse, code: number, msg: string, causeCode: string) {
-    res.writeHead(code, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: msg, code: causeCode }));
+    res.writeHead(code, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+      error: {
+        code: causeCode,
+        message: msg
+      }
+    }));
   }
 }

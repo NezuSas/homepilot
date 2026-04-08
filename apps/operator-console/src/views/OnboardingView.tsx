@@ -42,7 +42,8 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
         setTestResult('success');
       } else {
         setTestResult('error');
-        setErrorMsg(data.error || 'Connection failed');
+        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : 'Connection failed');
+        setErrorMsg(msg);
       }
     } catch (e: any) {
       setTestResult('error');
@@ -80,7 +81,8 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
       
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Failed to complete onboarding');
+        const msg = errData.error?.message || (typeof errData.error === 'string' ? errData.error : 'Failed to complete onboarding');
+        throw new Error(msg);
       }
       
       onCompleted();

@@ -112,10 +112,9 @@ export class OperatorConsoleServer {
 
       try {
         const status = await this.container.services.systemSetupService.getSetupStatus();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(status));
+        this.sendJson(res, status);
       } catch (e: any) {
-        this.sendError(res, 500, e.message);
+        this.sendError(res, 500, 'SETUP_STATUS_ERROR', e.message);
       }
       return;
     }
@@ -132,19 +131,24 @@ export class OperatorConsoleServer {
 
       try {
         await this.container.services.systemSetupService.completeOnboarding(authReq.user!.id);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
+        this.sendJson(res, { success: true });
       } catch (e: any) {
         const msg = e.message;
+        let code = 'INTERNAL_ERROR';
+        let status = 500;
+
         if (msg === 'NO_CONFIG') {
-          this.sendError(res, 400, 'Home Assistant Configuration is missing (NO_CONFIG)');
+          code = 'HA_CONFIG_MISSING';
+          status = 400;
         } else if (msg === 'AUTH_ERROR') {
-          this.sendError(res, 400, 'Home Assistant Access Token is invalid (HA_AUTH_ERROR)');
+          code = 'HA_AUTH_ERROR';
+          status = 400;
         } else if (msg === 'UNREACHABLE') {
-          this.sendError(res, 400, 'Home Assistant Server is unreachable (HA_UNREACHABLE)');
-        } else {
-          this.sendError(res, 500, e.message);
+          code = 'HA_UNREACHABLE';
+          status = 400;
         }
+
+        this.sendError(res, status, code, msg);
       }
       return;
     }
@@ -152,35 +156,42 @@ export class OperatorConsoleServer {
     // -- AUTH V1 ENDPOINTS --
     if (pathname.startsWith('/api/v1/auth/')) {
       if (method === 'POST' && pathname === '/api/v1/auth/login') {
-        let body = ''; req.on('data', c => body += c);
-        req.on('end', async () => {
-          try {
-            const payload = JSON.parse(body || '{}');
-            if (!payload.username || !payload.password) return this.sendError(res, 400, 'Missing credentials');
-            const result = await this.container.services.authService.login(payload.username, payload.password);
-            
-            if (!result) {
-              await this.container.repositories.activityLogRepository.saveActivity({
-                deviceId: 'system-auth', type: 'AUTH_FAILED' as any, timestamp: new Date().toISOString(), description: `Failed login attempt for user ${payload.username}`, data: {}
-              });
-              return this.sendError(res, 401, 'Invalid credentials');
-            }
-
-            await this.container.repositories.activityLogRepository.saveActivity({
-              deviceId: 'system-auth', type: 'AUTH_SUCCESS' as any, timestamp: new Date().toISOString(), description: `User ${result.user.username} logged in`, data: { username: result.user.username }
-            });
-
-            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-          } catch (e) {
-            this.sendError(res, 500, 'Internal Error');
+        try {
+          const payload = await this.parseBody<{ username?: string; password?: string }>(req);
+          if (!payload.username || !payload.password) {
+            return this.sendError(res, 400, 'INVALID_INPUT', 'Missing credentials');
           }
-        });
+          
+          const result = await this.container.services.authService.login(payload.username, payload.password);
+          
+          if (!result) {
+            await this.container.repositories.activityLogRepository.saveActivity({
+              deviceId: 'system-auth', 
+              type: 'AUTH_FAILED' as any, 
+              timestamp: new Date().toISOString(), 
+              description: `Failed login attempt for user ${payload.username}`, 
+              data: {}
+            });
+            return this.sendError(res, 401, 'AUTH_FAILED', 'Invalid credentials');
+          }
+
+          await this.container.repositories.activityLogRepository.saveActivity({
+            deviceId: 'system-auth', 
+            type: 'AUTH_SUCCESS' as any, 
+            timestamp: new Date().toISOString(), 
+            description: `User ${result.user.username} logged in`, 
+            data: { username: result.user.username }
+          });
+
+          this.sendJson(res, result);
+        } catch (e) {
+          this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Login Error');
+        }
         return;
       }
 
-      // Rest of Auth Endpoints require token to be decoded, but logout won't crash if bad
       const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
-      if (!isProtected) return; // Response is handled by the guard
+      if (!isProtected) return;
 
       const authReq = req as any;
 
@@ -189,35 +200,33 @@ export class OperatorConsoleServer {
         if (token) {
           await this.container.services.authService.logout(token);
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+        this.sendJson(res, { success: true });
         return;
       }
 
       if (method === 'GET' && pathname === '/api/v1/auth/me') {
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(authReq.user));
+        this.sendJson(res, authReq.user);
         return;
       }
 
       if (method === 'POST' && pathname === '/api/v1/auth/change-password') {
-        let body = ''; req.on('data', c => body += c);
-        req.on('end', async () => {
-          try {
-            const payload = JSON.parse(body || '{}');
-            if (!payload.currentPassword || !payload.newPassword) return this.sendError(res, 400, 'Missing fields');
-            
-            const result = await this.container.services.authService.changePassword(authReq.user.id, payload.currentPassword, payload.newPassword);
-            if (!result.success) return this.sendError(res, 400, 'Failed to change password');
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
-          } catch (e) {
-            this.sendError(res, 500, 'Internal Error');
+        try {
+          const payload = await this.parseBody<{ currentPassword?: string; newPassword?: string }>(req);
+          if (!payload.currentPassword || !payload.newPassword) {
+            return this.sendError(res, 400, 'INVALID_INPUT', 'Missing fields');
           }
-        });
+          
+          const result = await this.container.services.authService.changePassword(authReq.user.id, payload.currentPassword, payload.newPassword);
+          if (!result.success) return this.sendError(res, 400, 'AUTH_ERROR', 'Failed to change password');
+          
+          this.sendJson(res, { success: true });
+        } catch (e) {
+          this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Change Password Error');
+        }
         return;
       }
 
-      // 404 for unknown auth routes
-      this.sendError(res, 404, 'Auth route not found');
+      this.sendError(res, 404, 'NOT_FOUND', 'Auth route not found');
       return;
     }
 
@@ -232,28 +241,25 @@ export class OperatorConsoleServer {
       if (method === 'GET' && pathname === '/api/v1/admin/users') {
         try {
           const users = await this.container.services.userManagementService.listUsers();
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(users));
+          this.sendJson(res, users);
         } catch (e: any) {
-          this.sendError(res, 500, e.message);
+          this.sendError(res, 500, 'USER_LIST_ERROR', e.message);
         }
         return;
       }
 
       // POST /api/v1/admin/users
       if (method === 'POST' && pathname === '/api/v1/admin/users') {
-        let body = ''; req.on('data', c => body += c);
-        req.on('end', async () => {
-          try {
-            const payload = JSON.parse(body || '{}');
-            const result = await this.container.services.userManagementService.createUser(authReq.user.id, payload);
-            res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-          } catch (e: any) {
-            let code = 400;
-            if (e.message.includes('USERNAME_TAKEN') || e.message.includes('INVALID_INPUT') || e.message.includes('INVALID_ROLE')) code = 400;
-            else code = 500;
-            this.sendError(res, code, e.message);
-          }
-        });
+        try {
+          const payload = await this.parseBody<any>(req);
+          const result = await this.container.services.userManagementService.createUser(authReq.user.id, payload);
+          this.sendJson(res, result, 201);
+        } catch (e: any) {
+          let code = 'USER_CREATE_ERROR';
+          if (e.message.includes('USERNAME_TAKEN')) code = 'USERNAME_TAKEN';
+          else if (e.message.includes('INVALID_INPUT')) code = 'INVALID_INPUT';
+          this.sendError(res, 400, code, e.message);
+        }
         return;
       }
 
@@ -261,20 +267,17 @@ export class OperatorConsoleServer {
       const patchRoleMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/role$/);
       if (patchRoleMatch) {
         const targetId = patchRoleMatch[1];
-        let body = ''; req.on('data', c => body += c);
-        req.on('end', async () => {
-          try {
-            const payload = JSON.parse(body || '{}');
-            await this.container.services.userManagementService.updateUserRole(authReq.user.id, targetId, payload.role);
-            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
-          } catch (e: any) {
-            let code = 400;
-            if (e.message.includes('USER_NOT_FOUND')) code = 404;
-            else if (e.message.includes('MINIMUM_ADMINS_VIOLATED') || e.message.includes('INVALID_ROLE')) code = 400;
-            else code = 500;
-            this.sendError(res, code, e.message);
-          }
-        });
+        try {
+          const payload = await this.parseBody<{ role: any }>(req);
+          await this.container.services.userManagementService.updateUserRole(authReq.user.id, targetId, payload.role);
+          this.sendJson(res, { success: true });
+        } catch (e: any) {
+          let status = 400;
+          let code = 'USER_ROLE_ERROR';
+          if (e.message.includes('USER_NOT_FOUND')) { status = 404; code = 'USER_NOT_FOUND'; }
+          else if (e.message.includes('MINIMUM_ADMINS_VIOLATED')) code = 'MINIMUM_ADMINS_VIOLATED';
+          this.sendError(res, status, code, e.message);
+        }
         return;
       }
 
@@ -282,20 +285,18 @@ export class OperatorConsoleServer {
       const patchActiveMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/active$/);
       if (patchActiveMatch) {
         const targetId = patchActiveMatch[1];
-        let body = ''; req.on('data', c => body += c);
-        req.on('end', async () => {
-          try {
-            const payload = JSON.parse(body || '{}');
-            await this.container.services.userManagementService.setUserActiveState(authReq.user.id, targetId, payload.isActive === true);
-            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
-          } catch (e: any) {
-            let code = 400;
-            if (e.message.includes('USER_NOT_FOUND')) code = 404;
-            else if (e.message.includes('MINIMUM_ADMINS_VIOLATED') || e.message.includes('CANNOT_DEACTIVATE_SELF_LAST_ADMIN')) code = 400;
-            else code = 500;
-            this.sendError(res, code, e.message);
-          }
-        });
+        try {
+          const payload = await this.parseBody<{ isActive: boolean }>(req);
+          await this.container.services.userManagementService.setUserActiveState(authReq.user.id, targetId, payload.isActive === true);
+          this.sendJson(res, { success: true });
+        } catch (e: any) {
+          let status = 400;
+          let code = 'USER_STATUS_ERROR';
+          if (e.message.includes('USER_NOT_FOUND')) { status = 404; code = 'USER_NOT_FOUND'; }
+          else if (e.message.includes('MINIMUM_ADMINS_VIOLATED')) code = 'MINIMUM_ADMINS_VIOLATED';
+          else if (e.message.includes('CANNOT_DEACTIVATE_SELF')) code = 'CANNOT_DEACTIVATE_SELF';
+          this.sendError(res, status, code, e.message);
+        }
         return;
       }
 
@@ -305,15 +306,14 @@ export class OperatorConsoleServer {
         const targetId = revokeMatch[1];
         try {
           await this.container.services.userManagementService.revokeUserSessions(authReq.user.id, targetId);
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+          this.sendJson(res, { success: true });
         } catch (e: any) {
-          const code = e.message.includes('USER_NOT_FOUND') ? 404 : 500;
-          this.sendError(res, code, e.message);
+          this.sendError(res, e.message.includes('USER_NOT_FOUND') ? 404 : 500, 'USER_REVOKE_ERROR', e.message);
         }
         return;
       }
 
-      this.sendError(res, 404, 'Admin route not found');
+      this.sendError(res, 404, 'NOT_FOUND', 'Admin route not found');
       return;
     }
 
@@ -328,9 +328,9 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics') {
       try {
         const snapshot = await this.container.services.diagnosticsService.getSnapshot();
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(snapshot));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendJson(res, snapshot);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DIAGNOSTICS_ERROR', error.message);
       }
       return;
     }
@@ -339,9 +339,9 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics/events') {
       try {
         const events = await this.container.services.diagnosticsService.getRecentEvents(50);
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(events));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendJson(res, events);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DIAGNOSTICS_EVENTS_ERROR', error.message);
       }
       return;
     }
@@ -350,11 +350,11 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/homes') {
       try {
         const rows = db.prepare('SELECT * FROM homes').all() as LocalHomeRow[];
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
+        this.sendJson(res, rows.map(r => ({
           id: r.id, ownerId: r.owner_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
-        }))));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        })));
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -365,11 +365,11 @@ export class OperatorConsoleServer {
       try {
         const homeId = roomsMatch[1];
         const rows = db.prepare('SELECT * FROM rooms WHERE home_id = ?').all(homeId) as LocalRoomRow[];
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
+        this.sendJson(res, rows.map(r => ({
           id: r.id, homeId: r.home_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
-        }))));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        })));
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -380,9 +380,9 @@ export class OperatorConsoleServer {
       try {
         const deviceId = deviceLogsMatch[1];
         const logs = await this.container.repositories.activityLogRepository.findRecentByDeviceId(deviceId, 20);
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(logs));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendJson(res, logs);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -393,10 +393,10 @@ export class OperatorConsoleServer {
       try {
         const deviceId = deviceDetailMatch[1];
         const device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
-        if (!device) return this.sendError(res, 404, 'Device not found');
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found');
+        this.sendJson(res, device);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -405,13 +405,13 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/devices') {
       try {
         const rows = db.prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC').all() as LocalDeviceRow[];
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rows.map(r => ({
+        this.sendJson(res, rows.map(r => ({
           id: r.id, homeId: r.home_id, roomId: r.room_id, externalId: r.external_id, name: r.name, type: r.type, vendor: r.vendor,
           status: r.status, lastKnownState: r.last_known_state ? JSON.parse(r.last_known_state) : null,
           entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
-        }))));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        })));
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -420,9 +420,9 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/activity-logs') {
       try {
         const logs = await this.container.repositories.activityLogRepository.findAllRecent(50);
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(logs));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendJson(res, logs);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -431,9 +431,9 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/automations') {
       try {
         const rules = await this.container.repositories.automationRuleRepository.findAll();
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(rules));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendJson(res, rules);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
       }
       return;
     }
@@ -441,33 +441,31 @@ export class OperatorConsoleServer {
     // POST /api/v1/automations
     if (method === 'POST' && pathname === '/api/v1/automations') {
       if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
-      let body = ''; req.on('data', c => body += c);
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body || '{}') as CreateAutomationPayload;
-          const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
-          if (!home) return this.sendError(res, 500, 'No local home found');
+      try {
+        const payload = await this.parseBody<CreateAutomationPayload>(req);
+        const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
+        if (!home) return this.sendError(res, 500, 'HOME_NOT_FOUND', 'No local home found');
 
-          const result = await createAutomationRuleUseCase({
-            homeId: home.id, userId: 'local-op', name: payload.name, trigger: payload.trigger, action: payload.action
-          }, {
-            automationRuleRepository: this.container.repositories.automationRuleRepository,
-            deviceRepository: this.container.repositories.deviceRepository,
-            topologyReferencePort: { 
-              validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, 
-              validateRoomBelongsToHome: async () => {} 
-            },
-            idGenerator: { generate: () => crypto.randomUUID() }
-          });
-          res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-        } catch (error: unknown) {
-          const name = error instanceof Error ? error.constructor.name : '';
-          let code = 500;
-          if (name === 'DeviceNotFoundError') code = 404;
-          else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') code = 400;
-          this.sendError(res, code, error instanceof Error ? error.message : 'Error');
-        }
-      });
+        const result = await createAutomationRuleUseCase({
+          homeId: home.id, userId: authReq.user.id, name: payload.name, trigger: payload.trigger, action: payload.action
+        }, {
+          automationRuleRepository: this.container.repositories.automationRuleRepository,
+          deviceRepository: this.container.repositories.deviceRepository,
+          topologyReferencePort: { 
+            validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, 
+            validateRoomBelongsToHome: async () => {} 
+          },
+          idGenerator: { generate: () => crypto.randomUUID() }
+        });
+        this.sendJson(res, result, 201);
+      } catch (error: any) {
+        const name = error.constructor.name;
+        let code = 'AUTOMATION_ERROR';
+        let status = 500;
+        if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
+        else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') { status = 400; code = name.toUpperCase(); }
+        this.sendError(res, status, code, error.message);
+      }
       return;
     }
 
@@ -476,25 +474,23 @@ export class OperatorConsoleServer {
     if (patchAutoMatch) {
       if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       const ruleId = patchAutoMatch[1];
-      let body = ''; req.on('data', c => body += c);
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body || '{}') as UpdateAutomationPayload;
-          const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
-          const result = await updateAutomationRuleUseCase(ruleId, 'local-op', payload, {
-            automationRuleRepository: this.container.repositories.automationRuleRepository,
-            deviceRepository: this.container.repositories.deviceRepository,
-            topologyReferencePort: ports
-          });
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-        } catch (error: unknown) {
-          const name = error instanceof Error ? error.constructor.name : '';
-          let code = 500;
-          if (name === 'AutomationRuleNotFoundError') code = 404;
-          else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') code = 400;
-          this.sendError(res, code, error instanceof Error ? error.message : 'Error');
-        }
-      });
+      try {
+        const payload = await this.parseBody<UpdateAutomationPayload>(req);
+        const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
+        const result = await updateAutomationRuleUseCase(ruleId, authReq.user.id, payload, {
+          automationRuleRepository: this.container.repositories.automationRuleRepository,
+          deviceRepository: this.container.repositories.deviceRepository,
+          topologyReferencePort: ports
+        });
+        this.sendJson(res, result);
+      } catch (error: any) {
+        const name = error.constructor.name;
+        let code = 'AUTOMATION_ERROR';
+        let status = 500;
+        if (name === 'AutomationRuleNotFoundError') { status = 404; code = 'AUTOMATION_NOT_FOUND'; }
+        else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') { status = 400; code = name.toUpperCase(); }
+        this.sendError(res, status, code, error.message);
+      }
       return;
     }
 
@@ -507,12 +503,12 @@ export class OperatorConsoleServer {
       try {
         const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
         const result = act === 'enable' 
-          ? await enableAutomationRuleUseCase(ruleId, 'local-op', { automationRuleRepository: this.container.repositories.automationRuleRepository, topologyReferencePort: ports })
-          : await disableAutomationRuleUseCase(ruleId, 'local-op', { automationRuleRepository: this.container.repositories.automationRuleRepository, topologyReferencePort: ports });
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-      } catch (error: unknown) {
-        const name = error instanceof Error ? error.constructor.name : '';
-        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, error instanceof Error ? error.message : 'Error');
+          ? await enableAutomationRuleUseCase(ruleId, authReq.user.id, { automationRuleRepository: this.container.repositories.automationRuleRepository, topologyReferencePort: ports })
+          : await disableAutomationRuleUseCase(ruleId, authReq.user.id, { automationRuleRepository: this.container.repositories.automationRuleRepository, topologyReferencePort: ports });
+        this.sendJson(res, result);
+      } catch (error: any) {
+        const name = error.constructor.name;
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, 'AUTOMATION_ERROR', error.message);
       }
       return;
     }
@@ -524,14 +520,14 @@ export class OperatorConsoleServer {
       const ruleId = deleteMatch[1];
       try {
         const ports = { validateHomeOwnership: async () => {}, validateHomeExists: async () => {}, validateRoomBelongsToHome: async () => {} };
-        await deleteAutomationRuleUseCase(ruleId, 'local-op', { 
+        await deleteAutomationRuleUseCase(ruleId, authReq.user.id, { 
           automationRuleRepository: this.container.repositories.automationRuleRepository, 
           topologyReferencePort: ports 
         });
         res.writeHead(204).end();
-      } catch (error: unknown) {
-        const name = error instanceof Error ? error.constructor.name : '';
-        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, error instanceof Error ? error.message : 'Error');
+      } catch (error: any) {
+        const name = error.constructor.name;
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, 'AUTOMATION_DELETE_ERROR', error.message);
       }
       return;
     }
@@ -540,9 +536,9 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/settings/home-assistant') {
       try {
         const result = await this.container.services.homeAssistantSettingsService.getStatus();
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendJson(res, result);
+      } catch (error: any) {
+        this.sendError(res, 500, 'HA_SETTINGS_ERROR', error.message);
       }
       return;
     }
@@ -550,34 +546,28 @@ export class OperatorConsoleServer {
     // POST /api/v1/settings/home-assistant
     if (method === 'POST' && pathname === '/api/v1/settings/home-assistant') {
       if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
-      let body = ''; req.on('data', c => body += c);
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body || '{}') as { baseUrl: string; accessToken?: string };
-          if (!payload.baseUrl) return this.sendError(res, 400, 'Missing baseUrl');
-          await this.container.services.homeAssistantSettingsService.saveSettings(payload.baseUrl, payload.accessToken);
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
-        } catch (error: unknown) {
-          this.sendError(res, 400, error instanceof Error ? error.message : 'Error');
-        }
-      });
+      try {
+        const payload = await this.parseBody<{ baseUrl: string; accessToken?: string }>(req);
+        if (!payload.baseUrl) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing baseUrl');
+        await this.container.services.homeAssistantSettingsService.saveSettings(payload.baseUrl, payload.accessToken);
+        this.sendJson(res, { success: true });
+      } catch (error: any) {
+        this.sendError(res, 400, 'HA_SAVE_ERROR', error.message);
+      }
       return;
     }
 
     // POST /api/v1/settings/home-assistant/test
     if (method === 'POST' && pathname === '/api/v1/settings/home-assistant/test') {
       if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
-      let body = ''; req.on('data', c => body += c);
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body || '{}') as { baseUrl: string; accessToken: string };
-          if (!payload.baseUrl || !payload.accessToken) return this.sendError(res, 400, 'Missing parameters');
-          const result = await this.container.services.homeAssistantSettingsService.testConnection(payload.baseUrl, payload.accessToken);
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-        } catch (error: unknown) {
-          this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
-        }
-      });
+      try {
+        const payload = await this.parseBody<{ baseUrl: string; accessToken: string }>(req);
+        if (!payload.baseUrl || !payload.accessToken) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing parameters');
+        const result = await this.container.services.homeAssistantSettingsService.testConnection(payload.baseUrl, payload.accessToken);
+        this.sendJson(res, result);
+      } catch (error: any) {
+        this.sendError(res, 500, 'HA_TEST_ERROR', error.message);
+      }
       return;
     }
 
@@ -585,12 +575,12 @@ export class OperatorConsoleServer {
     if (method === 'GET' && pathname === '/api/v1/settings/home-assistant/status') {
       try {
         const result = await this.container.services.homeAssistantSettingsService.getStatus();
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+        this.sendJson(res, {
           connectivityStatus: result.connectivityStatus,
           lastCheckedAt: result.lastCheckedAt
-        }));
-      } catch (error: unknown) {
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        });
+      } catch (error: any) {
+        this.sendError(res, 500, 'HA_STATUS_ERROR', error.message);
       }
       return;
     }
@@ -614,16 +604,16 @@ export class OperatorConsoleServer {
       try {
         const deviceId = refreshMatch[1];
         let device = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
-        if (!device) return this.sendError(res, 404, 'Device not found');
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found');
         if (!device.externalId.startsWith('ha:')) {
-          return this.sendError(res, 400, 'Only Home Assistant devices can be refreshed via this endpoint');
+          return this.sendError(res, 400, 'INVALID_TYPE', 'Only Home Assistant devices can be refreshed via this endpoint');
         }
         const entityId = device.externalId.split(':')[1];
         const haState = await this.container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(entityId);
         
         if (!haState) {
           this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-          return this.sendError(res, 502, 'Could not retrieve state from Home Assistant');
+          return this.sendError(res, 502, 'HA_UNREACHABLE', 'Could not retrieve state from Home Assistant');
         }
         
         this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
@@ -632,7 +622,7 @@ export class OperatorConsoleServer {
         if (haState.state === 'on') newState.on = true;
         else if (haState.state === 'off') newState.on = false;
         
-        await syncDeviceStateUseCase(deviceId, newState, 'manual-ha-refresh', {
+        await syncDeviceStateUseCase(deviceId, newState, authReq.user.id, {
           deviceRepository: this.container.repositories.deviceRepository,
           eventPublisher: { publish: async () => {} },
           activityLogRepository: this.container.repositories.activityLogRepository,
@@ -640,10 +630,10 @@ export class OperatorConsoleServer {
           clock: { now: () => new Date().toISOString() }
         });
         const updated = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
-        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(updated));
-      } catch (error: unknown) {
+        this.sendJson(res, updated);
+      } catch (error: any) {
         this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        this.sendError(res, 500, 'REFRESH_ERROR', error.message);
       }
       return;
     }
@@ -652,85 +642,81 @@ export class OperatorConsoleServer {
     const assignMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
     if (assignMatch) {
       if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
-      let body = ''; req.on('data', c => body += c);
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body || '{}') as { roomId?: string };
-          if (!payload.roomId) return this.sendError(res, 400, 'Missing roomId');
-          const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, 'local-op', 'op-console', {
-            deviceRepository: this.container.repositories.deviceRepository,
-            eventPublisher: { publish: async () => {} },
-            topologyPort: { 
-              validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, 
-              validateRoomBelongsToHome: async (r, h) => { 
-                const room = await this.container.repositories.roomRepository.findRoomById(r); 
-                if (!room) throw new Error('Room not found');
-                if (room.homeId !== h) throw new Error('Home mismatch');
-              }
-            },
-            idGenerator: { generate: () => crypto.randomUUID() }, clock: { now: () => new Date().toISOString() }
-          });
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
-        } catch (error: unknown) {
-          const name = error instanceof Error ? error.constructor.name : '';
-          const msg = error instanceof Error ? error.message : 'Error';
-          let code = 500;
-          if (name === 'DeviceNotFoundError' || msg.includes('not found')) code = 404;
-          else if (name === 'DeviceAlreadyAssignedError' || msg.includes('assigned')) code = 409;
-          this.sendError(res, code, msg);
-        }
-      });
+      try {
+        const payload = await this.parseBody<{ roomId?: string }>(req);
+        if (!payload.roomId) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing roomId');
+        const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, authReq.user.id, 'op-console', {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          topologyPort: { 
+            validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, 
+            validateRoomBelongsToHome: async (r, h) => { 
+              const room = await this.container.repositories.roomRepository.findRoomById(r); 
+              if (!room) throw new Error('Room not found');
+              if (room.homeId !== h) throw new Error('Home mismatch');
+            }
+          },
+          idGenerator: { generate: () => crypto.randomUUID() }, clock: { now: () => new Date().toISOString() }
+        });
+        this.sendJson(res, result);
+      } catch (error: any) {
+        const name = error.constructor.name;
+        const msg = error.message;
+        let code = 'ASSIGN_ERROR';
+        let status = 500;
+        if (name === 'DeviceNotFoundError' || msg.includes('not found')) { status = 404; code = 'DEVICE_NOT_FOUND'; }
+        else if (name === 'DeviceAlreadyAssignedError' || msg.includes('already assigned')) { status = 409; code = 'ALREADY_ASSIGNED'; }
+        this.sendError(res, status, code, msg);
+      }
       return;
     }
 
     // POST /api/v1/devices/:id/command
     const commandMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/command$/);
     if (commandMatch) {
-      let body = ''; req.on('data', c => body += c);
-      req.on('end', async () => {
-        try {
-          const payload = JSON.parse(body || '{}') as { command?: string };
-          if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'Invalid or missing command');
-          const syncDeps = {
-            deviceRepository: this.container.repositories.deviceRepository,
-            eventPublisher: { publish: async () => {} },
-            activityLogRepository: this.container.repositories.activityLogRepository,
-            idGenerator: { generate: () => crypto.randomUUID() },
-            clock: { now: () => new Date().toISOString() }
-          };
-          const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
-          const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
-          const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
-          await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, 'local-op', 'op-console', {
-            deviceRepository: this.container.repositories.deviceRepository,
-            eventPublisher: { publish: async () => {} },
-            topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
-            dispatcherPort: compositeDispatcher,
-            activityLogRepository: this.container.repositories.activityLogRepository,
-            idGenerator: { generate: () => crypto.randomUUID() },
-            clock: { now: () => new Date().toISOString() }
-          });
-          
-          this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+      try {
+        const payload = await this.parseBody<{ command?: string }>(req);
+        if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid or missing command');
+        const syncDeps = {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        };
+        const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
+        const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
+        const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
+        await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, authReq.user.id, 'op-console', {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
+          dispatcherPort: compositeDispatcher,
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        });
+        
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
 
-          const upd = await this.container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
-          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(upd));
-        } catch (error: unknown) {
-          const name = error instanceof Error ? error.constructor.name : '';
-          let code = 500;
-          if (name === 'DeviceNotFoundError') code = 404;
-          else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') code = 400;
-          
-          if (error instanceof Error && (error.message.includes('Home Assistant') || error.message.includes('fetch'))) {
-            this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-          }
-
-          this.sendError(res, code, error instanceof Error ? error.message : 'Error');
+        const upd = await this.container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
+        this.sendJson(res, upd);
+      } catch (error: any) {
+        const name = error.constructor.name;
+        let code = 'COMMAND_ERROR';
+        let status = 500;
+        if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
+        else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') { status = 400; code = 'INVALID_COMMAND'; }
+        
+        if (error.message.includes('Home Assistant') || error.message.includes('fetch')) {
+          this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
         }
-      });
+
+        this.sendError(res, status, code, error.message);
+      }
       return;
     }
-    this.sendError(res, 404, 'Not Found');
+    this.sendError(res, 404, 'NOT_FOUND', 'Not Found');
   }
 
   private async handleHaDiscovery(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -751,77 +737,98 @@ export class OperatorConsoleServer {
           domain: s.entity_id.split('.')[0]
         }));
 
-      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(entities));
-    } catch (error: unknown) {
+      this.sendJson(res, entities);
+    } catch (error: any) {
       this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-      this.sendError(res, 502, error instanceof Error ? error.message : 'HA Connection Error');
+      this.sendError(res, 502, 'HA_DISCOVERY_ERROR', error.message || 'HA Connection Error');
     }
   }
 
   private async handleHaImport(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body || '{}') as { entityId: string; name?: string };
-        if (!payload.entityId) return this.sendError(res, 400, 'Missing entityId');
+    try {
+      const payload = await this.parseBody<{ entityId: string; name?: string }>(req);
+      if (!payload.entityId) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing entityId');
 
-        const db = SqliteDatabaseManager.getInstance(this.dbPath);
-        const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
-        const homeId = home?.id || 'local-home';
+      const db = SqliteDatabaseManager.getInstance(this.dbPath);
+      const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
+      const homeId = home?.id || 'local-home';
 
-        const externalId = `ha:${payload.entityId}`;
-        
-        // Verificar duplicados
-        const existing = await this.container.repositories.deviceRepository.findByExternalIdAndHomeId(externalId, homeId);
-        if (existing) return this.sendError(res, 409, 'Device already imported');
+      const externalId = `ha:${payload.entityId}`;
+      
+      // Verificar duplicados
+      const existing = await this.container.repositories.deviceRepository.findByExternalIdAndHomeId(externalId, homeId);
+      if (existing) return this.sendError(res, 409, 'DEVICE_ALREADY_EXISTS', 'Device already imported');
 
-        // Consultar detalle en HA para validación y estado inicial
-        const haState = await this.container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(payload.entityId);
-        
-        if (!haState) {
-          this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-          return this.sendError(res, 404, 'Entity not found in Home Assistant');
-        }
-
-        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
-
-        const domain = payload.entityId.split('.')[0];
-        const deviceId = crypto.randomUUID();
-        const now = new Date().toISOString();
-
-        // Mapeo básico de tipo
-        let deviceType = 'sensor';
-        if (domain === 'light') deviceType = 'light';
-        else if (domain === 'switch') deviceType = 'switch';
-        else if (domain === 'binary_sensor') deviceType = 'sensor';
-
-        const device = {
-          id: deviceId,
-          homeId: homeId,
-          roomId: null,
-          externalId: externalId,
-          name: payload.name || (haState.attributes.friendly_name as string) || payload.entityId,
-          type: deviceType as 'light' | 'switch' | 'sensor',
-          vendor: 'Home Assistant',
-          status: 'PENDING' as const,
-          lastKnownState: { on: haState.state === 'on' },
-          entityVersion: 1,
-          createdAt: now,
-          updatedAt: now
-        };
-
-        await this.container.repositories.deviceRepository.saveDevice(device);
-
-        res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
-      } catch (error: unknown) {
+      // Consultar detalle en HA para validación y estado inicial
+      const haState = await this.container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(payload.entityId);
+      
+      if (!haState) {
         this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-        this.sendError(res, 500, error instanceof Error ? error.message : 'Import Error');
+        return this.sendError(res, 404, 'HA_ENTITY_NOT_FOUND', 'Entity not found in Home Assistant');
       }
+
+      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+
+      const domain = payload.entityId.split('.')[0];
+      const deviceId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Mapeo básico de tipo
+      let deviceType = 'sensor';
+      if (domain === 'light') deviceType = 'light';
+      else if (domain === 'switch') deviceType = 'switch';
+      else if (domain === 'binary_sensor') deviceType = 'sensor';
+
+      const device = {
+        id: deviceId,
+        homeId: homeId,
+        roomId: null,
+        externalId: externalId,
+        name: payload.name || (haState.attributes.friendly_name as string) || payload.entityId,
+        type: deviceType as 'light' | 'switch' | 'sensor',
+        vendor: 'Home Assistant',
+        status: 'PENDING' as const,
+        lastKnownState: { on: haState.state === 'on' },
+        entityVersion: 1,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      await this.container.repositories.deviceRepository.saveDevice(device);
+
+      this.sendJson(res, device, 201);
+    } catch (error: any) {
+      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
+      this.sendError(res, 500, 'IMPORT_ERROR', error.message || 'Import Error');
+    }
+  }
+
+  private async parseBody<T>(req: http.IncomingMessage): Promise<T> {
+    return new Promise((resolve, reject) => {
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          resolve(JSON.parse(body || '{}'));
+        } catch (e) {
+          reject(new Error('INVALID_JSON'));
+        }
+      });
     });
   }
 
-  private sendError(res: http.ServerResponse, code: number, msg: string) {
-    res.writeHead(code, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: msg }));
+  private sendJson(res: http.ServerResponse, data: any, status: number = 200): void {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  }
+
+  private sendError(res: http.ServerResponse, status: number, code: string, message: string): void {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: {
+        code,
+        message
+      }
+    }));
   }
 }

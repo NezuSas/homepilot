@@ -53,12 +53,16 @@ export function UsersView() {
     try {
       const res = await fetch('http://localhost:3000/api/v1/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('hp_token')}` // Ensure token is sent
+        },
         body: JSON.stringify({ username: newUsername, passwordPlain: newPassword, role: newRole })
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Failed to create user');
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Failed to create user');
+        throw new Error(msg);
       }
       setShowCreate(false);
       setNewUsername('');
@@ -77,11 +81,12 @@ export function UsersView() {
       const res = await actionFn();
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Action failed');
+        const msg = errData.error?.message || (typeof errData.error === 'string' ? errData.error : 'Action failed');
+        throw new Error(msg);
       }
       await fetchUsers();
     } catch (e: any) {
-      window.alert(e.message);
+      setError(e.message);
     }
   };
 

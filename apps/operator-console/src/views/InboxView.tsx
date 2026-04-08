@@ -367,8 +367,9 @@ const DeviceInspector: React.FC<{
         const data = await res.json() as { error: string };
         throw new Error(data.error || 'Failed to refresh state from Home Assistant');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error syncing with HA');
+    } catch (err: any) {
+      const msg = err.error?.message || (typeof err.error === 'string' ? err.error : (err.message || 'Error syncing with HA'));
+      setError(msg);
     } finally {
       setIsRefreshing(false);
     }
@@ -602,14 +603,15 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
         onImported();
         setEntities(prev => prev.filter(e => e.entityId !== entity.entityId));
       } else if (res.status === 409) {
-        alert('Dispositivo ya importado');
+        setError('Device already imported');
         setEntities(prev => prev.filter(e => e.entityId !== entity.entityId));
       } else {
         const data = await res.json();
-        alert(`Error: ${data.error}`);
+        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : 'Import failed');
+        setError(`Error: ${msg}`);
       }
     } catch (err) {
-      alert('Import failed');
+      setError('Import failed');
     } finally {
       setImportingId(null);
     }
