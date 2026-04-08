@@ -173,6 +173,9 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Running in Docker? Use <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">http://homeassistant:8123</code> for internal network access.
+                </p>
               </div>
 
               <div className="space-y-1.5">

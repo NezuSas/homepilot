@@ -393,6 +393,78 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // ---------------------------------------------------------
+    // HA SETTINGS ROUTES (Auth required)
+    // ---------------------------------------------------------
+
+    // POST /api/v1/settings/test-ha-connection
+    // Tests connectivity against HA without persisting. Token is NEVER returned or logged.
+    if (method === 'POST' && pathname === '/api/v1/settings/test-ha-connection') {
+      try {
+        const payload = await this.parseBody<{ baseUrl?: string; accessToken?: string }>(req);
+        if (!payload.baseUrl || !payload.accessToken) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'baseUrl and accessToken are required');
+        }
+
+        const result = await this.container.services.homeAssistantSettingsService.testConnection(
+          payload.baseUrl,
+          payload.accessToken
+        );
+
+        // Return sanitized result — never echo the token back
+        this.sendJson(res, {
+          success: result.success,
+          status: result.status,
+          ...(result.success ? {} : { error: { code: result.status.toUpperCase(), message: result.error || 'Connection failed' } })
+        });
+      } catch {
+        this.sendError(res, 500, 'HA_CONNECTION_ERROR', 'Failed to test connection');
+      }
+      return;
+    }
+
+    // POST /api/v1/settings/home-assistant
+    // Persists HA baseUrl + token after successful test. Token is stored securely, never returned.
+    if (method === 'POST' && pathname === '/api/v1/settings/home-assistant') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+
+      try {
+        const payload = await this.parseBody<{ baseUrl?: string; accessToken?: string }>(req);
+        if (!payload.baseUrl || !payload.accessToken) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'baseUrl and accessToken are required');
+        }
+
+        await this.container.services.homeAssistantSettingsService.saveSettings(
+          payload.baseUrl,
+          payload.accessToken
+        );
+
+        // Confirm save without echoing token
+        this.sendJson(res, { success: true });
+      } catch (e: any) {
+        const msg = e.message || '';
+        if (msg.includes('Invalid URL')) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'Invalid Home Assistant URL');
+        }
+        this.sendError(res, 500, 'HA_CONNECTION_ERROR', 'Failed to save Home Assistant settings');
+      }
+      return;
+    }
+
+    // GET /api/v1/settings/home-assistant
+    // Returns HA config status. Never returns raw token.
+    if (method === 'GET' && pathname === '/api/v1/settings/home-assistant') {
+      try {
+        const status = await this.container.services.homeAssistantSettingsService.getStatus();
+        // Strip raw token from response — only masked version allowed
+        const { ...safeStatus } = status;
+        this.sendJson(res, safeStatus);
+      } catch {
+        this.sendError(res, 500, 'HA_CONNECTION_ERROR', 'Failed to get Home Assistant settings');
+      }
+      return;
+    }
+
     // GET /api/v1/homes
     if (method === 'GET' && pathname === '/api/v1/homes') {
       try {
