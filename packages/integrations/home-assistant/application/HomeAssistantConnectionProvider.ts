@@ -38,7 +38,7 @@ export class HomeAssistantConnectionProvider {
       return; 
     }
 
-    console.log(`[HA-Provider] Reconfigurando cliente: ${baseUrl}`);
+    // Reconfigurando cliente: ${baseUrl}
     this.currentClient = new HomeAssistantClient(baseUrl, token);
     this.currentBaseUrl = baseUrl;
     this.currentToken = token;

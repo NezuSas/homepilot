@@ -155,7 +155,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     });
 
     client.on('ready', () => {
-      console.log('[HA-Sync] WS listo y suscrito.');
+      // WS listo y suscrito.
       this.settingsService.updateStatusFromOperation('reachable');
       this._cancelRetry();
       this.retryIndex = 0;
@@ -288,14 +288,14 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
     // Guard: solo 1 reconciliación activa a la vez.
     if (this.isReconciling) {
-      console.log('[HA-Sync] Reconciliación ya en curso. Omitiendo solapamiento.');
+      // Reconciliación ya en curso. Omitiendo solapamiento.
       return;
     }
 
     this.isReconciling = true;
 
     try {
-      console.log('[HA-Sync] Iniciando reconciliación de estado...');
+      // Iniciando reconciliación de estado...
 
       let allStates;
       try {

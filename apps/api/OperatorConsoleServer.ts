@@ -205,7 +205,7 @@ export class OperatorConsoleServer {
                 data: {}
               });
             } catch (err) {
-              console.error('[OperatorConsoleServer] Failed to log AUTH_FAILED:', err);
+              // Failed to log activity
             }
             return this.sendError(res, 401, 'AUTH_FAILED', 'Invalid credentials');
           }
@@ -219,7 +219,7 @@ export class OperatorConsoleServer {
               data: { username: result.user.username }
             });
           } catch (err) {
-            console.error('[OperatorConsoleServer] Failed to log AUTH_SUCCESS:', err);
+            // Failed to log activity
           }
 
           this.sendJson(res, {

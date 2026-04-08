@@ -91,15 +91,24 @@ export class AuthService {
     return { success: true };
   }
 
-  public async getBootstrapAdmin(): Promise<{ admin: User; generatedPlaintext: string } | null> {
+  public async getBootstrapAdmin(isDevBootstrap: boolean): Promise<{ admin: User; generatedPlaintext: string | null } | null> {
     const count = await this.userRepository.count();
     
     if (count > 0) {
       return null; // Do not bootstrap if users exist
     }
 
-    const generatedPlaintext = this.cryptoService.generateStrongRandomPassword();
-    const passwordHash = await this.cryptoService.hashPassword(generatedPlaintext);
+    let generatedPlaintext: string | null = null;
+    let passwordPlain: string;
+
+    if (isDevBootstrap) {
+      passwordPlain = 'admin';
+    } else {
+      generatedPlaintext = this.cryptoService.generateStrongRandomPassword();
+      passwordPlain = generatedPlaintext;
+    }
+
+    const passwordHash = await this.cryptoService.hashPassword(passwordPlain);
     const now = new Date().toISOString();
 
     const admin: User = {

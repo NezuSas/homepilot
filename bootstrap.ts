@@ -136,7 +136,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     connectionProvider.reconfigure(envFallback.baseUrl, envFallback.token);
     syncManager.reconnect(envFallback.baseUrl, envFallback.token);
   } else {
-    console.warn('[Bootstrap] Home Assistant no configurado (ni DB ni ENV).');
+    // HA not configured
   }
 
   const automationEngine = new AutomationEngine(
@@ -183,15 +183,21 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const authService = new AuthService(userRepository, sessionRepository, cryptoService);
   const authGuard = new AuthGuard(authService);
 
-  const adminHook = await authService.getBootstrapAdmin();
+  const isDevBootstrap = process.env.HOMEPILOT_DEV_BOOTSTRAP === 'true';
+  const adminHook = await authService.getBootstrapAdmin(isDevBootstrap);
+
   if (adminHook) {
-    console.log('\n===============================================================');
-    console.log(' [SECURITY] FIRST BOOT: DEFAULT SYSTEM ADMINISTRATOR GENERATED');
-    console.log(` -> Username: ${adminHook.admin.username}`);
-    console.log(` -> Password: ${adminHook.generatedPlaintext}`);
-    console.log(' => PLEASE COPY AND SAFEGUARD THIS PASSWORD.');
-    console.log(' => IT WILL NEVER BE DISPLAYED AGAIN.');
-    console.log('===============================================================\n');
+    if (adminHook.generatedPlaintext) {
+      console.log('\n===============================================================');
+      console.log(' [SECURITY] FIRST BOOT: DEFAULT SYSTEM ADMINISTRATOR GENERATED');
+      console.log(` -> Username: ${adminHook.admin.username}`);
+      console.log(` -> Password: ${adminHook.generatedPlaintext}`);
+      console.log(' => PLEASE COPY AND SAFEGUARD THIS PASSWORD.');
+      console.log(' => IT WILL NEVER BE DISPLAYED AGAIN.');
+      console.log('===============================================================\n');
+    } else {
+      console.log(`[Auth] Bootstrap: Admin user created with development credentials (admin/admin).`);
+    }
   }
 
   // -- INIT SYSTEM SETUP V1 --
