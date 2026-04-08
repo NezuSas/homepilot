@@ -287,6 +287,16 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/ha/entities
+    if (method === 'GET' && pathname === '/api/v1/ha/entities') {
+      return this.handleHaDiscovery(req, res);
+    }
+
+    // POST /api/v1/ha/import
+    if (method === 'POST' && pathname === '/api/v1/ha/import') {
+      return this.handleHaImport(req, res);
+    }
+
     // POST /api/v1/devices/:id/refresh
     const refreshMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/refresh$/);
     if (refreshMatch) {
@@ -394,6 +404,84 @@ export class OperatorConsoleServer {
       return;
     }
     this.sendError(res, 404, 'Not Found');
+  }
+
+  private async handleHaDiscovery(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    try {
+      const allStates = await this.container.adapters.homeAssistantClient.getAllStates();
+      
+      // Filtrar dominios soportados en V1
+      const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor'];
+      
+      const entities = allStates
+        .filter(s => supportedDomains.includes(s.entity_id.split('.')[0]))
+        .map(s => ({
+          entityId: s.entity_id,
+          state: s.state,
+          friendlyName: (s.attributes.friendly_name as string) || s.entity_id,
+          domain: s.entity_id.split('.')[0]
+        }));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(entities));
+    } catch (error: unknown) {
+      this.sendError(res, 502, error instanceof Error ? error.message : 'HA Connection Error');
+    }
+  }
+
+  private async handleHaImport(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}') as { entityId: string; name?: string };
+        if (!payload.entityId) return this.sendError(res, 400, 'Missing entityId');
+
+        const db = SqliteDatabaseManager.getInstance(this.dbPath);
+        const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
+        const homeId = home?.id || 'local-home';
+
+        const externalId = `ha:${payload.entityId}`;
+        
+        // Verificar duplicados
+        const existing = await this.container.repositories.deviceRepository.findByExternalIdAndHomeId(externalId, homeId);
+        if (existing) return this.sendError(res, 409, 'Device already imported');
+
+        // Consultar detalle en HA para validación y estado inicial
+        const haState = await this.container.adapters.homeAssistantClient.getEntityState(payload.entityId);
+        if (!haState) return this.sendError(res, 404, 'Entity not found in Home Assistant');
+
+        const domain = payload.entityId.split('.')[0];
+        const deviceId = crypto.randomUUID();
+        const now = new Date().toISOString();
+
+        // Mapeo básico de tipo
+        let deviceType = 'sensor';
+        if (domain === 'light') deviceType = 'light';
+        else if (domain === 'switch') deviceType = 'switch';
+        else if (domain === 'binary_sensor') deviceType = 'sensor';
+
+        const device = {
+          id: deviceId,
+          homeId: homeId,
+          roomId: null,
+          externalId: externalId,
+          name: payload.name || (haState.attributes.friendly_name as string) || payload.entityId,
+          type: deviceType as 'light' | 'switch' | 'sensor',
+          vendor: 'Home Assistant',
+          status: 'PENDING' as const,
+          lastKnownState: { on: haState.state === 'on' },
+          entityVersion: 1,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        await this.container.repositories.deviceRepository.saveDevice(device);
+
+        res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Import Error');
+      }
+    });
   }
 
   private sendError(res: http.ServerResponse, code: number, msg: string) {

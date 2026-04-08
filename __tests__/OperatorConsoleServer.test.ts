@@ -164,11 +164,52 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(inDb?.lastKnownState?.on).toBe(true);
     });
 
-    it('POST /api/v1/devices/:id/refresh: 502 when HA returns null', async () => {
+    it('POST /api/v1/devices/:refresh: 502 when HA fails', async () => {
       jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce(null);
-
       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { method: 'POST' });
       expect(res.status).toBe(502);
+    });
+  });
+
+  describe('Discovery & Import API', () => {
+    it('GET /api/v1/ha/entities: filters supported domains', async () => {
+      jest.spyOn(container.adapters.homeAssistantClient, 'getAllStates').mockResolvedValueOnce([
+        { entity_id: 'light.living', state: 'off', attributes: { friendly_name: 'Living Light' }, last_changed: '', last_updated: '' },
+        { entity_id: 'media_player.tv', state: 'playing', attributes: {}, last_changed: '', last_updated: '' },
+        { entity_id: 'sensor.temp', state: '22', attributes: {}, last_changed: '', last_updated: '' }
+      ]);
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/ha/entities`);
+      expect(res.status).toBe(200);
+      const data = await res.json() as any[];
+      expect(data.length).toBe(2);
+      expect(data[0].entityId).toBe('light.living');
+      expect(data[1].entityId).toBe('sensor.temp');
+    });
+
+    it('POST /api/v1/ha/import: success and duplicate prevention', async () => {
+      const entityId = 'switch.coffee';
+      jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce({
+        entity_id: entityId, state: 'off', attributes: { friendly_name: 'Coffee Machine' }, last_changed: '', last_updated: ''
+      });
+
+      // Primer import
+      const res1 = await fetch(`http://localhost:${PORT}/api/v1/ha/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId })
+      });
+      expect(res1.status).toBe(201);
+      const device = await res1.json() as Device;
+      expect(device.externalId).toBe(`ha:${entityId}`);
+
+      // Segundo import (duplicado)
+      const res2 = await fetch(`http://localhost:${PORT}/api/v1/ha/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId })
+      });
+      expect(res2.status).toBe(409);
     });
   });
 });

@@ -60,4 +60,23 @@ export class HomeAssistantClient {
       throw new Error(`Home Assistant Service Error: ${response.status} ${response.statusText}`);
     }
   }
+
+  /**
+   * Obtiene todos los estados de las entidades de Home Assistant.
+   */
+  public async getAllStates(): Promise<HomeAssistantState[]> {
+    const url = `${this.baseUrl}/api/states`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Home Assistant API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json() as HomeAssistantState[];
+  }
 }
