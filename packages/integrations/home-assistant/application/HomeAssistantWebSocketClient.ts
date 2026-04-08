@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { WebSocket } from 'ws';
 
 export type HAWebSocketEvent = {
   type: string;
@@ -32,7 +33,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
           // Se espera 'auth_required' desde el onmessage
         };
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = (event: any) => {
           const rawData = String(event.data);
           this.handleMessage(rawData, resolve, reject);
         };
