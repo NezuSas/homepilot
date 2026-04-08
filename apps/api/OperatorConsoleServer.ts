@@ -888,7 +888,7 @@ export class OperatorConsoleServer {
     // Fase B: Procesamiento local y filtrado
     try {
       // Obtener lista de IDs externos ya registrados para Home Assistant
-      const existingRows = db.prepare('SELECT external_id FROM devices WHERE external_id LIKE "ha:%"').all() as { external_id: string }[];
+      const existingRows = db.prepare('SELECT external_id FROM devices WHERE external_id LIKE ?').all('ha:%') as { external_id: string }[];
       const existingEntityIds = new Set(existingRows.map(r => r.external_id.replace('ha:', '')));
 
       const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor'];
