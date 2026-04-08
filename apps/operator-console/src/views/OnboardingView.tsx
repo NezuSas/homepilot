@@ -76,7 +76,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/system/setup/initialize`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/system/setup-status/complete`, {
         method: 'POST'
       });
       
