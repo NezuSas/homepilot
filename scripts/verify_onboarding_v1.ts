@@ -13,6 +13,7 @@ import { SQLiteActivityLogRepository } from '../packages/devices/infrastructure/
 import { HomeAssistantSettingsService } from '../packages/integrations/home-assistant/application/HomeAssistantSettingsService';
 import { HomeAssistantConnectionProvider } from '../packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import { SQLiteSettingsRepository } from '../packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
+import { InMemoryHomeRepository } from '../packages/topology/infrastructure/repositories/InMemoryHomeRepository';
 
 import { CryptoService } from '../packages/auth/infrastructure/CryptoService';
 
@@ -47,6 +48,15 @@ async function runTests() {
         id TEXT PRIMARY KEY,
         base_url TEXT NOT NULL,
         access_token TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS homes (
+        id TEXT PRIMARY KEY,
+        owner_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        entity_version INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     );
 
@@ -89,8 +99,9 @@ async function runTests() {
     }
   }
 
+  const homeRepo = new InMemoryHomeRepository();
   const mockHaService = new MockHASettingsService(settingsRepo, haProvider, {});
-  const setupService = new SystemSetupService(systemSetupRepo, userRepo, settingsRepo, mockHaService as any, activityLogRepo);
+  const setupService = new SystemSetupService(systemSetupRepo, userRepo, homeRepo, settingsRepo, mockHaService as any, activityLogRepo);
 
   function assert(condition: boolean, message: string) {
     if (!condition) {

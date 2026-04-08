@@ -2,6 +2,8 @@ import { SystemSetupRepository } from '../domain/SystemSetupState';
 import { HomeAssistantSettingsService } from '../../integrations/home-assistant/application/HomeAssistantSettingsService';
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
 import { SqliteUserRepository } from '../../auth/infrastructure/SqliteUserRepository';
+import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
+import { Home } from '../../topology/domain/types';
 
 import { SettingsRepository } from '../../integrations/home-assistant/domain/SettingsRepository';
 
@@ -17,6 +19,7 @@ export class SystemSetupService {
   constructor(
     private readonly systemSetupRepository: SystemSetupRepository,
     private readonly userRepository: SqliteUserRepository,
+    private readonly homeRepository: HomeRepository,
     private readonly settingsRepository: SettingsRepository,
     private readonly homeAssistantSettingsService: HomeAssistantSettingsService,
     private readonly activityLogRepository: ActivityLogRepository
@@ -88,12 +91,23 @@ export class SystemSetupService {
     // 3. Status is fully verified. Commit local rule to DB.
     await this.systemSetupRepository.markAsInitialized(userId);
 
+    // 4. Create default Home for this edge appliance owned by the admin
+    const defaultHome: Home = {
+      id: 'local-home',
+      ownerId: userId,
+      name: 'Mi HomePilot',
+      entityVersion: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await this.homeRepository.saveHome(defaultHome);
+
     await this.activityLogRepository.saveActivity({
       deviceId: 'system-setup',
       type: 'ONBOARDING_COMPLETED' as any,
       timestamp: new Date().toISOString(),
       description: 'System Onboarding Completed Successfully',
-      data: { completedByUserId: userId, result: 'success' }
+      data: { completedByUserId: userId, result: 'success', homeId: 'local-home' }
     });
   }
 }

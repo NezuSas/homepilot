@@ -864,13 +864,17 @@ export class OperatorConsoleServer {
   }
 
   private async handleHaImport(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    const authReq = req as any;
     try {
       const payload = await this.parseBody<{ entityId: string; name?: string }>(req);
       if (!payload.entityId) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing entityId');
 
-      const db = SqliteDatabaseManager.getInstance(this.dbPath);
-      const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
-      const homeId = home?.id || 'local-home';
+      const userHomes = await this.container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+      const homeId = userHomes[0]?.id;
+
+      if (!homeId) {
+        return this.sendError(res, 404, 'HOME_NOT_FOUND', 'No home found for this user. Onboarding might be incomplete.');
+      }
 
       const externalId = `ha:${payload.entityId}`;
       

@@ -216,6 +216,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const systemSetupService = new SystemSetupService(
     systemSetupRepository,
     userRepository,
+    homeRepository,
     settingsRepository,
     settingsService,
     activityLogRepository
