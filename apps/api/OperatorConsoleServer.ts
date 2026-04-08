@@ -221,6 +221,102 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // -- ADMIN: USER MANAGEMENT V2 --
+    if (pathname.startsWith('/api/v1/admin/users')) {
+      const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return;
+      const authReq = req as any;
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+
+      // GET /api/v1/admin/users
+      if (method === 'GET' && pathname === '/api/v1/admin/users') {
+        try {
+          const users = await this.container.services.userManagementService.listUsers();
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(users));
+        } catch (e: any) {
+          this.sendError(res, 500, e.message);
+        }
+        return;
+      }
+
+      // POST /api/v1/admin/users
+      if (method === 'POST' && pathname === '/api/v1/admin/users') {
+        let body = ''; req.on('data', c => body += c);
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            const result = await this.container.services.userManagementService.createUser(authReq.user.id, payload);
+            res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+          } catch (e: any) {
+            let code = 400;
+            if (e.message.includes('USERNAME_TAKEN') || e.message.includes('INVALID_INPUT') || e.message.includes('INVALID_ROLE')) code = 400;
+            else code = 500;
+            this.sendError(res, code, e.message);
+          }
+        });
+        return;
+      }
+
+      // PATCH /api/v1/admin/users/:id/role
+      const patchRoleMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/role$/);
+      if (patchRoleMatch) {
+        const targetId = patchRoleMatch[1];
+        let body = ''; req.on('data', c => body += c);
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            await this.container.services.userManagementService.updateUserRole(authReq.user.id, targetId, payload.role);
+            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+          } catch (e: any) {
+            let code = 400;
+            if (e.message.includes('USER_NOT_FOUND')) code = 404;
+            else if (e.message.includes('MINIMUM_ADMINS_VIOLATED') || e.message.includes('INVALID_ROLE')) code = 400;
+            else code = 500;
+            this.sendError(res, code, e.message);
+          }
+        });
+        return;
+      }
+
+      // PATCH /api/v1/admin/users/:id/active
+      const patchActiveMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/active$/);
+      if (patchActiveMatch) {
+        const targetId = patchActiveMatch[1];
+        let body = ''; req.on('data', c => body += c);
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            await this.container.services.userManagementService.setUserActiveState(authReq.user.id, targetId, payload.isActive === true);
+            res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+          } catch (e: any) {
+            let code = 400;
+            if (e.message.includes('USER_NOT_FOUND')) code = 404;
+            else if (e.message.includes('MINIMUM_ADMINS_VIOLATED') || e.message.includes('CANNOT_DEACTIVATE_SELF_LAST_ADMIN')) code = 400;
+            else code = 500;
+            this.sendError(res, code, e.message);
+          }
+        });
+        return;
+      }
+
+      // POST /api/v1/admin/users/:id/revoke-sessions
+      const revokeMatch = method === 'POST' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/revoke-sessions$/);
+      if (revokeMatch) {
+        const targetId = revokeMatch[1];
+        try {
+          await this.container.services.userManagementService.revokeUserSessions(authReq.user.id, targetId);
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+        } catch (e: any) {
+          const code = e.message.includes('USER_NOT_FOUND') ? 404 : 500;
+          this.sendError(res, code, e.message);
+        }
+        return;
+      }
+
+      this.sendError(res, 404, 'Admin route not found');
+      return;
+    }
+
     // -- PROTECTED SYSTEM ROUTES --
     const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
     if (!isProtected) return;

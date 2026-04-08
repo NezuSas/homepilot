@@ -35,8 +35,19 @@ export class SqliteSessionRepository {
     stmt.run(token);
   }
 
-  public async deleteAllUserSessions(userId: string): Promise<void> {
+  public async deleteAllUserSessions(userId: string): Promise<number> {
     const stmt = this.db.prepare('DELETE FROM sessions WHERE user_id = ?');
-    stmt.run(userId);
+    const result = stmt.run(userId);
+    return result.changes;
+  }
+
+  public async countActiveForUser(userId: string): Promise<number> {
+    const stmt = this.db.prepare(`
+      SELECT count(*) as count 
+      FROM sessions 
+      WHERE user_id = ? AND expires_at > STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
+    `);
+    const row = stmt.get(userId) as { count: number };
+    return row.count;
   }
 }

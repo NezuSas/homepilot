@@ -1,7 +1,17 @@
 /**
  * Tipos de eventos auditables en el historial de actividad (Observabilidad V1).
  */
-export type ActivityType = 'STATE_CHANGED' | 'COMMAND_DISPATCHED' | 'COMMAND_FAILED' | 'AUTOMATION_FAILED' | 'HA_RESILIENCE';
+export type ActivityType = 
+  | 'STATE_CHANGED' 
+  | 'COMMAND_DISPATCHED' 
+  | 'COMMAND_FAILED' 
+  | 'AUTOMATION_FAILED' 
+  | 'HA_RESILIENCE'
+  | 'USER_CREATED'
+  | 'USER_DEACTIVATED'
+  | 'USER_ACTIVATED'
+  | 'USER_ROLE_CHANGED'
+  | 'USER_SESSIONS_REVOKED';
 
 /**
  * Registro de actividad atómico para persistencia derivada (Read Model).

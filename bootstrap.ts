@@ -23,6 +23,8 @@ import { AuthGuard } from './packages/auth/infrastructure/AuthGuard';
 import { SqliteSystemSetupRepository } from './packages/system-setup/infrastructure/SqliteSystemSetupRepository';
 import { SystemSetupService } from './packages/system-setup/application/SystemSetupService';
 
+import { UserManagementService } from './packages/auth/application/UserManagementService';
+
 export interface BootstrapContainer {
   repositories: {
     homeRepository: SQLiteHomeRepository;
@@ -40,6 +42,7 @@ export interface BootstrapContainer {
     diagnosticsService: DiagnosticsService;
     authService: AuthService;
     systemSetupService: SystemSetupService;
+    userManagementService: UserManagementService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -200,6 +203,14 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     activityLogRepository
   );
 
+  // -- INIT USER MANAGEMENT V2 --
+  const userManagementService = new UserManagementService(
+    userRepository,
+    sessionRepository,
+    activityLogRepository,
+    cryptoService
+  );
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -216,7 +227,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       homeAssistantSettingsService: settingsService,
       diagnosticsService,
       authService,
-      systemSetupService
+      systemSetupService,
+      userManagementService
     },
     guards: {
       authGuard

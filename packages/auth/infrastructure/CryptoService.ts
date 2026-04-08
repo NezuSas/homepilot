@@ -50,6 +50,13 @@ export class CryptoService {
   }
 
   /**
+   * Generates a standard UUIDv4 identifier.
+   */
+  public generateId(): string {
+    return crypto.randomUUID();
+  }
+
+  /**
    * Random strong password generator specifically for bootstrapping.
    */
   public generateStrongRandomPassword(length: number = 16): string {

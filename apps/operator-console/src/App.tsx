@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor } from 'lucide-react';
+import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users } from 'lucide-react';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
 import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
@@ -9,11 +9,12 @@ import { DiagnosticsView } from './views/DiagnosticsView';
 import { LoginView } from './views/LoginView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
+import { UsersView } from './views/UsersView';
 
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' | 'diagnostics';
+type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users';
 
 /**
  * App Component
@@ -160,6 +161,18 @@ function App() {
             <Settings className="w-4 h-4" />
             HA Settings
           </button>
+
+          {user?.role === 'admin' && (
+            <button 
+              onClick={() => setCurrentView('users')}
+              className={`flex items-center gap-2 text-sm transition-colors w-full p-2.5 rounded-lg font-medium ${
+                currentView === 'users' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Users Management
+            </button>
+          )}
           
           <div className="pt-2 border-t mt-2">
             <div className="flex items-center justify-between p-2">
@@ -196,6 +209,7 @@ function App() {
               currentView === 'inbox' ? 'Device Inbox & Manager' : 
               currentView === 'automations' ? 'Automation Workbench' : 
               currentView === 'ha-settings' ? 'Home Assistant Settings' : 
+              currentView === 'users' ? 'User Administration' : 
               currentView === 'diagnostics' ? 'System Diagnostics' : 'Audit Logs & Observability'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
@@ -207,6 +221,8 @@ function App() {
                 ? 'Configure and monitor IF-THEN rules for reactive device behavior.'
                 : currentView === 'ha-settings'
                 ? 'Configure Home Assistant connection, manage hot-swap credentials and monitor bridge connectivity status.'
+                : currentView === 'users'
+                ? 'Create, manage or suspend Edge Operator accounts and enforce session access controls.'
                 : currentView === 'diagnostics'
                 ? 'Real-time operational health, resilience status and anomaly detection for system operators.'
                 : 'Technical history of system events, commands and state transitions for debugging.'
@@ -221,6 +237,7 @@ function App() {
           {currentView === 'audit-logs' && <AuditLogsView />}
           {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
           {currentView === 'diagnostics' && <DiagnosticsView />}
+          {currentView === 'users' && <UsersView />}
         </section>
       </main>
 
