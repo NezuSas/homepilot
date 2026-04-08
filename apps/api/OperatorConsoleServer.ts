@@ -844,6 +844,8 @@ export class OperatorConsoleServer {
           activityLogRepository: this.container.repositories.activityLogRepository,
           idGenerator: { generate: () => crypto.randomUUID() },
           clock: { now: () => new Date().toISOString() }
+        }, {
+          allowPendingManualExecution: true
         });
         
         this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');

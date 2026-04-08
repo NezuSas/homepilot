@@ -43,6 +43,7 @@ export async function executeDeviceCommandUseCase(
   options?: {
     customDescription?: string;
     isAutomation?: boolean;
+    allowPendingManualExecution?: boolean;
   }
 ): Promise<void> {
   // 1. Localización y Validación de Existencia
@@ -55,7 +56,8 @@ export async function executeDeviceCommandUseCase(
   await deps.topologyPort.validateHomeOwnership(device.homeId, userId);
 
   // 3. Validación de Estado (No inbox/pending)
-  if (device.status === 'PENDING') {
+  // Se permite bypass explícito para comandos manuales desde la consola (Technical Inspector)
+  if (device.status === 'PENDING' && !options?.allowPendingManualExecution) {
     throw new DevicePendingStateError(deviceId);
   }
 
