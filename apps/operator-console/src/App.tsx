@@ -1,14 +1,15 @@
-import { useState, ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu } from 'lucide-react';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
 import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
 import { AuditLogsView } from './views/AuditLogsView';
+import { HomeAssistantSettingsView } from './views/HomeAssistantSettingsView';
 
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'topology' | 'inbox' | 'automations' | 'audit-logs';
+type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings';
 
 /**
  * App Component
@@ -60,9 +61,14 @@ function App() {
         </nav>
         
         <div className="p-4 border-t mt-auto">
-          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full p-2.5 rounded-lg hover:bg-muted font-medium">
+          <button 
+            onClick={() => setCurrentView('ha-settings')}
+            className={`flex items-center gap-2 text-sm transition-colors w-full p-2.5 rounded-lg font-medium ${
+              currentView === 'ha-settings' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
             <Settings className="w-4 h-4" />
-            System Settings
+            HA Settings
           </button>
         </div>
       </aside>
@@ -71,7 +77,10 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
         <header className="border-b px-8 py-7 bg-card/60 backdrop-blur-sm">
           <h1 className="text-2xl font-bold tracking-tight">
-             {currentView === 'topology' ? 'Topology View' : currentView === 'inbox' ? 'Device Inbox & Manager' : currentView === 'automations' ? 'Automation Workbench' : 'Audit Logs & Observability'}
+             {currentView === 'topology' ? 'Topology View' : 
+              currentView === 'inbox' ? 'Device Inbox & Manager' : 
+              currentView === 'automations' ? 'Automation Workbench' : 
+              currentView === 'ha-settings' ? 'Home Assistant Settings' : 'Audit Logs & Observability'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
              {currentView === 'topology' 
@@ -80,6 +89,8 @@ function App() {
                 ? 'Manage device lifecycle, view pending unassigned nodes and monitor active telemetry.'
                 : currentView === 'automations'
                 ? 'Configure and monitor IF-THEN rules for reactive device behavior.'
+                : currentView === 'ha-settings'
+                ? 'Configure Home Assistant connection, manage hot-swap credentials and monitor bridge connectivity status.'
                 : 'Technical history of system events, commands and state transitions for debugging.'
              }
           </p>
@@ -90,6 +101,7 @@ function App() {
           {currentView === 'inbox' && <InboxView />}
           {currentView === 'automations' && <AutomationWorkbenchView />}
           {currentView === 'audit-logs' && <AuditLogsView />}
+          {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
         </section>
       </main>
     </div>

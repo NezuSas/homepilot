@@ -287,6 +287,63 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/settings/home-assistant
+    if (method === 'GET' && pathname === '/api/v1/settings/home-assistant') {
+      try {
+        const result = await this.container.services.homeAssistantSettingsService.getStatus();
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
+    // POST /api/v1/settings/home-assistant
+    if (method === 'POST' && pathname === '/api/v1/settings/home-assistant') {
+      let body = ''; req.on('data', c => body += c);
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}') as { baseUrl: string; accessToken?: string };
+          if (!payload.baseUrl) return this.sendError(res, 400, 'Missing baseUrl');
+          await this.container.services.homeAssistantSettingsService.saveSettings(payload.baseUrl, payload.accessToken);
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+        } catch (error: unknown) {
+          this.sendError(res, 400, error instanceof Error ? error.message : 'Error');
+        }
+      });
+      return;
+    }
+
+    // POST /api/v1/settings/home-assistant/test
+    if (method === 'POST' && pathname === '/api/v1/settings/home-assistant/test') {
+      let body = ''; req.on('data', c => body += c);
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}') as { baseUrl: string; accessToken: string };
+          if (!payload.baseUrl || !payload.accessToken) return this.sendError(res, 400, 'Missing parameters');
+          const result = await this.container.services.homeAssistantSettingsService.testConnection(payload.baseUrl, payload.accessToken);
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+        } catch (error: unknown) {
+          this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+        }
+      });
+      return;
+    }
+
+    // GET /api/v1/settings/home-assistant/status
+    if (method === 'GET' && pathname === '/api/v1/settings/home-assistant/status') {
+      try {
+        const result = await this.container.services.homeAssistantSettingsService.getStatus();
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+          connectivityStatus: result.connectivityStatus,
+          lastCheckedAt: result.lastCheckedAt
+        }));
+      } catch (error: unknown) {
+        this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
+      }
+      return;
+    }
+
     // GET /api/v1/ha/entities
     if (method === 'GET' && pathname === '/api/v1/ha/entities') {
       return this.handleHaDiscovery(req, res);
@@ -308,9 +365,15 @@ export class OperatorConsoleServer {
           return this.sendError(res, 400, 'Only Home Assistant devices can be refreshed via this endpoint');
         }
         const entityId = device.externalId.split(':')[1];
-        const haState = await this.container.adapters.homeAssistantClient.getEntityState(entityId);
-        if (!haState) return this.sendError(res, 502, 'Could not retrieve state from Home Assistant');
+        const haState = await this.container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(entityId);
         
+        if (!haState) {
+          this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
+          return this.sendError(res, 502, 'Could not retrieve state from Home Assistant');
+        }
+        
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+
         const newState: Record<string, unknown> = { ...device.lastKnownState };
         if (haState.state === 'on') newState.on = true;
         else if (haState.state === 'off') newState.on = false;
@@ -325,6 +388,7 @@ export class OperatorConsoleServer {
         const updated = await this.container.repositories.deviceRepository.findDeviceById(deviceId);
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(updated));
       } catch (error: unknown) {
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
         this.sendError(res, 500, error instanceof Error ? error.message : 'Error');
       }
       return;
@@ -380,7 +444,7 @@ export class OperatorConsoleServer {
             clock: { now: () => new Date().toISOString() }
           };
           const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
-          const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantClient, this.container.repositories.deviceRepository, syncDeps);
+          const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
           const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
           await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, 'local-op', 'op-console', {
             deviceRepository: this.container.repositories.deviceRepository,
@@ -391,6 +455,9 @@ export class OperatorConsoleServer {
             idGenerator: { generate: () => crypto.randomUUID() },
             clock: { now: () => new Date().toISOString() }
           });
+          
+          this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+
           const upd = await this.container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
           res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(upd));
         } catch (error: unknown) {
@@ -398,6 +465,11 @@ export class OperatorConsoleServer {
           let code = 500;
           if (name === 'DeviceNotFoundError') code = 404;
           else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') code = 400;
+          
+          if (error instanceof Error && (error.message.includes('Home Assistant') || error.message.includes('fetch'))) {
+            this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
+          }
+
           this.sendError(res, code, error instanceof Error ? error.message : 'Error');
         }
       });
@@ -408,8 +480,10 @@ export class OperatorConsoleServer {
 
   private async handleHaDiscovery(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
-      const allStates = await this.container.adapters.homeAssistantClient.getAllStates();
+      const allStates = await this.container.adapters.homeAssistantConnectionProvider.getClient().getAllStates();
       
+      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+
       // Filtrar dominios soportados en V1
       const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor'];
       
@@ -424,6 +498,7 @@ export class OperatorConsoleServer {
 
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(entities));
     } catch (error: unknown) {
+      this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
       this.sendError(res, 502, error instanceof Error ? error.message : 'HA Connection Error');
     }
   }
@@ -447,8 +522,14 @@ export class OperatorConsoleServer {
         if (existing) return this.sendError(res, 409, 'Device already imported');
 
         // Consultar detalle en HA para validación y estado inicial
-        const haState = await this.container.adapters.homeAssistantClient.getEntityState(payload.entityId);
-        if (!haState) return this.sendError(res, 404, 'Entity not found in Home Assistant');
+        const haState = await this.container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(payload.entityId);
+        
+        if (!haState) {
+          this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
+          return this.sendError(res, 404, 'Entity not found in Home Assistant');
+        }
+
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
 
         const domain = payload.entityId.split('.')[0];
         const deviceId = crypto.randomUUID();
@@ -479,6 +560,7 @@ export class OperatorConsoleServer {
 
         res.writeHead(201, { 'Content-Type': 'application/json' }).end(JSON.stringify(device));
       } catch (error: unknown) {
+        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
         this.sendError(res, 500, error instanceof Error ? error.message : 'Import Error');
       }
     });

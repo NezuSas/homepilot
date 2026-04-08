@@ -7,6 +7,9 @@ import { SQLiteDeviceRepository } from './packages/devices/infrastructure/reposi
 import { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import { HomeAssistantClient } from './packages/devices/infrastructure/adapters/HomeAssistantClient';
+import { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
+import { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
+import { HomeAssistantSettingsService } from './packages/integrations/home-assistant/application/HomeAssistantSettingsService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -15,8 +18,14 @@ export interface BootstrapContainer {
     deviceRepository: SQLiteDeviceRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
+    settingsRepository: SQLiteSettingsRepository;
+  };
+  services: {
+    homeAssistantSettingsService: HomeAssistantSettingsService;
   };
   adapters: {
+    homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
+    /** @deprecated Use homeAssistantConnectionProvider.getClient() */
     homeAssistantClient: HomeAssistantClient;
   };
 }
@@ -29,23 +38,16 @@ export interface BootstrapOptions {
 
 /**
  * Bootstrap (Composition Root)
- * 
- * Orquesta el arranque del sistema (Edge), garantizando que la base de datos
- * SQLite, su esquema versionado y sus repositorios estén completamente listos 
- * antes de inicializar las capas superiores. Diseñado con inyección y reusabilidad.
  */
 export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapContainer> {
-  // 1. Configuración: resolver rutas (permite inyección externa o fallback a constantes locales)
   const dbPath = options?.dbPath || process.env.HOMEPILOT_DB_PATH || path.join(__dirname, 'homepilot.local.db');
   const migrationsDir = options?.migrationsDir || path.join(__dirname, 'migrations');
   const isVerbose = options?.verbose ?? process.env.NODE_ENV !== 'production';
   
   console.log(`[Bootstrap] Inicializando persistencia SQLite en: ${dbPath}`);
 
-  // 2. Conexión SQLite a través del Database Manager (singleton determinista)
   const db = SqliteDatabaseManager.getInstance(dbPath, isVerbose);
 
-  // 3. Ejecución de migraciones atómica y versionada usando la tabla _migrations
   console.log(`[Bootstrap] Ejecutando migraciones desde: ${migrationsDir}...`);
   try {
     const runner = new SqliteMigrationsRunner(db);
@@ -53,11 +55,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     console.log('[Bootstrap] Migraciones aplicadas/validadas correctamente.');
   } catch (error) {
     console.error('[Bootstrap] Error fatal al aplicar migraciones. Abortando arranque de repositorios.', error);
-    throw error; // Se relanza para que el entrypoint corte la ejecución global
+    throw error;
   }
 
-  // 4. Creación e inyección de repositorios (Composition Root de Infraestructura)
-  // Utilizan exclusivamente la persistencia Durable como define el Spec V1
   console.log('[Bootstrap] Instanciando repositorios SQLite...');
   
   const homeRepository = new SQLiteHomeRepository(dbPath);
@@ -65,13 +65,34 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const deviceRepository = new SQLiteDeviceRepository(dbPath);
   const automationRuleRepository = new SQLiteAutomationRuleRepository(dbPath);
   const activityLogRepository = new SQLiteActivityLogRepository(dbPath);
+  const settingsRepository = new SQLiteSettingsRepository(dbPath);
 
-  // 4.1. Adaptadores Externos (Bridge V1)
-  const haUrl = process.env.HOME_ASSISTANT_URL || 'http://homeassistant.local:8123';
-  const haToken = process.env.HOME_ASSISTANT_TOKEN || '';
-  const homeAssistantClient = new HomeAssistantClient(haUrl, haToken);
+  // 4.1. Gestión Dinámica de Home Assistant
+  const connectionProvider = new HomeAssistantConnectionProvider();
+  
+  const envFallback = {
+    baseUrl: process.env.HOME_ASSISTANT_URL,
+    token: process.env.HOME_ASSISTANT_TOKEN
+  };
 
-  // 5. Devolución controlada del contenedor (Container) a la capa llamadora
+  const settingsService = new HomeAssistantSettingsService(
+    settingsRepository,
+    connectionProvider,
+    envFallback
+  );
+
+  // Carga inicial de configuración
+  const dbSettings = await settingsRepository.getSettings();
+  if (dbSettings) {
+    console.log('[Bootstrap] Cargando configuración de HA desde Base de Datos.');
+    connectionProvider.reconfigure(dbSettings.baseUrl, dbSettings.accessToken);
+  } else if (envFallback.baseUrl && envFallback.token) {
+    console.log('[Bootstrap] Cargando configuración de HA desde Variables de Entorno (fallback).');
+    connectionProvider.reconfigure(envFallback.baseUrl, envFallback.token);
+  } else {
+    console.warn('[Bootstrap] Home Assistant no configurado (ni DB ni ENV).');
+  }
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -79,13 +100,20 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       deviceRepository,
       automationRuleRepository,
       activityLogRepository,
+      settingsRepository,
+    },
+    services: {
+      homeAssistantSettingsService: settingsService
     },
     adapters: {
-      homeAssistantClient
+      homeAssistantConnectionProvider: connectionProvider,
+      get homeAssistantClient() {
+        return connectionProvider.getClient();
+      }
     }
   };
 
-  console.log('[Bootstrap] Repositorios inyectados exitosamente. Secuencia terminada.');
+  console.log('[Bootstrap] Repositorios y servicios inyectados exitosamente.');
   
   return container;
 }
