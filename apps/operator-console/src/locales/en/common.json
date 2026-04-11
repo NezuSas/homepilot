@@ -1,5 +1,6 @@
 {
   "nav": {
+    "dashboard": "Dashboard",
     "topology": "Topology",
     "inbox": "Device Manager",
     "automations": "Automations",
@@ -10,6 +11,7 @@
     "logout": "Logout",
     "user_management": "User Management",
     "observability": "Observability Stack",
+    "dashboard_hint": "Room-based rapid control and scenario execution.",
     "audit_trail": "Immutable audit trails and tactical technical history for system auditing.",
     "automations_hint": "Local event-driven logic workbench for reactive edge behaviors."
   },

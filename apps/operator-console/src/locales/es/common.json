@@ -1,5 +1,6 @@
 {
   "nav": {
+    "dashboard": "Panel de Control",
     "topology": "Topología",
     "inbox": "Administrador de Dispositivos",
     "automations": "Automatizaciones",
@@ -10,6 +11,7 @@
     "logout": "Cerrar Sesión",
     "user_management": "Gestión de Usuarios",
     "observability": "Stack de Observabilidad",
+    "dashboard_hint": "Control en tiempo real y ejecución de escenas por zonas.",
     "audit_trail": "Rastros de auditoría inmutables e historial técnico táctico para auditoría del sistema.",
     "automations_hint": "Workbench de lógica local basada en eventos para comportamientos reactivos en el edge."
   },

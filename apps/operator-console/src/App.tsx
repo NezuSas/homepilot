@@ -1,7 +1,8 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe } from 'lucide-react';
+import { LayoutDashboard, Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
+import { DashboardView } from './views/DashboardView';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
 import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
@@ -17,7 +18,7 @@ import { API_BASE_URL } from './config';
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users';
+type View = 'dashboard' | 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users';
 
 /**
  * App Component
@@ -26,7 +27,7 @@ type View = 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' 
  */
 function App() {
   const { t, i18n } = useTranslation();
-  const [currentView, setCurrentView] = useState<View>('topology');
+  const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('hp_session_token'));
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [setupStatus, setSetupStatus] = useState<any>(null);
@@ -117,6 +118,7 @@ function App() {
   };
 
   const menuItems = [
+    { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'topology', label: t('nav.topology'), icon: Network },
     { id: 'inbox', label: t('nav.inbox'), icon: Server },
     { id: 'automations', label: t('nav.automations'), icon: PlaySquare },
@@ -154,6 +156,12 @@ function App() {
         
         <nav className="flex-1 overflow-y-auto py-6">
           <ul className="grid gap-1 px-4">
+            <NavItem 
+              icon={<LayoutDashboard className="w-4 h-4" />} 
+              label={t('nav.dashboard')} 
+              active={currentView === 'dashboard'} 
+              onClick={() => navigateTo('dashboard')} 
+            />
             <NavItem 
               icon={<Network className="w-4 h-4" />} 
               label={t('nav.topology')} 
@@ -280,7 +288,8 @@ function App() {
         <header className="hidden lg:block border-b px-12 py-10 bg-card/40 backdrop-blur-sm shadow-sm">
           <div className="max-w-7xl mx-auto w-full">
             <h1 className="text-3xl font-black tracking-tighter text-foreground/90 leading-tight">
-               {currentView === 'topology' ? t('topology.title') : 
+               {currentView === 'dashboard' ? t('nav.dashboard') :
+                currentView === 'topology' ? t('topology.title') : 
                 currentView === 'inbox' ? t('inbox.title') : 
                 currentView === 'automations' ? t('nav.automations') : 
                 currentView === 'ha-settings' ? t('ha_settings.title') : 
@@ -288,7 +297,9 @@ function App() {
                 currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
             </h1>
             <p className="text-sm text-muted-foreground mt-2 max-w-2xl font-medium leading-relaxed">
-               {currentView === 'topology' 
+               {currentView === 'dashboard'
+                  ? t('nav.dashboard_hint')
+                  : currentView === 'topology' 
                   ? t('topology.select_home')
                   : currentView === 'inbox'
                   ? t('inbox.subtitle')
@@ -304,6 +315,7 @@ function App() {
         
         <section className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
            <div className="max-w-7xl mx-auto w-full">
+            {currentView === 'dashboard' && <DashboardView />}
             {currentView === 'topology' && <TopologyView />}
             {currentView === 'inbox' && <InboxView />}
             {currentView === 'automations' && <AutomationWorkbenchView />}

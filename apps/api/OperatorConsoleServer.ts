@@ -528,6 +528,100 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // POST /api/v1/rooms/:id/action
+    const roomActionMatch = method === 'POST' && pathname.match(/^\/api\/v1\/rooms\/([^\/]+)\/action$/);
+    if (roomActionMatch) {
+      try {
+        const roomId = roomActionMatch[1];
+        const payload = await this.parseBody<{ action?: string }>(req);
+        if (!payload.action || !['turn_on', 'turn_off'].includes(payload.action)) {
+          return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid or missing action');
+        }
+
+        // Fetch all devices in the room
+        const roomDevices = db.prepare('SELECT id, type FROM devices WHERE room_id = ?').all(roomId) as LocalDeviceRow[];
+        
+        // Filter for controllable devices
+        const targetDevices = roomDevices.filter(d => ['light', 'switch'].includes(d.type));
+
+        if (targetDevices.length === 0) {
+           this.sendJson(res, { success: true, executed: 0, failed: 0 });
+           return;
+        }
+
+        const syncDeps = {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        };
+        const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
+        const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
+        const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
+
+        const executeDeps = {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
+          dispatcherPort: compositeDispatcher,
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        };
+
+        const commandStr = payload.action;
+
+        // Execute sequentially to avoid HA API rate limits or congestion, if needed. 
+        // We will execute in parallel but wait for all to settle.
+        const results = await Promise.allSettled(
+          targetDevices.map(d => 
+             executeDeviceCommandUseCase(
+               d.id, 
+               commandStr, 
+               authReq.user.id, 
+               'op-console', 
+               executeDeps,
+               { customDescription: `Room scene ${commandStr} dispatched.` }
+             )
+          )
+        );
+
+        const structuredFailures: { deviceId: string; reason: string }[] = [];
+        results.forEach((r, i) => {
+           if (r.status === 'rejected') {
+             structuredFailures.push({
+               deviceId: targetDevices[i].id,
+               reason: r.reason instanceof Error ? r.reason.message : String(r.reason)
+             });
+           }
+        });
+
+        const failedCount = structuredFailures.length;
+        const totalCount = targetDevices.length;
+        const succeededCount = totalCount - failedCount;
+        
+        const responseBody = {
+          success: failedCount === 0,
+          total: totalCount,
+          succeeded: succeededCount,
+          failed: failedCount,
+          failures: structuredFailures
+        };
+
+        if (failedCount === totalCount) {
+          this.sendJson(res, responseBody, 500);
+        } else if (failedCount > 0) {
+          this.sendJson(res, responseBody, 207);
+        } else {
+          this.sendJson(res, responseBody, 200);
+        }
+      } catch (error: any) {
+        this.sendError(res, 500, 'ROOM_ACTION_ERROR', error.message);
+      }
+      return;
+    }
+
     // GET /api/v1/devices/:id/activity-logs
     const deviceLogsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/activity-logs$/);
     if (deviceLogsMatch) {
