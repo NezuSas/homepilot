@@ -133,7 +133,7 @@ const AutomationsView: React.FC = () => {
 
     if (action.type === 'device_command') {
       actionText = t('automations.summary.run_command', { 
-        command: action.command?.toUpperCase(), 
+        command: (action.command || 'turn_on').toUpperCase().replace('_', ' '), 
         name: getDeviceName(action.targetDeviceId) 
       });
     } else {

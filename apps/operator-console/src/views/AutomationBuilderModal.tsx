@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
+import Select from './Select';
 
 interface Device {
   id: string;
@@ -47,9 +48,16 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   // Form State
   const [name, setName] = useState('');
   const [triggerType, setTriggerType] = useState<'device_state_changed' | 'time'>('device_state_changed');
-  const [triggerConfig, setTriggerConfig] = useState<any>({});
+  const [triggerConfig, setTriggerConfig] = useState<any>({
+    deviceId: '',
+    stateKey: 'state',
+    expectedValue: 'on'
+  });
   const [actionType, setActionType] = useState<'device_command' | 'execute_scene'>('device_command');
-  const [actionConfig, setActionConfig] = useState<any>({});
+  const [actionConfig, setActionConfig] = useState<any>({
+    targetDeviceId: '',
+    command: 'turn_on'
+  });
 
   if (!isOpen) return null;
 
@@ -60,6 +68,28 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     }
     setIsSubmitting(true);
     setError(null);
+
+    // Final payload validation
+    if (triggerType === 'device_state_changed' && !triggerConfig.deviceId) {
+      setError('Please select a trigger device');
+      setIsSubmitting(false);
+      return;
+    }
+    if (triggerType === 'time' && !triggerConfig.time) {
+      setError('Please select a triggers time');
+      setIsSubmitting(false);
+      return;
+    }
+    if (actionType === 'device_command' && !actionConfig.targetDeviceId) {
+      setError('Please select an action target device');
+      setIsSubmitting(false);
+      return;
+    }
+    if (actionType === 'execute_scene' && !actionConfig.sceneId) {
+      setError('Please select a scene to execute');
+      setIsSubmitting(false);
+      return;
+    }
 
     const payload = {
       name,
@@ -164,27 +194,25 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               <>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.source_device')}</label>
-                  <select 
+                  <Select 
                     value={triggerConfig.deviceId || ''}
-                    onChange={(e) => setTriggerConfig({ ...triggerConfig, deviceId: e.target.value })}
-                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                  >
-                    <option value="">{t('automations.form.select_device')}</option>
-                    {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                    onChange={(val) => setTriggerConfig({ ...triggerConfig, deviceId: val })}
+                    options={devices.map(d => ({ value: d.id, label: d.name }))}
+                    placeholder={t('automations.form.select_device')}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.state_key')}</label>
-                    <select 
+                    <Select 
                       value={triggerConfig.stateKey || 'state'}
-                      onChange={(e) => setTriggerConfig({ ...triggerConfig, stateKey: e.target.value })}
-                      className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                    >
-                      <option value="state">state (on/off)</option>
-                      <option value="brightness">brightness</option>
-                      <option value="temperature">temperature</option>
-                    </select>
+                      onChange={(val) => setTriggerConfig({ ...triggerConfig, stateKey: val })}
+                      options={[
+                        { value: 'state', label: 'state (on/off)' },
+                        { value: 'brightness', label: 'brightness' },
+                        { value: 'temperature', label: 'temperature' }
+                      ]}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.expected_value')}</label>
@@ -324,39 +352,35 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               <>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.target_device')}</label>
-                  <select 
+                  <Select 
                     value={actionConfig.targetDeviceId || ''}
-                    onChange={(e) => setActionConfig({ ...actionConfig, targetDeviceId: e.target.value })}
-                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                  >
-                    <option value="">{t('automations.form.select_target')}</option>
-                    {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                    onChange={(val) => setActionConfig({ ...actionConfig, targetDeviceId: val })}
+                    options={devices.map(d => ({ value: d.id, label: d.name }))}
+                    placeholder={t('automations.form.select_target')}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.command')}</label>
-                  <select 
+                  <Select 
                     value={actionConfig.command || 'turn_on'}
-                    onChange={(e) => setActionConfig({ ...actionConfig, command: e.target.value })}
-                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                  >
-                    <option value="turn_on">TURN ON</option>
-                    <option value="turn_off">TURN OFF</option>
-                    <option value="toggle">TOGGLE</option>
-                  </select>
+                    onChange={(val) => setActionConfig({ ...actionConfig, command: val })}
+                    options={[
+                      { value: 'turn_on', label: 'TURN ON' },
+                      { value: 'turn_off', label: 'TURN OFF' },
+                      { value: 'toggle', label: 'TOGGLE' }
+                    ]}
+                  />
                 </div>
               </>
             ) : (
               <div className="space-y-2">
                 <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.select_scene')}</label>
-                <select 
+                <Select 
                   value={actionConfig.sceneId || ''}
-                  onChange={(e) => setActionConfig({ ...actionConfig, sceneId: e.target.value })}
-                  className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                >
-                  <option value="">{t('automations.form.select_scene')}</option>
-                  {scenes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                  onChange={(val) => setActionConfig({ ...actionConfig, sceneId: val })}
+                  options={scenes.map(s => ({ value: s.id, label: s.name }))}
+                  placeholder={t('automations.form.select_scene')}
+                />
               </div>
             )}
 
@@ -403,8 +427,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                     <span className="text-[10px] font-bold text-accent uppercase tracking-widest block mb-1">Then (Action)</span>
                     <p className="text-sm font-medium text-foreground">
                       {actionType === 'device_command' 
-                        ? `${actionConfig.command?.toUpperCase()} for ${devices.find(d => d.id === actionConfig.targetDeviceId)?.name}`
-                        : `Run scene "${scenes.find(s => s.id === actionConfig.sceneId)?.name}"`}
+                        ? `${(actionConfig.command || 'turn_on').replace('_', ' ').toUpperCase()} for ${devices.find(d => d.id === actionConfig.targetDeviceId)?.name || '...'}`
+                        : `Run scene "${scenes.find(s => s.id === actionConfig.sceneId)?.name || '...'}"`}
                     </p>
                   </div>
                 </div>
