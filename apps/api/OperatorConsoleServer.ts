@@ -622,6 +622,167 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/scenes
+    if (method === 'GET' && pathname === '/api/v1/scenes') {
+      try {
+        const urlParams = new URL(url, `http://${req.headers.host}`).searchParams;
+        let homeId = urlParams.get('homeId');
+        if (!homeId) {
+          const homes = await this.container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+          if (homes.length > 0) homeId = homes[0].id;
+        }
+        if (!homeId) return this.sendJson(res, []);
+        
+        const scenes = await this.container.repositories.sceneRepository.findScenesByHomeId(homeId);
+        this.sendJson(res, scenes);
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
+      }
+      return;
+    }
+
+    // POST /api/v1/scenes
+    if (method === 'POST' && pathname === '/api/v1/scenes') {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+      try {
+        const payload = await this.parseBody<any>(req);
+        if (!payload.name || !payload.homeId || !Array.isArray(payload.actions)) {
+           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing name, homeId, or actions array');
+        }
+        const newScene = {
+          id: crypto.randomUUID(),
+          homeId: payload.homeId,
+          roomId: payload.roomId || null,
+          name: payload.name,
+          actions: payload.actions,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        await this.container.repositories.sceneRepository.saveScene(newScene);
+        this.sendJson(res, newScene, 201);
+      } catch (error: any) {
+        this.sendError(res, 500, 'SCENE_CREATE_ERROR', error.message);
+      }
+      return;
+    }
+
+    // PATCH /api/v1/scenes/:id
+    const patchSceneMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/scenes\/([^\/]+)$/);
+    if (patchSceneMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+      try {
+        const sceneId = patchSceneMatch[1];
+        const scene = await this.container.repositories.sceneRepository.findSceneById(sceneId);
+        if (!scene) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found');
+
+        const payload = await this.parseBody<any>(req);
+        const updated = {
+           ...scene,
+           name: payload.name ?? scene.name,
+           actions: payload.actions ?? scene.actions,
+           roomId: payload.roomId !== undefined ? payload.roomId : scene.roomId,
+           updatedAt: new Date().toISOString()
+        };
+        await this.container.repositories.sceneRepository.saveScene(updated);
+        this.sendJson(res, updated);
+      } catch (error: any) {
+        this.sendError(res, 500, 'SCENE_UPDATE_ERROR', error.message);
+      }
+      return;
+    }
+
+    // DELETE /api/v1/scenes/:id
+    const deleteSceneMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/scenes\/([^\/]+)$/);
+    if (deleteSceneMatch) {
+      if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
+      try {
+        await this.container.repositories.sceneRepository.deleteScene(deleteSceneMatch[1]);
+        res.writeHead(204).end();
+      } catch (error: any) {
+        this.sendError(res, 500, 'SCENE_DELETE_ERROR', error.message);
+      }
+      return;
+    }
+
+    // POST /api/v1/scenes/:id/execute
+    const executeSceneMatch = method === 'POST' && pathname.match(/^\/api\/v1\/scenes\/([^\/]+)\/execute$/);
+    if (executeSceneMatch) {
+      try {
+        const sceneId = executeSceneMatch[1];
+        const scene = await this.container.repositories.sceneRepository.findSceneById(sceneId);
+        if (!scene) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found');
+
+        if (scene.actions.length === 0) {
+           return this.sendJson(res, { success: true, executed: 0, failed: 0, failures: [] });
+        }
+
+        const syncDeps = {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        };
+        const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
+        const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
+        const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
+
+        const executeDeps = {
+          deviceRepository: this.container.repositories.deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },
+          dispatcherPort: compositeDispatcher,
+          activityLogRepository: this.container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        };
+
+        const results = await Promise.allSettled(
+          scene.actions.map(action => 
+             executeDeviceCommandUseCase(
+               action.deviceId, 
+               action.command, 
+               authReq.user.id, 
+               'op-console', 
+               executeDeps,
+               { customDescription: `Persistent Scene "${scene.name}" dispatched: ${action.command}` }
+             )
+          )
+        );
+
+        const structuredFailures: { deviceId: string; reason: string }[] = [];
+        results.forEach((r, i) => {
+           if (r.status === 'rejected') {
+             structuredFailures.push({
+               deviceId: scene.actions[i].deviceId,
+               reason: r.reason instanceof Error ? r.reason.message : String(r.reason)
+             });
+           }
+        });
+
+        const failedCount = structuredFailures.length;
+        const totalCount = scene.actions.length;
+        const responseBody = {
+          success: failedCount === 0,
+          total: totalCount,
+          succeeded: totalCount - failedCount,
+          failed: failedCount,
+          failures: structuredFailures
+        };
+
+        if (failedCount === totalCount) {
+          this.sendJson(res, responseBody, 500);
+        } else if (failedCount > 0) {
+          this.sendJson(res, responseBody, 207);
+        } else {
+          this.sendJson(res, responseBody, 200);
+        }
+      } catch (error: any) {
+        this.sendError(res, 500, 'SCENE_EXECUTE_ERROR', error.message);
+      }
+      return;
+    }
+
     // GET /api/v1/devices/:id/activity-logs
     const deviceLogsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/activity-logs$/);
     if (deviceLogsMatch) {

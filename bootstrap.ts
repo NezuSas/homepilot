@@ -5,6 +5,7 @@ import { SqliteMigrationsRunner } from './packages/shared/infrastructure/databas
 import { SQLiteHomeRepository } from './packages/topology/infrastructure/repositories/SQLiteHomeRepository';
 import { SQLiteRoomRepository } from './packages/topology/infrastructure/repositories/SQLiteRoomRepository';
 import { SQLiteDeviceRepository } from './packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
+import { SqliteSceneRepository } from './packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import { HomeAssistantClient } from './packages/devices/infrastructure/adapters/HomeAssistantClient';
@@ -31,6 +32,7 @@ export interface BootstrapContainer {
     homeRepository: SQLiteHomeRepository;
     roomRepository: SQLiteRoomRepository;
     deviceRepository: SQLiteDeviceRepository;
+    sceneRepository: SqliteSceneRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
     settingsRepository: SQLiteSettingsRepository;
@@ -91,6 +93,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const homeRepository = new SQLiteHomeRepository(dbPath);
   const roomRepository = new SQLiteRoomRepository(dbPath);
   const deviceRepository = new SQLiteDeviceRepository(dbPath);
+  const sceneRepository = new SqliteSceneRepository(db);
   const automationRuleRepository = new SQLiteAutomationRuleRepository(dbPath);
   const activityLogRepository = new SQLiteActivityLogRepository(dbPath);
   const settingsRepository = new SQLiteSettingsRepository(dbPath);
@@ -235,6 +238,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       homeRepository,
       roomRepository,
       deviceRepository,
+      sceneRepository,
       automationRuleRepository,
       activityLogRepository,
       settingsRepository,

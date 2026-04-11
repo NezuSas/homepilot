@@ -45,12 +45,29 @@ export class HomeAssistantCommandDispatcher implements DeviceCommandDispatcherPo
     // Llamada física a HA
     await this.haClient.callService(domain, service, fullEntityId);
 
-    // Sincronización optimista (u opcionalmente recargar estado real)
-    // Para V1, simulamos el cambio localmente para respuesta inmediata de UI
+    // Sincronización optimista
     let newState: Record<string, unknown> = { ...device.lastKnownState };
-    if (command === 'turn_on') newState.on = true;
-    if (command === 'turn_off') newState.on = false;
-    if (command === 'toggle') newState.on = !(device.lastKnownState?.on === true);
+    
+    // Determine the current truth
+    const isCurrentlyOn = newState.on === true || newState.state === 'on';
+
+    if (command === 'turn_on') {
+       newState.on = true;
+       newState.state = 'on';
+    } else if (command === 'turn_off') {
+       newState.on = false;
+       newState.state = 'off';
+       if ('brightness' in newState) newState.brightness = 0;
+       if ('power' in newState) newState.power = 0;
+    } else if (command === 'toggle') {
+       const turnedOn = !isCurrentlyOn;
+       newState.on = turnedOn;
+       newState.state = turnedOn ? 'on' : 'off';
+       if (!turnedOn) {
+         if ('brightness' in newState) newState.brightness = 0;
+         if ('power' in newState) newState.power = 0;
+       }
+    }
 
     await syncDeviceStateUseCase(deviceId, newState, this.correlationId, this.syncDeps);
   }

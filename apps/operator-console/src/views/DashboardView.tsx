@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  RadioTower, Box, Cpu, AlertCircle, Loader2, LayoutDashboard, Power, Sun
+  RadioTower, Box, Cpu, AlertCircle, Loader2, LayoutDashboard, Power, Sun, Plus
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { SceneBuilderModal } from './SceneBuilderModal';
 
 interface DeviceState {
   state?: 'on' | 'off';
@@ -30,6 +31,20 @@ interface Room {
   id: string;
   name: string;
   homeId: string;
+}
+
+interface SceneAction {
+  deviceId: string;
+  command: 'turn_on' | 'turn_off';
+}
+
+interface Scene {
+  id: string;
+  homeId: string;
+  roomId: string | null;
+  name: string;
+  actions: SceneAction[];
+  createdAt: string;
 }
 
 const API_URL = `${API_BASE_URL}/api/v1`;
@@ -128,6 +143,12 @@ export const DashboardView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
   const [roomError, setRoomError] = useState<Record<string, string | null>>({});
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
+  const [editingScene, setEditingScene] = useState<Scene | null>(null);
+  const [modalRoomId, setModalRoomId] = useState<string | null>(null);
+
+  const homeId = rooms.length > 0 ? rooms[0].homeId : null;
 
   const fetchData = useCallback(async () => {
     try {
@@ -141,10 +162,12 @@ export const DashboardView: React.FC = () => {
 
       const homes = await homeRes.json();
       if (homes.length > 0) {
-        const rRes = await fetch(`${API_URL}/homes/${homes[0].id}/rooms`);
-        if (rRes.ok) {
-           setRooms(await rRes.json());
-        }
+        const [rRes, sRes] = await Promise.all([
+           fetch(`${API_URL}/homes/${homes[0].id}/rooms`),
+           fetch(`${API_URL}/scenes?homeId=${homes[0].id}`)
+        ]);
+        if (rRes.ok) setRooms(await rRes.json());
+        if (sRes.ok) setScenes(await sRes.json());
       }
       setLoading(false);
     } catch {
@@ -190,6 +213,41 @@ export const DashboardView: React.FC = () => {
     }
   };
 
+  const handleSceneExecute = async (scene: Scene) => {
+    if (roomProcessing) return;
+    setRoomProcessing('scene_' + scene.id);
+    const scopeId = scene.roomId || 'global';
+    setRoomError(prev => ({ ...prev, [scopeId]: null }));
+    try {
+      const res = await fetch(`${API_URL}/scenes/${scene.id}/execute`, { method: 'POST' });
+      const data = await res.json();
+      
+      if (!res.ok || (data && data.failed > 0)) {
+         const isTotalFailure = data.failed === data.total;
+         setRoomError(prev => ({ 
+            ...prev, 
+            [scopeId]: isTotalFailure 
+               ? t('dashboard.scene_failed_total', { defaultValue: 'Scene execution failed' }) 
+               : t('dashboard.scene_failed_partial', { defaultValue: `${data.failed} of ${data.total} devices failed` }) 
+         }));
+      }
+      
+      await fetchData(); // Always refresh local state
+    } catch (e) {
+      setRoomError(prev => ({ ...prev, [scopeId]: 'Network connection error' }));
+      console.error(e);
+    } finally {
+      setRoomProcessing(null);
+    }
+  };
+
+  const openSceneModal = (roomId: string | null = null, scene: Scene | null = null) => {
+    setModalRoomId(roomId);
+    setEditingScene(scene);
+    setIsSceneModalOpen(true);
+  };
+
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
@@ -202,88 +260,129 @@ export const DashboardView: React.FC = () => {
   // Filter out rooms that have no assigned devices
   const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
 
-  if (activeRooms.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] bg-card border rounded-3xl m-4 p-8 text-center ring-1 ring-border/50 shadow-sm">
-        <LayoutDashboard className="w-16 h-16 text-muted-foreground/30 mb-6" />
-        <h2 className="text-2xl font-black tracking-tighter text-foreground/80 mb-2">{t('nav.dashboard')}</h2>
-        <p className="text-muted-foreground font-medium max-w-sm mb-8">{t('inbox.empty_state')}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-8 pb-12 animate-in fade-in duration-500">
-      {activeRooms.map(room => {
-        const roomDevices = devices.filter(d => d.roomId === room.id);
-        const onCount = roomDevices.filter(d => {
-           const s = d.lastKnownState as DeviceState || {};
-           return s.on === true || s.state === 'on' || (Number(s.brightness) > 0) || (Number(s.power) > 0);
-        }).length;
-        
-        return (
-          <div key={room.id} className="flex flex-col gap-4">
-            {/* Error Banner */}
-            {roomError[room.id] && (
-               <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-                 <div className="flex items-center gap-3">
-                   <div className="p-2 bg-destructive/20 rounded-xl">
-                     <AlertCircle className="w-4 h-4 text-destructive" />
+      {isSceneModalOpen && homeId && (
+        <SceneBuilderModal 
+          onClose={() => setIsSceneModalOpen(false)}
+          onSaved={() => {
+            setIsSceneModalOpen(false);
+            fetchData();
+          }}
+          homeId={homeId}
+          rooms={rooms}
+          devices={devices}
+          initialRoomId={modalRoomId}
+          existingScene={editingScene}
+        />
+      )}
+
+      {activeRooms.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] bg-card border rounded-3xl m-4 p-8 text-center ring-1 ring-border/50 shadow-sm">
+          <LayoutDashboard className="w-16 h-16 text-muted-foreground/30 mb-6" />
+          <h2 className="text-2xl font-black tracking-tighter text-foreground/80 mb-2">{t('nav.dashboard')}</h2>
+          <p className="text-muted-foreground font-medium max-w-sm mb-8">{t('inbox.empty_state')}</p>
+        </div>
+      ) : (
+        activeRooms.map(room => {
+          const roomDevices = devices.filter(d => d.roomId === room.id);
+          const onCount = roomDevices.filter(d => {
+             const s = d.lastKnownState as DeviceState || {};
+             return s.on === true || s.state === 'on' || (Number(s.brightness) > 0) || (Number(s.power) > 0);
+          }).length;
+          
+          return (
+            <div key={room.id} className="flex flex-col gap-4">
+              {/* Error Banner */}
+              {roomError[room.id] && (
+                 <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                   <div className="flex items-center gap-3">
+                     <div className="p-2 bg-destructive/20 rounded-xl">
+                       <AlertCircle className="w-4 h-4 text-destructive" />
+                     </div>
+                     <p className="text-sm font-bold text-destructive/90">{roomError[room.id]}</p>
                    </div>
-                   <p className="text-sm font-bold text-destructive/90">{roomError[room.id]}</p>
+                   <button 
+                     onClick={() => setRoomError(prev => ({ ...prev, [room.id]: null }))}
+                     className="text-xs font-black uppercase text-destructive/70 hover:text-destructive px-3 py-1"
+                   >
+                     dismiss
+                   </button>
                  </div>
-                 <button 
-                   onClick={() => setRoomError(prev => ({ ...prev, [room.id]: null }))}
-                   className="text-xs font-black uppercase text-destructive/70 hover:text-destructive px-3 py-1"
-                 >
-                   dismiss
-                 </button>
-               </div>
-            )}
+              )}
 
-            {/* Room Header Card */}
-            <div className="bg-card border-2 border-border/60 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 z-0 pointer-events-none" />
-              
-              <div className="relative z-10">
-                <h3 className="text-2xl font-black tracking-tighter mb-1">{room.name}</h3>
-                <p className="text-sm font-bold text-muted-foreground opacity-80 uppercase tracking-widest">
-                  {onCount} {t('common.on')} · {roomDevices.length} {t('common.devices', { defaultValue: 'Devices' })}
-                </p>
+              {/* Room Header Card */}
+              <div className="bg-card border-2 border-border/60 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 z-0 pointer-events-none" />
+                
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-black tracking-tighter mb-1">{room.name}</h3>
+                  <p className="text-sm font-bold text-muted-foreground opacity-80 uppercase tracking-widest">
+                    {onCount} {t('common.on')} · {roomDevices.length} {t('common.devices', { defaultValue: 'Devices' })}
+                  </p>
+                </div>
+
+                {/* Quick Scenes */}
+                <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto mt-4 sm:mt-0">
+                   {scenes.filter(s => s.roomId === room.id).map(scene => (
+                     <div key={scene.id} className="relative group flex-1 sm:flex-none">
+                       <button 
+                         disabled={roomProcessing === 'scene_' + scene.id}
+                         onClick={() => handleSceneExecute(scene)}
+                         className="w-full flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
+                       >
+                         {roomProcessing === 'scene_' + scene.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sun className="w-4 h-4" />} {scene.name}
+                       </button>
+                       <button
+                         onClick={(e) => { e.stopPropagation(); openSceneModal(room.id, scene); }}
+                         className="absolute -top-2 -right-2 p-1.5 bg-background shadow-md border rounded-full text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100 z-20"
+                       >
+                         <Plus className="w-3 h-3" />
+                       </button>
+                     </div>
+                   ))}
+
+                   {scenes.filter(s => s.roomId === room.id).length === 0 && (
+                     <button 
+                       disabled={roomProcessing === room.id}
+                       onClick={() => handleRoomAction(room.id, 'turn_on')}
+                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
+                     >
+                       {roomProcessing === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sun className="w-4 h-4" />} Welcome
+                     </button>
+                   )}
+                   <button 
+                     disabled={roomProcessing === room.id}
+                     onClick={() => handleRoomAction(room.id, 'turn_off')}
+                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-muted hover:bg-foreground/10 text-foreground border border-border px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
+                   >
+                     {roomProcessing === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} All Off
+                   </button>
+
+                   <button
+                     onClick={() => openSceneModal(room.id)}
+                     className="flex-none p-3 rounded-2xl border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all outline-none focus:ring-2 focus:ring-primary"
+                     title={t('dashboard.scene_create', { defaultValue: 'Create Scene' })}
+                   >
+                      <Plus className="w-4 h-4" />
+                   </button>
+                </div>
               </div>
 
-              {/* Quick Scenes */}
-              <div className="flex items-center gap-3 relative z-10">
-                 <button 
-                   disabled={roomProcessing === room.id}
-                   onClick={() => handleRoomAction(room.id, 'turn_on')}
-                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
-                 >
-                   {roomProcessing === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sun className="w-4 h-4" />} Welcome
-                 </button>
-                 <button 
-                   disabled={roomProcessing === room.id}
-                   onClick={() => handleRoomAction(room.id, 'turn_off')}
-                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-muted hover:bg-foreground/10 text-foreground border border-border px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
-                 >
-                   {roomProcessing === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} All Off
-                 </button>
+              {/* Room Devices Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {roomDevices.map(device => (
+                  <DashDeviceTile 
+                    key={device.id} 
+                    device={device} 
+                    onUpdate={handleDeviceUpdate} 
+                  />
+                ))}
               </div>
             </div>
-
-            {/* Room Devices Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {roomDevices.map(device => (
-                <DashDeviceTile 
-                  key={device.id} 
-                  device={device} 
-                  onUpdate={handleDeviceUpdate} 
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   );
 };
