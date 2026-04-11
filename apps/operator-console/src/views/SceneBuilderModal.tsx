@@ -104,10 +104,10 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex justify-center items-center p-4">
-      <div className="bg-card w-full max-w-lg border border-border/50 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+      <div className="bg-card w-full max-w-lg max-h-[85vh] border border-border/50 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-200">
         
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b">
+        {/* Header - Sticky by default due to flex-col */}
+        <div className="flex items-center justify-between p-6 pb-4 border-b shrink-0">
           <h2 className="text-xl font-black tracking-tighter">
             {existingScene ? t('dashboard.scene_edit', { defaultValue: 'Edit Scene' }) : t('dashboard.scene_create', { defaultValue: 'Create Scene' })}
           </h2>
@@ -116,15 +116,15 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+        {/* Content - Scrollable area */}
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
           {error && (
-            <div className="bg-destructive/10 text-destructive text-sm font-bold p-4 rounded-2xl border border-destructive/20">
+            <div className="bg-destructive/10 text-destructive text-sm font-bold p-4 rounded-2xl border border-destructive/20 shrink-0">
               {error}
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 shrink-0">
             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">{t('common.name', { defaultValue: 'Name' })}</label>
             <input 
               type="text" 
@@ -135,7 +135,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
             />
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 shrink-0">
             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">{t('dashboard.scene_scope', { defaultValue: 'Scope' })}</label>
             <select 
               value={roomId || ''} 
@@ -165,30 +165,40 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                 {availableDevices.map(d => {
                   const action = actions.find(a => a.deviceId === d.id);
                   const isSelected = !!action;
+                  const deviceRoom = rooms.find(r => r.id === d.roomId);
+                  
                   return (
                     <div key={d.id} className={cn(
-                      "flex items-center justify-between p-3 rounded-2xl border-2 transition-all cursor-pointer",
-                      isSelected ? "border-primary bg-primary/5" : "border-transparent bg-muted opacity-80 hover:opacity-100"
+                      "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                      isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-transparent bg-muted/50 hover:bg-muted opacity-80 hover:opacity-100"
                     )} onClick={() => toggleDevice(d.id)}>
                       
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors", isSelected ? "bg-primary border-primary" : "border-muted-foreground/30")}>
-                          {isSelected && <div className="w-2 h-2 rounded-sm bg-background" />}
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={cn("w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center transition-all duration-300", 
+                          isSelected ? "bg-primary border-primary scale-110 shadow-lg shadow-primary/20" : "border-foreground/10")}>
+                          {isSelected && <div className="w-2.5 h-2.5 rounded-sm bg-background animate-in zoom-in-50" />}
                         </div>
-                        <span className="font-bold text-sm">{d.name}</span>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="font-bold text-sm truncate">{d.name}</span>
+                          <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-tighter truncate">
+                            {deviceRoom ? deviceRoom.name : t('common.unassigned', { defaultValue: 'Unassigned' })}
+                          </span>
+                        </div>
                       </div>
 
                       {isSelected && (
-                        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                        <div className="flex gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                           <button 
                             onClick={() => setCommand(d.id, 'turn_on')}
-                            className={cn("px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all", action.command === 'turn_on' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted-foreground/10")}
+                            className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all hover:scale-105 active:scale-95", 
+                              action?.command === 'turn_on' ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-muted text-muted-foreground hover:bg-muted-foreground/10")}
                           >
                             {t('common.on')}
                           </button>
                           <button 
                             onClick={() => setCommand(d.id, 'turn_off')}
-                            className={cn("px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all", action.command === 'turn_off' ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted-foreground/10")}
+                            className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all hover:scale-105 active:scale-95", 
+                              action?.command === 'turn_off' ? "bg-foreground text-background shadow-md shadow-black/20" : "bg-muted text-muted-foreground hover:bg-muted-foreground/10")}
                           >
                             {t('common.off')}
                           </button>
@@ -204,8 +214,8 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
 
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t bg-muted/30 flex gap-3 mt-auto">
+        {/* Footer - Fixed at bottom */}
+        <div className="p-6 border-t bg-muted/30 flex gap-3 mt-auto shrink-0">
           <button 
             type="button" 
             onClick={onClose} 
