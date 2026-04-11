@@ -71,6 +71,10 @@ const AutomationsView: React.FC = () => {
 
   const fetchJSON = async (url: string, options?: RequestInit) => {
     const res = await fetch(url, options);
+    
+    // Handle 204 No Content immediately
+    if (res.status === 204) return null;
+
     const contentType = res.headers.get('content-type');
     if (!res.ok) {
       if (contentType && contentType.includes('application/json')) {
@@ -79,9 +83,12 @@ const AutomationsView: React.FC = () => {
       }
       throw new Error(`Server returned ${res.status} (${res.statusText})`);
     }
+
+    // If it's OK but not JSON (and not 204, handled above), it might be an empty body or developer error
     if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Server returned non-JSON response. Please check backend status.');
+      return null;
     }
+
     return res.json();
   };
 
