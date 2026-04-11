@@ -25,7 +25,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
   private readonly DEDUPLICATION_WINDOW_MS = 2000;
 
   // Guard para evitar que reglas de tiempo se disparen múltiples veces en el mismo minuto.
-  // key: ruleId, value: last fired "HH:mm"
+  // key: ruleId, value: last fired "YYYY-MM-DD HH:mm"
   private readonly timeFireGuard = new Map<string, string>();
 
   // ─── Observability State ─────────────────────────────────────────────────────
@@ -89,10 +89,13 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         // 2. Check day match (if specified)
         if (trigger.days && trigger.days.length > 0 && !trigger.days.includes(currentDay)) continue;
 
-        // 3. Once-per-minute guard
-        if (this.timeFireGuard.get(rule.id) === currentTime) continue;
+        // 3. Once-per-minute guard (strictly tied to Date + HH:mm)
+        const dateStr = now.toISOString().split('T')[0];
+        const fireKey = `${dateStr} ${currentTime}`;
         
-        this.timeFireGuard.set(rule.id, currentTime);
+        if (this.timeFireGuard.get(rule.id) === fireKey) continue;
+        
+        this.timeFireGuard.set(rule.id, fireKey);
         
         try {
           await this.executeRuleActions(rule, `time:${currentTime}`);

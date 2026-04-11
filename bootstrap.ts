@@ -208,13 +208,37 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     automationEngine.handleSystemEvent(event).catch(e => console.error('[Engine] Fallo asíncrono:', e.message));
   });
 
-  // Heartbeat de 60s para disparadores de tiempo
-  setInterval(() => {
+  // 4.2. Latido determinista alineado a fronteras de minuto (HH:mm:00)
+  const startHeartbeat = () => {
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    automationEngine.handleTimeEvent(`${hh}:${mm}`).catch(e => console.error('[Engine] Fallo en pulso de tiempo:', e.message));
-  }, 60000).unref();
+    const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    
+    // Pulso inicial opcional si queremos que arranque YA (pero el usuario quiere alineación a :00)
+    // El primer setTimeout nos lleva exactamente al segundo :00 del siguiente minuto.
+    setTimeout(() => {
+      const triggerPulse = () => {
+        const pulseDate = new Date();
+        const hh = String(pulseDate.getHours()).padStart(2, '0');
+        const mm = String(pulseDate.getMinutes()).padStart(2, '0');
+        const currentTime = `${hh}:${mm}`;
+        
+        console.log(`[Pulse] Minute Boundary Reached: ${currentTime}`);
+        automationEngine.handleTimeEvent(currentTime).catch(e => 
+          console.error('[Engine] Fallo en pulso de tiempo:', e.message)
+        );
+      };
+
+      // Disparar el primer pulso alineado
+      triggerPulse();
+
+      // Mantener el ritmo cada 60s exactos desde este punto
+      setInterval(triggerPulse, 60000).unref();
+    }, delay).unref();
+
+    console.log(`[Bootstrap] Heartbeat scheduled to align in ${delay}ms`);
+  };
+
+  startHeartbeat();
 
   const diagnosticsService = new DiagnosticsService(
     settingsService,
