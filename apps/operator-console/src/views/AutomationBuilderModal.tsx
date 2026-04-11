@@ -26,7 +26,7 @@ interface Scene {
 interface AutomationBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (rule: any) => void;
   devices: Device[];
   scenes: Scene[];
   existingAutomation?: any;
@@ -79,7 +79,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         setTriggerConfig({ ...existingAutomation.trigger });
         setActionType(existingAutomation.action.type);
         setActionConfig({ ...existingAutomation.action });
-        setStep('FINAL'); // Go straight to review when editing
+        setStep('TYPE_SELECTION'); // Allow full editing from the start
       } else {
         // Reset state for new automation
         setName('');
@@ -154,7 +154,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
       const contentType = res.headers.get('content-type');
       if (res.ok) {
-        onCreated();
+        const result = await res.json();
+        onCreated(result);
       } else {
         if (contentType && contentType.includes('application/json')) {
           const errData = await res.json();

@@ -57,6 +57,7 @@ const AutomationsView: React.FC = () => {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingAutomation, setEditingAutomation] = useState<AutomationRule | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,10 +122,12 @@ const AutomationsView: React.FC = () => {
   };
 
   const deleteRule = async (id: string) => {
+    if (deletingId === id) return;
+    setDeletingId(id);
     setIsDeleting(true);
     try {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
-      setRules(rules.filter(r => r.id !== id));
+      setRules(prev => prev.filter(r => r.id !== id));
       setConfirmDeleteId(null);
       setNotification({ message: t('automations.deleted_success', { defaultValue: 'Automation deleted successfully' }), type: 'success' });
     } catch (err: any) {
@@ -132,6 +135,7 @@ const AutomationsView: React.FC = () => {
       console.error('Failed to delete rule', err);
     } finally {
       setIsDeleting(false);
+      setDeletingId(null);
     }
   };
 
@@ -285,8 +289,9 @@ const AutomationsView: React.FC = () => {
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button 
+                      disabled={isDeleting}
                       onClick={() => setConfirmDeleteId(rule.id)}
-                      className="p-2 text-foreground/30 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      className="p-2 text-foreground/30 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30"
                       title={t('common.delete')}
                     >
                       <Trash2 className="w-5 h-5" />
@@ -323,10 +328,19 @@ const AutomationsView: React.FC = () => {
             setIsBuilderOpen(false);
             setEditingAutomation(null);
           }}
-          onCreated={() => {
+          onCreated={(savedRule) => {
             setIsBuilderOpen(false);
             setEditingAutomation(null);
-            fetchData();
+            
+            // Manual local state sync for "instant" feel
+            setRules(prev => {
+              const exists = prev.find(r => r.id === savedRule.id);
+              if (exists) {
+                return prev.map(r => r.id === savedRule.id ? savedRule : r);
+              }
+              return [...prev, savedRule];
+            });
+
             setNotification({ 
               message: editingAutomation 
                 ? t('automations.updated_success', { defaultValue: 'Automation updated successfully' }) 
