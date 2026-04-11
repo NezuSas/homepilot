@@ -10,6 +10,7 @@ import {
   Save
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { API_ENDPOINTS } from '../config';
 
 interface Device {
   id: string;
@@ -73,20 +74,25 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     };
 
     try {
-      const res = await fetch('/api/v1/automations', {
+      const res = await fetch(API_ENDPOINTS.automations.list, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
+      const contentType = res.headers.get('content-type');
       if (res.ok) {
         onCreated();
       } else {
-        const errData = await res.json();
-        setError(errData.message || 'Failed to create automation');
+        if (contentType && contentType.includes('application/json')) {
+          const errData = await res.json();
+          setError(errData.message || 'Failed to create automation');
+        } else {
+          setError(`Server error: ${res.status} (${res.statusText})`);
+        }
       }
-    } catch (err) {
-      setError('Network error');
+    } catch (err: any) {
+      setError(err.message || 'Network error');
     } finally {
       setIsSubmitting(false);
     }

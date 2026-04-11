@@ -9,6 +9,7 @@ import {
   ToggleLeft as ToggleIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { API_ENDPOINTS, API_BASE_URL } from '../config';
 import AutomationBuilderModal from './AutomationBuilderModal.tsx';
 
 interface AutomationRule {
@@ -50,29 +51,37 @@ const AutomationsView: React.FC = () => {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchJSON = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get('content-type');
+    if (!res.ok) {
+      if (contentType && contentType.includes('application/json')) {
+        const err = await res.json();
+        throw new Error(err.message || `Server error: ${res.status}`);
+      }
+      throw new Error(`Server returned ${res.status} (${res.statusText})`);
+    }
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Server returned non-JSON response. Please check backend status.');
+    }
+    return res.json();
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [rulesRes, devicesRes, scenesRes] = await Promise.all([
-        fetch('/api/v1/automations'),
-        fetch('/api/v1/devices'),
-        fetch('/api/v1/scenes')
-      ]);
-
-      if (!rulesRes.ok || !devicesRes.ok || !scenesRes.ok) throw new Error('Failed to fetch data');
-
       const [rulesData, devicesData, scenesData] = await Promise.all([
-        rulesRes.json(),
-        devicesRes.json(),
-        scenesRes.json()
+        fetchJSON(API_ENDPOINTS.automations.list),
+        fetchJSON(API_ENDPOINTS.devices.list),
+        fetchJSON(API_ENDPOINTS.scenes.list)
       ]);
 
       setRules(rulesData);
       setDevices(devicesData);
       setScenes(scenesData);
       setError(null);
-    } catch (err) {
-      setError('Connection error');
+    } catch (err: any) {
+      setError(err.message || 'Connection error');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -86,11 +95,10 @@ const AutomationsView: React.FC = () => {
   const toggleRule = async (id: string, currentlyEnabled: boolean) => {
     const action = currentlyEnabled ? 'disable' : 'enable';
     try {
-      const res = await fetch(`/api/v1/automations/${id}/${action}`, { method: 'PATCH' });
-      if (res.ok) {
-        setRules(rules.map(r => r.id === id ? { ...r, enabled: !currentlyEnabled } : r));
-      }
-    } catch (err) {
+      await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}/${action}`, { method: 'PATCH' });
+      setRules(rules.map(r => r.id === id ? { ...r, enabled: !currentlyEnabled } : r));
+    } catch (err: any) {
+      setError(err.message || 'Failed to toggle rule');
       console.error('Failed to toggle rule', err);
     }
   };
@@ -98,11 +106,10 @@ const AutomationsView: React.FC = () => {
   const deleteRule = async (id: string) => {
     if (!confirm(t('common.confirm'))) return;
     try {
-      const res = await fetch(`/api/v1/automations/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setRules(rules.filter(r => r.id !== id));
-      }
-    } catch (err) {
+      await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
+      setRules(rules.filter(r => r.id !== id));
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete rule');
       console.error('Failed to delete rule', err);
     }
   };

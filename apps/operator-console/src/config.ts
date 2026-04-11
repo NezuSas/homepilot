@@ -21,7 +21,15 @@ export const API_ENDPOINTS = {
   },
   topology: {
     homes: `${API_BASE_URL}/api/v1/homes`,
-    devices: `${API_BASE_URL}/api/v1/devices`,
-    automations: `${API_BASE_URL}/api/v1/automations`,
+    rooms: `${API_BASE_URL}/api/v1/rooms`,
+  },
+  devices: {
+    list: `${API_BASE_URL}/api/v1/devices`,
+  },
+  scenes: {
+    list: `${API_BASE_URL}/api/v1/scenes`,
+  },
+  automations: {
+    list: `${API_BASE_URL}/api/v1/automations`,
   }
 };
