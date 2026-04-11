@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Clock, 
@@ -29,16 +29,28 @@ interface AutomationBuilderModalProps {
   onCreated: () => void;
   devices: Device[];
   scenes: Scene[];
+  existingAutomation?: any;
 }
 
 type Step = 'TYPE_SELECTION' | 'TRIGGER_CONFIG' | 'ACTION_SELECTION' | 'ACTION_CONFIG' | 'FINAL';
+
+const HOURS = Array.from({ length: 24 }, (_, i) => ({ 
+  value: i.toString().padStart(2, '0'), 
+  label: i.toString().padStart(2, '0') 
+}));
+
+const MINUTES = Array.from({ length: 60 }, (_, i) => ({ 
+  value: i.toString().padStart(2, '0'), 
+  label: i.toString().padStart(2, '0') 
+}));
 
 const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({ 
   isOpen, 
   onClose, 
   onCreated,
   devices,
-  scenes 
+  scenes,
+  existingAutomation
 }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>('TYPE_SELECTION');
@@ -59,9 +71,31 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     command: 'turn_on'
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      if (existingAutomation) {
+        setName(existingAutomation.name);
+        setTriggerType(existingAutomation.trigger.type);
+        setTriggerConfig({ ...existingAutomation.trigger });
+        setActionType(existingAutomation.action.type);
+        setActionConfig({ ...existingAutomation.action });
+        setStep('FINAL'); // Go straight to review when editing
+      } else {
+        // Reset state for new automation
+        setName('');
+        setTriggerType('device_state_changed');
+        setTriggerConfig({ deviceId: '', stateKey: 'state', expectedValue: 'on' });
+        setActionType('device_command');
+        setActionConfig({ targetDeviceId: '', command: 'turn_on' });
+        setStep('TYPE_SELECTION');
+      }
+      setError(null);
+    }
+  }, [isOpen, existingAutomation]);
+
   if (!isOpen) return null;
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (!name) {
       setError('Name is required');
       return;
@@ -75,8 +109,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
       setIsSubmitting(false);
       return;
     }
-    if (triggerType === 'time' && !triggerConfig.time) {
-      setError('Please select a triggers time');
+    if (triggerType === 'time' && !(triggerConfig.timeLocal || triggerConfig.time)) {
+      setError('Please select a trigger time');
       setIsSubmitting(false);
       return;
     }
@@ -95,7 +129,11 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
       name,
       trigger: {
         type: triggerType,
-        ...triggerConfig
+        ...triggerConfig,
+        ...(triggerType === 'time' ? {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timeLocal: triggerConfig.timeLocal || triggerConfig.time
+        } : {})
       },
       action: {
         type: actionType,
@@ -104,8 +142,12 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     };
 
     try {
-      const res = await fetch(API_ENDPOINTS.automations.list, {
-        method: 'POST',
+      const url = existingAutomation 
+        ? `${API_ENDPOINTS.automations.list}/${existingAutomation.id}`
+        : API_ENDPOINTS.automations.list;
+      
+      const res = await fetch(url, {
+        method: existingAutomation ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -230,15 +272,28 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-foreground/50 uppercase tracking-wider">{t('automations.form.time_label')}</label>
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-foreground/5 rounded-xl border border-foreground/10">
+                  <div className="flex items-center gap-2">
+                    <div className="p-3 bg-foreground/5 rounded-xl border border-foreground/10 h-[50px] flex items-center justify-center">
                       <Clock className="w-5 h-5 text-foreground/40" />
                     </div>
-                    <input 
-                      type="time" 
-                      value={triggerConfig.time || ''}
-                      onChange={(e) => setTriggerConfig({ ...triggerConfig, time: e.target.value })}
-                      className="flex-1 bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-lg"
+                    <Select 
+                      value={(triggerConfig.timeLocal || triggerConfig.time || '12:00').split(':')[0]} 
+                      onChange={(h) => {
+                        const m = (triggerConfig.timeLocal || triggerConfig.time || '12:00').split(':')[1] || '00';
+                        setTriggerConfig({ ...triggerConfig, timeLocal: `${h}:${m}` });
+                      }} 
+                      options={HOURS} 
+                      className="w-24" 
+                    />
+                    <span className="text-xl font-bold text-foreground/20">:</span>
+                    <Select 
+                      value={(triggerConfig.timeLocal || triggerConfig.time || '12:00').split(':')[1] || '00'} 
+                      onChange={(m) => {
+                        const h = (triggerConfig.timeLocal || triggerConfig.time || '12:00').split(':')[0] || '12';
+                        setTriggerConfig({ ...triggerConfig, timeLocal: `${h}:${m}` });
+                      }} 
+                      options={MINUTES} 
+                      className="w-24" 
                     />
                   </div>
                 </div>
@@ -284,7 +339,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                 Back
               </button>
               <button 
-                disabled={!triggerConfig.deviceId && triggerType === 'device_state_changed' || !triggerConfig.time && triggerType === 'time'}
+                disabled={(!triggerConfig.deviceId && triggerType === 'device_state_changed') || (!(triggerConfig.timeLocal || triggerConfig.time) && triggerType === 'time')}
                 onClick={() => setStep('ACTION_SELECTION')}
                 className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30"
               >
@@ -416,7 +471,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                     <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-1">When (Trigger)</span>
                     <p className="text-sm font-medium text-foreground">
                       {triggerType === 'time' 
-                        ? `At ${triggerConfig.time}` 
+                        ? `At ${triggerConfig.timeLocal || triggerConfig.time}` 
                         : `Device ${devices.find(d => d.id === triggerConfig.deviceId)?.name} is ${triggerConfig.expectedValue}`}
                     </p>
                   </div>
@@ -452,10 +507,10 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               </button>
               <button 
                 disabled={isSubmitting}
-                onClick={handleCreate}
+                onClick={handleSubmit}
                 className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-bold transition-all hover:scale-[1.05] active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50"
               >
-                {isSubmitting ? 'Creating...' : 'Save Automation'}
+                {isSubmitting ? (existingAutomation ? 'Saving...' : 'Creating...') : (existingAutomation ? 'Update Automation' : 'Save Automation')}
               </button>
             </div>
           </div>
@@ -474,7 +529,9 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         {/* Header */}
         <div className="p-8 pb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-black text-foreground">{t('automations.create_rule')}</h2>
+            <h2 className="text-2xl font-black text-foreground">
+              {existingAutomation ? t('automations.edit_rule') : t('automations.create_rule')}
+            </h2>
             <div className="flex items-center gap-2 mt-1">
               {[1, 2, 3, 4, 5].map((s) => {
                 const stepIndex = ['TYPE_SELECTION', 'TRIGGER_CONFIG', 'ACTION_SELECTION', 'ACTION_CONFIG', 'FINAL'].indexOf(step) + 1;

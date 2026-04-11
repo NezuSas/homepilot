@@ -1,6 +1,7 @@
 import { AutomationRule, AutomationTrigger, AutomationAction } from './types';
 import { InvalidAutomationRuleError, AutomationLoopError } from '../errors';
 import { IdGenerator } from '../../../shared/domain/types';
+import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
 
 export interface CreateAutomationRulePayload {
   homeId: string;
@@ -28,11 +29,20 @@ export function createAutomationRule(
     if (!payload.trigger.deviceId) throw new InvalidAutomationRuleError('trigger.deviceId');
     if (!payload.trigger.stateKey) throw new InvalidAutomationRuleError('trigger.stateKey');
   } else if (payload.trigger.type === 'time') {
-    if (!payload.trigger.time) throw new InvalidAutomationRuleError('trigger.time');
+    const t = payload.trigger;
+    const timeToValidate = t.timeLocal || t.time; // Soporte legacy en payload si es necesario
+    
+    if (!timeToValidate) throw new InvalidAutomationRuleError('trigger.timeLocal');
+    if (!t.timezone) throw new InvalidAutomationRuleError('trigger.timezone');
+
     // Regex simple para HH:mm
-    if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(payload.trigger.time)) {
-      throw new InvalidAutomationRuleError('trigger.time (format HH:mm)');
+    if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeToValidate)) {
+      throw new InvalidAutomationRuleError('trigger.timeLocal (format HH:mm)');
     }
+
+    // Calcular timeUTC si no viene o para asegurar consistencia server-side
+    t.timeLocal = timeToValidate;
+    t.timeUTC = TimeUtils.convertLocalToUTC(timeToValidate, t.timezone);
   }
 
   // Validar Action

@@ -87,6 +87,12 @@
     "create_rule": "Create Rule",
     "rule_created": "Rule Created Successfully",
     "rule_deleted": "Rule Deleted",
+    "edit_rule": "Edit Rule",
+    "delete_confirm_title": "Delete Automation?",
+    "delete_confirm_description": "This action cannot be undone. This automation will stop monitoring your devices immediately.",
+    "deleted_success": "Automation deleted successfully",
+    "updated_success": "Automation updated successfully",
+    "created_success": "Automation created successfully",
     "empty_state": {
       "title": "No local rules",
       "description": "Create your first local automation to make your home smarter."

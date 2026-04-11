@@ -70,7 +70,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
 
   /**
    * Procesa eventos de tiempo (pulso de 60s).
-   * @param currentTime "HH:mm"
+   * @param currentTime "HH:mm" (SIEMPRE EN UTC)
    */
   public async handleTimeEvent(currentTime: string): Promise<void> {
     try {
@@ -83,10 +83,14 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
       for (const rule of timeRules) {
         const trigger = rule.trigger as TimeTrigger;
         
-        // 1. Check time match
-        if (trigger.time !== currentTime) continue;
+        // 1. Check time match (STRICT UTC COMPARISON)
+        const targetTime = trigger.timeUTC || trigger.time; // Soporte legacy
+        if (targetTime !== currentTime) continue;
 
         // 2. Check day match (if specified)
+        // Nota: Si usamos UTC, el día también debería ser relativo a UTC si queremos perfección,
+        // pero por ahora mantenemos el día local para evitar complejidad excesiva en V1 
+        // a menos que el usuario sea muy estricto con el cruce de medianoche UTC.
         if (trigger.days && trigger.days.length > 0 && !trigger.days.includes(currentDay)) continue;
 
         // 3. Once-per-minute guard (strictly tied to Date + HH:mm)

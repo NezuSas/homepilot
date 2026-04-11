@@ -218,12 +218,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     setTimeout(() => {
       const triggerPulse = () => {
         const pulseDate = new Date();
-        const hh = String(pulseDate.getHours()).padStart(2, '0');
-        const mm = String(pulseDate.getMinutes()).padStart(2, '0');
-        const currentTime = `${hh}:${mm}`;
+        const currentTimeUTC = pulseDate.toISOString().slice(11, 16);
         
-        console.log(`[Pulse] Minute Boundary Reached: ${currentTime}`);
-        automationEngine.handleTimeEvent(currentTime).catch(e => 
+        console.log(`[Pulse] Minute Boundary Reached (UTC): ${currentTimeUTC}`);
+        automationEngine.handleTimeEvent(currentTimeUTC).catch(e => 
           console.error('[Engine] Fallo en pulso de tiempo:', e.message)
         );
       };

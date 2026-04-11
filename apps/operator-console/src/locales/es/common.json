@@ -87,6 +87,12 @@
     "create_rule": "Crear Regla",
     "rule_created": "Regla Creada Exitosamente",
     "rule_deleted": "Regla Eliminada",
+    "edit_rule": "Editar Regla",
+    "delete_confirm_title": "¿Eliminar Automatización?",
+    "delete_confirm_description": "Esta acción no se puede deshacer. Esta automatización dejará de monitorear tus dispositivos de inmediato.",
+    "deleted_success": "Automatización eliminada exitosamente",
+    "updated_success": "Automatización actualizada exitosamente",
+    "created_success": "Automatización creada exitosamente",
     "empty_state": {
       "title": "No hay reglas locales",
       "description": "Crea tu primera automatización local para hacer tu hogar más inteligente."

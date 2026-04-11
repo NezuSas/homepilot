@@ -15,8 +15,13 @@ export interface DeviceStateTrigger {
  */
 export interface TimeTrigger {
   type: 'time';
-  time: string; // "HH:mm" 
-  days?: number[]; // [0,1,2,3,4,5,6] - 0 is Sunday
+  timeLocal: string;    // "HH:mm" (User Input)
+  timezone: string;     // IANA Timezone, e.g. "America/Guayaquil"
+  timeUTC: string;       // "HH:mm" (Server Processed)
+  days?: number[];      // [0,1,2,3,4,5,6] - 0 is Sunday
+  
+  /** @deprecated use timeLocal and timeUTC */
+  time?: string;
 }
 
 export type AutomationTrigger = DeviceStateTrigger | TimeTrigger;

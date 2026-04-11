@@ -2,6 +2,8 @@ import { Database as SqliteDatabase } from 'better-sqlite3';
 import { AutomationRule } from '../../domain/automation/types';
 import { AutomationRuleRepository } from '../../domain/repositories/AutomationRuleRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
+import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
+import { TimeTrigger } from '../../domain/automation/types';
 
 /**
  * Interfaz interna para tipar las filas de la tabla 'automation_rules'.
@@ -150,13 +152,28 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
       const trigger = JSON.parse(raw);
       // Migración al vuelo (Legacy mapping)
       if (!trigger.type) {
-        return {
+        const legacyTrigger = {
           type: 'device_state_changed',
           deviceId: trigger.deviceId,
           stateKey: trigger.stateKey,
           expectedValue: trigger.expectedValue
-        } as AutomationRule['trigger'];
+        } as any;
+        return legacyTrigger;
       }
+
+      // Migración específica para TimeTrigger (Timezone-safe)
+      if (trigger.type === 'time' && (!trigger.timezone || !trigger.timeUTC)) {
+        const timeToUse = trigger.timeLocal || trigger.time || '12:00';
+        const defaultTz = 'UTC'; // Fallback seguro para reglas sin zona horaria
+        
+        return {
+          ...trigger,
+          timeLocal: timeToUse,
+          timezone: defaultTz,
+          timeUTC: TimeUtils.convertLocalToUTC(timeToUse, defaultTz)
+        } as TimeTrigger;
+      }
+
       return trigger as AutomationRule['trigger'];
     } catch {
       throw new Error(`Falló la deserialización del trigger JSON: ${raw}`);

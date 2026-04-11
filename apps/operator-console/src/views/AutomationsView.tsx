@@ -6,11 +6,14 @@ import {
   Zap, 
   Settings2,
   AlertCircle,
-  ToggleLeft as ToggleIcon
+  ToggleLeft as ToggleIcon,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
 import AutomationBuilderModal from './AutomationBuilderModal.tsx';
+import ConfirmModal from './ConfirmModal.tsx';
 
 interface AutomationRule {
   id: string;
@@ -22,6 +25,9 @@ interface AutomationRule {
     stateKey?: string;
     expectedValue?: any;
     time?: string;
+    timeLocal?: string;
+    timezone?: string;
+    timeUTC?: string;
     days?: number[];
   };
   action: {
@@ -49,7 +55,18 @@ const AutomationsView: React.FC = () => {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingAutomation, setEditingAutomation] = useState<AutomationRule | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const fetchJSON = async (url: string, options?: RequestInit) => {
     const res = await fetch(url, options);
@@ -104,13 +121,17 @@ const AutomationsView: React.FC = () => {
   };
 
   const deleteRule = async (id: string) => {
-    if (!confirm(t('common.confirm'))) return;
+    setIsDeleting(true);
     try {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
       setRules(rules.filter(r => r.id !== id));
+      setConfirmDeleteId(null);
+      setNotification({ message: t('automations.deleted_success', { defaultValue: 'Automation deleted successfully' }), type: 'success' });
     } catch (err: any) {
       setError(err.message || 'Failed to delete rule');
       console.error('Failed to delete rule', err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -123,7 +144,7 @@ const AutomationsView: React.FC = () => {
     let actionText = '';
 
     if (trigger.type === 'time') {
-      triggerText = t('automations.summary.at_time', { time: trigger.time });
+      triggerText = t('automations.summary.at_time', { time: trigger.timeLocal || trigger.time });
     } else {
       triggerText = t('automations.summary.when_device', { 
         name: getDeviceName(trigger.deviceId), 
@@ -254,7 +275,17 @@ const AutomationsView: React.FC = () => {
                       <ToggleIcon className={`w-6 h-6 transition-transform ${rule.enabled ? '' : 'rotate-180 opacity-50'}`} />
                     </button>
                     <button 
-                      onClick={() => deleteRule(rule.id)}
+                      onClick={() => {
+                        setEditingAutomation(rule);
+                        setIsBuilderOpen(true);
+                      }}
+                      className="p-2 text-foreground/30 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                      title={t('common.edit')}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setConfirmDeleteId(rule.id)}
                       className="p-2 text-foreground/30 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                       title={t('common.delete')}
                     >
@@ -287,15 +318,46 @@ const AutomationsView: React.FC = () => {
       {isBuilderOpen && (
         <AutomationBuilderModal 
           isOpen={isBuilderOpen}
-          onClose={() => setIsBuilderOpen(false)}
+          existingAutomation={editingAutomation}
+          onClose={() => {
+            setIsBuilderOpen(false);
+            setEditingAutomation(null);
+          }}
           onCreated={() => {
             setIsBuilderOpen(false);
+            setEditingAutomation(null);
             fetchData();
+            setNotification({ 
+              message: editingAutomation 
+                ? t('automations.updated_success', { defaultValue: 'Automation updated successfully' }) 
+                : t('automations.created_success', { defaultValue: 'Automation created successfully' }), 
+              type: 'success' 
+            });
           }}
           devices={devices}
           scenes={scenes}
         />
       )}
+
+      {notification && (
+        <div className={`fixed bottom-8 right-8 z-[110] px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-right-8 fade-in flex items-center gap-3 border border-foreground/10 bg-card/80 backdrop-blur-xl ${
+          notification.type === 'success' ? 'text-green-500' : 'text-red-500'
+        }`}>
+          {notification.type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          <span className="font-bold text-sm tracking-tight">{notification.message}</span>
+        </div>
+      )}
+
+      <ConfirmModal 
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => confirmDeleteId && deleteRule(confirmDeleteId)}
+        title={t('automations.delete_confirm_title', { defaultValue: 'Delete Automation?' })}
+        description={t('automations.delete_confirm_description', { defaultValue: 'This action cannot be undone.' })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        isSubmitting={isDeleting}
+      />
     </div>
   );
 };

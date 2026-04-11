@@ -1,5 +1,6 @@
-import { AutomationRule, AutomationTrigger, AutomationAction } from './types';
+import { AutomationRule, AutomationTrigger, AutomationAction, TimeTrigger } from './types';
 import { InvalidAutomationRuleError, AutomationLoopError } from '../errors';
+import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
 
 /**
  * Subset de campos que el dueño de la regla puede modificar.
@@ -29,9 +30,24 @@ export function updateAutomationRule(
   }
 
   // Resolver trigger y action finales (patch parcial: solo se reemplaza si viene en el payload)
-  const resolvedTrigger = patch.trigger !== undefined
-    ? Object.freeze({ ...patch.trigger })
-    : existing.trigger;
+  let resolvedTrigger = patch.trigger !== undefined
+    ? { ...patch.trigger }
+    : { ...existing.trigger };
+
+  if (patch.trigger !== undefined && patch.trigger.type === 'time') {
+    const t = resolvedTrigger as TimeTrigger;
+    const timeToValidate = t.timeLocal || t.time;
+    
+    if (!timeToValidate) throw new InvalidAutomationRuleError('trigger.timeLocal');
+    if (!t.timezone) throw new InvalidAutomationRuleError('trigger.timezone');
+
+    if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeToValidate)) {
+      throw new InvalidAutomationRuleError('trigger.timeLocal (format HH:mm)');
+    }
+
+    t.timeLocal = timeToValidate;
+    t.timeUTC = TimeUtils.convertLocalToUTC(timeToValidate, t.timezone);
+  }
 
   const resolvedAction = patch.action !== undefined
     ? Object.freeze({ ...patch.action })
