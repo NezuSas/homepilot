@@ -35,7 +35,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
    */
   public async saveActivity(record: ActivityRecord): Promise<void> {
     const serializedData = this.serializeData(record.data);
-    const correlationId = null; // Reservado para V2
+    const correlationId = record.correlationId || null;
 
     const stmt = this.db.prepare(`
       INSERT INTO activity_logs (device_id, type, description, data, timestamp, correlation_id)
@@ -91,6 +91,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
       type: row.type as ActivityType,
       description: row.description,
       data: this.deserializeData(row.data),
+      ...(row.correlation_id ? { correlationId: row.correlation_id } : {})
     };
   }
 

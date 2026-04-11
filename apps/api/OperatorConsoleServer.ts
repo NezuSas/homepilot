@@ -571,6 +571,16 @@ export class OperatorConsoleServer {
         };
 
         const commandStr = payload.action;
+        const correlationId = crypto.randomUUID();
+
+        await this.container.repositories.activityLogRepository.saveActivity({
+          timestamp: new Date().toISOString(),
+          deviceId: null,
+          correlationId,
+          type: 'SCENE_EXECUTION_STARTED',
+          description: `User triggered Quick Action on Room`,
+          data: { roomId, userId: authReq.user.id, action: commandStr, totalActions: targetDevices.length }
+        });
 
         // Execute sequentially to avoid HA API rate limits or congestion, if needed. 
         // We will execute in parallel but wait for all to settle.
@@ -580,7 +590,7 @@ export class OperatorConsoleServer {
                d.id, 
                commandStr, 
                authReq.user.id, 
-               'op-console', 
+               correlationId, 
                executeDeps,
                { customDescription: `Room scene ${commandStr} dispatched.` }
              )
@@ -608,6 +618,19 @@ export class OperatorConsoleServer {
           failed: failedCount,
           failures: structuredFailures
         };
+
+        let resultType = 'SCENE_EXECUTION_COMPLETED' as any;
+        if (failedCount === totalCount) resultType = 'SCENE_EXECUTION_FAILED';
+        else if (failedCount > 0) resultType = 'SCENE_EXECUTION_FAILED';
+        
+        await this.container.repositories.activityLogRepository.saveActivity({
+          timestamp: new Date().toISOString(),
+          deviceId: null,
+          correlationId,
+          type: resultType,
+          description: `Room action finished with ${failedCount} failures`,
+          data: { roomId, failedCount, totalCount, isPartial: failedCount > 0 && failedCount < totalCount }
+        });
 
         if (failedCount === totalCount) {
           this.sendJson(res, responseBody, 500);
@@ -737,13 +760,24 @@ export class OperatorConsoleServer {
           clock: { now: () => new Date().toISOString() }
         };
 
+        const correlationId = crypto.randomUUID();
+
+        await this.container.repositories.activityLogRepository.saveActivity({
+          timestamp: new Date().toISOString(),
+          deviceId: null,
+          correlationId,
+          type: 'SCENE_EXECUTION_STARTED',
+          description: `User triggered Scene "${scene.name}"`,
+          data: { sceneId: scene.id, userId: authReq.user.id, name: scene.name, totalActions: scene.actions.length }
+        });
+
         const results = await Promise.allSettled(
           scene.actions.map(action => 
              executeDeviceCommandUseCase(
                action.deviceId, 
                action.command, 
                authReq.user.id, 
-               'op-console', 
+               correlationId, 
                executeDeps,
                { customDescription: `Persistent Scene "${scene.name}" dispatched: ${action.command}` }
              )
@@ -770,12 +804,16 @@ export class OperatorConsoleServer {
           failures: structuredFailures
         };
 
-        // Log SCENE_EXECUTED activity
+        let resultType = 'SCENE_EXECUTION_COMPLETED' as any;
+        if (failedCount === totalCount) resultType = 'SCENE_EXECUTION_FAILED';
+        else if (failedCount > 0) resultType = 'SCENE_EXECUTION_FAILED';
+
         try {
           await this.container.repositories.activityLogRepository.saveActivity({
             timestamp: new Date().toISOString(),
-            deviceId: 'system',
-            type: 'COMMAND_DISPATCHED', // Reuse COMMAND_DISPATCHED or create SCENE_EXECUTED. SCENE_EXECUTED is clearer.
+            deviceId: null,
+            correlationId,
+            type: resultType,
             description: `Scene "${scene.name}" executed by ${authReq.user.username}. (${totalCount - failedCount}/${totalCount} success)`,
             data: {
               sceneId: scene.id,
@@ -783,7 +821,8 @@ export class OperatorConsoleServer {
               userId: authReq.user.id,
               totalActions: totalCount,
               failedActions: failedCount,
-              failures: structuredFailures
+              failures: structuredFailures,
+              isPartial: failedCount > 0 && failedCount < totalCount
             }
           });
         } catch (logErr: any) {
@@ -1066,7 +1105,8 @@ export class OperatorConsoleServer {
         const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
         const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
         const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
-        await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, authReq.user.id, 'op-console', {
+        const correlationId = crypto.randomUUID();
+        await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, authReq.user.id, correlationId, {
           deviceRepository: this.container.repositories.deviceRepository,
           eventPublisher: { publish: async () => {} },
           topologyPort: { validateHomeExists: async () => {}, validateHomeOwnership: async () => {}, validateRoomBelongsToHome: async () => {} },

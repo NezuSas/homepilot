@@ -39,7 +39,8 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     private readonly deviceRepository: DeviceRepository,
     private readonly sceneRepository: SceneRepository,
     private readonly commandDispatcher: AutomationCommandDispatcher,
-    private readonly activityLogRepository: ActivityLogRepository
+    private readonly activityLogRepository: ActivityLogRepository,
+    private readonly idGenerator: { generate: () => string }
   ) {
     // Cronjob primitivo para limpiar fugas de memoria en la caché de deduplicación
     setInterval(() => this.cleanCache(), 60000).unref();
@@ -102,7 +103,8 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         this.timeFireGuard.set(rule.id, fireKey);
         
         try {
-          await this.executeRuleActions(rule, `time:${currentTime}`);
+          const correlationId = this.idGenerator.generate();
+          await this.executeRuleActions(rule, correlationId);
         } catch (ruleError: any) {
           console.error(`[AutomationEngine] Error ejecutando regla de tiempo ${rule.id}:`, ruleError.message);
         }
@@ -203,16 +205,17 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     try {
       await this.activityLogRepository.saveActivity({
         timestamp: new Date().toISOString(),
-        deviceId: 'system',
-        type: status === 'error' ? 'AUTOMATION_FAILED' : 'COMMAND_DISPATCHED',
-        description: `[Automation: ${rule.name}] ${reason} (correlationId: ${correlationId})`,
+        deviceId: null,
+        type: status === 'error' ? 'AUTOMATION_FAILED' : 'AUTOMATION_EXECUTED',
+        description: `Automation "${rule.name}" ${status === 'error' ? 'failed' : 'executed successfully'}.`,
+        correlationId,
         data: {
           ruleId: rule.id,
+          ruleName: rule.name,
           trigger: rule.trigger,
           action: rule.action,
           status: status === 'error' ? 'failed' : 'executed',
-          correlationId,
-          timestamp: new Date().toISOString()
+          reason: status === 'error' ? reason : undefined
         }
       });
     } catch {

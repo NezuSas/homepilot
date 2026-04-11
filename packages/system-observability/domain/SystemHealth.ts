@@ -64,4 +64,5 @@ export interface DiagnosticEvent {
   readonly eventType: string;
   readonly description: string;
   readonly data: Record<string, unknown>;
+  readonly correlationId?: string;
 }

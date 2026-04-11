@@ -138,7 +138,8 @@ export class DiagnosticsService {
         category,
         eventType,
         description: log.description,
-        data: log.data || {}
+        data: log.data || {},
+        correlationId: log.correlationId
       });
     }
 

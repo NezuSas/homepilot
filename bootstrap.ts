@@ -15,6 +15,7 @@ import { HomeAssistantSettingsService } from './packages/integrations/home-assis
 import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import { AutomationEngine } from './packages/automation/application/AutomationEngine';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
+import { executeDeviceCommandUseCase } from './packages/devices/application/executeDeviceCommandUseCase';
 
 import { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -152,55 +153,102 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     sceneRepository,
     {
       dispatchCommand: async (homeId, deviceId, command, correlationId) => {
-        const target = await deviceRepository.findDeviceById(deviceId);
-        if (!target || !target.externalId.startsWith('ha:')) return;
-        
-        const fullEntityId = target.externalId.split(':')[1];
-        const [domain] = fullEntityId.split('.');
-        
-        let service = '';
-        if (command === 'turn_on') service = 'turn_on';
-        if (command === 'turn_off') service = 'turn_off';
-        if (command === 'toggle') service = 'toggle';
-        
-        if (service) {
-           console.log(`[AutomationEngine] Dispatching HA command: ${domain}.${service} for ${fullEntityId}`);
-           await connectionProvider.getClient().callService(domain, service, fullEntityId);
-        }
-      },
-      executeScene: async (homeId, sceneId, correlationId) => {
-        const scene = await sceneRepository.findSceneById(sceneId);
-        if (!scene) return;
-
-        const syncDeps = {
-          deviceRepository: deviceRepository,
+        const executeDeps = {
+          deviceRepository,
           eventPublisher: { publish: async () => {} },
-          activityLogRepository: activityLogRepository,
+          topologyPort: { 
+            validateHomeExists: async () => {}, 
+            validateHomeOwnership: async () => {}, 
+            validateRoomBelongsToHome: async () => {} 
+          },
+          dispatcherPort: {
+            dispatch: async (dId: string, cmd: string) => {
+               const target = await deviceRepository.findDeviceById(dId);
+               if (!target || !target.externalId.startsWith('ha:')) return;
+               const [domain] = target.externalId.split(':')[1].split('.');
+               let service = '';
+               if (cmd === 'turn_on') service = 'turn_on';
+               if (cmd === 'turn_off') service = 'turn_off';
+               if (cmd === 'toggle') service = 'toggle';
+               if (service) {
+                  await connectionProvider.getClient().callService(domain, service, target.externalId.split(':')[1]);
+               }
+            }
+          },
+          activityLogRepository,
           idGenerator: { generate: () => crypto.randomUUID() },
           clock: { now: () => new Date().toISOString() }
         };
 
-        // Reutilizamos el CompositeCommandDispatcher (que definiremos abajo o inline)
-        const localDispatcher = { dispatchCommand: async () => {} }; // Simplificado para automaciones HA mostly
-        const haDispatcher = { 
-          dispatchCommand: async (hId: string, dId: string, cmd: string) => {
-             const target = await deviceRepository.findDeviceById(dId);
-             if (!target || !target.externalId.startsWith('ha:')) return;
-             const [domain] = target.externalId.split(':')[1].split('.');
-             await connectionProvider.getClient().callService(domain, cmd, target.externalId.split(':')[1]);
-          }
-        };
+        await executeDeviceCommandUseCase(
+          deviceId,
+          command,
+          'system',
+          correlationId,
+          executeDeps,
+          { isAutomation: true }
+        );
+      },
+      executeScene: async function(homeId, sceneId, correlationId) {
+        const scene = await sceneRepository.findSceneById(sceneId);
+        if (!scene) return;
 
-        for (const action of scene.actions) {
-          try {
-             await haDispatcher.dispatchCommand(homeId, action.deviceId, action.command);
-          } catch (e: any) {
-             console.error(`[AutomationEngine] Error in scene action:`, e.message);
+        try {
+          // Log parent trace for scene started by automation
+          await activityLogRepository.saveActivity({
+            timestamp: new Date().toISOString(),
+            deviceId: null,
+            correlationId,
+            type: 'SCENE_EXECUTION_STARTED',
+            description: `Automation triggered Scene "${scene.name}"`,
+            data: { sceneId: scene.id, name: scene.name }
+          });
+
+          let failedCount = 0;
+          for (const action of scene.actions) {
+            try {
+               await this.dispatchCommand(homeId, action.deviceId, action.command, correlationId);
+            } catch (e: any) {
+               failedCount++;
+               console.error(`[AutomationEngine] Error in scene action:`, e.message);
+            }
           }
+
+          if (failedCount > 0 && failedCount < scene.actions.length) {
+            await activityLogRepository.saveActivity({
+              timestamp: new Date().toISOString(),
+              deviceId: null,
+              correlationId,
+              type: 'SCENE_EXECUTION_FAILED',
+              description: `Scene "${scene.name}" executed with ${failedCount} failures`,
+              data: { sceneId: scene.id, failedCount, totalCount: scene.actions.length, isPartial: true }
+            });
+          } else if (failedCount === scene.actions.length && scene.actions.length > 0) {
+            await activityLogRepository.saveActivity({
+              timestamp: new Date().toISOString(),
+              deviceId: null,
+              correlationId,
+              type: 'SCENE_EXECUTION_FAILED',
+              description: `Scene "${scene.name}" failed completely`,
+              data: { sceneId: scene.id, failedCount, totalCount: scene.actions.length }
+            });
+          } else {
+            await activityLogRepository.saveActivity({
+              timestamp: new Date().toISOString(),
+              deviceId: null,
+              correlationId,
+              type: 'SCENE_EXECUTION_COMPLETED',
+              description: `Scene "${scene.name}" executed successfully`,
+              data: { sceneId: scene.id, totalCount: scene.actions.length }
+            });
+          }
+        } catch (sceneErr: any) {
+           console.error('[AutomationEngine] Fatal scene error:', sceneErr);
         }
       }
     },
-    activityLogRepository
+    activityLogRepository,
+    { generate: () => crypto.randomUUID() } // idGenerator para AutomationEngine
   );
 
   syncManager.removeAllListeners('system_event');

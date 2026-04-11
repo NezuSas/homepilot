@@ -37,6 +37,7 @@ interface DiagnosticEvent {
   eventType: string;
   description: string;
   data: Record<string, any>;
+  correlationId?: string;
 }
 
 export function DiagnosticsView() {
@@ -45,6 +46,16 @@ export function DiagnosticsView() {
   const [events, setEvents] = useState<DiagnosticEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const fetchDiagnostics = async () => {
     try {
@@ -261,36 +272,99 @@ export function DiagnosticsView() {
       <div className="space-y-4 pt-4">
         <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">Filtered Timeline</h3>
         <div className="border border-border bg-card rounded-2xl overflow-hidden">
-          <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="divide-y divide-border/50 max-h-[600px] overflow-y-auto custom-scrollbar">
             {events.length === 0 ? (
               <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
                 <Activity className="w-8 h-8 mb-4 text-muted-foreground" />
                 <p className="text-[10px] font-black uppercase tracking-widest">{t('diagnostics.no_events')}</p>
               </div>
             ) : (
-              events.map((ev, i) => (
-                <div key={i} className="p-5 flex gap-4 hover:bg-muted/50 transition-colors">
-                  <div className="w-24 shrink-0 text-[10px] text-muted-foreground font-mono font-bold mt-1">
-                    {new Date(ev.occurredAt).toLocaleTimeString()}
-                  </div>
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary">
-                        {ev.category}
-                      </span>
-                      <span className="font-bold text-sm tracking-tight">{ev.eventType}</span>
+              (() => {
+                const groupedEvents: { id: string, main: DiagnosticEvent, children: DiagnosticEvent[] }[] = [];
+                const correlationMap = new Map<string, typeof groupedEvents[0]>();
+
+                events.forEach((ev, i) => {
+                  if (!ev.correlationId) {
+                    groupedEvents.push({ id: `standalone-${i}`, main: ev, children: [] });
+                  } else {
+                    if (!correlationMap.has(ev.correlationId)) {
+                      const newGroup = { id: ev.correlationId, main: ev, children: [] };
+                      correlationMap.set(ev.correlationId, newGroup);
+                      groupedEvents.push(newGroup);
+                    } else {
+                      correlationMap.get(ev.correlationId)!.children.push(ev);
+                    }
+                  }
+                });
+
+                return groupedEvents.map((group) => {
+                  const ev = group.main;
+                  const isExpanded = expandedIds.has(group.id);
+                  const hasChildren = group.children.length > 0;
+                  const hasData = Object.keys(ev.data).length > 0;
+                  
+                  const isError = ev.eventType.includes('failed') || ev.eventType.includes('FAILED') || ev.eventType.includes('error');
+                  
+                  return (
+                    <div key={group.id} className={cn("p-5 flex flex-col gap-4 hover:bg-muted/50 transition-colors", isError ? "bg-red-500/5 hover:bg-red-500/10" : "")}>
+                      <div 
+                        className="flex gap-4 cursor-pointer" 
+                        onClick={() => toggleExpand(group.id)}
+                      >
+                        <div className="w-24 shrink-0 text-[10px] text-muted-foreground font-mono font-bold mt-1">
+                          {new Date(ev.occurredAt).toLocaleTimeString()}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", isError ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary")}>
+                              {ev.category}
+                            </span>
+                            <span className={cn("font-bold text-sm tracking-tight", isError ? "text-red-500" : "")}>{ev.eventType}</span>
+                            {(hasChildren || hasData) && (
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
+                                {isExpanded ? t('diagnostics.hide_details', 'Hide Details') : t('diagnostics.view_details', 'View Details')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-foreground/70">{ev.description}</p>
+                        </div>
+                      </div>
+                      
+                      {isExpanded && (hasData || hasChildren) && (
+                        <div className="ml-28 pl-4 border-l-2 border-border/50 flex flex-col gap-4 mt-2">
+                          {hasData && (
+                            <div className="text-[10px] font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
+                              <span className="font-bold uppercase tracking-widest opacity-60 mb-2 block">{t('diagnostics.payload', 'Payload')}</span>
+                              {Object.entries(ev.data).map(([key, val]) => (
+                                <div key={key}><span className="opacity-50">{key}:</span> {typeof val === 'object' ? JSON.stringify(val) : String(val)}</div>
+                              ))}
+                            </div>
+                          )}
+
+                          {hasChildren && (
+                            <div className="flex flex-col gap-3 mt-2">
+                              <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">{t('diagnostics.trace_events', 'Trace Events')}</span>
+                              {group.children.map((child, cIdx) => (
+                                <div key={cIdx} className="flex gap-4 items-start text-xs text-muted-foreground bg-card border rounded p-3">
+                                  <div className="w-20 shrink-0 font-mono opacity-60">
+                                    {new Date(child.occurredAt).toLocaleTimeString()}
+                                  </div>
+                                  <div className="flex-1 space-y-1">
+                                    <div className="font-bold flex items-center gap-2">
+                                      <span className={child.eventType.includes('FAILED') ? 'text-red-500' : 'text-foreground'}>{child.eventType}</span>
+                                    </div>
+                                    <div className="opacity-80">{child.description}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm font-medium text-foreground/70">{ev.description}</p>
-                    {Object.keys(ev.data).length > 0 && (
-                       <div className="mt-2 text-[10px] font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg flex flex-col">
-                          {Object.entries(ev.data).map(([key, val]) => (
-                            <span key={key}><span className="opacity-50">{key}:</span> {typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
-                          ))}
-                       </div>
-                    )}
-                  </div>
-                </div>
-              ))
+                  );
+                });
+              })()
             )}
           </div>
         </div>

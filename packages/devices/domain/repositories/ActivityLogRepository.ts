@@ -5,7 +5,11 @@ export type ActivityType =
   | 'STATE_CHANGED' 
   | 'COMMAND_DISPATCHED' 
   | 'COMMAND_FAILED' 
+  | 'AUTOMATION_EXECUTED'
   | 'AUTOMATION_FAILED' 
+  | 'SCENE_EXECUTION_STARTED'
+  | 'SCENE_EXECUTION_COMPLETED'
+  | 'SCENE_EXECUTION_FAILED'
   | 'HA_RESILIENCE'
   | 'USER_CREATED'
   | 'USER_DEACTIVATED'
@@ -18,10 +22,11 @@ export type ActivityType =
  */
 export interface ActivityRecord {
   readonly timestamp: string;
-  readonly deviceId: string;
+  readonly deviceId: string | null;
   readonly type: ActivityType;
   readonly description: string;
   readonly data: Record<string, unknown>;
+  readonly correlationId?: string;
 }
 
 /**

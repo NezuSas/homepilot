@@ -200,7 +200,11 @@
       "divergences_fixed": "Divergences Fixed",
       "last_cycle": "Last Cycle"
     },
-    "timeline": "Filtered Timeline"
+    "timeline": "Filtered Timeline",
+    "view_details": "View Details",
+    "hide_details": "Hide Details",
+    "payload": "Payload",
+    "trace_events": "Trace Events"
   },
   "audit_logs": {
     "loading": "Retrieving security logs...",

@@ -200,7 +200,11 @@
       "divergences_fixed": "Divergencias Corregidas",
       "last_cycle": "Último Ciclo"
     },
-    "timeline": "Línea de Tiempo Filtrada"
+    "timeline": "Línea de Tiempo Filtrada",
+    "view_details": "Ver Detalles",
+    "hide_details": "Ocultar Detalles",
+    "payload": "Carga Útil",
+    "trace_events": "Eventos de Trazabilidad"
   },
   "audit_logs": {
     "loading": "Recuperando registros de seguridad...",

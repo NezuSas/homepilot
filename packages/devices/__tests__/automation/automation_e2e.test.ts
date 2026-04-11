@@ -51,7 +51,8 @@ describe('Automation E2E: Full Reactive Flow', () => {
       deviceRepo,
       sceneRepoMock,
       dispatcherMock,
-      logRepo
+      logRepo,
+      idGen
     );
   });
 

@@ -36,7 +36,8 @@ describe('Automation Engine: Reactive Execution', () => {
       deviceRepo,
       sceneRepoMock,
       dispatcherMock,
-      logRepo
+      logRepo,
+      { generate: () => 'test-id' }
     );
   });
 
