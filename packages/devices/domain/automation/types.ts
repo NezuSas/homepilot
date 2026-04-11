@@ -3,23 +3,46 @@ import { DeviceCommandV1 } from '../commands';
 /**
  * Representa el disparador de una regla basado en el cambio de estado de un dispositivo.
  */
-export interface AutomationTrigger {
-  readonly deviceId: string;
-  readonly stateKey: string;
-  readonly expectedValue: string | number | boolean;
+export interface DeviceStateTrigger {
+  type: 'device_state_changed';
+  deviceId: string;
+  stateKey: string;
+  expectedValue: string | number | boolean;
 }
 
 /**
- * Representa la acción a ejecutar cuando se cumple el disparador.
+ * Representa el disparador de una regla basado en una hora específica.
  */
-export interface AutomationAction {
-  readonly targetDeviceId: string;
-  readonly command: DeviceCommandV1;
+export interface TimeTrigger {
+  type: 'time';
+  time: string; // "HH:mm" 
+  days?: number[]; // [0,1,2,3,4,5,6] - 0 is Sunday
 }
+
+export type AutomationTrigger = DeviceStateTrigger | TimeTrigger;
+
+/**
+ * Representa la acción de ejecutar un comando sobre un dispositivo.
+ */
+export interface DeviceCommandAction {
+  type: 'device_command';
+  targetDeviceId: string;
+  command: DeviceCommandV1;
+}
+
+/**
+ * Representa la acción de ejecutar una escena guardada.
+ */
+export interface SceneAction {
+  type: 'execute_scene';
+  sceneId: string;
+}
+
+export type AutomationAction = DeviceCommandAction | SceneAction;
 
 /**
  * Entidad central de Automatización V1 (Borrador/Inmutable).
- * Define una relación IF-THEN entre dos estados/dispositivos dentro de un hogar.
+ * Define una relación IF-THEN entre una condición y una acción.
  */
 export interface AutomationRule {
   readonly id: string;

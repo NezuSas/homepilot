@@ -54,8 +54,8 @@ describe('OperatorConsoleServer Integration Tests', () => {
     beforeAll(async () => {
       await container.repositories.automationRuleRepository.save({
         id: rid, homeId: 'h-01', userId: 'u-01', name: 'R', enabled: true,
-        trigger: { deviceId: 'd-01', stateKey: 'on', expectedValue: true },
-        action: { targetDeviceId: 'd-02', command: 'turn_off' }
+        trigger: { type: 'device_state_changed', deviceId: 'd-01', stateKey: 'on', expectedValue: true },
+        action: { type: 'device_command', targetDeviceId: 'd-02', command: 'turn_off' }
       });
     });
 
@@ -82,7 +82,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          action: { targetDeviceId: 'd-01', command: 'turn_off' }
+          action: { type: 'device_command', targetDeviceId: 'd-01', command: 'turn_off' }
         })
       });
       expect(res.status).toBe(400);

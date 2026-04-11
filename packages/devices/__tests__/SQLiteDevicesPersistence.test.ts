@@ -124,8 +124,8 @@ describe('SQLite Devices Persistence Integration', () => {
       userId: 'user-1',
       name: 'Activar Luz de Noche',
       enabled: true,
-      trigger: { deviceId: 'dev-1', stateKey: 'motion', expectedValue: true },
-      action: { targetDeviceId: 'dev-1', command: 'turn_on' }
+      trigger: { type: 'device_state_changed' as const, deviceId: 'dev-1', stateKey: 'motion', expectedValue: true },
+      action: { type: 'device_command' as const, targetDeviceId: 'dev-1', command: 'turn_on' as any }
     };
 
     it('debe guardar y recuperar una regla, reconstruyendo payloads en memoria', async () => {
@@ -134,8 +134,8 @@ describe('SQLite Devices Persistence Integration', () => {
       const retrieved = await ruleRepo.findById('rule-1');
       expect(retrieved).not.toBeNull();
       expect(retrieved?.enabled).toBe(true);
-      expect(retrieved?.trigger.deviceId).toBe('dev-1');
-      expect(retrieved?.action.command).toBe('turn_on');
+      expect((retrieved?.trigger as any).deviceId).toBe('dev-1');
+      expect((retrieved?.action as any).command).toBe('turn_on');
     });
 
     it('findByTriggerDevice devuelve solo reglas en estado activo', async () => {

@@ -46,8 +46,8 @@ describe('Automation API: AutomationController', () => {
 
   const saveBaseRule = () => ruleRepo.save({
     id: 'r1', homeId: 'home-1', userId: 'u1', name: 'Rule 1', enabled: true,
-    trigger: { deviceId: 'd1', stateKey: 'k', expectedValue: 'v' },
-    action: { targetDeviceId: 'd2', command: 'turn_on' as const }
+    trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 'k', expectedValue: 'v' },
+    action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
   });
 
   // ---------------------------------------------------------------------------
@@ -61,8 +61,8 @@ describe('Automation API: AutomationController', () => {
       params: { homeId: 'home-1' },
       body: {
         name: 'Test Rule',
-        trigger: { deviceId: 'd1', stateKey: 'contact', expectedValue: 'open' },
-        action: { deviceId: 'd2', command: 'turn_on' as const }
+        trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 'contact', expectedValue: 'open' },
+        action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
       }
     };
 
@@ -88,8 +88,8 @@ describe('Automation API: AutomationController', () => {
       params: { homeId: 'home-1' },
       body: {
         name: 'Invalid Type',
-        trigger: { deviceId: 'd1', stateKey: 'k', expectedValue: { o: 'b' } },
-        action: { deviceId: 'd2', command: 'turn_on' as const }
+        trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 'k', expectedValue: { o: 'b' } },
+        action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
       }
     };
     const res = await controller.createRule(req);
@@ -133,8 +133,8 @@ describe('Automation API: AutomationController', () => {
   it('enableRule: debe retornar 200 con la regla habilitada', async () => {
     await ruleRepo.save({
       id: 'r1', homeId: 'home-1', userId: 'u1', name: 'Disabled', enabled: false,
-      trigger: { deviceId: 'd1', stateKey: 'k', expectedValue: 'v' },
-      action: { targetDeviceId: 'd2', command: 'turn_on' as const }
+      trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 'k', expectedValue: 'v' },
+      action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
     });
     const req: AuthenticatedHttpRequest = { userId: 'u1', params: { ruleId: 'r1' } };
     const res = await controller.enableRule(req);
@@ -214,7 +214,7 @@ describe('Automation API: AutomationController', () => {
       userId: 'u1',
       params: { ruleId: 'r1' },
       body: {
-        trigger: { deviceId: 'd1', stateKey: 'k', expectedValue: { nested: 'object' } }
+        trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 'k', expectedValue: { nested: 'object' } }
       }
     };
     const res = await controller.updateRule(req);
@@ -251,7 +251,7 @@ describe('Automation API: AutomationController', () => {
       userId: 'u1',
       params: { ruleId: 'r1' },
       body: {
-        action: { deviceId: 'd2', command: 'fly_to_moon' }
+        action: { type: 'device_command', targetDeviceId: 'd2', command: 'fly_to_moon' }
       }
     };
     const res = await controller.updateRule(req);

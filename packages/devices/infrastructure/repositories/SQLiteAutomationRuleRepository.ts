@@ -143,10 +143,21 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
 
   /**
    * Helper privado tipado para deserializar el objeto trigger con seguridad de fallos.
+   * Soporta compatibilidad con reglas legadas (v1.0) sin campo 'type'.
    */
   private deserializeTrigger(raw: string): AutomationRule['trigger'] {
     try {
-      return JSON.parse(raw) as AutomationRule['trigger'];
+      const trigger = JSON.parse(raw);
+      // Migración al vuelo (Legacy mapping)
+      if (!trigger.type) {
+        return {
+          type: 'device_state_changed',
+          deviceId: trigger.deviceId,
+          stateKey: trigger.stateKey,
+          expectedValue: trigger.expectedValue
+        } as AutomationRule['trigger'];
+      }
+      return trigger as AutomationRule['trigger'];
     } catch {
       throw new Error(`Falló la deserialización del trigger JSON: ${raw}`);
     }
@@ -161,10 +172,20 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
 
   /**
    * Helper privado tipado para deserializar el objeto action con seguridad de fallos.
+   * Soporta compatibilidad con reglas legadas (v1.0) sin campo 'type'.
    */
   private deserializeAction(raw: string): AutomationRule['action'] {
     try {
-      return JSON.parse(raw) as AutomationRule['action'];
+      const action = JSON.parse(raw);
+      // Migración al vuelo (Legacy mapping)
+      if (!action.type) {
+        return {
+          type: 'device_command',
+          targetDeviceId: action.targetDeviceId,
+          command: action.command
+        } as AutomationRule['action'];
+      }
+      return action as AutomationRule['action'];
     } catch {
       throw new Error(`Falló la deserialización de action JSON: ${raw}`);
     }

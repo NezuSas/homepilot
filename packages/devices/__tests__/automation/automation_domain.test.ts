@@ -6,14 +6,16 @@ describe('Automation Domain: createAutomationRule', () => {
   const idGen = { generate: () => 'rule-test-id' };
 
   const validTrigger = {
+    type: 'device_state_changed' as const,
     deviceId: 'sensor-1',
     stateKey: 'contact',
     expectedValue: 'open'
   };
 
   const validAction = {
+    type: 'device_command' as const,
     targetDeviceId: 'light-1',
-    command: 'turn_on' as const
+    command: 'turn_on' as any
   };
 
   it('AC1: debe crear una regla válida con todos los campos y aplicar trimming al nombre', () => {
@@ -28,7 +30,7 @@ describe('Automation Domain: createAutomationRule', () => {
     expect(rule.id).toBe('rule-test-id');
     expect(rule.name).toBe('My Rule');
     expect(rule.enabled).toBe(true);
-    expect(rule.trigger.deviceId).toBe('sensor-1');
+    expect((rule.trigger as any).deviceId).toBe('sensor-1');
   });
 
   it('debe fallar si el nombre está vacío o solo tiene espacios', () => {
@@ -57,21 +59,21 @@ describe('Automation Domain: createAutomationRule', () => {
       trigger: { ...validTrigger, expectedValue: true },
       action: validAction
     }, idGen);
-    expect(typeof ruleBool.trigger.expectedValue).toBe('boolean');
+    expect(typeof (ruleBool.trigger as any).expectedValue).toBe('boolean');
 
     const ruleNum = createAutomationRule({
       homeId: 'h1', userId: 'u1', name: 'N',
       trigger: { ...validTrigger, expectedValue: 42 },
       action: validAction
     }, idGen);
-    expect(typeof ruleNum.trigger.expectedValue).toBe('number');
+    expect(typeof (ruleNum.trigger as any).expectedValue).toBe('number');
 
     const ruleStr = createAutomationRule({
       homeId: 'h1', userId: 'u1', name: 'N',
       trigger: { ...validTrigger, expectedValue: 'on' },
       action: validAction
     }, idGen);
-    expect(typeof ruleStr.trigger.expectedValue).toBe('string');
+    expect(typeof (ruleStr.trigger as any).expectedValue).toBe('string');
   });
 });
 
@@ -83,16 +85,16 @@ describe('Automation Domain: updateAutomationRule', () => {
     userId: 'user-owner',
     name: 'Regla Original',
     enabled: true,
-    trigger: Object.freeze({ deviceId: 'sensor-1', stateKey: 'contact', expectedValue: 'open' }),
-    action: Object.freeze({ targetDeviceId: 'light-1', command: 'turn_on' as const })
+    trigger: Object.freeze({ type: 'device_state_changed' as const, deviceId: 'sensor-1', stateKey: 'contact', expectedValue: 'open' }),
+    action: Object.freeze({ type: 'device_command' as const, targetDeviceId: 'light-1', command: 'turn_on' as any })
   });
 
   it('actualiza el nombre correctamente con trimming', () => {
     const updated = updateAutomationRule(baseRule, { name: '  Renombrada  ' });
     expect(updated.name).toBe('Renombrada');
     // Resto de campos preservados
-    expect(updated.trigger.deviceId).toBe('sensor-1');
-    expect(updated.action.targetDeviceId).toBe('light-1');
+    expect((updated.trigger as any).deviceId).toBe('sensor-1');
+    expect((updated.action as any).targetDeviceId).toBe('light-1');
   });
 
   it('preserva trigger y action cuando el patch solo incluye name', () => {
@@ -102,10 +104,10 @@ describe('Automation Domain: updateAutomationRule', () => {
   });
 
   it('preserva name y action cuando el patch solo incluye trigger', () => {
-    const newTrigger = { deviceId: 'sensor-2', stateKey: 'presence', expectedValue: true };
+    const newTrigger = { type: 'device_state_changed' as const, deviceId: 'sensor-2', stateKey: 'presence', expectedValue: true };
     const updated = updateAutomationRule(baseRule, { trigger: newTrigger });
     expect(updated.name).toBe('Regla Original');
-    expect(updated.trigger.deviceId).toBe('sensor-2');
+    expect((updated.trigger as any).deviceId).toBe('sensor-2');
     expect(updated.action).toEqual(baseRule.action);
   });
 
@@ -115,7 +117,7 @@ describe('Automation Domain: updateAutomationRule', () => {
 
   it('lanza AutomationLoopError si el resultado final tiene trigger.deviceId === action.targetDeviceId', () => {
     expect(() => updateAutomationRule(baseRule, {
-      trigger: { deviceId: 'light-1', stateKey: 'power', expectedValue: 'on' }
+      trigger: { type: 'device_state_changed' as const, deviceId: 'light-1', stateKey: 'power', expectedValue: 'on' }
     })).toThrow(AutomationLoopError);
   });
 

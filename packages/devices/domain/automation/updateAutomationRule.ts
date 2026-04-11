@@ -13,13 +13,6 @@ export interface UpdateAutomationRulePatch {
 
 /**
  * Función pura de dominio para aplicar un patch parcial sobre una regla existente.
- *
- * Garantías:
- * - Nunca muta el objeto original (retorna una nueva entidad congelada).
- * - Mantiene inmutables: id, homeId, userId, enabled.
- * - Aplica trimming al nombre si se provee.
- * - Rechaza con InvalidAutomationRuleError si el nombre final queda vacío.
- * - Rechaza con AutomationLoopError si el resultado final deja trigger.deviceId === action.targetDeviceId.
  */
 export function updateAutomationRule(
   existing: AutomationRule,
@@ -44,13 +37,14 @@ export function updateAutomationRule(
     ? Object.freeze({ ...patch.action })
     : existing.action;
 
-  // Prevención de auto-bucle: el trigger y el target no pueden ser el mismo dispositivo (AC6)
-  if (resolvedTrigger.deviceId === resolvedAction.targetDeviceId) {
-    throw new AutomationLoopError();
+  // Prevención de auto-bucle: solo aplica si el trigger es device y la accion es command
+  if (resolvedTrigger.type === 'device_state_changed' && resolvedAction.type === 'device_command') {
+    if (resolvedTrigger.deviceId === resolvedAction.targetDeviceId) {
+      throw new AutomationLoopError();
+    }
   }
 
-  // Retornar nueva entidad inmutable — los campos de identidad (id, homeId, userId, enabled)
-  // se preservan exactamente del original sin excepción.
+  // Retornar nueva entidad inmutable
   return Object.freeze({
     id: existing.id,
     homeId: existing.homeId,

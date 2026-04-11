@@ -149,6 +149,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const automationEngine = new AutomationEngine(
     automationRuleRepository,
     deviceRepository,
+    sceneRepository,
     {
       dispatchCommand: async (homeId, deviceId, command, correlationId) => {
         const target = await deviceRepository.findDeviceById(deviceId);
@@ -166,6 +167,37 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
            console.log(`[AutomationEngine] Dispatching HA command: ${domain}.${service} for ${fullEntityId}`);
            await connectionProvider.getClient().callService(domain, service, fullEntityId);
         }
+      },
+      executeScene: async (homeId, sceneId, correlationId) => {
+        const scene = await sceneRepository.findSceneById(sceneId);
+        if (!scene) return;
+
+        const syncDeps = {
+          deviceRepository: deviceRepository,
+          eventPublisher: { publish: async () => {} },
+          activityLogRepository: activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() }
+        };
+
+        // Reutilizamos el CompositeCommandDispatcher (que definiremos abajo o inline)
+        const localDispatcher = { dispatchCommand: async () => {} }; // Simplificado para automaciones HA mostly
+        const haDispatcher = { 
+          dispatchCommand: async (hId: string, dId: string, cmd: string) => {
+             const target = await deviceRepository.findDeviceById(dId);
+             if (!target || !target.externalId.startsWith('ha:')) return;
+             const [domain] = target.externalId.split(':')[1].split('.');
+             await connectionProvider.getClient().callService(domain, cmd, target.externalId.split(':')[1]);
+          }
+        };
+
+        for (const action of scene.actions) {
+          try {
+             await haDispatcher.dispatchCommand(homeId, action.deviceId, action.command);
+          } catch (e: any) {
+             console.error(`[AutomationEngine] Error in scene action:`, e.message);
+          }
+        }
       }
     },
     activityLogRepository
@@ -175,6 +207,14 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   syncManager.on('system_event', (event) => {
     automationEngine.handleSystemEvent(event).catch(e => console.error('[Engine] Fallo asíncrono:', e.message));
   });
+
+  // Heartbeat de 60s para disparadores de tiempo
+  setInterval(() => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    automationEngine.handleTimeEvent(`${hh}:${mm}`).catch(e => console.error('[Engine] Fallo en pulso de tiempo:', e.message));
+  }, 60000).unref();
 
   const diagnosticsService = new DiagnosticsService(
     settingsService,

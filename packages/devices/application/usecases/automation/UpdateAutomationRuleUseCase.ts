@@ -40,26 +40,26 @@ export async function updateAutomationRuleUseCase(
   // 2. Validar ownership del hogar asignado a la regla (Zero-Trust, AC7)
   await deps.topologyReferencePort.validateHomeOwnership(existing.homeId, userId);
 
-  // 3. Revalidar dispositivos, pero SOLO si trigger o action son parte del patch
-  //    Optimización: si el patch no toca dispositivos, omitir las llamadas al repositorio.
-  const touchesDevices = request.trigger !== undefined || request.action !== undefined;
+  // 3. Revalidar dependencias (dispositivos o escenas), solo si han sido modificadas o si la regla era parcial
+  const revalidateDependencies = request.trigger !== undefined || request.action !== undefined;
 
-  if (touchesDevices) {
-    // Determinar los IDs finales a validar (nuevo valor o el valor existente si no se modifica)
-    const triggerDeviceId = request.trigger?.deviceId ?? existing.trigger.deviceId;
-    const targetDeviceId = request.action?.targetDeviceId ?? existing.action.targetDeviceId;
+  if (revalidateDependencies) {
+    const finalTrigger = request.trigger ?? existing.trigger;
+    if (finalTrigger.type === 'device_state_changed') {
+      const triggerDevice = await deps.deviceRepository.findDeviceById(finalTrigger.deviceId);
+      if (!triggerDevice) throw new DeviceNotFoundError(finalTrigger.deviceId);
+      if (triggerDevice.homeId !== existing.homeId) {
+        throw new InvalidAutomationRuleError('trigger device home mismatch');
+      }
+    }
 
-    // Validar existencia del dispositivo disparador
-    const triggerDevice = await deps.deviceRepository.findDeviceById(triggerDeviceId);
-    if (!triggerDevice) throw new DeviceNotFoundError(triggerDeviceId);
-
-    // Validar existencia del dispositivo objetivo
-    const targetDevice = await deps.deviceRepository.findDeviceById(targetDeviceId);
-    if (!targetDevice) throw new DeviceNotFoundError(targetDeviceId);
-
-    // Validar que ambos pertenecen al mismo hogar de la regla (AC5)
-    if (triggerDevice.homeId !== existing.homeId || targetDevice.homeId !== existing.homeId) {
-      throw new InvalidAutomationRuleError('device home mismatch');
+    const finalAction = request.action ?? existing.action;
+    if (finalAction.type === 'device_command') {
+      const targetDevice = await deps.deviceRepository.findDeviceById(finalAction.targetDeviceId);
+      if (!targetDevice) throw new DeviceNotFoundError(finalAction.targetDeviceId);
+      if (targetDevice.homeId !== existing.homeId) {
+        throw new InvalidAutomationRuleError('target device home mismatch');
+      }
     }
   }
 

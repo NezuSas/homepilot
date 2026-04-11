@@ -19,8 +19,8 @@ describe('Automation Lifecycle: Application Use Cases', () => {
     userId: 'user-owner',
     name: 'Base Rule',
     enabled: true,
-    trigger: { deviceId: 'd1', stateKey: 'contact', expectedValue: 'open' },
-    action: { targetDeviceId: 'd2', command: 'turn_on' as const }
+    trigger: { type: 'device_state_changed' as const, deviceId: 'd1', stateKey: 'contact', expectedValue: 'open' },
+    action: { type: 'device_command' as const, targetDeviceId: 'd2', command: 'turn_on' as any }
   };
 
   beforeEach(() => {
@@ -127,8 +127,8 @@ describe('Automation Lifecycle: Application Use Cases', () => {
       await setupBaseRule();
       const result = await updateAutomationRuleUseCase('rule-1', 'user-owner', { name: 'Nuevo Nombre' }, updateDeps());
       expect(result.name).toBe('Nuevo Nombre');
-      expect(result.trigger.deviceId).toBe('d1');
-      expect(result.action.targetDeviceId).toBe('d2');
+      expect((result.trigger as any).deviceId).toBe('d1');
+      expect((result.action as any).targetDeviceId).toBe('d2');
     });
 
     it('lanza AutomationRuleNotFoundError si la regla no existe (AC8)', async () => {
@@ -150,7 +150,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
       await setupDevices();
       await expect(
         updateAutomationRuleUseCase('rule-1', 'user-owner', {
-          action: { targetDeviceId: 'ghost-device', command: 'turn_on' as const }
+          action: { type: 'device_command', targetDeviceId: 'ghost-device', command: 'turn_on' }
         }, updateDeps())
       ).rejects.toThrow(DeviceNotFoundError);
     });
@@ -166,7 +166,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
       });
       await expect(
         updateAutomationRuleUseCase('rule-1', 'user-owner', {
-          trigger: { deviceId: 'd-otro', stateKey: 'k', expectedValue: 'v' }
+          trigger: { type: 'device_state_changed', deviceId: 'd-otro', stateKey: 'k', expectedValue: 'v' }
         }, updateDeps())
       ).rejects.toThrow(InvalidAutomationRuleError);
     });
@@ -176,7 +176,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
       await setupDevices();
       await expect(
         updateAutomationRuleUseCase('rule-1', 'user-owner', {
-          trigger: { deviceId: 'd2', stateKey: 'power', expectedValue: 'off' }
+          trigger: { type: 'device_state_changed', deviceId: 'd2', stateKey: 'power', expectedValue: 'off' }
         }, updateDeps())
       ).rejects.toThrow(AutomationLoopError);
     });

@@ -83,36 +83,40 @@
   "automations": {
     "title": "Reglas de Automatización",
     "loading": "Sincronizando Workbench...",
-    "active_recipes_one": "1 Receta Activa",
-    "active_recipes_other": "{{count}} Recetas Activas",
     "active_recipes": "{{count}} Recetas Activas",
     "create_rule": "Crear Regla",
     "rule_created": "Regla Creada Exitosamente",
-    "rule_updated": "Regla Actualizada Exitosamente",
-    "update_button": "ACTUALIZAR AUTOMATIZACIÓN",
-    "save_button": "GUARDAR AUTOMATIZACIÓN",
+    "rule_deleted": "Regla Eliminada",
     "empty_state": {
       "title": "No hay reglas locales",
-      "description": "Crea tu primera regla usando el botón superior para empezar a automatizar tu hogar local."
+      "description": "Crea tu primera automatización local para hacer tu hogar más inteligente."
     },
     "form": {
-      "rule_name": "Nombre de la Regla",
-      "trigger_config": "Configuración del Disparador",
-      "source_device": "Dispositivo Origen",
+      "rule_name": "Nombre de la Automatización",
+      "rule_name_placeholder": "Ej: Luces noche, Auto-Ventilador...",
+      "trigger_section": "CUANDO PASA ESTO (Trigger)",
+      "action_section": "HACER ESTO (Acción)",
+      "trigger_type": "Tipo de Disparador",
+      "action_type": "Tipo de Acción",
+      "types": {
+        "device_state_changed": "Estado de Dispositivo",
+        "time": "Programación Horaria",
+        "device_command": "Controlar Dispositivo",
+        "execute_scene": "Ejecutar Escena"
+      },
+      "time_label": "Hora del Evento",
+      "days_label": "Días de la Semana",
       "select_device": "Seleccionar Dispositivo...",
-      "state_key": "Clave de Estado",
-      "value_label": "Valor (Bool/Num/Txt)",
-      "action_result": "Resultado de la Acción",
-      "target_device": "Dispositivo Destino",
-      "select_target": "Seleccionar Destino...",
-      "command": "Comando"
+      "select_scene": "Seleccionar Escena...",
+      "select_command": "Seleccionar Comando...",
+      "state_key": "Atributo de Estado",
+      "expected_value": "Valor Esperado"
     },
-    "rule": {
-      "inactive": "Inactiva",
-      "if_trigger": "SI OCURRE",
-      "then_action": "ENTONCES",
-      "device": "Disp:",
-      "target": "Destino:"
+    "summary": {
+      "at_time": "A las {{time}}",
+      "when_device": "Cuando {{name}} cambie a {{value}}",
+      "run_scene": "Ejecutar escena '{{name}}'",
+      "run_command": "Enviar {{command}} a {{name}}"
     }
   },
   "ha_settings": {

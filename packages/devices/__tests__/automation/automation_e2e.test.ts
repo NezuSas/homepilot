@@ -1,57 +1,57 @@
-import { AutomationEngine } from '../../application/automation/AutomationEngine';
+import { AutomationEngine } from '../../../automation/application/AutomationEngine';
 import { AutomationController } from '../../api/controllers/AutomationController';
 import { InMemoryAutomationRuleRepository } from '../../infrastructure/repositories/InMemoryAutomationRuleRepository';
 import { InMemoryDeviceRepository } from '../../infrastructure/repositories/InMemoryDeviceRepository';
 import { InMemoryActivityLogRepository } from '../../infrastructure/repositories/InMemoryActivityLogRepository';
-import { DeviceCommandDispatcherPort } from '../../application/ports/DeviceCommandDispatcherPort';
+import { SceneRepository } from '../../domain/repositories/SceneRepository';
+import { AutomationCommandDispatcher } from '../../../automation/application/AutomationEngine';
 import { TopologyReferencePort } from '../../application/ports/TopologyReferencePort';
-import { DeviceEventPublisher } from '../../domain/events/DeviceEventPublisher';
 import { AuthenticatedHttpRequest } from '../../../topology/api/core/http';
 
 describe('Automation E2E: Full Reactive Flow', () => {
   let ruleRepo: InMemoryAutomationRuleRepository;
   let deviceRepo: InMemoryDeviceRepository;
   let logRepo: InMemoryActivityLogRepository;
-  let dispatcherMock: jest.Mocked<DeviceCommandDispatcherPort>;
+  let sceneRepoMock: jest.Mocked<SceneRepository>;
+  let dispatcherMock: jest.Mocked<AutomationCommandDispatcher>;
   let topologyMock: jest.Mocked<TopologyReferencePort>;
   
   let controller: AutomationController;
   let engine: AutomationEngine;
 
-  const clock = { now: () => '2026-03-30T10:00:00Z' };
   const idGen = { generate: () => 'e2e-rule-id' };
 
   beforeEach(() => {
     ruleRepo = new InMemoryAutomationRuleRepository();
     deviceRepo = new InMemoryDeviceRepository();
-    // InMemoryActivityLogRepository no recibe argumentos en el constructor
     logRepo = new InMemoryActivityLogRepository();
     
-    dispatcherMock = { dispatch: jest.fn().mockResolvedValue(undefined) };
+    dispatcherMock = { 
+      dispatchCommand: jest.fn().mockResolvedValue(undefined),
+      executeScene: jest.fn().mockResolvedValue({ success: true, results: [] }) 
+    };
+
+    sceneRepoMock = {
+      findSceneById: jest.fn(),
+      findScenesByHomeId: jest.fn(),
+      saveScene: jest.fn(),
+      deleteScene: jest.fn()
+    };
+
     topologyMock = { 
       validateHomeOwnership: jest.fn().mockResolvedValue(undefined), 
       validateHomeExists: jest.fn().mockResolvedValue(undefined),
       validateRoomBelongsToHome: jest.fn().mockResolvedValue(undefined)
     };
-    const publisherMock = { publish: jest.fn().mockResolvedValue(undefined) };
 
     controller = new AutomationController(ruleRepo, deviceRepo, topologyMock, idGen);
     
-    // Inyección de dependencias consistente con el nuevo constructor posicional
     engine = new AutomationEngine(
       ruleRepo,
-      logRepo,
-      idGen,
-      clock,
-      {
-        deviceRepository: deviceRepo,
-        eventPublisher: publisherMock,
-        topologyPort: topologyMock,
-        dispatcherPort: dispatcherMock,
-        activityLogRepository: logRepo,
-        idGenerator: idGen,
-        clock: clock
-      }
+      deviceRepo,
+      sceneRepoMock,
+      dispatcherMock,
+      logRepo
     );
   });
 
@@ -72,19 +72,23 @@ describe('Automation E2E: Full Reactive Flow', () => {
       params: { homeId: 'home-e2e' },
       body: {
         name: 'Welcome Light',
-        trigger: { deviceId: 'sensor-e2e', stateKey: 'contact', expectedValue: 'open' },
-        action: { deviceId: 'light-e2e', command: 'turn_on' as const }
+        trigger: { type: 'device_state_changed' as const, deviceId: 'sensor-e2e', stateKey: 'contact', expectedValue: 'open' },
+        action: { type: 'device_command' as const, targetDeviceId: 'light-e2e', command: 'turn_on' }
       }
     };
     const createRes = await controller.createRule(createReq);
     expect(createRes.statusCode).toBe(201);
 
-    await engine.handleDeviceStateUpdated({
+    await engine.handleSystemEvent({
+      eventId: 'evt-e2e',
+      occurredAt: new Date().toISOString(),
+      source: 'home_assistant',
       deviceId: 'sensor-e2e',
-      newState: { contact: 'open' }
-    }, 'correlation-e2e');
+      externalId: 'e1',
+      newState: { state: 'open' }
+    });
 
-    expect(dispatcherMock.dispatch).toHaveBeenCalledWith('light-e2e', 'turn_on');
+    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-e2e', 'light-e2e', 'turn_on', expect.any(String));
 
     const logs = await logRepo.findRecentByDeviceId('light-e2e', 5);
     const automationLog = logs.find(l => l.type === 'COMMAND_DISPATCHED');
@@ -106,14 +110,18 @@ describe('Automation E2E: Full Reactive Flow', () => {
 
     await ruleRepo.save({
       id: 'rule-incompatible', homeId: 'h1', userId: 'u1', name: 'Bad Cap Rule', enabled: true,
-      trigger: { deviceId: 'trigger-dev', stateKey: 'k', expectedValue: 1 },
-      action: { targetDeviceId: 'target-incompatible', command: 'turn_on' as const }
+      trigger: { type: 'device_state_changed' as const, deviceId: 'trigger-dev', stateKey: 'k', expectedValue: 1 },
+      action: { type: 'device_command' as const, targetDeviceId: 'target-incompatible', command: 'turn_on' as any }
     });
 
-    await engine.handleDeviceStateUpdated({
+    await engine.handleSystemEvent({
+      eventId: 'evt-fail',
+      occurredAt: new Date().toISOString(),
+      source: 'home_assistant',
       deviceId: 'trigger-dev',
-      newState: { k: 1 }
-    }, 'corr-fail');
+      externalId: 'ext1',
+      newState: { state: '1' }
+    });
 
     const logs = await logRepo.findRecentByDeviceId('target-incompatible', 1);
     expect(logs[0].type).toBe('AUTOMATION_FAILED');

@@ -30,16 +30,25 @@ export async function createAutomationRuleUseCase(
   // 1. Validar ownership del hogar para el usuario solicitante
   await deps.topologyReferencePort.validateHomeOwnership(request.homeId, request.userId);
 
-  // 2. Validar existencia de ambos dispositivos involucrados
-  const triggerDevice = await deps.deviceRepository.findDeviceById(request.trigger.deviceId);
-  if (!triggerDevice) throw new DeviceNotFoundError(request.trigger.deviceId);
+  // 2. Validar existencia de dependencias (dispositivo o escena)
+  if (request.trigger.type === 'device_state_changed') {
+    const triggerDevice = await deps.deviceRepository.findDeviceById(request.trigger.deviceId);
+    if (!triggerDevice) throw new DeviceNotFoundError(request.trigger.deviceId);
+    if (triggerDevice.homeId !== request.homeId) {
+      throw new InvalidAutomationRuleError('trigger device home mismatch');
+    }
+  }
 
-  const targetDevice = await deps.deviceRepository.findDeviceById(request.action.targetDeviceId);
-  if (!targetDevice) throw new DeviceNotFoundError(request.action.targetDeviceId);
-
-  // 3. Validar integridad de ubicación (ambos dispositivos deben pertenecer al mismo hogar de la regla)
-  if (triggerDevice.homeId !== request.homeId || targetDevice.homeId !== request.homeId) {
-    throw new InvalidAutomationRuleError('device home mismatch');
+  if (request.action.type === 'device_command') {
+    const targetDevice = await deps.deviceRepository.findDeviceById(request.action.targetDeviceId);
+    if (!targetDevice) throw new DeviceNotFoundError(request.action.targetDeviceId);
+    if (targetDevice.homeId !== request.homeId) {
+      throw new InvalidAutomationRuleError('target device home mismatch');
+    }
+  } else if (request.action.type === 'execute_scene') {
+    // Nota: Podríamos inyectar SceneRepository aquí para validar legado, 
+    // pero por ahora el engine ya maneja fallas de ejecución de forma truthful.
+    // Lo mantenemos simple para evitar sobre-inyección por ahora.
   }
 
   // 4. Inicializar la entidad (aplica validaciones internas como prevención de bucles)

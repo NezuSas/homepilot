@@ -36,7 +36,7 @@ export class InMemoryAutomationRuleRepository implements AutomationRuleRepositor
 
     // El engine solo debe evaluar reglas habilitadas, el filtro ocurre aquí como optimización
     for (const rule of this.rules.values()) {
-      if (rule.trigger.deviceId === deviceId && rule.enabled) {
+      if (rule.trigger.type === 'device_state_changed' && rule.trigger.deviceId === deviceId && rule.enabled) {
         matching.push(this.freeze(rule));
       }
     }

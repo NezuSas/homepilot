@@ -5,7 +5,7 @@ import { cn } from './lib/utils';
 import { DashboardView } from './views/DashboardView';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
-import { AutomationWorkbenchView } from './views/AutomationWorkbenchView';
+import AutomationsView from './views/AutomationsView';
 import { AuditLogsView } from './views/AuditLogsView';
 import { HomeAssistantSettingsView } from './views/HomeAssistantSettingsView';
 import { DiagnosticsView } from './views/DiagnosticsView';
@@ -318,7 +318,7 @@ function App() {
             {currentView === 'dashboard' && <DashboardView />}
             {currentView === 'topology' && <TopologyView />}
             {currentView === 'inbox' && <InboxView />}
-            {currentView === 'automations' && <AutomationWorkbenchView />}
+            {currentView === 'automations' && <AutomationsView />}
             {currentView === 'audit-logs' && <AuditLogsView />}
             {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
             {currentView === 'diagnostics' && <DiagnosticsView />}

@@ -83,36 +83,40 @@
   "automations": {
     "title": "Automation Rules",
     "loading": "Synchronizing Workbench...",
-    "active_recipes_one": "1 Active Recipe",
-    "active_recipes_other": "{{count}} Active Recipes",
     "active_recipes": "{{count}} Active Recipes",
     "create_rule": "Create Rule",
     "rule_created": "Rule Created Successfully",
-    "rule_updated": "Rule Updated Successfully",
-    "update_button": "UPDATE AUTOMATION",
-    "save_button": "SAVE AUTOMATION",
+    "rule_deleted": "Rule Deleted",
     "empty_state": {
       "title": "No local rules",
-      "description": "Create your first rule using the button above to start automating your local home."
+      "description": "Create your first local automation to make your home smarter."
     },
     "form": {
-      "rule_name": "Rule Name",
-      "trigger_config": "Trigger Configuration",
-      "source_device": "Source Device",
+      "rule_name": "Automation Name",
+      "rule_name_placeholder": "e.g., Night Lights, Auto-Fan...",
+      "trigger_section": "WHEN THIS HAPPENS (Trigger)",
+      "action_section": "DO THIS (Action)",
+      "trigger_type": "Trigger Type",
+      "action_type": "Action Type",
+      "types": {
+        "device_state_changed": "Device State",
+        "time": "Scheduled Time",
+        "device_command": "Control Device",
+        "execute_scene": "Execute Scene"
+      },
+      "time_label": "Event Time",
+      "days_label": "Days of Week",
       "select_device": "Select Device...",
-      "state_key": "State Key",
-      "value_label": "Value (Bool/Num/Text)",
-      "action_result": "Action Result",
-      "target_device": "Target Device",
-      "select_target": "Select Target...",
-      "command": "Command"
+      "select_scene": "Select Scene...",
+      "select_command": "Select Command...",
+      "state_key": "State Attribute",
+      "expected_value": "Expected Value"
     },
-    "rule": {
-      "inactive": "Inactive",
-      "if_trigger": "IF TRIGGER",
-      "then_action": "THEN ACTION",
-      "device": "Device:",
-      "target": "Target:"
+    "summary": {
+      "at_time": "At {{time}}",
+      "when_device": "When {{name}} changes to {{value}}",
+      "run_scene": "Execute scene '{{name}}'",
+      "run_command": "Send {{command}} to {{name}}"
     }
   },
   "ha_settings": {

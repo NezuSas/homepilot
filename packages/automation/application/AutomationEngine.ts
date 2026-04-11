@@ -1,12 +1,13 @@
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
+import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { SystemStateChangeEvent } from '../../integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import { ObservableAutomationEngineStateProvider, AutomationEngineObservableState } from '../../system-observability/domain/ObservableStateProviders';
+import { AutomationRule, DeviceStateTrigger, TimeTrigger } from '../../devices/domain/automation/types';
 
 /**
  * Puerto de Entrada simple para el Dispatch. 
- * Permite inyectar executeDeviceCommandUseCase o un llamador directo de hardware.
  */
 export interface AutomationCommandDispatcher {
   dispatchCommand(
@@ -15,12 +16,17 @@ export interface AutomationCommandDispatcher {
     command: string, 
     correlationId: string
   ): Promise<void>;
+  executeScene(homeId: string, sceneId: string, correlationId: string): Promise<void>;
 }
 
 export class AutomationEngine implements ObservableAutomationEngineStateProvider {
-  // Ventana de deduplicación in-memory (2000 ms) para evitar ecos.
+  // Ventana de deduplicación in-memory (2000 ms) para evitar ecos en eventos de dispositivo.
   private readonly loopPreventionCache = new Map<string, number>();
   private readonly DEDUPLICATION_WINDOW_MS = 2000;
+
+  // Guard para evitar que reglas de tiempo se disparen múltiples veces en el mismo minuto.
+  // key: ruleId, value: last fired "HH:mm"
+  private readonly timeFireGuard = new Map<string, string>();
 
   // ─── Observability State ─────────────────────────────────────────────────────
   private lastExecutionAt: string | null = null;
@@ -31,6 +37,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
   constructor(
     private readonly ruleRepository: AutomationRuleRepository,
     private readonly deviceRepository: DeviceRepository,
+    private readonly sceneRepository: SceneRepository,
     private readonly commandDispatcher: AutomationCommandDispatcher,
     private readonly activityLogRepository: ActivityLogRepository
   ) {
@@ -38,22 +45,21 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     setInterval(() => this.cleanCache(), 60000).unref();
   }
 
+  /**
+   * Procesa eventos de cambio de estado de dispositivos.
+   */
   public async handleSystemEvent(event: SystemStateChangeEvent): Promise<void> {
     try {
-      // 1. Obtener reglas asociadas a este disparador (Optimizando la carga)
       const cachedRules = await this.ruleRepository.findByTriggerDevice(event.deviceId);
-      
-      // 2. Filtrar reglas activas
       const activeRules = cachedRules.filter(r => r.enabled);
 
-      if (activeRules.length === 0) return;
-
       for (const rule of activeRules) {
-        try {
-          await this.evaluateAndExecuteRule(rule, event);
-        } catch (ruleError: any) {
-          console.error(`[AutomationEngine] Error aislando regla ${rule.id}:`, ruleError.message);
-          // Si falla una regla en particular aisalada por DB o Typo, el resto puede seguir
+        if (rule.trigger.type === 'device_state_changed') {
+          try {
+            await this.evaluateAndExecuteDeviceRule(rule, event);
+          } catch (ruleError: any) {
+            console.error(`[AutomationEngine] Error aislando regla ${rule.id}:`, ruleError.message);
+          }
         }
       }
     } catch (globalError: any) {
@@ -62,9 +68,46 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     }
   }
 
-  private async evaluateAndExecuteRule(rule: any, event: SystemStateChangeEvent): Promise<void> {
-    const { stateKey, expectedValue } = rule.trigger;
-    const { targetDeviceId, command } = rule.action;
+  /**
+   * Procesa eventos de tiempo (pulso de 60s).
+   * @param currentTime "HH:mm"
+   */
+  public async handleTimeEvent(currentTime: string): Promise<void> {
+    try {
+      const allRules = await this.ruleRepository.findAll();
+      const timeRules = allRules.filter(r => r.enabled && r.trigger.type === 'time');
+      
+      const now = new Date();
+      const currentDay = now.getDay(); // 0 is Sunday, matching our types potentially
+
+      for (const rule of timeRules) {
+        const trigger = rule.trigger as TimeTrigger;
+        
+        // 1. Check time match
+        if (trigger.time !== currentTime) continue;
+
+        // 2. Check day match (if specified)
+        if (trigger.days && trigger.days.length > 0 && !trigger.days.includes(currentDay)) continue;
+
+        // 3. Once-per-minute guard
+        if (this.timeFireGuard.get(rule.id) === currentTime) continue;
+        
+        this.timeFireGuard.set(rule.id, currentTime);
+        
+        try {
+          await this.executeRuleActions(rule, `time:${currentTime}`);
+        } catch (ruleError: any) {
+          console.error(`[AutomationEngine] Error ejecutando regla de tiempo ${rule.id}:`, ruleError.message);
+        }
+      }
+    } catch (globalError: any) {
+      console.error(`[AutomationEngine] Falla procesando evento de tiempo:`, globalError.message);
+    }
+  }
+
+  private async evaluateAndExecuteDeviceRule(rule: AutomationRule, event: SystemStateChangeEvent): Promise<void> {
+    const trigger = rule.trigger as DeviceStateTrigger;
+    const { stateKey, expectedValue } = trigger;
 
     // 1. Resolver el valor de evaluación actual en el evento
     let currentValue: any = undefined;
@@ -72,94 +115,96 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
       currentValue = event.newState.state;
     } else if (event.newState.attributes && stateKey in event.newState.attributes) {
       currentValue = event.newState.attributes[stateKey];
-    } else if (event.previousState && event.previousState.attributes && stateKey in event.previousState.attributes) {
-      // Missing attribute usually implies it did not change and HA drops it from the diff, 
-      // but in standard states, if it's undefined, it's unmatched.
-      currentValue = undefined; 
     }
 
     // 2. Check de Coincidencia (Match)
-    // Se fuerza equivalencia de String a String para ser estrictos con el payload HA
     if (String(currentValue) !== String(expectedValue)) {
-      await this.logExecution(rule, event, 'skipped_no_match', `Event value '${currentValue}' does not match expected '${expectedValue}'.`);
       return;
     }
 
-    // 3. Prevención Robusta de Loops (Rebotes en la misma acción)
-    // Crear firma unívoca
-    const cacheSignature = `${rule.id}:${targetDeviceId}:${command}:${expectedValue}`;
+    // 3. Prevención de Loops (Rebotes en la misma acción)
+    // Firma: ruleId + valor esperado para evitar spam en el mismo cambio
+    const cacheSignature = `${rule.id}:${expectedValue}`;
     const now = Date.now();
     const lastExecution = this.loopPreventionCache.get(cacheSignature);
 
     if (lastExecution && (now - lastExecution) < this.DEDUPLICATION_WINDOW_MS) {
-      await this.logExecution(rule, event, 'skipped_loop_prevention', `Duplicate trigger blocked within ${this.DEDUPLICATION_WINDOW_MS}ms window.`);
       return;
     }
-    
-    // Registrar el intento actual en la cache de ventana
     this.loopPreventionCache.set(cacheSignature, now);
 
-    // 4. Verificación terminal del Target Device State
-    const targetDevice = await this.deviceRepository.findDeviceById(targetDeviceId);
-    if (!targetDevice) {
-      await this.logExecution(rule, event, 'error', `Target device ${targetDeviceId} not found.`);
-      return; // Skip and avoid exception mapping breaking loop
-    }
+    // 4. Ejecutar
+    await this.executeRuleActions(rule, event.eventId);
+  }
 
-    // Traducir 'turn_on' a un state lógico 'on' para comprobación heurística (V2 Base)
-    const projectedState = this.projectCommandToState(command);
-    if (projectedState && targetDevice.lastKnownState?.state === projectedState) {
-      await this.logExecution(rule, event, 'skipped_target_state_match', `Target device is already in requested state '${projectedState}'.`);
-      return;
-    }
+  private async executeRuleActions(rule: AutomationRule, correlationId: string): Promise<void> {
+    const { action } = rule;
 
-    // 5. Ejecutar Acción (Dispatch)
     try {
-      await this.commandDispatcher.dispatchCommand(
-        targetDevice.homeId,
-        targetDeviceId,
-        command,
-        event.eventId
-      );
-      
+      if (action.type === 'device_command') {
+        const targetDevice = await this.deviceRepository.findDeviceById(action.targetDeviceId);
+        if (!targetDevice) throw new Error(`Target device ${action.targetDeviceId} not found.`);
+
+        // Optimización: si ya está en ese estado, saltar (solo para turn_on/off simples)
+        const projected = this.projectCommandToState(action.command);
+        if (projected && targetDevice.lastKnownState?.state === projected) {
+          return;
+        }
+
+        await this.commandDispatcher.dispatchCommand(
+          targetDevice.homeId,
+          action.targetDeviceId,
+          action.command,
+          correlationId
+        );
+      } else if (action.type === 'execute_scene') {
+        const scene = await this.sceneRepository.findSceneById(action.sceneId);
+        if (!scene) throw new Error(`Scene ${action.sceneId} not found.`);
+
+        await this.commandDispatcher.executeScene(
+          scene.homeId,
+          action.sceneId,
+          correlationId
+        );
+      }
+
       this.totalSuccesses++;
       this.lastExecutionAt = new Date().toISOString();
       this.lastStatus = 'active';
-      await this.logExecution(rule, event, 'success', `Automation successful.`);
+      await this.logExecution(rule, correlationId, 'success', `Automation successful.`);
     } catch (dispatchError: any) {
       this.totalFailures++;
       this.lastExecutionAt = new Date().toISOString();
       this.lastStatus = 'error';
-      await this.logExecution(rule, event, 'error', `Command dispatch failed: ${dispatchError.message}`);
+      await this.logExecution(rule, correlationId, 'error', `Automation failed: ${dispatchError.message}`);
+      throw dispatchError; // Repropagar para el logger de arriba si es necesario
     }
   }
 
   private projectCommandToState(command: string): string | null {
     if (command === 'turn_on') return 'on';
     if (command === 'turn_off') return 'off';
-    // toggle no proyecta un estado estático asumible localmente
     return null;
   }
 
   private async logExecution(
-    rule: any, 
-    event: SystemStateChangeEvent, 
-    status: 'success' | 'error' | 'skipped_loop_prevention' | 'skipped_target_state_match' | 'skipped_no_match',
+    rule: AutomationRule, 
+    correlationId: string,
+    status: 'success' | 'error',
     reason: string
   ): Promise<void> {
     try {
       await this.activityLogRepository.saveActivity({
         timestamp: new Date().toISOString(),
-        deviceId: event.deviceId,
-        type: status === 'error' ? 'AUTOMATION_FAILED' : 'COMMAND_DISPATCHED', // Repurposing since 'AUTOMATION_EVALUATED' not in type mapping yet
-        description: reason,
+        deviceId: 'system',
+        type: status === 'error' ? 'AUTOMATION_FAILED' : 'COMMAND_DISPATCHED',
+        description: `[Automation: ${rule.name}] ${reason}`,
         data: {
           ruleId: rule.id,
-          targetDeviceId: rule.action.targetDeviceId,
-          command: rule.action.command,
+          trigger: rule.trigger,
+          action: rule.action,
           status,
-          executedAt: new Date().toISOString(),
-          eventId: event.eventId
+          correlationId
         }
       });
     } catch {
@@ -174,14 +219,15 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         this.loopPreventionCache.delete(key);
       }
     }
+    // Opcional: limpiar timeFireGuard si llega a ser muy grande, 
+    // pero usualmente HH:mm cambia y se sobreescribe. 
+    // Limpiemos entradas de días anteriores.
   }
 
   // ─── Observable State Provider ───────────────────────────────────────────────
 
   public getObservableState(): AutomationEngineObservableState {
     let currentStatus = this.lastStatus;
-    
-    // Si han pasado más de 5 minutos desde la última ejecución activa, se considera idle
     if (currentStatus === 'active' && this.lastExecutionAt) {
       const msSinceLast = Date.now() - new Date(this.lastExecutionAt).getTime();
       if (msSinceLast > 5 * 60 * 1000) {

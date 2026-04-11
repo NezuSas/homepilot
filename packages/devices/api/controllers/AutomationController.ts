@@ -42,7 +42,6 @@ export class AutomationController {
         };
       }
 
-      // Narrowing estructural para evitar 'any'
       const body = req.body as Record<string, unknown> | null | undefined;
       if (!body || typeof body !== 'object') {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid request body.' } };
@@ -53,58 +52,21 @@ export class AutomationController {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: name.' } };
       }
 
-      if (!trigger || typeof trigger !== 'object') {
-        return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: trigger.' } };
-      }
-      const t = trigger as Record<string, unknown>;
-      const tDeviceId = t.deviceId;
-      const tStateKey = t.stateKey;
-      const tExpectedValue = t.expectedValue;
-
-      if (typeof tDeviceId !== 'string' || typeof tStateKey !== 'string') {
-        return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid trigger structure.' } };
+      if (!trigger || typeof trigger !== 'object' || !('type' in (trigger as any))) {
+        return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid trigger: must include type.' } };
       }
 
-      if (
-        typeof tExpectedValue !== 'string' &&
-        typeof tExpectedValue !== 'number' &&
-        typeof tExpectedValue !== 'boolean'
-      ) {
-        return {
-          statusCode: 400,
-          body: { error: 'Bad Request', message: 'expectedValue must be string, number or boolean.' }
-        };
+      if (!action || typeof action !== 'object' || !('type' in (action as any))) {
+        return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid action: must include type.' } };
       }
-
-      const triggerFinal: AutomationTrigger = {
-        deviceId: tDeviceId,
-        stateKey: tStateKey,
-        expectedValue: tExpectedValue
-      };
-
-      if (!action || typeof action !== 'object') {
-        return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: action.' } };
-      }
-      const a = action as Record<string, unknown>;
-      const aDeviceId = a.deviceId;
-      const aCommand = a.command;
-
-      if (typeof aDeviceId !== 'string' || typeof aCommand !== 'string' || !isValidCommand(aCommand)) {
-        return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid action structure or command.' } };
-      }
-
-      const actionFinal: AutomationAction = {
-        targetDeviceId: aDeviceId,
-        command: aCommand
-      };
 
       const rule = await createAutomationRuleUseCase(
         {
           homeId,
           userId: req.userId,
           name: name.trim(),
-          trigger: triggerFinal,
-          action: actionFinal
+          trigger: trigger as AutomationTrigger,
+          action: action as AutomationAction
         },
         {
           automationRuleRepository: this.automationRuleRepository,
@@ -240,77 +202,19 @@ export class AutomationController {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid request body.' } };
       }
 
-      // Acumulador mutable local — el tipo final se convierte al interface readonly al pasarlo
-      let patchName: string | undefined;
-      let patchTrigger: AutomationTrigger | undefined;
-      let patchAction: AutomationAction | undefined;
+      const { name, trigger, action } = body;
 
-      // Narrowing de name
-      if ('name' in body) {
-        if (typeof body.name !== 'string') {
-          return { statusCode: 400, body: { error: 'Bad Request', message: 'Field name must be a string.' } };
-        }
-        patchName = body.name;
-      }
-
-      // Narrowing de trigger
-      if ('trigger' in body) {
-        if (!body.trigger || typeof body.trigger !== 'object') {
-          return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid trigger structure.' } };
-        }
-        const t = body.trigger as Record<string, unknown>;
-
-        if (typeof t.deviceId !== 'string' || typeof t.stateKey !== 'string') {
-          return { statusCode: 400, body: { error: 'Bad Request', message: 'trigger.deviceId and stateKey must be strings.' } };
-        }
-        if (
-          typeof t.expectedValue !== 'string' &&
-          typeof t.expectedValue !== 'number' &&
-          typeof t.expectedValue !== 'boolean'
-        ) {
-          return {
-            statusCode: 400,
-            body: { error: 'Bad Request', message: 'trigger.expectedValue must be string, number or boolean.' }
-          };
-        }
-
-        patchTrigger = {
-          deviceId: t.deviceId,
-          stateKey: t.stateKey,
-          expectedValue: t.expectedValue
-        };
-      }
-
-      // Narrowing de action
-      if ('action' in body) {
-        if (!body.action || typeof body.action !== 'object') {
-          return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid action structure.' } };
-        }
-        const a = body.action as Record<string, unknown>;
-
-        if (typeof a.deviceId !== 'string' || typeof a.command !== 'string' || !isValidCommand(a.command)) {
-          return { statusCode: 400, body: { error: 'Bad Request', message: 'Invalid action.command value.' } };
-        }
-
-        patchAction = {
-          targetDeviceId: a.deviceId,
-          command: a.command
-        };
-      }
-
-      // Rechazar bodies vacíos sin campos reconocidos
-      if (patchName === undefined && patchTrigger === undefined && patchAction === undefined) {
+      if (name === undefined && trigger === undefined && action === undefined) {
         return {
           statusCode: 400,
           body: { error: 'Bad Request', message: 'Body must contain at least one updatable field: name, trigger, action.' }
         };
       }
 
-      // Construir patch final tipado a partir del acumulador
       const patch: UpdateAutomationRuleRequest = {
-        ...(patchName !== undefined && { name: patchName }),
-        ...(patchTrigger !== undefined && { trigger: patchTrigger }),
-        ...(patchAction !== undefined && { action: patchAction })
+        ...(typeof name === 'string' && { name }),
+        ...(trigger !== undefined && typeof trigger === 'object' && 'type' in (trigger as any) && { trigger: trigger as AutomationTrigger }),
+        ...(action !== undefined && typeof action === 'object' && 'type' in (action as any) && { action: action as AutomationAction })
       };
 
       const rule = await updateAutomationRuleUseCase(ruleId, req.userId, patch, {
