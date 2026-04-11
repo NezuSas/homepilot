@@ -13,12 +13,13 @@ import { LoginView } from './views/LoginView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
 import { UsersView } from './views/UsersView';
+import ScenesView from './views/ScenesView';
 import { API_BASE_URL } from './config';
 
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'dashboard' | 'topology' | 'inbox' | 'automations' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users';
+type View = 'dashboard' | 'topology' | 'inbox' | 'automations' | 'scenes' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users';
 
 /**
  * App Component
@@ -122,6 +123,7 @@ function App() {
     { id: 'topology', label: t('nav.topology'), icon: Network },
     { id: 'inbox', label: t('nav.inbox'), icon: Server },
     { id: 'automations', label: t('nav.automations'), icon: PlaySquare },
+    { id: 'scenes', label: t('nav.scenes'), icon: Monitor },
     { id: 'audit-logs', label: t('nav.audit_logs'), icon: ShieldAlert },
     { id: 'ha-settings', label: t('nav.ha_settings'), icon: Settings },
     { id: 'diagnostics', label: t('nav.diagnostics'), icon: Activity },
@@ -179,6 +181,12 @@ function App() {
               label={t('nav.automations')} 
               active={currentView === 'automations'} 
               onClick={() => navigateTo('automations')} 
+            />
+            <NavItem 
+              icon={<Monitor className="w-4 h-4" />} 
+              label={t('nav.scenes')} 
+              active={currentView === 'scenes'} 
+              onClick={() => navigateTo('scenes')} 
             />
             <NavItem 
               icon={<ShieldAlert className="w-4 h-4" />} 
@@ -292,6 +300,7 @@ function App() {
                 currentView === 'topology' ? t('topology.title') : 
                 currentView === 'inbox' ? t('inbox.title') : 
                 currentView === 'automations' ? t('nav.automations') : 
+                currentView === 'scenes' ? t('nav.scenes') :
                 currentView === 'ha-settings' ? t('ha_settings.title') : 
                 currentView === 'users' ? t('nav.user_management') : 
                 currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
@@ -305,6 +314,8 @@ function App() {
                   ? t('inbox.subtitle')
                   : currentView === 'automations'
                   ? t('nav.automations_hint')
+                  : currentView === 'scenes'
+                  ? t('nav.scenes_hint')
                   : currentView === 'ha-settings'
                   ? t('ha_settings.status_card.title')
                   : t('nav.audit_trail')
@@ -319,6 +330,7 @@ function App() {
             {currentView === 'topology' && <TopologyView />}
             {currentView === 'inbox' && <InboxView />}
             {currentView === 'automations' && <AutomationsView />}
+            {currentView === 'scenes' && <ScenesView />}
             {currentView === 'audit-logs' && <AuditLogsView />}
             {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
             {currentView === 'diagnostics' && <DiagnosticsView />}

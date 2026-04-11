@@ -65,8 +65,8 @@ export class DiagnosticsService {
       issues.push({ code: 'WS_RECONNECTING', severity: 'warning', message: 'WebSocket is currently reconnecting' });
     }
 
-    if (counters.recentReconnects >= 3) {
-      issues.push({ code: 'RECENT_RECONNECTS', severity: 'warning', message: 'Frequent WebSocket reconnections detected' });
+    if (counters.recentReconnects >= 10) {
+      issues.push({ code: 'RECENT_RECONNECTS', severity: 'warning', message: 'Frequent WebSocket reconnections detected. Check network stability.' });
     }
 
     if (syncState.reconciliationStatus === 'failed') {
@@ -84,7 +84,7 @@ export class DiagnosticsService {
       overallStatus = 'offline';
     } else if (
       syncState.websocketStatus === 'reconnecting' ||
-      counters.recentReconnects >= 3 ||
+      counters.recentReconnects >= 10 ||
       syncState.reconciliationStatus === 'failed' ||
       counters.recentAutomationFailures >= 1
     ) {

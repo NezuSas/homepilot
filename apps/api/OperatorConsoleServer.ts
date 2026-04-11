@@ -770,6 +770,26 @@ export class OperatorConsoleServer {
           failures: structuredFailures
         };
 
+        // Log SCENE_EXECUTED activity
+        try {
+          await this.container.repositories.activityLogRepository.saveActivity({
+            timestamp: new Date().toISOString(),
+            deviceId: 'system',
+            type: 'COMMAND_DISPATCHED', // Reuse COMMAND_DISPATCHED or create SCENE_EXECUTED. SCENE_EXECUTED is clearer.
+            description: `Scene "${scene.name}" executed by ${authReq.user.username}. (${totalCount - failedCount}/${totalCount} success)`,
+            data: {
+              sceneId: scene.id,
+              sceneName: scene.name,
+              userId: authReq.user.id,
+              totalActions: totalCount,
+              failedActions: failedCount,
+              failures: structuredFailures
+            }
+          });
+        } catch (logErr: any) {
+          console.error('[OperatorConsoleServer] Failed to log scene execution:', logErr.message);
+        }
+
         if (failedCount === totalCount) {
           this.sendJson(res, responseBody, 500);
         } else if (failedCount > 0) {

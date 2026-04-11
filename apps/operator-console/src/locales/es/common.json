@@ -13,7 +13,15 @@
     "observability": "Stack de Observabilidad",
     "dashboard_hint": "Control en tiempo real y ejecución de escenas por zonas.",
     "audit_trail": "Rastros de auditoría inmutables e historial técnico táctico para auditoría del sistema.",
-    "automations_hint": "Workbench de lógica local basada en eventos para comportamientos reactivos en el edge."
+    "automations_hint": "Workbench de lógica local basada en eventos para comportamientos reactivos en el edge.",
+    "scenes": "Escenas Persistentes",
+    "scenes_hint": "Acciones grupales predefinidas para control rápido del entorno."
+  },
+  "scenes": {
+    "empty_title": "No se encontraron escenas",
+    "empty_description": "Crea escenas persistentes para agrupar múltiples acciones de dispositivos en un solo toque.",
+    "delete_title": "¿Eliminar Escena?",
+    "delete_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados."
   },
   "shell": {
     "app_title": "HomePilot",
@@ -303,6 +311,9 @@
     "actions": "Acciones",
     "on": "ON",
     "off": "OFF",
+    "done": "LISTO",
+    "execute": "EJECUTAR",
+    "more": "más",
     "processing": "Procesando..."
   }
 }

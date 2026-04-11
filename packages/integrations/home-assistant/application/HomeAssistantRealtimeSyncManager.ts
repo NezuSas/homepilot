@@ -28,8 +28,8 @@ export interface SystemStateChangeEvent {
  */
 type CloseReason = 'stop_manual' | 'reconfigure' | 'auth_error' | 'network_drop';
 
-/** Secuencia de backoff en milisegundos: 1s → 2s → 5s → 10s (fijo) */
-const BACKOFF_DELAYS_MS = [1000, 2000, 5000, 10000];
+/** Secuencia de backoff en milisegundos: 5s → 10s → 30s → 60s (fijo) */
+const BACKOFF_DELAYS_MS = [5000, 10000, 30000, 60000];
 
 export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {
   private client: HomeAssistantWebSocketClient | null = null;

@@ -124,7 +124,7 @@ export async function executeDeviceCommandUseCase(
       deviceId: device.id,
       type: 'COMMAND_DISPATCHED',
       description: options?.customDescription || `Command ${command} dispatched correctly to gateway.`,
-      data: { command, isAutomation: options?.isAutomation || false }
+      data: { command, isAutomation: !!options?.isAutomation, correlationId }
     });
   } catch (_logErr) { /* silenciar */ }
 }

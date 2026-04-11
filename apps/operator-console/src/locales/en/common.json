@@ -13,7 +13,15 @@
     "observability": "Observability Stack",
     "dashboard_hint": "Room-based rapid control and scenario execution.",
     "audit_trail": "Immutable audit trails and tactical technical history for system auditing.",
-    "automations_hint": "Local event-driven logic workbench for reactive edge behaviors."
+    "automations_hint": "Local event-driven logic workbench for reactive edge behaviors.",
+    "scenes": "Persistent Scenes",
+    "scenes_hint": "Predefined group actions for rapid environment control."
+  },
+  "scenes": {
+    "empty_title": "No scenes found",
+    "empty_description": "Create persistent scenes to group multiple device actions into a single tap.",
+    "delete_title": "Delete Scene?",
+    "delete_description": "This will permanently remove the scene. Individual devices will not be affected."
   },
   "shell": {
     "app_title": "HomePilot",
@@ -303,6 +311,9 @@
     "actions": "Actions",
     "on": "ON",
     "off": "OFF",
+    "done": "DONE",
+    "execute": "EXECUTE",
+    "more": "more",
     "processing": "Processing..."
   }
 }

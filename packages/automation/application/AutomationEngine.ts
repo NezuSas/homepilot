@@ -58,7 +58,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
           try {
             await this.evaluateAndExecuteDeviceRule(rule, event);
           } catch (ruleError: any) {
-            console.error(`[AutomationEngine] Error aislando regla ${rule.id}:`, ruleError.message);
+            console.error(`[AutomationEngine] Error aislando regla ${rule.id} (correlationId: ${event.eventId}):`, ruleError.message);
           }
         }
       }
@@ -205,13 +205,14 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         timestamp: new Date().toISOString(),
         deviceId: 'system',
         type: status === 'error' ? 'AUTOMATION_FAILED' : 'COMMAND_DISPATCHED',
-        description: `[Automation: ${rule.name}] ${reason}`,
+        description: `[Automation: ${rule.name}] ${reason} (correlationId: ${correlationId})`,
         data: {
           ruleId: rule.id,
           trigger: rule.trigger,
           action: rule.action,
-          status,
-          correlationId
+          status: status === 'error' ? 'failed' : 'executed',
+          correlationId,
+          timestamp: new Date().toISOString()
         }
       });
     } catch {
