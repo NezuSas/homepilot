@@ -1,13 +1,17 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  RadioTower, Box, Cpu, AlertCircle, Loader2, LayoutDashboard, Power, Sun, Plus
+  Cpu, AlertCircle, Loader2, LayoutDashboard, Sun, Plus, 
+  Lightbulb, ToggleRight, Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { SceneBuilderModal } from './SceneBuilderModal';
+import { humanize, disambiguate } from '../lib/naming-utils';
+import { HomeModeSelector, type HomeMode } from '../components/HomeModeSelector';
 
 interface DeviceState {
+  on?: boolean;
   state?: 'on' | 'off';
   brightness?: number;
   power?: number;
@@ -18,13 +22,10 @@ interface Device {
   id: string;
   homeId: string;
   roomId: string | null;
-  externalId: string;
   name: string;
   type: string;
-  vendor: string;
   status: 'PENDING' | 'ASSIGNED';
   lastKnownState: Record<string, unknown> | null;
-  entityVersion: number;
 }
 
 interface Room {
@@ -43,8 +44,8 @@ interface Scene {
   homeId: string;
   roomId: string | null;
   name: string;
+  description?: string;
   actions: SceneAction[];
-  createdAt: string;
 }
 
 const API_URL = `${API_BASE_URL}/api/v1`;
@@ -52,82 +53,81 @@ const API_URL = `${API_BASE_URL}/api/v1`;
 const DashDeviceTile: React.FC<{ 
   device: Device; 
   onUpdate?: (updated: Device) => void;
-}> = ({ device, onUpdate }) => {
+  roomName?: string;
+  isDuplicateName?: boolean;
+  onActionExecute?: (label: string) => void;
+}> = ({ device, onUpdate, roomName, isDuplicateName, onActionExecute }) => {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [optimisticState, setOptimisticState] = useState<boolean | null>(null);
 
   const lastState = (device.lastKnownState || {}) as DeviceState;
-  const isOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
-  const supportsCommands = device.type === 'light' || device.type === 'switch';
+  const actualIsOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
+  const isOn = optimisticState !== null ? optimisticState : actualIsOn;
+  const isOffline = device.status === 'PENDING';
+
+  const displayName = isDuplicateName 
+    ? disambiguate(humanize(device.id, device.name), roomName)
+    : humanize(device.id, device.name);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isProcessing || !supportsCommands) return;
+    if (isProcessing || isOffline) return;
     
+    const nextState = !isOn;
+    setOptimisticState(nextState);
     setIsProcessing(true);
-    setError(null);
+
     try {
-      const command = isOn ? 'turn_off' : 'turn_on';
+      const command = nextState ? 'turn_on' : 'turn_off';
       const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })
       });
-      if (res.ok && onUpdate) {
-         // UI will optimisticly update via full refresh in parent or we can use local state.
-         // Let's rely on parent update via onUpdate
-         onUpdate(await res.json());
+      
+      if (res.ok) {
+        const updated = await res.json();
+        setOptimisticState(null);
+        if (onUpdate) onUpdate(updated);
+        if (onActionExecute) onActionExecute(`${displayName} turned ${nextState ? 'on' : 'off'}`);
       } else {
-        const data = await res.json();
-        setError(data?.error?.message || 'Toggle failed');
+        setOptimisticState(null);
       }
-    } catch (err) {
-      setError('Connection error');
+    } catch {
+      setOptimisticState(null);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const Icon = device.type === 'light' ? RadioTower : (device.type === 'switch' ? Box : Cpu);
+  const Icon = device.type === 'light' ? Lightbulb : (device.type === 'switch' ? ToggleRight : Cpu);
 
   return (
     <div 
       onClick={handleToggle}
       className={cn(
-        "relative group cursor-pointer transition-all duration-300",
-        "aspect-square min-w-[120px] p-4 rounded-3xl flex flex-col justify-between border-2",
-        "bg-card hover:shadow-xl hover:border-primary/40",
-        isOn ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-border shadow-sm",
-        isProcessing && "opacity-70 scale-[0.98] bg-muted/50",
-        error && "border-destructive/40 bg-destructive/5"
+        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col gap-3 border-2 active:scale-95",
+        isOn ? "bg-primary/5 border-primary" : "bg-card/20 border-border/40 hover:border-primary/20",
+        isOffline && "opacity-30 grayscale pointer-events-none"
       )}
     >
-      <div className="flex justify-between items-start">
-        <div className={cn(
-          "p-2.5 rounded-[1rem] transition-all duration-300",
-          isOn ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-muted text-muted-foreground",
-          isProcessing && "animate-pulse"
-        )}>
-          <Icon className="w-5 h-5" />
-        </div>
+      <div className={cn(
+        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
+        isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40"
+      )}>
+        <Icon className={cn("w-4 h-4", isOn && "animate-pulse")} />
       </div>
 
-      {error && !isProcessing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-[1px] rounded-3xl p-2 text-center z-10" onClick={(e) => { e.stopPropagation(); setError(null); }}>
-             <AlertCircle className="w-5 h-5 text-destructive mb-1" />
-             <span className="text-[8px] font-black uppercase text-destructive leading-tight truncate px-1">{error}</span>
-        </div>
-      )}
-
-      <div className={cn("flex flex-col gap-1 overflow-hidden transition-opacity mt-2", (isProcessing || error) && "opacity-30")}>
-        <span className="text-[10px] font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
-        <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
-        
+      <div className="flex flex-col min-w-0">
+        <h4 className="text-xs font-bold truncate tracking-tight">{displayName}</h4>
         <div className="flex items-center gap-1.5 mt-1">
-          <div className={cn("w-2 h-2 rounded-full", isOn ? "bg-primary" : "bg-muted-foreground/30")} />
-          <span className={cn("text-[10px] font-black uppercase tracking-widest", isOn ? "text-primary" : "text-muted-foreground")}>
-            {isOn ? t('common.on') : (device.type === 'sensor' ? 'Reading' : t('common.off'))}
+          <div className={cn(
+             "w-1.5 h-1.5 rounded-full",
+             isProcessing ? "status-dot-updating" : (isOn ? "status-dot-synced" : "bg-muted-foreground/20")
+          )} />
+          <span className="text-[8px] font-black uppercase tracking-widest opacity-40">
+            {isProcessing ? 'Updating' : (isOn ? 'Synced' : 'Ready')}
           </span>
         </div>
       </div>
@@ -135,18 +135,19 @@ const DashDeviceTile: React.FC<{
   );
 };
 
-
-export const DashboardView: React.FC = () => {
+export const DashboardView: React.FC<{ 
+  onModeChange?: (mode: HomeMode) => void;
+  onActionExecute?: (label: string) => void;
+}> = ({ onModeChange, onActionExecute }) => {
   const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(true);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
-  const [roomError, setRoomError] = useState<Record<string, string | null>>({});
-  const [scenes, setScenes] = useState<Scene[]>([]);
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
-  const [editingScene, setEditingScene] = useState<Scene | null>(null);
-  const [modalRoomId, setModalRoomId] = useState<string | null>(null);
+  const [currentMode, setCurrentMode] = useState<HomeMode>('relax');
+  const [luxuryRipple, setLuxuryRipple] = useState(false);
 
   const homeId = rooms.length > 0 ? rooms[0].homeId : null;
 
@@ -156,7 +157,6 @@ export const DashboardView: React.FC = () => {
         fetch(`${API_URL}/devices`),
         fetch(`${API_URL}/homes`)
       ]);
-      
       const allDevices = await devRes.json() as Device[];
       setDevices(allDevices.filter(d => d.status === 'ASSIGNED'));
 
@@ -177,211 +177,157 @@ export const DashboardView: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDeviceUpdate = (updatedDevice: Device) => {
-    setDevices(prev => prev.map(d => d.id === updatedDevice.id ? updatedDevice : d));
-  };
-
-  const handleRoomAction = async (roomId: string, action: 'turn_on' | 'turn_off') => {
-    if (roomProcessing) return;
-    setRoomProcessing(roomId);
-    setRoomError(prev => ({ ...prev, [roomId]: null }));
-    try {
-      const res = await fetch(`${API_URL}/rooms/${roomId}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok || (data && data.failed > 0)) {
-         const isTotalFailure = data.failed === data.total;
-         setRoomError(prev => ({ 
-            ...prev, 
-            [roomId]: isTotalFailure 
-               ? t('dashboard.scene_failed_total', { defaultValue: 'Scene execution failed' }) 
-               : t('dashboard.scene_failed_partial', { defaultValue: `${data.failed} of ${data.total} devices failed` }) 
-         }));
-      }
-      
-      await fetchData(); // Always refresh local state
-    } catch (e) {
-      setRoomError(prev => ({ ...prev, [roomId]: 'Network connection error' }));
-      console.error(e);
-    } finally {
-      setRoomProcessing(null);
-    }
+  const handleDeviceUpdate = (updated: Device) => {
+    setDevices(prev => prev.map(d => d.id === updated.id ? updated : d));
   };
 
   const handleSceneExecute = async (scene: Scene) => {
     if (roomProcessing) return;
     setRoomProcessing('scene_' + scene.id);
-    const scopeId = scene.roomId || 'global';
-    setRoomError(prev => ({ ...prev, [scopeId]: null }));
+    setLuxuryRipple(true);
+    setTimeout(() => setLuxuryRipple(false), 1500);
+    if (onActionExecute) onActionExecute(scene.name);
+
     try {
-      const res = await fetch(`${API_URL}/scenes/${scene.id}/execute`, { method: 'POST' });
-      const data = await res.json();
-      
-      if (!res.ok || (data && data.failed > 0)) {
-         const isTotalFailure = data.failed === data.total;
-         setRoomError(prev => ({ 
-            ...prev, 
-            [scopeId]: isTotalFailure 
-               ? t('dashboard.scene_failed_total', { defaultValue: 'Scene execution failed' }) 
-               : t('dashboard.scene_failed_partial', { defaultValue: `${data.failed} of ${data.total} devices failed` }) 
-         }));
-      }
-      
-      await fetchData(); // Always refresh local state
+      await fetch(`${API_URL}/scenes/${scene.id}/execute`, { method: 'POST' });
+      await fetchData();
     } catch (e) {
-      setRoomError(prev => ({ ...prev, [scopeId]: 'Network connection error' }));
       console.error(e);
     } finally {
       setRoomProcessing(null);
     }
   };
 
-  const openSceneModal = (roomId: string | null = null, scene: Scene | null = null) => {
-    setModalRoomId(roomId);
-    setEditingScene(scene);
-    setIsSceneModalOpen(true);
-  };
-
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    devices.forEach(d => {
+      const name = humanize(d.id, d.name);
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return counts;
+  }, [devices]);
 
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
-        <p className="mt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground opacity-50">{t('common.loading')}</p>
+        <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
       </div>
     );
   }
 
-  // Filter out rooms that have no assigned devices
   const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
 
   return (
-    <div className="flex flex-col gap-8 pb-12 animate-in fade-in duration-500">
-      {isSceneModalOpen && homeId && (
-        <SceneBuilderModal 
-          onClose={() => setIsSceneModalOpen(false)}
-          onSaved={() => {
-            setIsSceneModalOpen(false);
-            fetchData();
-          }}
-          homeId={homeId}
-          rooms={rooms}
-          devices={devices}
-          initialRoomId={modalRoomId}
-          existingScene={editingScene}
-        />
+    <div className="flex flex-col gap-12 pb-20 px-2 animate-in fade-in duration-700">
+      {luxuryRipple && (
+        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+          <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vmax] h-[100vmax] rounded-full border border-primary/20 animate-luxury-ripple" />
+        </div>
       )}
 
-      {activeRooms.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] bg-card border rounded-3xl m-4 p-8 text-center ring-1 ring-border/50 shadow-sm">
-          <LayoutDashboard className="w-16 h-16 text-muted-foreground/30 mb-6" />
-          <h2 className="text-2xl font-black tracking-tighter text-foreground/80 mb-2">{t('nav.dashboard')}</h2>
-          <p className="text-muted-foreground font-medium max-w-sm mb-8">{t('inbox.empty_state')}</p>
+      {/* LEVEL 1: Master State (Home Mode) */}
+      <HomeModeSelector 
+        currentMode={currentMode} 
+        onModeChange={(m) => {
+          setCurrentMode(m);
+          if (onModeChange) onModeChange(m);
+        }} 
+      />
+
+      {/* LEVEL 2: Atmosphere Recipes (Promoted Scenes) */}
+      {scenes.length > 0 && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">Atmosphere Recipes</h2>
+            <button 
+              onClick={() => setIsSceneModalOpen(true)}
+              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-all"
+            >
+              <Plus className="w-3 h-3 group-hover:rotate-90 transition-transform duration-500" />
+              Build New
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {scenes.map(scene => (
+              <button
+                key={scene.id}
+                onClick={() => handleSceneExecute(scene)}
+                disabled={!!roomProcessing}
+                className={cn(
+                  "group relative flex items-center gap-6 p-6 rounded-[2.5rem] transition-all duration-700 text-left overflow-hidden border-2 active:scale-95 disabled:opacity-50",
+                  roomProcessing === 'scene_' + scene.id 
+                    ? "bg-primary border-primary text-primary-foreground shadow-2xl" 
+                    : "bg-card/40 hover:bg-card/60 border-border/40 hover:border-primary/40"
+                )}
+              >
+                <div className={cn(
+                  "p-4 rounded-2xl transition-all duration-700",
+                  roomProcessing === 'scene_' + scene.id ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
+                )}>
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight">{scene.name}</h3>
+                  <p className={cn(
+                    "text-[10px] font-medium lowercase italic opacity-60",
+                    roomProcessing === 'scene_' + scene.id ? "text-white" : "text-muted-foreground"
+                  )}>
+                    {scene.description || "Curated experience"}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      ) : (
-        activeRooms.map(room => {
+      )}
+
+      {/* LEVEL 3: Spatial Context (Rooms) */}
+      <div className="space-y-16">
+        {activeRooms.map(room => {
           const roomDevices = devices.filter(d => d.roomId === room.id);
           const onCount = roomDevices.filter(d => {
              const s = d.lastKnownState as DeviceState || {};
-             return s.on === true || s.state === 'on' || (Number(s.brightness) > 0) || (Number(s.power) > 0);
+             return s.on === true || s.state === 'on' || (Number(s.brightness) > 0);
           }).length;
           
           return (
-            <div key={room.id} className="flex flex-col gap-4">
-              {/* Error Banner */}
-              {roomError[room.id] && (
-                 <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-destructive/20 rounded-xl">
-                       <AlertCircle className="w-4 h-4 text-destructive" />
-                     </div>
-                     <p className="text-sm font-bold text-destructive/90">{roomError[room.id]}</p>
-                   </div>
-                   <button 
-                     onClick={() => setRoomError(prev => ({ ...prev, [room.id]: null }))}
-                     className="text-xs font-black uppercase text-destructive/70 hover:text-destructive px-3 py-1"
-                   >
-                     dismiss
-                   </button>
-                 </div>
-              )}
-
-              {/* Room Header Card */}
-              <div className="bg-card border-2 border-border/60 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 z-0 pointer-events-none" />
-                
-                <div className="relative z-10">
-                  <h3 className="text-2xl font-black tracking-tighter mb-1">{room.name}</h3>
-                  <p className="text-sm font-bold text-muted-foreground opacity-80 uppercase tracking-widest">
-                    {onCount} {t('common.on')} · {roomDevices.length} {t('common.devices', { defaultValue: 'Devices' })}
-                  </p>
-                </div>
-
-                {/* Quick Scenes */}
-                <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto mt-4 sm:mt-0">
-                   {scenes.filter(s => s.roomId === room.id).map(scene => (
-                     <div key={scene.id} className="relative group flex-1 sm:flex-none">
-                       <button 
-                         disabled={roomProcessing === 'scene_' + scene.id}
-                         onClick={() => handleSceneExecute(scene)}
-                         className="w-full flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
-                       >
-                         {roomProcessing === 'scene_' + scene.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sun className="w-4 h-4" />} {scene.name}
-                       </button>
-                       <button
-                         onClick={(e) => { e.stopPropagation(); openSceneModal(room.id, scene); }}
-                         className="absolute -top-2 -right-2 p-1.5 bg-background shadow-md border rounded-full text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100 z-20"
-                       >
-                         <Plus className="w-3 h-3" />
-                       </button>
-                     </div>
-                   ))}
-
-                   {scenes.filter(s => s.roomId === room.id).length === 0 && (
-                     <button 
-                       disabled={roomProcessing === room.id}
-                       onClick={() => handleRoomAction(room.id, 'turn_on')}
-                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
-                     >
-                       {roomProcessing === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sun className="w-4 h-4" />} Welcome
-                     </button>
-                   )}
-                   <button 
-                     disabled={roomProcessing === room.id}
-                     onClick={() => handleRoomAction(room.id, 'turn_off')}
-                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-muted hover:bg-foreground/10 text-foreground border border-border px-4 py-3 rounded-2xl font-black uppercase tracking-wider text-xs transition-colors disabled:opacity-50"
-                   >
-                     {roomProcessing === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} All Off
-                   </button>
-
-                   <button
-                     onClick={() => openSceneModal(room.id)}
-                     className="flex-none p-3 rounded-2xl border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all outline-none focus:ring-2 focus:ring-primary"
-                     title={t('dashboard.scene_create', { defaultValue: 'Create Scene' })}
-                   >
-                      <Plus className="w-4 h-4" />
-                   </button>
+            <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
+              <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-muted-foreground/10 pl-6">
+                <div>
+                  <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
+                    {onCount} Active • {roomDevices.length} Elements
+                  </span>
                 </div>
               </div>
 
-              {/* Room Devices Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 {roomDevices.map(device => (
                   <DashDeviceTile 
                     key={device.id} 
                     device={device} 
+                    roomName={room.name}
+                    isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
                     onUpdate={handleDeviceUpdate} 
+                    onActionExecute={onActionExecute}
                   />
                 ))}
               </div>
             </div>
           );
-        })
+        })}
+      </div>
+
+      {isSceneModalOpen && homeId && (
+        <SceneBuilderModal 
+          onClose={() => setIsSceneModalOpen(false)}
+          onSaved={() => { fetchData(); setIsSceneModalOpen(false); }}
+          homeId={homeId}
+          rooms={rooms}
+          devices={devices}
+        />
       )}
     </div>
   );

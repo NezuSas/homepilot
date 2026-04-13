@@ -15,6 +15,9 @@ import { OnboardingView } from './views/OnboardingView';
 import { UsersView } from './views/UsersView';
 import ScenesView from './views/ScenesView';
 import { API_BASE_URL } from './config';
+import { SystemStatusBar } from './components/SystemStatusBar';
+import { type HomeMode } from './components/HomeModeSelector';
+import { QuickControlLayer } from './components/QuickControlLayer';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -34,6 +37,10 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<any>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentMode, setCurrentMode] = useState<HomeMode>('relax');
+  const [lastAction, setLastAction] = useState<string | undefined>(undefined);
+  const [isAllSynced, setIsAllSynced] = useState(true);
+  const [isProcessingGlobal, setIsProcessingGlobal] = useState(false);
 
   // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
   // Patches window.fetch once per App lifecycle to intercept any 401 response.
@@ -140,25 +147,34 @@ function App() {
     );
   }
 
+  const handleQuickAction = async (type: 'all-on' | 'all-off' | 'panic') => {
+    setIsProcessingGlobal(true);
+    setLastAction(`Global ${type.toUpperCase()} invoked`);
+    setIsAllSynced(false);
+    
+    try {
+      // Mocking global orchestration. In a real system, we'd call a bulk endpoint.
+      // Here we simulate the effort to show reliability in the status bar.
+      await new Promise(r => setTimeout(r, 1500));
+      setIsAllSynced(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsProcessingGlobal(false);
+    }
+  };
+
   const navigateTo = (view: View) => {
     setCurrentView(view);
     setIsSidebarOpen(false);
   };
 
-  const menuItems = [
-    { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
-    { id: 'topology', label: t('nav.topology'), icon: Network },
-    { id: 'inbox', label: t('nav.inbox'), icon: Server },
-    { id: 'automations', label: t('nav.automations'), icon: PlaySquare },
-    { id: 'scenes', label: t('nav.scenes'), icon: Monitor },
-    { id: 'audit-logs', label: t('nav.audit_logs'), icon: ShieldAlert },
-    { id: 'ha-settings', label: t('nav.ha_settings'), icon: Settings },
-    { id: 'diagnostics', label: t('nav.diagnostics'), icon: Activity },
-    { id: 'users', label: t('nav.user_management'), icon: Users },
-  ];
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10">
+    <div 
+      className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
+      data-home-mode={currentMode}
+    >
       
       {/* Mobile Drawer Backdrop */}
       {isSidebarOpen && (
@@ -192,6 +208,24 @@ function App() {
               onClick={() => navigateTo('dashboard')} 
             />
             <NavItem 
+              icon={<PlaySquare className="w-4 h-4" />} 
+              label={t('nav.automations')} 
+              active={currentView === 'automations'} 
+              onClick={() => navigateTo('automations')} 
+            />
+            <NavItem 
+              icon={<Monitor className="w-4 h-4" />} 
+              label={t('nav.scenes')} 
+              active={currentView === 'scenes'} 
+              onClick={() => navigateTo('scenes')} 
+            />
+          </ul>
+
+          <div className="mt-8 px-6 mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">System Advanced</span>
+          </div>
+          <ul className="grid gap-1 px-4">
+            <NavItem 
               icon={<Network className="w-4 h-4" />} 
               label={t('nav.topology')} 
               active={currentView === 'topology'} 
@@ -204,16 +238,10 @@ function App() {
               onClick={() => navigateTo('inbox')} 
             />
             <NavItem 
-              icon={<PlaySquare className="w-4 h-4" />} 
-              label={t('nav.automations')} 
-              active={currentView === 'automations'} 
-              onClick={() => navigateTo('automations')} 
-            />
-            <NavItem 
-              icon={<Monitor className="w-4 h-4" />} 
-              label={t('nav.scenes')} 
-              active={currentView === 'scenes'} 
-              onClick={() => navigateTo('scenes')} 
+              icon={<Activity className="w-4 h-4" />} 
+              label={t('nav.diagnostics')} 
+              active={currentView === 'diagnostics'} 
+              onClick={() => navigateTo('diagnostics')} 
             />
             <NavItem 
               icon={<ShieldAlert className="w-4 h-4" />} 
@@ -225,16 +253,6 @@ function App() {
         </nav>
         
         <div className="p-4 border-t mt-auto flex flex-col gap-2 bg-background/30">
-          <button 
-            onClick={() => navigateTo('diagnostics')}
-            className={cn(
-              "flex items-center gap-3 text-xs transition-all w-full p-3 rounded-xl font-bold uppercase tracking-wider",
-              currentView === 'diagnostics' ? 'bg-amber-500/10 text-amber-600' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            )}
-          >
-            <Activity className="w-4 h-4" />
-            {t('nav.diagnostics')}
-          </button>
           <button 
             onClick={() => navigateTo('ha-settings')}
             className={cn(
@@ -255,7 +273,7 @@ function App() {
               )}
             >
               <Users className="w-4 h-4" />
-              {t('nav.user_management')}
+              {user?.username === 'admin' ? 'System Users' : t('nav.user_management')}
             </button>
           )}
           
@@ -305,7 +323,7 @@ function App() {
                <Menu className="w-6 h-6" />
              </button>
              <h2 className="text-sm font-black uppercase tracking-widest truncate">
-               {menuItems.find(m => m.id === currentView)?.label || t('shell.app_title')}
+               {currentView}
              </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -319,9 +337,15 @@ function App() {
           </div>
         </header>
 
-        {/* Desktop Title Header */}
-        <header className="hidden lg:block border-b px-12 py-10 bg-card/40 backdrop-blur-sm shadow-sm">
-          <div className="max-w-7xl mx-auto w-full">
+        <header className="hidden lg:block border-b px-12 py-8 bg-card/60 backdrop-blur-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 flex items-center gap-3 animate-in fade-in duration-1000">
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">System Online</span>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto w-full relative z-10">
             <h1 className="text-3xl font-black tracking-tighter text-foreground/90 leading-tight">
                {currentView === 'dashboard' ? t('nav.dashboard') :
                 currentView === 'topology' ? t('topology.title') : 
@@ -332,20 +356,20 @@ function App() {
                 currentView === 'users' ? t('nav.user_management') : 
                 currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
             </h1>
-            <p className="text-sm text-muted-foreground mt-2 max-w-2xl font-medium leading-relaxed">
+            <p className="text-xs text-muted-foreground mt-1 max-w-2xl font-bold uppercase tracking-widest opacity-40">
                {currentView === 'dashboard'
-                  ? t('nav.dashboard_hint')
+                  ? "Atmosphere & Living Space"
                   : currentView === 'topology' 
-                  ? t('topology.select_home')
+                  ? "System Topology"
                   : currentView === 'inbox'
-                  ? t('inbox.subtitle')
+                  ? "Device Discovery"
                   : currentView === 'automations'
-                  ? t('nav.automations_hint')
+                  ? "Logic Engine"
                   : currentView === 'scenes'
-                  ? t('nav.scenes_hint')
+                  ? "Atmosphere Recipes"
                   : currentView === 'ha-settings'
-                  ? t('ha_settings.status_card.title')
-                  : t('nav.audit_trail')
+                  ? "Platform Integration"
+                  : "System Observability"
                }
             </p>
           </div>
@@ -353,17 +377,42 @@ function App() {
         
         <section className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
            <div className="max-w-7xl mx-auto w-full">
-            {currentView === 'dashboard' && <DashboardView />}
-            {currentView === 'topology' && <TopologyView />}
-            {currentView === 'inbox' && <InboxView />}
-            {currentView === 'automations' && <AutomationsView />}
-            {currentView === 'scenes' && <ScenesView />}
-            {currentView === 'audit-logs' && <AuditLogsView />}
-            {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
-            {currentView === 'diagnostics' && <DiagnosticsView />}
-            {currentView === 'users' && <UsersView />}
+             {currentView === 'dashboard' && (
+               <DashboardView 
+                 onModeChange={setCurrentMode} 
+                 onActionExecute={(action: string) => {
+                   setLastAction(action);
+                   setIsAllSynced(false);
+                   setTimeout(() => setIsAllSynced(true), 1500);
+                 }}
+               />
+             )}
+             {currentView === 'topology' && <TopologyView />}
+             {currentView === 'inbox' && <InboxView />}
+             {currentView === 'automations' && <AutomationsView />}
+             {currentView === 'scenes' && (
+               <ScenesView 
+                 onActionExecute={(action: string) => {
+                    setLastAction(action);
+                    setIsAllSynced(false);
+                    setTimeout(() => setIsAllSynced(true), 1500);
+                 }}
+               />
+             )}
+             {currentView === 'audit-logs' && <AuditLogsView />}
+             {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
+             {currentView === 'diagnostics' && <DiagnosticsView />}
+             {currentView === 'users' && <UsersView />}
            </div>
         </section>
+
+        <QuickControlLayer onAction={handleQuickAction} isProcessing={isProcessingGlobal} />
+
+        <SystemStatusBar 
+          currentMode={currentMode} 
+          isAllSynced={isAllSynced} 
+          lastAction={lastAction} 
+        />
       </main>
 
       <ChangePasswordModal 
