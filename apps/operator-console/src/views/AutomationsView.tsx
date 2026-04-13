@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Trash2, Clock, Zap, AlertCircle, 
-  ToggleLeft as ToggleIcon, Pencil, Check, ArrowRight, 
-  Monitor, PlayCircle, Loader2, CheckCircle2
+  Pencil, ArrowRight, Loader2, CheckCircle2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
@@ -298,7 +297,7 @@ const AutomationsView: React.FC = () => {
             setIsBuilderOpen(false);
             setEditingAutomation(null);
           }}
-          onCreated={(savedRule) => {
+          onCreated={() => {
             setIsBuilderOpen(false);
             setEditingAutomation(null);
             fetchData();

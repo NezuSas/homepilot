@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
-  Cpu, AlertCircle, Loader2, LayoutDashboard, Sun, Plus, 
+  Cpu, Loader2, Plus, 
   Lightbulb, ToggleRight, Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -57,7 +56,6 @@ const DashDeviceTile: React.FC<{
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
 }> = ({ device, onUpdate, roomName, isDuplicateName, onActionExecute }) => {
-  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [optimisticState, setOptimisticState] = useState<boolean | null>(null);
 
@@ -139,7 +137,6 @@ export const DashboardView: React.FC<{
   onModeChange?: (mode: HomeMode) => void;
   onActionExecute?: (label: string) => void;
 }> = ({ onModeChange, onActionExecute }) => {
-  const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
