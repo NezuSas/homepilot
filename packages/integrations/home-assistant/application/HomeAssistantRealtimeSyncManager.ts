@@ -300,6 +300,10 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       let allStates;
       try {
         allStates = await this.haClient.getAllStates();
+        if (!allStates) {
+          console.log('[HA-Sync] Reconciliation: No states returned (HA may not be configured).');
+          return;
+        }
       } catch (fetchErr: any) {
         // /api/states falló: log de warning pero NO cerrar el WS.
         console.warn('[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo.', fetchErr.message);

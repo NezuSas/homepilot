@@ -3,6 +3,7 @@ import { DeviceCommandV1 } from '../../packages/devices/domain/commands';
 import { HomeAssistantClient } from '../../packages/devices/infrastructure/adapters/HomeAssistantClient';
 import { DeviceRepository } from '../../packages/devices/domain/repositories/DeviceRepository';
 import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from '../../packages/devices/application/syncDeviceStateUseCase';
+import { HomeAssistantConnectionProvider } from '../../packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 
 /**
  * HomeAssistantCommandDispatcher
@@ -12,7 +13,7 @@ import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from '../../packa
  */
 export class HomeAssistantCommandDispatcher implements DeviceCommandDispatcherPort {
   constructor(
-    private readonly haClient: HomeAssistantClient,
+    private readonly connectionProvider: HomeAssistantConnectionProvider,
     private readonly deviceRepository: DeviceRepository,
     private readonly syncDeps: SyncDeviceStateDependencies,
     private readonly correlationId: string = 'ha-bridge-sync'
@@ -42,8 +43,12 @@ export class HomeAssistantCommandDispatcher implements DeviceCommandDispatcherPo
 
     console.log(`[HA-Bridge] Despachando servicio: ${domain}.${service} para ${fullEntityId}`);
     
-    // Llamada física a HA
-    await this.haClient.callService(domain, service, fullEntityId);
+    // Llamada física a HA (Solo si el cliente existe)
+    if (!this.connectionProvider.hasClient()) {
+      throw new Error(`Integración de Home Assistant no configurada. No se pudo ejecutar el comando en ${fullEntityId}`);
+    }
+    
+    await this.connectionProvider.getClient().callService(domain, service, fullEntityId);
 
     // Sincronización optimista
     let newState: Record<string, unknown> = { ...device.lastKnownState };

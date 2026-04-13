@@ -125,6 +125,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const haClientProxy = new Proxy({} as HomeAssistantClient, {
     get(_target, prop) {
       return (...args: any[]) => {
+        if (!connectionProvider.hasClient()) {
+          console.warn(`[Proxy] Home Assistant Client used but not configured (prop: ${String(prop)}).`);
+          return Promise.resolve(null);
+        }
         const client = connectionProvider.getClient();
         return (client as any)[prop](...args);
       };
@@ -176,9 +180,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
                if (cmd === 'turn_on') service = 'turn_on';
                if (cmd === 'turn_off') service = 'turn_off';
                if (cmd === 'toggle') service = 'toggle';
-               if (service) {
-                  await connectionProvider.getClient().callService(domain, service, target.externalId.split(':')[1]);
-               }
+                if (service) {
+                   if (connectionProvider.hasClient()) {
+                      await connectionProvider.getClient().callService(domain, service, target.externalId.split(':')[1]);
+                   } else {
+                      console.warn(`[Engine] Skipping HA command for ${target.externalId}: HA not configured.`);
+                   }
+                }
             }
           },
           activityLogRepository,
@@ -351,7 +359,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   };
   const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, sharedSyncDeps);
   const sharedHaDispatcher = new HomeAssistantCommandDispatcher(
-    connectionProvider.getClient(),
+    connectionProvider,
     deviceRepository,
     sharedSyncDeps
   );
