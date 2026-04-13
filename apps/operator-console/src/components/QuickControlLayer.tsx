@@ -9,7 +9,7 @@ interface QuickControlLayerProps {
 
 export const QuickControlLayer: React.FC<QuickControlLayerProps> = ({ onAction, isProcessing }) => {
   return (
-    <div className="fixed right-8 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-4 animate-in slide-in-from-right-10 duration-1000">
+    <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-4 animate-in slide-in-from-right-10 duration-1000">
       <div className="flex flex-col gap-2 p-3 bg-card/60 backdrop-blur-3xl border-2 border-border/40 rounded-[2.5rem] shadow-2xl">
         <ControlBtn 
           icon={<Power className="w-5 h-5" />} 
@@ -68,7 +68,7 @@ const ControlBtn = ({ icon, label, onClick, variant, disabled }: ControlBtnProps
       title={label}
     >
       <div className="relative z-10">{icon}</div>
-      <span className="absolute left-full ml-4 px-3 py-1.5 bg-card/80 backdrop-blur-xl border border-border/40 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap shadow-xl">
+      <span className="absolute right-full mr-4 px-3 py-1.5 bg-card/80 backdrop-blur-xl border border-border/40 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-[10px] group-hover:translate-x-0 whitespace-nowrap shadow-xl">
         {label}
       </span>
     </button>

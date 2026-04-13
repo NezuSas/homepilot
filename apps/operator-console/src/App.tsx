@@ -41,6 +41,7 @@ function App() {
   const [lastAction, setLastAction] = useState<string | undefined>(undefined);
   const [isAllSynced, setIsAllSynced] = useState(true);
   const [isProcessingGlobal, setIsProcessingGlobal] = useState(false);
+  const [isBackendOffline, setIsBackendOffline] = useState(false);
 
   // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
   // Patches window.fetch once per App lifecycle to intercept any 401 response.
@@ -79,11 +80,17 @@ function App() {
     if (isAuthenticated) {
       setLoadingSetup(true);
       fetch(`${API_BASE_URL}/api/v1/system/setup-status`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error('Backend failed');
+          return res.json();
+        })
         .then(data => {
           setSetupStatus(data);
+          setIsBackendOffline(false);
         })
-        .catch(console.error)
+        .catch(() => {
+          setIsBackendOffline(true);
+        })
         .finally(() => setLoadingSetup(false));
     }
   }, [isAuthenticated]);
@@ -375,7 +382,28 @@ function App() {
           </div>
         </header>
         
-        <section className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
+        <section className="flex-1 overflow-y-auto p-4 sm:p-8 pb-32 relative scroll-smooth">
+           {isBackendOffline && (
+             <div className="max-w-7xl mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+               <div className="bg-destructive/10 border-2 border-destructive/20 rounded-[2rem] p-6 flex items-center justify-between gap-6 backdrop-blur-xl">
+                 <div className="flex items-center gap-4">
+                   <div className="p-3 bg-destructive text-destructive-foreground rounded-2xl shadow-lg shadow-destructive/20">
+                     <ShieldAlert className="w-6 h-6" />
+                   </div>
+                   <div>
+                     <h3 className="font-black tracking-tight text-destructive">System Connection Lost</h3>
+                     <p className="text-[10px] uppercase font-black tracking-widest text-destructive/60">The Edge Controller is unreachable. Check power and network.</p>
+                   </div>
+                 </div>
+                 <button 
+                   onClick={() => window.location.reload()}
+                   className="px-6 py-3 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                 >
+                   Retry Connection
+                 </button>
+               </div>
+             </div>
+           )}
            <div className="max-w-7xl mx-auto w-full">
              {currentView === 'dashboard' && (
                <DashboardView 

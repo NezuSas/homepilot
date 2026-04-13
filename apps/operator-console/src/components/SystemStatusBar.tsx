@@ -20,7 +20,7 @@ export const SystemStatusBar: React.FC<SystemStatusBarProps> = ({ currentMode, i
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[150] system-blur-bar px-8 py-3 flex items-center justify-between border-t border-border/40 text-[10px] font-black uppercase tracking-[0.2em]">
+    <div className="w-full z-[50] system-blur-bar px-8 py-3 flex items-center justify-between border-t border-border/40 text-[10px] font-black uppercase tracking-[0.2em] bg-card/20 backdrop-blur-xl shrink-0">
       {/* Left: Mode & Action Memory */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
