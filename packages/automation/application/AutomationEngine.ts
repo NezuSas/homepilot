@@ -230,9 +230,16 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         this.loopPreventionCache.delete(key);
       }
     }
-    // Opcional: limpiar timeFireGuard si llega a ser muy grande, 
-    // pero usualmente HH:mm cambia y se sobreescribe. 
-    // Limpiemos entradas de días anteriores.
+
+    // MEM-1: Clean timeFireGuard entries from previous days.
+    // Entries hold "YYYY-MM-DD HH:mm" — anything before today is stale
+    // (including entries for deleted rules that will never fire again).
+    const todayPrefix = new Date().toISOString().split('T')[0];
+    for (const [ruleId, lastFiredKey] of this.timeFireGuard.entries()) {
+      if (!lastFiredKey.startsWith(todayPrefix)) {
+        this.timeFireGuard.delete(ruleId);
+      }
+    }
   }
 
   // ─── Observable State Provider ───────────────────────────────────────────────

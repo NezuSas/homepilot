@@ -16,6 +16,10 @@ import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-a
 import { AutomationEngine } from './packages/automation/application/AutomationEngine';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { executeDeviceCommandUseCase } from './packages/devices/application/executeDeviceCommandUseCase';
+import { LocalConsoleCommandDispatcher } from './apps/api/LocalConsoleCommandDispatcher';
+import { HomeAssistantCommandDispatcher } from './apps/api/HomeAssistantCommandDispatcher';
+import { CompositeCommandDispatcher } from './apps/api/CompositeCommandDispatcher';
+import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
 
 import { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -54,6 +58,8 @@ export interface BootstrapContainer {
   adapters: {
     homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
     homeAssistantClient: HomeAssistantClient;
+    /** PERF-1: Shared composite command dispatcher — built once, reused per request. */
+    commandDispatcher: DeviceCommandDispatcherPort;
   };
   engine?: AutomationEngine;
 }
@@ -204,42 +210,33 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
             data: { sceneId: scene.id, name: scene.name }
           });
 
-          let failedCount = 0;
-          for (const action of scene.actions) {
-            try {
-               await this.dispatchCommand(homeId, action.deviceId, action.command, correlationId);
-            } catch (e: any) {
-               failedCount++;
-               console.error(`[AutomationEngine] Error in scene action:`, e.message);
-            }
-          }
+          // ASYNC-1: Run actions in parallel, consistent with the API path (/api/v1/scenes/:id/execute).
+          // Each action is isolated — individual failures don't block others.
+          const results = await Promise.allSettled(
+            scene.actions.map(action => this.dispatchCommand(homeId, action.deviceId, action.command, correlationId))
+          );
 
-          if (failedCount > 0 && failedCount < scene.actions.length) {
-            await activityLogRepository.saveActivity({
-              timestamp: new Date().toISOString(),
-              deviceId: null,
-              correlationId,
-              type: 'SCENE_EXECUTION_FAILED',
-              description: `Scene "${scene.name}" executed with ${failedCount} failures`,
-              data: { sceneId: scene.id, failedCount, totalCount: scene.actions.length, isPartial: true }
-            });
-          } else if (failedCount === scene.actions.length && scene.actions.length > 0) {
-            await activityLogRepository.saveActivity({
-              timestamp: new Date().toISOString(),
-              deviceId: null,
-              correlationId,
-              type: 'SCENE_EXECUTION_FAILED',
-              description: `Scene "${scene.name}" failed completely`,
-              data: { sceneId: scene.id, failedCount, totalCount: scene.actions.length }
-            });
-          } else {
+          const failedCount = results.filter(r => r.status === 'rejected').length;
+          const totalCount = scene.actions.length;
+
+          if (failedCount === 0) {
             await activityLogRepository.saveActivity({
               timestamp: new Date().toISOString(),
               deviceId: null,
               correlationId,
               type: 'SCENE_EXECUTION_COMPLETED',
               description: `Scene "${scene.name}" executed successfully`,
-              data: { sceneId: scene.id, totalCount: scene.actions.length }
+              data: { sceneId: scene.id, totalCount }
+            });
+          } else {
+            const isPartial = failedCount < totalCount;
+            await activityLogRepository.saveActivity({
+              timestamp: new Date().toISOString(),
+              deviceId: null,
+              correlationId,
+              type: 'SCENE_EXECUTION_FAILED',
+              description: `Scene "${scene.name}" ${isPartial ? 'partially' : 'fully'} failed (${failedCount}/${totalCount} errors)`,
+              data: { sceneId: scene.id, failedCount, totalCount, isPartial }
             });
           }
         } catch (sceneErr: any) {
@@ -256,32 +253,32 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     automationEngine.handleSystemEvent(event).catch(e => console.error('[Engine] Fallo asíncrono:', e.message));
   });
 
-  // 4.2. Latido determinista alineado a fronteras de minuto (HH:mm:00)
+  // 4.2. Latido auto-corregido alineado a fronteras de minuto UTC (HH:mm:00)
+  // Estrategia: en cada tick recalculamos el delay al próximo :00, eliminando
+  // la deriva acumulada que tendría un setInterval fijo de 60s a lo largo de horas.
   const startHeartbeat = () => {
-    const now = new Date();
-    const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-    
-    // Pulso inicial opcional si queremos que arranque YA (pero el usuario quiere alineación a :00)
-    // El primer setTimeout nos lleva exactamente al segundo :00 del siguiente minuto.
-    setTimeout(() => {
-      const triggerPulse = () => {
-        const pulseDate = new Date();
-        const currentTimeUTC = pulseDate.toISOString().slice(11, 16);
-        
+    const scheduleNext = () => {
+      const now = new Date();
+      const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      // Minimum buffer: if within 100ms of the boundary, wait for the NEXT full minute
+      const safeDelay = msToNextMinute < 100 ? msToNextMinute + 60000 : msToNextMinute;
+
+      setTimeout(() => {
+        const triggerDate = new Date();
+        const currentTimeUTC = triggerDate.toISOString().slice(11, 16);
+
         console.log(`[Pulse] Minute Boundary Reached (UTC): ${currentTimeUTC}`);
-        automationEngine.handleTimeEvent(currentTimeUTC).catch(e => 
+        automationEngine.handleTimeEvent(currentTimeUTC).catch(e =>
           console.error('[Engine] Fallo en pulso de tiempo:', e.message)
         );
-      };
 
-      // Disparar el primer pulso alineado
-      triggerPulse();
+        // Re-schedule for the NEXT minute boundary on every tick — no drift accumulation
+        scheduleNext();
+      }, safeDelay).unref();
+    };
 
-      // Mantener el ritmo cada 60s exactos desde este punto
-      setInterval(triggerPulse, 60000).unref();
-    }, delay).unref();
-
-    console.log(`[Bootstrap] Heartbeat scheduled to align in ${delay}ms`);
+    scheduleNext();
+    console.log('[Bootstrap] Self-correcting minute heartbeat scheduled.');
   };
 
   startHeartbeat();
@@ -343,6 +340,27 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     cryptoService
   );
 
+  // PERF-1: Build the composite command dispatcher ONCE and reuse it across all request handlers.
+  // This eliminates the per-request instantiation of three dispatcher objects.
+  const sharedSyncDeps = {
+    deviceRepository,
+    eventPublisher: { publish: async () => {} },
+    activityLogRepository,
+    idGenerator: { generate: () => crypto.randomUUID() },
+    clock: { now: () => new Date().toISOString() }
+  };
+  const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, sharedSyncDeps);
+  const sharedHaDispatcher = new HomeAssistantCommandDispatcher(
+    connectionProvider.getClient(),
+    deviceRepository,
+    sharedSyncDeps
+  );
+  const sharedCommandDispatcher = new CompositeCommandDispatcher(
+    deviceRepository,
+    sharedLocalDispatcher,
+    sharedHaDispatcher
+  );
+
   const container: BootstrapContainer = {
     repositories: {
       homeRepository,
@@ -370,7 +388,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       homeAssistantConnectionProvider: connectionProvider,
       get homeAssistantClient() {
         return connectionProvider.getClient();
-      }
+      },
+      commandDispatcher: sharedCommandDispatcher
     },
     engine: automationEngine
   };

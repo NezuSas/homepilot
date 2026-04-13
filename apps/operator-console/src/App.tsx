@@ -35,6 +35,33 @@ function App() {
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
+  // Patches window.fetch once per App lifecycle to intercept any 401 response.
+  // This avoids modifying every individual fetch call site in each view.
+  // On 401: clears local session and transitions to the LoginView.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
+      const res = await originalFetch(...args);
+      if (res.status === 401) {
+        // Avoid intercepting the login endpoint itself to prevent logout loops
+        const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+        if (!url.includes('/auth/login')) {
+          handleLogout();
+        }
+      }
+      return res;
+    };
+
+    return () => {
+      // Restore original fetch on cleanup (e.g., during logout)
+      window.fetch = originalFetch;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
   const toggleLanguage = () => {
     const nextLang = i18n.language.startsWith('es') ? 'en' : 'es';
     i18n.changeLanguage(nextLang);

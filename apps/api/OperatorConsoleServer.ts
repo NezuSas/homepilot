@@ -549,16 +549,7 @@ export class OperatorConsoleServer {
            return;
         }
 
-        const syncDeps = {
-          deviceRepository: this.container.repositories.deviceRepository,
-          eventPublisher: { publish: async () => {} },
-          activityLogRepository: this.container.repositories.activityLogRepository,
-          idGenerator: { generate: () => crypto.randomUUID() },
-          clock: { now: () => new Date().toISOString() }
-        };
-        const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
-        const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
-        const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
+        const compositeDispatcher = this.container.adapters.commandDispatcher;
 
         const executeDeps = {
           deviceRepository: this.container.repositories.deviceRepository,
@@ -739,16 +730,7 @@ export class OperatorConsoleServer {
            return this.sendJson(res, { success: true, executed: 0, failed: 0, failures: [] });
         }
 
-        const syncDeps = {
-          deviceRepository: this.container.repositories.deviceRepository,
-          eventPublisher: { publish: async () => {} },
-          activityLogRepository: this.container.repositories.activityLogRepository,
-          idGenerator: { generate: () => crypto.randomUUID() },
-          clock: { now: () => new Date().toISOString() }
-        };
-        const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
-        const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
-        const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
+        const compositeDispatcher = this.container.adapters.commandDispatcher;
 
         const executeDeps = {
           deviceRepository: this.container.repositories.deviceRepository,
@@ -1095,16 +1077,7 @@ export class OperatorConsoleServer {
       try {
         const payload = await this.parseBody<{ command?: string }>(req);
         if (!payload.command || !isValidCommand(payload.command)) return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid or missing command');
-        const syncDeps = {
-          deviceRepository: this.container.repositories.deviceRepository,
-          eventPublisher: { publish: async () => {} },
-          activityLogRepository: this.container.repositories.activityLogRepository,
-          idGenerator: { generate: () => crypto.randomUUID() },
-          clock: { now: () => new Date().toISOString() }
-        };
-        const localDispatcher = new LocalConsoleCommandDispatcher(this.container.repositories.deviceRepository, syncDeps);
-        const haDispatcher = new HomeAssistantCommandDispatcher(this.container.adapters.homeAssistantConnectionProvider.getClient(), this.container.repositories.deviceRepository, syncDeps);
-        const compositeDispatcher = new CompositeCommandDispatcher(this.container.repositories.deviceRepository, localDispatcher, haDispatcher);
+        const compositeDispatcher = this.container.adapters.commandDispatcher;
         const correlationId = crypto.randomUUID();
         await executeDeviceCommandUseCase(commandMatch[1], payload.command as DeviceCommandV1, authReq.user.id, correlationId, {
           deviceRepository: this.container.repositories.deviceRepository,

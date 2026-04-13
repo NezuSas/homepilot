@@ -13,6 +13,13 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private handshakeTimer: NodeJS.Timeout | null = null;
 
+  // ─── Pong Tracking (dead-connection detection) ──────────────────────────────
+  /** Timestamp of the last pong received. null = no ping sent yet. */
+  private lastPongAt: number | null = null;
+  /** How long we wait for a pong before declaring the connection dead (ms). */
+  private static readonly HEARTBEAT_INTERVAL_MS = 30000;
+  private static readonly PONG_TIMEOUT_MS = HomeAssistantWebSocketClient.HEARTBEAT_INTERVAL_MS * 2; // 60s
+
   constructor(private baseUrl: string, private token: string) {
     super();
   }
@@ -63,12 +70,32 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
 
   private startHeartbeat() {
     this.stopHeartbeat();
+    // Initialize lastPongAt so the first interval doesn't immediately trigger
+    this.lastPongAt = Date.now();
+
+    // Listen for pong responses from HA
+    this.ws?.on('pong', () => {
+      this.lastPongAt = Date.now();
+    });
+
     this.heartbeatInterval = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        // HA uses standard ping/pong or 'ping' messages. Standard WS ping is safer.
-        this.ws.ping(); 
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+      // Dead-connection detection: if last pong was too long ago, the TCP connection is silently dead
+      const elapsed = Date.now() - (this.lastPongAt ?? Date.now());
+      if (elapsed > HomeAssistantWebSocketClient.PONG_TIMEOUT_MS) {
+        console.error(
+          `[HA WebSocket] Pong timeout — no pong received in ${elapsed}ms. ` +
+          'Dead connection detected. Forcing close to trigger reconnect.'
+        );
+        this.forceClose();
+        this.emit('close'); // Triggers reconnect backoff in HomeAssistantRealtimeSyncManager
+        return;
       }
-    }, 30000); // 30s is industry standard for HA longevity
+
+      // Send keep-alive ping
+      this.ws.ping();
+    }, HomeAssistantWebSocketClient.HEARTBEAT_INTERVAL_MS);
   }
 
   private stopHeartbeat() {
@@ -76,6 +103,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
     }
+    this.lastPongAt = null;
   }
 
   private startHandshakeTimeout(reject: (err: Error) => void) {
@@ -102,6 +130,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
       clearTimeout(this.connectionTimer);
       this.connectionTimer = null;
     }
+    this.lastPongAt = null;
     if (this.ws) {
       this.ws.onopen = null;
       this.ws.onmessage = null;

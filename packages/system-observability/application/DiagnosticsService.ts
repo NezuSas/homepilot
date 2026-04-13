@@ -110,8 +110,9 @@ export class DiagnosticsService {
     };
   }
 
-  public async getRecentEvents(limit: number = 50): Promise<DiagnosticEvent[]> {
-    // Bring more logs to filter out the noise
+  public async getRecentEvents(limit: number = 200): Promise<DiagnosticEvent[]> {
+    // OBS-1: Fetch 3× the limit from the log so that after filtering STATE_CHANGED noise,
+    // we still have enough records to preserve parent/child correlated traces under burst load.
     const rawLogs = await this.activityLogRepository.findAllRecent(limit * 3);
     
     const events: DiagnosticEvent[] = [];

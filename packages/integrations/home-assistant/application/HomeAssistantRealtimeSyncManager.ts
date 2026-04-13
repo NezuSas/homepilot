@@ -391,7 +391,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
   ): void {
     this.activityLogRepository.saveActivity({
       timestamp: new Date().toISOString(),
-      deviceId: 'system',
+      deviceId: null, // LOG-1: resilience events are not device-scoped
       type: 'HA_RESILIENCE',
       description: reason,
       data: {
