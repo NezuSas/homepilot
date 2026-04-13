@@ -28,18 +28,37 @@ export class HomeAssistantCommandDispatcher implements DeviceCommandDispatcherPo
       throw new Error(`El dispositivo ${deviceId} no tiene un externalId válido de Home Assistant (ha:...)`);
     }
 
-    const fullEntityId = device.externalId.split(':')[1];
-    const [domain] = fullEntityId.split('.');
-
     // Mapeo de comandos V1 a servicios de HA
-    // Asumimos dominios estándar como light, switch, input_boolean, etc.
+    // Mapeo selectivo de comandos a servicios HA
+    let domain = 'homeassistant';
     let service = '';
-    switch (command) {
-      case 'turn_on': service = 'turn_on'; break;
-      case 'turn_off': service = 'turn_off'; break;
-      case 'toggle': service = 'toggle'; break;
-      default: throw new Error(`Comando ${command} no soportado por el Bridge HA V1`);
+    
+    // Extraer dominio de la entidad HA
+    const entityId = device.externalId.split(':')[1];
+    const haDomain = entityId.split('.')[0];
+
+    if (command === 'turn_on') service = 'turn_on';
+    else if (command === 'turn_off') service = 'turn_off';
+    else if (command === 'toggle') service = 'toggle';
+    else if (command === 'open' && haDomain === 'cover') {
+      domain = 'cover';
+      service = 'open_cover';
+    } else if (command === 'close' && haDomain === 'cover') {
+      domain = 'cover';
+      service = 'close_cover';
+    } else if (command === 'stop' && haDomain === 'cover') {
+      domain = 'cover';
+      service = 'stop_cover';
+    } else if (command === 'set_position' && haDomain === 'cover') {
+      domain = 'cover';
+      service = 'set_cover_position';
     }
+
+    if (!service) {
+      throw new Error(`Comando ${command} no soportado para el dispositivo ${device.name} de tipo ${device.type}`);
+    }
+
+    const fullEntityId = device.externalId.split(':')[1];
 
     console.log(`[HA-Bridge] Despachando servicio: ${domain}.${service} para ${fullEntityId}`);
     

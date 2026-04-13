@@ -3,12 +3,13 @@
  * Representan literales inmutables restringidos puramente al control de estado binario unificado,
  * aislando protocolos complejos físicos de la semántica de la capa de aplicación.
  */
-export type DeviceCommandV1 = 'turn_on' | 'turn_off' | 'toggle';
+export type DeviceCommandV1 = 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop' | 'set_position';
 
 /**
  * Type Guard funcional garantizando que cadenas genéricas inseguras coincidan 
  * estrictamente con el diccionario soportado, previniendo vulnerabilidades de payloads (Zero-Trust).
  */
 export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
-  return cmd === 'turn_on' || cmd === 'turn_off' || cmd === 'toggle';
+  const validCommands: DeviceCommandV1[] = ['turn_on', 'turn_off', 'toggle', 'open', 'close', 'stop', 'set_position'];
+  return validCommands.includes(cmd as DeviceCommandV1);
 }

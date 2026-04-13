@@ -1179,7 +1179,7 @@ export class OperatorConsoleServer {
       const existingRows = db.prepare('SELECT external_id FROM devices WHERE external_id LIKE ?').all('ha:%') as { external_id: string }[];
       const existingEntityIds = new Set(existingRows.map(r => r.external_id.replace('ha:', '')));
 
-      const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor'];
+      const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor', 'cover'];
       
       const entities = allStates
         .filter(s => {
@@ -1239,6 +1239,7 @@ export class OperatorConsoleServer {
       if (domain === 'light') deviceType = 'light';
       else if (domain === 'switch') deviceType = 'switch';
       else if (domain === 'binary_sensor') deviceType = 'sensor';
+      else if (domain === 'cover') deviceType = 'cover';
 
       const device = {
         id: deviceId,
@@ -1249,7 +1250,11 @@ export class OperatorConsoleServer {
         type: deviceType as 'light' | 'switch' | 'sensor',
         vendor: 'Home Assistant',
         status: 'PENDING' as const,
-        lastKnownState: { on: haState.state === 'on' },
+        lastKnownState: { 
+          on: haState.state === 'on' || haState.state === 'open',
+          state: haState.state,
+          current_position: haState.attributes.current_position
+        },
         entityVersion: 1,
         createdAt: now,
         updatedAt: now

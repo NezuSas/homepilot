@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../config';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { HomeModeSelector, type HomeMode } from '../components/HomeModeSelector';
+import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
 
 interface DeviceState {
   on?: boolean;
@@ -35,7 +36,7 @@ interface Room {
 
 interface SceneAction {
   deviceId: string;
-  command: 'turn_on' | 'turn_off';
+  command: 'turn_on' | 'turn_off' | 'open' | 'close' | 'stop';
 }
 
 interface Scene {
@@ -302,14 +303,25 @@ export const DashboardView: React.FC<{
 
               <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 {roomDevices.map(device => (
-                  <DashDeviceTile 
-                    key={device.id} 
-                    device={device} 
-                    roomName={room.name}
-                    isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
-                    onUpdate={handleDeviceUpdate} 
-                    onActionExecute={onActionExecute}
-                  />
+                  device.type === 'cover' ? (
+                    <CurtainDeviceTile
+                      key={device.id}
+                      device={device}
+                      roomName={room.name}
+                      isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
+                      onUpdate={handleDeviceUpdate}
+                      onActionExecute={onActionExecute}
+                    />
+                  ) : (
+                    <DashDeviceTile 
+                      key={device.id} 
+                      device={device} 
+                      roomName={room.name}
+                      isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
+                      onUpdate={handleDeviceUpdate} 
+                      onActionExecute={onActionExecute}
+                    />
+                  )
                 ))}
               </div>
             </div>

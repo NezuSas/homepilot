@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   Inbox, RadioTower, Box, Activity,
   Loader2, RefreshCw, X, AlertCircle, ArrowRight,
-  Settings, Database, Clock, Terminal, Cpu
+  Settings, Database, Clock, Terminal, Cpu, Blinds
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
@@ -66,7 +66,7 @@ const DeviceTile: React.FC<{
   const lastState = (device.lastKnownState || {}) as DeviceState;
   const isOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
   
-  const supportsCommands = device.type === 'light' || device.type === 'switch';
+  const supportsCommands = device.type === 'light' || device.type === 'switch' || device.type === 'cover';
 
   useEffect(() => {
     if (isPending && rooms.length > 0 && !selectedRoomId) {
@@ -124,7 +124,7 @@ const DeviceTile: React.FC<{
   };
 
   // Get Icon based on type
-  const Icon = device.type === 'light' ? RadioTower : (device.type === 'switch' ? Box : Cpu);
+  const Icon = device.type === 'light' ? RadioTower : (device.type === 'switch' ? Box : (device.type === 'cover' ? Blinds : Cpu));
 
   return (
     <div 
@@ -431,7 +431,7 @@ const DeviceInspector: React.FC<{
     }
   };
 
-  const handleCommand = async (command: 'turn_on' | 'turn_off' | 'toggle') => {
+  const handleCommand = async (command: 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop') => {
     if (!device || isActionLoading) return;
     setIsActionLoading(true);
     try {
@@ -600,6 +600,29 @@ const DeviceInspector: React.FC<{
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                     >
                       {t('inbox.inspector.actions.toggle', { defaultValue: 'TOGGLE' })}
+                    </button>
+                  </div>
+                )}
+                
+                {device.type === 'cover' && (
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => handleCommand('open')}
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10"
+                    >
+                       {t('inbox.inspector.actions.open', { defaultValue: 'OPEN' })}
+                    </button>
+                    <button 
+                      onClick={() => handleCommand('stop')}
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                    >
+                      {t('inbox.inspector.actions.stop', { defaultValue: 'STOP' })}
+                    </button>
+                    <button 
+                      onClick={() => handleCommand('close')}
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                    >
+                      {t('inbox.inspector.actions.close', { defaultValue: 'CLOSE' })}
                     </button>
                   </div>
                 )}

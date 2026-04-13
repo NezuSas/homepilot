@@ -9,6 +9,7 @@ import { DeviceCommandV1 } from './commands';
 const DEVICE_TYPE_CAPABILITIES: Readonly<Record<string, ReadonlyArray<DeviceCommandV1>>> = {
   'switch': ['turn_on', 'turn_off', 'toggle'],
   'light': ['turn_on', 'turn_off', 'toggle'],
+  'cover': ['open', 'close', 'stop', 'set_position'],
   'sensor': [],
   'gateway': []
 };

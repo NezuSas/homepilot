@@ -21,7 +21,7 @@ interface Room {
 
 interface SceneAction {
   deviceId: string;
-  command: 'turn_on' | 'turn_off';
+  command: 'turn_on' | 'turn_off' | 'open' | 'close' | 'stop';
 }
 
 interface Scene {
@@ -52,7 +52,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const controllableDevices = devices.filter(d => ['light', 'switch'].includes(d.type));
+  const controllableDevices = devices.filter(d => ['light', 'switch', 'cover'].includes(d.type));
   const availableDevices = roomId ? controllableDevices.filter(d => d.roomId === roomId) : controllableDevices;
 
   const toggleDevice = (deviceId: string) => {
@@ -60,11 +60,13 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     if (exists) {
       setActions(actions.filter(a => a.deviceId !== deviceId));
     } else {
-      setActions([...actions, { deviceId, command: 'turn_on' }]);
+      const device = devices.find(d => d.id === deviceId);
+      const defaultCommand = device?.type === 'cover' ? 'open' : 'turn_on';
+      setActions([...actions, { deviceId, command: defaultCommand as any }]);
     }
   };
 
-  const setCommand = (deviceId: string, command: 'turn_on' | 'turn_off') => {
+  const setCommand = (deviceId: string, command: 'turn_on' | 'turn_off' | 'open' | 'close' | 'stop') => {
     setActions(actions.map(a => a.deviceId === deviceId ? { ...a, command } : a));
   };
 
