@@ -1,15 +1,20 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { HomeAssistantClient } from '../../devices/infrastructure/adapters/HomeAssistantClient';
-import { AssistantFinding, generateFindingFingerprint, AssistantAction } from '../domain/AssistantFinding';
+import { AssistantFinding, generateFindingFingerprint } from '../domain/AssistantFinding';
+import { ContextAnalysisService, SystemContext } from './ContextAnalysisService';
 
 export class AssistantDetectionService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
-    private readonly haClient: HomeAssistantClient
+    private readonly haClient: HomeAssistantClient,
+    private readonly contextService: ContextAnalysisService
   ) {}
 
   public async scan(homeId: string): Promise<Partial<AssistantFinding>[]> {
     const findings: Partial<AssistantFinding>[] = [];
+
+    // 0. Analyze Context
+    const context = await this.contextService.analyzeContext(homeId);
 
     // 1. New Device Available
     const newDeviceFindings = await this.detectNewDevices(homeId);
@@ -27,7 +32,79 @@ export class AssistantDetectionService {
     const duplicateNameFindings = await this.detectDuplicateNames(homeId);
     findings.push(...duplicateNameFindings);
 
+    // 5. Context-Aware Suggestions (Assistant V3)
+    const suggestions = await this.detectSuggestions(context);
+    findings.push(...suggestions);
+
     return findings;
+  }
+
+  private async detectSuggestions(context: SystemContext): Promise<Partial<AssistantFinding>[]> {
+    const suggestions: Partial<AssistantFinding>[] = [];
+
+    // A. Automation Suggections (Motion + Light)
+    for (const pair of context.insights.motionLightPairs) {
+      suggestions.push({
+        fingerprint: generateFindingFingerprint('automation_suggestion', pair.roomId, 'motion_light'),
+        type: 'automation_suggestion',
+        severity: 'medium',
+        relatedEntityType: 'room',
+        relatedEntityId: pair.roomId,
+        actions: [
+          { type: 'configure_automation', label: 'assistant.actions.configure', payload: { type: 'motion_light', roomId: pair.roomId } },
+          { type: 'ignore', label: 'assistant.actions.ignore' }
+        ],
+        metadata: {
+          subtype: 'motion_light',
+          roomName: pair.roomName,
+          sensorCount: pair.sensors.length,
+          lightCount: pair.lights.length
+        }
+      });
+    }
+
+    // B. Scene Suggestions (Light + Cover)
+    for (const pair of context.insights.lightCoverPairs) {
+      suggestions.push({
+        fingerprint: generateFindingFingerprint('scene_suggestion', pair.roomId, 'light_cover'),
+        type: 'scene_suggestion',
+        severity: 'low',
+        relatedEntityType: 'room',
+        relatedEntityId: pair.roomId,
+        actions: [
+          { type: 'configure_scene', label: 'assistant.actions.configure', payload: { type: 'night_mode', roomId: pair.roomId } },
+          { type: 'ignore', label: 'assistant.actions.ignore' }
+        ],
+        metadata: {
+          subtype: 'light_cover',
+          roomName: pair.roomName,
+          lightCount: pair.lights.length,
+          coverCount: pair.covers.length
+        }
+      });
+    }
+
+    // C. Optimization Suggestions (Always-ON)
+    for (const opt of context.insights.potentialOptimizations) {
+      suggestions.push({
+        fingerprint: generateFindingFingerprint('optimization_suggestion', opt.deviceId, opt.type),
+        type: 'optimization_suggestion',
+        severity: 'low',
+        relatedEntityType: 'device',
+        relatedEntityId: opt.deviceId,
+        actions: [
+          { type: 'configure_optimization', label: 'assistant.actions.configure', payload: { deviceId: opt.deviceId } },
+          { type: 'ignore', label: 'assistant.actions.ignore' }
+        ],
+        metadata: {
+          subtype: opt.type,
+          deviceName: opt.deviceName,
+          reason: opt.reason
+        }
+      });
+    }
+
+    return suggestions;
   }
 
   private async detectNewDevices(homeId: string): Promise<Partial<AssistantFinding>[]> {

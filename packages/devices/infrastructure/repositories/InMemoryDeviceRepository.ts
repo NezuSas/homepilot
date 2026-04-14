@@ -50,4 +50,14 @@ export class InMemoryDeviceRepository implements DeviceRepository {
     }
     return null;
   }
+
+  async findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>> {
+    const all: Device[] = [];
+    for (const device of this.devices.values()) {
+      if (device.homeId === homeId) {
+        all.push(Object.freeze({ ...device }));
+      }
+    }
+    return Object.freeze(all);
+  }
 }

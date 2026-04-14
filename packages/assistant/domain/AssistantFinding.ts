@@ -7,7 +7,10 @@ export type FindingType =
   | 'new_device_available'
   | 'device_missing_room' 
   | 'device_name_technical'
-  | 'device_name_duplicate';
+  | 'device_name_duplicate'
+  | 'automation_suggestion'
+  | 'scene_suggestion'
+  | 'optimization_suggestion';
 
 export interface AssistantAction {
   type: string;

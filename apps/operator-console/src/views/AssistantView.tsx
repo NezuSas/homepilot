@@ -10,7 +10,8 @@ import {
   PlusCircle,
   Hash,
   Type,
-  Copy
+  Copy,
+  Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
@@ -124,7 +125,40 @@ export const AssistantView: React.FC<{
       case 'device_missing_room': return <Hash className="w-5 h-5 text-amber-500" />;
       case 'device_name_technical': return <Type className="w-5 h-5 text-indigo-500" />;
       case 'device_name_duplicate': return <Copy className="w-5 h-5 text-rose-500" />;
+      case 'automation_suggestion': return <Sparkles className="w-5 h-5 text-purple-500" />;
+      case 'scene_suggestion': return <Sparkles className="w-5 h-5 text-pink-500" />;
+      case 'optimization_suggestion': return <Zap className="w-5 h-5 text-emerald-500" />;
       default: return <Info className="w-5 h-5 text-primary" />;
+    }
+  };
+
+  const isPremiumType = (type: string) => 
+    ['automation_suggestion', 'scene_suggestion', 'optimization_suggestion'].includes(type);
+
+  const handleImportAll = async (items: Finding[]) => {
+    try {
+      setLoading(true);
+      for (const item of items) {
+        if (item.type === 'new_device_available') {
+          const action = item.actions.find(a => a.type === 'import_device');
+          if (action) {
+            await fetch(API_ENDPOINTS.assistant.executeAction, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                findingId: item.id,
+                actionType: 'import_device',
+                payload: action.payload
+              })
+            });
+          }
+        }
+      }
+      await fetchFindings();
+    } catch (e) {
+      console.error('[Assistant] Bulk import failed:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -170,100 +204,148 @@ export const AssistantView: React.FC<{
         </div>
       ) : (
         <div className="grid gap-6">
-          {Object.entries(groupedFindings).map(([type, items]) => (
-            <div key={type} className="group overflow-hidden rounded-3xl border border-muted bg-card transition-all hover:border-primary/20">
+          {Object.entries(groupedFindings).map(([type, items]) => {
+            const premium = isPremiumType(type);
+            return (
               <div 
-                onClick={() => toggleGroup(type)}
-                className="flex items-center justify-between p-6 cursor-pointer select-none"
+                key={type} 
+                className={cn(
+                  "group overflow-hidden rounded-3xl border transition-all",
+                  premium 
+                    ? "border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-lg shadow-primary/5" 
+                    : "border-muted bg-card hover:border-primary/20"
+                )}
               >
-                <div className="flex items-center gap-5">
-                  <div className="p-3 rounded-2xl bg-muted group-hover:bg-primary/5 transition-colors">
-                    {getIcon(type)}
+                <div 
+                  onClick={() => toggleGroup(type)}
+                  className="flex items-center justify-between p-6 cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className={cn(
+                      "p-3 rounded-2xl transition-colors",
+                      premium ? "bg-primary/10" : "bg-muted group-hover:bg-primary/5"
+                    )}>
+                      {getIcon(type)}
+                    </div>
+                    <div>
+                      <h3 className={cn(
+                        "font-bold text-lg leading-none mb-1.5 flex items-center gap-2",
+                        premium && "text-primary"
+                      )}>
+                        {t(`assistant.types.${type}`)}
+                        {premium && (
+                          <span className="text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                            Premium
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {items.length} {t('assistant.subtitle').toLowerCase()}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg leading-none mb-1.5">
-                      {t(`assistant.types.${type}`)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      {items.length} {t('assistant.subtitle').toLowerCase()}
-                    </p>
+                  
+                  <div className="flex items-center gap-6">
+                    {type === 'new_device_available' && items.length > 1 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleImportAll(items); }}
+                        className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                      >
+                        {t('assistant.actions.import_all')}
+                      </button>
+                    )}
+
+                    <div className="flex -space-x-2">
+                      {items.slice(0, 3).map((it, idx) => (
+                        <div key={it.id} className="w-8 h-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center text-[10px] font-bold">
+                          {idx + 1}
+                        </div>
+                      ))}
+                      {items.length > 3 && (
+                        <div className="w-8 h-8 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-bold">
+                          +{items.length - 3}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight className={cn(
+                      "w-5 h-5 text-muted-foreground transition-transform duration-300",
+                      expandedGroups[type] && "rotate-90"
+                    )} />
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {items.slice(0, 3).map((it, idx) => (
-                      <div key={it.id} className="w-8 h-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center text-[10px] font-bold">
-                        {idx + 1}
+
+                {expandedGroups[type] && (
+                  <div className="px-6 pb-6 pt-0 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {items.map(finding => (
+                      <div 
+                        key={finding.id}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border transition-colors",
+                          premium ? "bg-primary/5 border-primary/10" : "bg-muted/30 border-muted"
+                        )}
+                      >
+                        <div className="min-w-0 pr-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            {finding.severity === 'high' && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
+                            <span className="font-bold text-sm tracking-tight">
+                              {t(`assistant.types.${finding.type}`, finding.metadata) as string}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button 
+                            onClick={(e) => handleDismiss(finding.id, e)}
+                            className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:bg-muted transition-colors"
+                          >
+                            {t('assistant.dismiss')}
+                          </button>
+                          
+                          {(finding.actions || []).map((action: any) => (
+                            <button
+                              key={action.type}
+                              onClick={() => {
+                                if (premium) {
+                                  // Suggestions lead to configuration/review
+                                  onNavigate(action.type === 'configure_automation' ? 'automations' : 'inbox');
+                                } else {
+                                  setActiveAction({ findingId: finding.id, action });
+                                }
+                              }}
+                              className={cn(
+                                "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-sm",
+                                premium 
+                                  ? "bg-primary text-white hover:opacity-90" 
+                                  : "bg-primary text-primary-foreground hover:opacity-90"
+                              )}
+                            >
+                              {t(action.label)}
+                            </button>
+                          ))}
+
+                          {!premium && (
+                            <button 
+                              onClick={async () => {
+                                await fetch(API_ENDPOINTS.assistant.resolve(finding.id), { method: 'POST' });
+                                await fetchFindings();
+                                handleResolve(finding);
+                              }}
+                              className="px-4 py-1.5 rounded-lg border border-primary text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/5 transition-all shadow-sm"
+                            >
+                              {t('assistant.resolve')}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
-                    {items.length > 3 && (
-                      <div className="w-8 h-8 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-bold">
-                        +{items.length - 3}
-                      </div>
-                    )}
                   </div>
-                  <ChevronRight className={cn(
-                    "w-5 h-5 text-muted-foreground transition-transform duration-300",
-                    expandedGroups[type] && "rotate-90"
-                  )} />
-                </div>
+                )}
               </div>
-
-              {expandedGroups[type] && (
-                <div className="px-6 pb-6 pt-0 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  {items.map(finding => (
-                    <div 
-                      key={finding.id}
-                      className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-muted"
-                    >
-                      <div className="min-w-0 pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          {finding.severity === 'high' && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
-                          <span className="font-bold text-sm tracking-tight">
-                            {t(`assistant.types.${finding.type}`, finding.metadata) as string}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate max-w-md">
-                          {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button 
-                          onClick={(e) => handleDismiss(finding.id, e)}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:bg-muted transition-colors"
-                        >
-                          {t('assistant.dismiss')}
-                        </button>
-                        
-                        {(finding.actions || []).map((action: any) => (
-                          <button
-                            key={action.type}
-                            onClick={() => setActiveAction({ findingId: finding.id, action })}
-                            className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-sm"
-                          >
-                            {t(action.label)}
-                          </button>
-                        ))}
-
-                        <button 
-                          onClick={async () => {
-                            await fetch(API_ENDPOINTS.assistant.resolve(finding.id), { method: 'POST' });
-                            await fetchFindings();
-                            handleResolve(finding);
-                          }}
-                          className="px-4 py-1.5 rounded-lg border border-primary text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/5 transition-all shadow-sm"
-                        >
-                          {t('assistant.resolve')}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -45,9 +45,15 @@
       "device_missing_room": "Dispositivo sin habitación",
       "device_missing_room_description": "El dispositivo \"{{deviceName}}\" necesita ser asignado a una habitación para una mejor organización.",
       "device_name_technical": "Nombre técnico detectado",
-      "device_name_technical_description": "El nombre \"{{currentName}}\" parece un ID técnico. Se recomienda renombrarlo.",
-      "device_name_duplicate": "Nombres duplicados encontrados",
-      "device_name_duplicate_description": "Varios dispositivos comparten el nombre \"{{name}}\". Esto puede causar confusión."
+      "device_name_technical_description": "El dispositivo '{{currentName}}' tiene un nombre técnico. Considera renombrarlo para mayor claridad.",
+      "device_name_duplicate": "Nombre Duplicado",
+      "device_name_duplicate_description": "Encontramos {{count}} dispositivos llamados '{{name}}'. Renómbralos para evitar confusiones.",
+      "automation_suggestion": "Automatización Inteligente",
+      "automation_suggestion_description": "Podemos automatizar la {{roomName}} usando {{sensorCount}} sensores y {{lightCount}} luces.",
+      "scene_suggestion": "Escena Premium",
+      "scene_suggestion_description": "Optimiza la {{roomName}} con un 'Modo Noche' para tus {{lightCount}} luces y {{coverCount}} persianas.",
+      "optimization_suggestion": "Optimización de Dispositivo",
+      "optimization_suggestion_description": "El dispositivo '{{deviceName}}' parece estar permanentemente encendido. Considera una regla de auto-apagado."
     }
   },
   "dashboard": {

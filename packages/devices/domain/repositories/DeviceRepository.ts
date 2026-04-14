@@ -29,4 +29,8 @@ export interface DeviceRepository {
    * Localiza un dispositivo basándose en su external_id independientemente de su hogar.
    */
   findByExternalId(externalId: string): Promise<Device | null>;
+  /**
+   * Recupera todos los dispositivos de un hogar.
+   */
+  findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>>;
 }
