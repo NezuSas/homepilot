@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, ShieldAlert, AlertCircle, Clock, Zap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { mapActivityType } from '../lib/i18n-mapping-utils';
 
 /**
  * Registro de actividad atómico para la UI.
@@ -116,7 +117,7 @@ export const AuditLogsView: React.FC = () => {
                  "text-[9px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg self-start border",
                  log.type.includes('FAILED') ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/5 text-primary border-primary/10"
                )}>
-                 {log.type.replace('_', ' ')}
+                 {mapActivityType(log.type, t)}
                </div>
                <span className="text-[10px] font-mono text-muted-foreground italic mt-1">{new Date(log.timestamp).toLocaleDateString()}</span>
             </div>
@@ -125,7 +126,7 @@ export const AuditLogsView: React.FC = () => {
             <div className="flex-1 p-5 flex flex-col justify-center gap-4">
                <div className="flex items-center gap-3">
                   <Zap className="w-4 h-4 text-primary opacity-40" />
-                  <p className="text-sm font-bold tracking-tight text-foreground/90">{log.description}</p>
+                  <p className="text-sm font-bold tracking-tight text-foreground/90">{t(log.description as string)}</p>
                </div>
                <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">

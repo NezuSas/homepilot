@@ -178,7 +178,7 @@ export function DiagnosticsView() {
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-1">
                 <span className="uppercase font-mono text-[11px] tracking-widest font-bold">{issue.code}</span>
-                <span className="text-sm">{issue.message}</span>
+                <span className="text-sm">{t(issue.message as string)}</span>
               </div>
             </div>
           ))}
@@ -326,7 +326,7 @@ export function DiagnosticsView() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm font-medium text-foreground/70">{ev.description}</p>
+                          <p className="text-sm font-medium text-foreground/70">{t(ev.description as string)}</p>
                         </div>
                       </div>
                       
@@ -353,7 +353,7 @@ export function DiagnosticsView() {
                                     <div className="font-bold flex items-center gap-2">
                                       <span className={child.eventType.includes('FAILED') ? 'text-red-500' : 'text-foreground'}>{child.eventType}</span>
                                     </div>
-                                    <div className="opacity-80">{child.description}</div>
+                                    <div className="opacity-80">{t(child.description as string)}</div>
                                   </div>
                                 </div>
                               ))}
