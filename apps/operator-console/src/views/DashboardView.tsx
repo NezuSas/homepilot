@@ -8,7 +8,9 @@ import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize, disambiguate } from '../lib/naming-utils';
-import { HomeModeSelector, type HomeMode } from '../components/HomeModeSelector';
+import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
+import type { HomeMode } from '../types';
+import { HomeModeSelector } from '../components/HomeModeSelector';
 import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
 
 interface DeviceState {
@@ -160,7 +162,7 @@ export const DashboardView: React.FC<{
   const [loading, setLoading] = useState(true);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState<HomeMode>('relax');
+  const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [luxuryRipple, setLuxuryRipple] = useState(false);
 
   const homeId = rooms.length > 0 ? rooms[0].homeId : null;
@@ -242,10 +244,11 @@ export const DashboardView: React.FC<{
 
       {/* LEVEL 1: Master State (Home Mode) */}
       <HomeModeSelector 
-        currentMode={currentMode} 
+        currentMode={getSafeHomeMode(currentMode)} 
         onModeChange={(m) => {
-          setCurrentMode(m);
-          if (onModeChange) onModeChange(m);
+          const safeM = getSafeHomeMode(m);
+          setCurrentMode(safeM);
+          if (onModeChange) onModeChange(safeM);
         }} 
       />
 

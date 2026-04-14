@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Moon, Home, Leaf, Coffee } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export type HomeMode = 'relax' | 'away' | 'night' | 'energy';
+import type { HomeMode } from '../types';
 
 interface HomeModeSelectorProps {
   currentMode: HomeMode;

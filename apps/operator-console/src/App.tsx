@@ -16,6 +16,8 @@ import { UsersView } from './views/UsersView';
 import ScenesView from './views/ScenesView';
 import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
+import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
+import type { HomeMode } from './types';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -37,7 +39,7 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAllSynced, setIsAllSynced] = useState(true);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
-  const [currentMode, setCurrentMode] = useState<any>(null);
+  const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
 
   // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
   // Patches window.fetch once per App lifecycle to intercept any 401 response.
@@ -386,7 +388,7 @@ function App() {
            <div className="max-w-7xl mx-auto w-full">
              {currentView === 'dashboard' && (
                <DashboardView 
-                 onModeChange={setCurrentMode} 
+                 onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
                  onActionExecute={() => {
                    setIsAllSynced(false);
                    setTimeout(() => setIsAllSynced(true), 1500);
@@ -412,7 +414,7 @@ function App() {
         </section>
 
         <SystemStatusBar 
-          currentMode={currentMode} 
+          currentMode={getSafeHomeMode(currentMode)} 
           isAllSynced={isAllSynced} 
         />
       </main>

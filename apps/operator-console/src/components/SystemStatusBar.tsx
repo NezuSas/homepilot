@@ -1,15 +1,18 @@
 import { ShieldCheck, Clock, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getSafeHomeMode } from '../types';
+import type { HomeMode } from '../types';
 import { cn } from '../lib/utils';
 
 interface SystemStatusBarProps {
-  currentMode: string;
+  currentMode: HomeMode;
   isAllSynced: boolean;
   lastAction?: string;
 }
 
 export const SystemStatusBar: React.FC<SystemStatusBarProps> = ({ currentMode, isAllSynced }) => {
   const { t } = useTranslation();
+  const safeMode = getSafeHomeMode(currentMode);
 
   return (
     <div className="w-full shrink-0 px-4 md:px-8 py-3 flex items-center justify-between border-t border-border/40 text-[10px] font-black uppercase tracking-[0.2em] bg-card/20 backdrop-blur-xl">
@@ -20,7 +23,9 @@ export const SystemStatusBar: React.FC<SystemStatusBarProps> = ({ currentMode, i
           isAllSynced ? "bg-primary shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
         )} />
         <span className="text-foreground/60">
-          {t('shell.status.mode_label', { mode: t(`modes.${currentMode}`, { defaultValue: currentMode }) })}
+          {t('shell.status.mode_label', { 
+            mode: t(`modes.${safeMode}`, { defaultValue: safeMode.toUpperCase() }) 
+          })}
         </span>
       </div>
 
