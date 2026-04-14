@@ -1,4 +1,4 @@
-import { AssistantFinding, FindingStatus, FindingType } from './AssistantFinding';
+import type { AssistantFinding, FindingStatus, FindingType } from '../AssistantFinding';
 
 export interface AssistantFindingRepository {
   save(finding: AssistantFinding): Promise<void>;
