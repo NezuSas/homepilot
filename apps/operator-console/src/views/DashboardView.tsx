@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Cpu, Loader2, Plus, 
   Lightbulb, ToggleRight, Zap
@@ -25,6 +26,7 @@ interface Device {
   name: string;
   type: string;
   status: 'PENDING' | 'ASSIGNED';
+  invertState?: boolean;
   lastKnownState: Record<string, unknown> | null;
 }
 
@@ -57,6 +59,7 @@ const DashDeviceTile: React.FC<{
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
 }> = ({ device, onUpdate, roomName, isDuplicateName, onActionExecute }) => {
+  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [optimisticState, setOptimisticState] = useState<boolean | null>(null);
 
@@ -102,11 +105,15 @@ const DashDeviceTile: React.FC<{
 
   const Icon = device.type === 'light' ? Lightbulb : (device.type === 'switch' ? ToggleRight : Cpu);
 
+  const localizedState = isOffline 
+    ? t('device_states.error') 
+    : (isOn ? t('device_states.on') : t('device_states.off'));
+
   return (
     <div 
       onClick={handleToggle}
       className={cn(
-        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col gap-3 border-2 active:scale-95",
+        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full",
         isOn ? "bg-primary/5 border-primary" : "bg-card/20 border-border/40 hover:border-primary/20",
         isOffline && "opacity-30 grayscale pointer-events-none"
       )}
@@ -119,15 +126,23 @@ const DashDeviceTile: React.FC<{
       </div>
 
       <div className="flex flex-col min-w-0">
-        <h4 className="text-xs font-bold truncate tracking-tight">{displayName}</h4>
-        <div className="flex items-center gap-1.5 mt-1">
-          <div className={cn(
-             "w-1.5 h-1.5 rounded-full",
-             isProcessing ? "status-dot-updating" : (isOn ? "status-dot-synced" : "bg-muted-foreground/20")
-          )} />
-          <span className="text-[8px] font-black uppercase tracking-widest opacity-40">
-            {isProcessing ? 'Updating' : (isOn ? 'Synced' : 'Ready')}
-          </span>
+        <h4 className="text-xs font-bold truncate tracking-tight mb-1">{displayName}</h4>
+        <div className="flex items-center gap-1.5 min-h-[12px]">
+          {isProcessing ? (
+            <>
+              <div className="w-1.5 h-1.5 rounded-full status-dot-updating" />
+              <span className="text-[8px] font-black uppercase tracking-widest opacity-40">
+                {t('device_states.updating')}
+              </span>
+            </>
+          ) : (
+            <span className={cn(
+              "text-[8px] font-black uppercase tracking-widest transition-opacity duration-300",
+              isOn ? "text-primary opacity-80" : "text-muted-foreground/40"
+            )}>
+              {localizedState}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -301,7 +316,7 @@ export const DashboardView: React.FC<{
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[240px]">
                 {roomDevices.map(device => (
                   device.type === 'cover' ? (
                     <CurtainDeviceTile

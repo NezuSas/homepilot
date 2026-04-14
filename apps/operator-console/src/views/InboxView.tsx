@@ -186,7 +186,7 @@ const DeviceTile: React.FC<{
           <div className="flex items-center gap-1.5 mt-1">
             <div className={cn("w-1.5 h-1.5 rounded-full", isOn ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", isOn ? "text-primary" : "text-muted-foreground")}>
-              {isOn ? t('common.on') : (device.type === 'sensor' ? 'Reading' : t('common.off'))}
+              {isOn ? t('device_states.on') : t('device_states.off')}
             </span>
           </div>
         ) : (

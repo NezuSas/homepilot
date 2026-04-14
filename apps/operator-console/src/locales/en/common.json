@@ -179,6 +179,12 @@
       "unknown": "Unknown"
     }
   },
+  "device_states": {
+    "on": "On",
+    "off": "Off",
+    "error": "Disconnected",
+    "updating": "Updating"
+  },
   "diagnostics": {
     "loading": "Gathering diagnostics heartbeat...",
     "system_status": "System {{status}}",

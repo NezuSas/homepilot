@@ -37,6 +37,7 @@ interface LocalDeviceRow {
   vendor: string;
   status: string;
   last_known_state: string | null;
+  invert_state: number;
   entity_version: number;
   created_at: string;
   updated_at: string;
@@ -857,7 +858,8 @@ export class OperatorConsoleServer {
         const rows = db.prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC').all() as LocalDeviceRow[];
         this.sendJson(res, rows.map(r => ({
           id: r.id, homeId: r.home_id, roomId: r.room_id, externalId: r.external_id, name: r.name, type: r.type, vendor: r.vendor,
-          status: r.status, lastKnownState: r.last_known_state ? JSON.parse(r.last_known_state) : null,
+          status: r.status, invertState: r.invert_state === 1,
+          lastKnownState: r.last_known_state ? JSON.parse(r.last_known_state) : null,
           entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
         })));
       } catch (error: any) {
@@ -1190,7 +1192,8 @@ export class OperatorConsoleServer {
           entityId: s.entity_id,
           state: s.state,
           friendlyName: (s.attributes.friendly_name as string) || s.entity_id,
-          domain: s.entity_id.split('.')[0]
+          domain: s.entity_id.split('.')[0],
+          invertState: 0
         }));
 
       this.sendJson(res, entities);
@@ -1250,6 +1253,7 @@ export class OperatorConsoleServer {
         type: deviceType as 'light' | 'switch' | 'sensor',
         vendor: 'Home Assistant',
         status: 'PENDING' as const,
+        invertState: false,
         lastKnownState: { 
           on: haState.state === 'on' || haState.state === 'open',
           state: haState.state,

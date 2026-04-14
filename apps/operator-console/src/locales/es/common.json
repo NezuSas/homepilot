@@ -179,6 +179,12 @@
       "unknown": "Desconocido"
     }
   },
+  "device_states": {
+    "on": "Encendido",
+    "off": "Apagado",
+    "error": "Sin conexión",
+    "updating": "Actualizando"
+  },
   "diagnostics": {
     "loading": "Obteniendo latido de diagnósticos...",
     "system_status": "Sistema {{status}}",

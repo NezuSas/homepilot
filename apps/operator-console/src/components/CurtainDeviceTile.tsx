@@ -20,6 +20,7 @@ interface Device {
   name: string;
   type: string;
   status: 'PENDING' | 'ASSIGNED';
+  invertState?: boolean;
   lastKnownState: Record<string, unknown> | null;
 }
 
@@ -41,8 +42,21 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const [optimisticState, setOptimisticState] = useState<string | null>(null);
 
   const lastState = (device.lastKnownState || {}) as DeviceState;
-  const actualState = lastState.state || 'unknown';
-  const state = optimisticState || actualState;
+  const rawState = lastState.state || 'unknown';
+  
+  // State Inversion Logic
+  const getFunctionalState = (s: string) => {
+    if (!device.invertState) return s;
+    const map: Record<string, string> = {
+      'open': 'closed',
+      'closed': 'open',
+      'opening': 'closing',
+      'closing': 'opening'
+    };
+    return map[s] || s;
+  };
+
+  const state = optimisticState || getFunctionalState(rawState);
   const position = lastState.current_position;
   
   const isOpening = state === 'opening';
@@ -56,7 +70,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const handleCommand = async (command: 'open' | 'close' | 'stop') => {
     if (isProcessing) return;
     
-    // Optimistic feedback
+    // Optimistic feedback respecting inversion
     if (command === 'open') setOptimisticState('opening');
     else if (command === 'close') setOptimisticState('closing');
     
@@ -93,81 +107,76 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   return (
     <div className={cn(
-      "relative group transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col items-center text-center gap-6 border-2 shadow-sm active:scale-95",
-      (isOpening || isClosing || isOpen) ? "bg-card/40 border-primary/20 shadow-premium" : "bg-card/20 border-border/40 hover:border-primary/10",
+      "relative group transition-all duration-700 rounded-[2rem] p-6 flex flex-col items-center justify-between text-center border-2 shadow-sm active:scale-95 h-full overflow-hidden",
+      (isOpening || isClosing || isOpen) ? "bg-card/40 border-primary/20" : "bg-card/20 border-border/40 hover:border-primary/10",
       device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
     )}>
       
-      {/* Icon Area - Subtler & Smaller */}
+      {/* Premium Architectural Animation Layer */}
       <div className={cn(
-        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-1000",
-        (isOpening || isClosing || isOpen) ? "bg-primary/10 text-primary" : "bg-muted/40 text-muted-foreground/30"
+        "absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out z-0",
+        isOpen ? "bg-primary/[0.02]" : "bg-black/20"
       )}>
-         {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Blinds className={cn("w-5 h-5 opacity-70", (isOpening || isClosing) && "animate-premium-pulse")} />}
-      </div>
-
-      {/* Identity & State - Calm Sentence Case */}
-      <div className="flex flex-col items-center min-w-0">
-        <h4 className="text-sm font-black truncate tracking-tight mb-1.5 opacity-90">{displayName}</h4>
-        <div className="flex items-center gap-2">
-          <div className={cn("w-1.5 h-1.5 rounded-full", dotColor)} />
-          <span className="text-[10px] font-bold tracking-widest opacity-40 capitalize">
-            {localizedState.toLowerCase()}
-          </span>
-        </div>
-      </div>
-
-      {/* Dynamic Action Hierarchy - Luxury Dark Style */}
-      <div className="w-full flex flex-col gap-3 pt-2">
-        {/* Main Action: Premium Primary Dark */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
-          disabled={!!isProcessing || isOpening || isClosing}
+        <div 
           className={cn(
-            "w-full h-12 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 font-black uppercase tracking-widest text-[9px] border-2",
-            isOpen 
-              ? "bg-secondary/40 border-primary/20 text-primary shadow-lg" 
-              : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 shadow-md"
-          )}
-        >
-          {isOpen ? (
-            <>
-              <ArrowDown className="w-3.5 h-3.5" />
-              {t('common.actions.close', { defaultValue: 'Cerrar' })}
-            </>
-          ) : (
-            <>
-              <ArrowUp className="w-3.5 h-3.5" />
-              {t('common.actions.open', { defaultValue: 'Abrir' })}
-            </>
-          )}
-        </button>
-        
-        {/* Stop Action: Subdued Secondary */}
-        <button
-          onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
-          disabled={!!isProcessing}
-          className="w-full h-10 rounded-xl bg-transparent text-muted-foreground/40 flex items-center justify-center gap-2 transition-all hover:bg-destructive/5 hover:text-destructive active:scale-95 border border-transparent hover:border-destructive/10"
-        >
-          <Square className="w-3 h-3 fill-current opacity-60" />
-          <span className="text-[8px] font-black uppercase tracking-[0.2em]">{t('common.actions.stop', { defaultValue: 'Detener' })}</span>
-        </button>
+            "absolute inset-0 bg-black/40 transition-transform duration-[800ms] ease-in-out",
+            isOpen ? "-translate-y-full" : "translate-y-0"
+          )} 
+        />
       </div>
 
-      {/* Position Percentage - Minimal */}
-      {position !== undefined && (
-        <div className="absolute top-6 right-8">
-           <span className="text-[10px] font-black tracking-tighter tabular-nums opacity-20">
-              {position}%
-           </span>
+      <div className="relative z-10 flex flex-col items-center gap-4 w-full h-full justify-between">
+        {/* Icon Area */}
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-1000",
+          (isOpening || isClosing || isOpen) ? "bg-primary/10 text-primary" : "bg-muted/40 text-muted-foreground/30"
+        )}>
+          {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Blinds className={cn("w-5 h-5 opacity-70", (isOpening || isClosing) && "animate-premium-pulse")} />}
         </div>
-      )}
 
-      {/* Progress Line - Architecturally Integrated */}
+        {/* Identity & State */}
+        <div className="flex flex-col items-center min-w-0">
+          <h4 className="text-xs font-bold truncate tracking-tight mb-1 opacity-90">{displayName}</h4>
+          <div className="flex items-center gap-2">
+            <div className={cn("w-1.5 h-1.5 rounded-full", dotColor)} />
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+              {localizedState}
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic Actions */}
+        <div className="w-full flex flex-col gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
+            disabled={!!isProcessing || isOpening || isClosing}
+            className={cn(
+              "w-full h-10 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 font-black uppercase tracking-widest text-[8px] border-2",
+              isOpen 
+                ? "bg-secondary/40 border-primary/20 text-primary" 
+                : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
+            )}
+          >
+            {isOpen ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
+            {isOpen ? t('common.actions.close') : t('common.actions.open')}
+          </button>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
+            disabled={!!isProcessing}
+            className="w-full h-8 rounded-xl bg-transparent text-muted-foreground/30 flex items-center justify-center gap-2 transition-all hover:bg-destructive/5 hover:text-destructive active:scale-95 text-[7px] font-black uppercase tracking-[0.2em]"
+          >
+            <Square className="w-2.5 h-2.5 fill-current opacity-60" />
+            {t('common.actions.stop')}
+          </button>
+        </div>
+      </div>
+
+      {/* Progress Line */}
       {position !== undefined && (
-        <div className="absolute bottom-0 left-10 right-10 h-[2px] bg-muted/5 rounded-full overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/5 overflow-hidden">
           <div 
-            className="h-full bg-primary/20 transition-all duration-2000 ease-in-out" 
+            className="h-full bg-primary/30 transition-all duration-1000" 
             style={{ width: `${position}%` }}
           />
         </div>
