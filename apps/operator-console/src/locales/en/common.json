@@ -27,8 +27,10 @@
       "assign_room": "Assign Room",
       "rename_device": "Rename",
       "import_device": "Import",
+      "import_all": "Import All",
       "ignore": "Ignore",
       "resolve_now": "Resolve Now",
+      "configure": "Configure",
       "import_confirm": "Are you sure you want to import this device?"
     },
     "review": "Review",

@@ -27,8 +27,10 @@
       "assign_room": "Asignar cuarto",
       "rename_device": "Renombrar",
       "import_device": "Importar",
+      "import_all": "Importar Todo",
       "ignore": "Ignorar",
       "resolve_now": "Resolver ahora",
+      "configure": "Configurar",
       "import_confirm": "¿Estás seguro de que quieres importar este dispositivo?"
     },
     "review": "Revisar",
