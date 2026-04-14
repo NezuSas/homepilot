@@ -97,11 +97,11 @@ export const AssistantView: React.FC<{
         onNavigate('inbox');
         break;
       case 'device_missing_room':
-        onNavigate('inbox'); // Or a specific device edit view if available
+        onNavigate('inbox'); 
         break;
       case 'device_name_technical':
       case 'device_name_duplicate':
-        onNavigate('device-manager'); // Assuming a view to edit names exists
+        onNavigate('inbox'); // Device manager is the place to fix names
         break;
       default:
         break;
@@ -221,11 +221,11 @@ export const AssistantView: React.FC<{
                         <div className="flex items-center gap-2 mb-1">
                           {finding.severity === 'high' && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
                           <span className="font-bold text-sm tracking-tight">
-                            {finding.metadata.friendlyName || finding.metadata.deviceName || finding.metadata.name || t(`assistant.types.${finding.type}`)}
+                            {t(finding.title, finding.metadata) as string}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground truncate max-w-md">
-                          {finding.description}
+                          {t(finding.description, finding.metadata) as string}
                         </p>
                       </div>
 
@@ -250,6 +250,7 @@ export const AssistantView: React.FC<{
                         <button 
                           onClick={async () => {
                             await fetch(API_ENDPOINTS.assistant.resolve(finding.id), { method: 'POST' });
+                            await fetchFindings();
                             handleResolve(finding);
                           }}
                           className="px-4 py-1.5 rounded-lg border border-primary text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/5 transition-all shadow-sm"

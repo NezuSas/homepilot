@@ -41,9 +41,13 @@
     },
     "types": {
       "new_device_available": "New Device Detected",
+      "new_device_available_description": "A new entity \"{{friendlyName}}\" is available in Home Assistant.",
       "device_missing_room": "Device Missing Room",
+      "device_missing_room_description": "Device \"{{deviceName}}\" needs to be assigned to a room for better organization.",
       "device_name_technical": "Technical Name Detected",
-      "device_name_duplicate": "Duplicate Names Found"
+      "device_name_technical_description": "The name \"{{currentName}}\" looks like a technical ID. Renaming is recommended.",
+      "device_name_duplicate": "Duplicate Names Found",
+      "device_name_duplicate_description": "Multiple devices share the name \"{{name}}\". This might cause confusion."
     }
   },
   "dashboard": {

@@ -565,6 +565,29 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // GET /api/v1/rooms
+    // Returns all rooms owned by the authenticated user across all their homes
+    if (method === 'GET' && pathname === '/api/v1/rooms') {
+      try {
+        const homes = await this.container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+        if (homes.length === 0) {
+          this.sendJson(res, []);
+          return;
+        }
+        
+        const homeIds = homes.map(h => h.id);
+        const placeholders = homeIds.map(() => '?').join(',');
+        const rows = db.prepare(`SELECT * FROM rooms WHERE home_id IN (${placeholders})`).all(...homeIds) as LocalRoomRow[];
+        
+        this.sendJson(res, rows.map(r => ({
+          id: r.id, homeId: r.home_id, name: r.name, entityVersion: r.entity_version, createdAt: r.created_at, updatedAt: r.updated_at
+        })));
+      } catch (error: any) {
+        this.sendError(res, 500, 'DB_ERROR', error.message);
+      }
+      return;
+    }
+
     // GET /api/v1/homes
     if (method === 'GET' && pathname === '/api/v1/homes') {
       try {
@@ -1303,66 +1326,21 @@ export class OperatorConsoleServer {
       const payload = await this.parseBody<{ entityId: string; name?: string }>(req);
       if (!payload.entityId) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing entityId');
 
-      const userHomes = await this.container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
-      const homeId = userHomes[0]?.id;
-
-      if (!homeId) {
-        return this.sendError(res, 404, 'HOME_NOT_FOUND', 'No home found for this user. Onboarding might be incomplete.');
-      }
-
-      const externalId = `ha:${payload.entityId}`;
-      
-      // Verificar duplicados
-      const existing = await this.container.repositories.deviceRepository.findByExternalIdAndHomeId(externalId, homeId);
-      if (existing) return this.sendError(res, 409, 'DEVICE_ALREADY_EXISTS', 'Device already imported');
-
-      // Consultar detalle en HA para validación y estado inicial
-      const haState = await this.container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(payload.entityId);
-      
-      if (!haState) {
-        this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-        return this.sendError(res, 404, 'HA_ENTITY_NOT_FOUND', 'Entity not found in Home Assistant');
-      }
+      const device = await this.container.services.haImportService.importDevice(
+        payload.entityId, 
+        authReq.user.id, 
+        payload.name
+      );
 
       this.container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
-
-      const domain = payload.entityId.split('.')[0];
-      const deviceId = crypto.randomUUID();
-      const now = new Date().toISOString();
-
-      // Mapeo básico de tipo
-      let deviceType = 'sensor';
-      if (domain === 'light') deviceType = 'light';
-      else if (domain === 'switch') deviceType = 'switch';
-      else if (domain === 'binary_sensor') deviceType = 'sensor';
-      else if (domain === 'cover') deviceType = 'cover';
-
-      const device = {
-        id: deviceId,
-        homeId: homeId,
-        roomId: null,
-        externalId: externalId,
-        name: payload.name || (haState.attributes.friendly_name as string) || payload.entityId,
-        type: deviceType as 'light' | 'switch' | 'sensor',
-        vendor: 'Home Assistant',
-        status: 'PENDING' as const,
-        invertState: false,
-        lastKnownState: { 
-          on: haState.state === 'on' || haState.state === 'open',
-          state: haState.state,
-          current_position: haState.attributes.current_position
-        },
-        entityVersion: 1,
-        createdAt: now,
-        updatedAt: now
-      };
-
-      await this.container.repositories.deviceRepository.saveDevice(device);
-
       this.sendJson(res, device, 201);
     } catch (error: any) {
+      const code = error.message === 'HOME_NOT_FOUND' ? 'HOME_NOT_FOUND' :
+                   error.message === 'DEVICE_ALREADY_EXISTS' ? 'DEVICE_ALREADY_EXISTS' :
+                   error.message === 'HA_ENTITY_NOT_FOUND' ? 'HA_ENTITY_NOT_FOUND' : 'IMPORT_ERROR';
+      
       this.container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-      this.sendError(res, 500, 'IMPORT_ERROR', error.message || 'Import Error');
+      this.sendError(res, 500, code, error.message || 'Import Error');
     }
   }
 

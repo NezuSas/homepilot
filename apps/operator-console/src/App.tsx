@@ -44,31 +44,15 @@ function App() {
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [assistantSummary, setAssistantSummary] = useState<{ totalOpen: number } | null>(null);
 
-  // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
-  // Patches window.fetch once per App lifecycle to intercept any 401 response.
-  // This avoids modifying every individual fetch call site in each view.
-  // On 401: clears local session and transitions to the LoginView.
+  // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
+  // Note: Global fetch patching (auth injection + 401 handling) is managed in main.tsx.
+  // This component focuses on high-level auth state reactions.
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (...args: Parameters<typeof fetch>) => {
-      const res = await originalFetch(...args);
-      if (res.status === 401) {
-        // Avoid intercepting the login endpoint itself to prevent logout loops
-        const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
-        if (!url.includes('/auth/login')) {
-          handleLogout();
-        }
-      }
-      return res;
-    };
-
-    return () => {
-      // Restore original fetch on cleanup (e.g., during logout)
-      window.fetch = originalFetch;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Listen for storage changes (e.g. from other tabs if applicable) 
+    // or just monitor local state changes.
+    if (!isAuthenticated && localStorage.getItem('hp_session_token')) {
+      setIsAuthenticated(true);
+    }
   }, [isAuthenticated]);
 
   const toggleLanguage = () => {

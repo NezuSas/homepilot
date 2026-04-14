@@ -41,9 +41,13 @@
     },
     "types": {
       "new_device_available": "Nuevo dispositivo detectado",
+      "new_device_available_description": "Se ha detectado una nueva entidad en Home Assistant: {{friendlyName}}.",
       "device_missing_room": "Dispositivo sin habitación",
+      "device_missing_room_description": "El dispositivo \"{{deviceName}}\" necesita ser asignado a una habitación para una mejor organización.",
       "device_name_technical": "Nombre técnico detectado",
-      "device_name_duplicate": "Nombres duplicados encontrados"
+      "device_name_technical_description": "El nombre \"{{currentName}}\" parece un ID técnico. Se recomienda renombrarlo.",
+      "device_name_duplicate": "Nombres duplicados encontrados",
+      "device_name_duplicate_description": "Varios dispositivos comparten el nombre \"{{name}}\". Esto puede causar confusión."
     }
   },
   "dashboard": {

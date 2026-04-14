@@ -35,8 +35,8 @@ export class AssistantService {
             source,
             type: partial.type!,
             severity: partial.severity!,
-            title: this.generateFallbackTitle(partial),
-            description: this.generateFallbackDescription(partial),
+            title: `assistant.types.${partial.type!}`, // Semantic reference
+            description: `assistant.types.${partial.type!}_description`, // Semantic reference
             relatedEntityType: partial.relatedEntityType || null,
             relatedEntityId: partial.relatedEntityId || null,
             status: 'open',
@@ -76,25 +76,5 @@ export class AssistantService {
 
   public async resolve(id: string): Promise<void> {
     await this.repository.updateStatus(id, 'resolved');
-  }
-
-  private generateFallbackTitle(f: Partial<AssistantFinding>): string {
-    switch (f.type) {
-      case 'new_device_available': return 'New device detected';
-      case 'device_missing_room': return 'Device missing room';
-      case 'device_name_technical': return 'Technical name detected';
-      case 'device_name_duplicate': return 'Duplicate names found';
-      default: return 'System suggestion';
-    }
-  }
-
-  private generateFallbackDescription(f: Partial<AssistantFinding>): string {
-    switch (f.type) {
-      case 'new_device_available': return `A new entity "${f.metadata?.friendlyName}" is available in Home Assistant.`;
-      case 'device_missing_room': return `Device "${f.metadata?.deviceName}" needs to be assigned to a room.`;
-      case 'device_name_technical': return `The name "${f.metadata?.currentName}" looks like a technical ID.`;
-      case 'device_name_duplicate': return `Multiple devices share the name "${f.metadata?.name}".`;
-      default: return 'Follow the recommended action to improve your system.';
-    }
   }
 }

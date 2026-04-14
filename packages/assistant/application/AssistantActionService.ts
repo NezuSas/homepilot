@@ -1,12 +1,13 @@
 import { AssistantFindingRepository } from '../domain/repositories/AssistantFindingRepository';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { assignDeviceUseCase, AssignDeviceUseCaseDependencies } from '../../devices/application/assignDeviceUseCase';
+import { HomeAssistantImportService } from '../../devices/application/HomeAssistantImportService';
 
 export interface AssistantActionServiceDependencies {
   assistantFindingRepository: AssistantFindingRepository;
   deviceRepository: DeviceRepository;
   assignDeviceDeps: AssignDeviceUseCaseDependencies;
-  // Add other deps like discovery/sync when needed
+  haImportService: HomeAssistantImportService;
 }
 
 export class AssistantActionService {
@@ -22,23 +23,28 @@ export class AssistantActionService {
     const finding = await this.deps.assistantFindingRepository.findById(findingId);
     if (!finding) throw new Error('FINDING_NOT_FOUND');
 
+    let success = false;
     switch (actionType) {
       case 'assign_room':
         await this.handleAssignRoom(finding.relatedEntityId!, payload.roomId, userId, correlationId);
+        success = true;
         break;
       case 'rename_device':
         await this.handleRenameDevice(finding.relatedEntityId!, payload.newName);
+        success = true;
         break;
       case 'import_device':
-        // This would call the discovery/sync service. 
-        // For V2, we might just mark as resolved if handled externally or trigger a sync.
+        await this.deps.haImportService.importDevice(finding.relatedEntityId!, userId, payload.newName);
+        success = true;
         break;
       default:
         throw new Error(`UNSUPPORTED_ACTION: ${actionType}`);
     }
 
-    // Auto-resolve finding after successful action
-    await this.deps.assistantFindingRepository.updateStatus(findingId, 'resolved');
+    // Auto-resolve finding only after successful action
+    if (success) {
+      await this.deps.assistantFindingRepository.updateStatus(findingId, 'resolved');
+    }
   }
 
   private async handleAssignRoom(deviceId: string, roomId: string, userId: string, correlationId: string): Promise<void> {

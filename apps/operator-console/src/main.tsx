@@ -4,7 +4,7 @@ import './index.css'
 import './i18n'
 import App from './App'
 
-// Monkey-patch global fetch to automatically append Authorization header
+// Monkey-patch global fetch to automatically append Authorization header and handle auth failures
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   const [resource, config] = args;
@@ -14,29 +14,30 @@ window.fetch = async (...args) => {
     ? resource 
     : (resource instanceof URL ? resource.toString() : (resource as Request).url);
     
-  const isLoginEndpoint = urlStr.endsWith('/api/v1/auth/login');
+  // standard endpoints to ignore auth (login, health, etc if needed)
+  const isAuthWhitelisted = urlStr.includes('/api/v1/auth/login') || urlStr.includes('/health');
   
-  let newConfig = config || {};
+  let newConfig = { ...config };
+  newConfig.headers = { ...newConfig.headers };
   
-  // Only inject Authorization to non-login endpoints
-  if (!isLoginEndpoint) {
+  // Only inject Authorization to non-whitelisted endpoints
+  if (!isAuthWhitelisted) {
     const token = localStorage.getItem('hp_session_token');
     if (token) {
-      newConfig.headers = {
-        ...newConfig.headers,
-        'Authorization': `Bearer ${token}`
-      };
+      (newConfig.headers as any)['Authorization'] = `Bearer ${token}`;
     }
   }
 
   const response = await originalFetch(resource, newConfig);
 
-  // Auto-logout mechanism for edge
-  if (response.status === 401 && !isLoginEndpoint) {
+  // Global 401 Interceptor: Auto-logout on session expiration
+  if (response.status === 401 && !isAuthWhitelisted) {
+    // Only clear and reload if we actually thought we had a token
     if (localStorage.getItem('hp_session_token')) {
       localStorage.removeItem('hp_session_token');
       localStorage.removeItem('hp_user_ctx');
-      window.location.reload();
+      // Using window.location.href to force a full clean reload to the root
+      window.location.href = '/'; 
     }
   }
 

@@ -12,6 +12,7 @@ import { HomeAssistantClient } from './packages/devices/infrastructure/adapters/
 import { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import { HomeAssistantSettingsService } from './packages/integrations/home-assistant/application/HomeAssistantSettingsService';
+import { HomeAssistantImportService } from './packages/devices/application/HomeAssistantImportService';
 import { HomeAssistantRealtimeSyncManager } from './packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import { AutomationEngine } from './packages/automation/application/AutomationEngine';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
@@ -58,6 +59,7 @@ export interface BootstrapContainer {
     userManagementService: UserManagementService;
     assistantService: AssistantService;
     assistantActionService: AssistantActionService;
+    haImportService: HomeAssistantImportService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -372,9 +374,16 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantDiscoveryService = assistantDetectionService; // We can use the detection service as a base or extend it
   const topologyPort = new SQLiteTopologyReferenceAdapter(homeRepository, roomRepository);
   
+  const haImportService = new HomeAssistantImportService({
+    deviceRepository,
+    homeRepository,
+    haConnectionProvider: connectionProvider
+  });
+
   const assistantActionService = new AssistantActionService({
     assistantFindingRepository: assistantRepository,
     deviceRepository,
+    haImportService,
     assignDeviceDeps: {
       deviceRepository,
       eventPublisher: { publish: async () => {} }, // Replace with real publisher if available
@@ -418,7 +427,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       systemSetupService,
       userManagementService,
       assistantService,
-      assistantActionService
+      assistantActionService,
+      haImportService
     },
     guards: {
       authGuard

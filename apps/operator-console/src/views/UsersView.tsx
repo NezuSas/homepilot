@@ -57,8 +57,7 @@ export function UsersView() {
       const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('hp_token')}` // Ensure token is sent
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ username: newUsername, passwordPlain: newPassword, role: newRole })
       });
@@ -248,7 +247,7 @@ export function UsersView() {
                         <button
                           onClick={() => handleAction(
                             () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/active`, { 
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }, body: JSON.stringify({ isActive: !u.isActive }) 
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !u.isActive }) 
                             }),
                             u.isActive ? t('users.actions.confirm_suspend') : t('users.actions.confirm_restore')
                           )}
@@ -266,7 +265,7 @@ export function UsersView() {
                         <button
                           onClick={() => handleAction(
                             () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
                             }),
                             t('users.actions.confirm_role', { username: u.username })
                           )}
@@ -280,8 +279,7 @@ export function UsersView() {
                         <button
                           onClick={() => handleAction(
                             () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/revoke-sessions`, { 
-                              method: 'POST',
-                              headers: { 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }
+                              method: 'POST'
                             }),
                             t('users.actions.confirm_revoke', { username: u.username })
                           )}
