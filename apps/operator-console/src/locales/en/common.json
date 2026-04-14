@@ -56,7 +56,10 @@
       "actions": {
         "force_on": "FORCE ON",
         "force_off": "FORCE OFF",
-        "toggle": "TOGGLE"
+        "toggle": "TOGGLE",
+        "open": "OPEN",
+        "close": "CLOSE",
+        "stop": "STOP"
       },
       "alias_only": "Local Alias Only",
       "home_cluster": "Home Cluster",
@@ -319,6 +322,13 @@
     "done": "DONE",
     "execute": "EXECUTE",
     "more": "more",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "cover": {
+      "open": "Open",
+      "closed": "Closed",
+      "opening": "Opening",
+      "closing": "Closing",
+      "unknown": "Unknown"
+    }
   }
 }

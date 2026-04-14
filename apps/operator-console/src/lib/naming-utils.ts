@@ -22,12 +22,22 @@ export const humanize = (id: string, name?: string): string => {
 
   // 3. Convert snake_case or-kebab-case to Title Case
   // e.g. master_bedroom_light -> Master Bedroom Light
-  return base
+  let humanized = base
     .split(/[_\-\.]/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
     .trim();
-};
+
+  // 4. Strip redundant technical suffixes (curtain, cover, blind)
+  // e.g. "Cortina Sala Curtain" -> "Cortina Sala"
+  const technicalSuffixes = ['Curtain', 'Cover', 'Blind', 'Persiana', 'Malla'];
+  for (const suffix of technicalSuffixes) {
+    const regex = new RegExp(`\\s+${suffix}$`, 'i');
+    humanized = humanized.replace(regex, '');
+  }
+
+  return humanized;
+}
 
 /**
  * Disambiguates names if they are likely to collide.

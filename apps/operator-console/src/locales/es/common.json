@@ -56,7 +56,10 @@
       "actions": {
         "force_on": "ENCENDIDO FORZADO",
         "force_off": "APAGADO FORZADO",
-        "toggle": "CONMUTAR"
+        "toggle": "CONMUTAR",
+        "open": "ABRIR",
+        "close": "CERRAR",
+        "stop": "DETENER"
       },
       "alias_only": "Solo Alias Local",
       "home_cluster": "Cluster de Hogar",
@@ -319,6 +322,13 @@
     "done": "LISTO",
     "execute": "EJECUTAR",
     "more": "más",
-    "processing": "Procesando..."
+    "processing": "Procesando...",
+    "cover": {
+      "open": "Abierta",
+      "closed": "Cerrada",
+      "opening": "Abriendo",
+      "closing": "Cerrando",
+      "unknown": "Desconocido"
+    }
   }
 }
