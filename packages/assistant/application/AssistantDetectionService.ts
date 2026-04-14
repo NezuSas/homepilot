@@ -247,7 +247,7 @@ export class AssistantDetectionService {
             { type: 'rename_device', label: 'assistant.actions.resolve_now', payload: { deviceIds: sortedIds } }
           ],
           metadata: { 
-            name: group[0].name, 
+            deviceName: group[0].name, 
             deviceIds: sortedIds,
             count: group.length
           }

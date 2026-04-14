@@ -583,6 +583,10 @@
     "unreachable_msg": "The Edge Controller is unreachable. Check power and network.",
     "retry": "Retry Connection"
   },
+  "devices": {
+    "new_name": "New Name",
+    "name_placeholder": "e.g. Master Light..."
+  },
   "common": {
     "loading": "Loading...",
     "error": "System Error",
@@ -608,10 +612,6 @@
       "turn_on": "Turned On",
       "turn_off": "Turned Off",
       "toggle": "Toggle"
-    },
-    "devices": {
-      "new_name": "New Name",
-      "name_placeholder": "e.g. Master Light..."
     },
     "feedback": {
       "action_success": "{{name}}: {{action}} successful",
