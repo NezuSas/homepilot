@@ -1162,8 +1162,8 @@ export class OperatorConsoleServer {
     if (assignMatch) {
       if (!this.container.guards.authGuard.requireRole(authReq, res, 'admin')) return;
       try {
-        const payload = await this.parseBody<{ roomId?: string }>(req);
-        if (!payload.roomId) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing roomId');
+        const payload = await this.parseBody<{ roomId?: string | null }>(req);
+        if (payload.roomId === undefined) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing roomId');
         const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, authReq.user.id, 'op-console', {
           deviceRepository: this.container.repositories.deviceRepository,
           eventPublisher: { publish: async () => {} },
