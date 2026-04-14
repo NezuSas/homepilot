@@ -5,6 +5,7 @@ import { AssistantDraftRepository } from '../../domain/repositories/AssistantDra
 
 interface DraftRow {
   id: string;
+  fingerprint: string;
   type: string;
   status: string;
   payload: string;
@@ -20,8 +21,8 @@ export class SQLiteAssistantDraftRepository implements AssistantDraftRepository 
 
   public async save(draft: AssistantDraft): Promise<void> {
     const stmt = this.db.prepare(`
-      INSERT INTO assistant_drafts (id, type, status, payload, created_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO assistant_drafts (id, fingerprint, type, status, payload, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         status = excluded.status,
         payload = excluded.payload
@@ -29,6 +30,7 @@ export class SQLiteAssistantDraftRepository implements AssistantDraftRepository 
 
     stmt.run(
       draft.id,
+      draft.fingerprint,
       draft.type,
       draft.status,
       JSON.stringify(draft.payload),
@@ -38,6 +40,11 @@ export class SQLiteAssistantDraftRepository implements AssistantDraftRepository 
 
   public async findById(id: string): Promise<AssistantDraft | null> {
     const row = this.db.prepare('SELECT * FROM assistant_drafts WHERE id = ?').get(id) as DraftRow | undefined;
+    return row ? this.mapToEntity(row) : null;
+  }
+
+  public async findByFingerprint(fingerprint: string): Promise<AssistantDraft | null> {
+    const row = this.db.prepare('SELECT * FROM assistant_drafts WHERE fingerprint = ?').get(fingerprint) as DraftRow | undefined;
     return row ? this.mapToEntity(row) : null;
   }
 
@@ -52,6 +59,7 @@ export class SQLiteAssistantDraftRepository implements AssistantDraftRepository 
   private mapToEntity(row: DraftRow): AssistantDraft {
     return {
       id: row.id,
+      fingerprint: row.fingerprint,
       type: row.type as AssistantDraftType,
       status: row.status as AssistantDraftStatus,
       payload: JSON.parse(row.payload),

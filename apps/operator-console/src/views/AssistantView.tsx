@@ -9,7 +9,10 @@ import {
   Type,
   Copy,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
@@ -110,14 +113,33 @@ export const AssistantView: React.FC<{
 
 
   const getSection = (type: string) => {
-    if (['habit_pattern_detected', 'proactive_automation_opportunity'].includes(type)) return 'proactive';
+    if ([
+      'habit_pattern_detected', 
+      'proactive_automation_opportunity', 
+      'automation_suggestion', 
+      'scene_suggestion'
+    ].includes(type)) return 'proactive';
+    
     if (['energy_waste_detected'].includes(type)) return 'usage';
-    if (['optimization_opportunity'].includes(type)) return 'opportunities';
+    
+    if ([
+      'optimization_opportunity', 
+      'optimization_suggestion'
+    ].includes(type)) return 'opportunities';
+    
     return 'system';
   };
 
   const isProactiveType = (type: string) => 
-    ['habit_pattern_detected', 'proactive_automation_opportunity', 'energy_waste_detected', 'optimization_opportunity'].includes(type);
+    [
+      'habit_pattern_detected', 
+      'proactive_automation_opportunity', 
+      'automation_suggestion', 
+      'scene_suggestion', 
+      'energy_waste_detected', 
+      'optimization_opportunity', 
+      'optimization_suggestion'
+    ].includes(type);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -136,6 +158,66 @@ export const AssistantView: React.FC<{
     }
   };
 
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+  };
+
+  const GROUPABLE_TYPES = ['new_device_available', 'device_missing_room', 'device_name_duplicate'];
+
+  interface GroupItem {
+    id: string;
+    type: string;
+    severity: 'high' | 'medium' | 'low';
+    isGroup: true;
+    findings: Finding[];
+    actions: { type: string; label: string; payload?: any }[];
+  }
+
+  type ProcessedItem = Finding | GroupItem;
+
+  const processFindings = (rawFindings: Finding[]): Record<string, ProcessedItem[]> => {
+    const sections: Record<string, ProcessedItem[]> = {
+      proactive: [],
+      usage: [],
+      opportunities: [],
+      system: []
+    };
+
+    const typeGroups: Record<string, Finding[]> = {};
+    
+    rawFindings.forEach(f => {
+      if (GROUPABLE_TYPES.includes(f.type)) {
+        if (!typeGroups[f.type]) typeGroups[f.type] = [];
+        typeGroups[f.type].push(f);
+      } else {
+        const section = getSection(f.type);
+        sections[section].push(f);
+      }
+    });
+
+    Object.entries(typeGroups).forEach(([type, items]) => {
+      const section = getSection(type);
+      if (items.length === 1) {
+        sections[section].push(items[0]);
+      } else {
+        sections[section].push({
+          id: `group_${type}`,
+          type,
+          severity: items[0].severity,
+          isGroup: true,
+          findings: items,
+          actions: type === 'new_device_available' 
+            ? [{ type: 'import_all', label: 'assistant.actions.import_all' }]
+            : []
+        });
+      }
+    });
+
+    return sections;
+  };
 
   if (loading) {
     return (
@@ -180,100 +262,196 @@ export const AssistantView: React.FC<{
         </div>
       ) : (
         <div className="space-y-12">
-          {['proactive', 'usage', 'opportunities', 'system'].map(sectionKey => {
-            const sectionFindings = findings.filter(f => getSection(f.type) === sectionKey);
-            if (sectionFindings.length === 0) return null;
+          {(() => {
+            const processed = processFindings(findings);
+            return (['proactive', 'usage', 'opportunities', 'system'] as const).map(sectionKey => {
+              const sectionItems = processed[sectionKey];
+              if (sectionItems.length === 0) return null;
 
-            return (
-              <div key={sectionKey} className="space-y-6">
-                <div className="flex items-center gap-3 px-2">
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                    {t(`assistant.sections.${sectionKey}`)}
-                  </h2>
-                  <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
-                </div>
+              return (
+                <div key={sectionKey} className="space-y-6">
+                  <div className="flex items-center gap-3 px-2">
+                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                      {t(`assistant.sections.${sectionKey}`)}
+                    </h2>
+                    <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {sectionFindings.map(finding => (
-                    <div 
-                      key={finding.id}
-                      className={cn(
-                        "group relative flex flex-col p-6 rounded-[2rem] border transition-all duration-500",
-                        isProactiveType(finding.type) 
-                          ? "bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-xl shadow-primary/5 hover:shadow-primary/10 hover:-translate-y-1" 
-                          : "bg-card border-border hover:border-primary/30"
-                      )}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 rounded-2xl bg-muted/50 text-foreground group-hover:scale-110 transition-transform">
-                          {getIcon(finding.type)}
-                        </div>
-                        <span className={cn(
-                          "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
-                          finding.severity === 'high' ? "text-rose-500 border-rose-500/20 bg-rose-500/5" :
-                          finding.severity === 'medium' ? "text-amber-500 border-amber-500/20 bg-amber-500/5" :
-                          "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                        )}>
-                          {t(`assistant.severities.${finding.severity}`)}
-                        </span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sectionItems.map((item: ProcessedItem) => {
+                      if ('isGroup' in item && item.isGroup) {
+                        const isExpanded = expandedGroups[item.id] || false;
+                        const count = item.findings.length;
+                        const groupType = item.type;
+                        
+                        const getGroupKey = (type: string) => {
+                          if (type === 'new_device_available') return 'new_devices';
+                          if (type === 'device_missing_room') return 'missing_rooms';
+                          if (type === 'device_name_duplicate') return 'duplicate_names';
+                          return 'generic';
+                        };
 
-                      <h3 className="text-sm font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
-                        {t(`assistant.types.${finding.type}`)}
-                      </h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed mb-6 font-medium">
-                        {(t(`assistant.types.${finding.type}_description`, finding.metadata) as string)}
-                      </p>
+                        return (
+                          <div key={item.id} className="col-span-1 md:col-span-2 lg:col-span-3">
+                            <div className={cn(
+                              "rounded-[2rem] border bg-card transition-all duration-300 overflow-hidden",
+                              isExpanded ? "border-primary/40 shadow-2xl shadow-primary/5" : "border-border hover:border-primary/20"
+                            )}>
+                              {/* Group Header */}
+                              <button 
+                                onClick={() => toggleGroup(item.id)}
+                                className="w-full flex items-center justify-between p-6 hover:bg-primary/5 transition-colors"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                                    <Layers className="w-5 h-5" />
+                                  </div>
+                                  <div className="text-left">
+                                    <h3 className="text-sm font-black tracking-tight">
+                                      {t(`assistant.types.group.${getGroupKey(groupType)}`, { count })}
+                                    </h3>
+                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
+                                      {t('assistant.group_hint', { count })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {item.actions.map((action, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (action.type === 'import_all') onNavigate('inbox');
+                                        else handleResolve(item.findings[0]);
+                                      }}
+                                      className="px-4 py-2 rounded-xl bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                                    >
+                                      {t(action.label)}
+                                    </button>
+                                  ))}
+                                  <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
+                                </div>
+                              </button>
 
-                      {finding.metadata.reasoning && (
-                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 mb-6 font-primary">
-                          <p className="text-[10px] font-bold text-primary italic leading-normal">
-                            "{finding.metadata.reasoning}"
-                          </p>
-                        </div>
-                      )}
+                              {/* Group Content */}
+                              {isExpanded && (
+                                <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-muted/20">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {item.findings.map((finding: Finding) => (
+                                      <div key={finding.id} className="bg-card p-4 rounded-2xl border border-border/60 flex items-center justify-between group/item">
+                                        <div className="flex items-center gap-3">
+                                          <div className="p-2 rounded-lg bg-muted text-foreground/70 group-hover/item:text-primary transition-colors">
+                                            {getIcon(finding.type)}
+                                          </div>
+                                          <div className="text-left">
+                                            <p className="text-xs font-bold truncate max-w-[120px]">
+                                              {finding.metadata.friendlyName || finding.metadata.deviceName || finding.id}
+                                            </p>
+                                            <p className="text-[9px] text-muted-foreground line-clamp-1">
+                                              {finding.description}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <button 
+                                          onClick={() => handleResolve(finding)}
+                                          className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                                        >
+                                          <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
 
-                      {finding.metadata.ready && (
-                        <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
-                          <Sparkles className="w-3 h-3" />
-                          <span className="text-[10px] font-black uppercase tracking-wider">
-                            {t('assistant.draft.ready')}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="mt-auto flex items-center gap-2">
-                        {finding.actions.map((action, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              if (action.type === 'activate_draft') setActiveAction({ findingId: finding.id, action });
-                              else if (action.type === 'configure_automation') onNavigate('automations');
-                              else if (action.type === 'review_device') onNavigate('inbox');
-                              else if (action.type === 'configure_energy_rule') onNavigate('automations');
-                              else handleResolve(finding);
-                            }}
-                            className={cn(
-                              "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                              idx === 0 ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                            )}
-                          >
-                            {t(action.label)}
-                          </button>
-                        ))}
-                        <button 
-                          onClick={(e) => handleDismiss(finding.id, e)}
-                          className="p-3 rounded-xl bg-muted/30 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                      const finding = item as Finding;
+                      return (
+                        <div 
+                          key={finding.id}
+                          className={cn(
+                            "group relative flex flex-col p-6 rounded-[2rem] border transition-all duration-500",
+                            isProactiveType(finding.type) 
+                              ? "bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-xl shadow-primary/5 hover:shadow-primary/10 hover:-translate-y-1" 
+                              : "bg-card border-border hover:border-primary/30"
+                          )}
                         >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="p-3 rounded-2xl bg-muted/50 text-foreground group-hover:scale-110 transition-transform">
+                              {getIcon(finding.type)}
+                            </div>
+                            <span className={cn(
+                              "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                              finding.severity === 'high' ? "text-rose-500 border-rose-500/20 bg-rose-500/5" :
+                              finding.severity === 'medium' ? "text-amber-500 border-amber-500/20 bg-amber-500/5" :
+                              "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
+                            )}>
+                              {t(`assistant.severities.${finding.severity}`)}
+                            </span>
+                          </div>
+
+                          <h3 className="text-sm font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
+                            {t(`assistant.types.${finding.type}`)}
+                          </h3>
+                          <p className="text-xs text-muted-foreground leading-relaxed mb-6 font-medium">
+                            {(t(`assistant.types.${finding.type}_description`, finding.metadata) as string)}
+                          </p>
+
+                          {finding.metadata.reasonKey && (
+                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 mb-6 font-primary">
+                              <p className="text-[10px] font-bold text-primary italic leading-normal flex items-center gap-2">
+                                <Info className="w-3 h-3" />
+                                {t(`assistant.types.reasons.${finding.metadata.reasonKey}`)}
+                              </p>
+                            </div>
+                          )}
+
+                          {finding.metadata.ready && (
+                            <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                              <Sparkles className="w-3 h-3" />
+                              <span className="text-[10px] font-black uppercase tracking-wider">
+                                {t('assistant.draft.ready')}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="mt-auto flex items-center gap-2">
+                            {finding.actions.map((action, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  if (action.type === 'activate_draft') setActiveAction({ findingId: finding.id, action });
+                                  else if (action.type === 'configure_automation') onNavigate('automations');
+                                  else if (action.type === 'review_device') onNavigate('inbox');
+                                  else if (action.type === 'configure_energy_rule') onNavigate('automations');
+                                  else handleResolve(finding);
+                                }}
+                                className={cn(
+                                  "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                  idx === 0 ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                )}
+                              >
+                                {t(action.label)}
+                              </button>
+                            ))}
+                            <button 
+                              onClick={(e) => handleDismiss(finding.id, e)}
+                              className="p-3 rounded-xl bg-muted/30 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       )}
 

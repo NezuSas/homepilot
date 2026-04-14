@@ -19,9 +19,16 @@
     "title": "Asistente HomePilot",
     "subtitle": "Mejoras y sugerencias del sistema",
     "top_recommendations": "Recomendaciones Principales",
+    "sections": {
+      "proactive": "Sugerencias Proactivas",
+      "usage": "Análisis de Uso",
+      "opportunities": "Oportunidades Detectadas",
+      "system": "Mantenimiento del Sistema"
+    },
     "no_findings": "Tu sistema está optimizado. No se detectaron problemas.",
     "scan_trigger": "Escanear Sistema",
     "scanning": "Escaneando...",
+    "group_hint": "{{count}} instancias consolidadas para mayor claridad",
     "learning": {
       "priority_boost_type": "Prioridad alta según tus preferencias",
       "priority_penalty_type": "Prioridad ajustada por descartes previos"
@@ -61,28 +68,31 @@
       "device_missing_room": "Dispositivo sin habitación",
       "device_missing_room_description": "El dispositivo \"{{deviceName}}\" necesita ser asignado a una habitación para una mejor organización.",
       "device_name_technical": "Nombre técnico detectado",
-      "device_name_technical_description": "El dispositivo '{{currentName}}' tiene un nombre técnico. Considera renombrarlo para mayor claridad.",
+      "device_name_technical_description": "El dispositivo '{{deviceName}}' tiene un nombre técnico. Considera renombrarlo para mayor claridad.",
       "device_name_duplicate": "Nombre Duplicado",
-      "device_name_duplicate_description": "Encontramos {{count}} dispositivos llamados '{{name}}'. Renómbralos para evitar confusiones.",
-      "automation_suggestion": "Automatización Inteligente",
-      "automation_suggestion_description": "Podemos automatizar la {{roomName}} usando {{sensorCount}} sensores y {{lightCount}} luces.",
-      "scene_suggestion": "Escena Premium",
-      "scene_suggestion_description": "Optimiza la {{roomName}} con un 'Modo Noche' para tus {{lightCount}} luces y {{coverCount}} persianas.",
-      "optimization_suggestion": "Optimización de Dispositivo",
-      "optimization_suggestion_description": "El dispositivo '{{deviceName}}' parece estar permanentemente encendido. Considera una regla de auto-apagado.",
+      "device_name_duplicate_description": "Múltiples dispositivos comparten el nombre '{{deviceName}}'. Esto puede causar confusión.",
+      "automation_suggestion": "Automatización Sugerida",
+      "automation_suggestion_description": "Sugerimos crear una automatización basada en tus patrones: {{description}}",
+      "scene_suggestion": "Escena Sugerida",
+      "scene_suggestion_description": "Sugerimos crear una escena para {{roomName}}: {{description}}",
+      "optimization_suggestion": "Sugerencia de Optimización",
+      "optimization_suggestion_description": "Oportunidad de ahorro: {{description}}",
       "energy_waste_detected": "Desperdicio de Energía",
-      "energy_waste_detected_description": "El dispositivo '{{deviceName}}' lleva encendido más de {{hoursOn}} horas sin actividad detectada.",
-      "habit_pattern_detected": "Patrón de Uso Detectado",
-      "habit_pattern_detected_description": "Detectamos que usas '{{deviceName}}' frecuentemente a las {{timeWindow}}. ¿Quieres automatizarlo?",
-      "proactive_automation_opportunity": "Sugerencia Proactiva",
-      "proactive_automation_opportunity_description": "Basado en tu comportamiento, podrías ahorrar tiempo automatizando este dispositivo.",
-      "optimization_opportunity": "Dispositivo con bajo uso",
-      "optimization_opportunity_description": "El dispositivo '{{deviceName}}' no se ha usado en 14 días. ¿Deseas revisar su estado?"
-    },
-    "sections": {
-      "proactive": "Sugerencias Automáticas",
-      "usage": "Basado en tu uso",
-      "opportunities": "Oportunidades Detectadas"
+      "energy_waste_detected_description": "El dispositivo {{deviceName}} ha estado encendido por más de {{hoursOn}} horas sin actividad reciente.",
+      "habit_pattern_detected": "Patrón de Hábito Detectado",
+      "habit_pattern_detected_description": "Se ha detectado un patrón de uso recurrente para {{deviceName}} alrededor de las {{timeWindow}}.",
+      "optimization_opportunity": "Oportunidad de Optimización",
+      "optimization_opportunity_description": "El dispositivo {{deviceName}} en {{roomName}} no ha tenido actividad en los últimos {{daysInactive}} días.",
+      "group": {
+        "new_devices": "Nuevos Dispositivos ({{count}})",
+        "missing_rooms": "Dispositivos sin Habitación ({{count}})",
+        "duplicate_names": "Nombres Duplicados ({{count}})"
+      },
+      "reasons": {
+        "repeated_control_time": "Uso recurrente detectado",
+        "long_duration_on": "Uso prolongado sin cambios",
+        "no_activity_long_term": "Inactividad prolongada"
+      }
     }
   },
   "dashboard": {

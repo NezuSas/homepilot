@@ -19,9 +19,16 @@
     "title": "HomePilot Assistant",
     "subtitle": "System improvements and suggestions",
     "top_recommendations": "Top Recommendations",
+    "sections": {
+      "proactive": "Proactive Suggestions",
+      "usage": "Usage Analysis",
+      "opportunities": "Detected Opportunities",
+      "system": "System Maintenance"
+    },
     "no_findings": "Your system is optimized. No issues detected.",
     "scan_trigger": "Scan System",
     "scanning": "Scanning...",
+    "group_hint": "{{count}} instances consolidated for clarity",
     "learning": {
       "priority_boost_type": "High priority based on your preferences",
       "priority_penalty_type": "Optimized priority based on past dismissals"
@@ -58,31 +65,34 @@
     "types": {
       "new_device_available": "New Device Detected",
       "new_device_available_description": "A new entity \"{{friendlyName}}\" is available in Home Assistant.",
-      "device_missing_room": "Device Missing Room",
-      "device_missing_room_description": "Device \"{{deviceName}}\" needs to be assigned to a room for better organization.",
+      "device_missing_room": "Device without Room",
+      "device_missing_room_description": "The device \"{{deviceName}}\" needs to be assigned to a room for better organization.",
       "device_name_technical": "Technical Name Detected",
-      "device_name_technical_description": "Device '{{currentName}}' has a technical name. Consider renaming it for better clarity.",
+      "device_name_technical_description": "The device \"{{deviceName}}\" has a technical name. We suggest renaming it to something more human-readable.",
       "device_name_duplicate": "Duplicate Name",
-      "device_name_duplicate_description": "We found {{count}} devices named '{{name}}'. Rename them to avoid confusion.",
-      "automation_suggestion": "Smart Automation",
-      "automation_suggestion_description": "We can automate {{roomName}} using {{sensorCount}} sensors and {{lightCount}} lights.",
-      "scene_suggestion": "Premium Scene",
-      "scene_suggestion_description": "Optimize {{roomName}} with a 'Night Mode' for your {{lightCount}} lights and {{coverCount}} covers.",
-      "optimization_suggestion": "Device Optimization",
-      "optimization_suggestion_description": "The device '{{deviceName}}' seems to be permanently on. Consider an auto-off rule.",
+      "device_name_duplicate_description": "Multiple devices share the name \"{{deviceName}}\". This can cause confusion in voice control.",
+      "automation_suggestion": "Automation Suggested",
+      "automation_suggestion_description": "We suggest creating an automation based on your usage patterns: {{description}}",
+      "scene_suggestion": "Scene Suggested",
+      "scene_suggestion_description": "We suggest creating a scene for {{roomName}}: {{description}}",
+      "optimization_suggestion": "Optimization Suggestion",
+      "optimization_suggestion_description": "Energy saving opportunity: {{description}}",
       "energy_waste_detected": "Energy Waste Detected",
-      "energy_waste_detected_description": "The device '{{deviceName}}' has been on for over {{hoursOn}} hours without detected activity.",
-      "habit_pattern_detected": "Usage Pattern Detected",
-      "habit_pattern_detected_description": "We noticed you use '{{deviceName}}' frequently at {{timeWindow}}. Want to automate it?",
-      "proactive_automation_opportunity": "Proactive Suggestion",
-      "proactive_automation_opportunity_description": "Based on your behavior, you could save time by automating this device.",
-      "optimization_opportunity": "Low usage device",
-      "optimization_opportunity_description": "The device '{{deviceName}}' hasn't been used in 14 days. Do you want to review its status?"
-    },
-    "sections": {
-      "proactive": "Automatic Suggestions",
-      "usage": "Based on your usage",
-      "opportunities": "Detected Opportunities"
+      "energy_waste_detected_description": "The device {{deviceName}} has been ON for over {{hoursOn}} hours without recent activity.",
+      "habit_pattern_detected": "Habit Pattern Detected",
+      "habit_pattern_detected_description": "A recurring usage pattern has been detected for {{deviceName}} around {{timeWindow}}.",
+      "optimization_opportunity": "Optimization Opportunity",
+      "optimization_opportunity_description": "The device {{deviceName}} in {{roomName}} has not been used in the last {{daysInactive}} days.",
+      "group": {
+        "new_devices": "New Devices ({{count}})",
+        "missing_rooms": "Devices without Room ({{count}})",
+        "duplicate_names": "Duplicate Names ({{count}})"
+      },
+      "reasons": {
+        "repeated_control_time": "Recurring usage detected",
+        "long_duration_on": "Unusually long duration ON",
+        "no_activity_long_term": "Long-term inactivity"
+      }
     }
   },
   "dashboard": {

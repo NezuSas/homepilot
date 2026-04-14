@@ -13,9 +13,13 @@ export class AssistantDraftService {
     private readonly idGenerator: IdGenerator
   ) {}
 
-  public async createAutomationDraft(homeId: string, name: string, trigger: any, action: any): Promise<AssistantDraft> {
+  public async createAutomationDraft(homeId: string, name: string, trigger: any, action: any, fingerprint: string): Promise<AssistantDraft> {
+    const existing = await this.draftRepository.findByFingerprint(fingerprint);
+    if (existing) return existing;
+
     const draft: AssistantDraft = {
-      id: randomUUID(),
+      id: this.idGenerator.generate(),
+      fingerprint,
       type: 'automation',
       status: 'draft',
       payload: {
@@ -30,9 +34,13 @@ export class AssistantDraftService {
     return draft;
   }
 
-  public async createSceneDraft(homeId: string, roomId: string | null, name: string, actions: any[]): Promise<AssistantDraft> {
+  public async createSceneDraft(homeId: string, roomId: string | null, name: string, actions: any[], fingerprint: string): Promise<AssistantDraft> {
+    const existing = await this.draftRepository.findByFingerprint(fingerprint);
+    if (existing) return existing;
+
     const draft: AssistantDraft = {
-      id: randomUUID(),
+      id: this.idGenerator.generate(),
+      fingerprint,
       type: 'scene',
       status: 'draft',
       payload: {

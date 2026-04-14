@@ -57,12 +57,13 @@ export class AssistantDetectionService {
     for (const pair of context.insights.motionLightPairs) {
       const fingerprint = generateFindingFingerprint('automation_suggestion', pair.roomId, 'motion_light');
       
-      // Create Draft
+      // Create Draft with fingerprint
       const draft = await this.draftService.createAutomationDraft(
         context.homeId, 
         `Auto ${pair.roomName}`,
         { type: 'device_state_changed', deviceId: pair.sensors[0].id, key: 'state', value: 'on' },
-        { type: 'device_command', targetDeviceId: pair.lights[0].id, command: 'turn_on' }
+        { type: 'device_command', targetDeviceId: pair.lights[0].id, command: 'turn_on' },
+        fingerprint // Pass fingerprint for deduplication
       );
 
       suggestions.push({
@@ -91,7 +92,7 @@ export class AssistantDetectionService {
     for (const pair of context.insights.lightCoverPairs) {
       const fingerprint = generateFindingFingerprint('scene_suggestion', pair.roomId, 'light_cover');
       
-      // Create Draft
+      // Create Draft with fingerprint
       const draft = await this.draftService.createSceneDraft(
         context.homeId,
         pair.roomId,
@@ -99,7 +100,8 @@ export class AssistantDetectionService {
         [
           ...pair.lights.map(l => ({ deviceId: l.id, command: 'turn_off' })),
           ...pair.covers.map(c => ({ deviceId: c.id, command: 'close' }))
-        ]
+        ],
+        fingerprint // Pass fingerprint for deduplication
       );
 
       suggestions.push({
@@ -201,12 +203,7 @@ export class AssistantDetectionService {
   }
 
   private async detectTechnicalNames(homeId: string): Promise<Partial<AssistantFinding>[]> {
-    // We need a way to get all devices, not just inbox.
-    // Since DeviceRepository doesn't have findAllByHomeId, I'll use a trick or check the repository again.
-    // Wait, SQLiteDeviceRepository has findInboxByHomeId. I might need to add findAllByHomeId.
-    // For now, let's assume I search the DB directly or add the method.
-    // Actually, I'll add findAllByHomeId to SQLiteDeviceRepository.
-    const devices = await (this.deviceRepository as any).findAllByHomeId?.(homeId) || [];
+    const devices = await this.deviceRepository.findAllByHomeId(homeId);
     
     // Technical patterns: snake_case, HA prefixes, numbers at the end
     const technicalRegex = /(_[a-z0-9]|light\.|switch\.|cover\.|[a-z]+[0-9]{2,})/;
@@ -227,7 +224,7 @@ export class AssistantDetectionService {
   }
 
   private async detectDuplicateNames(homeId: string): Promise<Partial<AssistantFinding>[]> {
-    const devices = await (this.deviceRepository as any).findAllByHomeId?.(homeId) || [];
+    const devices = await this.deviceRepository.findAllByHomeId(homeId);
     const nameMap = new Map<string, any[]>();
 
     for (const d of devices) {
@@ -285,7 +282,7 @@ export class AssistantDetectionService {
         relatedEntityType: 'device',
         relatedEntityId: p.deviceId,
         actions: this.getProactiveActions(type, p),
-        metadata: { ...p.metadata, reasoning: p.reasoning, deviceName: p.deviceName }
+        metadata: { ...p.metadata, reasonKey: p.reasonKey, deviceName: p.deviceName, roomId: p.roomId }
       };
     });
   }

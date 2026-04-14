@@ -6,8 +6,8 @@ export interface BehaviorFinding {
   type: 'habit' | 'waste' | 'low_usage';
   deviceId: string;
   deviceName: string;
-  roomName: string;
-  reasoning: string;
+  roomId: string | null;
+  reasonKey: string;
   confidence: number;
   metadata: Record<string, any>;
 }
@@ -26,11 +26,11 @@ export class BehaviorAnalysisService {
     const habitFindings = await this.detectHabits();
     findings.push(...habitFindings);
 
-    // 2. Detect Energy Waste (> 6h usage without motion)
+    // 2. Detect Energy Waste (> 8h usage without motion) - Tightened from 6h
     const wasteFindings = await this.detectEnergyWaste();
     findings.push(...wasteFindings);
 
-    // 3. Detect Low Usage (> 14 days inactive)
+    // 3. Detect Low Usage (> 21 days inactive) - Tightened from 14h
     const lowUsageFindings = await this.detectLowUsage();
     findings.push(...lowUsageFindings);
 
@@ -57,12 +57,11 @@ export class BehaviorAnalysisService {
       const device = await this.deviceRepository.findDeviceById(deviceId);
       if (!device) continue;
 
-      // Group by day to check if it occurs on 3+ distinct days
+      // Group by day to check if it occurs on 4+ distinct days (Tightened from 3)
       const days = new Set(actions.map(a => a.timestamp.split('T')[0]));
-      if (days.size < 3) continue;
+      if (days.size < 4) continue;
 
       // Check for time alignment (+/- 30 mins)
-      // For simplicity, bucket into 15-min intervals or 30-min
       const timeBuckets: Record<string, number> = {};
       for (const action of actions) {
         const date = new Date(action.timestamp);
@@ -81,12 +80,12 @@ export class BehaviorAnalysisService {
             type: 'habit',
             deviceId,
             deviceName: device.name,
-            roomName: 'Unknown', // Will resolve in DetectionService or via Context
-            reasoning: `Repeatedly controlled around ${timeStr} for ${count} days.`,
-            confidence: 0.8,
-            metadata: { timeWindow: timeStr, action: actions[0].description, occurrences: count }
+            roomId: device.roomId,
+            reasonKey: 'repeated_control_time',
+            confidence: 0.85,
+            metadata: { timeWindow: timeStr, action: actions[0].description, occurrences: count, days: days.size }
           });
-          break; // One finding per device/action pair for now
+          break; 
         }
       }
     }
@@ -95,7 +94,7 @@ export class BehaviorAnalysisService {
   }
 
   private async detectEnergyWaste(): Promise<BehaviorFinding[]> {
-    // Logic: Active devices (lights) ON for > 6 hours 
+    // Logic: Active devices (lights) ON for > 8 hours 
     const devices = await this.deviceRepository.findAll();
     const findings: BehaviorFinding[] = [];
     const now = new Date();
@@ -109,15 +108,16 @@ export class BehaviorAnalysisService {
       const updated = new Date(device.updatedAt);
       const diffHours = (now.getTime() - updated.getTime()) / (1000 * 60 * 60);
 
-      if (diffHours > 6) {
+      // Tightened threshold: 8 hours
+      if (diffHours > 8) {
         findings.push({
           type: 'waste',
           deviceId: device.id,
           deviceName: device.name,
-          roomName: 'Unknown',
-          reasoning: `Device has been ON for over ${Math.floor(diffHours)} hours.`,
-          confidence: 0.7,
-          metadata: { hoursOn: diffHours }
+          roomId: device.roomId,
+          reasonKey: 'long_duration_on',
+          confidence: 0.75,
+          metadata: { hoursOn: Math.floor(diffHours) }
         });
       }
     }
@@ -127,22 +127,24 @@ export class BehaviorAnalysisService {
 
   private async detectLowUsage(): Promise<BehaviorFinding[]> {
     const since = new Date();
-    since.setDate(since.getDate() - 14);
+    since.setDate(since.getDate() - 21); // Tightened from 14 days
     
     const devices = await this.deviceRepository.findAll();
     const findings: BehaviorFinding[] = [];
 
     for (const device of devices) {
+      if (!device.roomId) continue; // Only care about installed devices
+      
       const updated = new Date(device.updatedAt);
       if (updated < since) {
         findings.push({
           type: 'low_usage',
           deviceId: device.id,
           deviceName: device.name,
-          roomName: 'Unknown',
-          reasoning: `No activity detected in the last 14 days.`,
-          confidence: 0.6,
-          metadata: { lastActive: device.updatedAt }
+          roomId: device.roomId,
+          reasonKey: 'no_activity_long_term',
+          confidence: 0.65,
+          metadata: { daysInactive: 21, lastActive: device.updatedAt }
         });
       }
     }
