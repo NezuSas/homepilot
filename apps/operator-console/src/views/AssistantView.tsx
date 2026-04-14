@@ -40,7 +40,7 @@ export const AssistantView: React.FC<{
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [activeAction, setActiveAction] = useState<{ findingId: string; action: any } | null>(null);
+  const [activeAction, setActiveAction] = useState<{ findingId: string; action: any; deviceName?: string } | null>(null);
 
   const fetchFindings = async () => {
     try {
@@ -98,7 +98,11 @@ export const AssistantView: React.FC<{
     // 1. Modal-based actions
     const modalActions = ['activate_draft', 'import_device', 'assign_room', 'rename_device'];
     if (modalActions.includes(action.type)) {
-      setActiveAction({ findingId: finding.id, action });
+      setActiveAction({ 
+        findingId: finding.id, 
+        action,
+        deviceName: finding.metadata.friendlyName || finding.metadata.deviceName || finding.metadata.name || finding.id
+      });
       return;
     }
 
@@ -176,19 +180,29 @@ export const AssistantView: React.FC<{
 
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [expandedSubGroups, setExpandedSubGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
   };
 
+  const toggleSubGroup = (subGroupId: string) => {
+    setExpandedSubGroups(prev => ({ ...prev, [subGroupId]: !prev[subGroupId] }));
+  };
+
   const GROUPABLE_TYPES = ['new_device_available', 'device_missing_room', 'device_name_duplicate'];
+
+  interface SubGroup {
+    name: string;
+    findings: Finding[];
+  }
 
   interface GroupItem {
     id: string;
     type: string;
     severity: 'high' | 'medium' | 'low';
     isGroup: true;
-    findings: Finding[];
+    subGroups: SubGroup[];
     actions: { type: string; label: string; payload?: any }[];
   }
 
@@ -219,12 +233,25 @@ export const AssistantView: React.FC<{
       if (items.length === 1) {
         sections[section].push(items[0]);
       } else {
+        // Nested grouping by visible identity
+        const subGroupMap: Record<string, Finding[]> = {};
+        items.forEach(it => {
+          const name = it.metadata.friendlyName || it.metadata.deviceName || it.metadata.name || it.id;
+          if (!subGroupMap[name]) subGroupMap[name] = [];
+          subGroupMap[name].push(it);
+        });
+
+        const subGroups: SubGroup[] = Object.entries(subGroupMap).map(([name, findings]) => ({
+          name,
+          findings
+        }));
+
         sections[section].push({
           id: `group_${type}`,
           type,
           severity: items[0].severity,
           isGroup: true,
-          findings: items,
+          subGroups,
           actions: type === 'new_device_available' 
             ? [{ type: 'import_all', label: 'assistant.actions.import_all' }]
             : []
@@ -297,7 +324,8 @@ export const AssistantView: React.FC<{
                     {sectionItems.map((item: ProcessedItem) => {
                       if ('isGroup' in item && item.isGroup) {
                         const isExpanded = expandedGroups[item.id] || false;
-                        const count = item.findings.length;
+                        const subGroups = item.subGroups;
+                        const totalCount = subGroups.reduce((acc, sg) => acc + sg.findings.length, 0);
                         const groupType = item.type;
                         
                         const getGroupKey = (type: string) => {
@@ -324,10 +352,10 @@ export const AssistantView: React.FC<{
                                   </div>
                                   <div className="text-left">
                                     <h3 className="text-sm font-black tracking-tight">
-                                      {t(`assistant.types.group.${getGroupKey(groupType)}`, { count })}
+                                      {t(`assistant.types.group.${getGroupKey(groupType)}`, { count: totalCount })}
                                     </h3>
                                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
-                                      {t('assistant.group_hint', { count })}
+                                      {t('assistant.group_hint', { count: totalCount })}
                                     </p>
                                   </div>
                                 </div>
@@ -338,7 +366,8 @@ export const AssistantView: React.FC<{
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (action.type === 'import_all') onNavigate('inbox');
-                                        else if (item.findings[0]?.actions[0]) handleAction(item.findings[0], item.findings[0].actions[0]);
+                                        else if (item.subGroups[0]?.findings[0]?.actions[0]) 
+                                          handleAction(item.subGroups[0].findings[0], item.subGroups[0].findings[0].actions[0]);
                                       }}
                                       className="px-4 py-2 rounded-xl bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
                                     >
@@ -352,30 +381,80 @@ export const AssistantView: React.FC<{
                               {/* Group Content */}
                               {isExpanded && (
                                 <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-muted/20">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {item.findings.map((finding: Finding) => (
-                                      <div key={finding.id} className="bg-card p-4 rounded-2xl border border-border/60 flex items-center justify-between group/item">
-                                        <div className="flex items-center gap-3">
-                                          <div className="p-2 rounded-lg bg-muted text-foreground/70 group-hover/item:text-primary transition-colors">
-                                            {getIcon(finding.type)}
+                                  <div className="space-y-4">
+                                    {item.subGroups.map((subGroup) => {
+                                      const subGroupId = `${item.id}_${subGroup.name}`;
+                                      const isSubExpanded = expandedSubGroups[subGroupId] || false;
+                                      const count = subGroup.findings.length;
+                                      const primaryFinding = subGroup.findings[0];
+
+                                      return (
+                                        <div key={subGroupId} className="space-y-2">
+                                          {/* SubGroup Row */}
+                                          <div className={cn(
+                                            "bg-card p-4 rounded-2xl border border-border/60 flex items-center justify-between group/sub transition-all",
+                                            isSubExpanded && "border-primary/30 bg-primary/5"
+                                          )}>
+                                            <div className="flex items-center gap-3 flex-1">
+                                              <div className="p-2 rounded-lg bg-muted text-foreground/70 group-hover/sub:text-primary transition-colors">
+                                                {getIcon(primaryFinding.type)}
+                                              </div>
+                                              <div className="text-left flex-1">
+                                                <p className="text-sm font-bold flex items-center gap-2">
+                                                  {subGroup.name}
+                                                  {count > 1 && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
+                                                       × {count}
+                                                    </span>
+                                                  )}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground line-clamp-1">
+                                                  {t(`assistant.types.${primaryFinding.type}_description`, primaryFinding.metadata) as string}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                              {count > 1 ? (
+                                                <button 
+                                                  onClick={() => toggleSubGroup(subGroupId)}
+                                                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-all flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                                                >
+                                                  {isSubExpanded ? t('common.hide') : t('common.more')}
+                                                  <ChevronDown className={cn("w-3 h-3 transition-transform", isSubExpanded && "rotate-180")} />
+                                                </button>
+                                              ) : (
+                                                <button 
+                                                  onClick={() => primaryFinding.actions[0] && handleAction(primaryFinding, primaryFinding.actions[0])}
+                                                  className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all"
+                                                >
+                                                  <ArrowRight className="w-4 h-4" />
+                                                </button>
+                                              )}
+                                            </div>
                                           </div>
-                                          <div className="text-left">
-                                            <p className="text-xs font-bold truncate max-w-[120px]">
-                                              {finding.metadata.friendlyName || finding.metadata.deviceName || finding.id}
-                                            </p>
-                                            <p className="text-[9px] text-muted-foreground line-clamp-1">
-                                              {(t(`assistant.types.${finding.type}_description`, finding.metadata) as string)}
-                                            </p>
-                                          </div>
+
+                                          {/* Individual Findings in SubGroup */}
+                                          {isSubExpanded && (
+                                            <div className="pl-12 pr-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                              {subGroup.findings.map(finding => (
+                                                <div key={finding.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/40 group/item">
+                                                  <span className="text-[10px] font-medium text-muted-foreground font-mono">
+                                                    ID: {finding.id.split('-')[0]}...
+                                                  </span>
+                                                  <button 
+                                                    onClick={() => finding.actions[0] && handleAction(finding, finding.actions[0])}
+                                                    className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                                                  >
+                                                    <ArrowRight className="w-3 h-3" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
                                         </div>
-                                        <button 
-                                          onClick={() => finding.actions[0] && handleAction(finding, finding.actions[0])}
-                                          className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
-                                        >
-                                          <ArrowRight className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -469,6 +548,7 @@ export const AssistantView: React.FC<{
         <AssistantActionModal 
           findingId={activeAction.findingId}
           action={activeAction.action}
+          deviceName={activeAction.deviceName}
           onClose={() => setActiveAction(null)}
           onSuccess={() => fetchFindings()}
         />

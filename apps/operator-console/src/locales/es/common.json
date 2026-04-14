@@ -340,7 +340,8 @@
     "no_homes": "No hay hogares registrados.",
     "no_rooms": "No hay estancias asociadas a este entorno.",
     "select_home": "Por favor, selecciona un hogar a la izquierda para gestionar sus estancias.",
-    "select_home_hint": "Sin Hogar Seleccionado"
+    "select_home_hint": "Sin Hogar Seleccionado",
+    "room_select": "Seleccionar Estancia"
   },
   "automations": {
     "header": {
@@ -604,6 +605,10 @@
       "turn_on": "Encendido",
       "turn_off": "Apagado",
       "toggle": "Conmutar"
+    },
+    "devices": {
+      "new_name": "Nuevo Nombre",
+      "name_placeholder": "Ej: Lámpara Principal..."
     },
     "feedback": {
       "action_success": "{{name}}: {{action}} completado",

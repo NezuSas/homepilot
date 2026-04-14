@@ -11,6 +11,7 @@ interface AssistantActionModalProps {
     label: string;
     payload?: any;
   };
+  deviceName?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -18,6 +19,7 @@ interface AssistantActionModalProps {
 export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
   findingId,
   action,
+  deviceName,
   onClose,
   onSuccess
 }) => {
@@ -68,11 +70,18 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-xl animate-in fade-in duration-300">
       <div className="w-full max-w-md bg-card border border-muted rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-        <header className="flex items-center justify-between p-6 border-b border-muted">
-          <h2 className="text-xl font-black tracking-tight">{t(action.label)}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+        <header className="p-6 border-b border-muted">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xl font-black tracking-tight">{t(action.label)}</h2>
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {deviceName && (
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
+              {deviceName}
+            </p>
+          )}
         </header>
 
         <div className="p-8 space-y-6">
@@ -118,9 +127,14 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
           )}
 
           {action.type === 'import_device' && (
-            <p className="text-muted-foreground font-medium text-center py-4">
-              {t('assistant.actions.import_confirm')}
-            </p>
+            <div className="py-4 text-center space-y-3">
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                {t('assistant.actions.import_confirm')}
+              </p>
+              <div className="inline-block px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-xs">
+                {deviceName}
+              </div>
+            </div>
           )}
 
           {action.type === 'activate_draft' && (

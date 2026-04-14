@@ -346,7 +346,8 @@
     "no_homes": "No homes registered.",
     "no_rooms": "No rooms associated with this environment.",
     "select_home": "Select a home to manage its spaces.",
-    "select_home_hint": "No Home Selected"
+    "select_home_hint": "No Home Selected",
+    "room_select": "Select Room"
   },
   "automations": {
     "header": {
@@ -607,6 +608,10 @@
       "turn_on": "Turned On",
       "turn_off": "Turned Off",
       "toggle": "Toggle"
+    },
+    "devices": {
+      "new_name": "New Name",
+      "name_placeholder": "e.g. Master Light..."
     },
     "feedback": {
       "action_success": "{{name}}: {{action}} successful",
