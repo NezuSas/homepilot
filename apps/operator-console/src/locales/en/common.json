@@ -18,6 +18,7 @@
   "assistant": {
     "title": "HomePilot Assistant",
     "subtitle": "System improvements and suggestions",
+    "top_recommendations": "Top Recommendations",
     "no_findings": "Your system is optimized. No issues detected.",
     "scan_trigger": "Scan System",
     "scanning": "Scanning...",

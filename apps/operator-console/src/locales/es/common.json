@@ -18,6 +18,7 @@
   "assistant": {
     "title": "Asistente HomePilot",
     "subtitle": "Mejoras y sugerencias del sistema",
+    "top_recommendations": "Recomendaciones Principales",
     "no_findings": "Tu sistema está optimizado. No se detectaron problemas.",
     "scan_trigger": "Escanear Sistema",
     "scanning": "Escaneando...",
