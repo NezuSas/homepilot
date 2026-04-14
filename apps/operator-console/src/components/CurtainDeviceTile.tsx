@@ -93,81 +93,81 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   return (
     <div className={cn(
-      "relative group transition-all duration-700 rounded-[2.5rem] p-6 flex flex-col gap-8 border-2 shadow-sm active:scale-95",
-      (isOpening || isClosing || isOpen) ? "bg-primary/5 border-primary/40 shadow-premium" : "bg-card/20 border-border/40 hover:border-primary/20",
+      "relative group transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col items-center text-center gap-6 border-2 shadow-sm active:scale-95",
+      (isOpening || isClosing || isOpen) ? "bg-card/40 border-primary/20 shadow-premium" : "bg-card/20 border-border/40 hover:border-primary/10",
       device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
     )}>
       
-      {/* Brand & Identity Area */}
-      <div className="flex justify-between items-start">
-        <div className={cn(
-          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-1000",
-          (isOpening || isClosing || isOpen) ? "bg-primary text-primary-foreground premium-glow" : "bg-muted text-muted-foreground/40"
-        )}>
-           {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Blinds className={cn("w-6 h-6", (isOpening || isClosing) && "animate-atmospheric-pulse")} />}
-        </div>
-        
-        {position !== undefined && (
-          <div className="flex flex-col items-end">
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 leading-none mb-1">Apertura</span>
-             <span className="text-xl font-black tracking-tighter tabular-nums text-primary/80">
-                {position}%
-             </span>
-          </div>
-        )}
+      {/* Icon Area - Subtler & Smaller */}
+      <div className={cn(
+        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-1000",
+        (isOpening || isClosing || isOpen) ? "bg-primary/10 text-primary" : "bg-muted/40 text-muted-foreground/30"
+      )}>
+         {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Blinds className={cn("w-5 h-5 opacity-70", (isOpening || isClosing) && "animate-premium-pulse")} />}
       </div>
 
-      {/* Primary Naming & State Alignment */}
-      <div className="flex flex-col min-w-0">
-        <h4 className="text-sm font-black truncate tracking-tight mb-1">{displayName}</h4>
+      {/* Identity & State - Calm Sentence Case */}
+      <div className="flex flex-col items-center min-w-0">
+        <h4 className="text-sm font-black truncate tracking-tight mb-1.5 opacity-90">{displayName}</h4>
         <div className="flex items-center gap-2">
-          <div className={cn("w-2 h-2 rounded-full", dotColor)} />
-          <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-            {localizedState}
+          <div className={cn("w-1.5 h-1.5 rounded-full", dotColor)} />
+          <span className="text-[10px] font-bold tracking-widest opacity-40 capitalize">
+            {localizedState.toLowerCase()}
           </span>
         </div>
       </div>
 
-      {/* Dynamic Action Hierarchy */}
-      <div className="flex gap-3 pt-2">
-        {/* Main Action: Toggles based on state */}
+      {/* Dynamic Action Hierarchy - Luxury Dark Style */}
+      <div className="w-full flex flex-col gap-3 pt-2">
+        {/* Main Action: Premium Primary Dark */}
         <button
           onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
           disabled={!!isProcessing || isOpening || isClosing}
           className={cn(
-            "flex-3 h-14 rounded-2xl flex items-center justify-center gap-3 transition-all duration-500 font-black uppercase tracking-widest text-[9px] premium-glow",
-            isOpen ? "bg-foreground text-background shadow-xl" : "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+            "w-full h-12 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 font-black uppercase tracking-widest text-[9px] border-2",
+            isOpen 
+              ? "bg-secondary/40 border-primary/20 text-primary shadow-lg" 
+              : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 shadow-md"
           )}
         >
           {isOpen ? (
             <>
-              <ArrowDown className="w-4 h-4" />
+              <ArrowDown className="w-3.5 h-3.5" />
               {t('common.actions.close', { defaultValue: 'Cerrar' })}
             </>
           ) : (
             <>
-              <ArrowUp className="w-4 h-4" />
+              <ArrowUp className="w-3.5 h-3.5" />
               {t('common.actions.open', { defaultValue: 'Abrir' })}
             </>
           )}
         </button>
         
-        {/* Stop Action: Secondary */}
+        {/* Stop Action: Subdued Secondary */}
         <button
           onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
           disabled={!!isProcessing}
-          className="flex-1 h-14 rounded-2xl bg-muted/40 text-muted-foreground flex items-center justify-center transition-all hover:bg-destructive/10 hover:text-destructive active:scale-90 border-2 border-transparent hover:border-destructive/20"
-          title={t('common.actions.stop', { defaultValue: 'Detener' })}
+          className="w-full h-10 rounded-xl bg-transparent text-muted-foreground/40 flex items-center justify-center gap-2 transition-all hover:bg-destructive/5 hover:text-destructive active:scale-95 border border-transparent hover:border-destructive/10"
         >
-          <Square className="w-4 h-4 fill-current" />
+          <Square className="w-3 h-3 fill-current opacity-60" />
+          <span className="text-[8px] font-black uppercase tracking-[0.2em]">{t('common.actions.stop', { defaultValue: 'Detener' })}</span>
         </button>
       </div>
 
-      {/* Atmospheric progress sub-bar if position is known */}
+      {/* Position Percentage - Minimal */}
       {position !== undefined && (
-        <div className="absolute bottom-0 left-8 right-8 h-1 bg-muted/5 rounded-full overflow-hidden">
+        <div className="absolute top-6 right-8">
+           <span className="text-[10px] font-black tracking-tighter tabular-nums opacity-20">
+              {position}%
+           </span>
+        </div>
+      )}
+
+      {/* Progress Line - Architecturally Integrated */}
+      {position !== undefined && (
+        <div className="absolute bottom-0 left-10 right-10 h-[2px] bg-muted/5 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-primary/30 transition-all duration-2000 ease-in-out" 
+            className="h-full bg-primary/20 transition-all duration-2000 ease-in-out" 
             style={{ width: `${position}%` }}
           />
         </div>
