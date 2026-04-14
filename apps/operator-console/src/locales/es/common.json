@@ -26,13 +26,10 @@
       "priority_boost_type": "Prioridad alta según tus preferencias",
       "priority_penalty_type": "Prioridad ajustada por descartes previos"
     },
-    "natural": {
-      "placeholder": "Describe qué quieres hacer... (ej. 'renombrar luz a Luz Cocina')",
-      "button": "Procesar",
-      "proposal_title": "Propuesta de Intención",
-      "confirm": "Aplicar Borrador",
-      "cancel": "Descartar",
-      "error_invalid": "No pude entender esa intención. Prueba con 'renombrar dispositivo', 'asignar habitación' o 'crear escena'."
+    "draft": {
+      "ready": "Listo para usar",
+      "activate": "Activar ahora",
+      "created_automatically": "Configuración automática preparada"
     },
     "dismiss": "Omitir",
     "resolve": "Navigar",
@@ -44,6 +41,7 @@
       "ignore": "Ignorar",
       "resolve_now": "Resolver ahora",
       "configure": "Configurar",
+      "activate_now": "Activar ahora",
       "import_confirm": "¿Estás seguro de que quieres importar este dispositivo?",
       "configure_energy": "Ahorro energético",
       "review": "Revisar uso",

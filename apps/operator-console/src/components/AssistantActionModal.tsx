@@ -42,6 +42,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
       const payload: any = {};
       if (action.type === 'assign_room') payload.roomId = selectedRoomId;
       if (action.type === 'rename_device') payload.newName = newName;
+      if (action.type === 'activate_draft') payload.draftId = action.payload?.draftId;
 
       const resp = await fetch(API_ENDPOINTS.assistant.executeAction, {
         method: 'POST',
@@ -120,6 +121,17 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
             <p className="text-muted-foreground font-medium text-center py-4">
               {t('assistant.actions.import_confirm')}
             </p>
+          )}
+
+          {action.type === 'activate_draft' && (
+            <div className="p-6 rounded-3xl bg-primary/5 border-2 border-primary/10 text-center space-y-2">
+              <p className="text-primary font-black uppercase tracking-widest text-[10px]">
+                {t('assistant.draft.ready')}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium leading-relaxed">
+                {t('assistant.draft.created_automatically')}
+              </p>
+            </div>
           )}
 
           <div className="flex gap-3 pt-4">

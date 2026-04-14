@@ -5,13 +5,15 @@ import { ContextAnalysisService, SystemContext } from './ContextAnalysisService'
 import { FindingScorer } from './FindingScorer';
 import { LearningModifiers } from './AssistantLearningService';
 import { BehaviorAnalysisService } from './BehaviorAnalysisService';
+import { AssistantDraftService } from './AssistantDraftService';
 
 export class AssistantDetectionService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
     private readonly haClient: HomeAssistantClient,
     private readonly contextService: ContextAnalysisService,
-    private readonly behaviorService: BehaviorAnalysisService
+    private readonly behaviorService: BehaviorAnalysisService,
+    private readonly draftService: AssistantDraftService
   ) {}
 
   public async scan(homeId: string, learning?: LearningModifiers): Promise<Partial<AssistantFinding>[]> {
@@ -53,13 +55,24 @@ export class AssistantDetectionService {
 
     // A. Automation Suggections (Motion + Light)
     for (const pair of context.insights.motionLightPairs) {
+      const fingerprint = generateFindingFingerprint('automation_suggestion', pair.roomId, 'motion_light');
+      
+      // Create Draft
+      const draft = await this.draftService.createAutomationDraft(
+        context.homeId, 
+        `Auto ${pair.roomName}`,
+        { type: 'device_state_changed', deviceId: pair.sensors[0].id, key: 'state', value: 'on' },
+        { type: 'device_command', targetDeviceId: pair.lights[0].id, command: 'turn_on' }
+      );
+
       suggestions.push({
-        fingerprint: generateFindingFingerprint('automation_suggestion', pair.roomId, 'motion_light'),
+        fingerprint,
         type: 'automation_suggestion',
         severity: 'medium',
         relatedEntityType: 'room',
         relatedEntityId: pair.roomId,
         actions: [
+          { type: 'activate_draft', label: 'assistant.actions.activate_now', payload: { draftId: draft.id } },
           { type: 'configure_automation', label: 'assistant.actions.configure', payload: { type: 'motion_light', roomId: pair.roomId } },
           { type: 'ignore', label: 'assistant.actions.ignore' }
         ],
@@ -67,20 +80,36 @@ export class AssistantDetectionService {
           subtype: 'motion_light',
           roomName: pair.roomName,
           sensorCount: pair.sensors.length,
-          lightCount: pair.lights.length
+          lightCount: pair.lights.length,
+          draftId: draft.id,
+          ready: true
         }
       });
     }
 
     // B. Scene Suggestions (Light + Cover)
     for (const pair of context.insights.lightCoverPairs) {
+      const fingerprint = generateFindingFingerprint('scene_suggestion', pair.roomId, 'light_cover');
+      
+      // Create Draft
+      const draft = await this.draftService.createSceneDraft(
+        context.homeId,
+        pair.roomId,
+        `Night ${pair.roomName}`,
+        [
+          ...pair.lights.map(l => ({ deviceId: l.id, command: 'turn_off' })),
+          ...pair.covers.map(c => ({ deviceId: c.id, command: 'close' }))
+        ]
+      );
+
       suggestions.push({
-        fingerprint: generateFindingFingerprint('scene_suggestion', pair.roomId, 'light_cover'),
+        fingerprint,
         type: 'scene_suggestion',
         severity: 'low',
         relatedEntityType: 'room',
         relatedEntityId: pair.roomId,
         actions: [
+          { type: 'activate_draft', label: 'assistant.actions.activate_now', payload: { draftId: draft.id } },
           { type: 'configure_scene', label: 'assistant.actions.configure', payload: { type: 'night_mode', roomId: pair.roomId } },
           { type: 'ignore', label: 'assistant.actions.ignore' }
         ],
@@ -88,7 +117,9 @@ export class AssistantDetectionService {
           subtype: 'light_cover',
           roomName: pair.roomName,
           lightCount: pair.lights.length,
-          coverCount: pair.covers.length
+          coverCount: pair.covers.length,
+          draftId: draft.id,
+          ready: true
         }
       });
     }

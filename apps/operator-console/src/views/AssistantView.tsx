@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Sparkles, 
-  AlertCircle, 
   Info,
   RefreshCw,
   PlusCircle,
@@ -39,10 +38,6 @@ export const AssistantView: React.FC<{
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: any } | null>(null);
-  const [naturalInput, setNaturalInput] = useState('');
-  const [interpreting, setInterpreting] = useState(false);
-  const [activeProposal, setActiveProposal] = useState<any | null>(null);
-  const [proposalError, setProposalError] = useState<string | null>(null);
 
   const fetchFindings = async () => {
     try {
@@ -113,62 +108,6 @@ export const AssistantView: React.FC<{
     }
   };
 
-  const handleInterpret = async () => {
-    if (!naturalInput.trim()) return;
-    setInterpreting(true);
-    setProposalError(null);
-    try {
-      const resp = await fetch('/api/v1/assistant/interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: naturalInput })
-      });
-      if (!resp.ok) throw new Error('INTERPRET_FAILED');
-      const data = await resp.json();
-      setActiveProposal(data);
-    } catch (e) {
-      setProposalError(t('assistant.natural.error_invalid'));
-    } finally {
-      setInterpreting(false);
-    }
-  };
-
-  const handleApplyProposal = async () => {
-    if (!activeProposal) return;
-    setLoading(true);
-    try {
-      const { type, details } = activeProposal;
-      let url = '';
-      let method = 'POST';
-      let body: any = {};
-
-      if (type === 'rename_device') {
-        url = `/api/v1/devices/${details.deviceId}`;
-        method = 'PATCH';
-        body = { name: details.newName };
-      } else if (type === 'assign_room') {
-        url = `/api/v1/devices/${details.deviceId}/assign`;
-        body = { roomId: details.roomId };
-      }
-
-      if (url) {
-        const resp = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (!resp.ok) throw new Error('APPLY_FAILED');
-      }
-
-      setActiveProposal(null);
-      setNaturalInput('');
-      await fetchFindings();
-    } catch (e) {
-      console.error('[Assistant] Apply proposal failed:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getSection = (type: string) => {
     if (['habit_pattern_detected', 'proactive_automation_opportunity'].includes(type)) return 'proactive';
@@ -230,87 +169,6 @@ export const AssistantView: React.FC<{
         </button>
       </header>
 
-      {/* -- NATURAL INTERACTION BAR (V5) - DEMOTED -- */}
-      <section className="relative opacity-60 hover:opacity-100 transition-opacity">
-        <div className="relative flex items-center gap-3 p-1.5 bg-muted/30 border border-primary/5 rounded-full shadow-inner">
-          <div className="p-2.5 pl-4 text-primary/50">
-            <Zap className={cn("w-4 h-4", interpreting && "animate-pulse")} />
-          </div>
-          <input 
-            type="text"
-            value={naturalInput}
-            onChange={(e) => setNaturalInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleInterpret()}
-            placeholder={t('assistant.natural.placeholder')}
-            className="flex-1 bg-transparent border-none outline-none text-[11px] font-medium placeholder:text-muted-foreground/30"
-          />
-          <button 
-            onClick={handleInterpret}
-            disabled={interpreting || !naturalInput.trim()}
-            className="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all disabled:opacity-30"
-          >
-            {interpreting ? t('common.processing') : t('assistant.natural.button')}
-          </button>
-        </div>
-        {proposalError && (
-          <p className="mt-2 px-4 text-[9px] font-bold text-rose-500 animate-in fade-in">
-            {proposalError}
-          </p>
-        )}
-      </section>
-
-      {/* -- ACTIVE PROPOSAL CARD -- */}
-      {activeProposal && (
-        <section className="animate-in zoom-in-95 fade-in duration-500">
-          <div className="p-1 rounded-[2.5rem] bg-gradient-to-br from-primary/40 to-primary/10 shadow-2xl shadow-primary/20">
-            <div className="bg-card rounded-[2.4rem] p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black tracking-tight leading-none mb-1">
-                    {t('assistant.natural.proposal_title')}
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
-                    {activeProposal.title}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 mb-8">
-                <p className="text-lg font-bold text-primary mb-4 leading-tight">
-                  {activeProposal.summary}
-                </p>
-                {activeProposal.missingInfo && activeProposal.missingInfo.length > 0 && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600">
-                    <AlertCircle className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase">
-                      Missing Info: {activeProposal.missingInfo.join(', ')}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-3">
-                <button 
-                  onClick={handleApplyProposal}
-                  disabled={!activeProposal.isComplete}
-                  className="flex-1 py-4 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-primary/20 disabled:opacity-30"
-                >
-                  {t('assistant.natural.confirm')}
-                </button>
-                <button 
-                  onClick={() => setActiveProposal(null)}
-                  className="px-8 py-4 bg-muted text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-muted/80 transition-all font-bold"
-                >
-                  {t('assistant.natural.cancel')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {findings.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 px-6 border-2 border-dashed border-muted rounded-3xl bg-muted/5">
@@ -375,15 +233,24 @@ export const AssistantView: React.FC<{
                         </div>
                       )}
 
+                      {finding.metadata.ready && (
+                        <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                          <Sparkles className="w-3 h-3" />
+                          <span className="text-[10px] font-black uppercase tracking-wider">
+                            {t('assistant.draft.ready')}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="mt-auto flex items-center gap-2">
                         {finding.actions.map((action, idx) => (
                           <button
                             key={idx}
                             onClick={() => {
-                              if (action.type === 'configure_automation') onNavigate('automations');
+                              if (action.type === 'activate_draft') setActiveAction({ findingId: finding.id, action });
+                              else if (action.type === 'configure_automation') onNavigate('automations');
                               else if (action.type === 'review_device') onNavigate('inbox');
                               else if (action.type === 'configure_energy_rule') onNavigate('automations');
-                              else if (action.type === 'review_device') onNavigate('inbox');
                               else handleResolve(finding);
                             }}
                             className={cn(

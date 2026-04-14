@@ -5,6 +5,7 @@ import { FeedbackType } from '../domain/AssistantFeedbackEvent';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { assignDeviceUseCase, AssignDeviceUseCaseDependencies } from '../../devices/application/assignDeviceUseCase';
 import { HomeAssistantImportService } from '../../devices/application/HomeAssistantImportService';
+import { AssistantDraftService } from './AssistantDraftService';
 
 export interface AssistantActionServiceDependencies {
   assistantFindingRepository: AssistantFindingRepository;
@@ -12,6 +13,7 @@ export interface AssistantActionServiceDependencies {
   deviceRepository: DeviceRepository;
   assignDeviceDeps: AssignDeviceUseCaseDependencies;
   haImportService: HomeAssistantImportService;
+  assistantDraftService: AssistantDraftService;
 }
 
 export class AssistantActionService {
@@ -41,6 +43,10 @@ export class AssistantActionService {
         break;
       case 'import_device':
         await this.deps.haImportService.importDevice(finding.relatedEntityId!, userId, payload.newName);
+        success = true;
+        break;
+      case 'activate_draft':
+        await this.deps.assistantDraftService.activateDraft(payload.draftId, userId);
         success = true;
         break;
       default:

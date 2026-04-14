@@ -41,7 +41,8 @@ import { ContextAnalysisService } from './packages/assistant/application/Context
 import { SQLiteTopologyReferenceAdapter } from './packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { SQLiteAssistantFeedbackRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantFeedbackRepository';
 import { AssistantLearningService } from './packages/assistant/application/AssistantLearningService';
-import { AssistantIntentService } from './packages/assistant/application/AssistantIntentService';
+import { AssistantDraftService } from './packages/assistant/application/AssistantDraftService';
+import { SQLiteAssistantDraftRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantDraftRepository';
 
 export interface BootstrapContainer {
   repositories: {
@@ -365,17 +366,28 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   // -- INIT ASSISTANT V5 --
   const assistantRepository = new SQLiteAssistantFindingRepository(dbPath);
   const assistantFeedbackRepository = new SQLiteAssistantFeedbackRepository(dbPath);
+  const assistantDraftRepository = new SQLiteAssistantDraftRepository(dbPath);
   const assistantLearningService = new AssistantLearningService(assistantFeedbackRepository);
   const contextAnalysisService = new ContextAnalysisService(deviceRepository, roomRepository);
-  const assistantIntentService = new AssistantIntentService(contextAnalysisService, deviceRepository, roomRepository);
+  const assistantDraftService = new AssistantDraftService(
+    assistantDraftRepository,
+    automationRuleRepository,
+    sceneRepository,
+    { generate: () => crypto.randomUUID() }
+  );
   const behaviorService = new BehaviorAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);
-  const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy, contextAnalysisService, behaviorService);
+  const assistantDetectionService = new AssistantDetectionService(
+    deviceRepository, 
+    haClientProxy, 
+    contextAnalysisService, 
+    behaviorService,
+    assistantDraftService
+  );
   const assistantService = new AssistantService(
     assistantRepository, 
     assistantDetectionService,
     assistantLearningService,
-    assistantFeedbackRepository,
-    assistantIntentService
+    assistantFeedbackRepository
   );
 
   // PERF-1: Build the composite command dispatcher ONCE and reuse it across all request handlers.
@@ -401,6 +413,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantFeedbackRepository,
     deviceRepository,
     haImportService,
+    assistantDraftService,
     assignDeviceDeps: {
       deviceRepository,
       eventPublisher: { publish: async () => {} }, // Replace with real publisher if available

@@ -489,21 +489,6 @@ export class OperatorConsoleServer {
         return;
       }
 
-      // POST /api/v1/assistant/interpret
-      if (method === 'POST' && pathname === '/api/v1/assistant/interpret') {
-        try {
-          const body = await this.parseBody<{ input: string }>(req);
-          if (!body.input) {
-            return this.sendError(res, 400, 'VALIDATION_ERROR', 'Input is required');
-          }
-
-          const proposal = await this.container.services.assistantService.interpret(body.input);
-          this.sendJson(res, proposal);
-        } catch (e: any) {
-          this.sendError(res, 500, 'ASSISTANT_INTERPRET_ERROR', e.message);
-        }
-        return;
-      }
 
       this.sendError(res, 404, 'NOT_FOUND', 'Assistant route not found');
       return;
