@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   Inbox, RadioTower, Box, Activity,
   Loader2, RefreshCw, X, AlertCircle, ArrowRight,
-  Settings, Database, Clock, Terminal, Cpu, Blinds,
-  AlertTriangle
+  Settings, Database, Clock, Terminal, Cpu, Blinds
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
