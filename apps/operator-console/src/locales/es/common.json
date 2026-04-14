@@ -12,7 +12,31 @@
     "diagnostics": "Diagnósticos",
     "observability": "Observabilidad",
     "user_management": "Gestión de Usuarios",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "assistant": "Asistente"
+  },
+  "assistant": {
+    "title": "Asistente HomePilot",
+    "subtitle": "Mejoras y sugerencias del sistema",
+    "no_findings": "Tu sistema está optimizado. No se detectaron problemas.",
+    "scan_trigger": "Escanear Sistema",
+    "scanning": "Escaneando...",
+    "dismiss": "Descartar",
+    "resolve": "Resolver",
+    "review": "Revisar",
+    "assign": "Asignar",
+    "fix": "Corregir",
+    "severities": {
+      "high": "Prioridad Alta",
+      "medium": "Media",
+      "low": "Baja"
+    },
+    "types": {
+      "new_device_available": "Nuevo dispositivo detectado",
+      "device_missing_room": "Dispositivo sin habitación",
+      "device_name_technical": "Nombre técnico detectado",
+      "device_name_duplicate": "Nombres duplicados encontrados"
+    }
   },
   "dashboard": {
     "atmosphere_recipes": "Recetas de Atmósfera",

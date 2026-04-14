@@ -31,6 +31,9 @@ import { SqliteSystemSetupRepository } from './packages/system-setup/infrastruct
 import { SystemSetupService } from './packages/system-setup/application/SystemSetupService';
 
 import { UserManagementService } from './packages/auth/application/UserManagementService';
+import { SQLiteAssistantFindingRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantFindingRepository';
+import { AssistantDetectionService } from './packages/assistant/application/AssistantDetectionService';
+import { AssistantService } from './packages/assistant/application/AssistantService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -51,6 +54,7 @@ export interface BootstrapContainer {
     authService: AuthService;
     systemSetupService: SystemSetupService;
     userManagementService: UserManagementService;
+    assistantService: AssistantService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -348,6 +352,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     cryptoService
   );
 
+  // -- INIT ASSISTANT V1 --
+  const assistantRepository = new SQLiteAssistantFindingRepository(dbPath);
+  const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy);
+  const assistantService = new AssistantService(assistantRepository, assistantDetectionService);
+
   // PERF-1: Build the composite command dispatcher ONCE and reuse it across all request handlers.
   // This eliminates the per-request instantiation of three dispatcher objects.
   const sharedSyncDeps = {
@@ -387,7 +396,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       diagnosticsService,
       authService,
       systemSetupService,
-      userManagementService
+      userManagementService,
+      assistantService
     },
     guards: {
       authGuard
@@ -404,5 +414,23 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   console.log('[Bootstrap] Repositorios y servicios inyectados exitosamente.');
   
+  // -- TRIGGER INITIAL SCAN --
+  // We don't await this to avoid blocking the API server startup
+  const initialScan = async () => {
+    try {
+      const homes = await homeRepository.findHomesByUserId('system'); // Or get first user
+      // For now, scan all for system context or just wait for first login
+      // Actually, we'll scan when we have a homeId.
+      const allHomes = await db.prepare('SELECT id FROM homes').all() as { id: string }[];
+      for (const h of allHomes) {
+        await assistantService.scan(h.id, 'system_boot');
+      }
+      console.log(`[Assistant] Initial system scan completed for ${allHomes.length} homes.`);
+    } catch (e) {
+      console.error('[Assistant] Initial scan failed:', e);
+    }
+  };
+  initialScan();
+
   return container;
 }

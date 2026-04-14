@@ -400,6 +400,72 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // -- ASSISTANT V1 ENDPOINTS --
+    if (pathname.startsWith('/api/v1/assistant/')) {
+      const isProtected = await this.container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return;
+      
+      const authReq = req as any;
+
+      if (method === 'GET' && pathname === '/api/v1/assistant/findings') {
+        try {
+          const findings = await this.container.services.assistantService.listOpen();
+          this.sendJson(res, findings);
+        } catch (e: any) {
+          this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+        }
+        return;
+      }
+
+      if (method === 'GET' && pathname === '/api/v1/assistant/summary') {
+        try {
+          const summary = await this.container.services.assistantService.getSummary();
+          this.sendJson(res, summary);
+        } catch (e: any) {
+          this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+        }
+        return;
+      }
+
+      if (method === 'POST' && pathname === '/api/v1/assistant/scan') {
+        try {
+          const homes = await this.container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+          if (homes.length > 0) {
+            await this.container.services.assistantService.scan(homes[0].id, 'manual_trigger');
+          }
+          this.sendJson(res, { success: true });
+        } catch (e: any) {
+          this.sendError(res, 500, 'ASSISTANT_SCAN_ERROR', e.message);
+        }
+        return;
+      }
+
+      const dismissMatch = method === 'POST' && pathname.match(/^\/api\/v1\/assistant\/findings\/([^\/]+)\/dismiss$/);
+      if (dismissMatch) {
+        try {
+          await this.container.services.assistantService.dismiss(dismissMatch[1]);
+          this.sendJson(res, { success: true });
+        } catch (e: any) {
+          this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+        }
+        return;
+      }
+
+      const resolveMatch = method === 'POST' && pathname.match(/^\/api\/v1\/assistant\/findings\/([^\/]+)\/resolve$/);
+      if (resolveMatch) {
+        try {
+          await this.container.services.assistantService.resolve(resolveMatch[1]);
+          this.sendJson(res, { success: true });
+        } catch (e: any) {
+          this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+        }
+        return;
+      }
+
+      this.sendError(res, 404, 'NOT_FOUND', 'Assistant route not found');
+      return;
+    }
+
     // ---------------------------------------------------------
     // HA SETTINGS ROUTES (Auth required)
     // ---------------------------------------------------------

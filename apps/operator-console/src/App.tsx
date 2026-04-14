@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { LayoutDashboard, Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe } from 'lucide-react';
+import { LayoutDashboard, Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { DashboardView } from './views/DashboardView';
@@ -14,6 +14,7 @@ import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
 import { UsersView } from './views/UsersView';
 import ScenesView from './views/ScenesView';
+import { AssistantView } from './views/AssistantView';
 import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
@@ -22,7 +23,7 @@ import type { HomeMode } from './types';
 /**
  * Union de vistas posibles para tipado estricto.
  */
-type View = 'dashboard' | 'topology' | 'inbox' | 'automations' | 'scenes' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users';
+type View = 'dashboard' | 'topology' | 'inbox' | 'automations' | 'scenes' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users' | 'assistant';
 
 /**
  * App Component
@@ -40,6 +41,7 @@ function App() {
   const [isAllSynced, setIsAllSynced] = useState(true);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
+  const [assistantSummary, setAssistantSummary] = useState<{ totalOpen: number } | null>(null);
 
   // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
   // Patches window.fetch once per App lifecycle to intercept any 401 response.
@@ -90,6 +92,12 @@ function App() {
           setIsBackendOffline(true);
         })
         .finally(() => setLoadingSetup(false));
+
+      // Fetch assistant summary
+      fetch(`${API_BASE_URL}/api/v1/assistant/summary`)
+        .then(res => res.json())
+        .then(data => setAssistantSummary(data))
+        .catch(() => {});
     }
   }, [isAuthenticated]);
 
@@ -208,6 +216,14 @@ function App() {
               active={currentView === 'scenes'} 
               onClick={() => navigateTo('scenes')} 
             />
+            <NavItem 
+              icon={<Sparkles className="w-4 h-4 text-primary" />} 
+              label={t('nav.assistant')} 
+              active={currentView === 'assistant'} 
+              onClick={() => navigateTo('assistant')}
+              badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0 ? assistantSummary.totalOpen : undefined}
+              badgeColor="bg-primary text-primary-foreground"
+            />
           </ul>
 
           <div className="mt-8 px-6 mb-2">
@@ -319,6 +335,7 @@ function App() {
                  currentView === 'users' ? t('nav.user_management') : 
                  currentView === 'diagnostics' ? t('nav.diagnostics') : 
                  currentView === 'scenes' ? t('nav.scenes') :
+                 currentView === 'assistant' ? t('nav.assistant') :
                  currentView === 'audit-logs' ? t('nav.audit_logs') : currentView}
               </h2>
           </div>
@@ -349,6 +366,7 @@ function App() {
                 currentView === 'automations' ? t('nav.automations') : 
                 currentView === 'ha-settings' ? t('ha_settings.title') : 
                 currentView === 'users' ? t('nav.user_management') : 
+                currentView === 'assistant' ? t('nav.assistant') :
                 currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
             </h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl font-bold uppercase tracking-widest opacity-40">
@@ -364,6 +382,8 @@ function App() {
                   ? t('dashboard.recipes')
                   : currentView === 'ha-settings'
                   ? t('dashboard.platform')
+                  : currentView === 'assistant'
+                  ? t('assistant.subtitle')
                   : t('dashboard.observability')
                }
             </p>
@@ -417,6 +437,7 @@ function App() {
              {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
              {currentView === 'diagnostics' && <DiagnosticsView />}
              {currentView === 'users' && <UsersView />}
+             {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
            </div>
         </section>
 
@@ -441,9 +462,11 @@ interface NavItemProps {
   active?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  badge?: number;
+  badgeColor?: string;
 }
 
-const NavItem = ({ icon, label, active, disabled, onClick }: NavItemProps) => {
+const NavItem = ({ icon, label, active, disabled, onClick, badge, badgeColor }: NavItemProps) => {
   if (disabled) {
     return (
       <li>
@@ -465,7 +488,15 @@ const NavItem = ({ icon, label, active, disabled, onClick }: NavItemProps) => {
         onClick={(e) => { e.preventDefault(); onClick?.(); }}
       >
         {icon}
-        {label}
+        <span className="flex-1">{label}</span>
+        {badge !== undefined && (
+          <span className={cn(
+            "px-1.5 py-0.5 rounded-md text-[10px] font-black min-w-[1.2rem] text-center",
+            badgeColor || "bg-muted text-muted-foreground"
+          )}>
+            {badge}
+          </span>
+        )}
       </a>
     </li>
   );

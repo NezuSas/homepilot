@@ -98,6 +98,15 @@ export class SQLiteDeviceRepository implements DeviceRepository {
   }
 
   /**
+   * Recupera todos los dispositivos de un hogar sin filtros.
+   */
+  public async findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>> {
+    const stmt = this.db.prepare('SELECT * FROM devices WHERE home_id = ?');
+    const rows = stmt.all(homeId) as DeviceRow[];
+    return rows.map(row => this.mapToEntity(row));
+  }
+
+  /**
    * Localiza un dispositivo basándose en su external_id y home_id.
    */
   public async findByExternalIdAndHomeId(externalId: string, homeId: string): Promise<Device | null> {

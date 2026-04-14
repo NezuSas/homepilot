@@ -12,7 +12,31 @@
     "diagnostics": "Diagnostics",
     "observability": "Observability",
     "user_management": "User Management",
-    "logout": "Logout"
+    "logout": "Logout",
+    "assistant": "Assistant"
+  },
+  "assistant": {
+    "title": "HomePilot Assistant",
+    "subtitle": "System improvements and suggestions",
+    "no_findings": "Your system is optimized. No issues detected.",
+    "scan_trigger": "Scan System",
+    "scanning": "Scanning...",
+    "dismiss": "Dismiss",
+    "resolve": "Resolve",
+    "review": "Review",
+    "assign": "Assign",
+    "fix": "Fix",
+    "severities": {
+      "high": "High Priority",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "types": {
+      "new_device_available": "New Device Detected",
+      "device_missing_room": "Device Missing Room",
+      "device_name_technical": "Technical Name Detected",
+      "device_name_duplicate": "Duplicate Names Found"
+    }
   },
   "dashboard": {
     "atmosphere_recipes": "Atmosphere Recipes",
