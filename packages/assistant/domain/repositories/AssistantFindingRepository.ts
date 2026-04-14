@@ -6,7 +6,7 @@ export interface AssistantFindingRepository {
   findByFingerprint(fingerprint: string): Promise<AssistantFinding | null>;
   findAllOpen(): Promise<AssistantFinding[]>;
   findAllByStatus(status: FindingStatus): Promise<AssistantFinding[]>;
-  updateStatus(id: string, status: FindingStatus): Promise<void>;
+  updateStatus(id: string, status: FindingStatus, dismissedUntil?: string | null): Promise<void>;
   /** Bulk update status for findings that are no longer detected */
   resolveMissing(currentFingerprints: string[]): Promise<number>;
   getSummary(): Promise<{ totalOpen: number; bySeverity: Record<string, number>; byType: Record<string, number> }>;

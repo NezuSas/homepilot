@@ -2,6 +2,7 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { HomeAssistantClient } from '../../devices/infrastructure/adapters/HomeAssistantClient';
 import { AssistantFinding, generateFindingFingerprint } from '../domain/AssistantFinding';
 import { ContextAnalysisService, SystemContext } from './ContextAnalysisService';
+import { FindingScorer } from './FindingScorer';
 
 export class AssistantDetectionService {
   constructor(
@@ -11,30 +12,30 @@ export class AssistantDetectionService {
   ) {}
 
   public async scan(homeId: string): Promise<Partial<AssistantFinding>[]> {
-    const findings: Partial<AssistantFinding>[] = [];
+    let findings: Partial<AssistantFinding>[] = [];
 
     // 0. Analyze Context
     const context = await this.contextService.analyzeContext(homeId);
 
-    // 1. New Device Available
-    const newDeviceFindings = await this.detectNewDevices(homeId);
-    findings.push(...newDeviceFindings);
+    // 1. Detect different types
+    findings.push(...await this.detectNewDevices(homeId));
+    findings.push(...await this.detectMissingRooms(homeId));
+    findings.push(...await this.detectTechnicalNames(homeId));
+    findings.push(...await this.detectDuplicateNames(homeId));
+    findings.push(...await this.detectSuggestions(context));
 
-    // 2. Device Missing Room
-    const missingRoomFindings = await this.detectMissingRooms(homeId);
-    findings.push(...missingRoomFindings);
+    // 2. Apply Scoring & Noise Control
+    findings = findings.map(f => ({
+      ...f,
+      score: FindingScorer.calculateScore(f.type!, f.severity as any, f.metadata || {})
+    }));
 
-    // 3. Technical Name
-    const technicalNameFindings = await this.detectTechnicalNames(homeId);
-    findings.push(...technicalNameFindings);
-
-    // 4. Duplicate Name
-    const duplicateNameFindings = await this.detectDuplicateNames(homeId);
-    findings.push(...duplicateNameFindings);
-
-    // 5. Context-Aware Suggestions (Assistant V3)
-    const suggestions = await this.detectSuggestions(context);
-    findings.push(...suggestions);
+    // Noise Control: Filter out very low score findings if we have high-value ones
+    const highValueCount = findings.filter(f => f.score! >= 70).length;
+    if (highValueCount > 5) {
+      // If we have many high-value findings, suppress low-value noise
+      findings = findings.filter(f => f.score! >= 40);
+    }
 
     return findings;
   }

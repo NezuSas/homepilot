@@ -31,9 +31,11 @@ export interface AssistantFinding {
   status: FindingStatus;
   actions: AssistantAction[];
   metadata: Record<string, any>;
+  score: number;
   createdAt: string;
   updatedAt: string;
   dismissedAt?: string | null;
+  dismissedUntil?: string | null;
   resolvedAt?: string | null;
 }
 

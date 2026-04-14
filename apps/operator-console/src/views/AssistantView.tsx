@@ -28,6 +28,7 @@ interface Finding {
   status: 'open' | 'dismissed' | 'resolved';
   actions: { type: string; label: string; payload?: any }[];
   metadata: Record<string, any>;
+  score: number;
 }
 
 export const AssistantView: React.FC<{
@@ -109,7 +110,14 @@ export const AssistantView: React.FC<{
     }
   };
 
-  const groupedFindings = findings.reduce((acc, f) => {
+  const topRecommendations = findings
+    .filter(f => f.score >= 80)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  const remainingFindings = findings.filter(f => !topRecommendations.find(t => t.id === f.id));
+
+  const groupedFindings = remainingFindings.reduce((acc, f) => {
     if (!acc[f.type]) acc[f.type] = [];
     acc[f.type].push(f);
     return acc;
@@ -203,7 +211,69 @@ export const AssistantView: React.FC<{
           </p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="space-y-12">
+          {topRecommendations.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-black uppercase tracking-widest text-primary">
+                  {t('assistant.top_recommendations') || 'Top Recommendations'}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {topRecommendations.map(finding => (
+                  <div 
+                    key={finding.id}
+                    className="relative group overflow-hidden p-6 rounded-[2rem] border-2 border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-xl shadow-primary/5 hover:border-primary/40 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 rounded-2xl bg-primary/20 text-primary">
+                        {getIcon(finding.type)}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-[10px] font-black tracking-tighter bg-primary text-white px-2 py-0.5 rounded-full uppercase">
+                           Priority {finding.score}
+                        </span>
+                        <button 
+                          onClick={(e) => handleDismiss(finding.id, e)}
+                          className="text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <AlertCircle className="w-4 h-4 rotate-45" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <h4 className="font-bold text-lg mb-2 leading-tight">
+                      {t(`assistant.types.${finding.type}`, finding.metadata) as string}
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-6 line-clamp-2">
+                      {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
+                    </p>
+
+                    <div className="flex gap-2">
+                      {(finding.actions || []).slice(0, 1).map((action: any) => (
+                        <button
+                          key={action.type}
+                          onClick={() => {
+                            if (isPremiumType(finding.type)) {
+                              onNavigate(action.type === 'configure_automation' ? 'automations' : 'inbox');
+                            } else {
+                              setActiveAction({ findingId: finding.id, action });
+                            }
+                          }}
+                          className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+                        >
+                          {t(action.label)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="grid gap-6">
           {Object.entries(groupedFindings).map(([type, items]) => {
             const premium = isPremiumType(type);
             return (
@@ -346,6 +416,7 @@ export const AssistantView: React.FC<{
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

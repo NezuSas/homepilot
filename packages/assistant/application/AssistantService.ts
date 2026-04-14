@@ -42,16 +42,18 @@ export class AssistantService {
             status: 'open',
             actions: partial.actions || [],
             metadata: partial.metadata || {},
+            score: partial.score || 0,
             createdAt: now,
             updatedAt: now
           };
           await this.repository.save(finding);
         } else if (existing.status === 'open') {
-          // UPDATE EXISTING OPEN (Metadata and actions might have changed)
+          // UPDATE EXISTING OPEN (Metadata, actions, and score might have changed)
           await this.repository.save({
             ...existing,
             actions: partial.actions || [],
             metadata: { ...existing.metadata, ...partial.metadata },
+            score: partial.score || existing.score,
             updatedAt: now
           });
         }
@@ -71,7 +73,9 @@ export class AssistantService {
   }
 
   public async dismiss(id: string): Promise<void> {
-    await this.repository.updateStatus(id, 'dismissed');
+    const cooldownDays = 7;
+    const dismissedUntil = new Date(Date.now() + cooldownDays * 24 * 60 * 60 * 1000).toISOString();
+    await this.repository.updateStatus(id, 'dismissed', dismissedUntil);
   }
 
   public async resolve(id: string): Promise<void> {

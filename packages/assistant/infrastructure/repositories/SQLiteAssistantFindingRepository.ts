@@ -16,9 +16,11 @@ interface FindingRow {
   status: string;
   actions: string | null;
   metadata: string | null;
+  score: number;
   created_at: string;
   updated_at: string;
   dismissed_at: string | null;
+  dismissed_until: string | null;
   resolved_at: string | null;
 }
 
@@ -34,13 +36,14 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
       INSERT INTO assistant_findings (
         id, fingerprint, source, type, severity, title, description, 
         related_entity_type, related_entity_id, status, actions, metadata, 
-        created_at, updated_at, dismissed_at, resolved_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        score, created_at, updated_at, dismissed_at, dismissed_until, resolved_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(fingerprint) DO UPDATE SET
         title = excluded.title,
         description = excluded.description,
         actions = excluded.actions,
         metadata = excluded.metadata,
+        score = excluded.score,
         updated_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
       WHERE status = 'open'
     `);
@@ -58,9 +61,11 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
       finding.status,
       JSON.stringify(finding.actions || []),
       JSON.stringify(finding.metadata),
+      finding.score,
       finding.createdAt,
       finding.updatedAt,
       finding.dismissedAt,
+      finding.dismissedUntil,
       finding.resolvedAt
     );
   }
@@ -76,7 +81,12 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
   }
 
   public async findAllOpen(): Promise<AssistantFinding[]> {
-    const rows = this.db.prepare("SELECT * FROM assistant_findings WHERE status = 'open' ORDER BY created_at DESC").all() as FindingRow[];
+    const rows = this.db.prepare(`
+      SELECT * FROM assistant_findings 
+      WHERE status = 'open' 
+      AND (dismissed_until IS NULL OR dismissed_until < STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
+      ORDER BY score DESC, created_at DESC
+    `).all() as FindingRow[];
     return rows.map(r => this.mapToEntity(r));
   }
 
@@ -85,14 +95,15 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
     return rows.map(r => this.mapToEntity(r));
   }
 
-  public async updateStatus(id: string, status: FindingStatus): Promise<void> {
+  public async updateStatus(id: string, status: FindingStatus, dismissedUntil?: string | null): Promise<void> {
     const now = new Date().toISOString();
     let query = "UPDATE assistant_findings SET status = ?, updated_at = ?";
     const params: any[] = [status, now];
 
     if (status === 'dismissed') {
-      query += ", dismissed_at = ?";
+      query += ", dismissed_at = ?, dismissed_until = ?";
       params.push(now);
+      params.push(dismissedUntil || null);
     } else if (status === 'resolved') {
       query += ", resolved_at = ?";
       params.push(now);
@@ -151,9 +162,11 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
       status: row.status as FindingStatus,
       actions: row.actions ? JSON.parse(row.actions) : [],
       metadata: row.metadata ? JSON.parse(row.metadata) : {},
+      score: row.score || 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       dismissedAt: row.dismissed_at,
+      dismissedUntil: row.dismissed_until,
       resolvedAt: row.resolved_at
     };
   }
