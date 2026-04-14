@@ -174,7 +174,7 @@ function App() {
       {/* Sidebar (Responsive Drawer) */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-[50] w-72 border-r bg-card flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:flex lg:w-64 lg:bg-muted/40",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        isSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
       )}>
         <div className="p-6 border-b flex flex-col gap-1 shrink-0 bg-background/50">
           <div className="flex items-center justify-between">
@@ -298,10 +298,10 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-background">
         
         {/* Mobile Header */}
-        <header className="lg:hidden h-16 border-b flex items-center justify-between px-6 bg-card/60 backdrop-blur-md sticky top-0 z-[30]">
+        <header className="lg:hidden h-16 border-b flex items-center justify-between px-6 bg-card shrink-0 z-[30]">
           <div className="flex items-center gap-3">
              <button 
                onClick={() => setIsSidebarOpen(true)}
@@ -362,7 +362,7 @@ function App() {
           </div>
         </header>
         
-        <section className="flex-1 overflow-y-auto p-4 sm:p-8 pb-32 relative scroll-smooth">
+        <section className="flex-1 overflow-y-auto min-h-0 relative scroll-smooth p-4 sm:p-8">
            {isBackendOffline && (
              <div className="max-w-7xl mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
                <div className="bg-destructive/10 border-2 border-destructive/20 rounded-[2rem] p-6 flex items-center justify-between gap-6 backdrop-blur-xl">

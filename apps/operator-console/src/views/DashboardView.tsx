@@ -231,7 +231,7 @@ export const DashboardView: React.FC<{
   const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
 
   return (
-    <div className="flex flex-col gap-12 pb-32 px-4 md:px-8 animate-in fade-in duration-700">
+    <div className="flex flex-col gap-12 pb-12 px-4 md:px-8 animate-in fade-in duration-700">
       {luxuryRipple && (
         <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
           <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow" />
