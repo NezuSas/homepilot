@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { LayoutDashboard, Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
+import { API_ENDPOINTS } from './config';
 import { DashboardView } from './views/DashboardView';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
@@ -79,9 +80,12 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       setLoadingSetup(true);
-      fetch(`${API_BASE_URL}/api/v1/system/setup-status`)
+      fetch(API_ENDPOINTS.system.setupStatus)
         .then(res => {
-          if (!res.ok) throw new Error('Backend failed');
+          const contentType = res.headers.get('content-type');
+          if (!res.ok || !contentType || !contentType.includes('application/json')) {
+             throw new Error('BACKEND_ERROR');
+          }
           return res.json();
         })
         .then(data => {
@@ -94,9 +98,15 @@ function App() {
         .finally(() => setLoadingSetup(false));
 
       // Fetch assistant summary
-      fetch(`${API_BASE_URL}/api/v1/assistant/summary`)
-        .then(res => res.json())
-        .then(data => setAssistantSummary(data))
+      fetch(API_ENDPOINTS.assistant.summary)
+        .then(res => {
+          const contentType = res.headers.get('content-type');
+          if (!res.ok || !contentType || !contentType.includes('application/json')) {
+             return null;
+          }
+          return res.json();
+        })
+        .then(data => data && setAssistantSummary(data))
         .catch(() => {});
     }
   }, [isAuthenticated]);

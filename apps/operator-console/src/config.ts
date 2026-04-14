@@ -31,5 +31,12 @@ export const API_ENDPOINTS = {
   },
   automations: {
     list: `${API_BASE_URL}/api/v1/automations`,
+  },
+  assistant: {
+    findings: `${API_BASE_URL}/api/v1/assistant/findings`,
+    summary: `${API_BASE_URL}/api/v1/assistant/summary`,
+    scan: `${API_BASE_URL}/api/v1/assistant/scan`,
+    dismiss: (id: string) => `${API_BASE_URL}/api/v1/assistant/findings/${id}/dismiss`,
+    resolve: (id: string) => `${API_BASE_URL}/api/v1/assistant/findings/${id}/resolve`,
   }
 };

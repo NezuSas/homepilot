@@ -13,6 +13,7 @@ import {
   Copy
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { API_ENDPOINTS } from '../config';
 
 interface Finding {
   id: string;
@@ -37,13 +38,23 @@ export const AssistantView: React.FC<{
 
   const fetchFindings = async () => {
     try {
-      const resp = await fetch('/api/v1/assistant/findings');
+      const resp = await fetch(API_ENDPOINTS.assistant.findings);
+      
+      // -- ROBUST HANDLING --
+      const contentType = resp.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('SERVER_RETURNED_NON_JSON');
+      }
+
       if (resp.ok) {
         const data = await resp.json();
         setFindings(data);
+      } else {
+        throw new Error(`SERVER_ERROR_${resp.status}`);
       }
-    } catch (e) {
-      console.error('Failed to fetch findings', e);
+    } catch (e: any) {
+      console.error('[Assistant] Failed to fetch findings:', e);
+      // Optional: set some UI error state if needed
     } finally {
       setLoading(false);
     }
@@ -56,10 +67,11 @@ export const AssistantView: React.FC<{
   const handleScan = async () => {
     setScanning(true);
     try {
-      await fetch('/api/v1/assistant/scan', { method: 'POST' });
+      const resp = await fetch(API_ENDPOINTS.assistant.scan, { method: 'POST' });
+      if (!resp.ok) throw new Error(`SCAN_FAILED_${resp.status}`);
       await fetchFindings();
     } catch (e) {
-      console.error('Scan failed', e);
+      console.error('[Assistant] Scan failed:', e);
     } finally {
       setScanning(false);
     }
@@ -68,10 +80,11 @@ export const AssistantView: React.FC<{
   const handleDismiss = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await fetch(`/api/v1/assistant/findings/${id}/dismiss`, { method: 'POST' });
+      const resp = await fetch(API_ENDPOINTS.assistant.dismiss(id), { method: 'POST' });
+      if (!resp.ok) throw new Error(`DISMISS_FAILED_${resp.status}`);
       setFindings(prev => prev.filter(f => f.id !== id));
     } catch (e) {
-      console.error('Dismiss failed', e);
+      console.error('[Assistant] Dismiss failed:', e);
     }
   };
 
@@ -221,7 +234,10 @@ export const AssistantView: React.FC<{
                           {t('assistant.dismiss')}
                         </button>
                         <button 
-                          onClick={() => handleResolve(finding)}
+                          onClick={async () => {
+                            await fetch(API_ENDPOINTS.assistant.resolve(finding.id), { method: 'POST' });
+                            handleResolve(finding);
+                          }}
                           className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-sm"
                         >
                           {t('assistant.resolve')}
