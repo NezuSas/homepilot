@@ -193,6 +193,15 @@
       "reconciliation_failed": "State reconciliation engine threw an exception.",
       "automation_failures": "Some logic rules failed during evaluation."
     },
+    "issues": {
+      "HA_NOT_CONFIGURED": "Integration Not Configured",
+      "HA_AUTH_ERROR": "Authentication Error",
+      "HA_UNREACHABLE": "Host Unreachable",
+      "WS_RECONNECTING": "Connection Dropped",
+      "RECENT_RECONNECTS": "Frequent Reconnects",
+      "RECONCILIATION_FAILED": "Reconciliation Failed",
+      "AUTOMATION_FAILURES_PRESENT": "Logic Failures"
+    },
     "probes": {
       "title": "Core Subsystem Probes",
       "ws_sync": "WebSocket Sync",

@@ -187,6 +187,15 @@
       "reconciliation_failed": "El motor de reconciliación de estado lanzó una excepción.",
       "automation_failures": "Algunas reglas lógicas fallaron durante la evaluación."
     },
+    "issues": {
+      "HA_NOT_CONFIGURED": "Integración No Configurada",
+      "HA_AUTH_ERROR": "Error de Autenticación",
+      "HA_UNREACHABLE": "Host Inaccesible",
+      "WS_RECONNECTING": "Pérdida de Conexión",
+      "RECENT_RECONNECTS": "Reconexiones Frecuentes",
+      "RECONCILIATION_FAILED": "Fallo de Reconciliación",
+      "AUTOMATION_FAILURES_PRESENT": "Fallas Lógicas"
+    },
     "probes": {
       "title": "Sondas de Subsistema Core",
       "ws_sync": "Sincronización WebSocket",

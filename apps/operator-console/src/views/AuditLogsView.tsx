@@ -129,10 +129,12 @@ export const AuditLogsView: React.FC = () => {
                   <p className="text-sm font-bold tracking-tight text-foreground/90">{t(log.description as string)}</p>
                </div>
                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
-                     <span className="text-[10px] font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
-                     <span className="text-[11px] font-mono font-bold text-foreground/70">{log.deviceId}</span>
-                  </div>
+                  {log.deviceId && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
+                       <span className="text-[10px] font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
+                       <span className="text-[11px] font-mono font-bold text-foreground/70">{log.deviceId}</span>
+                    </div>
+                  )}
                </div>
             </div>
 

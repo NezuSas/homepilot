@@ -177,7 +177,7 @@ export function DiagnosticsView() {
             )}>
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-1">
-                <span className="uppercase font-mono text-[11px] tracking-widest font-bold">{issue.code}</span>
+                <span className="uppercase font-mono text-[11px] tracking-widest font-bold">{t(`diagnostics.issues.${issue.code}`, { defaultValue: issue.code }) as string}</span>
                 <span className="text-sm">{t(issue.message as string)}</span>
               </div>
             </div>
