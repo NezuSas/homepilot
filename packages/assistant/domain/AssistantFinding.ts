@@ -9,6 +9,12 @@ export type FindingType =
   | 'device_name_technical'
   | 'device_name_duplicate';
 
+export interface AssistantAction {
+  type: string;
+  label: string;
+  payload?: any;
+}
+
 export interface AssistantFinding {
   id: string;
   fingerprint: string;
@@ -20,6 +26,7 @@ export interface AssistantFinding {
   relatedEntityType: string | null;
   relatedEntityId: string | null;
   status: FindingStatus;
+  actions: AssistantAction[];
   metadata: Record<string, any>;
   createdAt: string;
   updatedAt: string;

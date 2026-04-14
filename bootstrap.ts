@@ -34,6 +34,8 @@ import { UserManagementService } from './packages/auth/application/UserManagemen
 import { SQLiteAssistantFindingRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantFindingRepository';
 import { AssistantDetectionService } from './packages/assistant/application/AssistantDetectionService';
 import { AssistantService } from './packages/assistant/application/AssistantService';
+import { AssistantActionService } from './packages/assistant/application/AssistantActionService';
+import { SQLiteTopologyReferenceAdapter } from './packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 
 export interface BootstrapContainer {
   repositories: {
@@ -55,6 +57,7 @@ export interface BootstrapContainer {
     systemSetupService: SystemSetupService;
     userManagementService: UserManagementService;
     assistantService: AssistantService;
+    assistantActionService: AssistantActionService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -366,7 +369,24 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     idGenerator: { generate: () => crypto.randomUUID() },
     clock: { now: () => new Date().toISOString() }
   };
-  const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, sharedSyncDeps);
+  const assistantDiscoveryService = assistantDetectionService; // We can use the detection service as a base or extend it
+  const topologyPort = new SQLiteTopologyReferenceAdapter(homeRepository, roomRepository);
+  
+  const assistantActionService = new AssistantActionService({
+    assistantFindingRepository: assistantRepository,
+    deviceRepository,
+    assignDeviceDeps: {
+      deviceRepository,
+      eventPublisher: { publish: async () => {} }, // Replace with real publisher if available
+      topologyPort,
+      idGenerator: { generate: () => crypto.randomUUID() },
+      clock: { now: () => new Date().toISOString() }
+    }
+  });
+
+  const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, {
+    ...sharedSyncDeps
+  });
   const sharedHaDispatcher = new HomeAssistantCommandDispatcher(
     connectionProvider,
     deviceRepository,
@@ -397,7 +417,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       authService,
       systemSetupService,
       userManagementService,
-      assistantService
+      assistantService,
+      assistantActionService
     },
     guards: {
       authGuard

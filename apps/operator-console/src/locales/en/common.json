@@ -22,7 +22,15 @@
     "scan_trigger": "Scan System",
     "scanning": "Scanning...",
     "dismiss": "Dismiss",
-    "resolve": "Resolve",
+    "resolve": "Navigate",
+    "actions": {
+      "assign_room": "Assign Room",
+      "rename_device": "Rename",
+      "import_device": "Import",
+      "ignore": "Ignore",
+      "resolve_now": "Resolve Now",
+      "import_confirm": "Are you sure you want to import this device?"
+    },
     "review": "Review",
     "assign": "Assign",
     "fix": "Fix",

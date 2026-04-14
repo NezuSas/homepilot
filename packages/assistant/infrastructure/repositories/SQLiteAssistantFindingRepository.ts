@@ -14,6 +14,7 @@ interface FindingRow {
   related_entity_type: string | null;
   related_entity_id: string | null;
   status: string;
+  actions: string | null;
   metadata: string | null;
   created_at: string;
   updated_at: string;
@@ -32,12 +33,13 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
     const stmt = this.db.prepare(`
       INSERT INTO assistant_findings (
         id, fingerprint, source, type, severity, title, description, 
-        related_entity_type, related_entity_id, status, metadata, 
+        related_entity_type, related_entity_id, status, actions, metadata, 
         created_at, updated_at, dismissed_at, resolved_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(fingerprint) DO UPDATE SET
         title = excluded.title,
         description = excluded.description,
+        actions = excluded.actions,
         metadata = excluded.metadata,
         updated_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
       WHERE status = 'open'
@@ -54,6 +56,7 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
       finding.relatedEntityType,
       finding.relatedEntityId,
       finding.status,
+      JSON.stringify(finding.actions || []),
       JSON.stringify(finding.metadata),
       finding.createdAt,
       finding.updatedAt,
@@ -146,6 +149,7 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
       relatedEntityType: row.related_entity_type,
       relatedEntityId: row.related_entity_id,
       status: row.status as FindingStatus,
+      actions: row.actions ? JSON.parse(row.actions) : [],
       metadata: row.metadata ? JSON.parse(row.metadata) : {},
       createdAt: row.created_at,
       updatedAt: row.updated_at,

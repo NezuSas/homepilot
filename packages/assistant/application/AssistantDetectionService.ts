@@ -1,6 +1,6 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { HomeAssistantClient } from '../../devices/infrastructure/adapters/HomeAssistantClient';
-import { AssistantFinding, generateFindingFingerprint } from '../domain/AssistantFinding';
+import { AssistantFinding, generateFindingFingerprint, AssistantAction } from '../domain/AssistantFinding';
 
 export class AssistantDetectionService {
   constructor(
@@ -50,6 +50,10 @@ export class AssistantDetectionService {
             severity: 'high',
             relatedEntityType: 'device',
             relatedEntityId: externalId,
+            actions: [
+              { type: 'import_device', label: 'assistant.actions.import_device', payload: { entityId: state.entity_id } },
+              { type: 'ignore', label: 'assistant.actions.ignore' }
+            ],
             metadata: { 
                entityId: state.entity_id, 
                friendlyName: state.attributes.friendly_name || state.entity_id 
@@ -72,6 +76,9 @@ export class AssistantDetectionService {
       severity: 'high',
       relatedEntityType: 'device',
       relatedEntityId: d.id,
+      actions: [
+        { type: 'assign_room', label: 'assistant.actions.assign_room', payload: { deviceId: d.id } }
+      ],
       metadata: { deviceName: d.name }
     }));
   }
@@ -95,6 +102,9 @@ export class AssistantDetectionService {
         severity: 'medium',
         relatedEntityType: 'device',
         relatedEntityId: d.id,
+        actions: [
+          { type: 'rename_device', label: 'assistant.actions.rename_device', payload: { deviceId: d.id, currentName: d.name } }
+        ],
         metadata: { currentName: d.name }
       }));
   }
@@ -119,6 +129,9 @@ export class AssistantDetectionService {
           severity: 'medium',
           relatedEntityType: 'device_group',
           relatedEntityId: null,
+          actions: [
+            { type: 'rename_device', label: 'assistant.actions.resolve_now', payload: { deviceIds: sortedIds } }
+          ],
           metadata: { 
             name: group[0].name, 
             deviceIds: sortedIds,

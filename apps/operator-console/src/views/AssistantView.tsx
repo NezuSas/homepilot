@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
+import { AssistantActionModal } from '../components/AssistantActionModal';
 
 interface Finding {
   id: string;
@@ -24,6 +25,7 @@ interface Finding {
   relatedEntityType: string | null;
   relatedEntityId: string | null;
   status: 'open' | 'dismissed' | 'resolved';
+  actions: { type: string; label: string; payload?: any }[];
   metadata: Record<string, any>;
 }
 
@@ -35,6 +37,7 @@ export const AssistantView: React.FC<{
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [activeAction, setActiveAction] = useState<{ findingId: string; action: any } | null>(null);
 
   const fetchFindings = async () => {
     try {
@@ -233,12 +236,23 @@ export const AssistantView: React.FC<{
                         >
                           {t('assistant.dismiss')}
                         </button>
+                        
+                        {(finding.actions || []).map((action: any) => (
+                          <button
+                            key={action.type}
+                            onClick={() => setActiveAction({ findingId: finding.id, action })}
+                            className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-sm"
+                          >
+                            {t(action.label)}
+                          </button>
+                        ))}
+
                         <button 
                           onClick={async () => {
                             await fetch(API_ENDPOINTS.assistant.resolve(finding.id), { method: 'POST' });
                             handleResolve(finding);
                           }}
-                          className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-sm"
+                          className="px-4 py-1.5 rounded-lg border border-primary text-primary text-[10px] font-black uppercase tracking-wider hover:bg-primary/5 transition-all shadow-sm"
                         >
                           {t('assistant.resolve')}
                         </button>
@@ -250,6 +264,15 @@ export const AssistantView: React.FC<{
             </div>
           ))}
         </div>
+      )}
+
+      {activeAction && (
+        <AssistantActionModal 
+          findingId={activeAction.findingId}
+          action={activeAction.action}
+          onClose={() => setActiveAction(null)}
+          onSuccess={() => fetchFindings()}
+        />
       )}
     </div>
   );

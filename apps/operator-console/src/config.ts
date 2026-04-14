@@ -38,5 +38,6 @@ export const API_ENDPOINTS = {
     scan: `${API_BASE_URL}/api/v1/assistant/scan`,
     dismiss: (id: string) => `${API_BASE_URL}/api/v1/assistant/findings/${id}/dismiss`,
     resolve: (id: string) => `${API_BASE_URL}/api/v1/assistant/findings/${id}/resolve`,
+    executeAction: `${API_BASE_URL}/api/v1/assistant/actions`,
   }
 };

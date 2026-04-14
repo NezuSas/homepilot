@@ -462,6 +462,33 @@ export class OperatorConsoleServer {
         return;
       }
 
+      // POST /api/v1/assistant/actions
+      if (method === 'POST' && pathname === '/api/v1/assistant/actions') {
+        try {
+          const body = await this.parseBody<{ findingId: string; actionType: string; payload?: any }>(req);
+          if (!body.findingId || !body.actionType) {
+            return this.sendError(res, 400, 'VALIDATION_ERROR', 'findingId and actionType are required');
+          }
+
+          const correlationId = (req.headers && typeof req.headers['x-correlation-id'] === 'string') 
+            ? req.headers['x-correlation-id'] 
+            : crypto.randomUUID();
+
+          await this.container.services.assistantActionService.handleAction(
+            body.findingId,
+            body.actionType,
+            body.payload || {},
+            authReq.user.id,
+            correlationId
+          );
+
+          this.sendJson(res, { success: true });
+        } catch (e: any) {
+          this.sendError(res, 500, 'ASSISTANT_ACTION_ERROR', e.message);
+        }
+        return;
+      }
+
       this.sendError(res, 404, 'NOT_FOUND', 'Assistant route not found');
       return;
     }

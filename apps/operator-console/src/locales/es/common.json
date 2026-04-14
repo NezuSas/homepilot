@@ -21,8 +21,16 @@
     "no_findings": "Tu sistema está optimizado. No se detectaron problemas.",
     "scan_trigger": "Escanear Sistema",
     "scanning": "Escaneando...",
-    "dismiss": "Descartar",
-    "resolve": "Resolver",
+    "dismiss": "Omitir",
+    "resolve": "Navigar",
+    "actions": {
+      "assign_room": "Asignar cuarto",
+      "rename_device": "Renombrar",
+      "import_device": "Importar",
+      "ignore": "Ignorar",
+      "resolve_now": "Resolver ahora",
+      "import_confirm": "¿Estás seguro de que quieres importar este dispositivo?"
+    },
     "review": "Revisar",
     "assign": "Asignar",
     "fix": "Corregir",
