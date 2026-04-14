@@ -94,19 +94,35 @@ export const AssistantView: React.FC<{
     }
   };
 
-  const handleResolve = (finding: Finding) => {
+  const handleAction = (finding: Finding, action: any) => {
+    // 1. Modal-based actions
+    const modalActions = ['activate_draft', 'import_device', 'assign_room', 'rename_device'];
+    if (modalActions.includes(action.type)) {
+      setActiveAction({ findingId: finding.id, action });
+      return;
+    }
+
+    // 2. Navigation-based actions
+    if (action.type === 'configure_automation' || action.type === 'configure_energy_rule') {
+      onNavigate('automations');
+      return;
+    }
+    
+    if (action.type === 'review_device') {
+      onNavigate('inbox');
+      return;
+    }
+
+    // 3. Fallback or generic navigation based on type
     switch (finding.type) {
       case 'new_device_available':
-        onNavigate('inbox');
-        break;
       case 'device_missing_room':
-        onNavigate('inbox'); 
-        break;
       case 'device_name_technical':
       case 'device_name_duplicate':
-        onNavigate('inbox'); // Device manager is the place to fix names
+        onNavigate('inbox');
         break;
       default:
+        console.warn('[Assistant] Unhandled action/type:', action.type, finding.type);
         break;
     }
   };
@@ -322,7 +338,7 @@ export const AssistantView: React.FC<{
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (action.type === 'import_all') onNavigate('inbox');
-                                        else handleResolve(item.findings[0]);
+                                        else if (item.findings[0]?.actions[0]) handleAction(item.findings[0], item.findings[0].actions[0]);
                                       }}
                                       className="px-4 py-2 rounded-xl bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
                                     >
@@ -353,7 +369,7 @@ export const AssistantView: React.FC<{
                                           </div>
                                         </div>
                                         <button 
-                                          onClick={() => handleResolve(finding)}
+                                          onClick={() => finding.actions[0] && handleAction(finding, finding.actions[0])}
                                           className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
                                         >
                                           <ArrowRight className="w-4 h-4" />
@@ -422,13 +438,7 @@ export const AssistantView: React.FC<{
                             {finding.actions.map((action, idx) => (
                               <button
                                 key={idx}
-                                onClick={() => {
-                                  if (action.type === 'activate_draft') setActiveAction({ findingId: finding.id, action });
-                                  else if (action.type === 'configure_automation') onNavigate('automations');
-                                  else if (action.type === 'review_device') onNavigate('inbox');
-                                  else if (action.type === 'configure_energy_rule') onNavigate('automations');
-                                  else handleResolve(finding);
-                                }}
+                                onClick={() => handleAction(finding, action)}
                                 className={cn(
                                   "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                                   idx === 0 ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/80"
