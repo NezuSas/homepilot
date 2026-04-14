@@ -36,6 +36,7 @@ import { SQLiteAssistantFindingRepository } from './packages/assistant/infrastru
 import { AssistantDetectionService } from './packages/assistant/application/AssistantDetectionService';
 import { AssistantService } from './packages/assistant/application/AssistantService';
 import { AssistantActionService } from './packages/assistant/application/AssistantActionService';
+import { ContextAnalysisService } from './packages/assistant/application/ContextAnalysisService';
 import { SQLiteTopologyReferenceAdapter } from './packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 
 export interface BootstrapContainer {
@@ -357,9 +358,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     cryptoService
   );
 
-  // -- INIT ASSISTANT V1 --
+  // -- INIT ASSISTANT V3 --
   const assistantRepository = new SQLiteAssistantFindingRepository(dbPath);
-  const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy);
+  const contextAnalysisService = new ContextAnalysisService(deviceRepository, roomRepository);
+  const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy, contextAnalysisService);
   const assistantService = new AssistantService(assistantRepository, assistantDetectionService);
 
   // PERF-1: Build the composite command dispatcher ONCE and reuse it across all request handlers.
