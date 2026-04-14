@@ -137,8 +137,8 @@ const DashDeviceTile: React.FC<{
             </>
           ) : (
             <span className={cn(
-              "text-[8px] font-black uppercase tracking-widest transition-opacity duration-300",
-              isOn ? "text-primary opacity-80" : "text-muted-foreground/40"
+              "text-[9px] font-medium tracking-wide transition-opacity duration-300",
+              isOn ? "text-primary opacity-90" : "text-muted-foreground/50"
             )}>
               {localizedState}
             </span>

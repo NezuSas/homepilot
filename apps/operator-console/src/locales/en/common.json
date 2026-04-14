@@ -321,7 +321,11 @@
     "disable": "Disable",
     "edit": "Edit",
     "never": "Never",
-    "actions": "Actions",
+    "actions": {
+      "open": "Open",
+      "close": "Close",
+      "stop": "Stop"
+    },
     "unassigned": "Unassigned",
     "on": "ON",
     "off": "OFF",

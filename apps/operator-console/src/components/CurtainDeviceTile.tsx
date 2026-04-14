@@ -98,85 +98,83 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
     }
   };
 
-  // Status dot color logic
-  const dotColor = isOpening || isClosing 
-    ? "status-dot-updating" 
-    : (isOpen ? "status-dot-synced" : "bg-muted-foreground/20");
-
   const localizedState = t(`common.cover.${state}`, { defaultValue: state });
 
   return (
     <div className={cn(
-      "relative group transition-all duration-700 rounded-[2rem] p-6 flex flex-col items-center justify-between text-center border-2 shadow-sm active:scale-95 h-full overflow-hidden",
-      (isOpening || isClosing || isOpen) ? "bg-card/40 border-primary/20" : "bg-card/20 border-border/40 hover:border-primary/10",
+      "relative group transition-all duration-700 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center border-2 shadow-sm active:scale-95 h-full overflow-hidden",
+      (isOpening || isClosing || isOpen) ? "bg-card/30 border-primary/10" : "bg-card/20 border-border/40 hover:border-primary/5",
       device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
     )}>
       
-      {/* Premium Architectural Animation Layer */}
+      {/* Premium Architectural Animation Layer - Subtler */}
       <div className={cn(
         "absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out z-0",
-        isOpen ? "bg-primary/[0.02]" : "bg-black/20"
+        isOpen ? "bg-transparent" : "bg-black/5"
       )}>
         <div 
           className={cn(
-            "absolute inset-0 bg-black/40 transition-transform duration-[800ms] ease-in-out",
+            "absolute inset-0 bg-black/20 transition-transform duration-[1000ms] ease-in-out",
             isOpen ? "-translate-y-full" : "translate-y-0"
           )} 
         />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-4 w-full h-full justify-between">
-        {/* Icon Area */}
+      <div className="relative z-10 flex flex-col items-center gap-5 w-full">
+        {/* Icon Area - Subtler */}
         <div className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-1000",
-          (isOpening || isClosing || isOpen) ? "bg-primary/10 text-primary" : "bg-muted/40 text-muted-foreground/30"
+          "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-1000",
+          (isOpening || isClosing || isOpen) ? "bg-primary/5 text-primary/60" : "bg-muted/40 text-muted-foreground/20"
         )}>
-          {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Blinds className={cn("w-5 h-5 opacity-70", (isOpening || isClosing) && "animate-premium-pulse")} />}
+          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Blinds className={cn("w-4 h-4 opacity-60", (isOpening || isClosing) && "animate-pulse")} />}
         </div>
 
-        {/* Identity & State */}
+        {/* Identity & State - Sentence Case & Lighter Weight */}
         <div className="flex flex-col items-center min-w-0">
-          <h4 className="text-xs font-bold truncate tracking-tight mb-1 opacity-90">{displayName}</h4>
+          <h4 className="text-xs font-semibold truncate tracking-tight mb-1 opacity-80">{displayName}</h4>
           <div className="flex items-center gap-2">
-            <div className={cn("w-1.5 h-1.5 rounded-full", dotColor)} />
-            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+            <div className={cn(
+              "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
+              (isOpening || isClosing) ? "status-dot-updating" : (isOpen ? "bg-primary/60" : "bg-muted-foreground/20")
+            )} />
+            <span className="text-[10px] font-medium tracking-wide opacity-50">
               {localizedState}
             </span>
           </div>
         </div>
 
-        {/* Dynamic Actions */}
-        <div className="w-full flex flex-col gap-2">
+        {/* Dynamic Actions - Reduced Size & Soft Hierarchy */}
+        <div className="w-full max-w-[140px] flex flex-col gap-2 pt-1">
           <button
             onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
             disabled={!!isProcessing || isOpening || isClosing}
             className={cn(
-              "w-full h-10 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 font-black uppercase tracking-widest text-[8px] border-2",
+              "w-full h-9 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 text-[10px] font-semibold border",
               isOpen 
-                ? "bg-secondary/40 border-primary/20 text-primary" 
-                : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
+                ? "bg-secondary/20 border-border/50 text-foreground/70 hover:bg-secondary/30" 
+                : "bg-primary/10 border-primary/20 text-primary hover:bg-primary/15"
             )}
           >
-            {isOpen ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />}
+            {isOpen ? <ArrowDown className="w-3 h-3 opacity-60" /> : <ArrowUp className="w-3 h-3 opacity-60" />}
             {isOpen ? t('common.actions.close') : t('common.actions.open')}
           </button>
           
           <button
             onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
             disabled={!!isProcessing}
-            className="w-full h-8 rounded-xl bg-transparent text-muted-foreground/30 flex items-center justify-center gap-2 transition-all hover:bg-destructive/5 hover:text-destructive active:scale-95 text-[7px] font-black uppercase tracking-[0.2em]"
+            className="w-full h-8 rounded-xl bg-transparent text-muted-foreground/30 flex items-center justify-center gap-2 transition-all hover:bg-muted hover:text-foreground active:scale-95 text-[9px] font-medium"
           >
-            <Square className="w-2.5 h-2.5 fill-current opacity-60" />
+            <Square className="w-2.5 h-2.5 fill-current opacity-40" />
             {t('common.actions.stop')}
           </button>
         </div>
       </div>
 
-      {/* Progress Line */}
+      {/* Progress Line - More Subtle */}
       {position !== undefined && (
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/5 overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-muted/5 overflow-hidden">
           <div 
-            className="h-full bg-primary/30 transition-all duration-1000" 
+            className="h-full bg-primary/20 transition-all duration-1000" 
             style={{ width: `${position}%` }}
           />
         </div>
