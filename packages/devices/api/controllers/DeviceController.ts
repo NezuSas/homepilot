@@ -42,10 +42,11 @@ export class DeviceController {
         };
       }
 
-      if (typeof roomId !== 'string' || roomId.trim() === '') {
+      // roomId puede ser null (unassign) o string no vacío (assign/move)
+      if (roomId !== null && (typeof roomId !== 'string' || roomId.trim() === '')) {
         return {
           statusCode: 400,
-          body: { error: 'Bad Request', message: 'Valid roomId body field is required.' }
+          body: { error: 'Bad Request', message: 'Valid roomId (string or null) is required.' }
         };
       }
 
@@ -55,7 +56,7 @@ export class DeviceController {
 
       const updatedDevice = await assignDeviceUseCase(
         deviceId.trim(),
-        roomId.trim(),
+        roomId === null ? null : (roomId as string).trim(),
         userId,
         correlationId,
         {

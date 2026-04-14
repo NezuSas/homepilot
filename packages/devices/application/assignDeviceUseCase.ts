@@ -18,7 +18,7 @@ export interface AssignDeviceUseCaseDependencies {
  */
 export async function assignDeviceUseCase(
   deviceId: string,
-  roomId: string,
+  roomId: string | null,
   userId: string,
   correlationId: string,
   deps: AssignDeviceUseCaseDependencies
@@ -34,8 +34,10 @@ export async function assignDeviceUseCase(
   // 1. El emisor logueado en Gateway debe ser el dueño titular genuino del hogar de origen del Dispositivo.
   await deps.topologyPort.validateHomeOwnership(device.homeId, userId);
   
-  // 2. El roomId dictado como destino debe pertenecer matemáticamente al mismo hogar matriz idéntico al del Dispositivo.
-  await deps.topologyPort.validateRoomBelongsToHome(roomId, device.homeId);
+  // 2. Si hay roomId, validar que pertenezca al mismo hogar matriz. Si es null, estamos desasignando.
+  if (roomId !== null) {
+    await deps.topologyPort.validateRoomBelongsToHome(roomId, device.homeId);
+  }
 
   const updatedDevice = assignDeviceToRoom(device, roomId, deps.clock);
 
@@ -44,8 +46,8 @@ export async function assignDeviceUseCase(
   const assignEvent = createDeviceAssignedToRoomEvent(
     {
       deviceId: updatedDevice.id,
-      roomId: roomId, // Referencia segura estática eliminando dependencias de cast transitivas
-      previousState: 'PENDING'
+      roomId: roomId,
+      previousState: device.status.toString()
     },
     correlationId,
     { idGenerator: deps.idGenerator, clock: deps.clock }

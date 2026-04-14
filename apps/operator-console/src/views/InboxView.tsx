@@ -284,6 +284,7 @@ export const InboxView: React.FC = () => {
       {inspectingDeviceId && (
         <DeviceInspector 
           deviceId={inspectingDeviceId} 
+          rooms={roomsFlattened}
           onClose={() => setInspectingDeviceId(null)} 
           onUpdate={(updated) => handleDeviceUpdate(inspectingDeviceId, updated)}
         />
@@ -365,9 +366,10 @@ export const InboxView: React.FC = () => {
 
 const DeviceInspector: React.FC<{ 
   deviceId: string; 
+  rooms: Room[];
   onClose: () => void;
   onUpdate: (updated: Device) => void;
-}> = ({ deviceId, onClose, onUpdate }) => {
+}> = ({ deviceId, rooms, onClose, onUpdate }) => {
   const { t } = useTranslation();
   const [device, setDevice] = useState<Device | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -444,8 +446,54 @@ const DeviceInspector: React.FC<{
         const updated = await res.json() as Device;
         setDevice(updated);
         onUpdate(updated);
-        // REMOVED: redundant activity-logs fetch. Logs updated only when explicitly requested.
       }
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleUnassign = async () => {
+    if (!device || isActionLoading) return;
+    
+    const confirmed = window.confirm(t('inbox.inspector.actions.unassign_confirm'));
+    if (!confirmed) return;
+
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: null })
+      });
+      if (res.ok) {
+        const updated = await res.json() as Device;
+        setDevice(updated);
+        onUpdate(updated);
+        onClose(); // Close inspector as it moved to unassigned
+      }
+    } catch {
+      setError(t('common.errors.operation_failed'));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleMove = async (newRoomId: string) => {
+    if (!device || !newRoomId || isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: newRoomId })
+      });
+      if (res.ok) {
+        const updated = await res.json() as Device;
+        setDevice(updated);
+        onUpdate(updated);
+      }
+    } catch {
+      setError(t('common.errors.operation_failed'));
     } finally {
       setIsActionLoading(false);
     }
@@ -647,13 +695,46 @@ const DeviceInspector: React.FC<{
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
-                   <div className="flex items-center gap-2 mb-2">
-                     <Box className="w-4 h-4 opacity-40 text-primary" />
-                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.placement')}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-3 shadow-sm">
+                   <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Box className="w-4 h-4 opacity-40 text-primary" />
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.placement')}</span>
+                      </div>
+                      <span className="text-sm font-bold truncate">{device.roomId || t('common.unassigned')}</span>
+                    </div>
                    </div>
-                   <span className="text-sm font-bold truncate">{device.roomId || t('common.unassigned')}</span>
+
+                   {/* Room Management */}
+                   <div className="pt-4 border-t border-border/10 flex flex-col gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[8px] font-black uppercase tracking-widest opacity-30">{t('topology.room_select')}</label>
+                        <select 
+                          className="bg-muted/50 border border-border rounded px-2 py-1.5 text-[10px] font-bold outline-none"
+                          value={device.roomId || ''}
+                          onChange={(e) => handleMove(e.target.value)}
+                          disabled={isActionLoading}
+                        >
+                          <option value="" disabled>{t('common.unassigned')}</option>
+                          {rooms.map(room => (
+                            <option key={room.id} value={room.id}>{room.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {device.status === 'ASSIGNED' && (
+                        <button 
+                          onClick={handleUnassign}
+                          disabled={isActionLoading}
+                          className="w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-destructive/5 text-destructive border border-destructive/10 hover:bg-destructive/10 transition-all flex items-center justify-center gap-2"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          {t('inbox.inspector.actions.unassign')}
+                        </button>
+                      )}
+                   </div>
                  </div>
                  <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
                    <div className="flex items-center gap-2 mb-2 text-primary">
@@ -661,6 +742,9 @@ const DeviceInspector: React.FC<{
                      <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.home_cluster')}</span>
                    </div>
                    <span className="text-sm font-bold truncate">{device.homeId}</span>
+                   <div className="mt-auto pt-4 text-[9px] text-muted-foreground opacity-30 italic leading-snug">
+                     Identificador estructural del clúster de hardware asignado a este hogar en el Edge.
+                   </div>
                  </div>
               </div>
             </div>

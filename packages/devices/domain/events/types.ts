@@ -25,8 +25,8 @@ export interface DeviceDiscoveredPayload {
 
 export interface DeviceAssignedToRoomPayload {
   readonly deviceId: string;
-  readonly roomId: string;
-  readonly previousState: 'PENDING';
+  readonly roomId: string | null;
+  readonly previousState: string;
 }
 
 export interface DeviceCommandDispatchedPayload {

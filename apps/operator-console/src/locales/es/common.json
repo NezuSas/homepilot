@@ -300,7 +300,10 @@
         "toggle": "CONMUTAR",
         "open": "ABRIR",
         "close": "CERRAR",
-        "stop": "DETENER"
+        "stop": "DETENER",
+        "unassign": "Quitar de este cuarto",
+        "unassign_confirm": "¿Estás seguro de que deseas quitar este dispositivo de su cuarto actual? Podrás reasignarlo más tarde desde la sección de pendientes.",
+        "unassign_success": "Dispositivo desasignado correctamente"
       },
       "alias_only": "Solo Alias Local",
       "home_cluster": "Cluster de Hogar",

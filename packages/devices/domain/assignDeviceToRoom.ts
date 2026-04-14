@@ -4,20 +4,30 @@ import { Clock } from '../../shared/domain/types';
 
 /**
  * Mutador funcional puro que transiciona el estado inmutable de un dispositivo hacia una habitación específica.
+ * El roomId puede ser null para desasignar el dispositivo y devolverlo al estado PENDING.
  */
 export function assignDeviceToRoom(
   device: Device,
-  roomId: string,
+  roomId: string | null,
   clock: Clock
 ): Device {
-  if (device.status === 'ASSIGNED') {
-    throw new DeviceAlreadyAssignedError(device.id);
+  // Soporte para desasignación: roomId null devuelve a PENDING
+  if (roomId === null) {
+    const unassignedDevice: Device = {
+      ...device,
+      roomId: null,
+      status: 'PENDING',
+      entityVersion: device.entityVersion + 1,
+      updatedAt: clock.now()
+    };
+    return Object.freeze(unassignedDevice);
   }
 
-  if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
+  if (typeof roomId !== 'string' || roomId.trim() === '') {
     throw new InvalidTopologyReferenceError('roomId');
   }
 
+  // Soporte para "Mover a otro cuarto": permitimos reasignación si roomId es distinto
   const updatedDevice: Device = {
     ...device,
     roomId: roomId.trim(),

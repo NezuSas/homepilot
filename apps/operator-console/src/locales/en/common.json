@@ -306,7 +306,10 @@
         "toggle": "TOGGLE",
         "open": "OPEN",
         "close": "CLOSE",
-        "stop": "STOP"
+        "stop": "STOP",
+        "unassign": "Unassign from Room",
+        "unassign_confirm": "Are you sure you want to remove this device from its current room? You will be able to reassign it later from the unassigned section.",
+        "unassign_success": "Device unassigned successfully"
       },
       "alias_only": "Local Alias Only",
       "home_cluster": "Home Cluster",
