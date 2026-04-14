@@ -5,6 +5,8 @@ import { AssistantFinding } from '../domain/AssistantFinding';
 import { AssistantLearningService } from './AssistantLearningService';
 import { AssistantFeedbackRepository } from '../domain/repositories/AssistantFeedbackRepository';
 import { AssistantFeedbackEvent } from '../domain/AssistantFeedbackEvent';
+import { AssistantIntentService } from './AssistantIntentService';
+import { AssistantDraftProposal } from '../domain/AssistantIntent';
 
 export class AssistantService {
   private isScanning = false;
@@ -13,7 +15,8 @@ export class AssistantService {
     private readonly repository: AssistantFindingRepository,
     private readonly detectionService: AssistantDetectionService,
     private readonly learningService: AssistantLearningService,
-    private readonly feedbackRepository: AssistantFeedbackRepository
+    private readonly feedbackRepository: AssistantFeedbackRepository,
+    private readonly intentService: AssistantIntentService
   ) {}
 
   public async scan(homeId: string, source: string = 'system_scan'): Promise<void> {
@@ -111,5 +114,10 @@ export class AssistantService {
       metadata: {}
     };
     await this.feedbackRepository.save(event);
+  }
+
+  public async interpret(input: string): Promise<AssistantDraftProposal> {
+    const intent = await this.intentService.parse(input);
+    return this.intentService.generateProposal(intent);
   }
 }

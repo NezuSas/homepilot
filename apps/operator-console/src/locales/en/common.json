@@ -26,6 +26,14 @@
       "priority_boost_type": "High priority based on your preferences",
       "priority_penalty_type": "Optimized priority based on past dismissals"
     },
+    "natural": {
+      "placeholder": "Describe what you want to do... (e.g. 'rename light to kitchen light')",
+      "button": "Process",
+      "proposal_title": "Intent Proposal",
+      "confirm": "Apply Draft",
+      "cancel": "Discard",
+      "error_invalid": "I couldn't parse that intent. Try 'rename device', 'assign room' or 'create scene'."
+    },
     "dismiss": "Dismiss",
     "resolve": "Navigate",
     "actions": {

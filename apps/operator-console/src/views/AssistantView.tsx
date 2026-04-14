@@ -41,6 +41,10 @@ export const AssistantView: React.FC<{
   const [scanning, setScanning] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: any } | null>(null);
+  const [naturalInput, setNaturalInput] = useState('');
+  const [interpreting, setInterpreting] = useState(false);
+  const [activeProposal, setActiveProposal] = useState<any | null>(null);
+  const [proposalError, setProposalError] = useState<string | null>(null);
 
   const fetchFindings = async () => {
     try {
@@ -108,6 +112,63 @@ export const AssistantView: React.FC<{
         break;
       default:
         break;
+    }
+  };
+
+  const handleInterpret = async () => {
+    if (!naturalInput.trim()) return;
+    setInterpreting(true);
+    setProposalError(null);
+    try {
+      const resp = await fetch('/api/v1/assistant/interpret', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: naturalInput })
+      });
+      if (!resp.ok) throw new Error('INTERPRET_FAILED');
+      const data = await resp.json();
+      setActiveProposal(data);
+    } catch (e) {
+      setProposalError(t('assistant.natural.error_invalid'));
+    } finally {
+      setInterpreting(false);
+    }
+  };
+
+  const handleApplyProposal = async () => {
+    if (!activeProposal) return;
+    setLoading(true);
+    try {
+      const { type, details } = activeProposal;
+      let url = '';
+      let method = 'POST';
+      let body: any = {};
+
+      if (type === 'rename_device') {
+        url = `/api/v1/devices/${details.deviceId}`;
+        method = 'PATCH';
+        body = { name: details.newName };
+      } else if (type === 'assign_room') {
+        url = `/api/v1/devices/${details.deviceId}/assign`;
+        body = { roomId: details.roomId };
+      }
+
+      if (url) {
+        const resp = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!resp.ok) throw new Error('APPLY_FAILED');
+      }
+
+      setActiveProposal(null);
+      setNaturalInput('');
+      await fetchFindings();
+    } catch (e) {
+      console.error('[Assistant] Apply proposal failed:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -202,6 +263,89 @@ export const AssistantView: React.FC<{
           {scanning ? t('assistant.scanning') : t('assistant.scan_trigger')}
         </button>
       </header>
+
+      {/* -- NATURAL INTERACTION BAR (V5) -- */}
+      <section className="relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+        <div className="relative flex items-center gap-3 p-2 bg-card border-2 border-primary/10 rounded-[2.5rem] shadow-2xl shadow-primary/5">
+          <div className="p-3 pl-5 text-primary">
+            <Zap className={cn("w-5 h-5", interpreting && "animate-pulse")} />
+          </div>
+          <input 
+            type="text"
+            value={naturalInput}
+            onChange={(e) => setNaturalInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleInterpret()}
+            placeholder={t('assistant.natural.placeholder')}
+            className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder:text-muted-foreground/50"
+          />
+          <button 
+            onClick={handleInterpret}
+            disabled={interpreting || !naturalInput.trim()}
+            className="px-6 py-2.5 bg-primary text-white rounded-full text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-30"
+          >
+            {interpreting ? t('common.processing') : t('assistant.natural.button')}
+          </button>
+        </div>
+        {proposalError && (
+          <p className="mt-3 px-6 text-[10px] font-bold text-rose-500 animate-in fade-in slide-in-from-top-1">
+            {proposalError}
+          </p>
+        )}
+      </section>
+
+      {/* -- ACTIVE PROPOSAL CARD -- */}
+      {activeProposal && (
+        <section className="animate-in zoom-in-95 fade-in duration-500">
+          <div className="p-1 rounded-[2.5rem] bg-gradient-to-br from-primary/40 to-primary/10 shadow-2xl shadow-primary/20">
+            <div className="bg-card rounded-[2.4rem] p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black tracking-tight leading-none mb-1">
+                    {t('assistant.natural.proposal_title')}
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                    {activeProposal.title}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 mb-8">
+                <p className="text-lg font-bold text-primary mb-4 leading-tight">
+                  {activeProposal.summary}
+                </p>
+                {activeProposal.missingInfo && activeProposal.missingInfo.length > 0 && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase">
+                      Missing Info: {activeProposal.missingInfo.join(', ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleApplyProposal}
+                  disabled={!activeProposal.isComplete}
+                  className="flex-1 py-4 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-primary/20 disabled:opacity-30"
+                >
+                  {t('assistant.natural.confirm')}
+                </button>
+                <button 
+                  onClick={() => setActiveProposal(null)}
+                  className="px-8 py-4 bg-muted text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-muted/80 transition-all font-bold"
+                >
+                  {t('assistant.natural.cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {findings.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 px-6 border-2 border-dashed border-muted rounded-3xl bg-muted/5">

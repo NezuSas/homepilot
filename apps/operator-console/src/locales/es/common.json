@@ -26,6 +26,14 @@
       "priority_boost_type": "Prioridad alta según tus preferencias",
       "priority_penalty_type": "Prioridad ajustada por descartes previos"
     },
+    "natural": {
+      "placeholder": "Describe qué quieres hacer... (ej. 'renombrar luz a Luz Cocina')",
+      "button": "Procesar",
+      "proposal_title": "Propuesta de Intención",
+      "confirm": "Aplicar Borrador",
+      "cancel": "Descartar",
+      "error_invalid": "No pude entender esa intención. Prueba con 'renombrar dispositivo', 'asignar habitación' o 'crear escena'."
+    },
     "dismiss": "Omitir",
     "resolve": "Navigar",
     "actions": {
