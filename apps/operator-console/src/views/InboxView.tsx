@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { 
   Inbox, RadioTower, Box, Activity,
   Loader2, RefreshCw, X, AlertCircle, ArrowRight,
-  Settings, Database, Clock, Terminal, Cpu, Blinds
+  Settings, Database, Clock, Terminal, Cpu, Blinds,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import ConfirmModal from './ConfirmModal';
 
 interface DeviceState {
   state?: 'on' | 'off';
@@ -380,6 +382,7 @@ const DeviceInspector: React.FC<{
   const [activeTab, setActiveTab] = useState<'info' | 'logs' | 'state'>('info');
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
+  const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
 
   const fetchDetails = useCallback(async (isInitial = false) => {
     try {
@@ -454,10 +457,6 @@ const DeviceInspector: React.FC<{
 
   const handleUnassign = async () => {
     if (!device || isActionLoading) return;
-    
-    const confirmed = window.confirm(t('inbox.inspector.actions.unassign_confirm'));
-    if (!confirmed) return;
-
     setIsActionLoading(true);
     try {
       const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
@@ -469,6 +468,7 @@ const DeviceInspector: React.FC<{
         const updated = await res.json() as Device;
         setDevice(updated);
         onUpdate(updated);
+        setShowUnassignConfirm(false);
         onClose(); // Close inspector as it moved to unassigned
       }
     } catch {
@@ -726,7 +726,7 @@ const DeviceInspector: React.FC<{
 
                       {device.status === 'ASSIGNED' && (
                         <button 
-                          onClick={handleUnassign}
+                          onClick={() => setShowUnassignConfirm(true)}
                           disabled={isActionLoading}
                           className="w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-destructive/5 text-destructive border border-destructive/10 hover:bg-destructive/10 transition-all flex items-center justify-center gap-2"
                         >
@@ -792,6 +792,16 @@ const DeviceInspector: React.FC<{
            <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-20">{t('inbox.inspector.data_object')}</p>
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={showUnassignConfirm}
+        onClose={() => setShowUnassignConfirm(false)}
+        onConfirm={handleUnassign}
+        title={t('inbox.inspector.actions.unassign')}
+        description={t('inbox.inspector.actions.unassign_confirm')}
+        variant="warning"
+        isSubmitting={isActionLoading}
+      />
     </div>
   );
 };
