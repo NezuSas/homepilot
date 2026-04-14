@@ -43,6 +43,9 @@
       "syncing": "Synchronizing system",
       "updated_now": "Updated now",
       "mode_label": "Mode {{mode}}"
+    },
+    "tooltips": {
+      "switch_language": "Switch Language"
     }
   },
   "inbox": {
@@ -96,7 +99,8 @@
       "importing": "Importing...",
       "refresh_hint": "Manual Refresh from Home Assistant",
       "import_success": "Entity imported successfully",
-      "import_error": "Failed to import entity"
+      "import_error": "Failed to import entity",
+      "bridge_title": "Home Assistant Bridge"
     }
   },
   "topology": {
@@ -109,7 +113,10 @@
     "select_home": "Select a home to manage its spaces."
   },
   "automations": {
-    "title": "Automation Rules",
+    "header": {
+      "title": "Automations",
+      "subtitle": "{{count}} Active Intelligence Rules • Local Execution"
+    },
     "loading": "Synchronizing Workbench...",
     "active_recipes": "{{count}} Active Recipes",
     "create_rule": "Create Rule",
@@ -150,7 +157,20 @@
       "at_time": "At {{time}}",
       "when_device": "When {{name}} changes to {{value}}",
       "run_scene": "Execute scene '{{name}}'",
-      "run_command": "Send {{command}} to {{name}}"
+      "run_command": "Send {{command}} to {{name}}",
+      "schedule_based": "Schedule Based",
+      "event_driven": "Event Driven",
+      "active": "Active",
+      "paused": "Paused",
+      "if": "IF",
+      "then": "THEN",
+      "system_rule": "System Monitoring Rule",
+      "inactive_recipe": "Inactive Recipe",
+      "clock_hits": "The clock hits {{time}}"
+    },
+    "notifications": {
+      "deleted": "Recipe removed from intelligence library",
+      "updated": "Intelligence library updated"
     }
   },
   "ha_settings": {
@@ -241,7 +261,9 @@
     "empty_description": "No auditable events have been generated on this Edge yet. Perform actions like assigning devices or running commands to see technical activity here.",
     "refresh": "Refresh status",
     "v1_title": "Technical Audit V1",
-    "payload_button": "View JSON Payload"
+    "payload_button": "View JSON Payload",
+    "live_update": "LIVE UPDATE",
+    "device_label": "Device:"
   },
   "users": {
     "loading": "Loading user directory...",
@@ -271,7 +293,17 @@
       "suspended": "ACCOUNT SUSPENDED",
       "live": "LIVE TELEMETRY / SESSION"
     },
-    "protection_rule": "System Protection Rule: HomePilot Edge requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout."
+    "protection_rule": "System Protection Rule: HomePilot Edge requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout.",
+    "actions": {
+      "confirm_suspend": "WARNING: Are you sure you want to SUSPEND this user? Suspension instantly kills all active sessions.",
+      "confirm_restore": "Are you sure you want to RESTORE this user?",
+      "confirm_role": "Confirm ROLE CHANGE for \"{{username}}\"? Elevating or demoting accounts affects system-wide permissions.",
+      "confirm_revoke": "EMERGENCY: Force logout \"{{username}}\" and invalidate all active session tokens immediately?",
+      "suspend_title": "Suspend Access",
+      "restore_title": "Restore Access",
+      "swap_role_title": "Swap Role (Currently {{role}})",
+      "revoke_title": "Revoke Sessions"
+    }
   },
   "login": {
     "title": "HomePilot Edge",

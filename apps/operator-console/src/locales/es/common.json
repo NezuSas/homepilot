@@ -43,6 +43,9 @@
       "syncing": "Sincronizando sistema",
       "updated_now": "Actualizado ahora",
       "mode_label": "Modo {{mode}}"
+    },
+    "tooltips": {
+      "switch_language": "Cambiar Idioma"
     }
   },
   "inbox": {
@@ -96,7 +99,8 @@
       "importing": "Importando...",
       "refresh_hint": "Sincronización Manual desde Home Assistant",
       "import_success": "Entidad importada correctamente",
-      "import_error": "Error al importar entidad"
+      "import_error": "Error al importar entidad",
+      "bridge_title": "Bridge de Home Assistant"
     }
   },
   "topology": {
@@ -109,7 +113,10 @@
     "select_home": "Selecciona un hogar para gestionar sus espacios."
   },
   "automations": {
-    "title": "Reglas de Automatización",
+    "header": {
+      "title": "Automatizaciones",
+      "subtitle": "{{count}} Reglas de Inteligencia Activas • Ejecución Local"
+    },
     "loading": "Sincronizando Workbench...",
     "active_recipes": "{{count}} Recetas Activas",
     "create_rule": "Crear Regla",
@@ -150,7 +157,20 @@
       "at_time": "A las {{time}}",
       "when_device": "Cuando {{name}} cambie a {{value}}",
       "run_scene": "Ejecutar escena '{{name}}'",
-      "run_command": "Enviar {{command}} a {{name}}"
+      "run_command": "Enviar {{command}} a {{name}}",
+      "schedule_based": "Basado en Horario",
+      "event_driven": "Basado en Eventos",
+      "active": "Activa",
+      "paused": "Pausada",
+      "if": "SI",
+      "then": "ENTONCES",
+      "system_rule": "Regla de Monitoreo del Sistema",
+      "inactive_recipe": "Receta Inactiva",
+      "clock_hits": "El reloj marca las {{time}}"
+    },
+    "notifications": {
+      "deleted": "Receta eliminada de la biblioteca de inteligencia",
+      "updated": "Biblioteca de inteligencia actualizada"
     }
   },
   "ha_settings": {
@@ -241,7 +261,9 @@
     "empty_description": "Aún no se han generado eventos auditables en este Edge. Realiza acciones como asignar dispositivos o ejecutar comandos para ver actividad técnica aquí.",
     "refresh": "Refrescar estado",
     "v1_title": "Auditoría Técnica V1",
-    "payload_button": "Ver JSON Payload"
+    "payload_button": "Ver JSON Payload",
+    "live_update": "ACTUALIZACIÓN EN VIVO",
+    "device_label": "Dispositivo:"
   },
   "users": {
     "loading": "Cargando directorio de usuarios...",
@@ -271,7 +293,17 @@
       "suspended": "CUENTA SUSPENDIDA",
       "live": "TELEMETRÍA EN VIVO / SESIÓN"
     },
-    "protection_rule": "Regla de Protección del Sistema: HomePilot Edge requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes."
+    "protection_rule": "Regla de Protección del Sistema: HomePilot Edge requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
+    "actions": {
+      "confirm_suspend": "¿Está seguro de que desea SUSPENDER a este usuario? La suspensión matará instantáneamente todas las sesiones activas.",
+      "confirm_restore": "¿Está seguro de que desea RESTAURAR a este usuario?",
+      "confirm_role": "¿Confirmar CAMBIO DE ROL para \"{{username}}\"? Elevar o degradar cuentas afecta los permisos en todo el sistema.",
+      "confirm_revoke": "EMERGENCIA: ¿Forzar cierre de sesión de \"{{username}}\" e invalidar todos los tokens de sesión activa inmediatamente?",
+      "suspend_title": "Suspender Acceso",
+      "restore_title": "Restaurar Acceso",
+      "swap_role_title": "Cambiar Rol (Actualmente {{role}})",
+      "revoke_title": "Revocar Sesiones"
+    }
   },
   "login": {
     "title": "HomePilot Edge",

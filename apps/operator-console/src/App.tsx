@@ -267,16 +267,18 @@ function App() {
           )}
           
           <div className="pt-4 border-t mt-2">
-            <div className="flex items-center justify-between px-2">
+            <div className="flex items-center justify-between pl-3 pr-2">
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-black tracking-tight truncate">{user?.username || 'user'}</span>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{user?.role || 'operator'}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.15em]">
+                  {user?.role === 'admin' ? t('nav.user_management') : t('nav.dashboard')}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <button 
                   onClick={toggleLanguage}
                   className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title="Switch Language"
+                  title={t('shell.tooltips.switch_language')}
                 >
                   <Globe className="w-4 h-4" />
                 </button>
@@ -311,9 +313,17 @@ function App() {
              >
                <Menu className="w-6 h-6" />
              </button>
-             <h2 className="text-sm font-black uppercase tracking-widest truncate">
-               {currentView}
-             </h2>
+              <h2 className="text-sm font-black uppercase tracking-widest truncate">
+                {currentView === 'dashboard' ? t('nav.dashboard') :
+                 currentView === 'topology' ? t('topology.title') : 
+                 currentView === 'inbox' ? t('inbox.title') : 
+                 currentView === 'automations' ? t('nav.automations') : 
+                 currentView === 'ha-settings' ? t('ha_settings.title') : 
+                 currentView === 'users' ? t('nav.user_management') : 
+                 currentView === 'diagnostics' ? t('nav.diagnostics') : 
+                 currentView === 'scenes' ? t('nav.scenes') :
+                 currentView === 'audit-logs' ? t('nav.audit_logs') : currentView}
+              </h2>
           </div>
           <div className="flex items-center gap-3">
              <button

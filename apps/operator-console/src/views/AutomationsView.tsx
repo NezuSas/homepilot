@@ -123,7 +123,7 @@ const AutomationsView: React.FC = () => {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
       setRules(prev => prev.filter(r => r.id !== id));
       setConfirmDeleteId(null);
-      setNotification({ message: 'Recipe removed from intelligence library', type: 'success' });
+      setNotification({ message: t('automations.notifications.deleted'), type: 'success' });
     } catch (err: any) {
       setError(err.message || 'Failed to delete rule');
     } finally {
@@ -170,7 +170,7 @@ const AutomationsView: React.FC = () => {
             <div>
                <h4 className="text-2xl font-black tracking-tighter leading-none mb-1">{rule.name}</h4>
                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                 {rule.trigger.type === 'time' ? 'Schedule Based' : 'Event Driven'}
+                 {rule.trigger.type === 'time' ? t('automations.summary.schedule_based') : t('automations.summary.event_driven')}
                </span>
             </div>
           </div>
@@ -184,7 +184,7 @@ const AutomationsView: React.FC = () => {
                   isEnabled ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
                 )}
              >
-                {isWorking ? <Loader2 className="w-4 h-4 animate-spin" /> : (isEnabled ? 'Active' : 'Paused')}
+                {isWorking ? <Loader2 className="w-4 h-4 animate-spin" /> : (isEnabled ? t('automations.summary.active') : t('automations.summary.paused'))}
              </button>
              <button 
                 onClick={() => { setEditingAutomation(rule); setIsBuilderOpen(true); }}
@@ -204,12 +204,12 @@ const AutomationsView: React.FC = () => {
         <div className="flex flex-col gap-6 bg-muted/20 rounded-[2rem] p-6 border border-border/20">
            <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-background border flex items-center justify-center shrink-0">
-                 <span className="text-[10px] font-black">IF</span>
+                 <span className="text-[10px] font-black">{t('automations.summary.if')}</span>
               </div>
               <p className="text-lg font-bold leading-tight pt-2">
                  {rule.trigger.type === 'time' 
-                    ? `The clock hits ${rule.trigger.timeLocal || rule.trigger.time}` 
-                    : `${getDeviceName(rule.trigger.deviceId)} changes to ${rule.trigger.expectedValue}`}
+                    ? t('automations.summary.clock_hits', { time: rule.trigger.timeLocal || rule.trigger.time }) 
+                    : t('automations.summary.when_device', { name: getDeviceName(rule.trigger.deviceId), value: rule.trigger.expectedValue })}
               </p>
            </div>
            
@@ -219,12 +219,12 @@ const AutomationsView: React.FC = () => {
 
            <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-primary/20 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                 <span className="text-[10px] font-black">THEN</span>
+                 <span className="text-[10px] font-black">{t('automations.summary.then')}</span>
               </div>
               <p className="text-lg font-bold leading-tight pt-2">
                  {rule.action.type === 'device_command'
-                    ? `${rule.action.command?.replace('_', ' ').toUpperCase()} ${getDeviceName(rule.action.targetDeviceId)}`
-                    : `Execute the ${getSceneName(rule.action.sceneId)} scene`}
+                    ? t('automations.summary.run_command', { command: rule.action.command?.replace('_', ' ').toUpperCase(), name: getDeviceName(rule.action.targetDeviceId) })
+                    : t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) })}
               </p>
            </div>
         </div>
@@ -233,10 +233,10 @@ const AutomationsView: React.FC = () => {
            <div className="flex items-center gap-3">
               <div className={cn("w-2 h-2 rounded-full", isEnabled ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                 {isEnabled ? 'System Monitoring Rule' : 'Inactive Recipe'}
+                 {isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_recipe')}
               </span>
            </div>
-           <span className="text-[9px] font-bold text-muted-foreground opacity-20 uppercase">Intelligence V1</span>
+           <span className="text-[9px] font-bold text-muted-foreground opacity-20 uppercase">{t('shell.subtitle')}</span>
         </div>
       </div>
     );
@@ -246,9 +246,9 @@ const AutomationsView: React.FC = () => {
     <div className="flex flex-col gap-12 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-700 px-2 lg:px-0">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter leading-none mb-2">Automations</h2>
+          <h2 className="text-4xl font-black tracking-tighter leading-none mb-2">{t('automations.header.title')}</h2>
           <p className="text-sm font-bold text-muted-foreground opacity-50 uppercase tracking-widest">
-             {rules.filter(r => r.enabled).length} Active Intelligence Rules • Local Execution
+             {t('automations.header.subtitle', { count: rules.filter(r => r.enabled).length })}
           </p>
         </div>
         <button 
@@ -256,7 +256,7 @@ const AutomationsView: React.FC = () => {
           className="bg-primary text-primary-foreground px-10 py-5 rounded-[1.8rem] font-black text-xs uppercase tracking-[0.2em] transition-all hover:scale-[1.03] active:scale-95 premium-glow shadow-primary/20 flex items-center gap-4"
         >
           <Plus className="w-6 h-6" />
-          Create New Recipe
+          {t('automations.create_rule')}
         </button>
       </div>
 
@@ -272,15 +272,15 @@ const AutomationsView: React.FC = () => {
           <div className="p-12 bg-muted/20 rounded-full mb-8">
             <Zap className="w-16 h-16 text-muted-foreground opacity-20" />
           </div>
-          <h3 className="text-3xl font-black tracking-tighter mb-4">The house is quiet</h3>
+          <h3 className="text-3xl font-black tracking-tighter mb-4">{t('automations.empty_state.title')}</h3>
           <p className="text-muted-foreground max-w-sm font-medium mb-12 opacity-60 leading-relaxed">
-            Your home hasn't learned any routines yet. Automations allow your environment to react to your life automatically.
+            {t('automations.empty_state.description')}
           </p>
           <button 
             onClick={() => setIsBuilderOpen(true)}
             className="flex items-center gap-3 text-primary font-black uppercase tracking-widest text-xs group"
           >
-            Teach it something new <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+            {t('automations.create_rule')} <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
           </button>
         </div>
       ) : (
@@ -301,7 +301,7 @@ const AutomationsView: React.FC = () => {
             setIsBuilderOpen(false);
             setEditingAutomation(null);
             fetchData();
-            setNotification({ message: 'Intelligence library updated', type: 'success' });
+            setNotification({ message: t('automations.notifications.updated'), type: 'success' });
           }}
           devices={devices}
           scenes={scenes}
@@ -319,9 +319,9 @@ const AutomationsView: React.FC = () => {
         isOpen={!!confirmDeleteId}
         onClose={() => setConfirmDeleteId(null)}
         onConfirm={() => confirmDeleteId && deleteRule(confirmDeleteId)}
-        title="Remove Intelligence Recipe?"
-        description="This will permanently delete this automation pattern. This action is irreversible."
-        confirmText="Confirm Delete"
+        title={t('automations.delete_confirm_title')}
+        description={t('automations.delete_confirm_description')}
+        confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         isSubmitting={isDeleting}
       />

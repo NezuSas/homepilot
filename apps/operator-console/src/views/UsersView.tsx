@@ -250,14 +250,14 @@ export function UsersView() {
                             () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/active`, { 
                               method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }, body: JSON.stringify({ isActive: !u.isActive }) 
                             }),
-                            `WARNING: Are you sure you want to ${u.isActive ? 'SUSPEND' : 'RESTORE'} this user? Suspension instantly kills all active sessions.`
+                            u.isActive ? t('users.actions.confirm_suspend') : t('users.actions.confirm_restore')
                           )}
                           className={`p-2 rounded-lg border transition-all ${
                             u.isActive 
                               ? 'bg-background hover:bg-red-500/10 border-border hover:border-red-500/30 hover:text-red-500 text-muted-foreground shadow-sm'
                               : 'bg-background hover:bg-green-500/10 border-border hover:border-green-500/30 hover:text-green-500 text-muted-foreground shadow-sm'
                           }`}
-                          title={u.isActive ? 'Suspend Access' : 'Restore Access'}
+                          title={u.isActive ? t('users.actions.suspend_title') : t('users.actions.restore_title')}
                         >
                           <Power className="w-4 h-4" />
                         </button>
@@ -268,10 +268,10 @@ export function UsersView() {
                             () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
                               method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
                             }),
-                            `Confirm ROLE CHANGE for "${u.username}"? Elevating or demoting accounts affects system-wide permissions.`
+                            t('users.actions.confirm_role', { username: u.username })
                           )}
                           className="p-2 bg-background border border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-all shadow-sm"
-                          title={`Swap Role (Currently ${u.role})`}
+                          title={t('users.actions.swap_role_title', { role: u.role })}
                         >
                           <RefreshCcw className="w-4 h-4" />
                         </button>
@@ -283,11 +283,11 @@ export function UsersView() {
                               method: 'POST',
                               headers: { 'Authorization': `Bearer ${localStorage.getItem('hp_token')}` }
                             }),
-                            `EMERGENCY: Force logout "${u.username}" and invalidate all active session tokens immediately?`
+                            t('users.actions.confirm_revoke', { username: u.username })
                           )}
                           className="p-2 bg-background border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-500 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
                           disabled={!u.hasActiveSessions}
-                          title="Revoke Sessions"
+                          title={t('users.actions.revoke_title')}
                         >
                           <UserMinus className="w-4 h-4" />
                         </button>

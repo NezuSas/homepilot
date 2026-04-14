@@ -500,7 +500,7 @@ const DeviceInspector: React.FC<{
                </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title', { defaultValue: 'Technical Inspector' })}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title')}</span>
                     <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">{t('inbox.inspector.alias_only')}</span>
                   </div>
                  {isRenaming ? (
@@ -512,9 +512,9 @@ const DeviceInspector: React.FC<{
                        autoFocus
                        onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                      />
-                     <button onClick={handleRename} className="p-1 px-2 bg-primary text-white text-[10px] font-black rounded uppercase">Save</button>
+                     <button onClick={handleRename} className="p-1 px-2 bg-primary text-white text-[10px] font-black rounded uppercase">{t('common.save')}</button>
                      <button onClick={() => { setIsRenaming(false); setNewName(device.name); }} className="text-[10px] uppercase font-bold text-muted-foreground group">
-                       <span className="border-b border-transparent group-hover:border-muted-foreground transition-all ml-1">Cancel</span>
+                       <span className="border-b border-transparent group-hover:border-muted-foreground transition-all ml-1">{t('common.cancel')}</span>
                      </button>
                    </div>
                  ) : (
@@ -550,7 +550,7 @@ const DeviceInspector: React.FC<{
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                  )}
                >
-                 {tab}
+                 {t(`inbox.inspector.tabs.${tab}`)}
                </button>
              ))}
           </div>
@@ -563,13 +563,13 @@ const DeviceInspector: React.FC<{
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
                   <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                    <Database className="w-3 h-3" /> Technical ID
+                    <Database className="w-3 h-3" /> {t('audit_logs.device_label')}
                   </span>
                   <span className="font-mono text-xs font-bold break-all">{device.id}</span>
                 </div>
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
                   <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                    <Settings className="w-3 h-3" /> External ID
+                    <Settings className="w-3 h-3" /> {t('inbox.inspector.external_id', { defaultValue: 'External ID' })}
                   </span>
                   <span className="font-mono text-xs font-bold break-all">{device.externalId}</span>
                 </div>
@@ -587,19 +587,19 @@ const DeviceInspector: React.FC<{
                       onClick={() => handleCommand('turn_on')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10"
                     >
-                       {t('inbox.inspector.actions.force_on', { defaultValue: 'FORCE ON' })}
+                       {t('inbox.inspector.actions.force_on')}
                     </button>
                     <button 
                       onClick={() => handleCommand('turn_off')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors"
                     >
-                      {t('inbox.inspector.actions.force_off', { defaultValue: 'FORCE OFF' })}
+                       {t('inbox.inspector.actions.force_off')}
                     </button>
                     <button 
                       onClick={() => handleCommand('toggle')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                     >
-                      {t('inbox.inspector.actions.toggle', { defaultValue: 'TOGGLE' })}
+                       {t('inbox.inspector.actions.toggle')}
                     </button>
                   </div>
                 )}
@@ -610,19 +610,19 @@ const DeviceInspector: React.FC<{
                       onClick={() => handleCommand('open')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10"
                     >
-                       {t('inbox.inspector.actions.open', { defaultValue: 'OPEN' })}
+                       {t('inbox.inspector.actions.open')}
                     </button>
                     <button 
                       onClick={() => handleCommand('stop')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors"
                     >
-                      {t('inbox.inspector.actions.stop', { defaultValue: 'STOP' })}
+                       {t('inbox.inspector.actions.stop')}
                     </button>
                     <button 
                       onClick={() => handleCommand('close')}
                       className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                     >
-                      {t('inbox.inspector.actions.close', { defaultValue: 'CLOSE' })}
+                       {t('inbox.inspector.actions.close')}
                     </button>
                   </div>
                 )}
@@ -635,7 +635,7 @@ const DeviceInspector: React.FC<{
                       className="w-full py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-all flex items-center justify-center gap-3 group"
                     >
                        <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-                       {isRefreshing ? 'Synchronizing Snapshots...' : 'Manual Refresh from Home Assistant'}
+                       {isRefreshing ? t('inbox.discovery.importing') : t('inbox.discovery.refresh_hint')}
                     </button>
                     {error && (
                       <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20">
@@ -653,7 +653,7 @@ const DeviceInspector: React.FC<{
                      <Box className="w-4 h-4 opacity-40 text-primary" />
                      <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.placement')}</span>
                    </div>
-                   <span className="text-sm font-bold truncate">{device.roomId || 'UNASSIGNED_LOGICAL_UNIT'}</span>
+                   <span className="text-sm font-bold truncate">{device.roomId || t('common.unassigned')}</span>
                  </div>
                  <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
                    <div className="flex items-center gap-2 mb-2 text-primary">
@@ -774,7 +774,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
         <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-          <RadioTower className="w-4 h-4" /> Home Assistant Bridge
+          <RadioTower className="w-4 h-4" /> {t('inbox.discovery.bridge_title')}
         </h3>
         <button 
           onClick={showDiscovery ? () => setShowDiscovery(false) : fetchCandidates}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, ShieldAlert, AlertCircle, Database, Clock, Zap, Info } from 'lucide-react';
+import { Loader2, ShieldAlert, AlertCircle, Clock, Zap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 
@@ -99,7 +99,7 @@ export const AuditLogsView: React.FC = () => {
          </div>
          <button onClick={fetchLogs} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
             <RefreshIcon className="w-3.5 h-3.5" />
-            LIVE UPDATE
+            {t('audit_logs.live_update')}
          </button>
       </div>
 
@@ -129,8 +129,7 @@ export const AuditLogsView: React.FC = () => {
                </div>
                <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
-                     <Database className="w-3 h-3 text-muted-foreground opacity-60" />
-                     <span className="text-[10px] font-black text-muted-foreground uppercase">Device:</span>
+                     <span className="text-[10px] font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
                      <span className="text-[11px] font-mono font-bold text-foreground/70">{log.deviceId}</span>
                   </div>
                </div>

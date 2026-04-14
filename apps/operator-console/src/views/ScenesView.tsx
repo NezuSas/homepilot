@@ -163,12 +163,12 @@ const ScenesView: React.FC<{
   const getEmotionalDescription = (scene: Scene) => {
     if (scene.description) return scene.description;
     const n = scene.name.toLowerCase();
-    if (n.includes('morning')) return "Soft lights and gentle warmth for a fresh start";
-    if (n.includes('night')) return "Deep shadows and warm glows for restorative rest";
-    if (n.includes('relax')) return "Ambient levels tailored for pure comfort";
-    if (n.includes('work')) return "High-clarity environment for focused productivity";
-    if (n.includes('welcome')) return "The perfect welcome home atmosphere";
-    return "A tailored environment for this moment";
+    if (n.includes('morning')) return t('scenes.descriptions.morning', { defaultValue: "Soft lights and gentle warmth for a fresh start" });
+    if (n.includes('night')) return t('scenes.descriptions.night', { defaultValue: "Deep shadows and warm glows for restorative rest" });
+    if (n.includes('relax')) return t('scenes.descriptions.relax', { defaultValue: "Ambient levels tailored for pure comfort" });
+    if (n.includes('work')) return t('scenes.descriptions.work', { defaultValue: "High-clarity environment for focused productivity" });
+    if (n.includes('welcome')) return t('scenes.descriptions.welcome', { defaultValue: "The perfect welcome home atmosphere" });
+    return t('scenes.descriptions.generic', { defaultValue: "A tailored environment for this moment" });
   };
 
   if (loading) {
@@ -213,11 +213,11 @@ const ScenesView: React.FC<{
             </p>
             <div className="flex items-center gap-3 mt-4">
                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
-                 {room ? room.name : "Global State"}
+                 {room ? room.name : t('common.global_state', { defaultValue: "Global State" })}
                </span>
                <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
-                 {scene.actions.length} Points
+                 {t('scenes.point_count', { count: scene.actions.length, defaultValue: `${scene.actions.length} Points` })}
                </span>
             </div>
           </div>
@@ -260,7 +260,9 @@ const ScenesView: React.FC<{
       <div className="flex items-center justify-between pb-4 border-b border-border/40">
         <div className="flex flex-col">
           <h2 className="text-3xl font-black tracking-tighter">{t('nav.scenes')}</h2>
-          <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest mt-1">{scenes.length} Master Recipes Available</p>
+          <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest mt-1">
+             {t('scenes.header.available', { count: scenes.length, defaultValue: `${scenes.length} Master Recipes Available` })}
+          </p>
         </div>
         <button 
           onClick={() => { setEditingScene(null); setShowBuilder(true); }}
@@ -276,15 +278,15 @@ const ScenesView: React.FC<{
           <div className="p-10 bg-muted/20 rounded-full mb-8">
             <Monitor className="w-16 h-16 text-muted-foreground opacity-20" />
           </div>
-          <h3 className="text-2xl font-black tracking-tighter mb-4">No scenes discovered</h3>
+          <h3 className="text-2xl font-black tracking-tighter mb-4">{t('scenes.empty_title')}</h3>
           <p className="text-muted-foreground max-w-sm font-medium mb-12 opacity-60">
-            Transform your home with a single tap. Group your appliances into powerful environmental scenes.
+            {t('scenes.empty_description')}
           </p>
           <button 
             onClick={() => setShowBuilder(true)}
             className="group flex items-center gap-3 text-primary font-black uppercase tracking-widest text-xs"
           >
-            Create morning routine <Zap className="w-4 h-4 group-hover:animate-bounce" />
+            {t('dashboard.scene_create')} <Zap className="w-4 h-4 group-hover:animate-bounce" />
           </button>
         </div>
       ) : (
@@ -295,7 +297,7 @@ const ScenesView: React.FC<{
             <div className="flex flex-col gap-6">
                <div className="flex items-center gap-3">
                   <Star className="w-4 h-4 text-amber-500 fill-current" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Favorite Environments</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.favorites', { defaultValue: "Favorite Environments" })}</h3>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {favoriteScenes.map(s => <SceneCard key={s.id} scene={s} />)}
@@ -308,7 +310,7 @@ const ScenesView: React.FC<{
             <div className="flex flex-col gap-6">
                <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-primary" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Command History</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.recents', { defaultValue: "Command History" })}</h3>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {recentScenes.map(s => <SceneCard key={s.id} scene={s} />)}
@@ -320,7 +322,7 @@ const ScenesView: React.FC<{
           <div className="flex flex-col gap-6">
              <div className="flex items-center gap-3">
                 <LayoutGrid className="w-4 h-4 text-muted-foreground" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">All System Scenes</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.all_scenes', { defaultValue: "All System Scenes" })}</h3>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {otherScenes.map(s => <SceneCard key={s.id} scene={s} />)}
@@ -343,9 +345,9 @@ const ScenesView: React.FC<{
 
       <ConfirmModal 
         isOpen={!!deletingId}
-        title="Remove Scene Forever?"
-        description="This action will delete the grouping but won't impact your individual devices. Are you sure?"
-        confirmText="Confirm Delete"
+        title={t('scenes.delete_title')}
+        description={t('scenes.delete_description')}
+        confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         onConfirm={() => deletingId && handleDelete(deletingId)}
         onClose={() => setDeletingId(null)}
