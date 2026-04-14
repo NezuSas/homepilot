@@ -11,7 +11,8 @@
     "scenes_hint": "Predefined group actions for rapid environment control.",
     "diagnostics": "Diagnostics",
     "observability": "Observability",
-    "user_management": "User Management"
+    "user_management": "User Management",
+    "logout": "Logout"
   },
   "dashboard": {
     "atmosphere_recipes": "Atmosphere Recipes",
@@ -250,7 +251,16 @@
     "view_details": "View Details",
     "hide_details": "Hide Details",
     "payload": "Payload",
-    "trace_events": "Trace Events"
+    "trace_events": "Trace Events",
+    "messages": {
+      "ha_not_configured": "Home Assistant connection is not configured",
+      "ha_auth_error": "Home Assistant authentication failed",
+      "ha_unreachable": "Home Assistant is unreachable",
+      "ws_reconnecting": "WebSocket is currently reconnecting",
+      "recent_reconnects": "Frequent WebSocket reconnections detected. Check network stability.",
+      "reconciliation_failed": "Latest state reconciliation failed",
+      "automation_failures": "Recent automation executions encountered errors"
+    }
   },
   "audit_logs": {
     "loading": "Retrieving security logs...",
@@ -263,7 +273,14 @@
     "v1_title": "Technical Audit V1",
     "payload_button": "View JSON Payload",
     "live_update": "LIVE UPDATE",
-    "device_label": "Device:"
+    "device_label": "Device:",
+    "messages": {
+      "device_sync": "Device sync from HA WebSocket",
+      "ws_connected": "WebSocket connection established",
+      "reconciliation_done": "State reconciliation completed",
+      "auth_failed": "Auth failed permanently",
+      "scheduling_reconnect": "Scheduling reconnect attempt #{{attempt}}"
+    }
   },
   "users": {
     "loading": "Loading user directory...",

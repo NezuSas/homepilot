@@ -11,7 +11,8 @@
     "scenes_hint": "Acciones grupales predefinidas para control rápido del entorno.",
     "diagnostics": "Diagnósticos",
     "observability": "Observabilidad",
-    "user_management": "Gestión de Usuarios"
+    "user_management": "Gestión de Usuarios",
+    "logout": "Cerrar Sesión"
   },
   "dashboard": {
     "atmosphere_recipes": "Recetas de Atmósfera",
@@ -250,7 +251,16 @@
     "view_details": "Ver Detalles",
     "hide_details": "Ocultar Detalles",
     "payload": "Carga Útil",
-    "trace_events": "Eventos de Trazabilidad"
+    "trace_events": "Eventos de Trazabilidad",
+    "messages": {
+      "ha_not_configured": "La conexión con Home Assistant no está configurada",
+      "ha_auth_error": "Fallo de autenticación en Home Assistant",
+      "ha_unreachable": "Home Assistant es inalcanzable",
+      "ws_reconnecting": "WebSocket está reconectando actualmente",
+      "recent_reconnects": "Se detectaron reconexiones frecuentes de WebSocket. Verifica la estabilidad de la red.",
+      "reconciliation_failed": "Falló la última reconciliación de estado",
+      "automation_failures": "Ejecuciones recientes de automatización encontraron errores"
+    }
   },
   "audit_logs": {
     "loading": "Recuperando registros de seguridad...",
@@ -263,7 +273,14 @@
     "v1_title": "Auditoría Técnica V1",
     "payload_button": "Ver JSON Payload",
     "live_update": "ACTUALIZACIÓN EN VIVO",
-    "device_label": "Dispositivo:"
+    "device_label": "Dispositivo:",
+    "messages": {
+      "device_sync": "Sincronización de dispositivo desde HA WebSocket",
+      "ws_connected": "Conexión WebSocket establecida",
+      "reconciliation_done": "Reconciliación de estado completada",
+      "auth_failed": "Fallo de autenticación permanente",
+      "scheduling_reconnect": "Programando intento de reconexión #{{attempt}}"
+    }
   },
   "users": {
     "loading": "Cargando directorio de usuarios...",

@@ -257,12 +257,12 @@ function App() {
             <button 
               onClick={() => navigateTo('users')}
               className={cn(
-                "flex items-center gap-3 text-xs transition-all w-full p-3 rounded-xl font-bold uppercase tracking-wider",
+                "flex items-center gap-3 text-xs transition-all w-full p-3 rounded-xl font-bold uppercase tracking-wider text-left",
                 currentView === 'users' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
-              <Users className="w-4 h-4" />
-              {user?.role === 'admin' ? t('users.header.title') : t('nav.user_management')}
+              <Users className="w-4 h-4 shrink-0" />
+              <span>{user?.role === 'admin' ? t('users.header.title') : t('nav.user_management')}</span>
             </button>
           )}
           
@@ -270,9 +270,6 @@ function App() {
             <div className="flex items-center justify-between pl-3 pr-2">
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-black tracking-tight truncate">{user?.username || 'user'}</span>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.15em]">
-                  {user?.role === 'admin' ? t('nav.user_management') : t('nav.dashboard')}
-                </span>
               </div>
               <div className="flex items-center gap-1">
                 <button 

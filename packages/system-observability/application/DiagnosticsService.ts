@@ -52,29 +52,29 @@ export class DiagnosticsService {
     const issues: SystemIssue[] = [];
 
     if (haSettings.configurationStatus === 'not_configured') {
-      issues.push({ code: 'HA_NOT_CONFIGURED', severity: 'critical', message: 'Home Assistant connection is not configured' });
+      issues.push({ code: 'HA_NOT_CONFIGURED', severity: 'critical', message: 'diagnostics.messages.ha_not_configured' });
     }
     
     if (haSettings.connectivityStatus === 'auth_error') {
-      issues.push({ code: 'HA_AUTH_ERROR', severity: 'critical', message: 'Home Assistant authentication failed' });
+      issues.push({ code: 'HA_AUTH_ERROR', severity: 'critical', message: 'diagnostics.messages.ha_auth_error' });
     } else if (haSettings.connectivityStatus === 'unreachable') {
-      issues.push({ code: 'HA_UNREACHABLE', severity: 'critical', message: 'Home Assistant is unreachable' });
+      issues.push({ code: 'HA_UNREACHABLE', severity: 'critical', message: 'diagnostics.messages.ha_unreachable' });
     }
 
     if (syncState.websocketStatus === 'reconnecting') {
-      issues.push({ code: 'WS_RECONNECTING', severity: 'warning', message: 'WebSocket is currently reconnecting' });
+      issues.push({ code: 'WS_RECONNECTING', severity: 'warning', message: 'diagnostics.messages.ws_reconnecting' });
     }
 
     if (counters.recentReconnects >= 10) {
-      issues.push({ code: 'RECENT_RECONNECTS', severity: 'warning', message: 'Frequent WebSocket reconnections detected. Check network stability.' });
+      issues.push({ code: 'RECENT_RECONNECTS', severity: 'warning', message: 'diagnostics.messages.recent_reconnects' });
     }
 
     if (syncState.reconciliationStatus === 'failed') {
-      issues.push({ code: 'RECONCILIATION_FAILED', severity: 'warning', message: 'Latest state reconciliation failed' });
+      issues.push({ code: 'RECONCILIATION_FAILED', severity: 'warning', message: 'diagnostics.messages.reconciliation_failed' });
     }
 
     if (counters.recentAutomationFailures >= 1) {
-      issues.push({ code: 'AUTOMATION_FAILURES_PRESENT', severity: 'warning', message: 'Recent automation executions encountered errors' });
+      issues.push({ code: 'AUTOMATION_FAILURES_PRESENT', severity: 'warning', message: 'diagnostics.messages.automation_failures' });
     }
 
     // 4. Derive overallStatus

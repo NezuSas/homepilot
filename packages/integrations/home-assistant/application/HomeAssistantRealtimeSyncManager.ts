@@ -138,7 +138,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
         // y ya habría programado un reconnectTimer.
         this._cancelRetry();
         this._destroySocket('auth_error');
-        this._logResilienceEvent('auth_error', 0, 0, `Auth failed permanently: ${err.message}`);
+        this._logResilienceEvent('auth_error', 0, 0, `audit_logs.messages.auth_failed`);
       }
       // 'unreachable' es manejado por onclose que se disparará también.
     });
@@ -163,7 +163,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       this.lastCloseReason = 'network_drop'; // Habilitar retrofit
       this.lastReconnectAt = new Date().toISOString();
 
-      this._logResilienceEvent('reconnect', this.retryAttempt, 0, 'WebSocket connection established.');
+      this._logResilienceEvent('reconnect', this.retryAttempt, 0, 'audit_logs.messages.ws_connected');
 
       // Secuencia de bootstrap: Conectar → Suscribir → Reconciliar
       this._runReconciliation();
@@ -205,7 +205,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     console.log(`[HA-Sync] Reintento #${this.retryAttempt} en ${delayMs}ms...`);
     this.settingsService.updateStatusFromOperation('unreachable');
 
-    this._logResilienceEvent('reconnect', this.retryAttempt, delayMs, `Scheduling reconnect attempt #${this.retryAttempt}.`);
+    this._logResilienceEvent('reconnect', this.retryAttempt, delayMs, `audit_logs.messages.scheduling_reconnect`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -265,7 +265,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           timestamp: new Date().toISOString(),
           deviceId: device.id,
           type: 'STATE_CHANGED',
-          description: `Device sync from HA WebSocket`,
+          description: `audit_logs.messages.device_sync`,
           data: { new_state: String(newState), attributes }
         });
       } catch (logErr: any) {
@@ -352,7 +352,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       console.log(`[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${skippedCount} omitidos.`);
       this.lastReconciliationAt = new Date().toISOString();
       this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
-        `State reconciliation completed.`, reconciledCount, skippedCount);
+        `audit_logs.messages.reconciliation_done.`, reconciledCount, skippedCount);
 
     } finally {
       this.isReconciling = false;
