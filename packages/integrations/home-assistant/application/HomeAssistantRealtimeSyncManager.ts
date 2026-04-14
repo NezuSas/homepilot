@@ -352,7 +352,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       console.log(`[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${skippedCount} omitidos.`);
       this.lastReconciliationAt = new Date().toISOString();
       this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
-        `audit_logs.messages.reconciliation_done.`, reconciledCount, skippedCount);
+        `audit_logs.messages.reconciliation_done`, reconciledCount, skippedCount);
 
     } finally {
       this.isReconciling = false;

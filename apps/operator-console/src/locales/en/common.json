@@ -51,6 +51,7 @@
     }
   },
   "dashboard": {
+    "scene_create": "Create Scene",
     "atmosphere_recipes": "Atmosphere Recipes",
     "new_scene": "New Scene",
     "active": "Active",
@@ -172,7 +173,25 @@
     "status": {
       "healthy": "Healthy",
       "degraded": "Degraded",
-      "offline": "Offline"
+      "offline": "Offline",
+      "connected": "Connected",
+      "reconnecting": "Reconnecting",
+      "not_configured": "Not Configured",
+      "idle": "Idle",
+      "running": "Running",
+      "failed": "Failed"
+    },
+    "messages": {
+      "healthy": "All core loops operating exceptionally.",
+      "degraded": "Subsystems operating below SLA.",
+      "offline": "Core link broken.",
+      "ha_not_configured": "Integration missing or empty credentials.",
+      "ha_auth_error": "Token rejected by Home Assistant.",
+      "ha_unreachable": "Target host cannot be reached on local network.",
+      "ws_reconnecting": "WebSocket disconnected, trying to recover.",
+      "recent_reconnects": "High volume of network drops detected recently.",
+      "reconciliation_failed": "State reconciliation engine threw an exception.",
+      "automation_failures": "Some logic rules failed during evaluation."
     },
     "probes": {
       "title": "Core Subsystem Probes",

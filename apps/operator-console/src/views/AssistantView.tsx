@@ -221,11 +221,11 @@ export const AssistantView: React.FC<{
                         <div className="flex items-center gap-2 mb-1">
                           {finding.severity === 'high' && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
                           <span className="font-bold text-sm tracking-tight">
-                            {t(finding.title, finding.metadata) as string}
+                            {t(`assistant.types.${finding.type}`, finding.metadata) as string}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground truncate max-w-md">
-                          {t(finding.description, finding.metadata) as string}
+                          {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
                         </p>
                       </div>
 

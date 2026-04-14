@@ -51,6 +51,7 @@
     }
   },
   "dashboard": {
+    "scene_create": "Crear Escena",
     "atmosphere_recipes": "Recetas de Atmósfera",
     "new_scene": "Nueva Escena",
     "active": "Activos",
@@ -166,7 +167,25 @@
     "status": {
       "healthy": "Saludable",
       "degraded": "Degradado",
-      "offline": "Offline"
+      "offline": "Desconectado",
+      "connected": "Conectado",
+      "reconnecting": "Reconectando",
+      "not_configured": "No Configurado",
+      "idle": "Inactivo",
+      "running": "Corriendo",
+      "failed": "Fallido"
+    },
+    "messages": {
+      "healthy": "Todos los procesos funcionan excepcionalmente.",
+      "degraded": "Los subsistemas operan por debajo del SLA.",
+      "offline": "Enlace central roto.",
+      "ha_not_configured": "Integración faltante o credenciales vacías.",
+      "ha_auth_error": "Token rechazado por Home Assistant.",
+      "ha_unreachable": "El host de destino es inalcanzable en la red local.",
+      "ws_reconnecting": "WebSocket desconectado, intentando recuperar.",
+      "recent_reconnects": "Alto volumen de caídas de red detectado recientemente.",
+      "reconciliation_failed": "El motor de reconciliación de estado lanzó una excepción.",
+      "automation_failures": "Algunas reglas lógicas fallaron durante la evaluación."
     },
     "probes": {
       "title": "Sondas de Subsistema Core",
