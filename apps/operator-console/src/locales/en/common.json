@@ -68,7 +68,124 @@
     "empty_title": "No scenes found",
     "empty_description": "Create persistent scenes to group multiple device actions into a single tap.",
     "delete_title": "Delete Scene?",
-    "delete_description": "This will permanently remove the scene. Individual devices will not be affected."
+    "delete_description": "This will permanently remove the scene. Individual devices will not be affected.",
+    "builder": {
+      "title_create": "Curate Atmosphere",
+      "title_edit": "Refine Atmosphere",
+      "subtitle": "Lifestyle Mode Definition",
+      "identity": "Identity",
+      "scope": "Scope",
+      "intent": "Atmosphere Intent",
+      "select_units": "Select Active Units ({{count}})",
+      "grouping_hint": "Intelligent grouping",
+      "commit": "Commit Atmosphere",
+      "errors": {
+        "no_name": "Atmosphere name is required",
+        "no_actions": "Please select at least one unit",
+        "sync_failed": "Failed to synchronize lifestyle mode"
+      },
+      "actions": {
+        "direct_command": "Direct Command",
+        "direct_command_desc": "Control a specific unit",
+        "invoke_scene": "Invoke Scene",
+        "invoke_scene_desc": "Activate a lifestyle mode"
+      },
+      "placeholders": {
+        "name": "e.g. Dinner Party",
+        "description": "e.g. Soft lights and gentle warmth for a fresh start"
+      }
+    },
+    "descriptions": {
+      "morning": "Soft lights and gentle warmth for a fresh start",
+      "night": "Deep shadows and warm glows for restorative rest",
+      "relax": "Ambient levels tailored for pure comfort",
+      "work": "High-clarity environment for focused productivity",
+      "welcome": "The perfect welcome home atmosphere",
+      "generic": "A tailored environment for this moment"
+    },
+    "header": {
+      "available": "{{count}} Master Recipes Available"
+    },
+    "favorites": "Favorite Environments",
+    "recents": "Command History",
+    "all_scenes": "All System Scenes",
+    "point_count": "{{count}} Points",
+    "delete_confirm_title": "Delete Scene?",
+    "delete_confirm_description": "This will permanently remove the scene. Individual devices will not be affected."
+  },
+  "ha_settings": {
+    "title": "Home Assistant Settings",
+    "status": {
+      "reachable": "Reachable",
+      "unreachable": "Unreachable",
+      "auth_error": "Auth Error",
+      "unknown": "Unknown Status"
+    },
+    "status_card": {
+      "title": "Bridge Status",
+      "subtitle": "Monitoring link with Home Assistant core",
+      "testing": "Testing...",
+      "test_button": "Test Connection",
+      "save_button": "Save Changes",
+      "active_source": "Configuration Source",
+      "last_checked": "Last Verification",
+      "error_title": "Loading Error"
+    },
+    "config": {
+      "title": "Link Parameters",
+      "subtitle": "Define how HomePilot should connect to your Home Assistant instance.",
+      "url_label": "Base URL",
+      "token_label": "Access Token (Long-Lived)",
+      "token_placeholder": "Enter your HA token...",
+      "token_masked": "Active Token: {{token}}",
+      "token_hint": "HomePilot uses this token to sync states and execute local commands."
+    },
+    "security": {
+      "title": "Data Security",
+      "description": "Your token is stored encrypted in the local system and never shared outside your home cluster.",
+      "badge": "AES-256 local"
+    },
+    "test": {
+      "success": "Connection Successful",
+      "failure": "Connection Failed",
+      "success_msg": "HomePilot has communicated correctly with Home Assistant.",
+      "failure_msg": "Could not establish link. Verify URL and Token.",
+      "url_hint": "Specify protocol (http/https) and port."
+    },
+    "messages": {
+      "save_success": "Configuration saved correctly. System has been hot-reloaded.",
+      "save_error": "Error saving configuration.",
+      "network_error": "Network error connecting to server"
+    }
+  },
+  "diagnostics": {
+    "loading": "Gathering diagnostics heartbeat...",
+    "error_loading": "Failed to load diagnostics",
+    "system_status": "System Status: {{status}}",
+    "last_event": "Last Event",
+    "active_issues": "Active Issues",
+    "no_events": "No recent events in timeline",
+    "view_details": "View Details",
+    "hide_details": "Hide Details",
+    "payload": "Payload",
+    "trace_events": "Trace Events",
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "offline": "Offline"
+    },
+    "probes": {
+      "title": "Core Subsystem Probes",
+      "ws_sync": "WebSocket Sync",
+      "connections_lost": "Recent Reconnects",
+      "last_reconnect": "Last Reconnect",
+      "activity_volume": "Activity Volume",
+      "eval_failed": "Evaluation Failures",
+      "last_execution": "Last Execution",
+      "state_delta": "State Delta",
+      "divergences_fixed": "Divergences Fixed",
+      "last_cycle": "Last Cycle"
+    }
   },
   "shell": {
     "app_title": "HomePilot",
@@ -124,7 +241,8 @@
       "actions_header": "Supported Actions",
       "data_object": "HomePilot Core Data Object v2.0",
       "label_alias": "Local Alias / Identity Override",
-      "label_room": "Room Placement"
+      "label_room": "Room Placement",
+      "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER"
     },
     "discovery": {
       "title": "Manual Discovery",
@@ -137,17 +255,25 @@
       "refresh_hint": "Manual Refresh from Home Assistant",
       "import_success": "Entity imported successfully",
       "import_error": "Failed to import entity",
-      "bridge_title": "Home Assistant Bridge"
+      "bridge_title": "Home Assistant Bridge",
+      "fetch_failed": "Failed to fetch entities from Home Assistant",
+      "discovery_error": "Discovery Error",
+      "already_imported": "Device already imported",
+      "import_failed": "Import failed",
+      "refresh_failed": "Failed to refresh state from Home Assistant"
     }
   },
   "topology": {
     "title": "Structural Topology",
     "homes_title": "Registered Homes",
-    "rooms_title": "Room Registry",
+    "rooms_in": "Rooms in",
     "add_room": "Add Room",
     "placeholder": "Room name...",
     "creating": "Creating...",
-    "select_home": "Select a home to manage its spaces."
+    "no_homes": "No homes registered.",
+    "no_rooms": "No rooms associated with this environment.",
+    "select_home": "Select a home to manage its spaces.",
+    "select_home_hint": "No Home Selected"
   },
   "automations": {
     "header": {
@@ -208,49 +334,31 @@
     "notifications": {
       "deleted": "Recipe removed from intelligence library",
       "updated": "Intelligence library updated"
-    }
-  },
-  "ha_settings": {
-    "title": "Integration Bridge",
-    "status_card": {
-      "title": "Home Assistant Configuration",
-      "subtitle": "Current bridge state",
-      "active_source": "Active Source",
-      "last_checked": "Last Verification",
-      "endpoint": "API Endpoint",
-      "token": "Access Token",
-      "save_button": "Save Changes",
-      "testing": "Testing connection...",
-      "test_button": "Test Connection",
-      "success": "Connection successful",
-      "error": "Connection failed"
     },
-    "security": {
-      "title": "V1 Security",
-      "description": "Tokens are consumed for Edge operations. The Operator Console only exposes masked versions for safety.",
-      "badge": "DURABLE STORAGE"
-    },
-    "config": {
-      "title": "Connection Configuration",
-      "subtitle": "Define the endpoint and credentials for your Home Assistant instance.",
-      "token_label": "Long-Lived Access Token",
-      "token_masked": "Masked: {{token}}",
-      "token_placeholder": "Enter token here...",
-      "token_hint": "Generate this token in your Home Assistant profile (bottom section)."
-    },
-    "test": {
-      "success": "Connection Successful",
-      "failure": "Connection Failed",
-      "success_msg": "HomePilot can communicate with HA correctly.",
-      "failure_msg": "Verify URL and Token.",
-      "url_hint": "Full URL including port. Example: http://homeassistant.local:8123"
-    },
-    "status": {
-      "label": "Connectivity Status",
-      "reachable": "Online",
-      "unreachable": "Disconnected",
-      "auth_error": "Auth Error",
-      "unknown": "Unknown"
+    "builder": {
+      "title_create": "New Recipe",
+      "title_edit": "Refine Recipe",
+      "naming_label": "Naming this Recipe",
+      "trigger_label": "Select Intelligence Trigger",
+      "trigger_device_hint": "Reaction to unit changes",
+      "trigger_time_hint": "Clock-based activation",
+      "action_label": "Define Consequence",
+      "action_device_hint": "Control a specific unit",
+      "action_scene_hint": "Activate a lifestyle mode",
+      "review": "Review Recipe",
+      "commit": "Commit Recipe",
+      "properties": {
+        "state": "STATE",
+        "lux": "LUX",
+        "temp": "TEMP"
+      },
+      "errors": {
+        "no_name": "Name is required"
+      },
+      "placeholders": {
+        "name": "e.g. Welcome Home or Movie Night",
+        "expected_value": "e.g. on"
+      }
     }
   },
   "device_states": {
@@ -258,45 +366,6 @@
     "off": "Off",
     "error": "Disconnected",
     "updating": "Updating"
-  },
-  "diagnostics": {
-    "loading": "Gathering diagnostics heartbeat...",
-    "system_status": "System {{status}}",
-    "last_event": "Last Telemetry Event",
-    "no_events": "No diagnostic events recorded recently.",
-    "status": {
-      "healthy": "Healthy",
-      "degraded": "Degraded",
-      "offline": "Offline"
-    },
-    "error_loading": "Error loading diagnostics",
-    "active_issues": "Active Issues",
-    "probes": {
-      "title": "Diagnostic Probes",
-      "ws_sync": "WebSocket Sync",
-      "connections_lost": "Connections Lost",
-      "last_reconnect": "Last Reconnect",
-      "activity_volume": "Recent Activity Volume",
-      "eval_failed": "Evaluations Failed",
-      "last_execution": "Last Execution",
-      "state_delta": "State Delta Alignment",
-      "divergences_fixed": "Divergences Fixed",
-      "last_cycle": "Last Cycle"
-    },
-    "timeline": "Filtered Timeline",
-    "view_details": "View Details",
-    "hide_details": "Hide Details",
-    "payload": "Payload",
-    "trace_events": "Trace Events",
-    "messages": {
-      "ha_not_configured": "Home Assistant connection is not configured",
-      "ha_auth_error": "Home Assistant authentication failed",
-      "ha_unreachable": "Home Assistant is unreachable",
-      "ws_reconnecting": "WebSocket is currently reconnecting",
-      "recent_reconnects": "Frequent WebSocket reconnections detected. Check network stability.",
-      "reconciliation_failed": "Latest state reconciliation failed",
-      "automation_failures": "Recent automation executions encountered errors"
-    }
   },
   "audit_logs": {
     "loading": "Retrieving security logs...",
@@ -315,7 +384,18 @@
       "ws_connected": "WebSocket connection established",
       "reconciliation_done": "State reconciliation completed",
       "auth_failed": "Auth failed permanently",
-      "scheduling_reconnect": "Scheduling reconnect attempt #{{attempt}}"
+      "scheduling_reconnect": "Scheduling reconnect attempt #{{attempt}}",
+      "automation_triggered": "Automation triggered for {{deviceName}}"
+    },
+    "types": {
+      "RECONCILIATION_DONE": "State Reconciliation",
+      "DEVICE_COMMAND_SUCCESS": "Device Command Success",
+      "DEVICE_SYNC": "Device Sync",
+      "WS_CONNECTED": "WS Connected",
+      "AUTH_FAILED": "Auth Failed",
+      "AUTOMATION_TRIGGERED": "Automation Triggered",
+      "DISCOVERY_START": "Discovery Started",
+      "DISCOVERY_RESULT": "Discovery Result"
     }
   },
   "users": {
@@ -356,6 +436,10 @@
       "restore_title": "Restore Access",
       "swap_role_title": "Swap Role (Currently {{role}})",
       "revoke_title": "Revoke Sessions"
+    },
+    "errors": {
+      "fetch_failed": "Failed to fetch user directory",
+      "create_failed": "Failed to register new user"
     }
   },
   "login": {
@@ -428,10 +512,15 @@
   "common": {
     "loading": "Loading...",
     "error": "System Error",
+    "back": "Back",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
+    "import": "Import",
     "confirm": "Confirm",
+    "retry": "Retry",
+    "unknown": "Unknown",
+    "unknown_scene": "Unknown Scene",
     "enable": "Enable",
     "disable": "Disable",
     "edit": "Edit",
@@ -439,7 +528,16 @@
     "actions": {
       "open": "Open",
       "close": "Close",
-      "stop": "Stop"
+      "stop": "Stop",
+      "on": "Turn On",
+      "off": "Turn Off",
+      "turn_on": "Turned On",
+      "turn_off": "Turned Off",
+      "toggle": "Toggle"
+    },
+    "feedback": {
+      "action_success": "{{name}}: {{action}} successful",
+      "action_failed": "{{name}}: {{action}} failed"
     },
     "unassigned": "Unassigned",
     "on": "ON",
@@ -448,6 +546,19 @@
     "execute": "EXECUTE",
     "more": "more",
     "processing": "Processing...",
+    "true": "TRUE",
+    "false": "FALSE",
+    "roles": {
+      "admin": "Administrator",
+      "operator": "Operator"
+    },
+    "errors": {
+      "api_failed": "API request failed",
+      "connection_error": "Connection error",
+      "operation_failed": "Operation failed",
+      "unknown": "Unknown error",
+      "fetch_failed": "Failed to fetch data"
+    },
     "cover": {
       "open": "Open",
       "closed": "Closed",

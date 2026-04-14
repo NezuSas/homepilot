@@ -94,7 +94,10 @@ const DashDeviceTile: React.FC<{
         const updated = await res.json();
         setOptimisticState(null);
         if (onUpdate) onUpdate(updated);
-        if (onActionExecute) onActionExecute(`${displayName} turned ${nextState ? 'on' : 'off'}`);
+        if (onActionExecute) onActionExecute(t('common.feedback.action_success', { 
+          name: displayName, 
+          action: t(`common.actions.${command}`) 
+        }));
       } else {
         setOptimisticState(null);
       }

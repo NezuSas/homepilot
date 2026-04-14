@@ -93,7 +93,7 @@ const AutomationsView: React.FC = () => {
       setScenes(scenesData);
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Connection error');
+      setError(err.message || t('common.errors.connection_error'));
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +109,7 @@ const AutomationsView: React.FC = () => {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}/${action}`, { method: 'PATCH' });
       setRules(rules.map(r => r.id === id ? { ...r, enabled: !currentlyEnabled } : r));
     } catch (err: any) {
-      setError(err.message || 'Failed to toggle rule');
+      setError(err.message || t('common.errors.operation_failed'));
     } finally {
       setProcessingId(null);
     }
@@ -125,7 +125,7 @@ const AutomationsView: React.FC = () => {
       setConfirmDeleteId(null);
       setNotification({ message: t('automations.notifications.deleted'), type: 'success' });
     } catch (err: any) {
-      setError(err.message || 'Failed to delete rule');
+      setError(err.message || t('common.errors.operation_failed'));
     } finally {
       setIsDeleting(false);
       setDeletingId(null);
@@ -134,9 +134,9 @@ const AutomationsView: React.FC = () => {
 
   const getDeviceName = (id?: string) => {
     const d = devices.find(dev => dev.id === id);
-    return d ? humanize(d.id, d.name) : (id || 'Unknown');
+    return d ? humanize(d.id, d.name) : (id || t('common.unknown'));
   };
-  const getSceneName = (id?: string) => scenes.find(s => s.id === id)?.name || id || 'Unknown Scene';
+  const getSceneName = (id?: string) => scenes.find(s => s.id === id)?.name || id || t('common.unknown_scene');
 
   if (isLoading && rules.length === 0) {
     return (

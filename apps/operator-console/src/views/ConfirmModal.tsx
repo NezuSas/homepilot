@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -19,11 +20,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   title,
   description,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   variant = 'danger',
   isSubmitting = false
 }) => {
+  const { t } = useTranslation();
+  const displayConfirm = confirmText || t('common.confirm');
+  const displayCancel = cancelText || t('common.cancel');
+
   if (!isOpen) return null;
 
   const variantColors = {
@@ -65,7 +70,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             onClick={onClose}
             className="px-6 py-3 rounded-xl border border-foreground/10 text-foreground/60 font-bold text-sm hover:bg-foreground/5 transition-all disabled:opacity-50"
           >
-            {cancelText}
+            {displayCancel}
           </button>
           <button
             disabled={isSubmitting}
@@ -74,7 +79,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           >
             {isSubmitting ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : confirmText}
+            ) : displayConfirm}
           </button>
         </div>
 

@@ -176,7 +176,7 @@ export const TopologyView: React.FC = () => {
           <>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-                Rooms en <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
+                {t('topology.rooms_in')} <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
               </h3>
               <div className="flex items-center gap-2">
                 <input 

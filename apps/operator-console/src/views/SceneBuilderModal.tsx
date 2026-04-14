@@ -71,8 +71,8 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   };
 
   const handleSave = async () => {
-    if (!name.trim()) return setError('Atmosphere name is required');
-    if (actions.length === 0) return setError('Please select at least one unit');
+    if (!name.trim()) return setError(t('scenes.builder.errors.no_name'));
+    if (actions.length === 0) return setError(t('scenes.builder.errors.no_actions'));
 
     setSaving(true);
     setError(null);
@@ -95,10 +95,10 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('Failed to synchronize lifestyle mode');
+      if (!res.ok) throw new Error(t('scenes.builder.errors.sync_failed'));
       onSaved();
     } catch (e: any) {
-      setError(e.message || 'Synchronization failed');
+      setError(e.message || t('common.errors.operation_failed'));
     } finally {
       setSaving(false);
     }
@@ -114,9 +114,9 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         <div className="flex items-center justify-between p-12 pb-6 shrink-0">
           <div>
             <h2 className="text-3xl font-black tracking-tighter leading-none mb-2">
-              {existingScene ? 'Refine Atmosphere' : 'Curate Atmosphere'}
+              {existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
             </h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">Lifestyle Mode Definition</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">{t('scenes.builder.subtitle')}</p>
           </div>
           <button onClick={onClose} className="p-4 bg-muted/40 hover:bg-muted rounded-2xl transition-all">
             <X className="w-6 h-6 text-muted-foreground" />
@@ -135,17 +135,17 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           {/* Name & Scope Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
-               <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">Identity</label>
+               <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.identity')}</label>
                <input 
                  type="text" 
                  value={name} 
                  onChange={e => setName(e.target.value)} 
-                 placeholder="e.g. Dinner Party"
+                 placeholder={t('scenes.builder.placeholders.name')}
                  className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.5rem] px-6 py-4 text-xl font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
                />
             </div>
             <div className="space-y-4">
-               <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">Scope</label>
+               <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
                <div className="relative">
                  <select 
                    value={roomId || ''} 
@@ -164,12 +164,12 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           </div>
 
           <div className="space-y-4">
-             <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">Atmosphere Intent</label>
+             <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.intent')}</label>
              <input 
                type="text" 
                value={description} 
                onChange={e => setDescription(e.target.value)} 
-               placeholder="e.g. Soft lights and gentle warmth for a fresh start"
+               placeholder={t('scenes.builder.placeholders.description')}
                className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.5rem] px-6 py-4 text-sm font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
              />
           </div>
@@ -177,8 +177,8 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           {/* Device Selection Section */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-               <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">Select Active Units ({actions.length})</label>
-               <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-primary/10 text-primary rounded-full">Intelligent grouping</span>
+               <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.select_units', { count: actions.length })}</label>
+               <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-primary/10 text-primary rounded-full">{t('scenes.builder.grouping_hint')}</span>
             </div>
             
             {availableDevices.length === 0 ? (
@@ -208,7 +208,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                           <div className="flex flex-col">
                             <span className="text-lg font-black tracking-tight leading-none mb-1">{humanize(d.id, d.name)}</span>
                             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
-                               {deviceRoom ? deviceRoom.name : 'Shared Space'}
+                               {deviceRoom ? deviceRoom.name : t('common.unassigned')}
                             </span>
                           </div>
                         </div>
@@ -222,7 +222,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                                 action?.command === 'turn_on' ? "bg-primary text-primary-foreground premium-glow" : "bg-muted/40 text-muted-foreground hover:bg-primary/20 hover:text-primary"
                               )}
                             >
-                              On
+                              {t('common.on')}
                             </button>
                             <button 
                               onClick={() => setCommand(d.id, 'turn_off')}
@@ -231,7 +231,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                                 action?.command === 'turn_off' ? "bg-foreground text-background shadow-xl" : "bg-muted/40 text-muted-foreground hover:bg-primary/20 hover:text-primary"
                               )}
                             >
-                              Off
+                              {t('common.off')}
                             </button>
                           </div>
                         )}
@@ -247,7 +247,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         {/* Footer */}
         <div className="p-12 pt-6 border-t border-border/20 bg-muted/20 flex gap-6 shrink-0">
           <button onClick={onClose} className="flex-1 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] border-2 border-border/40 hover:bg-muted transition-all">
-            Abandon
+            {t('common.cancel')}
           </button>
           <button 
             onClick={handleSave} 
@@ -255,7 +255,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
             className="flex-3 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground hover:scale-[1.03] active:scale-95 transition-all premium-glow shadow-primary/20 flex items-center justify-center gap-4"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Commit Atmosphere
+            {t('scenes.builder.commit')}
           </button>
         </div>
       </div>

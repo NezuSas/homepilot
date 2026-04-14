@@ -32,7 +32,7 @@ export function UsersView() {
       setError('');
       const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`);
       if (!res.ok) {
-        throw new Error('Failed to fetch users');
+        throw new Error(t('users.errors.fetch_failed'));
       }
       const data = await res.json();
       setUsers(data);
@@ -63,7 +63,7 @@ export function UsersView() {
       });
       if (!res.ok) {
         const err = await res.json();
-        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Failed to create user');
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : t('users.errors.create_failed'));
         throw new Error(msg);
       }
       setShowCreate(false);
@@ -83,7 +83,7 @@ export function UsersView() {
       const res = await actionFn();
       if (!res.ok) {
         const errData = await res.json();
-        const msg = errData.error?.message || (typeof errData.error === 'string' ? errData.error : 'Action failed');
+        const msg = errData.error?.message || (typeof errData.error === 'string' ? errData.error : t('common.errors.operation_failed'));
         throw new Error(msg);
       }
       await fetchUsers();

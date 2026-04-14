@@ -84,7 +84,10 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         const updated = await res.json();
         setOptimisticState(null);
         if (onUpdate) onUpdate(updated);
-        if (onActionExecute) onActionExecute(`${displayName} ${command} executed`);
+        if (onActionExecute) onActionExecute(t('common.feedback.action_success', { 
+          name: displayName, 
+          action: t(`common.actions.${command}`) 
+        }));
       } else {
         setOptimisticState(null);
       }

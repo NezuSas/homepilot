@@ -68,7 +68,118 @@
     "empty_title": "No se encontraron escenas",
     "empty_description": "Crea escenas persistentes para agrupar múltiples acciones de dispositivos en un solo toque.",
     "delete_title": "¿Eliminar Escena?",
-    "delete_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados."
+    "delete_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados.",
+    "builder": {
+      "title_create": "Curar Atmósfera",
+      "title_edit": "Refinar Atmósfera",
+      "subtitle": "Definición de Modo de Vida",
+      "identity": "Identidad",
+      "scope": "Alcance",
+      "intent": "Intención de la Atmósfera",
+      "select_units": "Seleccionar Unidades Activas ({{count}})",
+      "grouping_hint": "Agrupamiento inteligente",
+      "commit": "Confirmar Atmósfera",
+      "errors": {
+        "no_name": "El nombre de la atmósfera es obligatorio",
+        "no_actions": "Por favor, selecciona al menos una unidad",
+        "sync_failed": "Fallo al sincronizar el modo de vida"
+      },
+      "placeholders": {
+        "name": "Ej: Cena con invitados",
+        "description": "Ej: Luces suaves y calidez para un nuevo comienzo"
+      }
+    },
+    "descriptions": {
+      "morning": "Luces suaves y calidez para un nuevo comienzo",
+      "night": "Sombras profundas y brillos cálidos para un descanso reparador",
+      "relax": "Niveles de ambiente diseñados para el confort puro",
+      "work": "Entorno de alta claridad para una productividad enfocada",
+      "welcome": "La atmósfera perfecta para dar la bienvenida al hogar",
+      "generic": "Un entorno a medida para este momento"
+    },
+    "header": {
+      "available": "{{count}} Recetas Maestras Disponibles"
+    },
+    "favorites": "Entornos Favoritos",
+    "recents": "Historial de Comandos",
+    "all_scenes": "Todas las Escenas del Sistema",
+    "point_count": "{{count}} Puntos",
+    "delete_confirm_title": "¿Eliminar Escena?",
+    "delete_confirm_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados."
+  },
+  "ha_settings": {
+    "title": "Configuración de Home Assistant",
+    "status": {
+      "reachable": "Accesible",
+      "unreachable": "Inalcanzable",
+      "auth_error": "Fallo de Autenticación",
+      "unknown": "Estado Desconocido"
+    },
+    "status_card": {
+      "title": "Estado del Bridge",
+      "subtitle": "Monitoreo del enlace con el núcleo de Home Assistant",
+      "testing": "Testeando...",
+      "test_button": "Testear Conexión",
+      "save_button": "Guardar Cambios",
+      "active_source": "Origen de Configuración",
+      "last_checked": "Última Verificación",
+      "error_title": "Error de Carga"
+    },
+    "config": {
+      "title": "Parámetros de Enlace",
+      "subtitle": "Define cómo HomePilot debe conectarse a tu instancia de Home Assistant.",
+      "url_label": "URL Base",
+      "token_label": "Token de Acceso (Long-Lived)",
+      "token_placeholder": "Introduce tu token de HA...",
+      "token_masked": "Token Activo: {{token}}",
+      "token_hint": "HomePilot usa este token para sincronizar estados y ejecutar comandos locales."
+    },
+    "security": {
+      "title": "Seguridad de Datos",
+      "description": "Tu token se almacena cifrado en el sistema local y nunca se comparte fuera del clúster de tu hogar.",
+      "badge": "AES-256 local"
+    },
+    "test": {
+      "success": "Conexión Exitosa",
+      "failure": "Fallo de Conexión",
+      "success_msg": "HomePilot se ha comunicado correctamente con Home Assistant.",
+      "failure_msg": "No se pudo establecer el enlace. Verifica la URL y el Token.",
+      "url_hint": "Especifique el protocolo (http/https) y el puerto."
+    },
+    "messages": {
+      "save_success": "Configuración guardada correctamente. El sistema se ha reconfigurado en caliente.",
+      "save_error": "Error al guardar la configuración.",
+      "network_error": "Error de red al conectar con el servidor"
+    }
+  },
+  "diagnostics": {
+    "loading": "Recuperando pulso de diagnósticos...",
+    "error_loading": "Error al cargar diagnósticos",
+    "system_status": "Estado del Sistema: {{status}}",
+    "last_event": "Último Evento",
+    "active_issues": "Problemas Activos",
+    "no_events": "No hay eventos recientes en el timeline",
+    "view_details": "Ver Detalles",
+    "hide_details": "Ocultar Detalles",
+    "payload": "Datos (Payload)",
+    "trace_events": "Eventos de Traza",
+    "status": {
+      "healthy": "Saludable",
+      "degraded": "Degradado",
+      "offline": "Offline"
+    },
+    "probes": {
+      "title": "Sondas de Subsistema Core",
+      "ws_sync": "Sincronización WebSocket",
+      "connections_lost": "Reconexiones Recientes",
+      "last_reconnect": "Última Reconexión",
+      "activity_volume": "Volumen de Actividad",
+      "eval_failed": "Fallas de Evaluación",
+      "last_execution": "Última Ejecución",
+      "state_delta": "Delta de Estado",
+      "divergences_fixed": "Divergencias Corregidas",
+      "last_cycle": "Último Ciclo"
+    }
   },
   "shell": {
     "app_title": "HomePilot",
@@ -124,7 +235,8 @@
       "actions_header": "Acciones Soportadas",
       "data_object": "Objeto de Datos Core HomePilot v2.0",
       "label_alias": "Alias Local / Sobrescritura de Identidad",
-      "label_room": "Ubicación de Habitación"
+      "label_room": "Ubicación de Habitación",
+      "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER"
     },
     "discovery": {
       "title": "Descubrimiento Manual",
@@ -137,17 +249,25 @@
       "refresh_hint": "Sincronización Manual desde Home Assistant",
       "import_success": "Entidad importada correctamente",
       "import_error": "Error al importar entidad",
-      "bridge_title": "Bridge de Home Assistant"
+      "bridge_title": "Bridge de Home Assistant",
+      "fetch_failed": "Fallo al obtener entidades de Home Assistant",
+      "discovery_error": "Error de descubrimiento",
+      "already_imported": "Dispositivo ya importado",
+      "import_failed": "Fallo al importar",
+      "refresh_failed": "Fallo al refrescar estado desde Home Assistant"
     }
   },
   "topology": {
     "title": "Topología Estructural",
     "homes_title": "Hogares Registrados",
-    "rooms_title": "Registro de Habitaciones",
-    "add_room": "Añadir Habitación",
-    "placeholder": "Nombre de la habitación...",
+    "rooms_in": "Estancias en",
+    "add_room": "Añadir Estancia",
+    "placeholder": "Nombre de la estancia...",
     "creating": "Creando...",
-    "select_home": "Selecciona un hogar para gestionar sus espacios."
+    "no_homes": "No hay hogares registrados.",
+    "no_rooms": "No hay estancias asociadas a este entorno.",
+    "select_home": "Por favor, selecciona un hogar a la izquierda para gestionar sus estancias.",
+    "select_home_hint": "Sin Hogar Seleccionado"
   },
   "automations": {
     "header": {
@@ -208,49 +328,37 @@
     "notifications": {
       "deleted": "Receta eliminada de la biblioteca de inteligencia",
       "updated": "Biblioteca de inteligencia actualizada"
-    }
-  },
-  "ha_settings": {
-    "title": "Bridge de Integración",
-    "status_card": {
-      "title": "Configuración de Home Assistant",
-      "subtitle": "Estado actual del bridge",
-      "active_source": "Fuente Activa",
-      "last_checked": "Última Verificación",
-      "endpoint": "API Endpoint",
-      "token": "Token de Acceso",
-      "save_button": "Guardar Cambios",
-      "testing": "Probando conexión...",
-      "test_button": "Probar Conexión",
-      "success": "Conexión exitosa",
-      "error": "Fallo de conexión"
     },
-    "security": {
-      "title": "Seguridad V1",
-      "description": "Los tokens se consumen para operaciones en el Edge. La Consola de Operador solo expone versiones enmascaradas por seguridad.",
-      "badge": "ALMACENAMIENTO DURADERO"
-    },
-    "config": {
-      "title": "Configuración de Conexión",
-      "subtitle": "Define el endpoint y las credenciales de tu instancia de Home Assistant.",
-      "token_label": "Token de Acceso de Larga Duración",
-      "token_masked": "Enmascarado: {{token}}",
-      "token_placeholder": "Introduce el token aquí...",
-      "token_hint": "Genera este token en tu perfil de Home Assistant (sección inferior)."
-    },
-    "test": {
-      "success": "Conexión Exitosa",
-      "failure": "Fallo de Conexión",
-      "success_msg": "HomePilot puede comunicarse con HA correctamente.",
-      "failure_msg": "Verifica la URL y el Token.",
-      "url_hint": "URL completa incluyendo puerto. Ejemplo: http://homeassistant.local:8123"
-    },
-    "status": {
-      "label": "Estado de Conectividad",
-      "reachable": "En línea",
-      "unreachable": "Desconectado",
-      "auth_error": "Error Auth",
-      "unknown": "Desconocido"
+    "builder": {
+      "title_create": "Nueva Receta",
+      "title_edit": "Refinar Receta",
+      "naming_label": "Asignar nombre a esta Receta",
+      "trigger_label": "Seleccionar Disparador de Inteligencia",
+      "trigger_device_hint": "Reacción a cambios en las unidades",
+      "trigger_time_hint": "Activación basada en el reloj",
+      "action_label": "Definir Consecuencia",
+      "action_device_hint": "Controlar una unidad específica",
+      "action_scene_hint": "Activar un modo de vida",
+      "review": "Revisar Receta",
+      "commit": "Confirmar Receta",
+      "properties": {
+        "state": "ESTADO",
+        "lux": "LUZ",
+        "temp": "TEMP"
+      },
+      "errors": {
+        "no_name": "El nombre es obligatorio"
+      },
+      "actions": {
+        "direct_command": "Comando Directo",
+        "direct_command_desc": "Controlar una unidad específica",
+        "invoke_scene": "Invocar Escena",
+        "invoke_scene_desc": "Activar un modo de vida"
+      },
+      "placeholders": {
+        "name": "Ej: Bienvenida o Noche de Cine",
+        "expected_value": "Ej: on"
+      }
     }
   },
   "device_states": {
@@ -258,45 +366,6 @@
     "off": "Apagado",
     "error": "Sin conexión",
     "updating": "Actualizando"
-  },
-  "diagnostics": {
-    "loading": "Obteniendo latido de diagnósticos...",
-    "system_status": "Sistema {{status}}",
-    "last_event": "Último Evento de Telemetría",
-    "no_events": "No se registraron eventos de diagnóstico recientemente.",
-    "status": {
-      "healthy": "Sano",
-      "degraded": "Degradado",
-      "offline": "Desconectado"
-    },
-    "error_loading": "Error al cargar diagnósticos",
-    "active_issues": "Problemas Activos",
-    "probes": {
-      "title": "Sondas de Diagnóstico",
-      "ws_sync": "Sincronización WebSocket",
-      "connections_lost": "Conexiones Perdidas",
-      "last_reconnect": "Última Reconexión",
-      "activity_volume": "Volumen de Actividad Reciente",
-      "eval_failed": "Evaluaciones Fallidas",
-      "last_execution": "Última Ejecución",
-      "state_delta": "Alineación de Delta de Estado",
-      "divergences_fixed": "Divergencias Corregidas",
-      "last_cycle": "Último Ciclo"
-    },
-    "timeline": "Línea de Tiempo Filtrada",
-    "view_details": "Ver Detalles",
-    "hide_details": "Ocultar Detalles",
-    "payload": "Carga Útil",
-    "trace_events": "Eventos de Trazabilidad",
-    "messages": {
-      "ha_not_configured": "La conexión con Home Assistant no está configurada",
-      "ha_auth_error": "Fallo de autenticación en Home Assistant",
-      "ha_unreachable": "Home Assistant es inalcanzable",
-      "ws_reconnecting": "WebSocket está reconectando actualmente",
-      "recent_reconnects": "Se detectaron reconexiones frecuentes de WebSocket. Verifica la estabilidad de la red.",
-      "reconciliation_failed": "Falló la última reconciliación de estado",
-      "automation_failures": "Ejecuciones recientes de automatización encontraron errores"
-    }
   },
   "audit_logs": {
     "loading": "Recuperando registros de seguridad...",
@@ -315,7 +384,18 @@
       "ws_connected": "Conexión WebSocket establecida",
       "reconciliation_done": "Reconciliación de estado completada",
       "auth_failed": "Fallo de autenticación permanente",
-      "scheduling_reconnect": "Programando intento de reconexión #{{attempt}}"
+      "scheduling_reconnect": "Programando intento de reconexión #{{attempt}}",
+      "automation_triggered": "Automatización disparada para {{deviceName}}"
+    },
+    "types": {
+      "RECONCILIATION_DONE": "Reconciliación de estado",
+      "DEVICE_COMMAND_SUCCESS": "Comando enviado con éxito",
+      "DEVICE_SYNC": "Sincronización de dispositivo",
+      "WS_CONNECTED": "Conexión WebSocket establecida",
+      "AUTH_FAILED": "Fallo de autenticación",
+      "AUTOMATION_TRIGGERED": "Automatización activada",
+      "DISCOVERY_START": "Búsqueda de dispositivos iniciada",
+      "DISCOVERY_RESULT": "Resultado de búsqueda"
     }
   },
   "users": {
@@ -356,6 +436,10 @@
       "restore_title": "Restaurar Acceso",
       "swap_role_title": "Cambiar Rol (Actualmente {{role}})",
       "revoke_title": "Revocar Sesiones"
+    },
+    "errors": {
+      "fetch_failed": "Error al cargar el directorio de usuarios",
+      "create_failed": "Error al registrar el nuevo usuario"
     }
   },
   "login": {
@@ -382,7 +466,7 @@
       "config_present": "Presente",
       "config_missing": "Faltante",
       "valid": "Válida",
-      "unknown": "Desocnocida / Inalcanzable",
+      "unknown": "Desconocida / Inalcanzable",
       "continue": "Continuar a la Integración"
     },
     "step2": {
@@ -428,10 +512,12 @@
   "common": {
     "loading": "Cargando...",
     "error": "Error del Sistema",
+    "back": "Volver",
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "confirm": "Confirmar",
+    "retry": "Reintentar",
     "enable": "Activar",
     "disable": "Desactivar",
     "edit": "Editar",
@@ -439,15 +525,40 @@
     "actions": {
       "open": "Abrir",
       "close": "Cerrar",
-      "stop": "Detener"
+      "stop": "Detener",
+      "on": "Encender",
+      "off": "Apagar",
+      "turn_on": "Encendido",
+      "turn_off": "Apagado",
+      "toggle": "Conmutar"
+    },
+    "feedback": {
+      "action_success": "{{name}}: {{action}} completado",
+      "action_failed": "{{name}}: {{action}} fallido"
     },
     "unassigned": "Sin asignar",
     "on": "ON",
     "off": "OFF",
     "done": "LISTO",
     "execute": "EJECUTAR",
+    "import": "IMPORTAR",
     "more": "más",
     "processing": "Procesando...",
+    "true": "VERDADERO",
+    "false": "FALSO",
+    "unknown": "Desconocido",
+    "unknown_scene": "Escena Desconocida",
+    "roles": {
+      "admin": "Administrador",
+      "operator": "Operador"
+    },
+    "errors": {
+      "api_failed": "Fallo en la petición API",
+      "connection_error": "Error de conexión",
+      "operation_failed": "La operación ha fallado",
+      "unknown": "Error desconocido",
+      "fetch_failed": "Error al recuperar datos"
+    },
     "cover": {
       "open": "Abierta",
       "closed": "Cerrada",

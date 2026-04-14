@@ -34,7 +34,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
       setBaseUrl(data.baseUrl || '');
     } catch (error: any) {
       console.error('Error fetching HA status:', error);
-      setError(error.message || 'Error de conexión');
+      setError(error.message || t('common.errors.connection_error'));
     }
   };
 
@@ -53,16 +53,16 @@ export const HomeAssistantSettingsView: React.FC = () => {
         body: JSON.stringify({ baseUrl, accessToken: token || undefined })
       });
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Configuración guardada correctamente. El sistema se ha reconfigurado en caliente.' });
+        setMessage({ type: 'success', text: t('ha_settings.messages.save_success') });
         setToken(''); // Reset token field
         fetchStatus();
       } else {
         const err = await response.json();
-        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Error al guardar');
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : t('ha_settings.messages.save_error'));
         setMessage({ type: 'error', text: msg });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error de red al conectar con el servidor' });
+      setMessage({ type: 'error', text: t('ha_settings.messages.network_error') });
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
         fetchStatus();
       }
     } catch (error) {
-      setTestResult({ success: false, message: 'Error de red' });
+      setTestResult({ success: false, message: t('ha_settings.messages.network_error') });
     } finally {
       setTesting(false);
     }
@@ -104,13 +104,13 @@ export const HomeAssistantSettingsView: React.FC = () => {
         <AlertCircle className="w-8 h-8 text-rose-500" />
       </div>
       <div className="text-center">
-        <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.error_title', { defaultValue: 'Loading Error' })}</h3>
+        <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.error_title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">{error}</p>
         <button 
           onClick={fetchStatus}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all"
         >
-          Reintentar
+          {t('common.retry')}
         </button>
       </div>
     </div>
@@ -158,7 +158,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
             <div className="bg-background/40 p-3 rounded-xl border border-white/5 space-y-1">
               <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.last_checked')}</span>
               <div className="text-sm font-medium">
-                {status.lastCheckedAt ? new Date(status.lastCheckedAt).toLocaleTimeString() : t('common.never', { defaultValue: 'Never' })}
+                {status.lastCheckedAt ? new Date(status.lastCheckedAt).toLocaleTimeString() : t('common.never')}
               </div>
             </div>
           </div>
@@ -192,7 +192,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4 text-muted-foreground" />
-                Base URL
+                {t('ha_settings.config.url_label')}
               </label>
               <input 
                 type="url" 

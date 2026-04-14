@@ -141,7 +141,7 @@ function App() {
       <div className="flex flex-col min-h-screen bg-background text-foreground font-sans">
         <header className="h-16 border-b flex items-center px-6 bg-card shrink-0">
           <Monitor className="w-6 h-6 mr-3 text-primary" />
-          <h1 className="text-lg font-bold tracking-tight">HomePilot Edge</h1>
+          <h1 className="text-lg font-bold tracking-tight">{t('shell.app_title')} {t('shell.app_edge')}</h1>
         </header>
         <main className="flex-1 flex overflow-hidden">
           <OnboardingView 
@@ -279,7 +279,7 @@ function App() {
           <div className="pt-4 border-t mt-2">
             <div className="flex items-center justify-between pl-3 pr-2">
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-black tracking-tight truncate">{user?.username || 'user'}</span>
+                <span className="text-sm font-black tracking-tight truncate">{user?.username || t('common.unknown')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button 
@@ -292,7 +292,7 @@ function App() {
                 <button 
                   onClick={() => setShowPwdModal(true)}
                   className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title={t('change_password.button_tooltip')}
+                  title={t('shell.tooltips.change_password')}
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>

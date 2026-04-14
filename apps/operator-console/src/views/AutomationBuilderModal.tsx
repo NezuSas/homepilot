@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   X, Clock, Zap, Play, ChevronLeft,
   AlertCircle, Save, CheckCircle2, ArrowRight, Loader2
@@ -7,6 +8,7 @@ import { API_ENDPOINTS } from '../config';
 import Select from './Select';
 import { humanize } from '../lib/naming-utils';
 import { cn } from '../lib/utils';
+import { mapDeviceCommand } from '../lib/i18n-mapping-utils';
 
 interface Device {
   id: string;
@@ -47,6 +49,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   scenes,
   existingAutomation
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('TYPE_SELECTION');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +92,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
-    if (!name.trim()) { setError('Name is required'); return; }
+    if (!name.trim()) { setError(t('automations.builder.errors.no_name')); return; }
     setIsSubmitting(true);
     setError(null);
 
@@ -128,7 +131,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         setError(errData.message || `Server error: ${res.status}`);
       }
     } catch (err: any) {
-      setError(err.message || 'Network error');
+      setError(err.message || t('common.errors.connection_error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -136,7 +139,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
   const getDeviceName = (id?: string) => {
     const d = devices.find(dev => dev.id === id);
-    return d ? humanize(d.id, d.name) : (id || 'Unknown');
+    return d ? humanize(d.id, d.name) : (id || t('common.unassigned'));
   };
 
   const renderStep = () => {
@@ -145,19 +148,19 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         return (
           <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Naming this Recipe</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.builder.naming_label')}</label>
               <input 
                 type="text" 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Welcome Home or Movie Night"
+                placeholder={t('automations.builder.placeholders.name')}
                 className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.5rem] px-6 py-5 text-2xl font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
                 autoFocus
               />
             </div>
 
             <div className="space-y-6">
-              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Select Intelligence Trigger</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.builder.trigger_label')}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button 
                   onClick={() => { setTriggerType('device_state_changed'); setStep('TRIGGER_CONFIG'); }}
@@ -170,8 +173,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="font-black text-lg tracking-tighter">Device Event</span>
-                    <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">Reaction to unit changes</p>
+                    <span className="font-black text-lg tracking-tighter">{t('automations.form.types.device_state_changed')}</span>
+                    <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">{t('automations.builder.trigger_device_hint')}</p>
                   </div>
                 </button>
                 <button 
@@ -185,8 +188,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                     <Clock className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="font-black text-lg tracking-tighter">Time Schedule</span>
-                    <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">Clock-based activation</p>
+                    <span className="font-black text-lg tracking-tighter">{t('automations.form.types.time')}</span>
+                    <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">{t('automations.builder.trigger_time_hint')}</p>
                   </div>
                 </button>
               </div>
@@ -200,30 +203,30 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             {triggerType === 'device_state_changed' ? (
               <>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Monitor Unit</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.source_device')}</label>
                   <Select 
                     value={triggerConfig.deviceId || ''}
                     onChange={(val) => setTriggerConfig({ ...triggerConfig, deviceId: val })}
                     options={devices.map(d => ({ value: d.id, label: humanize(d.id, d.name) }))}
-                    placeholder="Choose device..."
+                    placeholder={t('automations.form.select_device')}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Property</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.state_key')}</label>
                     <Select 
                       value={triggerConfig.stateKey || 'state'}
                       onChange={(val) => setTriggerConfig({ ...triggerConfig, stateKey: val })}
-                      options={[{ value: 'state', label: 'STATE' }, { value: 'brightness', label: 'LUX' }, { value: 'temperature', label: 'TEMP' }]}
+                      options={[{ value: 'state', label: t('automations.builder.properties.state') }, { value: 'brightness', label: t('automations.builder.properties.lux') }, { value: 'temperature', label: t('automations.builder.properties.temp') }]}
                     />
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Threshold</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.expected_value')}</label>
                     <input 
                       type="text" 
                       value={triggerConfig.expectedValue || ''}
                       onChange={(e) => setTriggerConfig({ ...triggerConfig, expectedValue: e.target.value })}
-                      placeholder="e.g. on"
+                      placeholder={t('automations.builder.placeholders.expected_value')}
                       className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.2rem] px-5 py-3.5 text-lg font-black tracking-tight focus:border-primary/50 focus:ring-0 transition-all"
                     />
                   </div>
@@ -232,7 +235,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             ) : (
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Execution Time</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.time_label')}</label>
                   <div className="flex items-center gap-4">
                     <Select 
                       value={(triggerConfig.timeLocal || triggerConfig.time || '12:00').split(':')[0]} 
@@ -256,7 +259,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Repeat Days</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.days_label')}</label>
                   <div className="flex flex-wrap gap-3">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => {
                       const isSelected = (triggerConfig.days || []).includes(i);
@@ -284,14 +287,14 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
             <div className="flex justify-between items-center pt-8">
               <button onClick={() => setStep('TYPE_SELECTION')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {t('common.back')}
               </button>
               <button 
                 disabled={(!triggerConfig.deviceId && triggerType === 'device_state_changed') || (!(triggerConfig.timeLocal || triggerConfig.time) && triggerType === 'time')}
                 onClick={() => setStep('ACTION_SELECTION')}
                 className="bg-foreground text-background px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 active:scale-95 disabled:opacity-20"
               >
-                Continue
+                {t('common.continue')}
               </button>
             </div>
           </div>
@@ -300,7 +303,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
       case 'ACTION_SELECTION':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Define Consequence</label>
+            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.builder.action_label')}</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button 
                 onClick={() => { setActionType('device_command'); setStep('ACTION_CONFIG'); }}
@@ -313,8 +316,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   <Save className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-black text-lg tracking-tighter">Direct Command</span>
-                  <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">Control a specific unit</p>
+                  <span className="font-black text-lg tracking-tighter">{t('automations.builder.actions.direct_command')}</span>
+                  <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">{t('automations.builder.actions.direct_command_desc')}</p>
                 </div>
               </button>
               <button 
@@ -328,13 +331,13 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   <Play className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-black text-lg tracking-tighter">Invoke Scene</span>
-                  <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">Activate a lifestyle mode</p>
+                  <span className="font-black text-lg tracking-tighter">{t('automations.builder.actions.invoke_scene')}</span>
+                  <p className="text-xs font-bold text-muted-foreground opacity-60 mt-1">{t('automations.builder.actions.invoke_scene_desc')}</p>
                 </div>
               </button>
             </div>
             <button onClick={() => setStep('TRIGGER_CONFIG')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
-              <ChevronLeft className="w-4 h-4" /> Back
+              <ChevronLeft className="w-4 h-4" /> {t('common.back')}
             </button>
           </div>
         );
@@ -345,57 +348,57 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             {actionType === 'device_command' ? (
               <>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Target Unit</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.target_device')}</label>
                   <Select 
                     value={actionConfig.targetDeviceId || ''}
                     onChange={(val) => setActionConfig({ ...actionConfig, targetDeviceId: val })}
                     options={devices.map(d => ({ value: d.id, label: humanize(d.id, d.name) }))}
-                    placeholder="Choose device..."
+                    placeholder={t('automations.form.select_device')}
                   />
                 </div>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Instruction</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.action_type')}</label>
                   <Select 
                     value={actionConfig.command || 'turn_on'}
                     onChange={(val) => setActionConfig({ ...actionConfig, command: val })}
                     options={[
-                      { value: 'turn_on', label: 'POWER ON' },
-                      { value: 'turn_off', label: 'POWER OFF' },
-                      { value: 'toggle', label: 'TOGGLE' }
+                      { value: 'turn_on', label: t('automations.builder.commands.turn_on') },
+                      { value: 'turn_off', label: t('automations.builder.commands.turn_off') },
+                      { value: 'toggle', label: t('automations.builder.commands.toggle') }
                     ]}
                   />
                 </div>
               </>
             ) : (
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Atmosphere Scene</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{t('automations.form.select_scene')}</label>
                 <Select 
                   value={actionConfig.sceneId || ''}
                   onChange={(val) => setActionConfig({ ...actionConfig, sceneId: val })}
                   options={scenes.map(s => ({ value: s.id, label: s.name }))}
-                  placeholder="Choose scene..."
+                  placeholder={t('automations.form.select_scene')}
                 />
               </div>
             )}
 
             <div className="flex justify-between items-center pt-8">
               <button onClick={() => setStep('ACTION_SELECTION')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {t('common.back')}
               </button>
               <button 
                 disabled={!actionConfig.targetDeviceId && actionType === 'device_command' || !actionConfig.sceneId && actionType === 'execute_scene'}
                 onClick={() => setStep('FINAL')}
                 className="bg-foreground text-background px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 active:scale-95 disabled:opacity-20"
               >
-                Review Recipe
+                {t('automations.builder.review')}
               </button>
             </div>
           </div>
         );
 
       case 'FINAL':
-        const triggerDesc = triggerType === 'time' ? `At ${triggerConfig.timeLocal || triggerConfig.time}` : `${getDeviceName(triggerConfig.deviceId)} is ${triggerConfig.expectedValue}`;
-        const actionDesc = actionType === 'device_command' ? `${(actionConfig.command || 'turn_on').replace('_', ' ').toUpperCase()} ${getDeviceName(actionConfig.targetDeviceId)}` : `Invoke ${scenes.find(s => s.id === actionConfig.sceneId)?.name} scene`;
+        const triggerDesc = triggerType === 'time' ? t('automations.summary.at_time', { time: triggerConfig.timeLocal || triggerConfig.time }) : t('automations.summary.when_device', { name: getDeviceName(triggerConfig.deviceId), value: triggerConfig.expectedValue });
+        const actionDesc = actionType === 'device_command' ? t('automations.summary.run_command', { command: mapDeviceCommand(actionConfig.command || 'turn_on', t), name: getDeviceName(actionConfig.targetDeviceId) }) : t('automations.summary.run_scene', { name: scenes.find(s => s.id === actionConfig.sceneId)?.name });
 
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-600">
@@ -431,7 +434,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
             <div className="flex justify-between items-center pt-8">
               <button onClick={() => setStep('ACTION_CONFIG')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {t('common.back')}
               </button>
               <button 
                 disabled={isSubmitting}
@@ -439,7 +442,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                 className="bg-primary text-primary-foreground px-12 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all hover:scale-110 active:scale-95 premium-glow shadow-primary/20 flex items-center gap-4"
               >
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                Commit Recipe
+                {t('automations.builder.commit')}
               </button>
             </div>
           </div>
@@ -456,7 +459,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         <div className="p-12 pb-6 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black tracking-tighter">
-              {existingAutomation ? 'Refine Recipe' : 'New Recipe'}
+              {existingAutomation ? t('automations.builder.title_edit') : t('automations.builder.title_create')}
             </h2>
             <div className="flex items-center gap-1.5 mt-3">
               {[0, 1, 2, 3, 4].map((s) => (

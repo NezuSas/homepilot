@@ -91,10 +91,10 @@ const DeviceTile: React.FC<{
         onUpdate(await res.json());
       } else {
         const data = await res.json();
-        setError(data?.error?.message || 'Toggle failed');
+        setError(data?.error?.message || t('common.errors.operation_failed'));
       }
     } catch (err) {
-      setError('Connection error');
+      setError(t('common.errors.connection_error'));
     } finally {
       setIsProcessing(false);
     }
@@ -114,10 +114,10 @@ const DeviceTile: React.FC<{
       if (res.ok && onUpdate) {
         onUpdate(await res.json());
       } else {
-        setError('Assign failed');
+        setError(t('common.errors.operation_failed'));
       }
     } catch {
-      setError('Connection error');
+      setError(t('common.errors.connection_error'));
     } finally {
       setIsProcessing(false);
     }
@@ -199,7 +199,7 @@ const DeviceTile: React.FC<{
                onChange={(e) => setSelectedRoomId(e.target.value)}
              >
                {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-               {rooms.length === 0 && <option value="">{t('inbox.no_rooms', { defaultValue: 'No Rooms' })}</option>}
+               {rooms.length === 0 && <option value="">{t('common.unassigned')}</option>}
              </select>
              <button 
                onClick={handleAssign}
@@ -396,7 +396,7 @@ const DeviceInspector: React.FC<{
         setLogs(logsData);
       }
     } catch {
-      setError('Failed to fetch details');
+      setError(t('common.errors.fetch_failed'));
     } finally {
       if (isInitial) setLoading(false);
     }
@@ -425,7 +425,7 @@ const DeviceInspector: React.FC<{
         setIsRenaming(false);
       }
     } catch {
-      setError('Failed to rename device');
+      setError(t('common.errors.operation_failed'));
     } finally {
       setIsActionLoading(false);
     }
@@ -693,7 +693,7 @@ const DeviceInspector: React.FC<{
           {activeTab === 'state' && (
             <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 h-full">
               <div className="flex-1 bg-[#0D0D0D] rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-4 right-8 text-[9px] font-black font-mono opacity-20 tracking-widest group-hover:opacity-40 transition-opacity">READ_ONLY_MODE::JSON_PARSER</div>
+                  <div className="absolute top-4 right-8 text-[9px] font-black font-mono opacity-20 tracking-widest group-hover:opacity-40 transition-opacity">{t('inbox.inspector.json_parser_hint')}</div>
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                   <pre className="text-[11px] font-mono text-green-400 overflow-auto h-full leading-relaxed custom-scrollbar relative z-10 selection:bg-primary/30">
                     {JSON.stringify(device.lastKnownState, null, 4)}
@@ -738,7 +738,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
       setEntities(await res.json());
       setShowDiscovery(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Discovery Error');
+      setError(err instanceof Error ? err.message : t('inbox.discovery.discovery_error'));
     } finally {
       setLoading(false);
     }
@@ -756,7 +756,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
         onImported();
         setEntities((prev: HaEntityCandidate[]) => prev.filter((e: HaEntityCandidate) => e.entityId !== entity.entityId));
       } else if (res.status === 409) {
-        setError('Device already imported');
+        setError(t('inbox.discovery.already_imported'));
         setEntities((prev: HaEntityCandidate[]) => prev.filter((e: HaEntityCandidate) => e.entityId !== entity.entityId));
       } else {
         const data = await res.json();
@@ -764,7 +764,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
         setError(`Error: ${msg}`);
       }
     } catch {
-      setError('Import failed');
+      setError(t('inbox.discovery.import_failed'));
     } finally {
       setImportingId(null);
     }

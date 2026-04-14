@@ -29,12 +29,12 @@ export const AuditLogsView: React.FC = () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/api/v1/activity-logs`);
-      if (!res.ok) throw new Error(t('audit_logs.fetch_error', { defaultValue: 'No se pudo sincronizar el historial técnico' }));
+      if (!res.ok) throw new Error(t('audit_logs.fetch_error'));
       const data = await res.json() as ActivityRecord[];
       setLogs(data);
       setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('common.error', { defaultValue: 'Fallo en la comunicación con el Edge' }));
+      setError(err instanceof Error ? err.message : t('common.errors.api_failed'));
     } finally {
       setLoading(false);
     }

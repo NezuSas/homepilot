@@ -163,19 +163,19 @@ const ScenesView: React.FC<{
   const getEmotionalDescription = (scene: Scene) => {
     if (scene.description) return scene.description;
     const n = scene.name.toLowerCase();
-    if (n.includes('morning')) return t('scenes.descriptions.morning', { defaultValue: "Soft lights and gentle warmth for a fresh start" });
-    if (n.includes('night')) return t('scenes.descriptions.night', { defaultValue: "Deep shadows and warm glows for restorative rest" });
-    if (n.includes('relax')) return t('scenes.descriptions.relax', { defaultValue: "Ambient levels tailored for pure comfort" });
-    if (n.includes('work')) return t('scenes.descriptions.work', { defaultValue: "High-clarity environment for focused productivity" });
-    if (n.includes('welcome')) return t('scenes.descriptions.welcome', { defaultValue: "The perfect welcome home atmosphere" });
-    return t('scenes.descriptions.generic', { defaultValue: "A tailored environment for this moment" });
+    if (n.includes('morning')) return t('scenes.descriptions.morning');
+    if (n.includes('night')) return t('scenes.descriptions.night');
+    if (n.includes('relax')) return t('scenes.descriptions.relax');
+    if (n.includes('work')) return t('scenes.descriptions.work');
+    if (n.includes('welcome')) return t('scenes.descriptions.welcome');
+    return t('scenes.descriptions.generic');
   };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4 opacity-50">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="text-xs font-black uppercase tracking-widest">{t('common.loading')}</span>
+        <span className="text-xs font-black uppercase tracking-widest">{t('common.processing')}</span>
       </div>
     );
   }
@@ -213,11 +213,11 @@ const ScenesView: React.FC<{
             </p>
             <div className="flex items-center gap-3 mt-4">
                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
-                 {room ? room.name : t('common.global_state', { defaultValue: "Global State" })}
+                 {room ? room.name : t('common.unknown')}
                </span>
                <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
-                 {t('scenes.point_count', { count: scene.actions.length, defaultValue: `${scene.actions.length} Points` })}
+                 {t('scenes.point_count', { count: scene.actions.length })}
                </span>
             </div>
           </div>
@@ -261,7 +261,7 @@ const ScenesView: React.FC<{
         <div className="flex flex-col">
           <h2 className="text-3xl font-black tracking-tighter">{t('nav.scenes')}</h2>
           <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest mt-1">
-             {t('scenes.header.available', { count: scenes.length, defaultValue: `${scenes.length} Master Recipes Available` })}
+             {t('scenes.header.available', { count: scenes.length })}
           </p>
         </div>
         <button 
@@ -297,7 +297,7 @@ const ScenesView: React.FC<{
             <div className="flex flex-col gap-6">
                <div className="flex items-center gap-3">
                   <Star className="w-4 h-4 text-amber-500 fill-current" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.favorites', { defaultValue: "Favorite Environments" })}</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.favorites')}</h3>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {favoriteScenes.map(s => <SceneCard key={s.id} scene={s} />)}
@@ -310,7 +310,7 @@ const ScenesView: React.FC<{
             <div className="flex flex-col gap-6">
                <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-primary" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.recents', { defaultValue: "Command History" })}</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.recents')}</h3>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {recentScenes.map(s => <SceneCard key={s.id} scene={s} />)}
@@ -322,7 +322,7 @@ const ScenesView: React.FC<{
           <div className="flex flex-col gap-6">
              <div className="flex items-center gap-3">
                 <LayoutGrid className="w-4 h-4 text-muted-foreground" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.all_scenes', { defaultValue: "All System Scenes" })}</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.all_scenes')}</h3>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {otherScenes.map(s => <SceneCard key={s.id} scene={s} />)}

@@ -64,7 +64,7 @@ export function DiagnosticsView() {
         fetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`)
       ]);
 
-      if (!snapshotRes.ok || !eventsRes.ok) throw new Error('API Request failed');
+      if (!snapshotRes.ok || !eventsRes.ok) throw new Error(t('common.errors.api_failed'));
 
       setSnapshot(await snapshotRes.json());
       setEvents(await eventsRes.json());
@@ -86,7 +86,7 @@ export function DiagnosticsView() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <RefreshCw className="w-8 h-8 animate-spin mb-4" />
-        <p className="text-sm font-medium">{t('diagnostics.loading', { defaultValue: 'Gathering diagnostics heartbeat...' })}</p>
+        <p className="text-sm font-medium">{t('diagnostics.loading')}</p>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export function DiagnosticsView() {
         <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
         <div>
           <h3 className="font-bold text-sm">{t('diagnostics.error_loading')}</h3>
-          <p className="text-xs opacity-80 mt-1">{error || 'Unknown error'}</p>
+          <p className="text-xs opacity-80 mt-1">{error || t('common.errors.unknown')}</p>
         </div>
       </div>
     );
@@ -155,8 +155,8 @@ export function DiagnosticsView() {
             <h2 className="text-2xl font-bold tracking-tight capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${snapshot.overallStatus}`) })}</h2>
             <p className="text-sm text-foreground/60 mt-1">
               {snapshot.overallStatus === 'healthy' 
-                ? 'All core services and integrations are operational.' 
-                : snapshot.issues.length ? 'Issues detected. Operator revision required.' : 'System components unreachable.'}
+                ? t('diagnostics.messages.healthy')
+                : snapshot.issues.length ? t('diagnostics.messages.degraded') : t('diagnostics.messages.offline')}
             </p>
           </div>
         </div>
@@ -193,7 +193,7 @@ export function DiagnosticsView() {
         <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
           <div className="flex items-start justify-between">
             <h4 className="font-bold flex items-center gap-2">
-              <Server className="w-4 h-4 text-primary" /> HA Bridge Integration
+              <Server className="w-4 h-4 text-primary" /> {t('ha_settings.title')}
             </h4>
             <StatusBadge status={snapshot.haConnectionStatus} />
           </div>
@@ -217,7 +217,7 @@ export function DiagnosticsView() {
         <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
           <div className="flex items-start justify-between">
             <h4 className="font-bold flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" /> Automation Engine
+              <Zap className="w-4 h-4 text-primary" /> {t('dashboard.logic_engine')}
             </h4>
             <StatusBadge status={snapshot.automationEngineStatus} />
           </div>
@@ -245,7 +245,7 @@ export function DiagnosticsView() {
         <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
           <div className="flex items-start justify-between">
             <h4 className="font-bold flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 text-primary" /> State Reconciliation
+              <RefreshCw className="w-4 h-4 text-primary" /> {t('diagnostics.probes.state_delta')}
             </h4>
             <StatusBadge status={snapshot.reconciliationStatus} />
           </div>
@@ -270,7 +270,7 @@ export function DiagnosticsView() {
 
       {/* TIMELINE */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">Filtered Timeline</h3>
+        <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
         <div className="border border-border bg-card rounded-2xl overflow-hidden">
           <div className="divide-y divide-border/50 max-h-[600px] overflow-y-auto custom-scrollbar">
             {events.length === 0 ? (
@@ -322,7 +322,7 @@ export function DiagnosticsView() {
                             <span className={cn("font-bold text-sm tracking-tight", isError ? "text-red-500" : "")}>{ev.eventType}</span>
                             {(hasChildren || hasData) && (
                               <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
-                                {isExpanded ? t('diagnostics.hide_details', 'Hide Details') : t('diagnostics.view_details', 'View Details')}
+                                {isExpanded ? t('diagnostics.hide_details') : t('diagnostics.view_details')}
                               </span>
                             )}
                           </div>
@@ -334,7 +334,7 @@ export function DiagnosticsView() {
                         <div className="ml-28 pl-4 border-l-2 border-border/50 flex flex-col gap-4 mt-2">
                           {hasData && (
                             <div className="text-[10px] font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
-                              <span className="font-bold uppercase tracking-widest opacity-60 mb-2 block">{t('diagnostics.payload', 'Payload')}</span>
+                              <span className="font-bold uppercase tracking-widest opacity-60 mb-2 block">{t('diagnostics.payload')}</span>
                               {Object.entries(ev.data).map(([key, val]) => (
                                 <div key={key}><span className="opacity-50">{key}:</span> {typeof val === 'object' ? JSON.stringify(val) : String(val)}</div>
                               ))}
@@ -343,7 +343,7 @@ export function DiagnosticsView() {
 
                           {hasChildren && (
                             <div className="flex flex-col gap-3 mt-2">
-                              <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">{t('diagnostics.trace_events', 'Trace Events')}</span>
+                              <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">{t('diagnostics.trace_events')}</span>
                               {group.children.map((child, cIdx) => (
                                 <div key={cIdx} className="flex gap-4 items-start text-xs text-muted-foreground bg-card border rounded p-3">
                                   <div className="w-20 shrink-0 font-mono opacity-60">
