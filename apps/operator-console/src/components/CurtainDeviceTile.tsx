@@ -44,7 +44,6 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const lastState = (device.lastKnownState || {}) as DeviceState;
   const rawState = lastState.state || 'unknown';
   
-  // State Inversion Logic
   const getFunctionalState = (s: string) => {
     if (!device.invertState) return s;
     const map: Record<string, string> = {
@@ -70,7 +69,6 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const handleCommand = async (command: 'open' | 'close' | 'stop') => {
     if (isProcessing) return;
     
-    // Optimistic feedback respecting inversion
     if (command === 'open') setOptimisticState('opening');
     else if (command === 'close') setOptimisticState('closing');
     
@@ -102,77 +100,72 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   return (
     <div className={cn(
-      "relative group transition-all duration-700 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center border-2 shadow-sm active:scale-95 h-full overflow-hidden",
-      (isOpening || isClosing || isOpen) ? "bg-card/30 border-primary/10" : "bg-card/20 border-border/40 hover:border-primary/5",
+      "relative group transition-all duration-700 rounded-[2rem] p-5 flex flex-col items-center justify-between text-center border-2 h-full overflow-hidden",
+      (isOpening || isClosing || isOpen) ? "bg-card/30 border-primary/10" : "bg-card/20 border-border/40 hover:border-primary/10",
       device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
     )}>
       
-      {/* Premium Architectural Animation Layer - Subtler */}
+      {/* SHUTTER SYSTEM: Architectural Visual State */}
       <div className={cn(
         "absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out z-0",
-        isOpen ? "bg-transparent" : "bg-black/5"
+        isOpen ? "bg-transparent" : "bg-black/10"
       )}>
         <div 
           className={cn(
-            "absolute inset-0 bg-black/20 transition-transform duration-[1000ms] ease-in-out",
+            "absolute inset-0 bg-black/50 transition-transform duration-[1200ms] ease-in-out border-b border-white/5 shadow-2xl",
             isOpen ? "-translate-y-full" : "translate-y-0"
           )} 
         />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-5 w-full">
-        {/* Icon Area - Subtler */}
-        <div className={cn(
-          "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-1000",
-          (isOpening || isClosing || isOpen) ? "bg-primary/5 text-primary/60" : "bg-muted/40 text-muted-foreground/20"
-        )}>
-          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Blinds className={cn("w-4 h-4 opacity-60", (isOpening || isClosing) && "animate-pulse")} />}
-        </div>
+      <div className="relative z-10 flex flex-col items-center w-full h-full justify-between gap-4">
+        {/* Top Section: Icon & Identity */}
+        <div className="flex flex-col items-center gap-2 pt-4">
+          <div className={cn(
+            "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-1000 bg-muted/20",
+            (isOpening || isClosing || isOpen) ? "text-primary/40" : "text-muted-foreground/10"
+          )}>
+            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Blinds className="w-3.5 h-3.5 opacity-40 shrink-0" />}
+          </div>
 
-        {/* Identity & State - Sentence Case & Lighter Weight */}
-        <div className="flex flex-col items-center min-w-0">
-          <h4 className="text-xs font-semibold truncate tracking-tight mb-1 opacity-80">{displayName}</h4>
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
-              (isOpening || isClosing) ? "status-dot-updating" : (isOpen ? "bg-primary/60" : "bg-muted-foreground/20")
-            )} />
-            <span className="text-[10px] font-medium tracking-wide opacity-50">
+          <div className="flex flex-col items-center min-w-0">
+            <h4 className="text-[11px] font-semibold truncate tracking-tight opacity-60 px-2">{displayName}</h4>
+            <span className="text-[8px] font-medium tracking-wide opacity-20 uppercase mt-0.5">
               {localizedState}
             </span>
           </div>
         </div>
 
-        {/* Dynamic Actions - Reduced Size & Soft Hierarchy */}
-        <div className="w-full max-w-[140px] flex flex-col gap-2 pt-1">
+        {/* Bottom Section: Ghost Actions (Premium Minimalism) */}
+        <div className="w-full max-w-[120px] flex flex-col gap-1 mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
             disabled={!!isProcessing || isOpening || isClosing}
             className={cn(
-              "w-full h-9 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 text-[10px] font-semibold border",
+              "w-full h-8 rounded-lg flex items-center justify-center gap-2 transition-all duration-500 text-[9px] font-bold border",
               isOpen 
-                ? "bg-secondary/20 border-border/50 text-foreground/70 hover:bg-secondary/30" 
-                : "bg-primary/10 border-primary/20 text-primary hover:bg-primary/15"
+                ? "bg-secondary/5 border-border/20 text-foreground/30 hover:bg-secondary/10" 
+                : "bg-primary/5 border-primary/10 text-primary/60 hover:bg-primary/10"
             )}
           >
-            {isOpen ? <ArrowDown className="w-3 h-3 opacity-60" /> : <ArrowUp className="w-3 h-3 opacity-60" />}
+            {isOpen ? <ArrowDown className="w-2.5 h-2.5 opacity-30" /> : <ArrowUp className="w-2.5 h-2.5 opacity-30" />}
             {isOpen ? t('common.actions.close') : t('common.actions.open')}
           </button>
           
           <button
             onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
             disabled={!!isProcessing}
-            className="w-full h-8 rounded-xl bg-transparent text-muted-foreground/30 flex items-center justify-center gap-2 transition-all hover:bg-muted hover:text-foreground active:scale-95 text-[9px] font-medium"
+            className="w-full h-7 rounded-lg bg-transparent text-muted-foreground/10 flex items-center justify-center gap-1.5 transition-all hover:bg-muted/10 hover:text-foreground/30 active:scale-95 text-[8px] font-bold"
           >
-            <Square className="w-2.5 h-2.5 fill-current opacity-40" />
+            <Square className="w-2 h-2 fill-current opacity-20" />
             {t('common.actions.stop')}
           </button>
         </div>
       </div>
 
-      {/* Progress Line - More Subtle */}
+      {/* Atmospheric Progress Line */}
       {position !== undefined && (
-        <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-muted/5 overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-white/5 overflow-hidden">
           <div 
             className="h-full bg-primary/20 transition-all duration-1000" 
             style={{ width: `${position}%` }}
