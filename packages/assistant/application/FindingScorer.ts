@@ -1,11 +1,22 @@
-import { AssistantFinding, FindingSeverity, FindingType } from '../domain/AssistantFinding';
+import { FindingSeverity, FindingType } from '../domain/AssistantFinding';
+import { LearningModifiers } from './AssistantLearningService';
+
+export interface ScoredFinding {
+  score: number;
+  explanation?: string;
+}
 
 export class FindingScorer {
   /**
    * Calculates a deterministic score for a finding.
    * Higher score = Higher priority.
    */
-  static calculateScore(type: FindingType, severity: FindingSeverity, metadata: Record<string, any> = {}): number {
+  static calculateScore(
+    type: FindingType, 
+    severity: FindingSeverity, 
+    metadata: Record<string, any> = {},
+    learning?: LearningModifiers
+  ): ScoredFinding {
     let baseScore = 0;
 
     // 1. Base Type Weights
@@ -45,17 +56,28 @@ export class FindingScorer {
     let score = baseScore * severityMultiplier[severity];
 
     // 3. Metadata Boosts
-    // Example: Duplicate names with many instances get a boost
     if (type === 'device_name_duplicate' && metadata.count > 2) {
       score += 15;
     }
 
-    // Example: Suggestions with many linked devices are more valuable
     if (type === 'automation_suggestion' || type === 'scene_suggestion') {
       const entities = (metadata.sensorCount || 0) + (metadata.lightCount || 0) + (metadata.coverCount || 0);
       if (entities > 3) score += 10;
     }
 
-    return Math.round(score);
+    // 4. Learning Modifiers (V4)
+    let explanation: string | undefined = undefined;
+    if (learning) {
+      const typeModifier = learning.typeModifiers[type] || 0;
+      if (typeModifier !== 0) {
+        score += typeModifier;
+        explanation = learning.explanations[type];
+      }
+    }
+
+    return {
+      score: Math.round(score),
+      explanation
+    };
   }
 }

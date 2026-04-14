@@ -22,6 +22,10 @@
     "no_findings": "Your system is optimized. No issues detected.",
     "scan_trigger": "Scan System",
     "scanning": "Scanning...",
+    "learning": {
+      "priority_boost_type": "High priority based on your preferences",
+      "priority_penalty_type": "Optimized priority based on past dismissals"
+    },
     "dismiss": "Dismiss",
     "resolve": "Navigate",
     "actions": {

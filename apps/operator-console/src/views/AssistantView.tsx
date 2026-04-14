@@ -29,6 +29,7 @@ interface Finding {
   actions: { type: string; label: string; payload?: any }[];
   metadata: Record<string, any>;
   score: number;
+  explanation?: string;
 }
 
 export const AssistantView: React.FC<{
@@ -250,6 +251,15 @@ export const AssistantView: React.FC<{
                       {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
                     </p>
 
+                    {finding.explanation && (
+                      <div className="flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/10 animate-in fade-in slide-in-from-top-1 duration-500">
+                        <Sparkles className="w-3 h-3 text-primary/60" />
+                        <span className="text-[10px] font-medium text-primary/80 italic">
+                          {t(finding.explanation)}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       {(finding.actions || []).slice(0, 1).map((action: any) => (
                         <button
@@ -364,6 +374,14 @@ export const AssistantView: React.FC<{
                           <p className="text-xs text-muted-foreground leading-relaxed">
                             {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
                           </p>
+                          {finding.explanation && (
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <Sparkles className="w-2.5 h-2.5 text-primary/40" />
+                              <span className="text-[10px] text-primary/60 italic leading-none">
+                                {t(finding.explanation)}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">

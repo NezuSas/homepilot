@@ -1,10 +1,14 @@
 import { AssistantFindingRepository } from '../domain/repositories/AssistantFindingRepository';
+import { AssistantFeedbackRepository } from '../domain/repositories/AssistantFeedbackRepository';
+import { randomUUID } from 'crypto';
+import { FeedbackType } from '../domain/AssistantFeedbackEvent';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { assignDeviceUseCase, AssignDeviceUseCaseDependencies } from '../../devices/application/assignDeviceUseCase';
 import { HomeAssistantImportService } from '../../devices/application/HomeAssistantImportService';
 
 export interface AssistantActionServiceDependencies {
   assistantFindingRepository: AssistantFindingRepository;
+  assistantFeedbackRepository: AssistantFeedbackRepository;
   deviceRepository: DeviceRepository;
   assignDeviceDeps: AssignDeviceUseCaseDependencies;
   haImportService: HomeAssistantImportService;
@@ -24,6 +28,8 @@ export class AssistantActionService {
     if (!finding) throw new Error('FINDING_NOT_FOUND');
 
     let success = false;
+    await this.recordFeedback(finding, 'accepted', actionType);
+
     switch (actionType) {
       case 'assign_room':
         await this.handleAssignRoom(finding.relatedEntityId!, payload.roomId, userId, correlationId);
@@ -60,6 +66,21 @@ export class AssistantActionService {
     await this.deps.deviceRepository.saveDevice({
       ...device,
       name: newName
+    });
+  }
+
+  private async recordFeedback(finding: any, feedbackType: FeedbackType, actionType: string): Promise<void> {
+    await this.deps.assistantFeedbackRepository.save({
+      id: randomUUID(),
+      findingType: finding.type,
+      relatedEntityType: finding.relatedEntityType,
+      relatedEntityId: finding.relatedEntityId,
+      roomId: finding.metadata?.roomId || null,
+      domain: finding.metadata?.domain || null,
+      actionType,
+      feedbackType,
+      createdAt: new Date().toISOString(),
+      metadata: {}
     });
   }
 }

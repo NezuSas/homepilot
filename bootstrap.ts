@@ -38,6 +38,8 @@ import { AssistantService } from './packages/assistant/application/AssistantServ
 import { AssistantActionService } from './packages/assistant/application/AssistantActionService';
 import { ContextAnalysisService } from './packages/assistant/application/ContextAnalysisService';
 import { SQLiteTopologyReferenceAdapter } from './packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
+import { SQLiteAssistantFeedbackRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantFeedbackRepository';
+import { AssistantLearningService } from './packages/assistant/application/AssistantLearningService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -358,11 +360,18 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     cryptoService
   );
 
-  // -- INIT ASSISTANT V3 --
+  // -- INIT ASSISTANT V4 --
   const assistantRepository = new SQLiteAssistantFindingRepository(dbPath);
+  const assistantFeedbackRepository = new SQLiteAssistantFeedbackRepository(dbPath);
+  const assistantLearningService = new AssistantLearningService(assistantFeedbackRepository);
   const contextAnalysisService = new ContextAnalysisService(deviceRepository, roomRepository);
   const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy, contextAnalysisService);
-  const assistantService = new AssistantService(assistantRepository, assistantDetectionService);
+  const assistantService = new AssistantService(
+    assistantRepository, 
+    assistantDetectionService,
+    assistantLearningService,
+    assistantFeedbackRepository
+  );
 
   // PERF-1: Build the composite command dispatcher ONCE and reuse it across all request handlers.
   // This eliminates the per-request instantiation of three dispatcher objects.
@@ -384,6 +393,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const assistantActionService = new AssistantActionService({
     assistantFindingRepository: assistantRepository,
+    assistantFeedbackRepository,
     deviceRepository,
     haImportService,
     assignDeviceDeps: {

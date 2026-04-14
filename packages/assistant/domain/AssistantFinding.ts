@@ -32,6 +32,7 @@ export interface AssistantFinding {
   actions: AssistantAction[];
   metadata: Record<string, any>;
   score: number;
+  explanation?: string;
   createdAt: string;
   updatedAt: string;
   dismissedAt?: string | null;

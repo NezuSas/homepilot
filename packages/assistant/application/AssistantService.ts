@@ -2,13 +2,18 @@ import { randomUUID } from 'crypto';
 import { AssistantFindingRepository } from '../domain/repositories/AssistantFindingRepository';
 import { AssistantDetectionService } from './AssistantDetectionService';
 import { AssistantFinding } from '../domain/AssistantFinding';
+import { AssistantLearningService } from './AssistantLearningService';
+import { AssistantFeedbackRepository } from '../domain/repositories/AssistantFeedbackRepository';
+import { AssistantFeedbackEvent } from '../domain/AssistantFeedbackEvent';
 
 export class AssistantService {
   private isScanning = false;
 
   constructor(
     private readonly repository: AssistantFindingRepository,
-    private readonly detectionService: AssistantDetectionService
+    private readonly detectionService: AssistantDetectionService,
+    private readonly learningService: AssistantLearningService,
+    private readonly feedbackRepository: AssistantFeedbackRepository
   ) {}
 
   public async scan(homeId: string, source: string = 'system_scan'): Promise<void> {
@@ -16,7 +21,8 @@ export class AssistantService {
     this.isScanning = true;
 
     try {
-      const detected = await this.detectionService.scan(homeId);
+      const learning = await this.learningService.computeModifiers();
+      const detected = await this.detectionService.scan(homeId, learning);
       const now = new Date().toISOString();
       const detectedFingerprints = detected.map(f => f.fingerprint!);
 
@@ -54,6 +60,7 @@ export class AssistantService {
             actions: partial.actions || [],
             metadata: { ...existing.metadata, ...partial.metadata },
             score: partial.score || existing.score,
+            explanation: partial.explanation || existing.explanation,
             updatedAt: now
           });
         }
@@ -73,12 +80,36 @@ export class AssistantService {
   }
 
   public async dismiss(id: string): Promise<void> {
+    const finding = await this.repository.findById(id);
+    if (finding) {
+      await this.recordFeedback(finding, 'dismissed');
+    }
     const cooldownDays = 7;
     const dismissedUntil = new Date(Date.now() + cooldownDays * 24 * 60 * 60 * 1000).toISOString();
     await this.repository.updateStatus(id, 'dismissed', dismissedUntil);
   }
 
   public async resolve(id: string): Promise<void> {
+    const finding = await this.repository.findById(id);
+    if (finding) {
+      await this.recordFeedback(finding, 'completed');
+    }
     await this.repository.updateStatus(id, 'resolved');
+  }
+
+  private async recordFeedback(finding: AssistantFinding, type: any): Promise<void> {
+    const event: AssistantFeedbackEvent = {
+      id: randomUUID(),
+      findingType: finding.type,
+      relatedEntityType: finding.relatedEntityType,
+      relatedEntityId: finding.relatedEntityId,
+      roomId: finding.metadata?.roomId || null,
+      domain: finding.metadata?.domain || null,
+      actionType: null, // Could be refined if we track specific action clicked
+      feedbackType: type,
+      createdAt: new Date().toISOString(),
+      metadata: {}
+    };
+    await this.feedbackRepository.save(event);
   }
 }

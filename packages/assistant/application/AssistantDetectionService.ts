@@ -3,6 +3,7 @@ import { HomeAssistantClient } from '../../devices/infrastructure/adapters/HomeA
 import { AssistantFinding, generateFindingFingerprint } from '../domain/AssistantFinding';
 import { ContextAnalysisService, SystemContext } from './ContextAnalysisService';
 import { FindingScorer } from './FindingScorer';
+import { LearningModifiers } from './AssistantLearningService';
 
 export class AssistantDetectionService {
   constructor(
@@ -11,7 +12,7 @@ export class AssistantDetectionService {
     private readonly contextService: ContextAnalysisService
   ) {}
 
-  public async scan(homeId: string): Promise<Partial<AssistantFinding>[]> {
+  public async scan(homeId: string, learning?: LearningModifiers): Promise<Partial<AssistantFinding>[]> {
     let findings: Partial<AssistantFinding>[] = [];
 
     // 0. Analyze Context
@@ -25,10 +26,14 @@ export class AssistantDetectionService {
     findings.push(...await this.detectSuggestions(context));
 
     // 2. Apply Scoring & Noise Control
-    findings = findings.map(f => ({
-      ...f,
-      score: FindingScorer.calculateScore(f.type!, f.severity as any, f.metadata || {})
-    }));
+    findings = findings.map(f => {
+      const result = FindingScorer.calculateScore(f.type!, f.severity as any, f.metadata || {}, learning);
+      return {
+        ...f,
+        score: result.score,
+        explanation: result.explanation
+      };
+    });
 
     // Noise Control: Filter out very low score findings if we have high-value ones
     const highValueCount = findings.filter(f => f.score! >= 70).length;

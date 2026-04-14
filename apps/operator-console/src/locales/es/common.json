@@ -22,6 +22,10 @@
     "no_findings": "Tu sistema está optimizado. No se detectaron problemas.",
     "scan_trigger": "Escanear Sistema",
     "scanning": "Escaneando...",
+    "learning": {
+      "priority_boost_type": "Prioridad alta según tus preferencias",
+      "priority_penalty_type": "Prioridad ajustada por descartes previos"
+    },
     "dismiss": "Omitir",
     "resolve": "Navigar",
     "actions": {
