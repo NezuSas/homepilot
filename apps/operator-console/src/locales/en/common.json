@@ -6,16 +6,26 @@
     "automations": "Automations",
     "audit_logs": "Security Audit",
     "ha_settings": "HA Settings",
-    "diagnostics": "Diagnostics",
-    "users": "User Directory",
-    "logout": "Logout",
-    "user_management": "User Management",
-    "observability": "Observability Stack",
-    "dashboard_hint": "Room-based rapid control and scenario execution.",
-    "audit_trail": "Immutable audit trails and tactical technical history for system auditing.",
     "automations_hint": "Local event-driven logic workbench for reactive edge behaviors.",
     "scenes": "Persistent Scenes",
-    "scenes_hint": "Predefined group actions for rapid environment control."
+    "scenes_hint": "Predefined group actions for rapid environment control.",
+    "diagnostics": "Diagnostics",
+    "observability": "Observability",
+    "user_management": "User Management"
+  },
+  "dashboard": {
+    "atmosphere_recipes": "Atmosphere Recipes",
+    "new_scene": "New Scene",
+    "active": "Active",
+    "elements": "Elements",
+    "living_space": "Atmosphere & Living Space",
+    "topology": "System Topology",
+    "discovery": "Device Discovery",
+    "logic_engine": "Logic Engine",
+    "recipes": "Atmosphere Recipes",
+    "platform": "Platform Integration",
+    "observability": "System Observability",
+    "experience": "Curated experience"
   },
   "scenes": {
     "empty_title": "No scenes found",
@@ -26,7 +36,14 @@
   "shell": {
     "app_title": "HomePilot",
     "app_edge": "Edge",
-    "subtitle": "Operator Console v3.5"
+    "subtitle": "Operator Console v3.5",
+    "status": {
+      "online": "System Online",
+      "stable": "System stable",
+      "syncing": "Synchronizing system",
+      "updated_now": "Updated now",
+      "mode_label": "Mode {{mode}}"
+    }
   },
   "inbox": {
     "title": "Device Manager",
@@ -308,7 +325,20 @@
     "error_match": "New passwords do not match",
     "error_length": "Password must be at least 8 characters",
     "error_failed": "Incorrect current password or server error",
-    "error_generic": "Failed to change password"
+    "error_generic": "Failed to change password",
+    "button_tooltip": "Change Password"
+  },
+  "modes": {
+    "relax": "Relax",
+    "away": "Away",
+    "night": "Night",
+    "energy": "Eco"
+  },
+  "system": {
+    "advanced": "System Advanced",
+    "connection_lost": "System Connection Lost",
+    "unreachable_msg": "The Edge Controller is unreachable. Check power and network.",
+    "retry": "Retry Connection"
   },
   "common": {
     "loading": "Loading...",

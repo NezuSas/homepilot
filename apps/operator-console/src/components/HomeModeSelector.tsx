@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Moon, Home, Leaf, Coffee } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -17,6 +18,7 @@ const MODES = [
 ] as const;
 
 export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({ currentMode, onModeChange }) => {
+  const { t } = useTranslation();
   return (
     <div className="w-full overflow-x-auto no-scrollbar mb-12 animate-in fade-in slide-in-from-top-4 duration-1000">
       <div className="flex items-center gap-3 p-2 bg-muted/20 backdrop-blur-xl rounded-[2.5rem] border border-border/40 w-fit min-w-full md:min-w-0 mx-auto px-4 sm:px-2">
@@ -37,7 +39,9 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({ currentMode,
                  <div className={cn("absolute inset-0 bg-gradient-to-br opacity-20 animate-pulse", mode.color)} />
               )}
               <Icon className={cn("w-4 h-4 transition-transform duration-500", isActive ? "scale-110" : "group-hover:scale-110")} />
-              <span className="text-xs font-black uppercase tracking-widest relative z-10">{mode.label}</span>
+              <span className="text-xs font-black uppercase tracking-widest relative z-10">
+              {t(`modes.${mode.id}`)}
+            </span>
             </button>
           );
         })}

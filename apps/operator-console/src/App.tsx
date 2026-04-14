@@ -209,7 +209,7 @@ function App() {
           </ul>
 
           <div className="mt-8 px-6 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">Avanzado del Sistema</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{t('system.advanced')}</span>
           </div>
           <ul className="grid gap-1 px-4">
             <NavItem 
@@ -260,7 +260,7 @@ function App() {
               )}
             >
               <Users className="w-4 h-4" />
-              {user?.username === 'admin' ? 'Usuarios del Sistema' : t('nav.user_management')}
+              {user?.role === 'admin' ? t('users.header.title') : t('nav.user_management')}
             </button>
           )}
           
@@ -281,7 +281,7 @@ function App() {
                 <button 
                   onClick={() => setShowPwdModal(true)}
                   className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title="Cambiar Contraseña"
+                  title={t('change_password.button_tooltip')}
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>
@@ -328,7 +328,7 @@ function App() {
           <div className="absolute top-0 right-0 p-8 flex items-center gap-3 animate-in fade-in duration-1000">
             <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Sistema en línea</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('shell.status.online')}</span>
             </div>
           </div>
 
@@ -338,25 +338,24 @@ function App() {
                 currentView === 'topology' ? t('topology.title') : 
                 currentView === 'inbox' ? t('inbox.title') : 
                 currentView === 'automations' ? t('nav.automations') : 
-                currentView === 'scenes' ? t('nav.scenes') :
                 currentView === 'ha-settings' ? t('ha_settings.title') : 
                 currentView === 'users' ? t('nav.user_management') : 
-                currentView === 'diagnostics' ? t('nav.diagnostics') : "Observabilidad"}
+                currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
             </h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl font-bold uppercase tracking-widest opacity-40">
                {currentView === 'dashboard'
-                  ? "Atmósfera y Espacios"
+                  ? t('dashboard.living_space')
                   : currentView === 'topology' 
-                  ? "Topología del Sistema"
+                  ? t('dashboard.topology')
                   : currentView === 'inbox'
-                  ? "Descubrimiento de Dispositivos"
+                  ? t('dashboard.discovery')
                   : currentView === 'automations'
-                  ? "Motor de Lógica"
+                  ? t('dashboard.logic_engine')
                   : currentView === 'scenes'
-                  ? "Recetas de Atmósfera"
+                  ? t('dashboard.recipes')
                   : currentView === 'ha-settings'
-                  ? "Integración de Plataforma"
-                  : "Observabilidad del Sistema"
+                  ? t('dashboard.platform')
+                  : t('dashboard.observability')
                }
             </p>
           </div>
@@ -371,15 +370,15 @@ function App() {
                      <ShieldAlert className="w-6 h-6" />
                    </div>
                    <div>
-                     <h3 className="font-black tracking-tight text-destructive">Conexión Perdida</h3>
-                     <p className="text-[10px] uppercase font-black tracking-widest text-destructive/60">El controlador Edge no responde. Verifica energía y red.</p>
+                     <h3 className="font-black tracking-tight text-destructive">{t('system.connection_lost')}</h3>
+                     <p className="text-[10px] uppercase font-black tracking-widest text-destructive/60">{t('system.unreachable_msg')}</p>
                    </div>
                  </div>
                  <button 
                    onClick={() => window.location.reload()}
                    className="px-6 py-3 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                  >
-                   Reintentar Conexión
+                   {t('system.retry')}
                  </button>
                </div>
              </div>

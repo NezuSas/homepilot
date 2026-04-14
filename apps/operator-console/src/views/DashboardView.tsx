@@ -153,6 +153,7 @@ export const DashboardView: React.FC<{
   onModeChange?: (mode: HomeMode) => void;
   onActionExecute?: (label: string) => void;
 }> = ({ onModeChange, onActionExecute }) => {
+  const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -252,13 +253,13 @@ export const DashboardView: React.FC<{
       {scenes.length > 0 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">Recetas de Atmósfera</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">{t('dashboard.atmosphere_recipes')}</h2>
             <button 
               onClick={() => setIsSceneModalOpen(true)}
               className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-all"
             >
               <Plus className="w-3 h-3 group-hover:rotate-90 transition-transform duration-500" />
-              Nueva Escena
+              {t('dashboard.new_scene')}
             </button>
           </div>
           
@@ -287,7 +288,7 @@ export const DashboardView: React.FC<{
                     "text-[10px] font-medium italic opacity-60 truncate",
                     roomProcessing === 'scene_' + scene.id ? "text-white" : "text-muted-foreground"
                   )}>
-                    {scene.description || "Experiencia curada"}
+                    {scene.description || t('dashboard.experience')}
                   </p>
                 </div>
               </button>
@@ -311,7 +312,7 @@ export const DashboardView: React.FC<{
                 <div>
                   <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
-                    {onCount} Activos • {roomDevices.length} Elementos
+                    {onCount} {t('dashboard.active')} • {roomDevices.length} {t('dashboard.elements')}
                   </span>
                 </div>
               </div>

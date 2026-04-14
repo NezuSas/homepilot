@@ -6,16 +6,26 @@
     "automations": "Automatizaciones",
     "audit_logs": "Auditoría de Seguridad",
     "ha_settings": "Configuración HA",
-    "diagnostics": "Diagnósticos",
-    "users": "Directorio de Usuarios",
-    "logout": "Cerrar Sesión",
-    "user_management": "Gestión de Usuarios",
-    "observability": "Stack de Observabilidad",
-    "dashboard_hint": "Control en tiempo real y ejecución de escenas por zonas.",
-    "audit_trail": "Rastros de auditoría inmutables e historial técnico táctico para auditoría del sistema.",
     "automations_hint": "Workbench de lógica local basada en eventos para comportamientos reactivos en el edge.",
     "scenes": "Escenas Persistentes",
-    "scenes_hint": "Acciones grupales predefinidas para control rápido del entorno."
+    "scenes_hint": "Acciones grupales predefinidas para control rápido del entorno.",
+    "diagnostics": "Diagnósticos",
+    "observability": "Observabilidad",
+    "user_management": "Gestión de Usuarios"
+  },
+  "dashboard": {
+    "atmosphere_recipes": "Recetas de Atmósfera",
+    "new_scene": "Nueva Escena",
+    "active": "Activos",
+    "elements": "Elementos",
+    "living_space": "Atmósfera y Espacios",
+    "topology": "Topología del Sistema",
+    "discovery": "Descubrimiento de Dispositivos",
+    "logic_engine": "Motor de Lógica",
+    "recipes": "Recetas de Atmósfera",
+    "platform": "Integración de Plataforma",
+    "observability": "Observabilidad del Sistema",
+    "experience": "Experiencia curada"
   },
   "scenes": {
     "empty_title": "No se encontraron escenas",
@@ -26,7 +36,14 @@
   "shell": {
     "app_title": "HomePilot",
     "app_edge": "Edge",
-    "subtitle": "Consola de Operador v3.5"
+    "subtitle": "Consola de Operador v3.5",
+    "status": {
+      "online": "Sistema en línea",
+      "stable": "Sistema estable",
+      "syncing": "Sincronizando sistema",
+      "updated_now": "Actualizado ahora",
+      "mode_label": "Modo {{mode}}"
+    }
   },
   "inbox": {
     "title": "Gestor de Dispositivos",
@@ -308,7 +325,20 @@
     "error_match": "Las nuevas contraseñas no coinciden",
     "error_length": "La contraseña debe tener al menos 8 caracteres",
     "error_failed": "Contraseña actual incorrecta o error del servidor",
-    "error_generic": "Error al cambiar la contraseña"
+    "error_generic": "Error al cambiar la contraseña",
+    "button_tooltip": "Cambiar Contraseña"
+  },
+  "modes": {
+    "relax": "Relax",
+    "away": "Fuera",
+    "night": "Noche",
+    "energy": "Eco"
+  },
+  "system": {
+    "advanced": "Avanzado del Sistema",
+    "connection_lost": "Conexión Perdida",
+    "unreachable_msg": "El controlador Edge no responde. Verifica energía y red.",
+    "retry": "Reintentar Conexión"
   },
   "common": {
     "loading": "Cargando...",
