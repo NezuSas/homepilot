@@ -44,7 +44,10 @@
       "ignore": "Ignore",
       "resolve_now": "Resolve Now",
       "configure": "Configure",
-      "import_confirm": "Are you sure you want to import this device?"
+      "import_confirm": "Are you sure you want to import this device?",
+      "configure_energy": "Energy saving",
+      "review": "Review usage",
+      "create_automation": "Create automation"
     },
     "review": "Review",
     "assign": "Assign",
@@ -68,7 +71,20 @@
       "scene_suggestion": "Premium Scene",
       "scene_suggestion_description": "Optimize {{roomName}} with a 'Night Mode' for your {{lightCount}} lights and {{coverCount}} covers.",
       "optimization_suggestion": "Device Optimization",
-      "optimization_suggestion_description": "The device '{{deviceName}}' seems to be permanently on. Consider an auto-off rule."
+      "optimization_suggestion_description": "The device '{{deviceName}}' seems to be permanently on. Consider an auto-off rule.",
+      "energy_waste_detected": "Energy Waste Detected",
+      "energy_waste_detected_description": "The device '{{deviceName}}' has been on for over {{hoursOn}} hours without detected activity.",
+      "habit_pattern_detected": "Usage Pattern Detected",
+      "habit_pattern_detected_description": "We noticed you use '{{deviceName}}' frequently at {{timeWindow}}. Want to automate it?",
+      "proactive_automation_opportunity": "Proactive Suggestion",
+      "proactive_automation_opportunity_description": "Based on your behavior, you could save time by automating this device.",
+      "optimization_opportunity": "Low usage device",
+      "optimization_opportunity_description": "The device '{{deviceName}}' hasn't been used in 14 days. Do you want to review its status?"
+    },
+    "sections": {
+      "proactive": "Automatic Suggestions",
+      "usage": "Based on your usage",
+      "opportunities": "Detected Opportunities"
     }
   },
   "dashboard": {

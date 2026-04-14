@@ -44,7 +44,10 @@
       "ignore": "Ignorar",
       "resolve_now": "Resolver ahora",
       "configure": "Configurar",
-      "import_confirm": "¿Estás seguro de que quieres importar este dispositivo?"
+      "import_confirm": "¿Estás seguro de que quieres importar este dispositivo?",
+      "configure_energy": "Ahorro energético",
+      "review": "Revisar uso",
+      "create_automation": "Crear automatización"
     },
     "review": "Revisar",
     "assign": "Asignar",
@@ -68,7 +71,20 @@
       "scene_suggestion": "Escena Premium",
       "scene_suggestion_description": "Optimiza la {{roomName}} con un 'Modo Noche' para tus {{lightCount}} luces y {{coverCount}} persianas.",
       "optimization_suggestion": "Optimización de Dispositivo",
-      "optimization_suggestion_description": "El dispositivo '{{deviceName}}' parece estar permanentemente encendido. Considera una regla de auto-apagado."
+      "optimization_suggestion_description": "El dispositivo '{{deviceName}}' parece estar permanentemente encendido. Considera una regla de auto-apagado.",
+      "energy_waste_detected": "Desperdicio de Energía",
+      "energy_waste_detected_description": "El dispositivo '{{deviceName}}' lleva encendido más de {{hoursOn}} horas sin actividad detectada.",
+      "habit_pattern_detected": "Patrón de Uso Detectado",
+      "habit_pattern_detected_description": "Detectamos que usas '{{deviceName}}' frecuentemente a las {{timeWindow}}. ¿Quieres automatizarlo?",
+      "proactive_automation_opportunity": "Sugerencia Proactiva",
+      "proactive_automation_opportunity_description": "Basado en tu comportamiento, podrías ahorrar tiempo automatizando este dispositivo.",
+      "optimization_opportunity": "Dispositivo con bajo uso",
+      "optimization_opportunity_description": "El dispositivo '{{deviceName}}' no se ha usado en 14 días. ¿Deseas revisar su estado?"
+    },
+    "sections": {
+      "proactive": "Sugerencias Automáticas",
+      "usage": "Basado en tu uso",
+      "opportunities": "Oportunidades Detectadas"
     }
   },
   "dashboard": {

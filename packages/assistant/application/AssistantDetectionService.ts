@@ -4,12 +4,14 @@ import { AssistantFinding, generateFindingFingerprint } from '../domain/Assistan
 import { ContextAnalysisService, SystemContext } from './ContextAnalysisService';
 import { FindingScorer } from './FindingScorer';
 import { LearningModifiers } from './AssistantLearningService';
+import { BehaviorAnalysisService } from './BehaviorAnalysisService';
 
 export class AssistantDetectionService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
     private readonly haClient: HomeAssistantClient,
-    private readonly contextService: ContextAnalysisService
+    private readonly contextService: ContextAnalysisService,
+    private readonly behaviorService: BehaviorAnalysisService
   ) {}
 
   public async scan(homeId: string, learning?: LearningModifiers): Promise<Partial<AssistantFinding>[]> {
@@ -24,6 +26,7 @@ export class AssistantDetectionService {
     findings.push(...await this.detectTechnicalNames(homeId));
     findings.push(...await this.detectDuplicateNames(homeId));
     findings.push(...await this.detectSuggestions(context));
+    findings.push(...await this.detectProactiveFindings(homeId));
 
     // 2. Apply Scoring & Noise Control
     findings = findings.map(f => {
@@ -224,5 +227,57 @@ export class AssistantDetectionService {
       }
     }
     return findings;
+  }
+
+  private async detectProactiveFindings(homeId: string): Promise<Partial<AssistantFinding>[]> {
+    const proactive = await this.behaviorService.analyzeProactively(homeId);
+    return proactive.map(p => {
+      let type: any = 'proactive_automation_opportunity';
+      let severity: any = 'medium';
+      let relatedEntityType = 'device';
+
+      if (p.type === 'waste') {
+        type = 'energy_waste_detected';
+        severity = 'high';
+      } else if (p.type === 'habit') {
+        type = 'habit_pattern_detected';
+        severity = 'medium';
+      } else if (p.type === 'low_usage') {
+        type = 'optimization_opportunity';
+        severity = 'low';
+      }
+
+      return {
+        fingerprint: generateFindingFingerprint(type, p.deviceId, p.type),
+        type,
+        severity,
+        relatedEntityType: 'device',
+        relatedEntityId: p.deviceId,
+        actions: this.getProactiveActions(type, p),
+        metadata: { ...p.metadata, reasoning: p.reasoning, deviceName: p.deviceName }
+      };
+    });
+  }
+
+  private getProactiveActions(type: string, data: any): any[] {
+    switch (type) {
+      case 'energy_waste_detected':
+        return [
+          { type: 'configure_energy_rule', label: 'assistant.actions.configure_energy', payload: { deviceId: data.deviceId } },
+          { type: 'ignore', label: 'assistant.actions.ignore' }
+        ];
+      case 'habit_pattern_detected':
+        return [
+          { type: 'configure_automation', label: 'assistant.actions.create_automation', payload: { deviceId: data.deviceId, ...data.metadata } },
+          { type: 'ignore', label: 'assistant.actions.ignore' }
+        ];
+      case 'optimization_opportunity':
+        return [
+          { type: 'review_device', label: 'assistant.actions.review', payload: { deviceId: data.deviceId } },
+          { type: 'ignore', label: 'assistant.actions.ignore' }
+        ];
+      default:
+        return [{ type: 'ignore', label: 'assistant.actions.ignore' }];
+    }
   }
 }

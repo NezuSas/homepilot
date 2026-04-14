@@ -22,15 +22,20 @@ export class InMemoryDeviceRepository implements DeviceRepository {
 
   async findInboxByHomeId(homeId: string): Promise<ReadonlyArray<Device>> {
     const inbox: Device[] = [];
-    
-    // Filtrado funcional estricto demandado por el Spec
     for (const device of this.devices.values()) {
       if (device.homeId === homeId && device.roomId === null && device.status === 'PENDING') {
         inbox.push(Object.freeze({ ...device }));
       }
     }
-    
     return Object.freeze(inbox);
+  }
+
+  async findAll(): Promise<ReadonlyArray<Device>> {
+    const all: Device[] = [];
+    for (const device of this.devices.values()) {
+      all.push(Object.freeze({ ...device }));
+    }
+    return Object.freeze(all);
   }
 
   async findByExternalIdAndHomeId(externalId: string, homeId: string): Promise<Device | null> {

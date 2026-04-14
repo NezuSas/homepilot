@@ -24,8 +24,17 @@ export class FindingScorer {
       case 'new_device_available':
         baseScore = 100;
         break;
+      case 'energy_waste_detected':
+        baseScore = 90;
+        break;
+      case 'habit_pattern_detected':
+        baseScore = 85;
+        break;
       case 'device_missing_room':
         baseScore = 80;
+        break;
+      case 'proactive_automation_opportunity':
+        baseScore = 75;
         break;
       case 'automation_suggestion':
         baseScore = 70;
@@ -39,6 +48,7 @@ export class FindingScorer {
       case 'device_name_technical':
         baseScore = 40;
         break;
+      case 'optimization_opportunity':
       case 'optimization_suggestion':
         baseScore = 30;
         break;

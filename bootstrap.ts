@@ -35,6 +35,7 @@ import { UserManagementService } from './packages/auth/application/UserManagemen
 import { SQLiteAssistantFindingRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantFindingRepository';
 import { AssistantDetectionService } from './packages/assistant/application/AssistantDetectionService';
 import { AssistantService } from './packages/assistant/application/AssistantService';
+import { BehaviorAnalysisService } from './packages/assistant/application/BehaviorAnalysisService';
 import { AssistantActionService } from './packages/assistant/application/AssistantActionService';
 import { ContextAnalysisService } from './packages/assistant/application/ContextAnalysisService';
 import { SQLiteTopologyReferenceAdapter } from './packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
@@ -367,7 +368,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantLearningService = new AssistantLearningService(assistantFeedbackRepository);
   const contextAnalysisService = new ContextAnalysisService(deviceRepository, roomRepository);
   const assistantIntentService = new AssistantIntentService(contextAnalysisService, deviceRepository, roomRepository);
-  const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy, contextAnalysisService);
+  const behaviorService = new BehaviorAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);
+  const assistantDetectionService = new AssistantDetectionService(deviceRepository, haClientProxy, contextAnalysisService, behaviorService);
   const assistantService = new AssistantService(
     assistantRepository, 
     assistantDetectionService,

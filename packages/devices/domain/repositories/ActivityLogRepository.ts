@@ -50,4 +50,10 @@ export interface ActivityLogRepository {
    * Debe garantizar ordenación cronológica descendente (LIFO).
    */
   findAllRecent(limit: number): Promise<ReadonlyArray<ActivityRecord>>;
+
+  /**
+   * Recupera las entradas filtradas por tipos y desde una fecha específica.
+   * Útil para análisis proactivo de comportamiento.
+   */
+  findAllByTypes(types: ActivityType[], since: string): Promise<ReadonlyArray<ActivityRecord>>;
 }

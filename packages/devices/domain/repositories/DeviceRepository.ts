@@ -30,6 +30,11 @@ export interface DeviceRepository {
    */
   findByExternalId(externalId: string): Promise<Device | null>;
   /**
+   * Recupera todos los dispositivos de todos los hogares.
+   */
+  findAll(): Promise<ReadonlyArray<Device>>;
+
+  /**
    * Recupera todos los dispositivos de un hogar.
    */
   findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>>;

@@ -10,7 +10,11 @@ export type FindingType =
   | 'device_name_duplicate'
   | 'automation_suggestion'
   | 'scene_suggestion'
-  | 'optimization_suggestion';
+  | 'optimization_suggestion'
+  | 'proactive_automation_opportunity'
+  | 'energy_waste_detected'
+  | 'habit_pattern_detected'
+  | 'optimization_opportunity';
 
 export interface AssistantAction {
   type: string;

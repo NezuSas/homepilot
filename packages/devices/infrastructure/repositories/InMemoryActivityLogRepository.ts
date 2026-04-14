@@ -28,6 +28,13 @@ export class InMemoryActivityLogRepository implements ActivityLogRepository {
     return Object.freeze([...this.logs.slice(0, limit)]);
   }
 
+  async findAllByTypes(types: string[], since: string): Promise<ReadonlyArray<ActivityRecord>> {
+    const filtered = this.logs.filter(log => 
+      types.includes(log.type) && log.timestamp >= since
+    );
+    return Object.freeze([...filtered]);
+  }
+
   /**
    * Método de utilidad para purga de estados en suites de pruebas unitarias.
    */

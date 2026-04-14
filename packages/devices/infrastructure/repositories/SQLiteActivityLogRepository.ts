@@ -81,6 +81,19 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
     return rows.map(row => this.mapToEntity(row));
   }
 
+  public async findAllByTypes(types: ActivityType[], since: string): Promise<ReadonlyArray<ActivityRecord>> {
+    if (types.length === 0) return [];
+    const placeholders = types.map(() => '?').join(',');
+    const stmt = this.db.prepare(`
+      SELECT * FROM activity_logs 
+      WHERE type IN (${placeholders}) AND timestamp >= ?
+      ORDER BY timestamp DESC
+    `);
+
+    const rows = stmt.all(...types, since) as ActivityLogRow[];
+    return rows.map(row => this.mapToEntity(row));
+  }
+
   /**
    * Mapea de fila de base de datos a registro atómico del modelo de lectura.
    */
