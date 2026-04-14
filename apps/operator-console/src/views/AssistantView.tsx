@@ -348,7 +348,7 @@ export const AssistantView: React.FC<{
                                               {finding.metadata.friendlyName || finding.metadata.deviceName || finding.id}
                                             </p>
                                             <p className="text-[9px] text-muted-foreground line-clamp-1">
-                                              {finding.description}
+                                              {(t(`assistant.types.${finding.type}_description`, finding.metadata) as string)}
                                             </p>
                                           </div>
                                         </div>
