@@ -231,7 +231,7 @@ export const DashboardView: React.FC<{
   const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
 
   return (
-    <div className="flex flex-col gap-12 pb-20 px-2 animate-in fade-in duration-700">
+    <div className="flex flex-col gap-12 pb-32 px-4 md:px-8 animate-in fade-in duration-700">
       {luxuryRipple && (
         <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
           <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow" />
@@ -252,13 +252,13 @@ export const DashboardView: React.FC<{
       {scenes.length > 0 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">Atmosphere Recipes</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">Recetas de Atmósfera</h2>
             <button 
               onClick={() => setIsSceneModalOpen(true)}
               className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-all"
             >
               <Plus className="w-3 h-3 group-hover:rotate-90 transition-transform duration-500" />
-              Build New
+              Nueva Escena
             </button>
           </div>
           
@@ -281,13 +281,13 @@ export const DashboardView: React.FC<{
                 )}>
                   <Zap className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-black tracking-tight">{scene.name}</h3>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-black tracking-tight truncate">{scene.name}</h3>
                   <p className={cn(
-                    "text-[10px] font-medium lowercase italic opacity-60",
+                    "text-[10px] font-medium italic opacity-60 truncate",
                     roomProcessing === 'scene_' + scene.id ? "text-white" : "text-muted-foreground"
                   )}>
-                    {scene.description || "Curated experience"}
+                    {scene.description || "Experiencia curada"}
                   </p>
                 </div>
               </button>
@@ -311,7 +311,7 @@ export const DashboardView: React.FC<{
                 <div>
                   <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
-                    {onCount} Active • {roomDevices.length} Elements
+                    {onCount} Activos • {roomDevices.length} Elementos
                   </span>
                 </div>
               </div>

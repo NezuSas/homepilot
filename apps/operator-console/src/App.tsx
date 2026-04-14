@@ -16,8 +16,6 @@ import { UsersView } from './views/UsersView';
 import ScenesView from './views/ScenesView';
 import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
-import { type HomeMode } from './components/HomeModeSelector';
-import { QuickControlLayer } from './components/QuickControlLayer';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -37,11 +35,9 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<any>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState<HomeMode>('relax');
-  const [lastAction, setLastAction] = useState<string | undefined>(undefined);
   const [isAllSynced, setIsAllSynced] = useState(true);
-  const [isProcessingGlobal, setIsProcessingGlobal] = useState(false);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
+  const [currentMode, setCurrentMode] = useState<any>(null);
 
   // ─── AUTH-1: Global 401 Interceptor ─────────────────────────────────────────
   // Patches window.fetch once per App lifecycle to intercept any 401 response.
@@ -154,22 +150,6 @@ function App() {
     );
   }
 
-  const handleQuickAction = async (type: 'all-on' | 'all-off' | 'panic') => {
-    setIsProcessingGlobal(true);
-    setLastAction(`Global ${type.toUpperCase()} invoked`);
-    setIsAllSynced(false);
-    
-    try {
-      // Mocking global orchestration. In a real system, we'd call a bulk endpoint.
-      // Here we simulate the effort to show reliability in the status bar.
-      await new Promise(r => setTimeout(r, 1500));
-      setIsAllSynced(true);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsProcessingGlobal(false);
-    }
-  };
 
   const navigateTo = (view: View) => {
     setCurrentView(view);
@@ -229,7 +209,7 @@ function App() {
           </ul>
 
           <div className="mt-8 px-6 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">System Advanced</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">Avanzado del Sistema</span>
           </div>
           <ul className="grid gap-1 px-4">
             <NavItem 
@@ -280,7 +260,7 @@ function App() {
               )}
             >
               <Users className="w-4 h-4" />
-              {user?.username === 'admin' ? 'System Users' : t('nav.user_management')}
+              {user?.username === 'admin' ? 'Usuarios del Sistema' : t('nav.user_management')}
             </button>
           )}
           
@@ -301,7 +281,7 @@ function App() {
                 <button 
                   onClick={() => setShowPwdModal(true)}
                   className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title="Change Password"
+                  title="Cambiar Contraseña"
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>
@@ -348,7 +328,7 @@ function App() {
           <div className="absolute top-0 right-0 p-8 flex items-center gap-3 animate-in fade-in duration-1000">
             <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">System Online</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Sistema en línea</span>
             </div>
           </div>
 
@@ -361,22 +341,22 @@ function App() {
                 currentView === 'scenes' ? t('nav.scenes') :
                 currentView === 'ha-settings' ? t('ha_settings.title') : 
                 currentView === 'users' ? t('nav.user_management') : 
-                currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
+                currentView === 'diagnostics' ? t('nav.diagnostics') : "Observabilidad"}
             </h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl font-bold uppercase tracking-widest opacity-40">
                {currentView === 'dashboard'
-                  ? "Atmosphere & Living Space"
+                  ? "Atmósfera y Espacios"
                   : currentView === 'topology' 
-                  ? "System Topology"
+                  ? "Topología del Sistema"
                   : currentView === 'inbox'
-                  ? "Device Discovery"
+                  ? "Descubrimiento de Dispositivos"
                   : currentView === 'automations'
-                  ? "Logic Engine"
+                  ? "Motor de Lógica"
                   : currentView === 'scenes'
-                  ? "Atmosphere Recipes"
+                  ? "Recetas de Atmósfera"
                   : currentView === 'ha-settings'
-                  ? "Platform Integration"
-                  : "System Observability"
+                  ? "Integración de Plataforma"
+                  : "Observabilidad del Sistema"
                }
             </p>
           </div>
@@ -391,15 +371,15 @@ function App() {
                      <ShieldAlert className="w-6 h-6" />
                    </div>
                    <div>
-                     <h3 className="font-black tracking-tight text-destructive">System Connection Lost</h3>
-                     <p className="text-[10px] uppercase font-black tracking-widest text-destructive/60">The Edge Controller is unreachable. Check power and network.</p>
+                     <h3 className="font-black tracking-tight text-destructive">Conexión Perdida</h3>
+                     <p className="text-[10px] uppercase font-black tracking-widest text-destructive/60">El controlador Edge no responde. Verifica energía y red.</p>
                    </div>
                  </div>
                  <button 
                    onClick={() => window.location.reload()}
                    className="px-6 py-3 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                  >
-                   Retry Connection
+                   Reintentar Conexión
                  </button>
                </div>
              </div>
@@ -408,8 +388,7 @@ function App() {
              {currentView === 'dashboard' && (
                <DashboardView 
                  onModeChange={setCurrentMode} 
-                 onActionExecute={(action: string) => {
-                   setLastAction(action);
+                 onActionExecute={() => {
                    setIsAllSynced(false);
                    setTimeout(() => setIsAllSynced(true), 1500);
                  }}
@@ -420,8 +399,7 @@ function App() {
              {currentView === 'automations' && <AutomationsView />}
              {currentView === 'scenes' && (
                <ScenesView 
-                 onActionExecute={(action: string) => {
-                    setLastAction(action);
+                 onActionExecute={() => {
                     setIsAllSynced(false);
                     setTimeout(() => setIsAllSynced(true), 1500);
                  }}
@@ -434,12 +412,9 @@ function App() {
            </div>
         </section>
 
-        <QuickControlLayer onAction={handleQuickAction} isProcessing={isProcessingGlobal} />
-
         <SystemStatusBar 
           currentMode={currentMode} 
           isAllSynced={isAllSynced} 
-          lastAction={lastAction} 
         />
       </main>
 

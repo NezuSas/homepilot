@@ -11,8 +11,8 @@ interface HomeModeSelectorProps {
 
 const MODES = [
   { id: 'relax', label: 'Relax', icon: Coffee, color: 'from-orange-500/20 to-amber-500/20', activeColor: 'text-amber-500 border-amber-500/50 bg-amber-500/10' },
-  { id: 'away', label: 'Away', icon: Home, color: 'from-blue-500/20 to-indigo-500/20', activeColor: 'text-blue-500 border-blue-500/50 bg-blue-500/10' },
-  { id: 'night', label: 'Night', icon: Moon, color: 'from-purple-500/20 to-indigo-500/20', activeColor: 'text-purple-500 border-purple-500/50 bg-purple-500/10' },
+  { id: 'away', label: 'Fuera', icon: Home, color: 'from-blue-500/20 to-indigo-500/20', activeColor: 'text-blue-500 border-blue-500/50 bg-blue-500/10' },
+  { id: 'night', label: 'Noche', icon: Moon, color: 'from-purple-500/20 to-indigo-500/20', activeColor: 'text-purple-500 border-purple-500/50 bg-purple-500/10' },
   { id: 'energy', label: 'Eco', icon: Leaf, color: 'from-emerald-500/20 to-teal-500/20', activeColor: 'text-emerald-500 border-emerald-500/50 bg-emerald-500/10' },
 ] as const;
 
