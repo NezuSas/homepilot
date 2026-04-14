@@ -40,15 +40,17 @@ export class AssistantService {
             relatedEntityType: partial.relatedEntityType || null,
             relatedEntityId: partial.relatedEntityId || null,
             status: 'open',
+            actions: partial.actions || [],
             metadata: partial.metadata || {},
             createdAt: now,
             updatedAt: now
           };
           await this.repository.save(finding);
         } else if (existing.status === 'open') {
-          // UPDATE EXISTING OPEN (Metadata might have changed)
+          // UPDATE EXISTING OPEN (Metadata and actions might have changed)
           await this.repository.save({
             ...existing,
+            actions: partial.actions || [],
             metadata: { ...existing.metadata, ...partial.metadata },
             updatedAt: now
           });
