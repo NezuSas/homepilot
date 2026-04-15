@@ -1,5 +1,25 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { LayoutDashboard, Network, Server, PlaySquare, Settings, ShieldAlert, Cpu, Activity, KeyRound, Monitor, Users, Menu, Globe, Sparkles } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Home,
+  BarChart2,
+  Zap,
+  PlaySquare,
+  Sparkles,
+  Settings,
+  ShieldAlert,
+  Cpu,
+  Activity,
+  KeyRound,
+  Monitor,
+  Users,
+  Menu,
+  Globe,
+  Network,
+  Server,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { API_ENDPOINTS } from './config';
@@ -23,8 +43,67 @@ import type { HomeMode } from './types';
 
 /**
  * Union de vistas posibles para tipado estricto.
+ *
+ * Primary:         dashboard | spaces | scenes | automations | assistant
+ * Personalization: dashboards (placeholder) | energy (placeholder)
+ * System:          system-devices | system-inbox | system-diagnostics |
+ *                  system-audit | system-users | system-ha
+ *
+ * Backward-compat aliases kept:
+ *   topology      → spaces
+ *   inbox         → system-inbox
+ *   audit-logs    → system-audit
+ *   ha-settings   → system-ha
+ *   diagnostics   → system-diagnostics
+ *   users         → system-users
  */
-type View = 'dashboard' | 'topology' | 'inbox' | 'automations' | 'scenes' | 'audit-logs' | 'ha-settings' | 'diagnostics' | 'users' | 'assistant';
+type View =
+  // Primary
+  | 'dashboard'
+  | 'spaces'
+  | 'scenes'
+  | 'automations'
+  | 'assistant'
+  // Personalization (placeholders)
+  | 'dashboards'
+  | 'energy'
+  // System
+  | 'system-devices'
+  | 'system-inbox'
+  | 'system-diagnostics'
+  | 'system-audit'
+  | 'system-users'
+  | 'system-ha'
+  // Legacy aliases resolved at runtime (not stored in state)
+  | 'topology'
+  | 'inbox'
+  | 'audit-logs'
+  | 'ha-settings'
+  | 'diagnostics'
+  | 'users';
+
+/** Resolve legacy view names to canonical ones. */
+function resolveView(view: View): View {
+  switch (view) {
+    case 'topology':    return 'spaces';
+    case 'inbox':       return 'system-inbox';
+    case 'audit-logs':  return 'system-audit';
+    case 'ha-settings': return 'system-ha';
+    case 'diagnostics': return 'system-diagnostics';
+    case 'users':       return 'system-users';
+    default:            return view;
+  }
+}
+
+/** Returns true if the given canonical view belongs to the System section. */
+function isSystemView(view: View): boolean {
+  return view === 'system-devices'
+    || view === 'system-inbox'
+    || view === 'system-diagnostics'
+    || view === 'system-audit'
+    || view === 'system-users'
+    || view === 'system-ha';
+}
 
 /**
  * App Component
@@ -43,13 +122,11 @@ function App() {
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [assistantSummary, setAssistantSummary] = useState<{ totalOpen: number } | null>(null);
+  /** Controls whether the System sub-list is expanded in the sidebar. */
+  const [isSystemExpanded, setIsSystemExpanded] = useState(false);
 
   // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
-  // Note: Global fetch patching (auth injection + 401 handling) is managed in main.tsx.
-  // This component focuses on high-level auth state reactions.
   useEffect(() => {
-    // Listen for storage changes (e.g. from other tabs if applicable) 
-    // or just monitor local state changes.
     if (!isAuthenticated && localStorage.getItem('hp_session_token')) {
       setIsAuthenticated(true);
     }
@@ -154,12 +231,53 @@ function App() {
     );
   }
 
-
   const navigateTo = (view: View) => {
-    setCurrentView(view);
+    const resolved = resolveView(view);
+    setCurrentView(resolved);
     setIsSidebarOpen(false);
+    // Auto-expand system section when a system view is activated
+    if (isSystemView(resolved)) {
+      setIsSystemExpanded(true);
+    }
   };
 
+  const activeSystemSection = isSystemView(currentView);
+
+  // ── Header labels ──────────────────────────────────────────────────────
+  const viewTitle = (): string => {
+    switch (currentView) {
+      case 'dashboard':           return t('nav.dashboard');
+      case 'spaces':              return t('nav.spaces');
+      case 'scenes':              return t('nav.scenes');
+      case 'automations':         return t('nav.automations');
+      case 'assistant':           return t('nav.assistant');
+      case 'dashboards':          return t('nav.dashboards');
+      case 'energy':              return t('nav.energy');
+      case 'system-devices':      return t('nav.system_devices');
+      case 'system-inbox':        return t('nav.system_inbox');
+      case 'system-diagnostics':  return t('nav.system_diagnostics');
+      case 'system-audit':        return t('nav.system_audit');
+      case 'system-ha':           return t('nav.system_ha');
+      case 'system-users':        return t('nav.system_users');
+      default:                    return t('nav.dashboard');
+    }
+  };
+
+  const viewSubtitle = (): string => {
+    switch (currentView) {
+      case 'dashboard':           return t('dashboard.living_space');
+      case 'spaces':              return t('dashboard.spaces_subtitle');
+      case 'scenes':              return t('dashboard.recipes');
+      case 'automations':         return t('dashboard.logic_engine');
+      case 'assistant':           return t('assistant.subtitle');
+      case 'system-devices':      return t('dashboard.discovery');
+      case 'system-inbox':        return t('dashboard.discovery');
+      case 'system-diagnostics':  return t('dashboard.observability');
+      case 'system-audit':        return t('dashboard.observability');
+      case 'system-ha':           return t('dashboard.platform');
+      default:                    return '';
+    }
+  };
 
   return (
     <div 
@@ -190,25 +308,33 @@ function App() {
           <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground opacity-50 mt-1">{t('shell.subtitle')}</span>
         </div>
         
-        <nav className="flex-1 overflow-y-auto py-6">
-          <ul className="grid gap-1 px-4">
+        <nav className="flex-1 overflow-y-auto py-4">
+
+          {/* ── PRIMARY ─────────────────────────────────────────────── */}
+          <ul className="grid gap-0.5 px-3">
             <NavItem 
-              icon={<LayoutDashboard className="w-4 h-4" />} 
+              icon={<Home className="w-4 h-4" />} 
               label={t('nav.dashboard')} 
               active={currentView === 'dashboard'} 
               onClick={() => navigateTo('dashboard')} 
             />
             <NavItem 
-              icon={<PlaySquare className="w-4 h-4" />} 
-              label={t('nav.automations')} 
-              active={currentView === 'automations'} 
-              onClick={() => navigateTo('automations')} 
+              icon={<LayoutDashboard className="w-4 h-4" />} 
+              label={t('nav.spaces')} 
+              active={currentView === 'spaces'} 
+              onClick={() => navigateTo('spaces')} 
             />
             <NavItem 
               icon={<Monitor className="w-4 h-4" />} 
               label={t('nav.scenes')} 
               active={currentView === 'scenes'} 
               onClick={() => navigateTo('scenes')} 
+            />
+            <NavItem 
+              icon={<PlaySquare className="w-4 h-4" />} 
+              label={t('nav.automations')} 
+              active={currentView === 'automations'} 
+              onClick={() => navigateTo('automations')} 
             />
             <NavItem 
               icon={<Sparkles className="w-4 h-4 text-primary" />} 
@@ -220,63 +346,104 @@ function App() {
             />
           </ul>
 
-          <div className="mt-8 px-6 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{t('system.advanced')}</span>
+          {/* ── PERSONALIZATION ────────────────────────────────────── */}
+          <div className="mt-5 px-5 mb-1.5">
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground opacity-40">{t('nav.group_personalization')}</span>
           </div>
-          <ul className="grid gap-1 px-4">
+          <ul className="grid gap-0.5 px-3">
             <NavItem 
-              icon={<Network className="w-4 h-4" />} 
-              label={t('nav.topology')} 
-              active={currentView === 'topology'} 
-              onClick={() => navigateTo('topology')} 
+              icon={<BarChart2 className="w-4 h-4" />} 
+              label={t('nav.dashboards')} 
+              disabled 
             />
             <NavItem 
-              icon={<Server className="w-4 h-4" />} 
-              label={t('nav.inbox')} 
-              active={currentView === 'inbox'} 
-              onClick={() => navigateTo('inbox')} 
+              icon={<Zap className="w-4 h-4" />} 
+              label={t('nav.energy')} 
+              disabled 
             />
-            <NavItem 
-              icon={<Activity className="w-4 h-4" />} 
-              label={t('nav.diagnostics')} 
-              active={currentView === 'diagnostics'} 
-              onClick={() => navigateTo('diagnostics')} 
-            />
-            <NavItem 
-              icon={<ShieldAlert className="w-4 h-4" />} 
-              label={t('nav.audit_logs')} 
-              active={currentView === 'audit-logs'}
-              onClick={() => navigateTo('audit-logs')}
-            />
+          </ul>
+
+          {/* ── DIVIDER ────────────────────────────────────────────── */}
+          <div className="mx-5 mt-5 mb-4 border-t border-border/50" />
+
+          {/* ── SYSTEM ─────────────────────────────────────────────── */}
+          <ul className="grid gap-0.5 px-3">
+            {/* System toggle header */}
+            <li>
+              <button
+                onClick={() => setIsSystemExpanded(prev => !prev)}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all w-full text-left",
+                  activeSystemSection
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <Settings className="w-4 h-4 shrink-0" />
+                <span className="flex-1">{t('nav.system')}</span>
+                {isSystemExpanded
+                  ? <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                  : <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                }
+              </button>
+            </li>
+
+            {/* System sub-items — inline collapsible */}
+            {isSystemExpanded && (
+              <li>
+                <ul className="mt-0.5 ml-4 pl-3 border-l border-border/40 grid gap-0.5">
+                  <NavItem
+                    icon={<Network className="w-4 h-4" />}
+                    label={t('nav.system_devices')}
+                    active={currentView === 'system-devices'}
+                    onClick={() => navigateTo('system-devices')}
+                    compact
+                  />
+                  <NavItem
+                    icon={<Server className="w-4 h-4" />}
+                    label={t('nav.system_inbox')}
+                    active={currentView === 'system-inbox'}
+                    onClick={() => navigateTo('system-inbox')}
+                    compact
+                  />
+                  <NavItem
+                    icon={<Activity className="w-4 h-4" />}
+                    label={t('nav.system_diagnostics')}
+                    active={currentView === 'system-diagnostics'}
+                    onClick={() => navigateTo('system-diagnostics')}
+                    compact
+                  />
+                  <NavItem
+                    icon={<ShieldAlert className="w-4 h-4" />}
+                    label={t('nav.system_audit')}
+                    active={currentView === 'system-audit'}
+                    onClick={() => navigateTo('system-audit')}
+                    compact
+                  />
+                  {user?.role === 'admin' && (
+                    <NavItem
+                      icon={<Users className="w-4 h-4" />}
+                      label={t('nav.system_users')}
+                      active={currentView === 'system-users'}
+                      onClick={() => navigateTo('system-users')}
+                      compact
+                    />
+                  )}
+                  <NavItem
+                    icon={<Settings className="w-4 h-4" />}
+                    label={t('nav.system_ha')}
+                    active={currentView === 'system-ha'}
+                    onClick={() => navigateTo('system-ha')}
+                    compact
+                  />
+                </ul>
+              </li>
+            )}
           </ul>
         </nav>
         
         <div className="p-4 border-t mt-auto flex flex-col gap-2 bg-background/30">
-          <button 
-            onClick={() => navigateTo('ha-settings')}
-            className={cn(
-              "flex items-center gap-3 text-xs transition-all w-full p-3 rounded-xl font-bold uppercase tracking-wider",
-              currentView === 'ha-settings' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            )}
-          >
-            <Settings className="w-4 h-4" />
-            {t('nav.ha_settings')}
-          </button>
-
-          {user?.role === 'admin' && (
-            <button 
-              onClick={() => navigateTo('users')}
-              className={cn(
-                "flex items-center gap-3 text-xs transition-all w-full p-3 rounded-xl font-bold uppercase tracking-wider text-left",
-                currentView === 'users' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}
-            >
-              <Users className="w-4 h-4 shrink-0" />
-              <span>{user?.role === 'admin' ? t('users.header.title') : t('nav.user_management')}</span>
-            </button>
-          )}
-          
-          <div className="pt-4 border-t mt-2">
+          <div className="pt-2 flex flex-col gap-1">
             <div className="flex items-center justify-between pl-3 pr-2">
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-black tracking-tight truncate">{user?.username || t('common.unknown')}</span>
@@ -321,16 +488,7 @@ function App() {
                <Menu className="w-6 h-6" />
              </button>
               <h2 className="text-sm font-black uppercase tracking-widest truncate">
-                {currentView === 'dashboard' ? t('nav.dashboard') :
-                 currentView === 'topology' ? t('topology.title') : 
-                 currentView === 'inbox' ? t('inbox.title') : 
-                 currentView === 'automations' ? t('nav.automations') : 
-                 currentView === 'ha-settings' ? t('ha_settings.title') : 
-                 currentView === 'users' ? t('nav.user_management') : 
-                 currentView === 'diagnostics' ? t('nav.diagnostics') : 
-                 currentView === 'scenes' ? t('nav.scenes') :
-                 currentView === 'assistant' ? t('nav.assistant') :
-                 currentView === 'audit-logs' ? t('nav.audit_logs') : currentView}
+                {viewTitle()}
               </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -353,33 +511,16 @@ function App() {
           </div>
 
           <div className="max-w-7xl mx-auto w-full relative z-10">
+            {activeSystemSection && (
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mb-1">
+                {t('nav.system')}
+              </p>
+            )}
             <h1 className="text-3xl font-black tracking-tighter text-foreground/90 leading-tight">
-               {currentView === 'dashboard' ? t('nav.dashboard') :
-                currentView === 'topology' ? t('topology.title') : 
-                currentView === 'inbox' ? t('inbox.title') : 
-                currentView === 'automations' ? t('nav.automations') : 
-                currentView === 'ha-settings' ? t('ha_settings.title') : 
-                currentView === 'users' ? t('nav.user_management') : 
-                currentView === 'assistant' ? t('nav.assistant') :
-                currentView === 'diagnostics' ? t('nav.diagnostics') : t('nav.observability')}
+              {viewTitle()}
             </h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl font-bold uppercase tracking-widest opacity-40">
-               {currentView === 'dashboard'
-                  ? t('dashboard.living_space')
-                  : currentView === 'topology' 
-                  ? t('dashboard.topology')
-                  : currentView === 'inbox'
-                  ? t('dashboard.discovery')
-                  : currentView === 'automations'
-                  ? t('dashboard.logic_engine')
-                  : currentView === 'scenes'
-                  ? t('dashboard.recipes')
-                  : currentView === 'ha-settings'
-                  ? t('dashboard.platform')
-                  : currentView === 'assistant'
-                  ? t('assistant.subtitle')
-                  : t('dashboard.observability')
-               }
+              {viewSubtitle()}
             </p>
           </div>
         </header>
@@ -416,9 +557,8 @@ function App() {
                  }}
                />
              )}
-             {currentView === 'topology' && <TopologyView />}
-             {currentView === 'inbox' && <InboxView />}
-             {currentView === 'automations' && <AutomationsView />}
+             {/* Spaces = TopologyView (user-facing room management) */}
+             {currentView === 'spaces' && <TopologyView />}
              {currentView === 'scenes' && (
                <ScenesView 
                  onActionExecute={() => {
@@ -427,11 +567,32 @@ function App() {
                  }}
                />
              )}
-             {currentView === 'audit-logs' && <AuditLogsView />}
-             {currentView === 'ha-settings' && <HomeAssistantSettingsView />}
-             {currentView === 'diagnostics' && <DiagnosticsView />}
-             {currentView === 'users' && <UsersView />}
+             {currentView === 'automations' && <AutomationsView />}
              {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
+
+             {/* Personalization placeholders */}
+             {currentView === 'dashboards' && (
+               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border border-dashed border-border rounded-xl bg-muted/10">
+                 <BarChart2 className="w-8 h-8 mb-3 opacity-30" />
+                 <p className="text-sm font-bold">{t('nav.dashboards')}</p>
+                 <p className="text-xs mt-1 opacity-50">{t('nav.coming_soon')}</p>
+               </div>
+             )}
+             {currentView === 'energy' && (
+               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border border-dashed border-border rounded-xl bg-muted/10">
+                 <Zap className="w-8 h-8 mb-3 opacity-30" />
+                 <p className="text-sm font-bold">{t('nav.energy')}</p>
+                 <p className="text-xs mt-1 opacity-50">{t('nav.coming_soon')}</p>
+               </div>
+             )}
+
+             {/* System section views */}
+             {currentView === 'system-devices' && <InboxView />}
+             {currentView === 'system-inbox' && <InboxView />}
+             {currentView === 'system-diagnostics' && <DiagnosticsView />}
+             {currentView === 'system-audit' && <AuditLogsView />}
+             {currentView === 'system-ha' && <HomeAssistantSettingsView />}
+             {currentView === 'system-users' && <UsersView />}
            </div>
         </section>
 
@@ -458,15 +619,21 @@ interface NavItemProps {
   onClick?: () => void;
   badge?: number;
   badgeColor?: string;
+  /** When true, renders a slightly smaller/more compact style for sub-items. */
+  compact?: boolean;
 }
 
-const NavItem = ({ icon, label, active, disabled, onClick, badge, badgeColor }: NavItemProps) => {
+const NavItem = ({ icon, label, active, disabled, onClick, badge, badgeColor, compact }: NavItemProps) => {
   if (disabled) {
     return (
       <li>
-        <span className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-40 cursor-not-allowed">
+        <span className={cn(
+          "flex items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground opacity-35 cursor-not-allowed select-none",
+          compact ? "py-2" : "py-2.5"
+        )}>
           {icon}
           {label}
+          <span className="ml-auto text-[9px] font-black uppercase tracking-wider opacity-60">Soon</span>
         </span>
       </li>
     );
@@ -476,9 +643,11 @@ const NavItem = ({ icon, label, active, disabled, onClick, badge, badgeColor }: 
     <li>
       <a 
         href="#" 
-        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all",
+          compact ? "py-2" : "py-2.5",
           active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-        }`}
+        )}
         onClick={(e) => { e.preventDefault(); onClick?.(); }}
       >
         {icon}
