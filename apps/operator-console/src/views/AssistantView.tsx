@@ -438,8 +438,8 @@ export const AssistantView: React.FC<{
                                             <div className="pl-12 pr-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
                                               {subGroup.findings.map(finding => (
                                                 <div key={finding.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/40 group/item">
-                                                  <span className="text-[10px] font-medium text-muted-foreground font-mono">
-                                                    ID: {finding.id.split('-')[0]}...
+                                                  <span className="text-[11px] font-bold text-foreground">
+                                                    {finding.metadata.friendlyName || finding.metadata.deviceName || finding.id}
                                                   </span>
                                                   <button 
                                                     onClick={() => finding.actions[0] && handleAction(finding, finding.actions[0])}

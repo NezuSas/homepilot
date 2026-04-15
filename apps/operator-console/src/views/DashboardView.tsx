@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Cpu, Loader2, Plus, 
-  Lightbulb, ToggleRight, Zap
+  Lightbulb, ToggleRight, Zap, Sparkles
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, API_ENDPOINTS } from '../config';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
@@ -13,6 +13,8 @@ import type { HomeMode } from '../types';
 import { HomeModeSelector } from '../components/HomeModeSelector';
 import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
 import { Button } from '../components/ui/Button';
+import { AssistantCard } from '../components/ui/AssistantCard';
+import { AssistantActionModal } from '../components/AssistantActionModal';
 
 interface DeviceState {
   on?: boolean;
@@ -163,6 +165,8 @@ export const DashboardView: React.FC<{
   const [devices, setDevices] = useState<Device[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
+  const [findings, setFindings] = useState<any[]>([]);
+  const [activeAction, setActiveAction] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
@@ -173,9 +177,10 @@ export const DashboardView: React.FC<{
 
   const fetchData = useCallback(async () => {
     try {
-      const [devRes, homeRes] = await Promise.all([
+      const [devRes, homeRes, findRes] = await Promise.all([
         fetch(`${API_URL}/devices`),
-        fetch(`${API_URL}/homes`)
+        fetch(`${API_URL}/homes`),
+        fetch(API_ENDPOINTS.assistant.findings).catch(() => ({ ok: false, json: async () => [] }))
       ]);
       const allDevices = await devRes.json() as Device[];
       setDevices(allDevices.filter(d => d.status === 'ASSIGNED'));
@@ -189,6 +194,12 @@ export const DashboardView: React.FC<{
         if (rRes.ok) setRooms(await rRes.json());
         if (sRes.ok) setScenes(await sRes.json());
       }
+      
+      if (findRes && findRes.ok) {
+        const rawFindings = await findRes.json();
+        setFindings(rawFindings.filter((f: any) => f.severity === 'high' || f.severity === 'medium'));
+      }
+
       setLoading(false);
     } catch {
       setLoading(false);
@@ -227,6 +238,33 @@ export const DashboardView: React.FC<{
     return counts;
   }, [devices]);
 
+  const handleRoomTurnOff = async (roomId: string) => {
+    setRoomProcessing(roomId);
+    const devicesToTurnOff = devices.filter(d => d.roomId === roomId && (d.lastKnownState?.on === true || d.lastKnownState?.state === 'on' || Number(d.lastKnownState?.brightness) > 0));
+    try {
+      await Promise.all(devicesToTurnOff.map(d => 
+        fetch(`${API_URL}/devices/${d.id}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'turn_off' })
+        })
+      ));
+      await fetchData();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRoomProcessing(null);
+    }
+  };
+
+  const handleAction = (finding: any, action: any) => {
+    setActiveAction({ 
+      findingId: finding.id, 
+      action,
+      deviceName: finding.metadata.friendlyName || finding.metadata.deviceName || finding.metadata.name || finding.id
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
@@ -255,6 +293,45 @@ export const DashboardView: React.FC<{
           if (onModeChange) onModeChange(safeM);
         }} 
       />
+
+      {/* LEVEL 1.5: Proactive Insights */}
+      {findings.length > 0 && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 space-y-6">
+          <div className="flex items-center gap-3 px-2">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+               {t('dashboard.actionable_insights', 'Actionable Insights')}
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {findings.slice(0, 2).map((finding) => (
+               <AssistantCard 
+                  key={finding.id}
+                  icon={Sparkles}
+                  category={t('dashboard.proactive', 'PROACTIVE')}
+                  title={t(`assistant.types.${finding.type}`)}
+                  description={t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
+                  severity={finding.severity}
+                  actions={
+                    <div className="flex gap-2 w-full mt-2">
+                      {finding.actions.map((a: any, idx: number) => (
+                        <Button
+                          key={idx}
+                          size="sm"
+                          variant={idx === 0 ? "primary" : "secondary"}
+                          onClick={() => handleAction(finding, a)}
+                          className="flex-1 text-[10px] uppercase tracking-widest h-auto py-3"
+                        >
+                          {t(a.label)}
+                        </Button>
+                      ))}
+                    </div>
+                  }
+               />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* LEVEL 2: Atmosphere Recipes (Promoted Scenes) */}
       {scenes.length > 0 && (
@@ -319,10 +396,24 @@ export const DashboardView: React.FC<{
               <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-muted-foreground/10 pl-6">
                 <div>
                   <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
-                    {onCount} {t('dashboard.active')} • {roomDevices.length} {t('dashboard.elements')}
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-widest transition-colors",
+                    onCount > 0 ? "text-warning" : "text-muted-foreground/40"
+                  )}>
+                    {onCount > 0 ? t('dashboard.active_units', { count: onCount, defaultValue: `${onCount} Active` }) : t('dashboard.all_off', { defaultValue: 'All Off' })}
                   </span>
                 </div>
+                {onCount > 0 && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    isLoading={roomProcessing === room.id}
+                    onClick={() => handleRoomTurnOff(room.id)}
+                    className="text-[9px] uppercase tracking-widest px-4 py-2 bg-transparent hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
+                  >
+                    {!roomProcessing && t('common.turn_off_all', { defaultValue: 'Turn Off All' })}
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[240px]">
@@ -360,6 +451,16 @@ export const DashboardView: React.FC<{
           homeId={homeId}
           rooms={rooms}
           devices={devices}
+        />
+      )}
+
+      {activeAction && (
+        <AssistantActionModal 
+          findingId={activeAction.findingId}
+          action={activeAction.action}
+          deviceName={activeAction.deviceName}
+          onClose={() => setActiveAction(null)}
+          onSuccess={() => { setActiveAction(null); fetchData(); }}
         />
       )}
     </div>
