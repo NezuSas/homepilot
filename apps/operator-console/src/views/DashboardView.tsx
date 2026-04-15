@@ -166,7 +166,8 @@ export const DashboardView: React.FC<{
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [luxuryRipple, setLuxuryRipple] = useState(false);
-  const devices = useDeviceSnapshotStore((state) => state.devices.filter((device) => device.status === 'ASSIGNED'));
+  const allDevices = useDeviceSnapshotStore((state) => state.devices);
+  const devices = useMemo(() => allDevices.filter((device) => device.status === 'ASSIGNED'), [allDevices]);
   const homes = useDeviceSnapshotStore((state) => state.homes);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
@@ -178,34 +179,42 @@ export const DashboardView: React.FC<{
   const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
   const primaryHomeId = homes[0]?.id || null;
-  const rooms = primaryHomeId ? (roomsByHome[primaryHomeId] || []) : [];
-  const homeId = primaryHomeId || (rooms.length > 0 ? rooms[0].homeId : null);
+  const rooms = useMemo(() => {
+    if (!primaryHomeId) return [];
+    return roomsByHome[primaryHomeId] || [];
+  }, [primaryHomeId, roomsByHome]);
+
+  const homeId = useMemo(() => {
+    if (primaryHomeId) return primaryHomeId;
+    if (rooms.length > 0) return rooms[0].homeId;
+    return null;
+  }, [primaryHomeId, rooms]);
+
+
 
   const fetchData = useCallback(async () => {
-    // Avoid double-fetching if already loading
-    if (snapshotLoading || assistantLoading) return;
+    // Use getState() for the guard to avoid depending on the values themselves
+    const isAlreadyLoading = useDeviceSnapshotStore.getState().isLoading || useAssistantStore.getState().isLoading;
+    if (isAlreadyLoading) return;
 
     try {
       await Promise.all([refreshSnapshot(), refreshFindings()]);
 
-      if (!homeId) {
-        setScenes([]);
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/scenes?homeId=${homeId}`);
-      if (response.ok) {
-        setScenes(await response.json());
+      if (homeId) {
+        const response = await fetch(`${API_URL}/scenes?homeId=${homeId}`);
+        if (response.ok) {
+          setScenes(await response.json());
+        }
       }
     } catch {
       setScenes([]);
     }
-  }, [homeId, refreshFindings, refreshSnapshot, assistantLoading, snapshotLoading]);
+  }, [homeId, refreshFindings, refreshSnapshot]); // Stable dependencies only
 
-  // Only trigger fetchData on mount and when homeId actually changes (stable primitive)
   useEffect(() => {
+    // Only fetch if we haven't or if homeId changed
     fetchData();
-  }, [homeId]);
+  }, [homeId, fetchData]);
 
   const handleDeviceUpdate = (updated: Device) => {
     upsertDevice(updated);
