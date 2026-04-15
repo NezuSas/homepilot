@@ -1264,6 +1264,9 @@ export class OperatorConsoleServer {
       return;
     }
 
+    // Dashboard routes
+    if (await this.handleDashboardRoutes(req, res, pathname, method, authReq)) return;
+
     this.sendError(res, 404, 'NOT_FOUND', 'Not Found');
   }
 
@@ -1381,5 +1384,73 @@ export class OperatorConsoleServer {
         timestamp: new Date().toISOString()
       } 
     }));
+  }
+
+  // -------------------------------------------------------------------
+  // DASHBOARDS API
+  // -------------------------------------------------------------------
+  private async handleDashboardRoutes(req: http.IncomingMessage, res: http.ServerResponse, pathname: string, method: string, authReq: any): Promise<boolean> {
+    if (!pathname.startsWith('/api/v1/dashboards')) return false;
+
+    // GET /api/v1/dashboards
+    if (method === 'GET' && pathname === '/api/v1/dashboards') {
+      try {
+        const dashboards = await this.container.services.dashboardService.getDashboardsForUser(
+          authReq.user.id,
+          authReq.user.role
+        );
+        this.sendJson(res, dashboards);
+      } catch (e: any) {
+        this.sendError(res, 500, 'DASHBOARD_ERROR', e.message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/dashboards
+    if (method === 'POST' && pathname === '/api/v1/dashboards') {
+      try {
+        const body = await this.parseBody<{ title?: string }>(req);
+        if (!body.title) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Title is required'), true;
+        const dashboard = await this.container.services.dashboardService.createDashboard(authReq.user.id, body.title);
+        this.sendJson(res, dashboard, 201);
+      } catch (e: any) {
+        this.sendError(res, 500, 'DASHBOARD_ERROR', e.message);
+      }
+      return true;
+    }
+
+    // PATCH /api/v1/dashboards/:id
+    const patchMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)$/);
+    if (patchMatch) {
+      try {
+        const body = await this.parseBody<any>(req);
+        const updated = await this.container.services.dashboardService.updateDashboard(
+          authReq.user.id,
+          authReq.user.role,
+          patchMatch[1],
+          body
+        );
+        this.sendJson(res, updated);
+      } catch (e: any) {
+        const status = e.message === 'FORBIDDEN' ? 403 : e.message === 'DASHBOARD_NOT_FOUND' ? 404 : 500;
+        this.sendError(res, status, e.message, e.message);
+      }
+      return true;
+    }
+
+    // DELETE /api/v1/dashboards/:id
+    const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)$/);
+    if (deleteMatch) {
+      try {
+        await this.container.services.dashboardService.deleteDashboard(authReq.user.id, authReq.user.role, deleteMatch[1]);
+        this.sendJson(res, { success: true });
+      } catch (e: any) {
+        const status = e.message === 'FORBIDDEN' ? 403 : 500;
+        this.sendError(res, status, e.message, e.message);
+      }
+      return true;
+    }
+
+    return false;
   }
 }

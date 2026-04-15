@@ -36,6 +36,7 @@ import { OnboardingView } from './views/OnboardingView';
 import { UsersView } from './views/UsersView';
 import ScenesView from './views/ScenesView';
 import { AssistantView } from './views/AssistantView';
+import { DashboardsView } from './views/DashboardsView';
 import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';

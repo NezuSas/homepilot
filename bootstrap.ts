@@ -4,6 +4,7 @@ import { SqliteDatabaseManager } from './packages/shared/infrastructure/database
 import { SqliteMigrationsRunner } from './packages/shared/infrastructure/database/SqliteMigrationsRunner';
 import { SQLiteHomeRepository } from './packages/topology/infrastructure/repositories/SQLiteHomeRepository';
 import { SQLiteRoomRepository } from './packages/topology/infrastructure/repositories/SQLiteRoomRepository';
+import { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
 import { SQLiteDeviceRepository } from './packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import { SqliteSceneRepository } from './packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
@@ -44,9 +45,11 @@ import { SQLiteAssistantFeedbackRepository } from './packages/assistant/infrastr
 import { AssistantLearningService } from './packages/assistant/application/AssistantLearningService';
 import { AssistantDraftService } from './packages/assistant/application/AssistantDraftService';
 import { SQLiteAssistantDraftRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantDraftRepository';
+import { DashboardService } from './packages/topology/application/DashboardService';
 
 export interface BootstrapContainer {
   repositories: {
+    dashboardRepository: SQLiteDashboardRepository;
     homeRepository: SQLiteHomeRepository;
     roomRepository: SQLiteRoomRepository;
     deviceRepository: SQLiteDeviceRepository;
@@ -59,6 +62,7 @@ export interface BootstrapContainer {
     systemSetupRepository: SqliteSystemSetupRepository;
   };
   services: {
+    dashboardService: DashboardService;
     homeAssistantSettingsService: HomeAssistantSettingsService;
     diagnosticsService: DiagnosticsService;
     authService: AuthService;
@@ -114,6 +118,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   console.log('[Bootstrap] Instanciando repositorios SQLite...');
   
   const homeRepository = new SQLiteHomeRepository(dbPath);
+  const dashboardRepository = new SQLiteDashboardRepository(dbPath);
   const roomRepository = new SQLiteRoomRepository(dbPath);
   const deviceRepository = new SQLiteDeviceRepository(dbPath);
   const sceneRepository = new SqliteSceneRepository(db);
@@ -426,6 +431,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     }
   });
 
+  const dashboardService = new DashboardService(dashboardRepository, homeRepository);
+
   const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, {
     ...sharedSyncDeps
   });
@@ -442,6 +449,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const container: BootstrapContainer = {
     repositories: {
+      dashboardRepository,
       homeRepository,
       roomRepository,
       deviceRepository,
@@ -454,6 +462,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       systemSetupRepository
     },
     services: {
+      dashboardService,
       homeAssistantSettingsService: settingsService,
       diagnosticsService,
       authService,
