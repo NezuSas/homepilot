@@ -46,6 +46,10 @@ import { AssistantLearningService } from './packages/assistant/application/Assis
 import { AssistantDraftService } from './packages/assistant/application/AssistantDraftService';
 import { SQLiteAssistantDraftRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantDraftRepository';
 import { DashboardService } from './packages/topology/application/DashboardService';
+import { InMemoryEventBus } from './packages/shared/infrastructure/events/InMemoryEventBus';
+import { EventBusDeviceEventPublisher } from './packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
+import { EventBusTopologyEventPublisher } from './packages/topology/infrastructure/adapters/EventBusTopologyEventPublisher';
+import { EventBus } from './packages/shared/domain/events/EventBus';
 
 export interface BootstrapContainer {
   repositories: {
@@ -80,7 +84,13 @@ export interface BootstrapContainer {
     homeAssistantClient: HomeAssistantClient;
     /** PERF-1: Shared composite command dispatcher — built once, reused per request. */
     commandDispatcher: DeviceCommandDispatcherPort;
+    deviceEventPublisher: EventBusDeviceEventPublisher;
+    topologyEventPublisher: EventBusTopologyEventPublisher;
   };
+  /** Internal cross-domain event bus (Phase 2). */
+  eventBus: EventBus;
+  /** Resolved dbPath for route handlers that need raw SQL access. */
+  dbPath: string;
   engine?: AutomationEngine;
 }
 
@@ -116,7 +126,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   }
 
   console.log('[Bootstrap] Instanciando repositorios SQLite...');
-  
+
+  // -- EVENT BUS (Phase 2) --
+  const eventBus = new InMemoryEventBus();
+  const deviceEventPublisher = new EventBusDeviceEventPublisher(eventBus);
+  const topologyEventPublisher = new EventBusTopologyEventPublisher(eventBus);
+
   const homeRepository = new SQLiteHomeRepository(dbPath);
   const dashboardRepository = new SQLiteDashboardRepository(dbPath);
   const roomRepository = new SQLiteRoomRepository(dbPath);
@@ -186,11 +201,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       dispatchCommand: async (homeId, deviceId, command, correlationId) => {
         const executeDeps = {
           deviceRepository,
-          eventPublisher: { publish: async () => {} },
-          topologyPort: { 
-            validateHomeExists: async () => {}, 
-            validateHomeOwnership: async () => {}, 
-            validateRoomBelongsToHome: async () => {} 
+          eventPublisher: deviceEventPublisher,
+          topologyPort: {
+            validateHomeExists: async () => {},
+            validateHomeOwnership: async () => {},
+            validateRoomBelongsToHome: async () => {}
           },
           dispatcherPort: {
             dispatch: async (dId: string, cmd: string) => {
@@ -402,7 +417,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   // This eliminates the per-request instantiation of three dispatcher objects.
   const sharedSyncDeps = {
     deviceRepository,
-    eventPublisher: { publish: async () => {} },
+    eventPublisher: deviceEventPublisher,
     activityLogRepository,
     idGenerator: { generate: () => crypto.randomUUID() },
     clock: { now: () => new Date().toISOString() }
@@ -424,7 +439,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantDraftService,
     assignDeviceDeps: {
       deviceRepository,
-      eventPublisher: { publish: async () => {} }, // Replace with real publisher if available
+      eventPublisher: deviceEventPublisher,
       topologyPort,
       idGenerator: { generate: () => crypto.randomUUID() },
       clock: { now: () => new Date().toISOString() }
@@ -432,6 +447,56 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   });
 
   const dashboardService = new DashboardService(dashboardRepository, homeRepository);
+
+  const assistantScanDebounceMs = 1500;
+  const assistantScanCooldownMs = 30000;
+  const assistantScanTimers = new Map<string, NodeJS.Timeout>();
+  const assistantLastScanAtByHome = new Map<string, number>();
+
+  const scheduleAssistantScan = (homeId: string, source: string): void => {
+    if (!homeId) return;
+
+    const existingTimer = assistantScanTimers.get(homeId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const elapsedSinceLastScan = Date.now() - (assistantLastScanAtByHome.get(homeId) ?? 0);
+    const remainingCooldownMs = Math.max(0, assistantScanCooldownMs - elapsedSinceLastScan);
+    const delayMs = Math.max(assistantScanDebounceMs, remainingCooldownMs);
+
+    const timer = setTimeout(() => {
+      assistantScanTimers.delete(homeId);
+      assistantLastScanAtByHome.set(homeId, Date.now());
+      assistantService.scan(homeId, source).catch((error) => {
+        console.error(`[Assistant] Event-driven scan failed for home ${homeId}:`, error);
+      });
+    }, delayMs);
+
+    timer.unref?.();
+    assistantScanTimers.set(homeId, timer);
+  };
+
+  eventBus.subscribe('HomeCreatedEvent', (event) => {
+    const payload = event.payload as { id?: string };
+    if (payload.id) {
+      scheduleAssistantScan(payload.id, 'event_bus:home_created');
+    }
+  });
+
+  eventBus.subscribe('RoomCreatedEvent', (event) => {
+    const payload = event.payload as { homeId?: string };
+    if (payload.homeId) {
+      scheduleAssistantScan(payload.homeId, 'event_bus:room_created');
+    }
+  });
+
+  eventBus.subscribe('DeviceDiscoveredEvent', (event) => {
+    const payload = event.payload as { homeId?: string };
+    if (payload.homeId) {
+      scheduleAssistantScan(payload.homeId, 'event_bus:device_discovered');
+    }
+  });
 
   const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, {
     ...sharedSyncDeps
@@ -480,8 +545,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       get homeAssistantClient() {
         return connectionProvider.getClient();
       },
-      commandDispatcher: sharedCommandDispatcher
+      commandDispatcher: sharedCommandDispatcher,
+      deviceEventPublisher,
+      topologyEventPublisher
     },
+    eventBus,
+    dbPath,
     engine: automationEngine
   };
 
