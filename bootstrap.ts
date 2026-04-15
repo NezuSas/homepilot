@@ -38,6 +38,7 @@ import { AssistantService } from './packages/assistant/application/AssistantServ
 import { BehaviorAnalysisService } from './packages/assistant/application/BehaviorAnalysisService';
 import { AssistantActionService } from './packages/assistant/application/AssistantActionService';
 import { ContextAnalysisService } from './packages/assistant/application/ContextAnalysisService';
+import { EnergyAnalysisService } from './packages/assistant/application/EnergyAnalysisService';
 import { SQLiteTopologyReferenceAdapter } from './packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { SQLiteAssistantFeedbackRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantFeedbackRepository';
 import { AssistantLearningService } from './packages/assistant/application/AssistantLearningService';
@@ -376,12 +377,14 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     { generate: () => crypto.randomUUID() }
   );
   const behaviorService = new BehaviorAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);
+  const energyAnalysisService = new EnergyAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);
   const assistantDetectionService = new AssistantDetectionService(
     deviceRepository, 
     haClientProxy, 
     contextAnalysisService, 
     behaviorService,
-    assistantDraftService
+    assistantDraftService,
+    energyAnalysisService
   );
   const assistantService = new AssistantService(
     assistantRepository, 

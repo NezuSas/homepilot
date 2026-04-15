@@ -197,7 +197,14 @@ export const DashboardView: React.FC<{
       
       if (findRes && findRes.ok) {
         const rawFindings = await findRes.json();
-        setFindings(rawFindings.filter((f: any) => f.severity === 'high' || f.severity === 'medium'));
+        const prioritized = rawFindings
+          .filter((f: any) => f.severity === 'high' || f.severity === 'medium')
+          .sort((a: any, b: any) => {
+             const aEnergy = a.type.includes('energy') || a.type.includes('consumption') || a.type.includes('long_running') ? 1 : 0;
+             const bEnergy = b.type.includes('energy') || b.type.includes('consumption') || b.type.includes('long_running') ? 1 : 0;
+             return bEnergy - aEnergy;
+          });
+        setFindings(prioritized);
       }
 
       setLoading(false);
@@ -257,7 +264,22 @@ export const DashboardView: React.FC<{
     }
   };
 
-  const handleAction = (finding: any, action: any) => {
+  const handleAction = async (finding: any, action: any) => {
+    if (action.type === 'turn_off_device') {
+      try {
+        await fetch(`${API_URL}/devices/${action.payload.deviceId}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'turn_off' })
+        });
+        await fetch(`${API_URL}/assistant/findings/${finding.id}/resolve`, { method: 'POST' });
+        await fetchData();
+      } catch (e) {
+        console.error('Action failed:', e);
+      }
+      return;
+    }
+    
     setActiveAction({ 
       findingId: finding.id, 
       action,
@@ -304,13 +326,15 @@ export const DashboardView: React.FC<{
             <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {findings.slice(0, 2).map((finding) => (
+            {findings.slice(0, 2).map((finding) => {
+               const isEnergy = finding.type.includes('energy') || finding.type.includes('consumption') || finding.type.includes('long_running');
+               return (
                <AssistantCard 
                   key={finding.id}
-                  icon={Sparkles}
-                  category={t('dashboard.proactive', 'PROACTIVE')}
-                  title={t(`assistant.types.${finding.type}`)}
-                  description={t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
+                  icon={isEnergy ? Zap : Sparkles}
+                  category={isEnergy ? t('dashboard.energy_insight', 'ENERGY INSIGHT') : t('dashboard.proactive', 'PROACTIVE')}
+                  title={finding.metadata?.displayTitle ? finding.metadata.displayTitle : t(`assistant.types.${finding.type}`)}
+                  description={finding.metadata?.displayDescription ? finding.metadata.displayDescription : t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
                   severity={finding.severity}
                   actions={
                     <div className="flex gap-2 w-full mt-2">
@@ -328,7 +352,7 @@ export const DashboardView: React.FC<{
                     </div>
                   }
                />
-            ))}
+             )})}
           </div>
         </div>
       )}
