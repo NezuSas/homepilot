@@ -2,64 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * HomePilot Design System — CSS Custom Properties
+ *
+ * All color tokens follow the design-system/tokens.ts palette.
+ * Tailwind utilities (bg-*, text-*, border-*) are wired to these vars
+ * via tailwind.config.js.
+ *
+ * Dark mode is the ONLY theme. No light-mode overrides are used.
+ * The :root block below defines the full, final design-system palette.
+ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* ── Core Surfaces ──────────────────────────────────────── */
+    /* background  #0B0F14 → hsl(216, 29%, 7%) */
+    --background: 216 29% 7%;
+    /* surface     #0F141A → hsl(216, 29%, 9%) */
+    --card:       216 29% 9%;
+    --card-foreground: 216 12% 92%;
+    /* elevated    #151B22 → hsl(216, 27%, 11%) */
+    --popover:    216 27% 11%;
+    --popover-foreground: 216 12% 92%;
 
-    /* High-Trust Reliability Tokens */
-    --sync-success: 142.1 70.6% 45.3%;
-    --sync-warning: 47.9 95.8% 51.8%;
-    --sync-error: 0 84.2% 60.2%;
-    
-    /* System Atmosphere Defaults */
-    --atmos-bg: 222.2 84% 4.9%;
-    --atmos-glow: 217.2 91.2% 59.8%;
-    --radius: 0.5rem;
-  }
+    /* ── Text ───────────────────────────────────────────────── */
+    /* textPrimary   #E6EDF3 → hsl(210, 33%, 93%) */
+    --foreground: 210 33% 93%;
 
-  /* Mode Atmosphere Overrides */
+    /* ── Border ─────────────────────────────────────────────── */
+    /* border  #1F2A35 → hsl(210, 27%, 17%) */
+    --border: 210 27% 17%;
+    --input:  210 27% 17%;
+    --ring:   210 90% 60%;
 
-  .dark {
-    --background: 240 10% 2%;    /* Deeper dark */
-    --foreground: 0 0% 98%;      /* Brighter text */
-    --card: 240 10% 4%;          /* Elevated card */
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 4%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 142.1 76.2% 45.3%; /* Vibrant Green */
-    --primary-foreground: 144.9 80.4% 5%;
-    --secondary: 240 3.7% 8%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 10%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 142.1 76.2% 45.3%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84.2% 60.2%;
+    /* ── Primary (Interaction) ──────────────────────────────── */
+    /* primary  #3AA0FF → hsl(210, 100%, 61%) */
+    --primary:            210 100% 61%;
+    --primary-foreground: 210 100% 10%;
+
+    /* ── Secondary / Muted ──────────────────────────────────── */
+    /* muted surface hsl(210,20%,13%) */
+    --secondary:            210 20% 13%;
+    --secondary-foreground: 210 33% 93%;
+    --muted:                210 20% 13%;
+    /* textSecondary #9BA7B4 → hsl(210, 12%, 66%) */
+    /* textMuted     #6B7682 → hsl(210, 8%, 46%) */
+    --muted-foreground: 210 12% 66%;
+
+    /* ── Accent ─────────────────────────────────────────────── */
+    --accent:            210 100% 61%;
+    --accent-foreground: 210 100% 10%;
+
+    /* ── Destructive / Danger ───────────────────────────────── */
+    /* danger  #EF4444 → hsl(0, 83%, 60%) */
+    --destructive:            0 83% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 10% 12%;       /* Subtle border */
-    --input: 240 3.7% 10%;
-    --ring: 142.1 76.2% 45.3%;
-    
-    /* Premium Extra Tokens */
-    --premium-glow: 0 0 20px -5px hsl(var(--primary) / 0.4);
+
+    /* ── Semantic Status ────────────────────────────────────── */
+    /* success  #22C55E → hsl(142, 71%, 45%) */
+    --success:            142 71% 45%;
+    --success-foreground: 142 71% 10%;
+
+    /* warning  #F59E0B → hsl(38, 91% 50%) */
+    --warning:            38 91% 50%;
+    --warning-foreground: 38 91% 10%;
+
+    /* danger alias for components that use --danger directly */
+    --danger:             0 83% 60%;
+    --danger-foreground:  0 0% 98%;
+
+    /* ── Reliability / Sync Indicators ─────────────────────── */
+    --sync-success: var(--success);
+    --sync-warning: var(--warning);
+    --sync-error:   var(--danger);
+
+    /* ── Decorative / Atmospheric ───────────────────────────── */
+    --atmos-bg:   216 29% 7%;
+    --atmos-glow: var(--primary);
+    --radius:     0.625rem;
+
+    /* ── Premium Effects ────────────────────────────────────── */
+    --premium-glow:     0 0 20px -5px hsl(var(--primary) / 0.35);
     --premium-gradient: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
   }
 }
@@ -74,47 +97,55 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     transition: background-color 2s ease-in-out;
   }
-  
+
   @keyframes luxury-ripple {
-  0% { transform: scale(0.8); opacity: 0; filter: blur(4px); }
-  50% { opacity: 0.3; filter: blur(0px); }
-  100% { transform: scale(1.5); opacity: 0; filter: blur(10px); }
-}
-
-@keyframes atmospheric-glow {
-  0% { opacity: 0; background: radial-gradient(circle at center, var(--primary) 0%, transparent 70%); }
-  30% { opacity: 0.15; }
-  100% { opacity: 0; background: radial-gradient(circle at center, var(--primary) 0%, transparent 100%); }
-}
-
-.animate-luxury-ripple {
-  animation: luxury-ripple 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-atmospheric-glow {
-  animation: atmospheric-glow 2s ease-out forwards;
-}
-
-.premium-card {
-  @apply relative overflow-hidden bg-card/40 backdrop-blur-2xl border-2 border-border/40 rounded-[2.5rem] transition-all duration-700 hover:border-primary/40 hover:bg-card/60;
-}
-
-.luxury-text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/90 to-foreground/40;
-}
-
-  /* High-Trust Reliability Indicators */
-  .status-dot-synced {
-    @apply w-2 h-2 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)];
-    background-color: hsl(var(--sync-success));
+    0%   { transform: scale(0.8); opacity: 0;   filter: blur(4px); }
+    50%  { opacity: 0.3;                         filter: blur(0px); }
+    100% { transform: scale(1.5); opacity: 0;   filter: blur(10px); }
   }
-  .status-dot-updating {
+
+  @keyframes atmospheric-glow {
+    0%   { opacity: 0;    background: radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 70%); }
+    30%  { opacity: 0.12; }
+    100% { opacity: 0;    background: radial-gradient(circle at center, hsl(var(--primary)) 0%, transparent 100%); }
+  }
+
+  .animate-luxury-ripple {
+    animation: luxury-ripple 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-atmospheric-glow {
+    animation: atmospheric-glow 2s ease-out forwards;
+  }
+
+  /* ── Shared Card Style ───────────────────────────────────── */
+  .premium-card {
+    @apply relative overflow-hidden bg-card/40 backdrop-blur-2xl border-2 border-border/40 rounded-[2.5rem] transition-all duration-700 hover:border-primary/40 hover:bg-card/60;
+  }
+
+  .luxury-text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/90 to-foreground/40;
+  }
+
+  /* ── Status Indicator Dots ───────────────────────────────── */
+  .status-dot-synced {
+    @apply w-2 h-2 rounded-full;
+    background-color: hsl(var(--success));
+    box-shadow: 0 0 8px hsl(var(--success) / 0.55);
+  }
+  .status-dot-warning {
     @apply w-2 h-2 rounded-full animate-pulse-slow;
-    background-color: hsl(var(--sync-warning));
+    background-color: hsl(var(--warning));
+    box-shadow: 0 0 8px hsl(var(--warning) / 0.55);
   }
   .status-dot-error {
     @apply w-2 h-2 rounded-full;
-    background-color: hsl(var(--sync-error));
+    background-color: hsl(var(--danger));
+    box-shadow: 0 0 8px hsl(var(--danger) / 0.4);
+  }
+  /* Legacy alias kept for backward compat */
+  .status-dot-updating {
+    @apply status-dot-warning;
   }
 
   .animate-pulse-slow {
@@ -122,56 +153,45 @@
   }
 
   @keyframes pulse-slow {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.95); }
+    0%, 100% { opacity: 1;   transform: scale(1);    }
+    50%       { opacity: 0.4; transform: scale(0.95); }
   }
 
   .system-blur-bar {
     @apply bg-background/40 backdrop-blur-3xl border-t border-border/40;
   }
-  
-  /* Scrollbar estético técnico oscuro */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
+
+  /* ── Scrollbar ───────────────────────────────────────────── */
+  ::-webkit-scrollbar             { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track       { background: transparent; }
+  ::-webkit-scrollbar-thumb       {
     background-color: hsl(var(--muted-foreground) / 0.2);
     border-radius: 9999px;
     border: 1px solid transparent;
     background-clip: padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.4);
-  }
+  ::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.4); }
 }
 
 @layer utilities {
-  .premium-card {
-    @apply bg-card border border-border shadow-sm transition-all duration-300;
-  }
-  
   .premium-glow {
     box-shadow: var(--premium-glow);
   }
-  
+
   .animate-premium-pulse {
     animation: premium-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
   @keyframes premium-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(0.98); }
+    0%, 100% { opacity: 1;   transform: scale(1);    }
+    50%       { opacity: 0.8; transform: scale(0.98); }
   }
 
   .premium-shimmer {
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.05) 50%,
+      hsl(var(--foreground) / 0.05) 50%,
       transparent 100%
     );
     background-size: 200% 100%;
@@ -180,7 +200,7 @@
 
   @keyframes shimmer {
     from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
+    to   { background-position: -200% 0; }
   }
 
   .ripple {
@@ -191,12 +211,10 @@
     content: "";
     display: block;
     position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
+    width: 100%; height: 100%;
+    top: 0; left: 0;
     pointer-events: none;
-    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-image: radial-gradient(circle, hsl(var(--foreground) / 0.15) 10%, transparent 10.01%);
     background-repeat: no-repeat;
     background-position: 50%;
     transform: scale(10, 10);

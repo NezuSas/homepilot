@@ -56,7 +56,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
         <form onSubmit={handleLogin} className="space-y-4 pt-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-sm font-medium text-red-500 flex items-center gap-2">
+            <div className="p-3 bg-danger/10 border border-danger/50 rounded-lg text-sm font-medium text-danger flex items-center gap-2">
               <Lock className="w-4 h-4" />
               {error}
             </div>

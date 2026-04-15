@@ -112,22 +112,22 @@ export function DiagnosticsView() {
       case 'reachable':
       case 'connected':
       case 'active':
-        return 'text-green-500 bg-green-500/10 border-green-500/20';
+        return 'text-success bg-success/10 border-success/20';
       case 'degraded':
       case 'reconnecting':
       case 'running':
-        return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+        return 'text-warning bg-warning/10 border-warning/20';
       case 'offline':
       case 'unreachable':
       case 'auth_error':
       case 'error':
       case 'failed':
-        return 'text-red-500 bg-red-500/10 border-red-500/20';
+        return 'text-danger bg-danger/10 border-danger/20';
       case 'idle':
       case 'stopped':
-        return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
+        return 'text-muted-foreground bg-muted/10 border-muted/20';
       default:
-        return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
+        return 'text-muted-foreground bg-muted/10 border-muted/20';
     }
   };
 
@@ -143,14 +143,14 @@ export function DiagnosticsView() {
       {/* OVERALL HEALTH BANNER */}
       <div className={cn(
         "border-2 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6",
-        snapshot.overallStatus === 'healthy' ? 'border-green-500/50 bg-green-500/5' :
-        snapshot.overallStatus === 'degraded' ? 'border-amber-500/50 bg-amber-500/5' :
-        'border-red-500/50 bg-red-500/5'
+        snapshot.overallStatus === 'healthy' ? 'border-success/50 bg-success/5' :
+        snapshot.overallStatus === 'degraded' ? 'border-warning/50 bg-warning/5' :
+        'border-danger/50 bg-danger/5'
       )}>
         <div className="flex items-center gap-4">
-          {snapshot.overallStatus === 'healthy' ? <CheckCircle2 className="w-10 h-10 text-green-500" /> :
-           snapshot.overallStatus === 'degraded' ? <AlertTriangle className="w-10 h-10 text-amber-500" /> :
-           <XCircle className="w-10 h-10 text-red-500" />}
+          {snapshot.overallStatus === 'healthy' ? <CheckCircle2 className="w-10 h-10 text-success" /> :
+           snapshot.overallStatus === 'degraded' ? <AlertTriangle className="w-10 h-10 text-warning" /> :
+           <XCircle className="w-10 h-10 text-danger" />}
           <div>
             <h2 className="text-2xl font-bold tracking-tight capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${snapshot.overallStatus}`) })}</h2>
             <p className="text-sm text-foreground/60 mt-1">
@@ -173,7 +173,7 @@ export function DiagnosticsView() {
           {snapshot.issues.map((issue, idx) => (
             <div key={idx} className={cn(
               "flex items-start gap-4 p-4 rounded-xl border",
-              issue.severity === 'critical' ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-amber-500/50 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+              issue.severity === 'critical' ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-warning/50 bg-warning/5 text-warning"
             )}>
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-1">
@@ -204,7 +204,7 @@ export function DiagnosticsView() {
             </div>
             <div className="flex justify-between text-xs pt-3 border-t border-border/50">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.connections_lost')}</span>
-              <span className="font-mono font-bold text-amber-500">{snapshot.counters.recentReconnects}</span>
+              <span className="font-mono font-bold text-warning">{snapshot.counters.recentReconnects}</span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_reconnect')}</span>
@@ -225,14 +225,14 @@ export function DiagnosticsView() {
             <div className="flex justify-between items-end pb-3">
               <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.activity_volume')}</span>
               <div className="text-xs font-mono font-bold flex items-center gap-2">
-                <span className="text-green-500">+{snapshot.counters.recentAutomationSuccess}</span> 
+                <span className="text-success">+{snapshot.counters.recentAutomationSuccess}</span> 
                 <span className="text-muted-foreground/30">/</span> 
-                <span className="text-red-500">-{snapshot.counters.recentAutomationFailures}</span>
+                <span className="text-danger">-{snapshot.counters.recentAutomationFailures}</span>
               </div>
             </div>
             <div className="flex justify-between text-[11px] border-t border-border/50 pt-3">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.eval_failed')}</span>
-              <span className="font-mono font-bold text-red-500">{snapshot.counters.recentAutomationFailures}</span>
+              <span className="font-mono font-bold text-danger">{snapshot.counters.recentAutomationFailures}</span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_execution')}</span>
@@ -306,7 +306,7 @@ export function DiagnosticsView() {
                   const isError = ev.eventType.includes('failed') || ev.eventType.includes('FAILED') || ev.eventType.includes('error');
                   
                   return (
-                    <div key={group.id} className={cn("p-5 flex flex-col gap-4 hover:bg-muted/50 transition-colors", isError ? "bg-red-500/5 hover:bg-red-500/10" : "")}>
+                    <div key={group.id} className={cn("p-5 flex flex-col gap-4 hover:bg-muted/50 transition-colors", isError ? "bg-danger/5 hover:bg-danger/10" : "")}>
                       <div 
                         className="flex gap-4 cursor-pointer" 
                         onClick={() => toggleExpand(group.id)}
@@ -316,10 +316,10 @@ export function DiagnosticsView() {
                         </div>
                         <div className="flex-1 flex flex-col gap-1.5">
                           <div className="flex items-center gap-2">
-                            <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", isError ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary")}>
+                            <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
                               {ev.category}
                             </span>
-                            <span className={cn("font-bold text-sm tracking-tight", isError ? "text-red-500" : "")}>{ev.eventType}</span>
+                            <span className={cn("font-bold text-sm tracking-tight", isError ? "text-danger" : "")}>{ev.eventType}</span>
                             {(hasChildren || hasData) && (
                               <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
                                 {isExpanded ? t('diagnostics.hide_details') : t('diagnostics.view_details')}
@@ -351,7 +351,7 @@ export function DiagnosticsView() {
                                   </div>
                                   <div className="flex-1 space-y-1">
                                     <div className="font-bold flex items-center gap-2">
-                                      <span className={child.eventType.includes('FAILED') ? 'text-red-500' : 'text-foreground'}>{child.eventType}</span>
+                                      <span className={child.eventType.includes('FAILED') ? 'text-danger' : 'text-foreground'}>{child.eventType}</span>
                                     </div>
                                     <div className="opacity-80">{t(child.description as string)}</div>
                                   </div>

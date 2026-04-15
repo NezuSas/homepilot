@@ -8,6 +8,8 @@ import {
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
+import { Button } from '../components/ui/Button';
+import { SectionHeader } from '../components/ui/SectionHeader';
 
 interface DeviceState {
   state?: 'on' | 'off';
@@ -131,12 +133,12 @@ const DeviceTile: React.FC<{
     <div 
       onClick={onInspect}
       className={cn(
-        "relative group cursor-pointer transition-all duration-300",
-        "aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2",
-        "bg-card hover:shadow-xl hover:border-primary/40",
-        isOn && isAssigned ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-border shadow-sm",
-        isProcessing && "opacity-70 scale-[0.98] bg-muted/50",
-        error && "border-destructive/40 bg-destructive/5"
+        "relative group cursor-pointer transition-all duration-500",
+        "aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2 hover:-translate-y-1 hover:shadow-xl",
+        "bg-card hover:border-border",
+        isOn && isAssigned ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20" : "border-border shadow-md",
+        isProcessing && "opacity-70 scale-[0.98] bg-muted/50 hover:translate-y-0 hover:shadow-none",
+        error && "border-destructive/40 bg-destructive/5 hover:translate-y-0"
       )}
     >
       {/* Top: Icon & State Toggle */}
@@ -202,13 +204,15 @@ const DeviceTile: React.FC<{
                {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
                {rooms.length === 0 && <option value="">{t('common.unassigned')}</option>}
              </select>
-             <button 
+             <Button 
+               size="sm"
                onClick={handleAssign}
                disabled={!selectedRoomId || isProcessing}
-               className="w-full bg-primary/10 text-primary py-1 rounded text-[8px] font-black uppercase border border-primary/20 hover:bg-primary/20 transition-colors"
+               className="w-full text-[8px] py-1 h-auto font-black uppercase"
+               isLoading={isProcessing}
              >
-               {isProcessing ? t('common.processing') : t('common.save')}
-             </button>
+               {t('common.save')}
+             </Button>
           </div>
         )}
       </div>
@@ -295,33 +299,28 @@ export const InboxView: React.FC = () => {
       <HomeAssistantDiscoverySection onImported={fetchData} />
 
       {/* Control Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 text-primary rounded-2xl shrink-0">
-            <Inbox className="w-6 h-6" />
+      <SectionHeader 
+        className="pb-4 border-b border-border/50"
+        title={t('inbox.title')}
+        subtitle={t('inbox.subtitle')}
+        icon={Inbox}
+        action={
+          <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
+            {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                 filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
+                )}
+              >
+                {t(`inbox.filters.${f}`)}
+              </button>
+            ))}
           </div>
-          <div className="flex flex-col min-w-0">
-            <h2 className="text-xl font-black tracking-tight truncate">{t('inbox.title')}</h2>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 truncate">{t('inbox.subtitle')}</span>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
-          {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-               filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
-              )}
-            >
-              {t(`inbox.filters.${f}`)}
-            </button>
-          ))}
-        </div>
-      </div>
+        }
+      />
 
       {/* Adaptive Grid Rendering */}
       <div className="flex flex-col gap-12">
@@ -778,7 +777,7 @@ const DeviceInspector: React.FC<{
               <div className="flex-1 bg-[#0D0D0D] rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
                   <div className="absolute top-4 right-8 text-[9px] font-black font-mono opacity-20 tracking-widest group-hover:opacity-40 transition-opacity">{t('inbox.inspector.json_parser_hint')}</div>
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-                  <pre className="text-[11px] font-mono text-green-400 overflow-auto h-full leading-relaxed custom-scrollbar relative z-10 selection:bg-primary/30">
+                  <pre className="text-[11px] font-mono text-success overflow-auto h-full leading-relaxed custom-scrollbar relative z-10 selection:bg-primary/30">
                     {JSON.stringify(device.lastKnownState, null, 4)}
                   </pre>
               </div>
@@ -869,14 +868,15 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
         <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
           <RadioTower className="w-4 h-4" /> {t('inbox.discovery.bridge_title')}
         </h3>
-        <button 
+        <Button 
+          variant="secondary"
           onClick={showDiscovery ? () => setShowDiscovery(false) : fetchCandidates}
           disabled={loading}
-          className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-secondary border border-border rounded-xl hover:bg-secondary/80 transition-all flex items-center gap-2"
+          className="text-[10px] font-black uppercase tracking-widest px-4 h-9"
+          isLoading={loading}
         >
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className={cn("w-3.5 h-3.5", showDiscovery && "rotate-180")} />}
-          {showDiscovery ? t('inbox.discovery.close_button', { defaultValue: 'Close Discovery' }) : t('inbox.discovery.discover_button')}
-        </button>
+          {showDiscovery ? <><RefreshCw className="w-3.5 h-3.5 rotate-180" /> {t('inbox.discovery.close_button', { defaultValue: 'Close Discovery' })}</> : <><RefreshCw className="w-3.5 h-3.5" /> {t('inbox.discovery.discover_button')}</>}
+        </Button>
       </div>
 
       {showDiscovery && (

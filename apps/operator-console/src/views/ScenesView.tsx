@@ -296,7 +296,7 @@ const ScenesView: React.FC<{
           {favoriteScenes.length > 0 && (
             <div className="flex flex-col gap-6">
                <div className="flex items-center gap-3">
-                  <Star className="w-4 h-4 text-amber-500 fill-current" />
+                  <Star className="w-4 h-4 text-warning fill-current" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.favorites')}</h3>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

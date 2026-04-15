@@ -32,15 +32,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen) return null;
 
   const variantColors = {
-    danger: 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20',
-    warning: 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-yellow-500/20',
+    danger: 'bg-danger text-danger-foreground hover:bg-danger/90 shadow-danger/20',
+    warning: 'bg-warning text-warning-foreground hover:bg-warning/90 shadow-warning/20',
     info: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20'
   };
 
   const iconColors = {
-    danger: 'text-red-500 bg-red-500/10',
-    warning: 'text-yellow-500 bg-yellow-500/10',
-    info: 'text-primary bg-primary/10'
+    danger:  'text-danger bg-danger/10',
+    warning: 'text-warning bg-warning/10',
+    info:    'text-primary bg-primary/10'
   };
 
   return (

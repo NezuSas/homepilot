@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Save, Loader2, PlayCircle, CheckCircle2, LayoutGrid } from 'lucide-react';
+import { X, Save, PlayCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { humanize } from '../lib/naming-utils';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { Button } from '../components/ui/Button';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -136,41 +139,36 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.identity')}</label>
-               <input 
-                 type="text" 
+               <Input 
                  value={name} 
                  onChange={e => setName(e.target.value)} 
                  placeholder={t('scenes.builder.placeholders.name')}
-                 className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.5rem] px-6 py-4 text-xl font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                 className="text-xl font-black tracking-tighter"
                />
             </div>
             <div className="space-y-4">
                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
-               <div className="relative">
-                 <select 
-                   value={roomId || ''} 
-                   onChange={e => {
-                     setRoomId(e.target.value || null);
-                     setActions([]);
-                   }}
-                   className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.5rem] px-6 py-4 text-sm font-black tracking-widest uppercase focus:border-primary/50 focus:ring-0 transition-all appearance-none cursor-pointer"
-                 >
-                   <option value="">{t('dashboard.scene_global')}</option>
-                   {rooms.map(r => <option key={r.id} value={r.id}>{r.name.toUpperCase()}</option>)}
-                 </select>
-                 <LayoutGrid className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground opacity-30 pointer-events-none" />
-               </div>
+               <Select 
+                 value={roomId || ''} 
+                 onChange={e => {
+                   setRoomId(e.target.value || null);
+                   setActions([]);
+                 }}
+                 className="text-sm font-black tracking-widest uppercase"
+               >
+                 <option value="">{t('dashboard.scene_global')}</option>
+                 {rooms.map(r => <option key={r.id} value={r.id}>{r.name.toUpperCase()}</option>)}
+               </Select>
             </div>
           </div>
 
           <div className="space-y-4">
              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.intent')}</label>
-             <input 
-               type="text" 
+             <Input 
                value={description} 
                onChange={e => setDescription(e.target.value)} 
                placeholder={t('scenes.builder.placeholders.description')}
-               className="w-full bg-muted/20 border-2 border-border/40 rounded-[1.5rem] px-6 py-4 text-sm font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+               className="text-sm font-medium"
              />
           </div>
 
@@ -215,24 +213,22 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
 
                         {isSelected && (
                           <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                            <button 
+                            <Button 
+                              size="sm"
+                              variant={action?.command === 'turn_on' ? "primary" : "secondary"}
                               onClick={() => setCommand(d.id, 'turn_on')}
-                              className={cn(
-                                "px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
-                                action?.command === 'turn_on' ? "bg-primary text-primary-foreground premium-glow" : "bg-muted/40 text-muted-foreground hover:bg-primary/20 hover:text-primary"
-                              )}
+                              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest h-auto"
                             >
                               {t('common.on')}
-                            </button>
-                            <button 
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={action?.command === 'turn_off' ? "primary" : "secondary"}
                               onClick={() => setCommand(d.id, 'turn_off')}
-                              className={cn(
-                                "px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
-                                action?.command === 'turn_off' ? "bg-foreground text-background shadow-xl" : "bg-muted/40 text-muted-foreground hover:bg-primary/20 hover:text-primary"
-                              )}
+                              className="px-6 py-3 text-[10px] font-black uppercase tracking-widest h-auto"
                             >
                               {t('common.off')}
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -245,18 +241,24 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         </div>
 
         {/* Footer */}
-        <div className="p-12 pt-6 border-t border-border/20 bg-muted/20 flex gap-6 shrink-0">
-          <button onClick={onClose} className="flex-1 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] border-2 border-border/40 hover:bg-muted transition-all">
+        <div className="p-12 pt-6 border-t border-border/20 bg-card flex gap-6 shrink-0">
+          <Button 
+            variant="secondary"
+            onClick={onClose} 
+            className="flex-1 py-5 h-auto text-[10px]"
+          >
             {t('common.cancel')}
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="primary"
             onClick={handleSave} 
             disabled={saving || actions.length === 0 || !name}
-            className="flex-3 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground hover:scale-[1.03] active:scale-95 transition-all premium-glow shadow-primary/20 flex items-center justify-center gap-4"
+            className="flex-3 py-5 h-auto text-[10px]"
+            isLoading={saving}
           >
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            {!saving && <Save className="w-5 h-5 mr-3 inline-block" />}
             {t('scenes.builder.commit')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

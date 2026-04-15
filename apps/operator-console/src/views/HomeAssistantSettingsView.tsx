@@ -91,9 +91,9 @@ export const HomeAssistantSettingsView: React.FC = () => {
 
   const getStatusIcon = (s: HASettingsStatus['connectivityStatus'] | 'error') => {
     switch (s) {
-      case 'reachable': return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
-      case 'unreachable': return <XCircle className="w-5 h-5 text-rose-500" />;
-      case 'auth_error': return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+      case 'reachable':   return <CheckCircle2 className="w-5 h-5 text-success" />;
+      case 'unreachable': return <XCircle className="w-5 h-5 text-danger" />;
+      case 'auth_error':  return <AlertTriangle className="w-5 h-5 text-warning" />;
       default: return <RefreshCw className="w-5 h-5 text-muted-foreground animate-spin-slow" />;
     }
   };
@@ -129,8 +129,8 @@ export const HomeAssistantSettingsView: React.FC = () => {
         <div className="md:col-span-2 bg-card/40 border rounded-2xl p-6 backdrop-blur-xl flex flex-col gap-4 shadow-sm border-white/10 ring-1 ring-black/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${status.connectivityStatus === 'reachable' ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                <Cpu className={`w-5 h-5 ${status.connectivityStatus === 'reachable' ? 'text-emerald-500' : 'text-rose-500'}`} />
+              <div className={`p-2 rounded-xl ${status.connectivityStatus === 'reachable' ? 'bg-success/10' : 'bg-danger/10'}`}>
+                <Cpu className={`w-5 h-5 ${status.connectivityStatus === 'reachable' ? 'text-success' : 'text-danger'}`} />
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.title')}</h3>
@@ -151,7 +151,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
             <div className="bg-background/40 p-3 rounded-xl border border-white/5 space-y-1">
               <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.active_source')}</span>
               <div className="flex items-center gap-2 text-sm font-medium">
-                {status.activeSource === 'database' ? <Database className="w-3.5 h-3.5 text-primary" /> : <Globe className="w-3.5 h-3.5 text-amber-500" />}
+                {status.activeSource === 'database' ? <Database className="w-3.5 h-3.5 text-primary" /> : <Globe className="w-3.5 h-3.5 text-warning" />}
                 <span className="capitalize">{status.activeSource.replace('-', ' ')}</span>
               </div>
             </div>
@@ -165,7 +165,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
         </div>
 
         {/* Security Info Card */}
-        <div className="bg-gradient-to-br from-primary/10 to-indigo-500/5 border border-primary/20 rounded-2xl p-6 flex flex-col gap-3 relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col gap-3 relative overflow-hidden group">
           <ShieldCheck className="absolute -right-4 -bottom-4 w-32 h-32 text-primary/5 group-hover:scale-110 transition-transform duration-700" />
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
@@ -219,7 +219,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
                   className="w-full bg-background/50 border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono text-sm pr-12"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                   {status.hasToken && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                   {status.hasToken && <CheckCircle2 className="w-4 h-4 text-success" />}
                 </div>
               </div>
               <p className="text-[11px] text-muted-foreground">{t('ha_settings.config.token_hint')}</p>
@@ -227,7 +227,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
           </div>
 
           {testResult && (
-            <div className={`p-4 rounded-xl border flex gap-3 animate-in fade-in zoom-in-95 duration-300 ${testResult.success ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600' : 'bg-rose-500/5 border-rose-500/20 text-rose-600'}`}>
+            <div className={`p-4 rounded-xl border flex gap-3 animate-in fade-in zoom-in-95 duration-300 ${testResult.success ? 'bg-success/5 border-success/20 text-success' : 'bg-danger/5 border-danger/20 text-danger'}`}>
               {testResult.success ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <XCircle className="w-5 h-5 shrink-0" />}
               <div className="text-sm">
                 <p className="font-bold">{testResult.success ? t('ha_settings.test.success') : t('ha_settings.test.failure')}</p>
@@ -237,7 +237,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
           )}
 
           {message && (
-             <div className={`p-4 rounded-xl border text-sm ${message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-600'}`}>
+             <div className={`p-4 rounded-xl border text-sm ${message.type === 'success' ? 'bg-success/10 border-success/20 text-success' : 'bg-danger/10 border-danger/20 text-danger'}`}>
                 {message.text}
              </div>
           )}

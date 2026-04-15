@@ -17,6 +17,9 @@ import {
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
 import { AssistantActionModal } from '../components/AssistantActionModal';
+import { SectionHeader } from '../components/ui/SectionHeader';
+import { Button } from '../components/ui/Button';
+import { StatusPill } from '../components/ui/StatusPill';
 
 interface Finding {
   id: string;
@@ -163,18 +166,18 @@ export const AssistantView: React.FC<{
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'new_device_available': return <PlusCircle className="w-5 h-5 text-blue-500" />;
-      case 'device_missing_room': return <Hash className="w-5 h-5 text-amber-500" />;
-      case 'device_name_technical': return <Type className="w-5 h-5 text-indigo-500" />;
-      case 'device_name_duplicate': return <Copy className="w-5 h-5 text-rose-500" />;
-      case 'automation_suggestion': return <Sparkles className="w-5 h-5 text-purple-500" />;
-      case 'scene_suggestion': return <Sparkles className="w-5 h-5 text-pink-500" />;
-      case 'optimization_suggestion': return <Zap className="w-5 h-5 text-emerald-500" />;
-      case 'energy_waste_detected': return <Zap className="w-5 h-5 text-rose-500" />;
-      case 'habit_pattern_detected': return <Sparkles className="w-5 h-5 text-primary" />;
+      case 'new_device_available':             return <PlusCircle className="w-5 h-5 text-primary" />;
+      case 'device_missing_room':              return <Hash className="w-5 h-5 text-warning" />;
+      case 'device_name_technical':            return <Type className="w-5 h-5 text-primary" />;
+      case 'device_name_duplicate':            return <Copy className="w-5 h-5 text-danger" />;
+      case 'automation_suggestion':            return <Sparkles className="w-5 h-5 text-primary" />;
+      case 'scene_suggestion':                 return <Sparkles className="w-5 h-5 text-primary" />;
+      case 'optimization_suggestion':          return <Zap className="w-5 h-5 text-success" />;
+      case 'energy_waste_detected':            return <Zap className="w-5 h-5 text-warning" />;
+      case 'habit_pattern_detected':           return <Sparkles className="w-5 h-5 text-primary" />;
       case 'proactive_automation_opportunity': return <Sparkles className="w-5 h-5 text-primary" />;
-      case 'optimization_opportunity': return <Info className="w-5 h-5 text-muted-foreground" />;
-      default: return <Info className="w-5 h-5 text-primary" />;
+      case 'optimization_opportunity':         return <Info className="w-5 h-5 text-muted-foreground" />;
+      default:                                 return <Info className="w-5 h-5 text-primary" />;
     }
   };
 
@@ -273,26 +276,21 @@ export const AssistantView: React.FC<{
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="flex items-end justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <h1 className="text-3xl font-black tracking-tight">{t('assistant.title')}</h1>
-          </div>
-          <p className="text-muted-foreground font-medium">{t('assistant.subtitle')}</p>
-        </div>
-        
-        <button 
-          onClick={handleScan}
-          disabled={scanning}
-          className="flex items-center gap-2 px-5 py-2.5 bg-muted hover:bg-muted/80 rounded-xl transition-all font-bold text-sm"
-        >
-          <RefreshCw className={cn("w-4 h-4", scanning && "animate-spin")} />
-          {scanning ? t('assistant.scanning') : t('assistant.scan_trigger')}
-        </button>
-      </header>
+      <SectionHeader 
+        title={t('assistant.title')}
+        subtitle={t('assistant.subtitle')}
+        icon={Sparkles}
+        action={
+          <Button 
+            onClick={handleScan}
+            disabled={scanning}
+            variant="secondary"
+            isLoading={scanning}
+          >
+            {scanning ? t('assistant.scanning') : <><RefreshCw className="w-4 h-4" /> {t('assistant.scan_trigger')}</>}
+          </Button>
+        }
+      />
 
 
       {findings.length === 0 ? (
@@ -361,18 +359,19 @@ export const AssistantView: React.FC<{
                                 </div>
                                 <div className="flex items-center gap-3">
                                   {item.actions.map((action, idx) => (
-                                    <button
+                                    <Button
                                       key={idx}
+                                      size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (action.type === 'import_all') onNavigate('inbox');
                                         else if (item.subGroups[0]?.findings[0]?.actions[0]) 
                                           handleAction(item.subGroups[0].findings[0], item.subGroups[0].findings[0].actions[0]);
                                       }}
-                                      className="px-4 py-2 rounded-xl bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                                      className="text-[9px] font-black uppercase tracking-widest"
                                     >
                                       {t(action.label)}
-                                    </button>
+                                    </Button>
                                   ))}
                                   <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
                                 </div>
@@ -478,14 +477,11 @@ export const AssistantView: React.FC<{
                             <div className="p-3 rounded-2xl bg-muted/50 text-foreground group-hover:scale-110 transition-transform">
                               {getIcon(finding.type)}
                             </div>
-                            <span className={cn(
-                              "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
-                              finding.severity === 'high' ? "text-rose-500 border-rose-500/20 bg-rose-500/5" :
-                              finding.severity === 'medium' ? "text-amber-500 border-amber-500/20 bg-amber-500/5" :
-                              "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                            )}>
+                            <StatusPill 
+                              variant={finding.severity === 'high' ? 'danger' : finding.severity === 'medium' ? 'warning' : 'success'}
+                            >
                               {t(`assistant.severities.${finding.severity}`)}
-                            </span>
+                            </StatusPill>
                           </div>
 
                           <h3 className="text-sm font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
@@ -505,7 +501,7 @@ export const AssistantView: React.FC<{
                           )}
 
                           {finding.metadata.ready && (
-                            <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                            <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-success/10 border border-success/20 text-success">
                               <Sparkles className="w-3 h-3" />
                               <span className="text-[10px] font-black uppercase tracking-wider">
                                 {t('assistant.draft.ready')}
@@ -515,23 +511,22 @@ export const AssistantView: React.FC<{
 
                           <div className="mt-auto flex items-center gap-2">
                             {finding.actions.map((action, idx) => (
-                              <button
+                              <Button
                                 key={idx}
+                                variant={idx === 0 ? "primary" : "secondary"}
                                 onClick={() => handleAction(finding, action)}
-                                className={cn(
-                                  "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                  idx === 0 ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                                )}
+                                className="flex-1 text-[10px] uppercase tracking-widest h-auto py-3"
                               >
                                 {t(action.label)}
-                              </button>
+                              </Button>
                             ))}
-                            <button 
+                            <Button 
+                              variant="ghost"
                               onClick={(e) => handleDismiss(finding.id, e)}
-                              className="p-3 rounded-xl bg-muted/30 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                              className="px-3 hover:text-danger hover:bg-danger/10"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
+                              <CheckCircle2 className="w-5 h-5" />
+                            </Button>
                           </div>
                         </div>
                       );

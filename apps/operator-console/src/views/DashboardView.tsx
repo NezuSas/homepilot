@@ -12,6 +12,7 @@ import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
 import type { HomeMode } from '../types';
 import { HomeModeSelector } from '../components/HomeModeSelector';
 import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
+import { Button } from '../components/ui/Button';
 
 interface DeviceState {
   on?: boolean;
@@ -118,9 +119,9 @@ const DashDeviceTile: React.FC<{
     <div 
       onClick={handleToggle}
       className={cn(
-        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full",
-        isOn ? "bg-primary/5 border-primary" : "bg-card/20 border-border/40 hover:border-primary/20",
-        isOffline && "opacity-30 grayscale pointer-events-none"
+        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full hover:-translate-y-1 hover:shadow-xl",
+        isOn ? "bg-primary/5 border-primary shadow-lg shadow-primary/10" : "bg-card border-border shadow-md hover:border-primary/20",
+        isOffline && "opacity-30 grayscale pointer-events-none hover:translate-y-0"
       )}
     >
       <div className={cn(
@@ -260,13 +261,14 @@ export const DashboardView: React.FC<{
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">{t('dashboard.atmosphere_recipes')}</h2>
-            <button 
+            <Button 
+              variant="ghost"
               onClick={() => setIsSceneModalOpen(true)}
-              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-all"
+              className="group gap-2 text-[10px] text-primary/60 hover:text-primary px-0 h-auto"
             >
               <Plus className="w-3 h-3 group-hover:rotate-90 transition-transform duration-500" />
               {t('dashboard.new_scene')}
-            </button>
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -276,10 +278,10 @@ export const DashboardView: React.FC<{
                 onClick={() => handleSceneExecute(scene)}
                 disabled={!!roomProcessing}
                 className={cn(
-                  "group relative flex items-center gap-6 p-6 rounded-[2.5rem] transition-all duration-700 text-left overflow-hidden border-2 active:scale-95 disabled:opacity-50",
+                  "group relative flex items-center gap-6 p-6 rounded-[2.5rem] transition-all duration-500 text-left overflow-hidden border-2 active:scale-95 disabled:opacity-50 hover:-translate-y-1 hover:shadow-xl",
                   roomProcessing === 'scene_' + scene.id 
                     ? "bg-primary border-primary text-primary-foreground shadow-2xl" 
-                    : "bg-card/40 hover:bg-card/60 border-border/40 hover:border-primary/40"
+                    : "bg-card border-border shadow-md hover:border-primary/40"
                 )}
               >
                 <div className={cn(

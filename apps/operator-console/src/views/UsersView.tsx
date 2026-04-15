@@ -105,7 +105,7 @@ export function UsersView() {
     <div className="max-w-6xl mx-auto flex flex-col gap-8 pb-10">
       
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-lg text-sm flex items-center">
+      <div className="bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg text-sm flex items-center">
           <ShieldAlert className="w-5 h-5 mr-3 shrink-0" />
           {error}
         </div>
@@ -121,7 +121,7 @@ export function UsersView() {
             </h3>
           </div>
           <form className="px-5 py-4 flex flex-col gap-4" onSubmit={handleCreateUser}>
-            {createError && <p className="text-red-500 text-sm font-medium">{createError}</p>}
+            {createError && <p className="text-danger text-sm font-medium">{createError}</p>}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="col-span-1">
                 <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.username')}</label>
@@ -220,9 +220,9 @@ export function UsersView() {
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                        u.role === 'admin' 
-                          ? 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400'
-                          : 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400'
+                        u.role === 'admin'
+                          ? 'bg-warning/10 text-warning border-warning/20'
+                          : 'bg-primary/10 text-primary border-primary/20'
                       }`}>
                         {u.role === 'admin' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
                         {u.role.toUpperCase()}
@@ -230,8 +230,8 @@ export function UsersView() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-col gap-1.5 items-start">
-                        <span className={`flex items-center text-[11px] font-bold ${u.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-                          <span className={`w-2 h-2 rounded-full mr-2 ${u.isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}></span>
+                        <span className={`flex items-center text-[11px] font-bold ${u.isActive ? 'text-success' : 'text-danger'}`}>
+                          <span className={`w-2 h-2 rounded-full mr-2 ${u.isActive ? 'status-dot-synced animate-pulse' : 'status-dot-error shrink-0'}`}></span>
                           {u.isActive ? t('users.status.active') : t('users.status.suspended')}
                         </span>
                         {u.hasActiveSessions && (
@@ -252,9 +252,9 @@ export function UsersView() {
                             u.isActive ? t('users.actions.confirm_suspend') : t('users.actions.confirm_restore')
                           )}
                           className={`p-2 rounded-lg border transition-all ${
-                            u.isActive 
-                              ? 'bg-background hover:bg-red-500/10 border-border hover:border-red-500/30 hover:text-red-500 text-muted-foreground shadow-sm'
-                              : 'bg-background hover:bg-green-500/10 border-border hover:border-green-500/30 hover:text-green-500 text-muted-foreground shadow-sm'
+                            u.isActive
+                              ? 'bg-background hover:bg-danger/10 border-border hover:border-danger/30 hover:text-danger text-muted-foreground shadow-sm'
+                              : 'bg-background hover:bg-success/10 border-border hover:border-success/30 hover:text-success text-muted-foreground shadow-sm'
                           }`}
                           title={u.isActive ? t('users.actions.suspend_title') : t('users.actions.restore_title')}
                         >
@@ -283,7 +283,7 @@ export function UsersView() {
                             }),
                             t('users.actions.confirm_revoke', { username: u.username })
                           )}
-                          className="p-2 bg-background border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-500 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-2 bg-background border border-border text-muted-foreground hover:bg-warning/10 hover:border-warning/30 hover:text-warning rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
                           disabled={!u.hasActiveSessions}
                           title={t('users.actions.revoke_title')}
                         >

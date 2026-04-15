@@ -111,7 +111,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
         </div>
 
         {errorMsg && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/50 p-4 rounded-lg flex items-start gap-3 text-red-500">
+          <div className="mb-6 bg-danger/10 border border-danger/50 p-4 rounded-lg flex items-start gap-3 text-danger">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <span className="text-sm font-medium">{errorMsg}</span>
           </div>
@@ -128,15 +128,15 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
             <div className="space-y-3 bg-muted/30 p-4 rounded-lg border text-sm">
               <div className="flex justify-between items-center py-1 border-b">
                 <span className="text-muted-foreground">{t('onboarding.step1.admin')}</span>
-                {isAdmin ? <span className="text-emerald-500 font-medium flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> {t('onboarding.step1.ok')} ({userContext?.username})</span> : <span className="text-red-500 font-medium">{t('onboarding.step1.missing')}</span>}
+                {isAdmin ? <span className="text-success font-medium flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> {t('onboarding.step1.ok')} ({userContext?.username})</span> : <span className="text-danger font-medium">{t('onboarding.step1.missing')}</span>}
               </div>
               <div className="flex justify-between items-center py-1 border-b">
                 <span className="text-muted-foreground">{t('onboarding.step1.ha_config')}</span>
-                {statusProvider?.hasHAConfig ? <span className="text-emerald-500 font-medium flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> {t('onboarding.step1.config_present')}</span> : <span className="text-amber-500 font-medium">{t('onboarding.step1.config_missing')}</span>}
+                {statusProvider?.hasHAConfig ? <span className="text-success font-medium flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> {t('onboarding.step1.config_present')}</span> : <span className="text-warning font-medium">{t('onboarding.step1.config_missing')}</span>}
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-muted-foreground">{t('onboarding.step1.connection')}</span>
-                <span className={statusProvider?.haConnectionValid ? 'text-emerald-500 font-medium' : 'text-amber-500 font-medium'}>
+                <span className={statusProvider?.haConnectionValid ? 'text-success font-medium' : 'text-warning font-medium'}>
                   {statusProvider?.haConnectionValid ? t('onboarding.step1.valid') : t('onboarding.step1.unknown')}
                 </span>
               </div>
@@ -213,7 +213,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
               </button>
             </div>
             {testResult === 'success' && (
-              <p className="text-emerald-500 text-sm font-medium text-center animate-in fade-in">{t('onboarding.step2.success')}</p>
+              <p className="text-success text-sm font-medium text-center animate-in fade-in">{t('onboarding.step2.success')}</p>
             )}
           </div>
         )}
@@ -221,8 +221,8 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
         {/* STEP 3: Finalize */}
         {step === 3 && (
           <div className="space-y-6 text-center animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+            <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-2">
+              <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
             <h2 className="text-xl font-bold">{t('onboarding.step3.title')}</h2>
             <p className="text-muted-foreground text-sm">
@@ -233,7 +233,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
               <button 
                 onClick={finalizeSetup}
                 disabled={loading}
-                className="w-full px-6 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors shadow-lg disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 bg-success text-success-foreground rounded-lg font-semibold hover:bg-success/90 transition-colors shadow-lg disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('onboarding.step3.complete')}
               </button>
