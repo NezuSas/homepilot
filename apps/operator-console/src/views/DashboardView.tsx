@@ -182,6 +182,9 @@ export const DashboardView: React.FC<{
   const homeId = primaryHomeId || (rooms.length > 0 ? rooms[0].homeId : null);
 
   const fetchData = useCallback(async () => {
+    // Avoid double-fetching if already loading
+    if (snapshotLoading || assistantLoading) return;
+
     try {
       await Promise.all([refreshSnapshot(), refreshFindings()]);
 
@@ -197,9 +200,12 @@ export const DashboardView: React.FC<{
     } catch {
       setScenes([]);
     }
-  }, [homeId, refreshFindings, refreshSnapshot]);
+  }, [homeId, refreshFindings, refreshSnapshot, assistantLoading, snapshotLoading]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // Only trigger fetchData on mount and when homeId actually changes (stable primitive)
+  useEffect(() => {
+    fetchData();
+  }, [homeId]);
 
   const handleDeviceUpdate = (updated: Device) => {
     upsertDevice(updated);
