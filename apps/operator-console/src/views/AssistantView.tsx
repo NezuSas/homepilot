@@ -15,86 +15,36 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { API_ENDPOINTS } from '../config';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
 import { StatusPill } from '../components/ui/StatusPill';
-
-interface Finding {
-  id: string;
-  type: string;
-  severity: 'high' | 'medium' | 'low';
-  title: string;
-  description: string;
-  relatedEntityType: string | null;
-  relatedEntityId: string | null;
-  status: 'open' | 'dismissed' | 'resolved';
-  actions: { type: string; label: string; payload?: any }[];
-  metadata: Record<string, any>;
-  score: number;
-  explanation?: string;
-}
+import { useAssistantStore } from '../stores/useAssistantStore';
+import type { AssistantFinding as Finding } from '../stores/useAssistantStore';
 
 export const AssistantView: React.FC<{
   onNavigate: (view: any, params?: any) => void;
 }> = ({ onNavigate }) => {
   const { t } = useTranslation();
-  const [findings, setFindings] = useState<Finding[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [scanning, setScanning] = useState(false);
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: any; deviceName?: string } | null>(null);
-
-  const fetchFindings = async () => {
-    try {
-      const resp = await fetch(API_ENDPOINTS.assistant.findings);
-      
-      // -- ROBUST HANDLING --
-      const contentType = resp.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('SERVER_RETURNED_NON_JSON');
-      }
-
-      if (resp.ok) {
-        const data = await resp.json();
-        setFindings(data);
-      } else {
-        throw new Error(`SERVER_ERROR_${resp.status}`);
-      }
-    } catch (e: any) {
-      console.error('[Assistant] Failed to fetch findings:', e);
-      // Optional: set some UI error state if needed
-    } finally {
-      setLoading(false);
-    }
-  };
+  const findings = useAssistantStore((state) => state.findings);
+  const loading = useAssistantStore((state) => state.isLoading);
+  const scanning = useAssistantStore((state) => state.isScanning);
+  const refreshFindings = useAssistantStore((state) => state.refreshFindings);
+  const scanFindings = useAssistantStore((state) => state.scanFindings);
+  const dismissFinding = useAssistantStore((state) => state.dismissFinding);
 
   useEffect(() => {
-    fetchFindings();
-  }, []);
+    refreshFindings();
+  }, [refreshFindings]);
 
   const handleScan = async () => {
-    setScanning(true);
-    try {
-      const resp = await fetch(API_ENDPOINTS.assistant.scan, { method: 'POST' });
-      if (!resp.ok) throw new Error(`SCAN_FAILED_${resp.status}`);
-      await fetchFindings();
-    } catch (e) {
-      console.error('[Assistant] Scan failed:', e);
-    } finally {
-      setScanning(false);
-    }
+    await scanFindings();
   };
 
   const handleDismiss = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      const resp = await fetch(API_ENDPOINTS.assistant.dismiss(id), { method: 'POST' });
-      if (!resp.ok) throw new Error(`DISMISS_FAILED_${resp.status}`);
-      setFindings(prev => prev.filter(f => f.id !== id));
-    } catch (e) {
-      console.error('[Assistant] Dismiss failed:', e);
-    }
+    await dismissFinding(id);
   };
 
   const handleAction = (finding: Finding, action: any) => {
@@ -545,7 +495,7 @@ export const AssistantView: React.FC<{
           action={activeAction.action}
           deviceName={activeAction.deviceName}
           onClose={() => setActiveAction(null)}
-          onSuccess={() => fetchFindings()}
+          onSuccess={() => { setActiveAction(null); refreshFindings(); }}
         />
       )}
     </div>

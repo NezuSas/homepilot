@@ -45,6 +45,8 @@ import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
 import type { HomeMode } from './types';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
+import { useAssistantStore } from './stores/useAssistantStore';
+import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -133,6 +135,10 @@ function App() {
   const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
   const pulseSyncStatus = useAppShellStore((state) => state.pulseSyncStatus);
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
+  const refreshAssistantFindings = useAssistantStore((state) => state.refreshFindings);
+  const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
+  const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
 
   // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
   useEffect(() => {
@@ -185,9 +191,11 @@ function App() {
       || lastRealtimeEvent.type === 'RoomCreatedEvent'
       || lastRealtimeEvent.type === 'DeviceAssignedToRoomEvent'
     ) {
+      refreshDeviceSnapshot();
+      refreshAssistantFindings();
       refreshAssistantSummary();
     }
-  }, [lastRealtimeEvent, pulseSyncStatus, refreshAssistantSummary]);
+  }, [lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshAssistantSummary, refreshDeviceSnapshot]);
 
   const handleLoginSuccess = (token: string, user: any) => {
     localStorage.setItem('hp_session_token', token);
@@ -204,6 +212,8 @@ function App() {
       localStorage.removeItem('hp_session_token');
       localStorage.removeItem('hp_user_ctx');
       resetAppShellState();
+      resetAssistantState();
+      resetSnapshotState();
       setIsAuthenticated(false);
     }
   };
@@ -216,6 +226,8 @@ function App() {
     localStorage.removeItem('hp_session_token');
     localStorage.removeItem('hp_user_ctx');
     resetAppShellState();
+    resetAssistantState();
+    resetSnapshotState();
     setIsAuthenticated(false);
     setShowPwdModal(false);
   };

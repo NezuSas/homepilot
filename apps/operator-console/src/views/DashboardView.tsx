@@ -5,7 +5,7 @@ import {
   Lightbulb, ToggleRight, Zap, Sparkles
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { API_BASE_URL, API_ENDPOINTS } from '../config';
+import { API_BASE_URL } from '../config';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
@@ -15,6 +15,10 @@ import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
 import { Button } from '../components/ui/Button';
 import { AssistantCard } from '../components/ui/AssistantCard';
 import { AssistantActionModal } from '../components/AssistantActionModal';
+import { useAssistantStore } from '../stores/useAssistantStore';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import type { AssistantFinding } from '../stores/useAssistantStore';
+import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
 interface DeviceState {
   on?: boolean;
@@ -22,23 +26,6 @@ interface DeviceState {
   brightness?: number;
   power?: number;
   [key: string]: unknown;
-}
-
-interface Device {
-  id: string;
-  homeId: string;
-  roomId: string | null;
-  name: string;
-  type: string;
-  status: 'PENDING' | 'ASSIGNED';
-  invertState?: boolean;
-  lastKnownState: Record<string, unknown> | null;
-}
-
-interface Room {
-  id: string;
-  name: string;
-  homeId: string;
 }
 
 interface SceneAction {
@@ -162,61 +149,49 @@ export const DashboardView: React.FC<{
   onActionExecute?: (label: string) => void;
 }> = ({ onModeChange, onActionExecute }) => {
   const { t } = useTranslation();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
-  const [findings, setFindings] = useState<any[]>([]);
   const [activeAction, setActiveAction] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [luxuryRipple, setLuxuryRipple] = useState(false);
+  const devices = useDeviceSnapshotStore((state) => state.devices.filter((device) => device.status === 'ASSIGNED'));
+  const homes = useDeviceSnapshotStore((state) => state.homes);
+  const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
+  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
+  const findings = useAssistantStore((state) => state.findings);
+  const assistantLoading = useAssistantStore((state) => state.isLoading);
+  const refreshFindings = useAssistantStore((state) => state.refreshFindings);
+  const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
-  const homeId = rooms.length > 0 ? rooms[0].homeId : null;
+  const primaryHomeId = homes[0]?.id || null;
+  const rooms = primaryHomeId ? (roomsByHome[primaryHomeId] || []) : [];
+  const homeId = primaryHomeId || (rooms.length > 0 ? rooms[0].homeId : null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [devRes, homeRes, findRes] = await Promise.all([
-        fetch(`${API_URL}/devices`),
-        fetch(`${API_URL}/homes`),
-        fetch(API_ENDPOINTS.assistant.findings).catch(() => ({ ok: false, json: async () => [] }))
-      ]);
-      const allDevices = await devRes.json() as Device[];
-      setDevices(allDevices.filter(d => d.status === 'ASSIGNED'));
+      await Promise.all([refreshSnapshot(), refreshFindings()]);
 
-      const homes = await homeRes.json();
-      if (homes.length > 0) {
-        const [rRes, sRes] = await Promise.all([
-           fetch(`${API_URL}/homes/${homes[0].id}/rooms`),
-           fetch(`${API_URL}/scenes?homeId=${homes[0].id}`)
-        ]);
-        if (rRes.ok) setRooms(await rRes.json());
-        if (sRes.ok) setScenes(await sRes.json());
-      }
-      
-      if (findRes && findRes.ok) {
-        const rawFindings = await findRes.json();
-        const prioritized = rawFindings
-          .filter((f: any) => f.severity === 'high' || f.severity === 'medium')
-          .sort((a: any, b: any) => {
-             const aEnergy = a.type.includes('energy') || a.type.includes('consumption') || a.type.includes('long_running') ? 1 : 0;
-             const bEnergy = b.type.includes('energy') || b.type.includes('consumption') || b.type.includes('long_running') ? 1 : 0;
-             return bEnergy - aEnergy;
-          });
-        setFindings(prioritized);
+      if (!homeId) {
+        setScenes([]);
+        return;
       }
 
-      setLoading(false);
+      const response = await fetch(`${API_URL}/scenes?homeId=${homeId}`);
+      if (response.ok) {
+        setScenes(await response.json());
+      }
     } catch {
-      setLoading(false);
+      setScenes([]);
     }
-  }, []);
+  }, [homeId, refreshFindings, refreshSnapshot]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleDeviceUpdate = (updated: Device) => {
-    setDevices(prev => prev.map(d => d.id === updated.id ? updated : d));
+    upsertDevice(updated);
   };
 
   const handleSceneExecute = async (scene: Scene) => {
@@ -272,7 +247,7 @@ export const DashboardView: React.FC<{
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command: 'turn_off' })
         });
-        await fetch(`${API_URL}/assistant/findings/${finding.id}/resolve`, { method: 'POST' });
+        await resolveFinding(finding.id);
         await fetchData();
       } catch (e) {
         console.error('Action failed:', e);
@@ -287,7 +262,17 @@ export const DashboardView: React.FC<{
     });
   };
 
-  if (loading) {
+  const prioritizedFindings = useMemo(() => {
+    return findings
+      .filter((finding: AssistantFinding) => finding.severity === 'high' || finding.severity === 'medium')
+      .sort((a: AssistantFinding, b: AssistantFinding) => {
+        const aEnergy = a.type.includes('energy') || a.type.includes('consumption') || a.type.includes('long_running') ? 1 : 0;
+        const bEnergy = b.type.includes('energy') || b.type.includes('consumption') || b.type.includes('long_running') ? 1 : 0;
+        return bEnergy - aEnergy;
+      });
+  }, [findings]);
+
+  if (snapshotLoading || assistantLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
@@ -317,7 +302,7 @@ export const DashboardView: React.FC<{
       />
 
       {/* LEVEL 1.5: Proactive Insights */}
-      {findings.length > 0 && (
+      {prioritizedFindings.length > 0 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 space-y-6">
           <div className="flex items-center gap-3 px-2">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
@@ -326,7 +311,7 @@ export const DashboardView: React.FC<{
             <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {findings.slice(0, 2).map((finding) => {
+            {prioritizedFindings.slice(0, 2).map((finding) => {
                const isEnergy = finding.type.includes('energy') || finding.type.includes('consumption') || finding.type.includes('long_running');
                return (
                <AssistantCard 

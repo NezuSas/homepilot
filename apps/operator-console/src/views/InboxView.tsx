@@ -10,33 +10,18 @@ import { API_BASE_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
 import { Button } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
+
+type InspectableDevice = Device & {
+  externalId: string;
+};
 
 interface DeviceState {
   state?: 'on' | 'off';
   brightness?: number;
   power?: number;
   [key: string]: unknown;
-}
-
-interface Device {
-  id: string;
-  homeId: string;
-  roomId: string | null;
-  externalId: string;
-  name: string;
-  type: string;
-  vendor: string;
-  status: 'PENDING' | 'ASSIGNED';
-  lastKnownState: Record<string, unknown> | null;
-  entityVersion: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface Room {
-  id: string;
-  name: string;
-  homeId: string;
 }
 
 interface ActivityLog {
@@ -225,36 +210,22 @@ const DeviceTile: React.FC<{
  */
 export const InboxView: React.FC = () => {
   const { t } = useTranslation();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [roomsByHome, setRoomsByHome] = useState<Record<string, Room[]>>({});
-  const [loading, setLoading] = useState(true);
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'light' | 'switch' | 'sensor'>('all');
+  const devices = useDeviceSnapshotStore((state) => state.devices);
+  const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
+  const loading = useDeviceSnapshotStore((state) => state.isLoading);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
 
   const fetchData = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/devices`);
-      if (!res.ok) throw new Error('Refresh error');
-      const data = await res.json() as Device[];
-      setDevices(data || []);
-      
-      const homeIds = Array.from(new Set(data.map(d => d.homeId)));
-      const roomsData: Record<string, Room[]> = {};
-      await Promise.all(homeIds.map(async (hId) => {
-        const rRes = await fetch(`${API_URL}/homes/${hId}/rooms`);
-        if (rRes.ok) roomsData[hId] = await rRes.json();
-      }));
-      setRoomsByHome(roomsData);
-      setLoading(false);
-    } catch {
-      setLoading(false);
-    }
-  }, []);
+    await refreshSnapshot();
+  }, [refreshSnapshot]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDeviceUpdate = (deviceId: string, updated: Device) => {
-    setDevices((prev: Device[]) => prev.map((d: Device) => d.id === deviceId ? updated : d));
+  const handleDeviceUpdate = (_deviceId: string, updated: Device) => {
+    upsertDevice(updated);
   };
 
   // Grouping logic
@@ -371,7 +342,7 @@ const DeviceInspector: React.FC<{
   onUpdate: (updated: Device) => void;
 }> = ({ deviceId, rooms, onClose, onUpdate }) => {
   const { t } = useTranslation();
-  const [device, setDevice] = useState<Device | null>(null);
+  const [device, setDevice] = useState<InspectableDevice | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -390,7 +361,7 @@ const DeviceInspector: React.FC<{
         fetch(`${API_URL}/devices/${deviceId}/activity-logs`)
       ]);
       if (devRes.ok) {
-        const devData = await devRes.json() as Device;
+        const devData = await devRes.json() as InspectableDevice;
         setDevice(devData);
         setNewName(devData.name);
       }
@@ -422,7 +393,7 @@ const DeviceInspector: React.FC<{
         body: JSON.stringify({ name: newName.trim() })
       });
       if (res.ok) {
-        const updated = await res.json() as Device;
+        const updated = await res.json() as InspectableDevice;
         setDevice(updated);
         onUpdate(updated);
         setIsRenaming(false);
@@ -444,7 +415,7 @@ const DeviceInspector: React.FC<{
         body: JSON.stringify({ command })
       });
       if (res.ok) {
-        const updated = await res.json() as Device;
+        const updated = await res.json() as InspectableDevice;
         setDevice(updated);
         onUpdate(updated);
       }
@@ -463,7 +434,7 @@ const DeviceInspector: React.FC<{
         body: JSON.stringify({ roomId: null })
       });
       if (res.ok) {
-        const updated = await res.json() as Device;
+        const updated = await res.json() as InspectableDevice;
         setDevice(updated);
         onUpdate(updated);
         setShowUnassignConfirm(false);
@@ -486,7 +457,7 @@ const DeviceInspector: React.FC<{
         body: JSON.stringify({ roomId: newRoomId })
       });
       if (res.ok) {
-        const updated = await res.json() as Device;
+        const updated = await res.json() as InspectableDevice;
         setDevice(updated);
         onUpdate(updated);
       }
@@ -506,7 +477,7 @@ const DeviceInspector: React.FC<{
         method: 'POST'
       });
       if (res.ok) {
-        const updated = await res.json() as Device;
+        const updated = await res.json() as InspectableDevice;
         setDevice(updated);
         onUpdate(updated);
         // REMOVED: redundant HA sync log fetch.
