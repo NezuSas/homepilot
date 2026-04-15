@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -43,6 +43,7 @@ import { SidebarItem } from './components/ui/SidebarItem';
 import { Button } from './components/ui/Button';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
 import type { HomeMode } from './types';
+import { useRealtimeEvents } from './lib/useRealtimeEvents';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -127,6 +128,7 @@ function App() {
   const [assistantSummary, setAssistantSummary] = useState<{ totalOpen: number } | null>(null);
   /** Controls whether the System sub-list is expanded in the sidebar. */
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
+  const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(isAuthenticated);
 
   // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
   useEffect(() => {
@@ -139,6 +141,24 @@ function App() {
     const nextLang = i18n.language.startsWith('es') ? 'en' : 'es';
     i18n.changeLanguage(nextLang);
   };
+
+  const refreshAssistantSummary = useEffectEvent(() => {
+    fetch(API_ENDPOINTS.assistant.summary)
+      .then(res => {
+        const contentType = res.headers.get('content-type');
+        if (!res.ok || !contentType || !contentType.includes('application/json')) {
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => data && setAssistantSummary(data))
+      .catch(() => {});
+  });
+
+  const pulseSyncStatus = useEffectEvent(() => {
+    setIsAllSynced(false);
+    window.setTimeout(() => setIsAllSynced(true), 1500);
+  });
 
   // Check setup status once authenticated
   useEffect(() => {
@@ -174,6 +194,23 @@ function App() {
         .catch(() => {});
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!lastRealtimeEvent) {
+      return;
+    }
+
+    pulseSyncStatus();
+
+    if (
+      lastRealtimeEvent.type === 'DeviceDiscoveredEvent'
+      || lastRealtimeEvent.type === 'HomeCreatedEvent'
+      || lastRealtimeEvent.type === 'RoomCreatedEvent'
+      || lastRealtimeEvent.type === 'DeviceAssignedToRoomEvent'
+    ) {
+      refreshAssistantSummary();
+    }
+  }, [lastRealtimeEvent, pulseSyncStatus, refreshAssistantSummary]);
 
   const handleLoginSuccess = (token: string, user: any) => {
     localStorage.setItem('hp_session_token', token);
