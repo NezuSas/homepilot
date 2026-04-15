@@ -16,7 +16,7 @@ import { Button } from '../components/ui/Button';
 import { AssistantCard } from '../components/ui/AssistantCard';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { useAssistantStore } from '../stores/useAssistantStore';
-import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import type { AssistantFinding } from '../stores/useAssistantStore';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
@@ -142,6 +142,17 @@ const DashDeviceTile: React.FC<{
       </div>
     </div>
   );
+};
+
+const mapSnapshotToDevice = (snapshot: SnapshotDevice): Device => {
+  const {
+    externalId: _externalId,
+    vendor: _vendor,
+    entityVersion: _entityVersion,
+    ...device
+  } = snapshot;
+
+  return device;
 };
 
 export const DashboardView: React.FC<{ 
@@ -426,27 +437,29 @@ export const DashboardView: React.FC<{
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[240px]">
-                {roomDevices.map(device => (
-                  device.type === 'cover' ? (
+                {roomDevices.map((device) => {
+                  const tileDevice = mapSnapshotToDevice(device);
+
+                  return device.type === 'cover' ? (
                     <CurtainDeviceTile
                       key={device.id}
-                      device={device}
+                      device={tileDevice}
                       roomName={room.name}
                       isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
                       onUpdate={handleDeviceUpdate}
                       onActionExecute={onActionExecute}
                     />
                   ) : (
-                    <DashDeviceTile 
-                      key={device.id} 
-                      device={device} 
+                    <DashDeviceTile
+                      key={device.id}
+                      device={tileDevice}
                       roomName={room.name}
                       isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
-                      onUpdate={handleDeviceUpdate} 
+                      onUpdate={handleDeviceUpdate}
                       onActionExecute={onActionExecute}
                     />
-                  )
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
