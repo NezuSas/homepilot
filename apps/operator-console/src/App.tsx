@@ -573,14 +573,14 @@ function App() {
              {currentView === 'automations' && <AutomationsView />}
              {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
 
-             {/* Personalization placeholders */}
-             {currentView === 'dashboards' && (
-               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border border-dashed border-border rounded-xl bg-muted/10">
-                 <BarChart2 className="w-8 h-8 mb-3 opacity-30" />
-                 <p className="text-sm font-bold">{t('nav.dashboards')}</p>
-                 <p className="text-xs mt-1 opacity-50">{t('nav.coming_soon')}</p>
-               </div>
-             )}
+              {/* Custom Dashboards */}
+              {currentView === 'dashboards' && <DashboardsView />}
+
+
+
+
+
+
              {currentView === 'energy' && (
                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border border-dashed border-border rounded-xl bg-muted/10">
                  <Zap className="w-8 h-8 mb-3 opacity-30" />
