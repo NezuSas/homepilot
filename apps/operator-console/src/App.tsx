@@ -1,4 +1,4 @@
-import { useState, useEffect, useEffectEvent } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -44,6 +44,7 @@ import { Button } from './components/ui/Button';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
 import type { HomeMode } from './types';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
+import { useAppShellStore } from './stores/useAppShellStore';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -122,13 +123,16 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<any>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAllSynced, setIsAllSynced] = useState(true);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
-  const [assistantSummary, setAssistantSummary] = useState<{ totalOpen: number } | null>(null);
   /** Controls whether the System sub-list is expanded in the sidebar. */
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
   const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(isAuthenticated);
+  const assistantSummary = useAppShellStore((state) => state.assistantSummary);
+  const isAllSynced = useAppShellStore((state) => state.isAllSynced);
+  const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
+  const pulseSyncStatus = useAppShellStore((state) => state.pulseSyncStatus);
+  const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
 
   // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
   useEffect(() => {
@@ -141,24 +145,6 @@ function App() {
     const nextLang = i18n.language.startsWith('es') ? 'en' : 'es';
     i18n.changeLanguage(nextLang);
   };
-
-  const refreshAssistantSummary = useEffectEvent(() => {
-    fetch(API_ENDPOINTS.assistant.summary)
-      .then(res => {
-        const contentType = res.headers.get('content-type');
-        if (!res.ok || !contentType || !contentType.includes('application/json')) {
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => data && setAssistantSummary(data))
-      .catch(() => {});
-  });
-
-  const pulseSyncStatus = useEffectEvent(() => {
-    setIsAllSynced(false);
-    window.setTimeout(() => setIsAllSynced(true), 1500);
-  });
 
   // Check setup status once authenticated
   useEffect(() => {
@@ -182,18 +168,9 @@ function App() {
         .finally(() => setLoadingSetup(false));
 
       // Fetch assistant summary
-      fetch(API_ENDPOINTS.assistant.summary)
-        .then(res => {
-          const contentType = res.headers.get('content-type');
-          if (!res.ok || !contentType || !contentType.includes('application/json')) {
-             return null;
-          }
-          return res.json();
-        })
-        .then(data => data && setAssistantSummary(data))
-        .catch(() => {});
+      refreshAssistantSummary();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, refreshAssistantSummary]);
 
   useEffect(() => {
     if (!lastRealtimeEvent) {
@@ -226,6 +203,7 @@ function App() {
     } finally {
       localStorage.removeItem('hp_session_token');
       localStorage.removeItem('hp_user_ctx');
+      resetAppShellState();
       setIsAuthenticated(false);
     }
   };
@@ -237,6 +215,7 @@ function App() {
   const handlePasswordChanged = () => {
     localStorage.removeItem('hp_session_token');
     localStorage.removeItem('hp_user_ctx');
+    resetAppShellState();
     setIsAuthenticated(false);
     setShowPwdModal(false);
   };
@@ -589,24 +568,22 @@ function App() {
            )}
            <div className="max-w-7xl mx-auto w-full">
              {currentView === 'dashboard' && (
-               <DashboardView 
-                 onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
-                 onActionExecute={() => {
-                   setIsAllSynced(false);
-                   setTimeout(() => setIsAllSynced(true), 1500);
-                 }}
-               />
-             )}
+                <DashboardView 
+                  onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
+                  onActionExecute={() => {
+                    pulseSyncStatus();
+                  }}
+                />
+              )}
              {/* Spaces = TopologyView (user-facing room management) */}
              {currentView === 'spaces' && <TopologyView />}
-             {currentView === 'scenes' && (
-               <ScenesView 
-                 onActionExecute={() => {
-                    setIsAllSynced(false);
-                    setTimeout(() => setIsAllSynced(true), 1500);
-                 }}
-               />
-             )}
+              {currentView === 'scenes' && (
+                <ScenesView 
+                  onActionExecute={() => {
+                     pulseSyncStatus();
+                  }}
+                />
+              )}
              {currentView === 'automations' && <AutomationsView />}
              {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
 

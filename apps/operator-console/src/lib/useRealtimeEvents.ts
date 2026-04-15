@@ -1,11 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { API_BASE_URL } from '../config';
-
-export interface RealtimeEventMessage {
-  type: string;
-  timestamp: string;
-  payload: Record<string, unknown>;
-}
+import { useAppShellStore } from '../stores/useAppShellStore';
+import type { RealtimeEventMessage } from '../stores/useAppShellStore';
 
 interface UseRealtimeEventsResult {
   isConnected: boolean;
@@ -13,7 +9,6 @@ interface UseRealtimeEventsResult {
   recentEvents: RealtimeEventMessage[];
 }
 
-const RECENT_EVENTS_LIMIT = 20;
 const RECONNECT_DELAY_MS = 3000;
 
 function getRealtimeUrl(): string {
@@ -39,13 +34,16 @@ function isRealtimeEventMessage(value: unknown): value is RealtimeEventMessage {
 }
 
 export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastEvent, setLastEvent] = useState<RealtimeEventMessage | null>(null);
-  const [recentEvents, setRecentEvents] = useState<RealtimeEventMessage[]>([]);
+  const isConnected = useAppShellStore((state) => state.isRealtimeConnected);
+  const lastEvent = useAppShellStore((state) => state.lastRealtimeEvent);
+  const recentEvents = useAppShellStore((state) => state.recentRealtimeEvents);
+  const setRealtimeConnected = useAppShellStore((state) => state.setRealtimeConnected);
+  const ingestRealtimeEvent = useAppShellStore((state) => state.ingestRealtimeEvent);
+  const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
 
   useEffect(() => {
     if (!enabled) {
-      setIsConnected(false);
+      resetAppShellState();
       return;
     }
 
@@ -66,7 +64,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
 
       socket.addEventListener('open', () => {
         if (disposed) return;
-        setIsConnected(true);
+        setRealtimeConnected(true);
       });
 
       socket.addEventListener('message', (message) => {
@@ -81,8 +79,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
           }
 
           console.debug('[Realtime] Event received:', parsed.type, parsed.payload);
-          setLastEvent(parsed);
-          setRecentEvents((currentEvents) => [parsed, ...currentEvents].slice(0, RECENT_EVENTS_LIMIT));
+          ingestRealtimeEvent(parsed);
         } catch (error) {
           console.warn('[Realtime] Failed to parse event message:', error);
         }
@@ -90,7 +87,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
 
       socket.addEventListener('close', () => {
         if (disposed) return;
-        setIsConnected(false);
+        setRealtimeConnected(false);
         reconnectTimeoutId = window.setTimeout(connect, RECONNECT_DELAY_MS);
       });
 
@@ -103,7 +100,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
 
     return () => {
       disposed = true;
-      setIsConnected(false);
+      setRealtimeConnected(false);
 
       if (reconnectTimeoutId !== undefined) {
         window.clearTimeout(reconnectTimeoutId);
@@ -113,7 +110,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
         socket.close();
       }
     };
-  }, [enabled]);
+  }, [enabled, ingestRealtimeEvent, resetAppShellState, setRealtimeConnected]);
 
   return { isConnected, lastEvent, recentEvents };
 }
