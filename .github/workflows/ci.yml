@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  ci:
+    name: Typecheck, Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root workspace dependencies
+        run: npm ci
+
+      - name: Typecheck (backend + frontend)
+        run: npm run typecheck
+
+      - name: Build backend (tsc)
+        run: npm run build
+
+      - name: Build frontend (operator-console)
+        run: npm run build --prefix apps/operator-console
+
+      - name: Run tests
+        run: npm test
