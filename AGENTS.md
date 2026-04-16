@@ -181,3 +181,16 @@ Toda tarea backend o full-stack que afecte runtime, API, gateway, auth, automati
 - `npm run test`
 
 No está permitido declarar una tarea terminada si typecheck/build pasan pero los tests fallan.
+
+## 20. Prohibición de Archivos Basura
+- Está prohibido crear archivos temporales, de prueba, scratch, debug o artifacts auxiliares que no formen parte real del producto.
+- Si para implementar o validar una tarea se crea un archivo temporal, debe eliminarse antes de finalizar.
+- No dejar archivos como:
+  - tmp.*
+  - scratch.*
+  - debug.*
+  - test helpers no usados
+  - markdowns/artifacts internos no requeridos por el repositorio
+  - scripts de comprobación desechables
+- Todo archivo nuevo debe tener un propósito real, permanente y justificado dentro del proyecto.
+- Antes de terminar, revisar que no queden archivos basura ni cambios accidentales.

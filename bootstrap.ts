@@ -20,7 +20,7 @@ import { DiagnosticsService } from './packages/system-observability/application/
 import { executeDeviceCommandUseCase } from './packages/devices/application/executeDeviceCommandUseCase';
 import { LocalConsoleCommandDispatcher } from './apps/api/LocalConsoleCommandDispatcher';
 import { HomeAssistantCommandDispatcher } from './apps/api/HomeAssistantCommandDispatcher';
-import { CompositeCommandDispatcher } from './apps/api/CompositeCommandDispatcher';
+import { IntegrationCommandRouter } from './apps/api/IntegrationCommandRouter';
 import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
 
 import { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
@@ -225,8 +225,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
           dispatcherPort: {
             dispatch: async (dId: string, cmd: string) => {
                const target = await deviceRepository.findDeviceById(dId);
-               if (!target || !target.externalId.startsWith('ha:')) return;
-               const [domain] = target.externalId.split(':')[1].split('.');
+               if (!target || target.integrationSource !== 'ha') return;
+               const [domain] = target.externalId.split('.');
                let service = '';
                if (cmd === 'turn_on') service = 'turn_on';
                if (cmd === 'turn_off') service = 'turn_off';
@@ -551,11 +551,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     deviceRepository,
     sharedSyncDeps
   );
-  const sharedCommandDispatcher = new CompositeCommandDispatcher(
+  const sharedCommandDispatcher = new IntegrationCommandRouter(
     deviceRepository,
-    sharedLocalDispatcher,
-    sharedHaDispatcher
+    sharedLocalDispatcher
   );
+  sharedCommandDispatcher.registerRoute('ha', sharedHaDispatcher);
 
   const container: BootstrapContainer = {
     repositories: {

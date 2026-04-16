@@ -40,12 +40,14 @@ describe('Devices: Capabilities Application Guard', () => {
     name: 'N', 
     vendor: 'V',
     type: 'switch',
+    status: 'ASSIGNED', 
+    integrationSource: 'ha',
+    invertState: false,
+    lastKnownState: null,
     entityVersion: 1, 
     createdAt: 'x', 
     updatedAt: 'x', 
-    roomId: 'r1', 
-    status: 'ASSIGNED', 
-    lastKnownState: null
+    roomId: 'r1',
   };
 
   it('debe lanzar UnsupportedCommandError y NO tocar dispatcher ante comando incompatible', async () => {

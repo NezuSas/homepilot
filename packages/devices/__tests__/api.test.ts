@@ -104,7 +104,7 @@ describe('Módulo Devices - Capa API REST', () => {
         // Pre-carga local simulando etapa Inbox completada
         await repo.saveDevice({
           id: 'd1', homeId: 'h1', roomId: null, externalId: 'e', name: 'n', type: 't', vendor: 'v',
-          status: 'PENDING', lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x'
+          status: 'PENDING', integrationSource: 'ha', invertState: false, lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x'
         });
 
         const req: AuthenticatedHttpRequest = { params: { deviceId: 'd1' }, body: { roomId: 'r1' }, userId: 'u1' };

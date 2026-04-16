@@ -54,6 +54,7 @@ export class HomeAssistantImportService {
       type: deviceType,
       vendor: 'Home Assistant',
       status: 'PENDING' as const,
+      integrationSource: 'ha',
       invertState: false,
       lastKnownState: { 
         on: haState.state === 'on' || haState.state === 'open',

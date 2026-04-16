@@ -52,12 +52,14 @@ describe('Devices: Capabilities API', () => {
       // Seteamos un sensor
       const sensorDevice: Device = { 
         id: 'd1', 
+        homeId: 'h1',
+        externalId: 'ext-sensor',
         type: 'sensor', 
-        status: 'ASSIGNED', 
-        homeId: 'h1', 
-        externalId: 'ext-sensor', 
         name: 'n', 
         vendor: 'v',
+        status: 'ASSIGNED',
+        integrationSource: 'ha',
+        invertState: false,
         entityVersion: 1, 
         createdAt: 'x', 
         updatedAt: 'x', 

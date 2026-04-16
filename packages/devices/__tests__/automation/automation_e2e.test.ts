@@ -60,11 +60,13 @@ describe('Automation E2E: Full Reactive Flow', () => {
     await deviceRepo.saveDevice({
       id: 'sensor-e2e', homeId: 'home-e2e', roomId: 'r1', externalId: 'e1',
       name: 'Sensor', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: { contact: 'closed' }, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await deviceRepo.saveDevice({
       id: 'light-e2e', homeId: 'home-e2e', roomId: 'r1', externalId: 'e2',
       name: 'Light', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: { power: 'off' }, entityVersion: 1, createdAt: '', updatedAt: ''
     });
 
@@ -101,11 +103,13 @@ describe('Automation E2E: Full Reactive Flow', () => {
     await deviceRepo.saveDevice({
       id: 'trigger-dev', homeId: 'h1', roomId: 'r1', externalId: 'ext1',
       name: 'Source', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: { k: 0 }, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await deviceRepo.saveDevice({
       id: 'target-incompatible', homeId: 'h1', roomId: 'r1', externalId: 'ext2',
       name: 'Incompatible', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
 

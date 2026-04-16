@@ -1,4 +1,5 @@
 import { CommandController, handleError } from '../api';
+import { Device } from '../domain';
 import { InMemoryDeviceRepository } from '../infrastructure/repositories';
 import { InMemoryDeviceEventPublisher } from '../domain/events';
 import { InMemoryActivityLogRepository } from '../infrastructure/repositories/InMemoryActivityLogRepository';
@@ -32,9 +33,10 @@ describe('Módulo Devices - Pruebas de Comando (API)', () => {
     ctrl = new CommandController(repo, publisher, topologyPort, dispatcher, log, mockDeps.idGenerator, mockDeps.clock);
   });
 
-  const deviceBase = {
+  const deviceBase: Device = {
     id: 'd1', homeId: 'h1', externalId: 'ex', name: 'n', type: 'switch', vendor: 'v',
-    lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x'
+    status: 'PENDING', integrationSource: 'ha', invertState: false,
+    lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x', roomId: null
   };
 
   it('debe retornar 400 si falta el deviceId o es inválido', async () => {

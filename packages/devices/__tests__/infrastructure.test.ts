@@ -14,6 +14,7 @@ describe('Módulo Devices - Capa de Infraestructura', () => {
       const device: Device = {
         id: 'd-1', homeId: 'h-1', roomId: null, externalId: 'ext-1',
         name: 'Sensor', type: 'TEMP', vendor: 'V', status: 'PENDING',
+        integrationSource: 'ha', invertState: false,
         lastKnownState: null, entityVersion: 1, createdAt: 'now', updatedAt: 'now'
       };
 
@@ -25,9 +26,9 @@ describe('Módulo Devices - Capa de Infraestructura', () => {
     });
 
     it('debe verificar la emulación precisa de Base de Datos filtrando el mapeo exclusivamente por las limitantes nativas de las reglas de dominio del Inbox', async () => {
-      await repo.saveDevice({ id: 'd-1', homeId: 'h-1', roomId: null, status: 'PENDING', lastKnownState: null, externalId: 'e1', name: 'n1', type: 't', vendor: 'v', entityVersion: 1, createdAt: 'x', updatedAt: 'x' });
-      await repo.saveDevice({ id: 'd-2', homeId: 'h-1', roomId: 'r-1', status: 'ASSIGNED', lastKnownState: null, externalId: 'e2', name: 'n2', type: 't', vendor: 'v', entityVersion: 2, createdAt: 'x', updatedAt: 'x' });
-      await repo.saveDevice({ id: 'd-3', homeId: 'h-2', roomId: null, status: 'PENDING', lastKnownState: null, externalId: 'e3', name: 'n3', type: 't', vendor: 'v', entityVersion: 1, createdAt: 'x', updatedAt: 'x' });
+      await repo.saveDevice({ id: 'd-1', homeId: 'h-1', roomId: null, status: 'PENDING', integrationSource: 'ha', invertState: false, lastKnownState: null, externalId: 'e1', name: 'n1', type: 't', vendor: 'v', entityVersion: 1, createdAt: 'x', updatedAt: 'x' });
+      await repo.saveDevice({ id: 'd-2', homeId: 'h-1', roomId: 'r-1', status: 'ASSIGNED', integrationSource: 'ha', invertState: false, lastKnownState: null, externalId: 'e2', name: 'n2', type: 't', vendor: 'v', entityVersion: 2, createdAt: 'x', updatedAt: 'x' });
+      await repo.saveDevice({ id: 'd-3', homeId: 'h-2', roomId: null, status: 'PENDING', integrationSource: 'ha', invertState: false, lastKnownState: null, externalId: 'e3', name: 'n3', type: 't', vendor: 'v', entityVersion: 1, createdAt: 'x', updatedAt: 'x' });
 
       const inbox = await repo.findInboxByHomeId('h-1');
       

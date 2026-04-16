@@ -45,11 +45,13 @@ describe('Automation Engine: Reactive Execution', () => {
     await deviceRepo.saveDevice({
       id: 'sensor-1', homeId: 'home-1', roomId: 'r1', externalId: 'ext1',
       name: 'Sensor', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: { presence: false }, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await deviceRepo.saveDevice({
       id: 'light-1', homeId: 'home-1', roomId: 'r1', externalId: 'ext2',
       name: 'Light', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: { power: 'off' }, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await ruleRepo.save({

@@ -14,6 +14,7 @@ export interface CreateDiscoveredDevicePayload {
   name: string;
   type: string;
   vendor: string;
+  integrationSource?: string;
 }
 
 export interface CreateDiscoveredDeviceDependencies {
@@ -62,6 +63,8 @@ export function createDiscoveredDevice(
     type: payload.type.trim(),
     vendor: payload.vendor.trim(),
     status: 'PENDING',
+    integrationSource: payload.integrationSource?.trim() || 'ha',
+    invertState: false,
     lastKnownState: null,
     entityVersion: 1,
     createdAt: now,

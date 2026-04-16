@@ -35,11 +35,13 @@ describe('Automation API: AutomationController', () => {
     await deviceRepo.saveDevice({
       id: 'd1', homeId: 'home-1', roomId: 'r1', externalId: 'e1',
       name: 'S', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await deviceRepo.saveDevice({
       id: 'd2', homeId: 'home-1', roomId: 'r1', externalId: 'e2',
       name: 'L', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
   };

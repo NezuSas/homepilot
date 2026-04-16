@@ -15,6 +15,8 @@ interface DeviceRow {
   type: string;
   vendor: string;
   status: string;
+  integration_source: string;
+  invert_state: number;
   last_known_state: string | null;
   entity_version: number;
   created_at: string;
@@ -42,8 +44,8 @@ export class SQLiteDeviceRepository implements DeviceRepository {
 
     const stmt = this.db.prepare(`
       INSERT INTO devices (
-        id, home_id, room_id, external_id, name, type, vendor, status, last_known_state, entity_version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
+        id, home_id, room_id, external_id, name, type, vendor, status, integration_source, invert_state, last_known_state, entity_version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
       ON CONFLICT(id) DO UPDATE SET
         home_id = excluded.home_id,
         room_id = excluded.room_id,
@@ -52,6 +54,8 @@ export class SQLiteDeviceRepository implements DeviceRepository {
         type = excluded.type,
         vendor = excluded.vendor,
         status = excluded.status,
+        integration_source = excluded.integration_source,
+        invert_state = excluded.invert_state,
         last_known_state = excluded.last_known_state,
         entity_version = excluded.entity_version,
         updated_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
@@ -66,6 +70,8 @@ export class SQLiteDeviceRepository implements DeviceRepository {
       device.type,
       device.vendor,
       device.status,
+      device.integrationSource,
+      device.invertState ? 1 : 0,
       serializedState,
       device.entityVersion,
       device.createdAt
@@ -160,6 +166,8 @@ export class SQLiteDeviceRepository implements DeviceRepository {
       type: row.type as Device['type'],
       vendor: row.vendor,
       status: row.status as Device['status'],
+      integrationSource: row.integration_source,
+      invertState: row.invert_state === 1,
       lastKnownState: this.deserializeState(row.last_known_state),
       entityVersion: row.entity_version,
       createdAt: row.created_at,

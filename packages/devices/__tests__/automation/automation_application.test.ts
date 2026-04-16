@@ -30,11 +30,13 @@ describe('Automation Application: CRUD Use Cases', () => {
     await deviceRepo.saveDevice({
       id: 'd1', homeId: 'home-1', roomId: 'r1', externalId: 'ext1',
       name: 'Sensor', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await deviceRepo.saveDevice({
       id: 'd2', homeId: 'home-1', roomId: 'r1', externalId: 'ext2',
       name: 'Light', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
   };
@@ -85,11 +87,13 @@ describe('Automation Application: CRUD Use Cases', () => {
       await deviceRepo.saveDevice({
         id: 'd1', homeId: 'home-1', roomId: 'r1', externalId: 'ext1',
         name: 'S', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+        integrationSource: 'ha', invertState: false,
         lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
       });
       await deviceRepo.saveDevice({
         id: 'd2', homeId: 'home-2', roomId: 'r2', externalId: 'ext2',
         name: 'L', type: 'light', vendor: 'v', status: 'ASSIGNED',
+        integrationSource: 'ha', invertState: false,
         lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
       });
       

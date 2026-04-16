@@ -51,16 +51,19 @@ describe('OperatorConsoleServer Integration Tests', () => {
     await container.repositories.deviceRepository.saveDevice({
       id: 'd-01', homeId: 'h-01', roomId: 'r-01', externalId: 'ext-1',
       name: 'L1', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'local', invertState: false,
       lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
     });
     await container.repositories.deviceRepository.saveDevice({
       id: 'd-02', homeId: 'h-01', roomId: 'r-01', externalId: 'ext-2',
       name: 'L2', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'local', invertState: false,
       lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
     });
     await container.repositories.deviceRepository.saveDevice({
       id: 'd-ha', homeId: 'h-01', roomId: 'r-01', externalId: 'ha:light.kitchen',
       name: 'HA Light', type: 'light', vendor: 'ha', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
     });
 

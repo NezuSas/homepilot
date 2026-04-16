@@ -40,11 +40,13 @@ describe('Automation Lifecycle: Application Use Cases', () => {
     await deviceRepo.saveDevice({
       id: 'd1', homeId: 'home-1', roomId: 'r1', externalId: 'e1',
       name: 'Sensor', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
     await deviceRepo.saveDevice({
       id: 'd2', homeId: 'home-1', roomId: 'r1', externalId: 'e2',
       name: 'Light', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
       lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
     });
   };
@@ -162,6 +164,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
       await deviceRepo.saveDevice({
         id: 'd-otro', homeId: 'home-2', roomId: 'r2', externalId: 'e3',
         name: 'Alien', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+        integrationSource: 'ha', invertState: false,
         lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: ''
       });
       await expect(

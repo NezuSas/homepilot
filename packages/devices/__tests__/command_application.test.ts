@@ -2,6 +2,7 @@ import { executeDeviceCommandUseCase } from '../application/executeDeviceCommand
 import { InMemoryDeviceRepository } from '../infrastructure/repositories';
 import { InMemoryActivityLogRepository } from '../infrastructure/repositories/InMemoryActivityLogRepository';
 import { InMemoryDeviceEventPublisher } from '../domain/events';
+import { Device } from '../domain';
 import { InMemoryDeviceCommandDispatcher } from '../infrastructure/adapters/InMemoryDeviceCommandDispatcher';
 import { 
   DeviceNotFoundError, 
@@ -35,9 +36,10 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     };
   });
 
-  const deviceBase = {
+  const deviceBase: Device = {
     id: 'd1', homeId: 'h1', externalId: 'ex', name: 'n', type: 'switch', vendor: 'v',
-    lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x'
+    status: 'ASSIGNED', integrationSource: 'ha', invertState: false,
+    lastKnownState: null, entityVersion: 1, createdAt: 'x', updatedAt: 'x', roomId: 'r1'
   };
 
   it('debe lanzar DeviceNotFoundError si el dispositivo no existe en el repositorio', async () => {
