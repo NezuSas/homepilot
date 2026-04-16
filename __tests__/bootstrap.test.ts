@@ -13,7 +13,7 @@ describe('Bootstrap Integration', () => {
   });
 
   afterEach(() => {
-    SqliteDatabaseManager.close();
+    SqliteDatabaseManager.closeAll();
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     const walPath = `${dbPath}-wal`;
     const shmPath = `${dbPath}-shm`;
@@ -63,7 +63,7 @@ describe('Bootstrap Integration', () => {
     await container1.repositories.homeRepository.saveHome(home);
 
     // Simular un kill síncrono del backend/app process
-    SqliteDatabaseManager.close();
+    SqliteDatabaseManager.closeAll();
 
     // El sistema se rearma leyendo la topología conservada
     const container2 = await bootstrap({

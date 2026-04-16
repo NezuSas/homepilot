@@ -53,8 +53,11 @@ export class SQLiteHomeRepository implements HomeRepository {
   public async findHomesByUserId(userId: string): Promise<ReadonlyArray<Home>> {
     const stmt = this.db.prepare('SELECT * FROM homes WHERE owner_id = ?');
     const rows = stmt.all(userId) as HomeRow[];
-
-    return rows.map(row => this.mapToEntity(row));
+    const result = rows.map(row => this.mapToEntity(row));
+    if (process.env.NODE_ENV === 'test') {
+      console.log(`[DB-DEBUG] findHomesByUserId(${userId}) -> found ${result.length} homes`);
+    }
+    return result;
   }
 
   /**

@@ -154,6 +154,8 @@ export class AssistantDetectionService {
   private async detectNewDevices(homeId: string): Promise<Partial<AssistantFinding>[]> {
     try {
       const haStates = await this.haClient.getAllStates();
+      if (!haStates || !Array.isArray(haStates)) return [];
+
       const findings: Partial<AssistantFinding>[] = [];
 
       for (const state of haStates) {

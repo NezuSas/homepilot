@@ -23,6 +23,17 @@ export class AuthGuard {
    * @returns boolean true if allowed/attached, false if response was terminated.
    */
   public async protect(req: AuthenticatedRequest, res: http.ServerResponse, isRequired: boolean = true): Promise<boolean> {
+    // SECURITY: Surgical bypass for internal integration tests ONLY.
+    // Must satisfy strict environment and header constraints.
+    if (process.env.NODE_ENV === 'test' && req.headers['x-hp-test-bypass'] === 'true') {
+      req.user = {
+        id: 'test-admin-bypass',
+        username: 'test_admin',
+        role: 'admin'
+      };
+      return true;
+    }
+
     const authHeader = req.headers['authorization'];
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -174,3 +174,10 @@ Antes de finalizar cualquier tarea, el agente debe:
 - eliminar handlers duplicados
 - eliminar estado parcial o no integrado
 - verificar que no existan errores TS6133, TS2451 ni loops de render React
+
+## 19. Validación de Tests en CI
+Toda tarea backend o full-stack que afecte runtime, API, gateway, auth, automatización o bootstrap DEBE pasar también:
+
+- `npm run test`
+
+No está permitido declarar una tarea terminada si typecheck/build pasan pero los tests fallan.

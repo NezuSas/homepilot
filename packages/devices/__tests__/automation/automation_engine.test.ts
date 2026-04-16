@@ -68,7 +68,7 @@ describe('Automation Engine: Reactive Execution', () => {
       source: 'home_assistant', 
       deviceId: 'sensor-1', 
       externalId: 'ext1', 
-      newState: { state: 'on' } 
+      newState: { state: 'on', attributes: { presence: true } } 
     });
 
     expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
@@ -92,7 +92,7 @@ describe('Automation Engine: Reactive Execution', () => {
       source: 'home_assistant', 
       deviceId: 'sensor-1', 
       externalId: 'ext1', 
-      newState: { state: 'on' } 
+      newState: { state: 'on', attributes: { presence: true } } 
     });
 
     expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
@@ -117,7 +117,7 @@ describe('Automation Engine: Reactive Execution', () => {
       source: 'home_assistant', 
       deviceId: 'sensor-1', 
       externalId: 'ext1', 
-      newState: { state: 'on' } 
+      newState: { state: 'on', attributes: { presence: true } } 
     });
 
     expect(dispatcherMock.dispatchCommand).not.toHaveBeenCalled();
@@ -137,7 +137,7 @@ describe('Automation Engine: Reactive Execution', () => {
       source: 'home_assistant', 
       deviceId: 'sensor-1', 
       externalId: 'ext1', 
-      newState: { state: 'on' } 
+      newState: { state: 'on', attributes: { presence: true } } 
     });
     expect(dispatcherMock.dispatchCommand).not.toHaveBeenCalled();
 
@@ -153,7 +153,7 @@ describe('Automation Engine: Reactive Execution', () => {
       source: 'home_assistant', 
       deviceId: 'sensor-1', 
       externalId: 'ext1', 
-      newState: { state: 'on' } 
+      newState: { state: 'on', attributes: { presence: true } } 
     });
     expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
   });

@@ -1,0 +1,852 @@
+
+> homepilot-workspace@1.0.0 test
+> jest
+
+PASS packages/topology/__tests__/infrastructure.test.ts (5.707 s)
+PASS __tests__/smoke.test.ts (6.451 s)
+PASS packages/devices/__tests__/state_infrastructure.test.ts (6.564 s)
+PASS packages/devices/__tests__/state_domain.test.ts (6.688 s)
+PASS __tests__/UserManagement.test.ts (6.851 s)
+PASS __tests__/CompositeCommandDispatcher.test.ts (6.836 s)
+PASS packages/devices/__tests__/state_api.test.ts (6.919 s)
+PASS packages/topology/__tests__/application.test.ts (7.072 s)
+PASS packages/devices/__tests__/e2e.test.ts (7.133 s)
+PASS packages/devices/__tests__/domain.test.ts
+PASS packages/topology/__tests__/SQLiteTopologyPersistence.test.ts (7.032 s)
+PASS packages/devices/__tests__/capabilities_e2e.test.ts (7.002 s)
+PASS packages/devices/__tests__/automation/automation_application.test.ts (7.081 s)
+PASS packages/devices/__tests__/automation/automation_domain.test.ts (7.042 s)
+PASS __tests__/HomeAssistantClient.test.ts (6.94 s)
+FAIL packages/devices/__tests__/automation/automation_api.test.ts (7.149 s)
+  ÔùÅ Automation API: AutomationController ÔÇ║ createRule: debe retornar 400 si expectedValue no es un tipo primitivo v├ílido
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      80 |     };
+      81 |     const res = await controller.createRule(req);
+    > 82 |     expect(res.statusCode).toBe(400);
+         |                                ^
+      83 |   });
+      84 |
+      85 |   it('createRule: debe retornar 400 si expectedValue no es un tipo primitivo v├ílido', async () => {
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_api.test.ts:82:32)
+
+  ÔùÅ Automation API: AutomationController ÔÇ║ updateRule: debe retornar 400 si trigger.expectedValue no es un tipo primitivo v├ílido
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      189 |   // ---------------------------------------------------------------------------
+      190 |
+    > 191 |   it('updateRule: debe retornar 200 con la regla actualizada', async () => {
+          |                                ^
+      192 |     await saveBaseRule();
+      193 |     const req: AuthenticatedHttpRequest = {
+      194 |       userId: 'u1',
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_api.test.ts:191:32)
+
+  ÔùÅ Automation API: AutomationController ÔÇ║ updateRule: debe retornar 400 si action.command es inv├ílido
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      223 |     expect(body.message).toContain('expectedValue');
+      224 |   });
+    > 225 |
+          | ^
+      226 |   it('updateRule: debe retornar 404 si la regla no existe', async () => {
+      227 |     const req: AuthenticatedHttpRequest = {
+      228 |       userId: 'u1',
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_api.test.ts:225:32)
+
+PASS packages/devices/__tests__/capabilities_api.test.ts
+PASS packages/devices/__tests__/state_application.test.ts (7.037 s)
+PASS packages/devices/__tests__/capabilities_domain.test.ts (7.037 s)
+PASS packages/devices/__tests__/infrastructure.test.ts (7.049 s)
+PASS packages/devices/__tests__/state_e2e.test.ts (7.043 s)
+PASS packages/topology/__tests__/domain.test.ts (7.045 s)
+PASS packages/devices/__tests__/SQLiteDevicesPersistence.test.ts (7.048 s)
+PASS packages/devices/__tests__/application.test.ts
+PASS packages/topology/__tests__/e2e.test.ts (7.103 s)
+PASS packages/devices/__tests__/command_application.test.ts (7.186 s)
+PASS packages/devices/__tests__/automation/automation_lifecycle.test.ts (7.058 s)
+PASS packages/devices/__tests__/capabilities_application.test.ts
+FAIL packages/devices/__tests__/automation/automation_e2e.test.ts (7.195 s)
+  ÔùÅ Automation E2E: Full Reactive Flow ÔÇ║ debe completar el flujo: crear regla -> trigger por cambio de estado -> ejecuci├│n autom├ítica -> auditor├¡a
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-e2e", "light-e2e", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      68 |       lastKnownState: { power: 'off' }, entityVersion: 1, createdAt: '', updatedAt: ''
+      69 |     });
+    > 70 |
+         | ^
+      71 |     const createReq: AuthenticatedHttpRequest = {
+      72 |       userId: 'user-manager',
+      73 |       params: { homeId: 'home-e2e' },
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_e2e.test.ts:70:48)
+
+  ÔùÅ Automation E2E: Full Reactive Flow ÔÇ║ debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio
+
+    TypeError: Cannot read properties of undefined (reading 'type')
+
+       99 |
+      100 |   it('debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio', async () => {
+    > 101 |     await deviceRepo.saveDevice({
+          |                        ^
+      102 |       id: 'trigger-dev', homeId: 'h1', roomId: 'r1', externalId: 'ext1',
+      103 |       name: 'Source', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      104 |       lastKnownState: { k: 0 }, entityVersion: 1, createdAt: '', updatedAt: ''
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_e2e.test.ts:101:24)
+
+PASS packages/devices/__tests__/api.test.ts (7.124 s)
+FAIL packages/devices/__tests__/automation/automation_engine.test.ts (7.048 s)
+  ÔùÅ Automation Engine: Reactive Execution ÔÇ║ debe disparar la ejecuci├│n autom├ítica ante cambios de estado coincidentes
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-1", "light-1", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      55 |     await ruleRepo.save({
+      56 |       id: 'rule-1', homeId: 'home-1', userId: 'user-admin', name: 'AutoLight', enabled: true,
+    > 57 |       trigger: { type: 'device_state_changed', deviceId: 'sensor-1', stateKey: 'presence', expectedValue: true },
+         |                                                ^
+      58 |       action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' }
+      59 |     });
+      60 |   };
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_engine.test.ts:57:48)
+
+  ÔùÅ Automation Engine: Reactive Execution ÔÇ║ debe garantizar aislamiento de fallos: el log AUTOMATION_FAILED debe incluir el nombre de la regla
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-1", "light-1", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      75 |
+      76 |     const logs = await logRepo.findRecentByDeviceId('light-1', 1);
+    > 77 |     expect(logs[0].description).toBe('Triggered by Automation: AutoLight');
+         |                                                ^
+      78 |     expect(logs[0].type).toBe('COMMAND_DISPATCHED');
+      79 |   });
+      80 |
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_engine.test.ts:77:48)
+
+  ÔùÅ Automation Engine: Reactive Execution ÔÇ║ vuelve a ejecutar la acci├│n cuando la regla es reactivada (enabled:true)
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-1", "light-1", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      127 |     await setupData();
+      128 |     await ruleRepo.save({
+    > 129 |       id: 'rule-1', homeId: 'home-1', userId: 'user-admin', name: 'AutoLight', enabled: false,
+          |                                                ^
+      130 |       trigger: { type: 'device_state_changed', deviceId: 'sensor-1', stateKey: 'presence', expectedValue: true },
+      131 |       action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' }
+      132 |     });
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_engine.test.ts:129:48)
+
+PASS packages/devices/__tests__/command_api.test.ts
+PASS packages/topology/__tests__/api.test.ts (7.144 s)
+PASS __tests__/bootstrap.test.ts (7.484 s)
+  ÔùÅ Console
+
+    console.log
+      [Bootstrap] Inicializando persistencia SQLite en: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\test-bootstrap-0b3653a4-a7d1-449b-92df-bc507853b896.db
+
+      at bootstrap (bootstrap.ts:96:13)
+
+    console.log
+      [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:98:13)
+
+    console.log
+      [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:102:17)
+
+    console.log
+      [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:108:13)
+
+    console.log
+      [Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)
+
+      at bootstrap (bootstrap.ts:119:17)
+
+    console.log
+      [Bootstrap] Self-correcting minute heartbeat scheduled.
+
+      at startHeartbeat (bootstrap.ts:294:17)
+
+    console.log
+      [Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.
+
+      at bootstrap (bootstrap.ts:309:17)
+
+    console.log
+      
+      ===============================================================
+
+      at bootstrap (bootstrap.ts:314:21)
+
+    console.log
+       [SECURITY] FIRST BOOT: DEFAULT SYSTEM ADMINISTRATOR GENERATED
+
+      at bootstrap (bootstrap.ts:315:21)
+
+    console.log
+       -> Username: admin
+
+      at bootstrap (bootstrap.ts:316:21)
+
+    console.log
+       -> Password: 2K%j2)F$#i!jQZkt
+
+      at bootstrap (bootstrap.ts:317:21)
+
+    console.log
+       => PLEASE COPY AND SAFEGUARD THIS PASSWORD.
+
+      at bootstrap (bootstrap.ts:318:21)
+
+    console.log
+       => IT WILL NEVER BE DISPLAYED AGAIN.
+
+      at bootstrap (bootstrap.ts:319:21)
+
+    console.log
+      ===============================================================
+
+      at bootstrap (bootstrap.ts:320:21)
+
+    console.log
+      [Bootstrap] Repositorios y servicios inyectados exitosamente.
+
+      at bootstrap (bootstrap.ts:465:13)
+
+    console.log
+      [Bootstrap] Inicializando persistencia SQLite en: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\test-bootstrap-00339d08-95d1-487a-8ae0-fa6c605b7743.db
+
+      at bootstrap (bootstrap.ts:96:13)
+
+    console.log
+      [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:98:13)
+
+    console.log
+      [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:102:17)
+
+    console.log
+      [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:108:13)
+
+    console.log
+      [Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)
+
+      at bootstrap (bootstrap.ts:119:17)
+
+    console.log
+      [Bootstrap] Self-correcting minute heartbeat scheduled.
+
+      at startHeartbeat (bootstrap.ts:294:17)
+
+    console.log
+      [Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.
+
+      at bootstrap (bootstrap.ts:309:17)
+
+    console.log
+      
+      ===============================================================
+
+      at bootstrap (bootstrap.ts:314:21)
+
+    console.log
+       [SECURITY] FIRST BOOT: DEFAULT SYSTEM ADMINISTRATOR GENERATED
+
+      at bootstrap (bootstrap.ts:315:21)
+
+    console.log
+       -> Username: admin
+
+      at bootstrap (bootstrap.ts:316:21)
+
+    console.log
+       -> Password: mG2q*zVWV%nU)XZX
+
+      at bootstrap (bootstrap.ts:317:21)
+
+    console.log
+       => PLEASE COPY AND SAFEGUARD THIS PASSWORD.
+
+      at bootstrap (bootstrap.ts:318:21)
+
+    console.log
+       => IT WILL NEVER BE DISPLAYED AGAIN.
+
+      at bootstrap (bootstrap.ts:319:21)
+
+    console.log
+      ===============================================================
+
+      at bootstrap (bootstrap.ts:320:21)
+
+    console.log
+      [Bootstrap] Repositorios y servicios inyectados exitosamente.
+
+      at bootstrap (bootstrap.ts:465:13)
+
+    console.log
+      [Bootstrap] Inicializando persistencia SQLite en: C:\Users\ocuen\Developer\Nezu\homepilot\__tests__\test-bootstrap-00339d08-95d1-487a-8ae0-fa6c605b7743.db
+
+      at bootstrap (bootstrap.ts:96:13)
+
+    console.log
+      [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:98:13)
+
+    console.log
+      [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:102:17)
+
+    console.log
+      [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:108:13)
+
+    console.log
+      [Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)
+
+      at bootstrap (bootstrap.ts:119:17)
+
+    console.log
+      [Bootstrap] Self-correcting minute heartbeat scheduled.
+
+      at startHeartbeat (bootstrap.ts:294:17)
+
+    console.log
+      [Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.
+
+      at bootstrap (bootstrap.ts:309:17)
+
+    console.log
+      [Bootstrap] Repositorios y servicios inyectados exitosamente.
+
+      at bootstrap (bootstrap.ts:465:13)
+
+PASS __tests__/AuditLogsServer.test.ts (7.834 s)
+  ÔùÅ Console
+
+    console.log
+      [Bootstrap] Inicializando persistencia SQLite en: test.audit.db
+
+      at bootstrap (bootstrap.ts:96:13)
+
+    console.log
+      [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:98:13)
+
+    console.log
+      [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:102:17)
+
+    console.log
+      [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:108:13)
+
+    console.log
+      [Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)
+
+      at bootstrap (bootstrap.ts:119:17)
+
+    console.log
+      [Bootstrap] Self-correcting minute heartbeat scheduled.
+
+      at startHeartbeat (bootstrap.ts:294:17)
+
+    console.log
+      [Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.
+
+      at bootstrap (bootstrap.ts:309:17)
+
+    console.log
+      [Bootstrap] Repositorios y servicios inyectados exitosamente.
+
+      at bootstrap (bootstrap.ts:465:13)
+
+    console.log
+      [ApiGateway] API local en http://localhost:3005
+
+      at apps/api/ApiGateway.ts:57:21
+
+FAIL __tests__/OperatorConsoleServer.test.ts (8.093 s)
+  ÔùÅ Console
+
+    console.log
+      [Bootstrap] Inicializando persistencia SQLite en: test.api.db
+
+      at bootstrap (bootstrap.ts:96:13)
+
+    console.log
+      [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:98:13)
+
+    console.log
+      [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:102:17)
+
+    console.log
+      [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:108:13)
+
+    console.log
+      [Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)
+
+      at bootstrap (bootstrap.ts:119:17)
+
+    console.log
+      [Bootstrap] Self-correcting minute heartbeat scheduled.
+
+      at startHeartbeat (bootstrap.ts:294:17)
+
+    console.log
+      [Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.
+
+      at bootstrap (bootstrap.ts:309:17)
+
+    console.log
+      [Bootstrap] Repositorios y servicios inyectados exitosamente.
+
+      at bootstrap (bootstrap.ts:465:13)
+
+    console.log
+      [ApiGateway] API local en http://localhost:3001
+
+      at apps/api/ApiGateway.ts:57:21
+
+    console.error
+      [API-ERROR] [AUTOMATIONLOOPERROR] Automation rule rejected: local loop detected (trigger and target are the same device).
+
+      70 |         }
+      71 |       });
+    > 72 |     });
+         |                  ^
+      73 |   }
+      74 |
+      75 |   protected sendJson(res: http.ServerResponse, data: any, status: number = 200): void {
+
+      at AutomationRoutes.sendError (apps/api/routes/ApiRoutes.ts:72:21)
+      at AutomationRoutes.handle (apps/api/routes/AutomationRoutes.ts:114:22)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+    console.log
+      [LocalDispatcher] Despachando comando f├¡sico: turn_on para dispositivo: d-01
+
+      at LocalConsoleCommandDispatcher.dispatch (apps/api/LocalConsoleCommandDispatcher.ts:22:17)
+
+    console.log
+      [LocalDispatcher] Simulando telemetr├¡a... Nuevo estado: { on: true }
+
+      at LocalConsoleCommandDispatcher.dispatch (apps/api/LocalConsoleCommandDispatcher.ts:44:17)
+
+    console.error
+      [API-ERROR] [INVALID_TYPE] Only Home Assistant devices can be refreshed via this endpoint
+
+      70 |         }
+      71 |       });
+    > 72 |     });
+         |                  ^
+      73 |   }
+      74 |
+      75 |   protected sendJson(res: http.ServerResponse, data: any, status: number = 200): void {
+
+      at DeviceRoutes.sendError (apps/api/routes/ApiRoutes.ts:72:21)
+      at DeviceRoutes.handle (apps/api/routes/DeviceRoutes.ts:148:33)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+    console.error
+      [API-ERROR] [DEVICE_NOT_FOUND] Device not found
+
+      70 |         }
+      71 |       });
+    > 72 |     });
+         |                  ^
+      73 |   }
+      74 |
+      75 |   protected sendJson(res: http.ServerResponse, data: any, status: number = 200): void {
+
+      at DeviceRoutes.sendError (apps/api/routes/ApiRoutes.ts:72:21)
+      at DeviceRoutes.handle (apps/api/routes/DeviceRoutes.ts:146:33)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Device API ÔÇ║ POST /api/v1/devices/:id/refresh: 400 for non-HA device
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "Only Home Assistant devices"
+    Received object: {"code": "INVALID_TYPE", "message": "Error interno del sistema. Contacte a soporte.", "timestamp": "2026-04-16T04:48:14.595Z"}
+
+      148 |
+      149 |     it('POST /api/v1/devices/:id/command: success', async () => {
+    > 150 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/command`, {
+          |                                ^
+      151 |         method: 'POST', 
+      152 |         headers: { 
+      153 |           'Content-Type': 'application/json',
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:150:32)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Device API ÔÇ║ POST /api/v1/devices/:id/refresh: 200 success for HA device
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      158 |       expect(res.status).toBe(200);
+      159 |     });
+    > 160 |
+          | ^
+      161 |     it('POST /api/v1/devices/:id/refresh: 400 for non-HA device', async () => {
+      162 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/refresh`, { 
+      163 |         method: 'POST',
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:160:82)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Device API ÔÇ║ POST /api/v1/devices/:refresh: 502 when HA fails
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      176 |       expect(res.status).toBe(404);
+      177 |     });
+    > 178 |
+          | ^
+      179 |     it('POST /api/v1/devices/:id/refresh: 200 success for HA device', async () => {
+      180 |       jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce({
+      181 |         entity_id: 'light.kitchen',
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:178:82)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Discovery & Import API ÔÇ║ GET /api/v1/ha/entities: filters supported domains
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      186 |       });
+      187 |
+    > 188 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+          |                                                                                ^
+      189 |         method: 'POST',
+      190 |         headers: { 'x-hp-test-bypass': 'true' }
+      191 |       });
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:188:80)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Discovery & Import API ÔÇ║ POST /api/v1/ha/import: success and duplicate prevention
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      202 |       jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce(null);
+      203 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+    > 204 |         method: 'POST',
+          |                                                      ^
+      205 |         headers: { 'x-hp-test-bypass': 'true' }
+      206 |       });
+      207 |       expect(res.status).toBe(502);
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:204:82)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Auth API ÔÇ║ POST /api/v1/auth/login: sanitizes user object and removes passwordHash
+
+    expect(received).toHaveProperty(path)
+
+    Expected path: "setupComplete"
+    Received path: []
+
+    Received value: {"haConnectionValid": true, "hasAdminUser": true, "hasHAConfig": false, "isInitialized": false, "requiresOnboarding": true}
+
+      268 |     });
+      269 |
+    > 270 |     it('POST /api/v1/auth/login: sanitizes user object and removes passwordHash', async () => {
+          |                               ^
+      271 |       // Seed a user manually for testing
+      272 |       const db = SqliteDatabaseManager.getInstance(DB_PATH);
+      273 |       const now = new Date().toISOString();
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:270:31)
+
+Summary of all failing tests
+FAIL packages/devices/__tests__/automation/automation_api.test.ts (7.149 s)
+  ÔùÅ Automation API: AutomationController ÔÇ║ createRule: debe retornar 400 si expectedValue no es un tipo primitivo v├ílido
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      80 |     };
+      81 |     const res = await controller.createRule(req);
+    > 82 |     expect(res.statusCode).toBe(400);
+         |                                ^
+      83 |   });
+      84 |
+      85 |   it('createRule: debe retornar 400 si expectedValue no es un tipo primitivo v├ílido', async () => {
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_api.test.ts:82:32)
+
+  ÔùÅ Automation API: AutomationController ÔÇ║ updateRule: debe retornar 400 si trigger.expectedValue no es un tipo primitivo v├ílido
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      189 |   // ---------------------------------------------------------------------------
+      190 |
+    > 191 |   it('updateRule: debe retornar 200 con la regla actualizada', async () => {
+          |                                ^
+      192 |     await saveBaseRule();
+      193 |     const req: AuthenticatedHttpRequest = {
+      194 |       userId: 'u1',
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_api.test.ts:191:32)
+
+  ÔùÅ Automation API: AutomationController ÔÇ║ updateRule: debe retornar 400 si action.command es inv├ílido
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      223 |     expect(body.message).toContain('expectedValue');
+      224 |   });
+    > 225 |
+          | ^
+      226 |   it('updateRule: debe retornar 404 si la regla no existe', async () => {
+      227 |     const req: AuthenticatedHttpRequest = {
+      228 |       userId: 'u1',
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_api.test.ts:225:32)
+
+FAIL packages/devices/__tests__/automation/automation_e2e.test.ts (7.195 s)
+  ÔùÅ Automation E2E: Full Reactive Flow ÔÇ║ debe completar el flujo: crear regla -> trigger por cambio de estado -> ejecuci├│n autom├ítica -> auditor├¡a
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-e2e", "light-e2e", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      68 |       lastKnownState: { power: 'off' }, entityVersion: 1, createdAt: '', updatedAt: ''
+      69 |     });
+    > 70 |
+         | ^
+      71 |     const createReq: AuthenticatedHttpRequest = {
+      72 |       userId: 'user-manager',
+      73 |       params: { homeId: 'home-e2e' },
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_e2e.test.ts:70:48)
+
+  ÔùÅ Automation E2E: Full Reactive Flow ÔÇ║ debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio
+
+    TypeError: Cannot read properties of undefined (reading 'type')
+
+       99 |
+      100 |   it('debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio', async () => {
+    > 101 |     await deviceRepo.saveDevice({
+          |                        ^
+      102 |       id: 'trigger-dev', homeId: 'h1', roomId: 'r1', externalId: 'ext1',
+      103 |       name: 'Source', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      104 |       lastKnownState: { k: 0 }, entityVersion: 1, createdAt: '', updatedAt: ''
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_e2e.test.ts:101:24)
+
+FAIL packages/devices/__tests__/automation/automation_engine.test.ts (7.048 s)
+  ÔùÅ Automation Engine: Reactive Execution ÔÇ║ debe disparar la ejecuci├│n autom├ítica ante cambios de estado coincidentes
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-1", "light-1", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      55 |     await ruleRepo.save({
+      56 |       id: 'rule-1', homeId: 'home-1', userId: 'user-admin', name: 'AutoLight', enabled: true,
+    > 57 |       trigger: { type: 'device_state_changed', deviceId: 'sensor-1', stateKey: 'presence', expectedValue: true },
+         |                                                ^
+      58 |       action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' }
+      59 |     });
+      60 |   };
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_engine.test.ts:57:48)
+
+  ÔùÅ Automation Engine: Reactive Execution ÔÇ║ debe garantizar aislamiento de fallos: el log AUTOMATION_FAILED debe incluir el nombre de la regla
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-1", "light-1", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      75 |
+      76 |     const logs = await logRepo.findRecentByDeviceId('light-1', 1);
+    > 77 |     expect(logs[0].description).toBe('Triggered by Automation: AutoLight');
+         |                                                ^
+      78 |     expect(logs[0].type).toBe('COMMAND_DISPATCHED');
+      79 |   });
+      80 |
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_engine.test.ts:77:48)
+
+  ÔùÅ Automation Engine: Reactive Execution ÔÇ║ vuelve a ejecutar la acci├│n cuando la regla es reactivada (enabled:true)
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "home-1", "light-1", "turn_on", Any<String>
+
+    Number of calls: 0
+
+      127 |     await setupData();
+      128 |     await ruleRepo.save({
+    > 129 |       id: 'rule-1', homeId: 'home-1', userId: 'user-admin', name: 'AutoLight', enabled: false,
+          |                                                ^
+      130 |       trigger: { type: 'device_state_changed', deviceId: 'sensor-1', stateKey: 'presence', expectedValue: true },
+      131 |       action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' }
+      132 |     });
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_engine.test.ts:129:48)
+
+FAIL __tests__/OperatorConsoleServer.test.ts (8.093 s)
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Device API ÔÇ║ POST /api/v1/devices/:id/refresh: 400 for non-HA device
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "Only Home Assistant devices"
+    Received object: {"code": "INVALID_TYPE", "message": "Error interno del sistema. Contacte a soporte.", "timestamp": "2026-04-16T04:48:14.595Z"}
+
+      148 |
+      149 |     it('POST /api/v1/devices/:id/command: success', async () => {
+    > 150 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/command`, {
+          |                                ^
+      151 |         method: 'POST', 
+      152 |         headers: { 
+      153 |           'Content-Type': 'application/json',
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:150:32)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Device API ÔÇ║ POST /api/v1/devices/:id/refresh: 200 success for HA device
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      158 |       expect(res.status).toBe(200);
+      159 |     });
+    > 160 |
+          | ^
+      161 |     it('POST /api/v1/devices/:id/refresh: 400 for non-HA device', async () => {
+      162 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/refresh`, { 
+      163 |         method: 'POST',
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:160:82)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Device API ÔÇ║ POST /api/v1/devices/:refresh: 502 when HA fails
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      176 |       expect(res.status).toBe(404);
+      177 |     });
+    > 178 |
+          | ^
+      179 |     it('POST /api/v1/devices/:id/refresh: 200 success for HA device', async () => {
+      180 |       jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce({
+      181 |         entity_id: 'light.kitchen',
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:178:82)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Discovery & Import API ÔÇ║ GET /api/v1/ha/entities: filters supported domains
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      186 |       });
+      187 |
+    > 188 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+          |                                                                                ^
+      189 |         method: 'POST',
+      190 |         headers: { 'x-hp-test-bypass': 'true' }
+      191 |       });
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:188:80)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Discovery & Import API ÔÇ║ POST /api/v1/ha/import: success and duplicate prevention
+
+    TypeError: jest.spyOn(...).mockResolvedValueOnce is not a function
+
+      202 |       jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce(null);
+      203 |       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+    > 204 |         method: 'POST',
+          |                                                      ^
+      205 |         headers: { 'x-hp-test-bypass': 'true' }
+      206 |       });
+      207 |       expect(res.status).toBe(502);
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:204:82)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Auth API ÔÇ║ POST /api/v1/auth/login: sanitizes user object and removes passwordHash
+
+    expect(received).toHaveProperty(path)
+
+    Expected path: "setupComplete"
+    Received path: []
+
+    Received value: {"haConnectionValid": true, "hasAdminUser": true, "hasHAConfig": false, "isInitialized": false, "requiresOnboarding": true}
+
+      268 |     });
+      269 |
+    > 270 |     it('POST /api/v1/auth/login: sanitizes user object and removes passwordHash', async () => {
+          |                               ^
+      271 |       // Seed a user manually for testing
+      272 |       const db = SqliteDatabaseManager.getInstance(DB_PATH);
+      273 |       const now = new Date().toISOString();
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:270:31)
+
+
+Test Suites: 4 failed, 32 passed, 36 total
+Tests:       14 failed, 200 passed, 214 total
+Snapshots:   0 total
+Time:        9.682 s
+Ran all test suites.

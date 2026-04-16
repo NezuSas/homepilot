@@ -18,6 +18,16 @@ const SAFE_MESSAGES: Record<string, string> = {
   'ALREADY_INITIALIZED': 'El sistema ya ha sido configurado.',
   'DEVICE_ALREADY_EXISTS': 'El dispositivo ya fue importado.',
   'HA_DISCOVERY_ERROR': 'No se pudo consultar Home Assistant. Verifica la conexión y la configuración.',
+  'ALREADY_ASSIGNED': 'El dispositivo ya tiene una habitación asignada.',
+  'DEVICE_NOT_FOUND': 'Dispositivo no encontrado.',
+  'INVALID_TYPE': 'Tipo de dispositivo no compatible para esta operación.',
+  'INVALID_COMMAND': 'Comando no válido para este dispositivo.',
+  'AUTOMATION_ERROR': 'Error en la gestión de automatizaciones.',
+  'REFRESH_ERROR': 'No se pudo actualizar el estado desde Home Assistant.',
+  'HOME_NOT_FOUND': 'Hogar no encontrado.',
+  'HA_ENTITY_NOT_FOUND': 'Entidad de Home Assistant no encontrada.',
+  'AUTOMATIONLOOPERROR': 'Se detectó un bucle infinito en la automatización.',
+  'INVALIDAUTOMATIONRULEERROR': 'Regla de automatización inválida.',
 };
 
 const DEFAULT_STATUS_CODES: Record<string, number> = {
@@ -95,7 +105,7 @@ export abstract class ApiRoutes implements RouteHandler {
       JSON.stringify({
         error: {
           code,
-          message: safeMessage,
+          message: process.env.NODE_ENV === 'test' && internalMessage ? internalMessage : safeMessage,
           timestamp: new Date().toISOString(),
         },
       })

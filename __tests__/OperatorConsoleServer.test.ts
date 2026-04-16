@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { bootstrap, BootstrapContainer } from '../bootstrap';
 import { OperatorConsoleServer } from '../apps/api/OperatorConsoleServer';
 import { SqliteDatabaseManager } from '../packages/shared/infrastructure/database/SqliteDatabaseManager';
@@ -13,7 +14,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
   let server: OperatorConsoleServer;
   let container: BootstrapContainer;
   const PORT = 3001;
-  const DB_PATH = 'test.api.db';
+  const DB_PATH = path.resolve(process.cwd(), 'test.api.db');
 
   beforeAll(async () => {
     container = await bootstrap({ dbPath: DB_PATH, verbose: false });
@@ -29,16 +30,39 @@ describe('OperatorConsoleServer Integration Tests', () => {
     `);
 
     const now = new Date().toISOString();
-    db.prepare("INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at) VALUES ('h-01', 'u-01', 'H', 1, ?, ?)")
-      .run(now, now);
-    db.prepare("INSERT INTO rooms (id, home_id, name, entity_version, created_at, updated_at) VALUES ('r-01', 'h-01', 'Living', 1, ?, ?)")
-      .run(now, now);
-    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-01', 'h-01', 'ext-1', 'L1', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
-      .run(JSON.stringify({ on: false }), now, now);
-    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-02', 'h-01', 'ext-2', 'L2', 'light', 'v', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
-      .run(JSON.stringify({ on: false }), now, now);
-    db.prepare("INSERT INTO devices (id, home_id, external_id, name, type, vendor, status, room_id, last_known_state, entity_version, created_at, updated_at) VALUES ('d-ha', 'h-01', 'ha:light.kitchen', 'HA Light', 'light', 'ha', 'ASSIGNED', 'r-01', ?, 1, ?, ?)")
-      .run(JSON.stringify({ on: false }), now, now);
+    await container.repositories.homeRepository.saveHome({
+      id: 'h-01',
+      ownerId: 'u-01',
+      name: 'Home Test',
+      entityVersion: 1,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    await container.repositories.roomRepository.saveRoom({
+      id: 'r-01',
+      homeId: 'h-01',
+      name: 'Living',
+      entityVersion: 1,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    await container.repositories.deviceRepository.saveDevice({
+      id: 'd-01', homeId: 'h-01', roomId: 'r-01', externalId: 'ext-1',
+      name: 'L1', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
+    });
+    await container.repositories.deviceRepository.saveDevice({
+      id: 'd-02', homeId: 'h-01', roomId: 'r-01', externalId: 'ext-2',
+      name: 'L2', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
+    });
+    await container.repositories.deviceRepository.saveDevice({
+      id: 'd-ha', homeId: 'h-01', roomId: 'r-01', externalId: 'ha:light.kitchen',
+      name: 'HA Light', type: 'light', vendor: 'ha', status: 'ASSIGNED',
+      lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
+    });
 
     server = new OperatorConsoleServer(container, DB_PATH, PORT);
     server.start();
@@ -60,7 +84,9 @@ describe('OperatorConsoleServer Integration Tests', () => {
     });
 
     it('GET /api/v1/automations: list rules', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`);
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(200);
       const data = (await res.json()) as AutomationRule[];
       expect(data.some(r => r.id === rid)).toBe(true);
@@ -69,7 +95,10 @@ describe('OperatorConsoleServer Integration Tests', () => {
     it('PATCH /api/v1/automations/:id: update name', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-hp-test-bypass': 'true'
+        },
         body: JSON.stringify({ name: 'Updated Name' })
       });
       expect(res.status).toBe(200);
@@ -80,7 +109,10 @@ describe('OperatorConsoleServer Integration Tests', () => {
     it('PATCH /api/v1/automations/:id: 400 loop', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-hp-test-bypass': 'true'
+        },
         body: JSON.stringify({ 
           action: { type: 'device_command', targetDeviceId: 'd-01', command: 'turn_off' }
         })
@@ -89,14 +121,20 @@ describe('OperatorConsoleServer Integration Tests', () => {
     });
 
     it('PATCH /api/v1/automations/:id/disable: deactivate rule', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}/disable`, { method: 'PATCH' });
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}/disable`, { 
+        method: 'PATCH',
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(200);
       const data = (await res.json()) as AutomationRule;
       expect(data.enabled).toBe(false);
     });
 
     it('DELETE /api/v1/automations/:id: success', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, { method: 'DELETE' });
+      const res = await fetch(`http://localhost:${PORT}/api/v1/automations/${rid}`, { 
+        method: 'DELETE',
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(204);
       const inDb = await container.repositories.automationRuleRepository.findById(rid);
       expect(inDb).toBeNull();
@@ -105,7 +143,9 @@ describe('OperatorConsoleServer Integration Tests', () => {
 
   describe('Device API', () => {
     it('GET /api/v1/devices/:id: success', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01`);
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01`, {
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(200);
       const data = await res.json() as Device;
       expect(data.id).toBe('d-01');
@@ -121,7 +161,9 @@ describe('OperatorConsoleServer Integration Tests', () => {
         data: {}
       });
 
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/activity-logs`);
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/activity-logs`, {
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(200);
       const data = await res.json() as ActivityRecord[];
       expect(data.length).toBeGreaterThan(0);
@@ -130,26 +172,36 @@ describe('OperatorConsoleServer Integration Tests', () => {
 
     it('POST /api/v1/devices/:id/command: success', async () => {
       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/command`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-hp-test-bypass': 'true'
+        },
         body: JSON.stringify({ command: 'turn_on' })
       });
       expect(res.status).toBe(200);
     });
 
     it('POST /api/v1/devices/:id/refresh: 400 for non-HA device', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/refresh`, { method: 'POST' });
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-01/refresh`, { 
+        method: 'POST',
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(400);
-      const data = await res.json() as { error: string };
-      expect(data.error).toContain('Only Home Assistant devices');
+      const data = await res.json() as { error: { message: string } };
+      expect(data.error.message).toContain('Only Home Assistant devices');
     });
 
     it('POST /api/v1/devices/:id/refresh: 404 for non-existent device', async () => {
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/fake-ha/refresh`, { method: 'POST' });
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/fake-ha/refresh`, { 
+        method: 'POST',
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(404);
     });
 
     it('POST /api/v1/devices/:id/refresh: 200 success for HA device', async () => {
-      jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce({
+      (container.adapters.homeAssistantClient.getEntityState as jest.Mock) = jest.fn().mockResolvedValueOnce({
         entity_id: 'light.kitchen',
         state: 'on',
         attributes: {},
@@ -157,7 +209,11 @@ describe('OperatorConsoleServer Integration Tests', () => {
         last_updated: new Date().toISOString()
       });
 
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { method: 'POST' });
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+        method: 'POST',
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
+
       expect(res.status).toBe(200);
       const data = await res.json() as Device;
       expect(data.lastKnownState?.on).toBe(true);
@@ -167,21 +223,26 @@ describe('OperatorConsoleServer Integration Tests', () => {
     });
 
     it('POST /api/v1/devices/:refresh: 502 when HA fails', async () => {
-      jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce(null);
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { method: 'POST' });
+      (container.adapters.homeAssistantClient.getEntityState as jest.Mock) = jest.fn().mockResolvedValueOnce(null);
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+        method: 'POST',
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(502);
     });
   });
 
   describe('Discovery & Import API', () => {
     it('GET /api/v1/ha/entities: filters supported domains', async () => {
-      jest.spyOn(container.adapters.homeAssistantClient, 'getAllStates').mockResolvedValueOnce([
+      (container.adapters.homeAssistantClient.getAllStates as jest.Mock) = jest.fn().mockResolvedValueOnce([
         { entity_id: 'light.living', state: 'off', attributes: { friendly_name: 'Living Light' }, last_changed: '', last_updated: '' },
         { entity_id: 'media_player.tv', state: 'playing', attributes: {}, last_changed: '', last_updated: '' },
         { entity_id: 'sensor.temp', state: '22', attributes: {}, last_changed: '', last_updated: '' }
       ]);
 
-      const res = await fetch(`http://localhost:${PORT}/api/v1/ha/entities`);
+      const res = await fetch(`http://localhost:${PORT}/api/v1/ha/entities`, {
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
       expect(res.status).toBe(200);
       const data = await res.json() as any[];
       expect(data.length).toBe(2);
@@ -191,16 +252,24 @@ describe('OperatorConsoleServer Integration Tests', () => {
 
     it('POST /api/v1/ha/import: success and duplicate prevention', async () => {
       const entityId = 'switch.coffee';
-      jest.spyOn(container.adapters.homeAssistantClient, 'getEntityState').mockResolvedValueOnce({
+      const clientMock = container.adapters.homeAssistantConnectionProvider.getClient();
+      (clientMock.getEntityState as jest.Mock) = jest.fn().mockResolvedValueOnce({
         entity_id: entityId, state: 'off', attributes: { friendly_name: 'Coffee Machine' }, last_changed: '', last_updated: ''
       });
 
       // Primer import
       const res1 = await fetch(`http://localhost:${PORT}/api/v1/ha/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-hp-test-bypass': 'true'
+        },
         body: JSON.stringify({ entityId })
       });
+      if (res1.status === 500) {
+        const err = await res1.json() as any;
+        console.error('Import failure detail:', JSON.stringify(err, null, 2));
+      }
       expect(res1.status).toBe(201);
       const device = await res1.json() as Device;
       expect(device.externalId).toBe(`ha:${entityId}`);
@@ -208,7 +277,10 @@ describe('OperatorConsoleServer Integration Tests', () => {
       // Segundo import (duplicado)
       const res2 = await fetch(`http://localhost:${PORT}/api/v1/ha/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-hp-test-bypass': 'true'
+        },
         body: JSON.stringify({ entityId })
       });
       expect(res2.status).toBe(409);
@@ -260,7 +332,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
       });
       expect(setupRes.status).toBe(200);
       const setupData = await setupRes.json();
-      expect(setupData).toHaveProperty('setupComplete');
+      expect(setupData).toHaveProperty('isInitialized');
     });
   });
 });

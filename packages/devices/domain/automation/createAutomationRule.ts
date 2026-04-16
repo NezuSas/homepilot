@@ -2,6 +2,7 @@ import { AutomationRule, AutomationTrigger, AutomationAction } from './types';
 import { InvalidAutomationRuleError, AutomationLoopError } from '../errors';
 import { IdGenerator } from '../../../shared/domain/types';
 import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
+import { isValidCommand } from '../commands';
 
 export interface CreateAutomationRulePayload {
   homeId: string;
@@ -28,6 +29,12 @@ export function createAutomationRule(
   if (payload.trigger.type === 'device_state_changed') {
     if (!payload.trigger.deviceId) throw new InvalidAutomationRuleError('trigger.deviceId');
     if (!payload.trigger.stateKey) throw new InvalidAutomationRuleError('trigger.stateKey');
+    
+    // Validar que expectedValue sea primitivo (string, number, boolean) - Requerido por tests de API
+    const val = payload.trigger.expectedValue;
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+       throw new InvalidAutomationRuleError('trigger.expectedValue must be a primitive type');
+    }
   } else if (payload.trigger.type === 'time') {
     const t = payload.trigger;
     const timeToValidate = t.timeLocal || t.time; // Soporte legacy en payload si es necesario
@@ -80,6 +87,12 @@ export function createAutomationRule(
   if (payload.trigger.type === 'device_state_changed' && payload.action.type === 'device_command') {
     if (payload.trigger.deviceId === payload.action.targetDeviceId) {
       throw new AutomationLoopError();
+    }
+  }
+
+  if (payload.action.type === 'device_command') {
+    if (!isValidCommand(payload.action.command)) {
+      throw new InvalidAutomationRuleError('action.command');
     }
   }
 

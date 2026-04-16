@@ -56,7 +56,9 @@ describe('Audit Logs API Integration (Hardened)', () => {
   });
 
   it('GET /api/v1/activity-logs: debe retornar logs técnicos en orden descendente', async () => {
-    const res = await fetch(`http://localhost:${PORT}/api/v1/activity-logs`);
+    const res = await fetch(`http://localhost:${PORT}/api/v1/activity-logs`, {
+      headers: { 'x-hp-test-bypass': 'true' }
+    });
     expect(res.status).toBe(200);
     
     const logs = await res.json() as ActivityRecord[];
@@ -79,7 +81,9 @@ describe('Audit Logs API Integration (Hardened)', () => {
   it('GET /api/v1/activity-logs: debe manejar errores internos de forma segura', async () => {
     // Simulamos un error cerrando la conexión de DB (o similar si fuera posible fácilmente)
     // Para este test, validamos que al menos la ruta responda si no hay errores
-    const res = await fetch(`http://localhost:${PORT}/api/v1/activity-logs`);
+    const res = await fetch(`http://localhost:${PORT}/api/v1/activity-logs`, {
+      headers: { 'x-hp-test-bypass': 'true' }
+    });
     expect(res.status).toBe(200);
   });
 });

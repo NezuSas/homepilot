@@ -1,0 +1,175 @@
+  console.log
+    [Bootstrap] Inicializando persistencia SQLite en: test.api.db
+
+      at bootstrap (bootstrap.ts:96:13)
+
+  console.log
+    [Bootstrap] Ejecutando migraciones desde: C:\Users\ocuen\Developer\Nezu\homepilot\migrations...
+
+      at bootstrap (bootstrap.ts:98:13)
+
+  console.log
+    [Bootstrap] Migraciones aplicadas/validadas correctamente.
+
+      at bootstrap (bootstrap.ts:102:17)
+
+  console.log
+    [Bootstrap] Instanciando repositorios SQLite...
+
+      at bootstrap (bootstrap.ts:108:13)
+
+  console.log
+    [Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)
+
+      at bootstrap (bootstrap.ts:119:17)
+
+  console.log
+    [Bootstrap] Self-correcting minute heartbeat scheduled.
+
+      at startHeartbeat (bootstrap.ts:287:17)
+
+  console.log
+    [Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.
+
+      at bootstrap (bootstrap.ts:302:17)
+
+  console.log
+    [Bootstrap] Repositorios y servicios inyectados exitosamente.
+
+      at bootstrap (bootstrap.ts:456:13)
+
+  console.log
+    [ApiGateway] API local en http://localhost:3001
+
+      at apps/api/ApiGateway.ts:57:21
+
+  console.error
+    [API-ERROR] [AUTOMATIONLOOPERROR] Automation rule rejected: local loop detected (trigger and target are the same device).
+
+    [0m [90m 80 |[39m         }
+     [90m 81 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     })[33m;[39m
+     [90m    |[39m                  [31m[1m^[22m[39m
+     [90m 83 |[39m   }
+     [90m 84 |[39m
+     [90m 85 |[39m   [36mprotected[39m sendJson(res[33m:[39m http[33m.[39m[33mServerResponse[39m[33m,[39m data[33m:[39m any[33m,[39m status[33m:[39m number [33m=[39m [35m200[39m)[33m:[39m [36mvoid[39m {[0m
+
+      at AutomationRoutes.sendError (apps/api/routes/ApiRoutes.ts:82:21)
+      at AutomationRoutes.handle (apps/api/routes/AutomationRoutes.ts:114:22)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+  console.log
+    [LocalDispatcher] Despachando comando f├¡sico: turn_on para dispositivo: d-01
+
+      at LocalConsoleCommandDispatcher.dispatch (apps/api/LocalConsoleCommandDispatcher.ts:22:17)
+
+  console.log
+    [LocalDispatcher] Simulando telemetr├¡a... Nuevo estado: { on: true }
+
+      at LocalConsoleCommandDispatcher.dispatch (apps/api/LocalConsoleCommandDispatcher.ts:44:17)
+
+  console.error
+    [API-ERROR] [INVALID_TYPE] Only Home Assistant devices can be refreshed via this endpoint
+
+    [0m [90m 80 |[39m         }
+     [90m 81 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     })[33m;[39m
+     [90m    |[39m                  [31m[1m^[22m[39m
+     [90m 83 |[39m   }
+     [90m 84 |[39m
+     [90m 85 |[39m   [36mprotected[39m sendJson(res[33m:[39m http[33m.[39m[33mServerResponse[39m[33m,[39m data[33m:[39m any[33m,[39m status[33m:[39m number [33m=[39m [35m200[39m)[33m:[39m [36mvoid[39m {[0m
+
+      at DeviceRoutes.sendError (apps/api/routes/ApiRoutes.ts:82:21)
+      at DeviceRoutes.handle (apps/api/routes/DeviceRoutes.ts:148:33)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+  console.error
+    [API-ERROR] [DEVICE_NOT_FOUND] Device not found
+
+    [0m [90m 80 |[39m         }
+     [90m 81 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     })[33m;[39m
+     [90m    |[39m                  [31m[1m^[22m[39m
+     [90m 83 |[39m   }
+     [90m 84 |[39m
+     [90m 85 |[39m   [36mprotected[39m sendJson(res[33m:[39m http[33m.[39m[33mServerResponse[39m[33m,[39m data[33m:[39m any[33m,[39m status[33m:[39m number [33m=[39m [35m200[39m)[33m:[39m [36mvoid[39m {[0m
+
+      at DeviceRoutes.sendError (apps/api/routes/ApiRoutes.ts:82:21)
+      at DeviceRoutes.handle (apps/api/routes/DeviceRoutes.ts:146:33)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+  console.error
+    [API-ERROR] [HA_UNREACHABLE] Could not retrieve state from Home Assistant
+
+    [0m [90m 80 |[39m         }
+     [90m 81 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     })[33m;[39m
+     [90m    |[39m                  [31m[1m^[22m[39m
+     [90m 83 |[39m   }
+     [90m 84 |[39m
+     [90m 85 |[39m   [36mprotected[39m sendJson(res[33m:[39m http[33m.[39m[33mServerResponse[39m[33m,[39m data[33m:[39m any[33m,[39m status[33m:[39m number [33m=[39m [35m200[39m)[33m:[39m [36mvoid[39m {[0m
+
+      at DeviceRoutes.sendError (apps/api/routes/ApiRoutes.ts:82:21)
+      at DeviceRoutes.handle (apps/api/routes/DeviceRoutes.ts:154:33)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+  console.error
+    [API-ERROR] [HOME_NOT_FOUND] HOME_NOT_FOUND
+
+    [0m [90m 80 |[39m         }
+     [90m 81 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     })[33m;[39m
+     [90m    |[39m                  [31m[1m^[22m[39m
+     [90m 83 |[39m   }
+     [90m 84 |[39m
+     [90m 85 |[39m   [36mprotected[39m sendJson(res[33m:[39m http[33m.[39m[33mServerResponse[39m[33m,[39m data[33m:[39m any[33m,[39m status[33m:[39m number [33m=[39m [35m200[39m)[33m:[39m [36mvoid[39m {[0m
+
+      at DeviceRoutes.sendError (apps/api/routes/ApiRoutes.ts:82:21)
+      at DeviceRoutes.handleHaImport (apps/api/routes/DeviceRoutes.ts:372:18)
+      at Object.<anonymous> (apps/api/ApiGateway.ts:121:37)
+
+FAIL __tests__/OperatorConsoleServer.test.ts
+  OperatorConsoleServer Integration Tests
+    Automation API
+      ÔêÜ GET /api/v1/automations: list rules (34 ms)
+      ÔêÜ PATCH /api/v1/automations/:id: update name (8 ms)
+      ÔêÜ PATCH /api/v1/automations/:id: 400 loop (9 ms)
+      ÔêÜ PATCH /api/v1/automations/:id/disable: deactivate rule (3 ms)
+      ÔêÜ DELETE /api/v1/automations/:id: success (2 ms)
+    Device API
+      ÔêÜ GET /api/v1/devices/:id: success (3 ms)
+      ÔêÜ GET /api/v1/devices/:id/activity-logs: success (3 ms)
+      ÔêÜ POST /api/v1/devices/:id/command: success (6 ms)
+      ÔêÜ POST /api/v1/devices/:id/refresh: 400 for non-HA device (5 ms)
+      ÔêÜ POST /api/v1/devices/:id/refresh: 404 for non-existent device (3 ms)
+      ÔêÜ POST /api/v1/devices/:id/refresh: 200 success for HA device (3 ms)
+      ÔêÜ POST /api/v1/devices/:refresh: 502 when HA fails (3 ms)
+    Discovery & Import API
+      ÔêÜ GET /api/v1/ha/entities: filters supported domains (3 ms)
+      ├ù POST /api/v1/ha/import: success and duplicate prevention (5 ms)
+    Auth API
+      ÔêÜ OPTIONS /api/v1/auth/login: returns CORS headers with Authorization (2 ms)
+      ÔêÜ POST /api/v1/auth/login: sanitizes user object and removes passwordHash (124 ms)
+
+  ÔùÅ OperatorConsoleServer Integration Tests ÔÇ║ Discovery & Import API ÔÇ║ POST /api/v1/ha/import: success and duplicate prevention
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 500
+
+      214 |         { entity_id: 'light.living', state: 'off', attributes: { friendly_name: 'Living Light' }, last_changed: '', last_updated: '' },
+      215 |         { entity_id: 'media_player.tv', state: 'playing', attributes: {}, last_changed: '', last_updated: '' },
+    > 216 |         { entity_id: 'sensor.temp', state: '22', attributes: {}, last_changed: '', last_updated: '' }
+          |                                 ^
+      217 |       ]);
+      218 |
+      219 |       const res = await fetch(`http://localhost:${PORT}/api/v1/ha/entities`, {
+
+      at Object.<anonymous> (__tests__/OperatorConsoleServer.test.ts:216:33)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 15 passed, 16 total
+Snapshots:   0 total
+Time:        2.344 s, estimated 10 s
+Ran all test suites matching /__tests__\\OperatorConsoleServer.test.ts/i.

@@ -83,6 +83,7 @@ describe('Automation API: AutomationController', () => {
   });
 
   it('createRule: debe retornar 400 si expectedValue no es un tipo primitivo válido', async () => {
+    await setupDevices();
     const req: AuthenticatedHttpRequest = {
       userId: 'user-1',
       params: { homeId: 'home-1' },
@@ -210,6 +211,7 @@ describe('Automation API: AutomationController', () => {
 
   it('updateRule: debe retornar 400 si trigger.expectedValue no es un tipo primitivo válido', async () => {
     await saveBaseRule();
+    await setupDevices();
     const req: AuthenticatedHttpRequest = {
       userId: 'u1',
       params: { ruleId: 'r1' },
@@ -247,6 +249,7 @@ describe('Automation API: AutomationController', () => {
 
   it('updateRule: debe retornar 400 si action.command es inválido', async () => {
     await saveBaseRule();
+    await setupDevices();
     const req: AuthenticatedHttpRequest = {
       userId: 'u1',
       params: { ruleId: 'r1' },

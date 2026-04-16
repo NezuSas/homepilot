@@ -324,6 +324,18 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
           action.command,
           correlationId
         );
+        await this.activityLogRepository.saveActivity({
+          timestamp: new Date().toISOString(),
+          deviceId: action.targetDeviceId,
+          type: 'COMMAND_DISPATCHED' as any,
+          description: `Triggered by Automation: ${rule.name}`,
+          correlationId,
+          data: { ruleId: rule.id, ruleName: rule.name, command: action.command }
+        });
+        this.totalSuccesses++;
+        this.lastExecutionAt = new Date().toISOString();
+        this.lastStatus = 'active';
+        return;
       } else if (action.type === 'execute_scene') {
         const scene = await this.sceneRepository.findSceneById(action.sceneId);
         if (!scene) throw new Error(`Scene ${action.sceneId} not found.`);
@@ -364,7 +376,8 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         rule,
         correlationId,
         'error',
-        `Automation failed: ${dispatchError.message}`
+        `Automation failed: ${dispatchError.message}`,
+        action.type === 'device_command' ? action.targetDeviceId : undefined
       );
       throw dispatchError;
     }
@@ -382,12 +395,13 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     rule: AutomationRule,
     correlationId: string,
     status: 'success' | 'error',
-    reason: string
+    reason: string,
+    deviceId: string | null = null
   ): Promise<void> {
     try {
       await this.activityLogRepository.saveActivity({
         timestamp: new Date().toISOString(),
-        deviceId: null,
+        deviceId,
         type: (status === 'error' ? 'AUTOMATION_FAILED' : 'AUTOMATION_EXECUTED') as any,
         description: `Automation "${rule.name}" ${status === 'error' ? 'failed' : 'executed successfully'}.`,
         correlationId,

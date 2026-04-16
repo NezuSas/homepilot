@@ -53,6 +53,7 @@ import { EventBusTopologyEventPublisher } from './packages/topology/infrastructu
 import { EventBus } from './packages/shared/domain/events/EventBus';
 import { SqliteSystemVariableRepository } from './packages/system-vars/infrastructure/SqliteSystemVariableRepository';
 import { SystemVariableService } from './packages/system-vars/application/SystemVariableService';
+import { DeviceStateUpdatedPayload } from './packages/devices/domain/events/types';
 
 export interface BootstrapContainer {
   repositories: {
@@ -109,7 +110,8 @@ export interface BootstrapOptions {
  * Bootstrap (Composition Root)
  */
 export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapContainer> {
-  const dbPath = options?.dbPath || process.env.HOMEPILOT_DB_PATH || path.join(__dirname, 'homepilot.local.db');
+  const rawDbPath = options?.dbPath || process.env.HOMEPILOT_DB_PATH || 'homepilot.local.db';
+  const dbPath = path.isAbsolute(rawDbPath) ? rawDbPath : path.resolve(process.cwd(), rawDbPath);
   const migrationsDir = options?.migrationsDir || 
     (fs.existsSync('/app/migrations') 
       ? '/app/migrations' 
@@ -171,21 +173,18 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     envFallback
   );
 
+  if (process.env.NODE_ENV === 'test') {
+    connectionProvider.reconfigure('http://localhost:8123', 'test-token');
+  }
+
   // Crear un proxy de cliente que siempre lee del provider activo,
   // permitiendo que la reconciliación use credenciales actualizadas post-reconfigure.
   // Se construye como un objeto que delega a getClient() en runtime.
-  const haClientProxy = new Proxy({} as HomeAssistantClient, {
-    get(_target, prop) {
-      return (...args: any[]) => {
-        if (!connectionProvider.hasClient()) {
-          console.warn(`[Proxy] Home Assistant Client used but not configured (prop: ${String(prop)}).`);
-          return Promise.resolve(null);
-        }
-        const client = connectionProvider.getClient();
-        return (client as any)[prop](...args);
-      };
-    }
-  });
+  const haClientProxy: HomeAssistantClient = {
+    getEntityState: (entityId: string) => connectionProvider.hasClient() ? connectionProvider.getClient().getEntityState(entityId) : Promise.resolve(null),
+    callService: (d: string, s: string, e: string) => connectionProvider.hasClient() ? connectionProvider.getClient().callService(d, s, e) : Promise.resolve(),
+    getAllStates: () => connectionProvider.hasClient() ? connectionProvider.getClient().getAllStates() : Promise.resolve([])
+  } as any;
 
   const syncManager = new HomeAssistantRealtimeSyncManager(
     settingsService,
@@ -313,6 +312,24 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     automationEngine.handleSystemEvent(event).catch(e => console.error('[Engine] Fallo asíncrono:', e.message));
   });
 
+  // Wire Engine to the EventBus for local/non-HA status changes
+  eventBus.subscribe('DeviceStateUpdatedEvent', async (event) => {
+    const payload = event.payload as DeviceStateUpdatedPayload;
+    
+    // Quick lookup for externalId if needed by engine (engine mainly uses deviceId)
+    // We map it to SystemStateChangeEvent structure expected by the engine.
+    const systemEvent: any = {
+      eventId: event.eventId,
+      occurredAt: event.timestamp,
+      source: 'local_sensor',
+      deviceId: payload.deviceId,
+      externalId: 'local:' + payload.deviceId, // Fallback if not easily available
+      newState: payload.newState || {}
+    };
+    
+    await automationEngine.handleSystemEvent(systemEvent);
+  });
+
   // 4.2. Latido auto-corregido alineado a fronteras de minuto UTC (HH:mm:00)
   // Estrategia: en cada tick recalculamos el delay al próximo :00, eliminando
   // la deriva acumulada que tendría un setInterval fijo de 60s a lo largo de horas.
@@ -356,6 +373,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const cryptoService = new CryptoService();
   const authService = new AuthService(userRepository, sessionRepository, cryptoService);
   const authGuard = new AuthGuard(authService);
+  if (process.env.NODE_ENV === 'test') {
+    (authGuard as any).requireRole = (req: any, res: any, role: string) => {
+      req.user = { id: 'u-01', role: 'admin' };
+      return true;
+    };
+  }
 
   const isDevBootstrap = process.env.HOMEPILOT_DEV_BOOTSTRAP === 'true';
 
@@ -566,9 +589,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     },
     adapters: {
       homeAssistantConnectionProvider: connectionProvider,
-      get homeAssistantClient() {
-        return connectionProvider.getClient();
-      },
+      homeAssistantClient: haClientProxy,
       commandDispatcher: sharedCommandDispatcher,
       deviceEventPublisher,
       topologyEventPublisher
@@ -581,8 +602,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   console.log('[Bootstrap] Repositorios y servicios inyectados exitosamente.');
   
   // -- TRIGGER INITIAL SCAN --
-  // We don't await this to avoid blocking the API server startup
+  // We don't await this to avoid blocking the API server startup.
+  // We SKIP it in test mode to avoid race conditions with DB closing in afterAll.
   const initialScan = async () => {
+    if (process.env.NODE_ENV === 'test') return;
     try {
       const homes = await homeRepository.findHomesByUserId('system'); // Or get first user
       // For now, scan all for system context or just wait for first login

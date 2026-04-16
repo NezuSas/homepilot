@@ -38,7 +38,7 @@ describe('SQLite Devices Persistence Integration', () => {
   });
 
   afterAll(() => {
-    SqliteDatabaseManager.close();
+    SqliteDatabaseManager.closeAll();
     // Limpiar restos de transacciones de prueba
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     const walPath = `${dbPath}-wal`;

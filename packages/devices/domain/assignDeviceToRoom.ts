@@ -27,7 +27,12 @@ export function assignDeviceToRoom(
     throw new InvalidTopologyReferenceError('roomId');
   }
 
-  // Soporte para "Mover a otro cuarto": permitimos reasignación si roomId es distinto
+  // Soporte para "Mover a otro cuarto": La especificación actual (SDV) exige rígidamente 
+  // lanzar error si ya está asignado para proteger la consistencia de la base de datos local.
+  if (device.status === 'ASSIGNED') {
+    throw new DeviceAlreadyAssignedError(device.id);
+  }
+
   const updatedDevice: Device = {
     ...device,
     roomId: roomId.trim(),

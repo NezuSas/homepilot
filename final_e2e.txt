@@ -1,0 +1,27 @@
+FAIL packages/devices/__tests__/automation/automation_e2e.test.ts
+  Automation E2E: Full Reactive Flow
+    ÔêÜ debe completar el flujo: crear regla -> trigger por cambio de estado -> ejecuci├│n autom├ítica -> auditor├¡a (5 ms)
+    ├ù debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio (2 ms)
+
+  ÔùÅ Automation E2E: Full Reactive Flow ÔÇ║ debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTOMATION_FAILED"
+    Received: "AUTOMATION_EXECUTED"
+
+       99 |
+      100 |   it('debe registrar AUTOMATION_FAILED si la ejecuci├│n falla por reglas de negocio', async () => {
+    > 101 |     await deviceRepo.saveDevice({
+          |                              ^
+      102 |       id: 'trigger-dev', homeId: 'h1', roomId: 'r1', externalId: 'ext1',
+      103 |       name: 'Source', type: 'sensor', vendor: 'v', status: 'ASSIGNED',
+      104 |       lastKnownState: { k: 0 }, entityVersion: 1, createdAt: '', updatedAt: ''
+
+      at Object.<anonymous> (packages/devices/__tests__/automation/automation_e2e.test.ts:101:30)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        1.606 s, estimated 8 s
+Ran all test suites matching /packages\\devices\\__tests__\\automation\\automation_e2e.test.ts/i.

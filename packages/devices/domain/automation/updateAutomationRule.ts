@@ -1,6 +1,7 @@
 import { AutomationRule, AutomationTrigger, AutomationAction, TimeTrigger } from './types';
 import { InvalidAutomationRuleError, AutomationLoopError } from '../errors';
 import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
+import { isValidCommand } from '../commands';
 
 /**
  * Subset de campos que el dueño de la regla puede modificar.
@@ -33,6 +34,13 @@ export function updateAutomationRule(
   let resolvedTrigger = patch.trigger !== undefined
     ? { ...patch.trigger }
     : { ...existing.trigger };
+  
+  if (resolvedTrigger.type === 'device_state_changed') {
+    const val = resolvedTrigger.expectedValue;
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      throw new InvalidAutomationRuleError('trigger.expectedValue must be a primitive type');
+    }
+  }
 
   if (patch.trigger !== undefined && patch.trigger.type === 'time') {
     const t = resolvedTrigger as TimeTrigger;
@@ -83,6 +91,12 @@ export function updateAutomationRule(
   if (resolvedTrigger.type === 'device_state_changed' && resolvedAction.type === 'device_command') {
     if (resolvedTrigger.deviceId === resolvedAction.targetDeviceId) {
       throw new AutomationLoopError();
+    }
+  }
+
+  if (resolvedAction.type === 'device_command') {
+    if (!isValidCommand(resolvedAction.command)) {
+      throw new InvalidAutomationRuleError('action.command');
     }
   }
 

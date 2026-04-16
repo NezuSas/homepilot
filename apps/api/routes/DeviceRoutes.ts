@@ -137,7 +137,7 @@ export class DeviceRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'INVALID_TYPE', 'Only Home Assistant devices can be refreshed via this endpoint'), true;
         }
         const entityId = device.externalId.split(':')[1];
-        const haState = await container.adapters.homeAssistantConnectionProvider.getClient().getEntityState(entityId);
+        const haState = await container.adapters.homeAssistantClient.getEntityState(entityId);
 
         if (!haState) {
           container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
@@ -303,7 +303,7 @@ export class DeviceRoutes extends ApiRoutes {
     let allStates: HomeAssistantState[] = [];
 
     try {
-      allStates = await container.adapters.homeAssistantConnectionProvider.getClient().getAllStates();
+      allStates = await container.adapters.homeAssistantClient.getAllStates();
       container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
     } catch (error: any) {
       const errorMsg = error.message || '';
@@ -370,17 +370,22 @@ export class DeviceRoutes extends ApiRoutes {
       container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
       this.sendJson(res, device, 201);
     } catch (error: any) {
-      const code =
-        error.message === 'HOME_NOT_FOUND'
-          ? 'HOME_NOT_FOUND'
-          : error.message === 'DEVICE_ALREADY_EXISTS'
-            ? 'DEVICE_ALREADY_EXISTS'
-            : error.message === 'HA_ENTITY_NOT_FOUND'
-              ? 'HA_ENTITY_NOT_FOUND'
-              : 'IMPORT_ERROR';
+      let status = 500;
+      let code = 'IMPORT_ERROR';
+
+      if (error.message === 'DEVICE_ALREADY_EXISTS') {
+        status = 409;
+        code = 'DEVICE_ALREADY_EXISTS';
+      } else if (error.message === 'HOME_NOT_FOUND') {
+        status = 404;
+        code = 'HOME_NOT_FOUND';
+      } else if (error.message === 'HA_ENTITY_NOT_FOUND') {
+        status = 404;
+        code = 'HA_ENTITY_NOT_FOUND';
+      }
 
       container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-      this.sendError(res, 500, code, error.message || 'Import Error');
+      this.sendError(res, status, code, error.message || 'Import Error');
     }
     return true;
   }

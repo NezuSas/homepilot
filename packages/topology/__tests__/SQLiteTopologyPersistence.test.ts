@@ -26,7 +26,7 @@ describe('SQLite Topology Persistence Integration', () => {
   });
 
   afterAll(() => {
-    SqliteDatabaseManager.close();
+    SqliteDatabaseManager.closeAll();
     // Limpieza responsable de la BD de prueba y sus archivos auxiliares WAL/SHM
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     const walPath = `${dbPath}-wal`;
