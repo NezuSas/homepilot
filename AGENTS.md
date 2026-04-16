@@ -1,29 +1,150 @@
-# Directrices para Agentes de IA
+# HomePilot — Directrices para Agentes de IA (STRICT)
 
-Este repositorio depende en gran medida de agentes de inteligencia artificial (como GitHub Copilot, Claude, Gemini, etc.) para el desarrollo, utilizando un enfoque de Context Engineering (Ingeniería de Contexto) y Desarrollo Basado en Especificaciones (Spec-Driven Development - SDD).
+Este repositorio utiliza agentes de IA bajo un enfoque de Context Engineering y Spec-Driven Development (SDD).
 
-Para asegurar la mantenibilidad a largo plazo y prevenir regresiones inducidas por IA, **TODOS LOS AGENTES DEBEN CUMPLIR CON ESTAS REGLAS CRÍTICAS:**
+Estas reglas son OBLIGATORIAS. El agente debe cumplirlas sin excepción.
+
+---
 
 ## 1. Sin Suposiciones, Sin Lógica Oculta
 - Explícito es mejor que implícito.
-- Si un requerimiento o límite no está claro, NO llenes los espacios en blanco. Márcalo como un `TODO` o pregunta explícitamente al usuario para obtener claridad.
-- No inventes lógica de negocio. Únicamente implementa lo que está escrito explícitamente en la especificación.
+- Si falta información, NO inventes lógica. Marca `TODO` o pide aclaración.
+- No introduzcas reglas de negocio no especificadas.
+
+---
 
 ## 2. Seguir Siempre las Especificaciones (Specs)
-- Toda tarea de implementación DEBE rastrearse de vuelta hacia un documento de especificación ubicado en `/specs/`.
-- Si la especificación está incompleta, actualiza la especificación primero (y obtén aprobación del usuario) antes de escribir código.
-- Valida tu implementación respecto a los Criterios de Aceptación ("Acceptance Criteria") definidos en la especificación.
+- Toda implementación debe rastrearse a `/specs/`.
+- Si la spec está incompleta, actualízala primero (con aprobación) antes de codificar.
+- Valida contra Acceptance Criteria.
 
-## 3. Mantener los Cambios Pequeños y Acotados
-- No realices refactorizaciones masivas a través de todo el código (codebase) a menos que se te indique explícitamente.
-- Respeta los límites de la tarea asignada. Si ves código desordenado no relacionado, ignóralo o propón una tarea separada para arreglarlo después.
+---
+
+## 3. Cambios Pequeños y Acotados
+- Prohibidas refactorizaciones masivas sin instrucción explícita.
+- Respeta el alcance. Ignora código no relacionado o propone tarea aparte.
+
+---
 
 ## 4. Respetar los Límites Arquitectónicos
-- HomePilot utiliza una arquitectura modular estricta (definida en `/docs/architecture.md`).
-- No acoples directamente la capa Edge con la capa Cloud.
-- No eludas (bypass) la inyección de dependencias, las interfaces o los límites de dominio (bounded contexts).
+- Arquitectura modular estricta (ver `/docs/architecture.md`).
+- No acoplar Edge y Cloud directamente.
+- No hacer bypass de DI, interfaces ni bounded contexts.
 
-## 5. Explicitud por Encima de Ingenio (Cleverness)
-- Evita el código "ingeonioso", altamente anidado o excesivamente corto/críptico.
-- Prefiere implementaciones que sean legibles, estrictamente tipadas y bien documentadas.
-- Escribe pruebas (tests) para demostrar que la implementación cumple con la especificación.
+---
+
+## 5. Explicitud por Encima de Ingenio
+- Evita código críptico o “clever”.
+- Prefiere claridad, tipado estricto y legibilidad.
+- Añade tests cuando aplique.
+
+---
+
+## 6. Regla de Terminación: Nada Parcial, Nada Roto
+- Una tarea NO está terminada si deja:
+  - variables, estados, imports o funciones sin uso
+  - handlers duplicados
+  - código comentado tipo "ready for integration"
+  - lógica a medio integrar
+- Prohibido devolver trabajo parcial.
+- Si introduces errores de compilación, build o runtime, DEBES corregirlos antes de finalizar.
+
+---
+
+## 7. Validación Obligatoria Antes de Finalizar
+Toda tarea frontend o full-stack DEBE pasar:
+
+- `npm run typecheck`
+- `npm run build`
+- `npm run build --prefix apps/operator-console`
+
+Si cualquiera falla:
+- el trabajo NO está terminado
+- debes seguir corrigiendo hasta dejarlo en verde
+- NO devuelvas la respuesta hasta que todo pase
+
+---
+
+## 8. Regla de Alcance Estricto
+- Modifica SOLO los archivos indicados.
+- Si necesitas tocar otros, justifica y mantén el cambio mínimo.
+- Prohibido expandir alcance por iniciativa propia.
+
+---
+
+## 9. Reglas React / Zustand (CRITICAS)
+- NUNCA dependencias inestables en `useEffect`
+- NUNCA loops de actualización o fetch
+- NUNCA derivar arrays u objetos dentro de selectores Zustand si cambian referencia en cada render
+- Preferir dependencias primitivas (`id`, `boolean`, `string`)
+- Evitar `Maximum update depth exceeded` a toda costa
+
+---
+
+## 10. Reglas UX de Estado de Carga
+- No ocultar datos existentes durante refresh
+- No mostrar skeletons después de la carga inicial
+- Mantener data previa visible mientras llega nueva
+- Minimizar flicker y spinner churn
+- No resetear secciones completas innecesariamente
+
+---
+
+## 11. Reglas de Implementación
+- Preferir cambios incrementales y seguros
+- No introducir nuevas abstracciones innecesarias
+- No modificar contratos de API ni stores existentes sin autorización
+- Mantener comportamiento actual estable
+
+---
+
+## 12. Específico para HomePilot Frontend (`apps/operator-console`)
+- NO crear stores globales nuevos sin autorización explícita.
+- NO modificar contratos API ni flujos backend sin autorización.
+- Cuando store y UI usen tipos distintos, mapear localmente en vez de relajar tipos.
+- No usar `any` ni castings para esconder errores.
+- Respetar estrictamente los contratos de props de componentes.
+- Si introduces un nuevo estado de carga, debe estar totalmente integrado o eliminado antes de terminar.
+
+---
+
+## 13. Formato de Respuesta Obligatorio
+Responder SOLO con:
+- archivos modificados
+- cambios exactos realizados
+- resultado de:
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run build --prefix apps/operator-console`
+
+NO incluir:
+- "ready for integration"
+- "next steps"
+- trabajo parcial
+- cambios pendientes
+- código incompleto
+
+---
+
+## 14. Si hay duda
+Si no puedes completar la tarea sin romper estas reglas:
+- NO hagas cambios destructivos
+- pide aclaración antes de continuar
+
+---
+
+## 15. Stack Vigente (actualizar si cambia)
+
+| Capa | Tecnología | Notas |
+|---|---|---|
+| HTTP server | **Fastify v5** | Reemplaza `node:http` nativo desde Módulo 1 |
+| WebSocket | `ws` library | Adjunto a `fastify.server` (upgrade event) |
+| Body parsing | Fastify content type parsers | Cuerpo disponible en `request.raw._fastifyParsedBody` |
+| CORS | Inline en catch-all handler | `reply.hijack()` bypasa lifecycle de Fastify |
+| CI/CD | GitHub Actions | `.github/workflows/ci.yml` — typecheck + build + test en cada PR |
+| RouteHandler | `apps/api/RouteHandler.ts` | Interfaz estable — NO modificar sin revisión |
+
+### Restricciones Fastify
+- NUNCA registrar rutas específicas de dominio en `ApiGateway.ts` — toda lógica de rutas va en `RouteHandler` implementations.
+- NUNCA usar `reply.send()` o `reply.code()` en handlers que llamen a `reply.hijack()` — escribir directamente a `reply.raw`.
+- `parseBody<T>` en `ApiRoutes` lee `_fastifyParsedBody` del raw request. NO reemplazar por `request.body` de Fastify sin actualizar todos los handlers.
