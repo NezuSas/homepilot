@@ -35,28 +35,18 @@ const scanFindings = useAssistantStore((state) => state.scanFindings);
 const dismissFinding = useAssistantStore((state) => state.dismissFinding);
 
 const [initialLoadDone, setInitialLoadDone] = useState(false);
-const [localFindings, setLocalFindings] = useState(findings);
 
 useEffect(() => {
-  setLocalFindings(findings);
   if (!initialLoadDone && !loading) {
     setInitialLoadDone(true);
   }
-}, [findings, loading, initialLoadDone]);
+}, [loading, initialLoadDone]);
 
 useEffect(() => {
   if (!initialLoadDone) {
     refreshFindings();
   }
 }, [initialLoadDone, refreshFindings]);
-
-// Optimistic UI update for dismiss
-const handleDismiss = async (id: string, e: React.MouseEvent) => {
-  e.stopPropagation();
-  // Immediate local removal
-  setLocalFindings((prev) => prev.filter(f => f.id !== id));
-  await dismissFinding(id);
-};
 
   const handleScan = async () => {
     await scanFindings();
