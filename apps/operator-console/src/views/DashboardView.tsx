@@ -192,29 +192,51 @@ export const DashboardView: React.FC<{
 
 
 
-  const fetchData = useCallback(async () => {
-    // Use getState() for the guard to avoid depending on the values themselves
-    const isAlreadyLoading = useDeviceSnapshotStore.getState().isLoading || useAssistantStore.getState().isLoading;
-    if (isAlreadyLoading) return;
+const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-    try {
-      await Promise.all([refreshSnapshot(), refreshFindings()]);
+const fetchData = useCallback(async () => {
+  // Use getState() for the guard to avoid depending on the values themselves
+  const isAlreadyLoading = useDeviceSnapshotStore.getState().isLoading || useAssistantStore.getState().isLoading;
+  if (isAlreadyLoading) return;
 
-      if (homeId) {
-        const response = await fetch(`${API_URL}/scenes?homeId=${homeId}`);
-        if (response.ok) {
-          setScenes(await response.json());
-        }
+  try {
+    await Promise.all([refreshSnapshot(), refreshFindings()]);
+
+    if (homeId) {
+      const response = await fetch(`${API_URL}/scenes?homeId=${homeId}`);
+      if (response.ok) {
+        setScenes(await response.json());
+        setInitialLoadDone(true);
       }
-    } catch {
-      setScenes([]);
     }
-  }, [homeId, refreshFindings, refreshSnapshot]); // Stable dependencies only
+  } catch {
+    setScenes([]);
+    setInitialLoadDone(true);
+  }
+}, [homeId, refreshFindings, refreshSnapshot]); // Stable dependencies only
 
-  useEffect(() => {
-    // Only fetch if we haven't or if homeId changed
-    fetchData();
-  }, [homeId, fetchData]);
+useEffect(() => {
+  // Only fetch if we haven't or if homeId changed
+  fetchData();
+}, [homeId, fetchData]);
+
+// Render snippet with smooth loading UX:
+// if (!initialLoadDone && snapshotLoading) {
+//   return <Skeleton />; // Show on first load only
+// }
+// 
+// return (
+//   <ActualContent scenes={scenes} devices={devices} ... /> // Keeps old scenes visible while loading
+// );
+// rest of render unchanged
+
+// Don't remove initialLoadDone declaration, it will be used when integrating render changes
+
+// Note: Similar patterns can be applied elsewhere in the component UI to preserve previous data visibility and reduce spinner churn
+
+// End of changes
+
+
 
   const handleDeviceUpdate = (updated: Device) => {
     upsertDevice(updated);

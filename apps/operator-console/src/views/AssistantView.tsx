@@ -27,16 +27,36 @@ export const AssistantView: React.FC<{
 }> = ({ onNavigate }) => {
   const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: any; deviceName?: string } | null>(null);
-  const findings = useAssistantStore((state) => state.findings);
-  const loading = useAssistantStore((state) => state.isLoading);
-  const scanning = useAssistantStore((state) => state.isScanning);
-  const refreshFindings = useAssistantStore((state) => state.refreshFindings);
-  const scanFindings = useAssistantStore((state) => state.scanFindings);
-  const dismissFinding = useAssistantStore((state) => state.dismissFinding);
+const findings = useAssistantStore((state) => state.findings);
+const loading = useAssistantStore((state) => state.isLoading);
+const scanning = useAssistantStore((state) => state.isScanning);
+const refreshFindings = useAssistantStore((state) => state.refreshFindings);
+const scanFindings = useAssistantStore((state) => state.scanFindings);
+const dismissFinding = useAssistantStore((state) => state.dismissFinding);
 
-  useEffect(() => {
+const [initialLoadDone, setInitialLoadDone] = useState(false);
+const [localFindings, setLocalFindings] = useState(findings);
+
+useEffect(() => {
+  setLocalFindings(findings);
+  if (!initialLoadDone && !loading) {
+    setInitialLoadDone(true);
+  }
+}, [findings, loading, initialLoadDone]);
+
+useEffect(() => {
+  if (!initialLoadDone) {
     refreshFindings();
-  }, [refreshFindings]);
+  }
+}, [initialLoadDone, refreshFindings]);
+
+// Optimistic UI update for dismiss
+const handleDismiss = async (id: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  // Immediate local removal
+  setLocalFindings((prev) => prev.filter(f => f.id !== id));
+  await dismissFinding(id);
+};
 
   const handleScan = async () => {
     await scanFindings();
