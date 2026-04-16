@@ -46,13 +46,26 @@ export abstract class ApiRoutes implements RouteHandler {
   ): Promise<boolean>;
 
   protected parseBody<T>(req: http.IncomingMessage): Promise<T> {
+    // Fastify pre-buffers request bodies and attaches them to request.raw via
+    // _fastifyParsedBody (set in ApiGateway.registerCatchAllRoute).
+    // Reading from this property avoids re-consuming the already-drained stream.
+    const fastifyBody = (req as unknown as Record<string, unknown>)['_fastifyParsedBody'];
+    if (fastifyBody !== undefined) {
+      try {
+        return Promise.resolve(JSON.parse((fastifyBody as string) || '{}') as T);
+      } catch {
+        return Promise.reject(new Error('INVALID_JSON'));
+      }
+    }
+
+    // Fallback: stream-based reading for non-Fastify contexts (e.g. unit tests).
     return new Promise((resolve, reject) => {
       let body = '';
       req.on('data', (c: Buffer) => (body += c));
       req.on('end', () => {
         try {
-          resolve(JSON.parse(body || '{}'));
-        } catch (e) {
+          resolve(JSON.parse(body || '{}') as T);
+        } catch {
           reject(new Error('INVALID_JSON'));
         }
       });
