@@ -145,22 +145,38 @@ export class ApiGateway {
       ).pathname;
       const method = request.method ?? 'GET';
 
-      for (const handler of this.handlers) {
-        const claimed = await handler.handle(rawReq, rawRes, pathname, method, this.container);
-        if (claimed) return;
-      }
+      try {
+        for (const handler of this.handlers) {
+          const claimed = await handler.handle(rawReq, rawRes, pathname, method, this.container);
+          if (claimed) return;
+        }
 
-      // 404 fallback — no handler claimed this request.
-      rawRes.writeHead(404, { 'Content-Type': 'application/json' });
-      rawRes.end(
-        JSON.stringify({
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Not Found',
-            timestamp: new Date().toISOString(),
-          },
-        })
-      );
+        // 404 fallback — no handler claimed this request.
+        rawRes.writeHead(404, { 'Content-Type': 'application/json' });
+        rawRes.end(
+          JSON.stringify({
+            error: {
+              code: 'NOT_FOUND',
+              message: 'Not Found',
+              timestamp: new Date().toISOString(),
+            },
+          })
+        );
+      } catch (error: any) {
+        console.error('[ApiGateway] Critical handler error:', error);
+        if (!rawRes.writableEnded) {
+          rawRes.writeHead(500, { 'Content-Type': 'application/json' });
+          rawRes.end(
+            JSON.stringify({
+              error: {
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Internal Server Error',
+                timestamp: new Date().toISOString(),
+              },
+            })
+          );
+        }
+      }
     });
   }
 

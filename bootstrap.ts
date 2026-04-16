@@ -47,9 +47,12 @@ import { AssistantDraftService } from './packages/assistant/application/Assistan
 import { SQLiteAssistantDraftRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantDraftRepository';
 import { DashboardService } from './packages/topology/application/DashboardService';
 import { InMemoryEventBus } from './packages/shared/infrastructure/events/InMemoryEventBus';
+import { RedisEventBus } from './packages/shared/infrastructure/events/RedisEventBus';
 import { EventBusDeviceEventPublisher } from './packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
 import { EventBusTopologyEventPublisher } from './packages/topology/infrastructure/adapters/EventBusTopologyEventPublisher';
 import { EventBus } from './packages/shared/domain/events/EventBus';
+import { SqliteSystemVariableRepository } from './packages/system-vars/infrastructure/SqliteSystemVariableRepository';
+import { SystemVariableService } from './packages/system-vars/application/SystemVariableService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -64,6 +67,7 @@ export interface BootstrapContainer {
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
     systemSetupRepository: SqliteSystemSetupRepository;
+    systemVariableRepository: SqliteSystemVariableRepository;
   };
   services: {
     dashboardService: DashboardService;
@@ -75,6 +79,7 @@ export interface BootstrapContainer {
     assistantService: AssistantService;
     assistantActionService: AssistantActionService;
     haImportService: HomeAssistantImportService;
+    systemVariableService: SystemVariableService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -127,8 +132,19 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   console.log('[Bootstrap] Instanciando repositorios SQLite...');
 
-  // -- EVENT BUS (Phase 2) --
-  const eventBus = new InMemoryEventBus();
+  // -- EVENT BUS --
+  // Use RedisEventBus when REDIS_URL is configured; fall back to InMemoryEventBus.
+  const redisUrl = process.env.REDIS_URL;
+  const eventBus: EventBus = redisUrl
+    ? new RedisEventBus(redisUrl)
+    : new InMemoryEventBus();
+
+  if (redisUrl) {
+    console.log(`[Bootstrap] EventBus: Redis Pub/Sub (${redisUrl})`);
+  } else {
+    console.log('[Bootstrap] EventBus: InMemory (set REDIS_URL to enable Redis)');
+  }
+
   const deviceEventPublisher = new EventBusDeviceEventPublisher(eventBus);
   const topologyEventPublisher = new EventBusTopologyEventPublisher(eventBus);
 
@@ -365,6 +381,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     }
   }
 
+  // -- SYSTEM VARIABLES --
+  const systemVariableRepository = new SqliteSystemVariableRepository(dbPath);
+  const systemVariableService = new SystemVariableService(
+    systemVariableRepository,
+    { generate: () => crypto.randomUUID() }
+  );
+
   // -- INIT SYSTEM SETUP V1 --
   const systemSetupRepository = new SqliteSystemSetupRepository(dbPath);
   const systemSetupService = new SystemSetupService(
@@ -422,7 +445,6 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     idGenerator: { generate: () => crypto.randomUUID() },
     clock: { now: () => new Date().toISOString() }
   };
-  const assistantDiscoveryService = assistantDetectionService; // We can use the detection service as a base or extend it
   const topologyPort = new SQLiteTopologyReferenceAdapter(homeRepository, roomRepository);
   
   const haImportService = new HomeAssistantImportService({
@@ -524,7 +546,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       settingsRepository,
       userRepository,
       sessionRepository,
-      systemSetupRepository
+      systemSetupRepository,
+      systemVariableRepository
     },
     services: {
       dashboardService,
@@ -535,7 +558,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       userManagementService,
       assistantService,
       assistantActionService,
-      haImportService
+      haImportService,
+      systemVariableService
     },
     guards: {
       authGuard

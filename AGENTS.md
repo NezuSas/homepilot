@@ -148,3 +148,29 @@ Si no puedes completar la tarea sin romper estas reglas:
 - NUNCA registrar rutas específicas de dominio en `ApiGateway.ts` — toda lógica de rutas va en `RouteHandler` implementations.
 - NUNCA usar `reply.send()` o `reply.code()` en handlers que llamen a `reply.hijack()` — escribir directamente a `reply.raw`.
 - `parseBody<T>` en `ApiRoutes` lee `_fastifyParsedBody` del raw request. NO reemplazar por `request.body` de Fastify sin actualizar todos los handlers.
+
+## 16. Prohibición de Código Muerto y Estados Incompletos
+- Está prohibido dejar variables, estados, imports, funciones, handlers o efectos declarados y no usados.
+- Está prohibido dejar código parcial, comentado como pendiente, o “ready for integration”.
+- Si durante una tarea se introduce una variable o estado nuevo, debe quedar completamente integrado o eliminado antes de finalizar.
+- Si TypeScript, Vite o el build de Docker detectan código muerto o errores, la tarea NO está terminada.
+
+## 17. Validación de Runtime y Docker (OBLIGATORIA para cambios de frontend o full-stack)
+Además de las validaciones locales:
+- `npm run typecheck`
+- `npm run build`
+- `npm run build --prefix apps/operator-console`
+
+Toda tarea que toque frontend, auth, runtime o integración debe considerar también la validación real de despliegue:
+
+- `docker compose up --build`
+
+Si el cambio compila pero falla en runtime, la tarea NO está terminada.
+
+## 18. Regla de Limpieza Final
+Antes de finalizar cualquier tarea, el agente debe:
+- eliminar variables no usadas
+- eliminar imports no usados
+- eliminar handlers duplicados
+- eliminar estado parcial o no integrado
+- verificar que no existan errores TS6133, TS2451 ni loops de render React

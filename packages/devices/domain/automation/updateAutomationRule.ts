@@ -47,6 +47,32 @@ export function updateAutomationRule(
 
     t.timeLocal = timeToValidate;
     t.timeUTC = TimeUtils.convertLocalToUTC(timeToValidate, t.timezone);
+  } else if (patch.trigger !== undefined && patch.trigger.type === 'compound') {
+    if (!patch.trigger.conditions || patch.trigger.conditions.length === 0) {
+      throw new InvalidAutomationRuleError('trigger.conditions (at least one required)');
+    }
+    if (!['AND', 'OR', 'NOT'].includes(patch.trigger.operator)) {
+      throw new InvalidAutomationRuleError('trigger.operator (must be AND, OR or NOT)');
+    }
+    if (patch.trigger.operator === 'NOT' && patch.trigger.conditions.length !== 1) {
+      throw new InvalidAutomationRuleError('trigger.conditions (NOT requires exactly 1 condition)');
+    }
+    if (patch.trigger.operator !== 'NOT' && patch.trigger.conditions.length < 2) {
+      throw new InvalidAutomationRuleError('trigger.conditions (AND/OR require at least 2 conditions)');
+    }
+  }
+
+  // Validate delay action if provided in patch
+  if (patch.action !== undefined && patch.action.type === 'delay') {
+    if (typeof patch.action.delaySeconds !== 'number' || patch.action.delaySeconds <= 0) {
+      throw new InvalidAutomationRuleError('action.delaySeconds (must be a positive number)');
+    }
+    if (!patch.action.then) {
+      throw new InvalidAutomationRuleError('action.then (required for delay action)');
+    }
+    if (!['device_command', 'execute_scene'].includes(patch.action.then.type)) {
+      throw new InvalidAutomationRuleError('action.then.type (must be device_command or execute_scene)');
+    }
   }
 
   const resolvedAction = patch.action !== undefined

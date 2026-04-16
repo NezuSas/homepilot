@@ -43,6 +43,19 @@ export function createAutomationRule(
     // Calcular timeUTC si no viene o para asegurar consistencia server-side
     t.timeLocal = timeToValidate;
     t.timeUTC = TimeUtils.convertLocalToUTC(timeToValidate, t.timezone);
+  } else if (payload.trigger.type === 'compound') {
+    if (!payload.trigger.conditions || payload.trigger.conditions.length === 0) {
+      throw new InvalidAutomationRuleError('trigger.conditions (at least one required)');
+    }
+    if (!['AND', 'OR', 'NOT'].includes(payload.trigger.operator)) {
+      throw new InvalidAutomationRuleError('trigger.operator (must be AND, OR or NOT)');
+    }
+    if (payload.trigger.operator === 'NOT' && payload.trigger.conditions.length !== 1) {
+      throw new InvalidAutomationRuleError('trigger.conditions (NOT requires exactly 1 condition)');
+    }
+    if (payload.trigger.operator !== 'NOT' && payload.trigger.conditions.length < 2) {
+      throw new InvalidAutomationRuleError('trigger.conditions (AND/OR require at least 2 conditions)');
+    }
   }
 
   // Validar Action
@@ -51,6 +64,16 @@ export function createAutomationRule(
     if (!payload.action.command) throw new InvalidAutomationRuleError('action.command');
   } else if (payload.action.type === 'execute_scene') {
     if (!payload.action.sceneId) throw new InvalidAutomationRuleError('action.sceneId');
+  } else if (payload.action.type === 'delay') {
+    if (typeof payload.action.delaySeconds !== 'number' || payload.action.delaySeconds <= 0) {
+      throw new InvalidAutomationRuleError('action.delaySeconds (must be a positive number)');
+    }
+    if (!payload.action.then) {
+      throw new InvalidAutomationRuleError('action.then (required for delay action)');
+    }
+    if (!['device_command', 'execute_scene'].includes(payload.action.then.type)) {
+      throw new InvalidAutomationRuleError('action.then.type (must be device_command or execute_scene)');
+    }
   }
 
   // Prevención de auto-bucle básico (según spec AC5)

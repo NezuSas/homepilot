@@ -185,12 +185,14 @@ function App() {
 
     pulseSyncStatus();
 
-    if (
-      lastRealtimeEvent.type === 'DeviceDiscoveredEvent'
-      || lastRealtimeEvent.type === 'HomeCreatedEvent'
-      || lastRealtimeEvent.type === 'RoomCreatedEvent'
-      || lastRealtimeEvent.type === 'DeviceAssignedToRoomEvent'
-    ) {
+    const REFRESH_TRIGGER_EVENTS = [
+      'DeviceDiscoveredEvent',
+      'HomeCreatedEvent',
+      'RoomCreatedEvent',
+      'DeviceAssignedToRoomEvent'
+    ];
+
+    if (REFRESH_TRIGGER_EVENTS.includes(lastRealtimeEvent.type)) {
       refreshDeviceSnapshot();
       refreshAssistantFindings();
       refreshAssistantSummary();
