@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Cpu, Loader2, Plus, 
-  Lightbulb, ToggleRight, Zap, Sparkles
+  Lightbulb, ToggleRight, Zap, Sparkles, ShieldCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
@@ -326,7 +326,12 @@ useEffect(() => {
   }
 
   const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
-  const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
+  const localDevices = useMemo(() => devices.filter(d => d.integrationSource === 'sonoff'), [devices]);
+  const hasLocalDevices = localDevices.length > 0;
+  const bridgedCount = devices.length - localDevices.length;
+  const onlineLocalCount = useMemo(() => 
+    localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
+  [localDevices]);
 
   return (
     <div className="flex flex-col gap-12 pb-12 px-4 md:px-8 animate-in fade-in duration-700">
@@ -348,12 +353,36 @@ useEffect(() => {
       />
 
       {hasLocalDevices && (
-        <div className="flex items-center justify-center -mt-6 mb-2">
+        <div className="flex flex-col items-center justify-center -mt-6 gap-4">
+           {/* Badge */}
            <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-[9px] font-black uppercase tracking-widest text-primary/80 backdrop-blur-md shadow-sm">
               <Cpu className="w-3.5 h-3.5" />
               <span>Edge Network Active</span>
               <div className="w-1 h-1 bg-primary rounded-full animate-pulse mx-1" />
               <span className="text-muted-foreground/60 tracking-wider">Independent Local Control</span>
+           </div>
+
+           {/* Stats Summary */}
+           <div className="flex items-center gap-8 py-1">
+              <div className="flex flex-col items-center gap-1 group">
+                 <span className="text-[14px] font-black text-foreground tracking-tight">{localDevices.length}</span>
+                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-success/60">Local {onlineLocalCount < localDevices.length && `(${onlineLocalCount} Online)`}</span>
+              </div>
+              <div className="w-px h-6 bg-border/40" />
+              <div className="flex flex-col items-center gap-1">
+                 <span className="text-[14px] font-black text-foreground tracking-tight">{bridgedCount}</span>
+                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Bridged</span>
+              </div>
+              <div className="w-px h-6 bg-border/40" />
+              <div className="flex flex-col gap-1 items-start max-w-[120px]">
+                 <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-2.5 h-2.5 text-primary opacity-60" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-primary/60">Resilient</span>
+                 </div>
+                 <p className="text-[7px] font-bold leading-tight text-muted-foreground/40 uppercase italic">
+                    {t('dashboard.resilience_hint', 'Hardware-level autonomy active. Network independence verified.')}
+                 </p>
+              </div>
            </div>
         </div>
       )}
