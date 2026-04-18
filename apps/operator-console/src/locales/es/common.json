@@ -15,6 +15,7 @@
     "user_management": "Gestión de Usuarios",
     "logout": "Cerrar Sesión",
     "assistant": "Asistente",
+    "resilience_showcase": "Showcase de Resiliencia",
     "dashboards": "Paneles",
     "energy": "Energía",
     "system": "Sistema",
@@ -121,7 +122,8 @@
     "recipes": "Recetas de Atmósfera",
     "platform": "Integración de Plataforma",
     "observability": "Observabilidad del Sistema",
-    "experience": "Experiencia curada"
+    "experience": "Experiencia curada",
+    "resilience_insight": "Auditoría de autonomía de hardware"
   },
   "scenes": {
     "empty_title": "No se encontraron escenas",

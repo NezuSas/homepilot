@@ -15,6 +15,7 @@
     "user_management": "User Management",
     "logout": "Logout",
     "assistant": "Assistant",
+    "resilience_showcase": "Resilience Showcase",
     "dashboards": "Dashboards",
     "energy": "Energy",
     "system": "System",
@@ -121,7 +122,8 @@
     "recipes": "Atmosphere Recipes",
     "platform": "Platform Integration",
     "observability": "System Observability",
-    "experience": "Curated experience"
+    "experience": "Curated experience",
+    "resilience_insight": "Hardware autonomy audit"
   },
   "scenes": {
     "empty_title": "No scenes found",

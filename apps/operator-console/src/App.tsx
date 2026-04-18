@@ -8,6 +8,7 @@ import {
   Sparkles,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   Cpu,
   Activity,
   KeyRound,
@@ -37,6 +38,7 @@ import { UsersView } from './views/UsersView';
 import ScenesView from './views/ScenesView';
 import { AssistantView } from './views/AssistantView';
 import { DashboardsView } from './views/DashboardsView';
+import ResilienceShowcaseView from './views/ResilienceShowcaseView';
 import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
@@ -71,6 +73,7 @@ type View =
   | 'scenes'
   | 'automations'
   | 'assistant'
+  | 'resilience-showcase'
   // Personalization (placeholders)
   | 'dashboards'
   | 'energy'
@@ -284,6 +287,7 @@ function App() {
       case 'scenes':              return t('nav.scenes');
       case 'automations':         return t('nav.automations');
       case 'assistant':           return t('nav.assistant');
+      case 'resilience-showcase': return t('nav.resilience_showcase');
       case 'dashboards':          return t('nav.dashboards');
       case 'energy':              return t('nav.energy');
       case 'system-devices':      return t('nav.system_devices');
@@ -303,6 +307,7 @@ function App() {
       case 'scenes':              return t('dashboard.recipes');
       case 'automations':         return t('dashboard.logic_engine');
       case 'assistant':           return t('assistant.subtitle');
+      case 'resilience-showcase': return t('dashboard.resilience_insight');
       case 'system-devices':      return t('dashboard.discovery');
       case 'system-inbox':        return t('dashboard.discovery');
       case 'system-diagnostics':  return t('dashboard.observability');
@@ -377,6 +382,12 @@ function App() {
                badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0 
                   ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span> 
                   : undefined}
+             />
+             <SidebarItem 
+               icon={ShieldCheck} 
+               label={t('nav.resilience_showcase')} 
+               active={currentView === 'resilience-showcase'} 
+               onClick={() => navigateTo('resilience-showcase')} 
              />
           </div>
 
@@ -600,14 +611,10 @@ function App() {
               )}
              {currentView === 'automations' && <AutomationsView />}
              {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
+             {currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
 
               {/* Custom Dashboards */}
-              {currentView === 'dashboards' && <DashboardsView />}
-
-
-
-
-
+               {currentView === 'dashboards' && <DashboardsView />}
 
              {currentView === 'energy' && (
                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border border-dashed border-border rounded-xl bg-muted/10">
