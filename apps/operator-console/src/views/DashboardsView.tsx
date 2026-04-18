@@ -360,15 +360,15 @@ export function DashboardsView() {
           <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-primary/3 rounded-full blur-2xl translate-y-1/2" />
         </div>
-        <div className="relative z-10 p-8 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
+        <div className="relative z-10 p-5 sm:p-8 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-xl shadow-primary/25 shrink-0">
               <LayoutDashboard className="w-7 h-7 text-primary-foreground" />
             </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70 mb-1">{t('dashboards.category')}</p>
-              <h2 className="text-2xl font-black text-foreground tracking-tight">{t('dashboards.title')}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('dashboards.intro_subtitle')}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70 mb-1 truncate">{t('dashboards.category')}</p>
+              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">{t('dashboards.title')}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate sm:whitespace-normal">{t('dashboards.intro_subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -380,7 +380,7 @@ export function DashboardsView() {
             {!creating && (
               <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                {t('dashboards.action_new')}
+                <span className="hidden xs:inline">{t('dashboards.action_new')}</span>
               </Button>
             )}
           </div>
@@ -391,7 +391,7 @@ export function DashboardsView() {
       {creating && (
         <div className="mb-6 p-5 rounded-2xl bg-card border border-primary/30 shadow-lg shadow-primary/5 animate-in slide-in-from-top-2 duration-300">
           <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">{t('dashboards.action_new')}</p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <input
               autoFocus
               className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:border-primary transition-colors"
@@ -400,12 +400,14 @@ export function DashboardsView() {
               onChange={e => setNewTitle(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setCreating(false); setNewTitle(''); } }}
             />
-            <Button size="sm" variant="primary" onClick={handleCreate} className="flex items-center gap-2">
-              <Check className="w-4 h-4" /> {t('common.confirm')}
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => { setCreating(false); setNewTitle(''); }} className="flex items-center gap-2">
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="primary" onClick={handleCreate} className="flex-1 flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" /> {t('common.confirm')}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => { setCreating(false); setNewTitle(''); }} className="flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -419,33 +421,35 @@ export function DashboardsView() {
           {/* ── Workspace Library (left rail) ── */}
           <nav className="flex flex-col gap-2">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 px-1 mb-2">{t('dashboards.personal_label')}</p>
-            {dashboards.map(d => {
-              const isActive = active?.id === d.id;
-              return (
-                <button
-                  key={d.id}
-                  onClick={() => { setActive(d); setActiveTabIdx(0); setEditingTitle(false); }}
-                  className={cn(
-                    'group flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all duration-200 border',
-                    isActive
-                      ? 'bg-primary/10 border-primary/30 shadow-inner shadow-primary/5'
-                      : 'bg-card border-border/50 hover:bg-muted/50 hover:border-border'
-                  )}
-                >
-                  <div className={cn(
-                    'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
-                    isActive ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : 'bg-muted text-muted-foreground/50'
-                  )}>
-                    <LayoutDashboard className="w-3.5 h-3.5" />
-                  </div>
-                  <span className={cn(
-                    'flex-1 text-sm font-bold truncate transition-colors',
-                    isActive ? 'text-primary' : 'text-foreground'
-                  )}>{d.title}</span>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-primary/40 shrink-0" />}
-                </button>
-              );
-            })}
+            <div className="flex flex-col gap-2">
+              {dashboards.map(d => {
+                const isActive = active?.id === d.id;
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => { setActive(d); setActiveTabIdx(0); setEditingTitle(false); }}
+                    className={cn(
+                      'group flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all duration-200 border',
+                      isActive
+                        ? 'bg-primary/10 border-primary/30 shadow-inner shadow-primary/5'
+                        : 'bg-card border-border/50 hover:bg-muted/50 hover:border-border'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
+                      isActive ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : 'bg-muted text-muted-foreground/50'
+                    )}>
+                      <LayoutDashboard className="w-3.5 h-3.5" />
+                    </div>
+                    <span className={cn(
+                      'flex-1 text-sm font-bold truncate transition-colors',
+                      isActive ? 'text-primary' : 'text-foreground'
+                    )}>{d.title}</span>
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-primary/40 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
           </nav>
 
           {/* ── Dashboard Editor (main) ── */}
@@ -455,20 +459,22 @@ export function DashboardsView() {
               {/* Dashboard title + delete */}
               <div className="flex items-center justify-between gap-4">
                 {editingTitle ? (
-                  <div className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <input
                       autoFocus
-                      className="text-2xl font-black bg-transparent border-b-2 border-primary outline-none flex-1 text-foreground py-0.5"
+                      className="text-xl sm:text-2xl font-black bg-transparent border-b-2 border-primary outline-none flex-1 text-foreground py-0.5 min-w-0"
                       value={draftTitle}
                       onChange={e => setDraftTitle(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') setEditingTitle(false); }}
                     />
-                    <button onClick={handleRenameConfirm} className="p-1.5 rounded-lg text-primary hover:bg-primary/10"><Check className="w-4 h-4" /></button>
-                    <button onClick={() => setEditingTitle(false)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted"><X className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={handleRenameConfirm} className="p-1.5 rounded-lg text-primary hover:bg-primary/10"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingTitle(false)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted"><X className="w-4 h-4" /></button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 flex-1 group min-w-0">
-                    <h3 className="text-2xl font-black text-foreground tracking-tight truncate">{active.title}</h3>
+                    <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">{active.title}</h3>
                     <button
                       onClick={() => { setDraftTitle(active.title); setEditingTitle(true); }}
                       className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
@@ -491,9 +497,9 @@ export function DashboardsView() {
               {active.tabs.length === 0 ? (
                 <EmptyTabs onAdd={() => setAddingTab(true)} />
               ) : (
-                <>
-                  {/* Tab strip */}
-                  <div className="flex items-center gap-1 flex-wrap border-b border-border/60 pb-0 -mb-px">
+                <div className="flex flex-col gap-6">
+                  {/* Tab strip container with horizontal scroll */}
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-border/60 pb-0 -mb-px">
                     {active.tabs.map((tab, idx) => (
                       <div key={tab.id} className="group/tab relative flex items-center">
                         <button
@@ -555,7 +561,7 @@ export function DashboardsView() {
                       )}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}
