@@ -1,9 +1,11 @@
 import React, { useMemo, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Cpu, ShieldCheck, Activity, Shield, Layers } from 'lucide-react';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
 
 const ResilienceShowcaseView: React.FC = () => {
+  const { t } = useTranslation();
   const devices = useDeviceSnapshotStore(state => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
   
@@ -73,7 +75,7 @@ const ResilienceShowcaseView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] animate-pulse">
         <Activity className="w-10 h-10 text-primary/40 mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">Calculating Autonomy Pulse...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{t('showcase.loading_pulse')}</p>
       </div>
     );
   }
@@ -91,18 +93,17 @@ const ResilienceShowcaseView: React.FC = () => {
           <div className="max-w-xl">
              <div className="flex items-center gap-3 mb-6">
                 <div className="px-3 py-1 bg-success/10 border border-success/20 rounded-full">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-success">Verified Resilience</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-success">{t('showcase.verified_resilience')}</span>
                 </div>
                 <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-primary">Edge Native</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('showcase.edge_native')}</span>
                 </div>
              </div>
              <h2 className="text-5xl font-black tracking-tighter leading-tight mb-4 text-foreground/90">
-               Hardened <br /> Local Intelligence
+               {t('showcase.hero_title_p1')} <br /> {t('showcase.hero_title_p2')}
              </h2>
              <p className="text-lg font-medium text-muted-foreground leading-relaxed">
-               HomePilot Edge logic and critical hardware function independently of external networks. 
-               This environment is optimized for reliability, privacy, and low-latency execution.
+               {t('showcase.hero_description')}
              </p>
           </div>
 
@@ -130,7 +131,7 @@ const ResilienceShowcaseView: React.FC = () => {
                 </svg>
                 <div className="text-center bg-background/40 backdrop-blur-md w-48 h-48 rounded-full flex flex-col items-center justify-center border border-border/40 shadow-2xl">
                    <span className="text-6xl font-black tracking-tighter tabular-nums">{metrics.score}%</span>
-                   <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Autonomy Score</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('showcase.autonomy_score')}</span>
                 </div>
              </div>
           </div>
@@ -148,29 +149,29 @@ const ResilienceShowcaseView: React.FC = () => {
                     <Cpu className="w-8 h-8" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black tracking-tight tracking-tighter">Infrastructure</h3>
-                    <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest">Local Core vs External Mesh</p>
+                    <h3 className="text-2xl font-black tracking-tight tracking-tighter">{t('showcase.infrastructure_title')}</h3>
+                    <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{t('showcase.infrastructure_subtitle')}</p>
                  </div>
               </div>
               <div className="space-y-6">
                  <div className="flex items-center justify-between p-6 bg-muted/20 rounded-2xl border border-border/20">
-                    <span className="font-bold text-lg">Edge Native</span>
+                    <span className="font-bold text-lg">{t('showcase.edge_native')}</span>
                     <div className="flex items-center gap-2">
                        <span className="text-2xl font-black tabular-nums">{metrics.localDevices}</span>
-                       <span className="text-[10px] font-bold text-success uppercase">Online</span>
+                       <span className="text-[10px] font-bold text-success uppercase">{t('showcase.online')}</span>
                     </div>
                  </div>
                  <div className="flex items-center justify-between p-6 bg-muted/20 rounded-2xl border border-border/20">
-                    <span className="font-bold text-lg">Bridged Entities</span>
+                    <span className="font-bold text-lg">{t('showcase.bridged_entities')}</span>
                     <div className="flex items-center gap-2">
                        <span className="text-2xl font-black tabular-nums">{metrics.bridgedDevices}</span>
-                       <span className="text-[10px] font-bold text-primary opacity-60 uppercase">Mesh</span>
+                       <span className="text-[10px] font-bold text-primary opacity-60 uppercase">{t('showcase.mesh')}</span>
                     </div>
                  </div>
               </div>
            </div>
            <p className="text-xs font-medium text-muted-foreground leading-relaxed pt-4">
-              Native devices benefit from cryptographic pairing and direct-to-hardware execution within the local cluster.
+              {t('showcase.hardware_note')}
            </p>
         </div>
 
@@ -182,28 +183,28 @@ const ResilienceShowcaseView: React.FC = () => {
                     <ShieldCheck className="w-8 h-8" />
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black tracking-tighter">Resilience</h3>
-                    <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest">Zero-Cloud Rule Audit</p>
+                    <h3 className="text-2xl font-black tracking-tighter">{t('showcase.resilience_title')}</h3>
+                    <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{t('showcase.resilience_subtitle')}</p>
                  </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
                  <div className="p-6 bg-muted/20 rounded-2xl border border-border/20 text-center">
                     <span className="text-3xl font-black tabular-nums block mb-1">{metrics.autonomousAutomations}</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">Autonomous Rules</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">{t('showcase.autonomous_rules')}</span>
                  </div>
                  <div className="p-6 bg-muted/20 rounded-2xl border border-border/20 text-center">
                     <span className="text-3xl font-black tabular-nums block mb-1">{metrics.autonomousScenes}</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">Edge Scenes</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">{t('showcase.edge_scenes')}</span>
                  </div>
               </div>
            </div>
            <div className="space-y-4 pt-4">
               <div className="flex items-center gap-3">
                  <ShieldCheck className="w-5 h-5 text-success" />
-                 <span className="text-sm font-bold tracking-tight">Offline execution verified</span>
+                 <span className="text-sm font-bold tracking-tight">{t('showcase.offline_verified')}</span>
               </div>
               <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                 All autonomous logic is evaluated locally by the HomePilot core, ensuring functionality during internet partitions.
+                 {t('showcase.intelligence_note')}
               </p>
            </div>
         </div>
@@ -213,9 +214,9 @@ const ResilienceShowcaseView: React.FC = () => {
       <div className="bg-muted/10 border-2 border-dashed border-border/30 rounded-[4rem] p-12 text-center flex flex-col items-center gap-6">
          <Layers className="w-12 h-12 text-muted-foreground opacity-20" />
          <div className="max-w-md">
-            <h4 className="text-xl font-bold tracking-tight mb-2 opacity-60">System Synergy</h4>
+            <h4 className="text-xl font-bold tracking-tight mb-2 opacity-60">{t('showcase.synergy_title')}</h4>
             <p className="text-sm font-medium text-muted-foreground/60 leading-relaxed uppercase tracking-widest">
-              Aggregated from {devices.length} Devices • {scenes.length} Scenes • {automations.length} Rules
+              {t('showcase.synergy_stats', { devices: devices.length, scenes: scenes.length, rules: automations.length })}
             </p>
          </div>
       </div>
