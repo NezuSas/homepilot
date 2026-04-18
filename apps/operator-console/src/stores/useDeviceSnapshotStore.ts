@@ -17,6 +17,7 @@ export interface SnapshotDevice {
   entityVersion?: number;
   createdAt?: string;
   updatedAt?: string;
+  integrationSource?: string;
 }
 
 export interface SnapshotRoom {

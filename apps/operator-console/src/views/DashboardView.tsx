@@ -59,6 +59,9 @@ const DashDeviceTile: React.FC<{
   const actualIsOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
   const isOn = optimisticState !== null ? optimisticState : actualIsOn;
   const isOffline = device.status === 'PENDING';
+  
+  const isSonoff = device.integrationSource === 'sonoff';
+  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
 
   const displayName = isDuplicateName 
     ? disambiguate(humanize(device.id, device.name), roomName)
@@ -121,22 +124,37 @@ const DashDeviceTile: React.FC<{
       </div>
 
       <div className="flex flex-col min-w-0">
-        <h4 className="text-xs font-bold truncate tracking-tight mb-1">{displayName}</h4>
+        <div className="flex items-center justify-between gap-1 mb-1">
+          <h4 className="text-xs font-bold truncate tracking-tight">{displayName}</h4>
+          {isSonoff && (
+            <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">Local</span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 min-h-[12px]">
           {isProcessing ? (
             <>
-              <div className="w-1.5 h-1.5 rounded-full status-dot-updating" />
-              <span className="text-[8px] font-black uppercase tracking-widest opacity-40">
+              <div className="w-1.5 h-1.5 rounded-full status-dot-updating shrink-0" />
+              <span className="text-[8px] font-black uppercase tracking-widest opacity-40 truncate">
                 {t('device_states.updating')}
               </span>
             </>
           ) : (
-            <span className={cn(
-              "text-[9px] font-medium tracking-wide transition-opacity duration-300",
-              isOn ? "text-primary opacity-90" : "text-muted-foreground/50"
-            )}>
-              {localizedState}
-            </span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={cn(
+                "text-[9px] font-medium tracking-wide transition-opacity duration-300 truncate",
+                isOn ? "text-primary opacity-90" : "text-muted-foreground/50"
+              )}>
+                {localizedState}
+              </span>
+              {isSonoff && (
+                <>
+                  <span className="w-1 h-1 bg-border rounded-full shrink-0" />
+                  <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
+                    {isOnline ? "Online" : "Offline"}
+                  </span>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

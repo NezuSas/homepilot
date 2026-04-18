@@ -22,6 +22,8 @@ interface Device {
   status: 'PENDING' | 'ASSIGNED';
   invertState?: boolean;
   lastKnownState: Record<string, unknown> | null;
+  integrationSource?: string;
+  updatedAt?: string;
 }
 
 interface CurtainDeviceTileProps {
@@ -65,6 +67,9 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const displayName = isDuplicateName 
     ? disambiguate(humanize(device.id, device.name), roomName)
     : humanize(device.id, device.name);
+
+  const isSonoff = device.integrationSource === 'sonoff';
+  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
 
   const handleCommand = async (command: 'open' | 'close' | 'stop') => {
     if (isProcessing) return;
@@ -131,16 +136,29 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Blinds className="w-5 h-5 opacity-60" />}
           </div>
 
-          <div className="flex flex-col items-center min-w-0">
-            <h4 className="text-sm font-bold truncate tracking-tight text-foreground/90 px-2">{displayName}</h4>
-            <div className="flex items-center gap-2 mt-1">
+          <div className="flex flex-col items-center min-w-0 px-2 w-full">
+            <div className="flex items-center justify-center gap-2 max-w-full">
+              <h4 className="text-sm font-bold truncate tracking-tight text-foreground/90">{displayName}</h4>
+              {isSonoff && (
+                <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">Local</span>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-1 min-w-0 max-w-full">
               <div className={cn(
-                "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
+                "w-1.5 h-1.5 rounded-full transition-colors duration-500 shrink-0", 
                 (isOpening || isClosing) ? "status-dot-updating" : (isOpen ? "bg-primary/80" : "bg-muted-foreground/40")
               )} />
-              <span className="text-[11px] font-medium tracking-wide opacity-60">
+              <span className="text-[11px] font-medium tracking-wide opacity-60 truncate">
                 {localizedState}
               </span>
+              {isSonoff && (
+                <>
+                  <span className="w-1 h-1 bg-border rounded-full shrink-0" />
+                  <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
+                    {isOnline ? "Online" : "Offline"}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

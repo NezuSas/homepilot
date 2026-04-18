@@ -56,6 +56,9 @@ const DeviceTile: React.FC<{
   
   const supportsCommands = device.type === 'light' || device.type === 'switch' || device.type === 'cover';
 
+  const isSonoff = device.integrationSource === 'sonoff';
+  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
+
   useEffect(() => {
     if (isPending && rooms.length > 0 && !selectedRoomId) {
       setSelectedRoomId(rooms[0].id);
@@ -167,15 +170,28 @@ const DeviceTile: React.FC<{
 
       {/* Bottom: Info */}
       <div className={cn("flex flex-col gap-1 overflow-hidden transition-opacity", (isProcessing || error) && "opacity-30")}>
-        <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
+          {isSonoff && (
+            <span className="text-[8px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded shrink-0">Local</span>
+          )}
+        </div>
         <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
         
         {isAssigned ? (
           <div className="flex items-center gap-1.5 mt-1">
-            <div className={cn("w-1.5 h-1.5 rounded-full", isOn ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
-            <span className={cn("text-[9px] font-black uppercase tracking-widest", isOn ? "text-primary" : "text-muted-foreground")}>
+            <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isOn ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+            <span className={cn("text-[9px] font-black uppercase tracking-widest min-w-0 truncate", isOn ? "text-primary" : "text-muted-foreground")}>
               {isOn ? t('device_states.on') : t('device_states.off')}
             </span>
+            {isSonoff && (
+              <>
+                <span className="w-1 h-1 bg-border rounded-full shrink-0" />
+                <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
+                  {isOnline ? "Online" : "Offline"}
+                </span>
+              </>
+            )}
           </div>
         ) : (
           <div className="mt-2 flex flex-col gap-2">
