@@ -44,11 +44,13 @@ import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
 import { Button } from './components/ui/Button';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
-import type { HomeMode } from './types';
+import type { HomeMode, View } from './types';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
 import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
+import { useDemoGuideStore, type DemoStep } from './stores/useDemoGuideStore';
+import { DemoGuideOverlay } from './components/DemoGuideOverlay';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -66,31 +68,6 @@ import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
  *   diagnostics   → system-diagnostics
  *   users         → system-users
  */
-type View =
-  // Primary
-  | 'dashboard'
-  | 'spaces'
-  | 'scenes'
-  | 'automations'
-  | 'assistant'
-  | 'resilience-showcase'
-  // Personalization (placeholders)
-  | 'dashboards'
-  | 'energy'
-  // System
-  | 'system-devices'
-  | 'system-inbox'
-  | 'system-diagnostics'
-  | 'system-audit'
-  | 'system-users'
-  | 'system-ha'
-  // Legacy aliases resolved at runtime (not stored in state)
-  | 'topology'
-  | 'inbox'
-  | 'audit-logs'
-  | 'ha-settings'
-  | 'diagnostics'
-  | 'users';
 
 /** Resolve legacy view names to canonical ones. */
 function resolveView(view: View): View {
@@ -142,6 +119,38 @@ function App() {
   const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
   const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
+  const startDemo = useDemoGuideStore((state) => state.startDemo);
+
+  const DEMO_STEPS: DemoStep[] = [
+    {
+      id: 'dashboard',
+      target: '[data-demo="nav-dashboard"]',
+      titleKey: 'demo.steps.dashboard.title',
+      descriptionKey: 'demo.steps.dashboard.description',
+      view: 'dashboard'
+    },
+    {
+      id: 'devices',
+      target: '[data-demo="device-tile"]',
+      titleKey: 'demo.steps.devices.title',
+      descriptionKey: 'demo.steps.devices.description',
+      view: 'dashboard'
+    },
+    {
+      id: 'automations',
+      target: '[data-demo="nav-automations"]',
+      titleKey: 'demo.steps.automations.title',
+      descriptionKey: 'demo.steps.automations.description',
+      view: 'automations'
+    },
+    {
+      id: 'resilience',
+      target: '[data-demo="nav-resilience"]',
+      titleKey: 'demo.steps.resilience.title',
+      descriptionKey: 'demo.steps.resilience.description',
+      view: 'resilience-showcase'
+    }
+  ];
 
   // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
   useEffect(() => {
@@ -355,6 +364,8 @@ function App() {
                label={t('nav.dashboard')} 
                active={currentView === 'dashboard'} 
                onClick={() => navigateTo('dashboard')} 
+               id="demo-nav-dashboard"
+               data-demo="nav-dashboard"
              />
              <SidebarItem 
                icon={LayoutDashboard} 
@@ -373,6 +384,7 @@ function App() {
                label={t('nav.automations')} 
                active={currentView === 'automations'} 
                onClick={() => navigateTo('automations')} 
+               data-demo="nav-automations"
              />
              <SidebarItem 
                icon={Sparkles} 
@@ -388,6 +400,7 @@ function App() {
                label={t('nav.resilience_showcase')} 
                active={currentView === 'resilience-showcase'} 
                onClick={() => navigateTo('resilience-showcase')} 
+               data-demo="nav-resilience"
              />
           </div>
 
@@ -485,7 +498,14 @@ function App() {
         </nav>
         
         <div className="p-4 border-t mt-auto flex flex-col gap-2 bg-background/30">
-          <div className="pt-2 flex flex-col gap-1">
+          <button
+            onClick={() => startDemo(DEMO_STEPS)}
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-all border border-primary/10 group"
+          >
+            <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-widest">{t('demo.start_button')}</span>
+          </button>
+          <div className="pt-1 flex flex-col gap-1">
             <div className="flex items-center justify-between pl-3 pr-2">
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-black tracking-tight truncate">{user?.username || t('common.unknown')}</span>
@@ -645,6 +665,7 @@ function App() {
         onClose={() => setShowPwdModal(false)}
         onSuccess={handlePasswordChanged}
       />
+      <DemoGuideOverlay onNavigate={navigateTo} />
     </div>
   );
 }

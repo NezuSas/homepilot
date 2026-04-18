@@ -628,6 +628,34 @@
     "synergy_title": "System Synergy",
     "synergy_stats": "Aggregated from {{devices}} Devices • {{scenes}} Scenes • {{rules}} Rules"
   },
+  "demo": {
+    "start_button": "Start Guided Demo",
+    "controls": {
+      "label": "Guide",
+      "step_of": "Step {{current}} of {{total}}",
+      "continue": "Continue",
+      "finish": "Finish",
+      "skip": "Skip"
+    },
+    "steps": {
+      "dashboard": {
+        "title": "Central Control",
+        "description": "The dashboard gives you a high-level view of your entire home and living atmosphere."
+      },
+      "devices": {
+        "title": "Instant Response",
+        "description": "Control any local device with sub-100ms latency. Notice the 'Local' badge for edge-native hardware."
+      },
+      "automations": {
+        "title": "Smart Intelligence",
+        "description": "Define logic rules that run locally on your HomePilot core, ensuring autonomy even without internet."
+      },
+      "resilience": {
+        "title": "Edge Resilience",
+        "description": "Verify your system's independence from the cloud and monitor native hardware performance."
+      }
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "System Error",

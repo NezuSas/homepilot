@@ -18,3 +18,32 @@ export function getSafeHomeMode(mode: any): HomeMode {
   if (VALID_HOME_MODES.includes(mode as HomeMode)) return mode as HomeMode;
   return DEFAULT_HOME_MODE;
 }
+
+/**
+ * Union de vistas posibles para tipado estricto.
+ */
+export type View =
+  // Primary
+  | 'dashboard'
+  | 'spaces'
+  | 'scenes'
+  | 'automations'
+  | 'assistant'
+  | 'resilience-showcase'
+  // Personalization (placeholders)
+  | 'dashboards'
+  | 'energy'
+  // System
+  | 'system-devices'
+  | 'system-inbox'
+  | 'system-diagnostics'
+  | 'system-audit'
+  | 'system-users'
+  | 'system-ha'
+  // Legacy aliases resolved at runtime (not stored in state)
+  | 'topology'
+  | 'inbox'
+  | 'audit-logs'
+  | 'ha-settings'
+  | 'diagnostics'
+  | 'users';

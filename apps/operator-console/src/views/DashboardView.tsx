@@ -110,6 +110,7 @@ const DashDeviceTile: React.FC<{
   return (
     <div 
       onClick={handleToggle}
+      data-demo="device-tile"
       className={cn(
         "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full hover:-translate-y-1 hover:shadow-xl overflow-hidden",
         isOn ? "bg-primary/5 border-primary shadow-lg shadow-primary/10" : "bg-card border-border shadow-md hover:border-primary/20",

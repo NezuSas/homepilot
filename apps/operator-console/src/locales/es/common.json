@@ -628,6 +628,34 @@
     "synergy_title": "Sinergia del Sistema",
     "synergy_stats": "Agregado de {{devices}} Dispositivos • {{scenes}} Escenas • {{rules}} Reglas"
   },
+  "demo": {
+    "start_button": "Iniciar Demo Guiada",
+    "controls": {
+      "label": "Guía",
+      "step_of": "Paso {{current}} de {{total}}",
+      "continue": "Continuar",
+      "finish": "Finalizar",
+      "skip": "Omitir"
+    },
+    "steps": {
+      "dashboard": {
+        "title": "Control Central",
+        "description": "El panel le brinda una vista de alto nivel de toda su casa y atmósfera vital."
+      },
+      "devices": {
+        "title": "Respuesta Instantánea",
+        "description": "Controle cualquier dispositivo local con una latencia inferior a 100ms. Observe el distintivo 'Local'."
+      },
+      "automations": {
+        "title": "Inteligencia Smart",
+        "description": "Defina reglas que se ejecutan localmente en su núcleo HomePilot, asegurando autonomía sin internet."
+      },
+      "resilience": {
+        "title": "Resiliencia Edge",
+        "description": "Verifique la independencia de su sistema de la nube y monitoree el rendimiento del hardware nativo."
+      }
+    }
+  },
   "common": {
     "loading": "Cargando...",
     "error": "Error del Sistema",
