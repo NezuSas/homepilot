@@ -111,16 +111,26 @@ const DashDeviceTile: React.FC<{
     <div 
       onClick={handleToggle}
       className={cn(
-        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full hover:-translate-y-1 hover:shadow-xl",
+        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full hover:-translate-y-1 hover:shadow-xl overflow-hidden",
         isOn ? "bg-primary/5 border-primary shadow-lg shadow-primary/10" : "bg-card border-border shadow-md hover:border-primary/20",
+        (!isOn && isSonoff) && "hover:border-success/40",
         isOffline && "opacity-30 grayscale pointer-events-none hover:translate-y-0"
       )}
     >
+      {/* Edge Atmosphere Glow (Background Pulse for Local) */}
+      {isSonoff && isProcessing && (
+        <div className="absolute inset-0 bg-success/5 animate-atmospheric-glow pointer-events-none" />
+      )}
       <div className={cn(
-        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
-        isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40"
+        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 z-10",
+        isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40",
+        (isSonoff && isProcessing) && "bg-success text-white scale-110 shadow-success/20 shadow-xl"
       )}>
-        <Icon className={cn("w-4 h-4", isOn && "animate-pulse")} />
+        {isProcessing && isSonoff ? (
+          <Zap className="w-5 h-5 animate-pulse" />
+        ) : (
+          <Icon className={cn("w-4 h-4", isOn && "animate-pulse")} />
+        )}
       </div>
 
       <div className="flex flex-col min-w-0">
@@ -133,9 +143,9 @@ const DashDeviceTile: React.FC<{
         <div className="flex items-center gap-1.5 min-h-[12px]">
           {isProcessing ? (
             <>
-              <div className="w-1.5 h-1.5 rounded-full status-dot-updating shrink-0" />
-              <span className="text-[8px] font-black uppercase tracking-widest opacity-40 truncate">
-                {t('device_states.updating')}
+              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSonoff ? "bg-success animate-ping" : "status-dot-updating")} />
+              <span className={cn("text-[8px] font-black uppercase tracking-widest truncate", isSonoff ? "text-success" : "opacity-40")}>
+                {isSonoff ? "Edge Exec" : t('device_states.updating')}
               </span>
             </>
           ) : (
