@@ -125,6 +125,7 @@ const DeviceTile: React.FC<{
         "aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2 hover:-translate-y-1 hover:shadow-xl",
         "bg-card hover:border-border",
         isOn && isAssigned ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20" : "border-border shadow-md",
+        (!isAssigned && isSonoff) ? "border-success/30 bg-success/5 shadow-lg shadow-success/10 animate-in fade-in zoom-in-95 duration-700" : "",
         isProcessing && "opacity-70 scale-[0.98] bg-muted/50 hover:translate-y-0 hover:shadow-none",
         error && "border-destructive/40 bg-destructive/5 hover:translate-y-0"
       )}
@@ -177,6 +178,11 @@ const DeviceTile: React.FC<{
           )}
         </div>
         <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
+        {!isAssigned && isSonoff && (
+          <span className="text-[7px] font-black uppercase tracking-widest text-success/60 mt-0.5 animate-pulse">
+            Discovered locally • Ready to use
+          </span>
+        )}
         
         {isAssigned ? (
           <div className="flex items-center gap-1.5 mt-1">
@@ -195,21 +201,27 @@ const DeviceTile: React.FC<{
           </div>
         ) : (
           <div className="mt-2 flex flex-col gap-2">
-             <select 
-               onClick={(e) => e.stopPropagation()}
-               disabled={isProcessing}
-               className="bg-muted/50 border border-border rounded px-1.5 py-1 text-[9px] font-bold outline-none w-full"
-               value={selectedRoomId}
-               onChange={(e) => setSelectedRoomId(e.target.value)}
-             >
-               {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-               {rooms.length === 0 && <option value="">{t('common.unassigned')}</option>}
-             </select>
+             <div className="flex flex-col gap-1">
+               <label className="text-[7px] font-black uppercase tracking-tighter opacity-30 px-1">{t('topology.room_select')}</label>
+               <select 
+                 onClick={(e) => e.stopPropagation()}
+                 disabled={isProcessing}
+                 className="bg-muted/50 border border-border rounded px-1.5 py-1 text-[9px] font-bold outline-none w-full focus:border-primary/50 transition-colors"
+                 value={selectedRoomId}
+                 onChange={(e) => setSelectedRoomId(e.target.value)}
+               >
+                 {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                 {rooms.length === 0 && <option value="">{t('common.unassigned')}</option>}
+               </select>
+             </div>
              <Button 
                size="sm"
                onClick={handleAssign}
                disabled={!selectedRoomId || isProcessing}
-               className="w-full text-[8px] py-1 h-auto font-black uppercase"
+               className={cn(
+                 "w-full text-[8px] py-1 h-auto font-black uppercase tracking-widest shadow-sm transition-all",
+                 isSonoff ? "bg-success text-white hover:bg-success/90 shadow-success/10" : ""
+               )}
                isLoading={isProcessing}
              >
                {t('common.save')}
