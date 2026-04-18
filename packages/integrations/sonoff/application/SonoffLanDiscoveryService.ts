@@ -14,6 +14,18 @@ export interface SonoffLanDiscoveryServiceDependencies {
   homeRepository: HomeRepository;
 }
 
+export class SonoffConnectionRegistry {
+  private static readonly connections = new Map<string, { ip: string, lastSeen: number }>();
+
+  static registerIp(externalIdMatch: string, ip: string): void {
+    this.connections.set(externalIdMatch, { ip, lastSeen: Date.now() });
+  }
+
+  static getIp(externalIdMatch: string): string | null {
+    return this.connections.get(externalIdMatch)?.ip || null;
+  }
+}
+
 export class SonoffLanDiscoveryService {
   private mdnsServer: mdns.MulticastDNS | null = null;
   private isScanning = false;
@@ -111,6 +123,13 @@ export class SonoffLanDiscoveryService {
       let deviceType: 'light' | 'switch' | 'sensor' | 'cover' = 'switch';
       let defaultName = `Sonoff Device (${externalIdMatch})`;
       
+      const aRecord = records.find(r => r.type === 'A' && typeof r.name === 'string' && r.name.includes(externalIdMatch));
+      const resolvedIp = typeof aRecord?.data === 'string' ? aRecord.data : null;
+
+      if (resolvedIp) {
+        SonoffConnectionRegistry.registerIp(externalIdMatch, resolvedIp);
+      }
+
       const txtRecord = records.find(r => r.type === 'TXT' && typeof r.name === 'string' && r.name.includes(externalIdMatch));
       if (txtRecord && Array.isArray(txtRecord.data)) {
          const txtString = txtRecord.data.map((b: Buffer) => b.toString('utf8')).join('');
@@ -135,7 +154,10 @@ export class SonoffLanDiscoveryService {
         status: 'PENDING' as const,
         integrationSource: 'sonoff' as const,
         invertState: false,
-        lastKnownState: { on: false },
+        lastKnownState: { 
+          on: false,
+          ip: resolvedIp
+        },
         entityVersion: 1,
         createdAt: now,
         updatedAt: now

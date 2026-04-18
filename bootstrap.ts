@@ -23,6 +23,7 @@ import { HomeAssistantCommandDispatcher } from './apps/api/HomeAssistantCommandD
 import { IntegrationCommandRouter } from './apps/api/IntegrationCommandRouter';
 import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
 import { SonoffLanDiscoveryService } from './packages/integrations/sonoff/application/SonoffLanDiscoveryService';
+import { SonoffCommandDispatcher } from './packages/integrations/sonoff/application/SonoffCommandDispatcher';
 
 import { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -567,6 +568,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     sharedLocalDispatcher
   );
   sharedCommandDispatcher.registerRoute('ha', sharedHaDispatcher);
+
+  const sharedSonoffDispatcher = new SonoffCommandDispatcher(
+    deviceRepository,
+    sharedSyncDeps
+  );
+  sharedCommandDispatcher.registerRoute('sonoff', sharedSonoffDispatcher);
 
   const container: BootstrapContainer = {
     repositories: {
