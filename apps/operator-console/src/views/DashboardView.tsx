@@ -341,7 +341,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex flex-col gap-12 pb-12 px-4 md:px-8 animate-in fade-in duration-700">
+    <div className="flex flex-col gap-10 pb-12 px-4 md:px-8 animate-in fade-in duration-500">
       {luxuryRipple && (
         <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
           <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow" />
@@ -396,7 +396,7 @@ useEffect(() => {
 
       {/* LEVEL 1.5: Proactive Insights */}
       {prioritizedFindings.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 space-y-6">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
           <div className="flex items-center gap-3 px-2">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
                {t('dashboard.actionable_insights', 'Actionable Insights')}
@@ -437,7 +437,7 @@ useEffect(() => {
 
       {/* LEVEL 2: Atmosphere Recipes (Promoted Scenes) */}
       {scenes.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">{t('dashboard.atmosphere_recipes')}</h2>
             <Button 
@@ -514,7 +514,7 @@ useEffect(() => {
       )}
 
       {/* LEVEL 3: Spatial Context (Rooms) */}
-      <div className="space-y-16">
+      <div className="space-y-12">
         {activeRooms.map(room => {
           const roomDevices = devices.filter(d => d.roomId === room.id);
           const onCount = roomDevices.filter(d => {
@@ -523,7 +523,7 @@ useEffect(() => {
           }).length;
           
           return (
-            <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">
               <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-muted-foreground/10 pl-6">
                 <div>
                   <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>

@@ -123,7 +123,12 @@
     "platform": "Platform Integration",
     "observability": "System Observability",
     "experience": "Curated experience",
-    "resilience_insight": "Hardware autonomy audit"
+    "resilience_insight": "Hardware autonomy audit",
+    "resilience_hint": "Reliability Verified • Independent Local Control",
+    "actionable_insights": "Smart Suggestions",
+    "atmosphere_recipes": "Ambiances",
+    "energy_insight": "Energy Efficiency",
+    "proactive": "Optimization"
   },
   "scenes": {
     "empty_title": "No scenes found",
@@ -278,7 +283,7 @@
   "shell": {
     "app_title": "HomePilot",
     "app_edge": "Edge",
-    "subtitle": "Operator Console v3.5",
+    "subtitle": "Premium Local Control",
     "status": {
       "online": "System Online",
       "stable": "System stable",
@@ -292,7 +297,7 @@
   },
   "inbox": {
     "title": "Device Manager",
-    "subtitle": "Appliance-Style Controller v3.1",
+    "subtitle": "Unified Device Management",
     "discovery_subtitle": "Onboarding queue for new hardware units detected in the Edge.",
     "manager_subtitle": "Operational oversight and direct control of assigned hardware units.",
     "no_rooms": "No Rooms",

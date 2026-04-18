@@ -123,7 +123,12 @@
     "platform": "Integración de Plataforma",
     "observability": "Observabilidad del Sistema",
     "experience": "Experiencia curada",
-    "resilience_insight": "Auditoría de autonomía de hardware"
+    "resilience_insight": "Auditoría de autonomía",
+    "resilience_hint": "Fiabilidad Verificada • Control Local Independiente",
+    "actionable_insights": "Sugerencias Inteligentes",
+    "atmosphere_recipes": "Ambientes",
+    "energy_insight": "Ahorro de Energía",
+    "proactive": "Optimización"
   },
   "scenes": {
     "empty_title": "No se encontraron escenas",
@@ -272,7 +277,7 @@
   "shell": {
     "app_title": "HomePilot",
     "app_edge": "Edge",
-    "subtitle": "Consola de Operador v3.5",
+    "subtitle": "Control Local Premium",
     "status": {
       "online": "Sistema en línea",
       "stable": "Sistema estable",
@@ -286,7 +291,7 @@
   },
   "inbox": {
     "title": "Gestor de Dispositivos",
-    "subtitle": "Controlador de Estilo Appliance v3.1",
+    "subtitle": "Centro de Control Unificado",
     "discovery_subtitle": "Cola de incorporación para nuevas unidades de hardware detectadas en el Edge.",
     "manager_subtitle": "Supervisión operativa y control directo de las unidades de hardware asignadas.",
     "no_rooms": "Sin Habitaciones",
