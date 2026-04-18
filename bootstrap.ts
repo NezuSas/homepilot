@@ -22,6 +22,7 @@ import { LocalConsoleCommandDispatcher } from './apps/api/LocalConsoleCommandDis
 import { HomeAssistantCommandDispatcher } from './apps/api/HomeAssistantCommandDispatcher';
 import { IntegrationCommandRouter } from './apps/api/IntegrationCommandRouter';
 import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
+import { SonoffLanDiscoveryService } from './packages/integrations/sonoff/application/SonoffLanDiscoveryService';
 
 import { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -81,6 +82,7 @@ export interface BootstrapContainer {
     assistantActionService: AssistantActionService;
     haImportService: HomeAssistantImportService;
     systemVariableService: SystemVariableService;
+    sonoffDiscoveryService: SonoffLanDiscoveryService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -493,6 +495,15 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const dashboardService = new DashboardService(dashboardRepository, homeRepository);
 
+  const sonoffDiscoveryService = new SonoffLanDiscoveryService({
+    deviceRepository,
+    homeRepository
+  });
+  
+  if (process.env.NODE_ENV !== 'test') {
+    sonoffDiscoveryService.startDiscovery();
+  }
+
   const assistantScanDebounceMs = 1500;
   const assistantScanCooldownMs = 30000;
   const assistantScanTimers = new Map<string, NodeJS.Timeout>();
@@ -582,7 +593,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       assistantService,
       assistantActionService,
       haImportService,
-      systemVariableService
+      systemVariableService,
+      sonoffDiscoveryService
     },
     guards: {
       authGuard

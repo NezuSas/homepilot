@@ -20,6 +20,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^29.5.12",
     "@types/luxon": "^3.7.1",
+    "@types/multicast-dns": "^7.2.4",
     "@types/node": "^20.11.24",
     "@types/ws": "^8.5.10",
     "concurrently": "^9.2.1",
@@ -33,6 +34,7 @@
     "fastify": "^5.8.5",
     "ioredis": "^5.10.1",
     "luxon": "^3.7.2",
+    "multicast-dns": "^7.2.5",
     "ws": "^8.16.0"
   }
 }
