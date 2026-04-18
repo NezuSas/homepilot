@@ -690,6 +690,28 @@ const DeviceInspector: React.FC<{
                     )}
                   </div>
                 )}
+
+                {device.integrationSource === 'sonoff' && (
+                  <div className="pt-6 border-t border-border/20 flex flex-col gap-4">
+                    <div className="flex items-center justify-between px-2">
+                       <div className="flex items-center gap-2">
+                          <Cpu className="w-4 h-4 text-success" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-success">Edge Active</span>
+                       </div>
+                       <div className="flex items-center gap-2 opacity-40">
+                          <Clock className="w-3 h-3" />
+                          <span className="text-[8px] font-black uppercase tracking-tighter">
+                            {device.updatedAt ? new Date(device.updatedAt).toLocaleTimeString() : 'N/A'}
+                          </span>
+                       </div>
+                    </div>
+                    <div className="p-4 bg-success/5 border border-success/10 rounded-2xl">
+                       <p className="text-[9px] font-bold leading-relaxed text-success/70 uppercase tracking-tight">
+                         Este dispositivo se controla localmente a través de la red Edge. No depende de servicios externos ni de Home Assistant para su ejecución.
+                       </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
