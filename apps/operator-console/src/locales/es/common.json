@@ -666,7 +666,11 @@
     "feature_offline": "100% local — sin dependencia de la nube",
     "powered_by_local": "Basado únicamente en datos del edge local",
     "insight_hint": "El Asistente ya detecta desperdicio energético en tiempo real. La vista de Energía consolidará todo en un cuadro completo.",
-    "go_to_assistant": "Ver insights energéticos en el Asistente"
+    "go_to_assistant": "Ver insights energéticos en el Asistente",
+    "total_power": "Potencia Total",
+    "total_energy": "Energía Total",
+    "live_consumption": "Consumo en Vivo por Dispositivo",
+    "no_data": "Sin datos de energía disponibles en Home Assistant"
   },
   "dashboards": {
     "title": "Mis Espacios",

@@ -666,7 +666,11 @@
     "feature_offline": "100% local — no cloud dependency",
     "powered_by_local": "Powered by local edge data only",
     "insight_hint": "The Assistant already surfaces energy waste in real time. Energy view will consolidate this into a full picture.",
-    "go_to_assistant": "View energy insights in Assistant"
+    "go_to_assistant": "View energy insights in Assistant",
+    "total_power": "Total Power",
+    "total_energy": "Total Energy",
+    "live_consumption": "Live Consumption by Device",
+    "no_data": "No energy data available from Home Assistant"
   },
   "dashboards": {
     "title": "My Spaces",

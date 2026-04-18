@@ -324,6 +324,8 @@ export class DeviceRoutes extends ApiRoutes {
     }
 
     try {
+      const isModeAll = req.url?.includes('mode=all');
+
       const existingRows = db
         .prepare('SELECT external_id FROM devices WHERE external_id LIKE ?')
         .all('ha:%') as { external_id: string }[];
@@ -334,6 +336,7 @@ export class DeviceRoutes extends ApiRoutes {
       const entities = allStates
         .filter((s) => {
           const domain = s.entity_id.split('.')[0];
+          if (isModeAll) return true;
           return supportedDomains.includes(domain) && !existingEntityIds.has(s.entity_id);
         })
         .map((s) => ({
@@ -342,6 +345,7 @@ export class DeviceRoutes extends ApiRoutes {
           friendlyName: (s.attributes.friendly_name as string) || s.entity_id,
           domain: s.entity_id.split('.')[0],
           invertState: 0,
+          attributes: s.attributes,
         }));
 
       this.sendJson(res, entities);
