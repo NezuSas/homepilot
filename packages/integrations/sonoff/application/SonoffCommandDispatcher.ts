@@ -92,13 +92,43 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
       throw new Error(`Error accediendo físicamente a ${targetIp}: ${(e as Error).message}`);
     }
 
-    // Optimistic sync if successful 
+    // Real state fetch V1 (Post-command synchronization)
+    let finalState = targetState;
+    try {
+      const infoController = new AbortController();
+      const infoTimeout = setTimeout(() => infoController.abort(), 3000);
+      
+      const infoUrl = `http://${targetIp}:8081/zeroconf/info`;
+      const infoResponse = await fetch(infoUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceid: externalIdMatch.replace('eWeLink_', ''),
+          data: {}
+        }),
+        signal: infoController.signal
+      });
+      
+      clearTimeout(infoTimeout);
+
+      if (infoResponse.ok) {
+        const infoBody = await infoResponse.json();
+        const reportedSwitch = infoBody?.data?.switch;
+        if (typeof reportedSwitch === 'string') {
+          finalState = reportedSwitch;
+          this.logInfo(`[Sonoff-LAN] Estado real verificado exitosamente post-comando: ${finalState}`);
+        }
+      }
+    } catch (e) {
+      this.logInfo(`[Sonoff-LAN] Falló la verificación de estado real inmediata, cayendo en optimista para ${targetIp}`);
+    }
+    
     const newState: Record<string, unknown> = { ...device.lastKnownState };
     
-    newState.on = (targetState === 'on');
-    newState.state = targetState;
+    newState.on = (finalState === 'on');
+    newState.state = finalState;
 
-    if (targetState === 'off') {
+    if (finalState === 'off') {
        if ('brightness' in newState) newState.brightness = 0;
        if ('power' in newState) newState.power = 0;
     }

@@ -498,7 +498,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const sonoffDiscoveryService = new SonoffLanDiscoveryService({
     deviceRepository,
-    homeRepository
+    homeRepository,
+    syncDeps: sharedSyncDeps
   });
   
   if (process.env.NODE_ENV !== 'test') {
