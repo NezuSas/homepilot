@@ -63,13 +63,13 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';
   const isOpen = state === 'open' || (position !== undefined && position > 0);
+  const isMoving = isOpening || isClosing;
 
   const displayName = isDuplicateName 
     ? disambiguate(humanize(device.id, device.name), roomName)
     : humanize(device.id, device.name);
 
   const isSonoff = device.integrationSource === 'sonoff';
-  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
 
   const handleCommand = async (command: 'open' | 'close' | 'stop') => {
     if (isProcessing) return;
@@ -108,93 +108,105 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   return (
     <div className={cn(
-      "relative group transition-all duration-700 rounded-[2rem] p-6 flex flex-col items-center justify-between text-center border-2 h-full overflow-hidden",
-      (isOpening || isClosing || isOpen) ? "bg-card/40 border-primary/20" : "bg-card/25 border-border/40 hover:border-primary/20",
+      "relative group transition-all duration-700 rounded-[2rem] p-4 flex flex-col justify-between border-2 h-full overflow-hidden",
+      (isMoving || isOpen) ? "bg-primary/5 border-primary/20" : "bg-card border-border shadow-md hover:border-primary/20",
       device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
     )}>
       
-      {/* SHUTTER SYSTEM: Architectural Visual State */}
-      <div className={cn(
-        "absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out z-0",
-        isOpen ? "bg-transparent" : "bg-black/20"
-      )}>
-        <div 
-          className={cn(
-            "absolute inset-0 bg-black/60 transition-transform duration-[1200ms] ease-in-out border-b border-white/10 shadow-inner",
-            isOpen ? "-translate-y-full" : "translate-y-0"
-          )} 
-        />
+      {/* Dynamic Atmospheric Glow for active movement */}
+      {isMoving && (
+        <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow pointer-events-none z-0" />
+      )}
+
+      {/* REFINED SHUTTER SYSTEM: Slat-style Visual */}
+      <div 
+        className={cn(
+          "absolute inset-0 pointer-events-none transition-transform duration-[1500ms] ease-in-out z-0 opacity-40",
+          isOpen ? "-translate-y-full" : "translate-y-0"
+        )}
+        style={{
+          background: "repeating-linear-gradient(to bottom, rgba(0,0,0,0.8) 0px, rgba(0,0,0,0.8) 12px, rgba(255,255,255,0.05) 13px, rgba(0,0,0,0.8) 14px)"
+        }}
+      >
+        <div className="absolute bottom-0 left-0 right-0 h-[8px] bg-white/10 border-t border-white/20 shadow-[0_-4px_12px_rgba(0,0,0,0.5)]" />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center w-full h-full justify-between gap-5 py-2">
-        {/* Top: Icon & Identity */}
-        <div className="flex flex-col items-center gap-4">
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        {/* Top: Identity & State */}
+        <div className="flex justify-between items-start">
           <div className={cn(
-            "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-1000",
-            (isOpening || isClosing || isOpen) ? "bg-primary/10 text-primary/60" : "bg-muted/40 text-muted-foreground/30"
+            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700",
+            (isMoving || isOpen) ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40"
           )}>
-            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Blinds className="w-5 h-5 opacity-60" />}
+            {isMoving ? (
+              isOpening ? <ArrowUp className="w-5 h-5 animate-pulse" /> : <ArrowDown className="w-5 h-5 animate-pulse" />
+            ) : (
+              isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Blinds className="w-5 h-5" />
+            )}
           </div>
 
-          <div className="flex flex-col items-center min-w-0 px-2 w-full">
-            <div className="flex items-center justify-center gap-2 max-w-full">
-              <h4 className="text-sm font-bold truncate tracking-tight text-foreground/90">{displayName}</h4>
-              {isSonoff && (
-                <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">Local</span>
-              )}
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-1 min-w-0 max-w-full">
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full transition-colors duration-500 shrink-0", 
-                (isOpening || isClosing) ? "status-dot-updating" : (isOpen ? "bg-primary/80" : "bg-muted-foreground/40")
-              )} />
-              <span className="text-[11px] font-medium tracking-wide opacity-60 truncate">
-                {localizedState}
-              </span>
-              {isSonoff && (
-                <>
-                  <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                  <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
-                    {isOnline ? "Online" : "Offline"}
-                  </span>
-                </>
-              )}
-            </div>
+          <div className="flex flex-col items-end gap-1">
+             {isSonoff && (
+               <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded shadow-sm">{t('dashboards.status.local')}</span>
+             )}
+             <div className="flex items-center gap-1.5">
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
+                  isMoving ? "status-dot-updating animate-ping" : (isOpen ? "bg-primary/80" : "bg-muted-foreground/40")
+                )} />
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                   {localizedState}
+                </span>
+             </div>
           </div>
         </div>
 
-        {/* Bottom: Solid & Elegant Actions (Visible by default) */}
-        <div className="w-full max-w-[140px] flex flex-col gap-2 mb-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
-            disabled={!!isProcessing || isOpening || isClosing}
-            className={cn(
-              "w-full h-10 rounded-xl flex items-center justify-center gap-3 transition-all duration-500 text-[11px] font-bold border-2",
-              isOpen 
-                ? "bg-secondary/15 border-border/40 text-foreground/80 hover:bg-secondary/25" 
-                : "bg-primary/15 border-primary/30 text-primary hover:bg-primary/25"
-            )}
-          >
-            {isOpen ? <ArrowDown className="w-3 h-3 opacity-60" /> : <ArrowUp className="w-3 h-3 opacity-60" />}
-            {isOpen ? t('common.actions.close') : t('common.actions.open')}
-          </button>
-          
-          <button
-            onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
-            disabled={!!isProcessing}
-            className="w-full h-8 rounded-lg bg-transparent text-muted-foreground/40 flex items-center justify-center gap-2 transition-all hover:bg-muted/40 hover:text-foreground/70 active:scale-95 text-[10px] font-bold"
-          >
-            <Square className="w-2.5 h-2.5 fill-current opacity-40" />
-            {t('common.actions.stop')}
-          </button>
+        <div className="flex flex-col gap-1 overflow-hidden">
+           <h4 className="text-xs font-bold truncate tracking-tight text-foreground">{displayName}</h4>
+            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">
+              {roomName || t('common.unassigned')}
+            </span>
+        </div>
+
+        {/* Bottom: Modern Action Strip */}
+        <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-2xl border border-border/20 backdrop-blur-md shadow-inner mt-4">
+           {/* Open/Close Primary Toggle */}
+           <button
+             onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
+             disabled={!!isProcessing || isMoving}
+             className={cn(
+               "flex-1 h-9 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 active:scale-95 border",
+               isOpen 
+                 ? "bg-background border-border text-foreground hover:bg-muted" 
+                 : "bg-primary border-primary/20 text-primary-foreground shadow-lg shadow-primary/10"
+             )}
+           >
+             {isOpen ? <ArrowDown className="w-3 h-3 opacity-60" /> : <ArrowUp className="w-3 h-3 opacity-60" />}
+             <span className="text-[9px] font-black uppercase tracking-widest">
+               {isOpen ? t('common.actions.close') : t('common.actions.open')}
+             </span>
+           </button>
+
+           {/* Stop Secondary */}
+           <button
+             onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
+             disabled={!!isProcessing}
+             className={cn(
+               "w-10 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border border-border/10",
+               isMoving ? "bg-secondary/20 text-secondary-foreground" : "bg-muted/20 text-muted-foreground/40 hover:bg-muted hover:text-foreground"
+             )}
+             title={t('common.actions.stop')}
+           >
+             {isProcessing === 'stop' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3 fill-current" />}
+           </button>
         </div>
       </div>
 
-      {/* Atmospheric Progress Line */}
+      {/* Atmospheric Progress Tracker */}
       {position !== undefined && (
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10 overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/20 overflow-hidden">
           <div 
-            className="h-full bg-primary/40 transition-all duration-1000" 
+            className="h-full bg-primary/40 transition-all duration-1000 ease-out" 
             style={{ width: `${position}%` }}
           />
         </div>
