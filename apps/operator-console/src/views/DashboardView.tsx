@@ -203,7 +203,6 @@ export const DashboardView: React.FC<{
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
   const findings = useAssistantStore((state) => state.findings);
-  const assistantLoading = useAssistantStore((state) => state.isLoading);
   const refreshFindings = useAssistantStore((state) => state.refreshFindings);
   const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
@@ -222,10 +221,6 @@ export const DashboardView: React.FC<{
 
 
 const fetchData = useCallback(async () => {
-  // Use getState() for the guard to avoid depending on the values themselves
-  const isAlreadyLoading = useDeviceSnapshotStore.getState().isLoading || useAssistantStore.getState().isLoading;
-  if (isAlreadyLoading) return;
-
   try {
     await Promise.all([refreshSnapshot(), refreshFindings()]);
 
@@ -329,7 +324,7 @@ useEffect(() => {
   }, [findings]);
 
   const hasInitialData = devices.length > 0;
-  if ((snapshotLoading && !hasInitialData) || (assistantLoading && findings.length === 0)) {
+  if (snapshotLoading && !hasInitialData) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-10 h-10 animate-spin text-primary/40" />

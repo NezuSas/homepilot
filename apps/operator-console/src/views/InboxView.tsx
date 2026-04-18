@@ -175,13 +175,13 @@ const DeviceTile: React.FC<{
         <div className="flex items-center gap-2 overflow-hidden">
           <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
           {isSonoff && (
-            <span className="text-[7px] font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">Native Local</span>
+            <span className="text-[7px] font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">{t('inbox.native_local')}</span>
           )}
         </div>
         <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
         {!isAssigned && isSonoff && (
           <span className="text-[7px] font-black uppercase tracking-widest text-success/60 mt-0.5 animate-pulse">
-            Discovered locally • Ready to use
+            {t('inbox.discovered_locally')}
           </span>
         )}
         
@@ -195,7 +195,7 @@ const DeviceTile: React.FC<{
               <>
                 <span className="w-1 h-1 bg-border rounded-full shrink-0" />
                 <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
-                  {isOnline ? "Online" : "Offline"}
+                  {isOnline ? t('common.online') : t('common.offline')}
                 </span>
               </>
             )}
@@ -594,7 +594,7 @@ const DeviceInspector: React.FC<{
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title')}</span>
                     {device.integrationSource === 'sonoff' ? (
-                       <span className="text-[8px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20 font-black uppercase tracking-widest shadow-sm">Verified Edge Device</span>
+                       <span className="text-[8px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20 font-black uppercase tracking-widest shadow-sm">{t('inbox.inspector.verified_edge')}</span>
                     ) : (
                        <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">{t('inbox.inspector.alias_only')}</span>
                     )}
@@ -757,7 +757,7 @@ const DeviceInspector: React.FC<{
                     <div className="flex items-center justify-between px-2">
                        <div className="flex items-center gap-2">
                           <Cpu className="w-4 h-4 text-success" />
-                          <span className="text-[10px] font-black uppercase tracking-widest text-success">Edge Active</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-success">{t('inbox.inspector.edge_active')}</span>
                        </div>
                        <div className="flex items-center gap-2 opacity-40">
                           <Clock className="w-3 h-3" />
@@ -768,7 +768,7 @@ const DeviceInspector: React.FC<{
                     </div>
                     <div className="p-4 bg-success/5 border border-success/10 rounded-2xl">
                        <p className="text-[9px] font-bold leading-relaxed text-success/70 uppercase tracking-tight">
-                         Este dispositivo se controla localmente a través de la red Edge. No depende de servicios externos ni de Home Assistant para su ejecución.
+                         {t('inbox.inspector.edge_description')}
                        </p>
                     </div>
                   </div>
@@ -824,8 +824,8 @@ const DeviceInspector: React.FC<{
                    <span className="text-sm font-bold truncate">{device.homeId}</span>
                    <div className="mt-auto pt-4 text-[9px] text-muted-foreground opacity-30 italic leading-snug">
                      {device.integrationSource === 'sonoff' 
-                       ? "Certificado para ejecución autónoma. Los comandos se procesan directamente en este nodo sin puentes externos."
-                       : "Identificador estructural del clúster de hardware asignado a este hogar en el Edge."}
+                       ? t('inbox.inspector.edge_node_info')
+                       : t('inbox.inspector.cluster_info')}
                    </div>
                  </div>
               </div>
@@ -982,7 +982,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
                  >
                    {importingId === entity.entityId ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                   Import
+                   {t('common.import')}
                  </button>
                </div>
             </div>

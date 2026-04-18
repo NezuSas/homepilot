@@ -291,6 +291,8 @@
     "manager_subtitle": "Supervisión operativa y control directo de las unidades de hardware asignadas.",
     "no_rooms": "Sin Habitaciones",
     "empty_state": "No hay dispositivos conectados",
+    "native_local": "Local Nativo",
+    "discovered_locally": "Descubierto localmente • Listo para usar",
     "filters": {
       "all": "Todo",
       "light": "Luces",
@@ -329,7 +331,12 @@
       "data_object": "Objeto de Datos Core HomePilot v2.0",
       "label_alias": "Alias Local / Sobrescritura de Identidad",
       "label_room": "Ubicación de Habitación",
-      "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER"
+      "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER",
+      "verified_edge": "Dispositivo Edge Verificado",
+      "edge_active": "Edge Activo",
+      "edge_description": "Este dispositivo se controla localmente a través de la red Edge. No depende de servicios externos ni de Home Assistant para su ejecución.",
+      "edge_node_info": "Certificado para ejecución autónoma. Los comandos se procesan directamente en este nodo sin puentes externos.",
+      "cluster_info": "Identificador estructural del clúster de hardware asignado a este hogar en el Edge."
     },
     "discovery": {
       "title": "Descubrimiento Manual",
@@ -667,6 +674,8 @@
     "delete": "Eliminar",
     "confirm": "Confirmar",
     "retry": "Reintentar",
+    "online": "En línea",
+    "offline": "Fuera de línea",
     "enable": "Activar",
     "disable": "Desactivar",
     "edit": "Editar",

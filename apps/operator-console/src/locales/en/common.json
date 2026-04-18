@@ -297,6 +297,8 @@
     "manager_subtitle": "Operational oversight and direct control of assigned hardware units.",
     "no_rooms": "No Rooms",
     "empty_state": "No devices connected",
+    "native_local": "Native Local",
+    "discovered_locally": "Discovered locally • Ready to use",
     "filters": {
       "all": "All",
       "light": "Lights",
@@ -335,7 +337,12 @@
       "data_object": "HomePilot Core Data Object v2.0",
       "label_alias": "Local Alias / Identity Override",
       "label_room": "Room Placement",
-      "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER"
+      "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER",
+      "verified_edge": "Verified Edge Device",
+      "edge_active": "Edge Active",
+      "edge_description": "This device is controlled locally through the Edge network. It does not depend on external services or Home Assistant for execution.",
+      "edge_node_info": "Certified for autonomous execution. Commands are processed directly on this node without external bridges.",
+      "cluster_info": "Structural identifier of the hardware cluster assigned to this home in the Edge."
     },
     "discovery": {
       "title": "Manual Discovery",
@@ -668,6 +675,8 @@
     "import": "Import",
     "confirm": "Confirm",
     "retry": "Retry",
+    "online": "Online",
+    "offline": "Offline",
     "unknown": "Unknown",
     "unknown_scene": "Unknown Scene",
     "enable": "Enable",

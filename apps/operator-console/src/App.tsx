@@ -500,7 +500,7 @@ function App() {
         <div className="p-4 border-t mt-auto flex flex-col gap-2 bg-background/30">
           <button
             onClick={() => startDemo(DEMO_STEPS)}
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-all border border-primary/10 group"
+            className="hidden lg:flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-all border border-primary/10 group"
           >
             <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
             <span className="text-[10px] font-black uppercase tracking-widest">{t('demo.start_button')}</span>
