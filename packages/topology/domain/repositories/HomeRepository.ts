@@ -23,4 +23,9 @@ export interface HomeRepository {
    * Retorna null si el ID no existe en la capa de persistencia.
    */
   findHomeById(homeId: string): Promise<Home | null>;
+
+  /**
+   * Recupera todos los hogares registrados en el sistema.
+   */
+  findAll(): Promise<ReadonlyArray<Home>>;
 }

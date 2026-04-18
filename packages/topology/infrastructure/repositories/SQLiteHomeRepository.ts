@@ -54,9 +54,6 @@ export class SQLiteHomeRepository implements HomeRepository {
     const stmt = this.db.prepare('SELECT * FROM homes WHERE owner_id = ?');
     const rows = stmt.all(userId) as HomeRow[];
     const result = rows.map(row => this.mapToEntity(row));
-    if (process.env.NODE_ENV === 'test') {
-      console.log(`[DB-DEBUG] findHomesByUserId(${userId}) -> found ${result.length} homes`);
-    }
     return result;
   }
 
@@ -70,6 +67,15 @@ export class SQLiteHomeRepository implements HomeRepository {
     if (!row) return null;
 
     return this.mapToEntity(row);
+  }
+
+  /**
+   * Recupera todos los hogares registrados sin filtros de propiedad.
+   */
+  public async findAll(): Promise<ReadonlyArray<Home>> {
+    const stmt = this.db.prepare('SELECT * FROM homes');
+    const rows = stmt.all() as HomeRow[];
+    return rows.map(row => this.mapToEntity(row));
   }
 
   /**

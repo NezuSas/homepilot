@@ -627,10 +627,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const initialScan = async () => {
     if (process.env.NODE_ENV === 'test') return;
     try {
-      const homes = await homeRepository.findHomesByUserId('system'); // Or get first user
-      // For now, scan all for system context or just wait for first login
-      // Actually, we'll scan when we have a homeId.
-      const allHomes = await db.prepare('SELECT id FROM homes').all() as { id: string }[];
+      const allHomes = await homeRepository.findAll();
       for (const h of allHomes) {
         await assistantService.scan(h.id, 'system_boot');
       }

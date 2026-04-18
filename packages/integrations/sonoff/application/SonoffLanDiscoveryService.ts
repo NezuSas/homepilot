@@ -167,9 +167,13 @@ export class SonoffLanDiscoveryService {
   private async getTargetHomeId(): Promise<string | null> {
     if (this.activeHomeId) return this.activeHomeId;
     
-    // Safely attempt to fetch system homes using standard domain boundaries
+    // 1. Try system-owned homes
     const systemHomes = await this.deps.homeRepository.findHomesByUserId('system');
     if (systemHomes.length > 0) return systemHomes[0].id;
+
+    // 2. Fallback: Any existing home (useful for single-tenant hardware appliances)
+    const allHomes = await this.deps.homeRepository.findAll();
+    if (allHomes.length > 0) return allHomes[0].id;
     
     return null;
   }
