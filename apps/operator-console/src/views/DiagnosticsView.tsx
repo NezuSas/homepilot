@@ -155,31 +155,31 @@ export function DiagnosticsView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-1000">
          {[
            {
-             label: 'Native Local',
+             label: t('diagnostics.metrics.native_local'),
              value: devices.filter(d => d.integrationSource === 'sonoff').length,
-             sub: `${devices.filter(d => d.integrationSource === 'sonoff' && (Date.now() - new Date(d.updatedAt || 0).getTime() < 300000)).length} Online`,
+             sub: `${devices.filter(d => d.integrationSource === 'sonoff' && (Date.now() - new Date(d.updatedAt || 0).getTime() < 300000)).length} ${t('diagnostics.metrics.online')}`,
              icon: Cpu,
              color: 'text-success'
            },
            {
-             label: 'Bridged (HA)',
+             label: t('diagnostics.metrics.bridged'),
              value: devices.filter(d => d.integrationSource !== 'sonoff').length,
-             sub: 'External Mesh',
+             sub: t('diagnostics.metrics.external_mesh'),
              icon: Server,
              color: 'text-primary'
            },
            {
-             label: 'Autonomous Scenes',
+             label: t('diagnostics.metrics.autonomous'),
              value: scenes.filter(s => {
                const actions = s.actions || [];
                return actions.length > 0 && actions.every((a: any) => devices.find(d => d.id === a.deviceId)?.integrationSource === 'sonoff');
              }).length,
-             sub: 'Edge Executable',
+             sub: t('diagnostics.metrics.edge_executable'),
              icon: Zap,
              color: 'text-warning'
            },
            {
-             label: 'Hardware Autonomy',
+             label: t('diagnostics.metrics.hardware_autonomy'),
              value: automations.filter(rule => {
                 const triggerDevice = devices.find(d => d.id === rule.trigger?.deviceId);
                 const actionDevice = devices.find(d => d.id === rule.action?.targetDeviceId);
@@ -195,7 +195,7 @@ export function DiagnosticsView() {
                 }
                 return triggerIsLocal && actionIsLocal;
              }).length,
-             sub: 'Zero-Cloud Rules',
+             sub: t('diagnostics.metrics.zero_cloud'),
              icon: ShieldCheck,
              color: 'text-success'
            }

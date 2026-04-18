@@ -762,6 +762,18 @@
     "active_units": "{{count}} Activos",
     "all_off": "Todo Apagado"
   },
+  "diagnostics": {
+    "metrics": {
+      "native_local": "Local Nativo",
+      "online": "En línea",
+      "bridged": "Puenteado (HA)",
+      "external_mesh": "Malla externa",
+      "autonomous": "Escenas Autónomas",
+      "edge_executable": "Ejecutable en Edge",
+      "hardware_autonomy": "Autonomía de Hardware",
+      "zero_cloud": "Reglas sin nube"
+    }
+  },
   "common": {
     "loading": "Cargando...",
     "error": "Error del Sistema",

@@ -762,6 +762,18 @@
     "active_units": "{{count}} Active",
     "all_off": "All Off"
   },
+  "diagnostics": {
+    "metrics": {
+      "native_local": "Native Local",
+      "online": "Online",
+      "bridged": "Bridged (HA)",
+      "external_mesh": "External Mesh",
+      "autonomous": "Autonomous Scenes",
+      "edge_executable": "Edge Executable",
+      "hardware_autonomy": "Hardware Autonomy",
+      "zero_cloud": "Zero-Cloud Rules"
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "System Error",
