@@ -323,6 +323,14 @@ useEffect(() => {
       });
   }, [findings]);
 
+  const activeRooms = useMemo(() => rooms.filter(r => devices.some(d => d.roomId === r.id)), [rooms, devices]);
+  const localDevices = useMemo(() => devices.filter(d => d.integrationSource === 'sonoff'), [devices]);
+  const hasLocalDevices = localDevices.length > 0;
+  const bridgedCount = devices.length - localDevices.length;
+  const onlineLocalCount = useMemo(() => 
+    localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
+  [localDevices]);
+
   const hasInitialData = devices.length > 0;
   if (snapshotLoading && !hasInitialData) {
     return (
@@ -331,14 +339,6 @@ useEffect(() => {
       </div>
     );
   }
-
-  const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
-  const localDevices = useMemo(() => devices.filter(d => d.integrationSource === 'sonoff'), [devices]);
-  const hasLocalDevices = localDevices.length > 0;
-  const bridgedCount = devices.length - localDevices.length;
-  const onlineLocalCount = useMemo(() => 
-    localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
-  [localDevices]);
 
   return (
     <div className="flex flex-col gap-12 pb-12 px-4 md:px-8 animate-in fade-in duration-700">
