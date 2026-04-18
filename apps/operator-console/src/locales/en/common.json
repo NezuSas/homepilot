@@ -639,20 +639,20 @@
     },
     "steps": {
       "dashboard": {
-        "title": "Central Control",
-        "description": "The dashboard gives you a high-level view of your entire home and living atmosphere."
+        "title": "Your Home, One Control Layer",
+        "description": "Everything in your home is unified into a single control system. No fragmented apps, no complexity."
       },
       "devices": {
         "title": "Instant Response",
-        "description": "Control any local device with sub-100ms latency. Notice the 'Local' badge for edge-native hardware."
+        "description": "Commands are executed directly in your home, not in the cloud. This means faster response and zero dependency on internet."
       },
       "automations": {
-        "title": "Smart Intelligence",
-        "description": "Define logic rules that run locally on your HomePilot core, ensuring autonomy even without internet."
+        "title": "Your Home Thinks For You",
+        "description": "Automations run locally, so your home keeps working even if internet or external services fail."
       },
       "resilience": {
-        "title": "Edge Resilience",
-        "description": "Verify your system's independence from the cloud and monitor native hardware performance."
+        "title": "Built for Real-World Reliability",
+        "description": "This system continues operating even during outages. Your home is not dependent on external systems."
       }
     }
   },

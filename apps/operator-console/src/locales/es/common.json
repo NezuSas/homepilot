@@ -639,20 +639,20 @@
     },
     "steps": {
       "dashboard": {
-        "title": "Control Central",
-        "description": "El panel le brinda una vista de alto nivel de toda su casa y atmósfera vital."
+        "title": "Tu hogar, un solo control",
+        "description": "Todo está unificado en un solo sistema. Sin apps separadas, sin complejidad."
       },
       "devices": {
-        "title": "Respuesta Instantánea",
-        "description": "Controle cualquier dispositivo local con una latencia inferior a 100ms. Observe el distintivo 'Local'."
+        "title": "Respuesta inmediata",
+        "description": "Los comandos se ejecutan dentro de tu casa, no en la nube. Más rápido y sin depender de internet."
       },
       "automations": {
-        "title": "Inteligencia Smart",
-        "description": "Defina reglas que se ejecutan localmente en su núcleo HomePilot, asegurando autonomía sin internet."
+        "title": "Tu casa piensa por ti",
+        "description": "Las automatizaciones funcionan localmente, incluso si falla el internet."
       },
       "resilience": {
-        "title": "Resiliencia Edge",
-        "description": "Verifique la independencia de su sistema de la nube y monitoree el rendimiento del hardware nativo."
+        "title": "Diseñado para la vida real",
+        "description": "El sistema sigue funcionando incluso sin conexión o servicios externos."
       }
     }
   },
