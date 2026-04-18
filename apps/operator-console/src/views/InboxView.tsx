@@ -271,8 +271,20 @@ export const InboxView: React.FC = () => {
     );
   }
 
+  const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
+
   return (
     <div className="flex flex-col gap-10 p-2">
+      {hasLocalDevices && (
+        <div className="flex items-center gap-2 px-4 py-2 mt-2 border border-success/20 bg-success/5 rounded-xl animate-in fade-in slide-in-from-top-2 duration-1000 shadow-sm">
+          <Cpu className="w-3.5 h-3.5 text-success/80" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-success/90 bg-success/10 px-2 py-0.5 rounded">Edge Mode Active</span>
+          <span className="text-[10px] font-medium text-muted-foreground/60 tracking-wide border-l border-border/50 pl-3">
+             {t('inbox.edge_hint', { defaultValue: 'Local control capabilities enabled. Network independence active.' })}
+          </span>
+        </div>
+      )}
+
       {inspectingDeviceId && (
         <DeviceInspector 
           deviceId={inspectingDeviceId} 

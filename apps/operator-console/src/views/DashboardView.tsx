@@ -326,6 +326,7 @@ useEffect(() => {
   }
 
   const activeRooms = rooms.filter(r => devices.some(d => d.roomId === r.id));
+  const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
 
   return (
     <div className="flex flex-col gap-12 pb-12 px-4 md:px-8 animate-in fade-in duration-700">
@@ -345,6 +346,17 @@ useEffect(() => {
           if (onModeChange) onModeChange(safeM);
         }} 
       />
+
+      {hasLocalDevices && (
+        <div className="flex items-center justify-center -mt-6 mb-2">
+           <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-[9px] font-black uppercase tracking-widest text-primary/80 backdrop-blur-md shadow-sm">
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Edge Network Active</span>
+              <div className="w-1 h-1 bg-primary rounded-full animate-pulse mx-1" />
+              <span className="text-muted-foreground/60 tracking-wider">Independent Local Control</span>
+           </div>
+        </div>
+      )}
 
       {/* LEVEL 1.5: Proactive Insights */}
       {prioritizedFindings.length > 0 && (
