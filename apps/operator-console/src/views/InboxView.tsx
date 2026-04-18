@@ -174,7 +174,7 @@ const DeviceTile: React.FC<{
         <div className="flex items-center gap-2 overflow-hidden">
           <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
           {isSonoff && (
-            <span className="text-[8px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded shrink-0">Local</span>
+            <span className="text-[7px] font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">Native Local</span>
           )}
         </div>
         <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
@@ -543,6 +543,8 @@ const DeviceInspector: React.FC<{
 
   if (!device) return null;
 
+  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
+
   return (
     <div className="fixed inset-0 z-[100] flex justify-end animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" onClick={onClose} />
@@ -558,7 +560,11 @@ const DeviceInspector: React.FC<{
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title')}</span>
-                    <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">{t('inbox.inspector.alias_only')}</span>
+                    {device.integrationSource === 'sonoff' ? (
+                       <span className="text-[8px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20 font-black uppercase tracking-widest shadow-sm">Verified Edge Device</span>
+                    ) : (
+                       <span className="text-[9px] bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">{t('inbox.inspector.alias_only')}</span>
+                    )}
                   </div>
                  {isRenaming ? (
                    <div className="flex items-center gap-2 mt-1">
@@ -625,9 +631,19 @@ const DeviceInspector: React.FC<{
                   <span className="font-mono text-xs font-bold break-all">{device.id}</span>
                 </div>
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                    <Settings className="w-3 h-3" /> {t('inbox.inspector.external_id', { defaultValue: 'External ID' })}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
+                      <Settings className="w-3 h-3" /> {t('inbox.inspector.external_id', { defaultValue: 'External ID' })}
+                    </span>
+                    {device.integrationSource === 'sonoff' && (
+                       <div className="flex items-center gap-1">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-success animate-pulse" : "bg-destructive")} />
+                          <span className={cn("text-[8px] font-black uppercase", isOnline ? "text-success" : "text-destructive")}>
+                             {isOnline ? "Online" : "Offline"}
+                          </span>
+                       </div>
+                    )}
+                  </div>
                   <span className="font-mono text-xs font-bold break-all">{device.externalId}</span>
                 </div>
               </div>
@@ -642,19 +658,19 @@ const DeviceInspector: React.FC<{
                   <div className="flex gap-4">
                     <button 
                       onClick={() => handleCommand('turn_on')}
-                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10"
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10 active:bg-primary/90"
                     >
                        {t('inbox.inspector.actions.force_on')}
                     </button>
                     <button 
                       onClick={() => handleCommand('turn_off')}
-                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors active:scale-95"
                     >
                        {t('inbox.inspector.actions.force_off')}
                     </button>
                     <button 
                       onClick={() => handleCommand('toggle')}
-                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors active:scale-95"
                     >
                        {t('inbox.inspector.actions.toggle')}
                     </button>
@@ -671,13 +687,13 @@ const DeviceInspector: React.FC<{
                     </button>
                     <button 
                       onClick={() => handleCommand('stop')}
-                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors active:scale-95"
                     >
                        {t('inbox.inspector.actions.stop')}
                     </button>
                     <button 
                       onClick={() => handleCommand('close')}
-                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                      className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors active:scale-95"
                     >
                        {t('inbox.inspector.actions.close')}
                     </button>
@@ -774,7 +790,9 @@ const DeviceInspector: React.FC<{
                    </div>
                    <span className="text-sm font-bold truncate">{device.homeId}</span>
                    <div className="mt-auto pt-4 text-[9px] text-muted-foreground opacity-30 italic leading-snug">
-                     Identificador estructural del clúster de hardware asignado a este hogar en el Edge.
+                     {device.integrationSource === 'sonoff' 
+                       ? "Certificado para ejecución autónoma. Los comandos se procesan directamente en este nodo sin puentes externos."
+                       : "Identificador estructural del clúster de hardware asignado a este hogar en el Edge."}
                    </div>
                  </div>
               </div>
