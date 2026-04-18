@@ -42,7 +42,8 @@ const DeviceTile: React.FC<{
   rooms: Room[];
   onUpdate?: (updated: Device) => void;
   onInspect?: () => void;
-}> = ({ device, rooms, onUpdate, onInspect }) => {
+  hideControls?: boolean;
+}> = ({ device, rooms, onUpdate, onInspect, hideControls }) => {
   const { t } = useTranslation();
   const isAssigned = device.status === 'ASSIGNED';
   const isPending = device.status === 'PENDING';
@@ -140,7 +141,7 @@ const DeviceTile: React.FC<{
           <Icon className="w-5 h-5" />
         </div>
         
-        {supportsCommands && isAssigned && (
+        {supportsCommands && isAssigned && !hideControls && (
           <button
             onClick={handleToggle}
             disabled={isProcessing}
@@ -235,8 +236,13 @@ const DeviceTile: React.FC<{
 
 /**
  * Vista de Inbox principal para la Operator Console.
+ * Soporta modos 'manager' (dispositivos asignados) y 'discovery' (dispositivos pendientes).
  */
-export const InboxView: React.FC = () => {
+export interface InboxViewProps {
+  mode?: 'manager' | 'discovery';
+}
+
+export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const { t } = useTranslation();
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'light' | 'switch' | 'sensor'>('all');
@@ -257,8 +263,12 @@ export const InboxView: React.FC = () => {
     upsertDevice(updated);
   };
 
-  // Grouping logic
+  // Grouping logic with strict mode filtering
   const filtered = devices.filter((d: Device) => {
+    // Strict status filtering based on view mode
+    if (mode === 'manager' && d.status !== 'ASSIGNED') return false;
+    if (mode === 'discovery' && d.status !== 'PENDING') return false;
+
     const matchesType = filter === 'all' || d.type === filter;
     const isLocal = d.integrationSource === 'sonoff';
     const matchesOrigin = originFilter === 'all' || (originFilter === 'local' ? isLocal : (originFilter === 'bridged' ? !isLocal : true));
@@ -309,15 +319,15 @@ export const InboxView: React.FC = () => {
         />
       )}
 
-      {/* Discovery Layer */}
-      <HomeAssistantDiscoverySection onImported={fetchData} />
+      {/* Discovery Layer: Hidden in Manager mode */}
+      {mode === 'discovery' && <HomeAssistantDiscoverySection onImported={fetchData} />}
 
       {/* Control Bar */}
       <SectionHeader 
         className="pb-4 border-b border-border/50"
-        title={t('inbox.title')}
-        subtitle={t('inbox.subtitle')}
-        icon={Inbox}
+        title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
+        subtitle={mode === 'manager' ? t('inbox.manager_subtitle') : t('inbox.discovery_subtitle')}
+        icon={mode === 'manager' ? Settings : Inbox}
         action={
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Origin Filter */}
@@ -380,6 +390,7 @@ export const InboxView: React.FC = () => {
                   rooms={roomsByHome[device.homeId] || []}
                   onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
                   onInspect={() => setInspectingDeviceId(device.id)}
+                  hideControls={mode === 'discovery'}
                 />
               ))}
             </div>

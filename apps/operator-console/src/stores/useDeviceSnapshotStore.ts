@@ -53,38 +53,50 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
   ...initialState,
 
   refreshSnapshot: async () => {
-    set((state) => ({ isLoading: state.devices.length === 0 && state.homes.length === 0 }));
+    const hasData = get().devices.length > 0;
+    set({ isLoading: !hasData });
 
     try {
+      // 1. Core hydration: Fetch devices first
       const devicesResponse = await fetch(`${API_URL}/devices`);
       if (!devicesResponse.ok) {
         throw new Error('DEVICE_REFRESH_ERROR');
       }
 
       const devices = await devicesResponse.json() as SnapshotDevice[];
+      
+      // Update devices immediately to unblock the main dashboard UI
+      set({ devices, isLoading: false });
+
+      // 2. Background hydration: Fetch homes and rooms in parallel
       const homeIdsFromDevices = Array.from(new Set(devices.map((device) => device.homeId).filter(Boolean)));
+      
+      const [homesRes] = await Promise.all([
+        fetch(`${API_URL}/homes`),
+      ]);
 
       let homes = get().homes;
-      const homesResponse = await fetch(`${API_URL}/homes`);
-      if (homesResponse.ok) {
-        homes = await homesResponse.json() as SnapshotHome[];
+      if (homesRes.ok) {
+        homes = await homesRes.json() as SnapshotHome[];
       }
 
       const homeIds = Array.from(new Set([...homeIdsFromDevices, ...homes.map((home) => home.id)]));
+      
+      // Fetch rooms for all detected homes in parallel
       const roomsEntries = await Promise.all(
         homeIds.map(async (homeId) => {
-          const roomsResponse = await fetch(`${API_URL}/homes/${homeId}/rooms`);
-          if (!roomsResponse.ok) {
-            return [homeId, []] as const;
+          try {
+            const roomsResponse = await fetch(`${API_URL}/homes/${homeId}/rooms`);
+            if (!roomsResponse.ok) return [homeId, get().roomsByHome[homeId] || []] as const;
+            const rooms = await roomsResponse.json() as SnapshotRoom[];
+            return [homeId, rooms] as const;
+          } catch {
+            return [homeId, get().roomsByHome[homeId] || []] as const;
           }
-
-          const rooms = await roomsResponse.json() as SnapshotRoom[];
-          return [homeId, rooms] as const;
         })
       );
 
       set({
-        devices,
         homes,
         roomsByHome: Object.fromEntries(roomsEntries),
       });

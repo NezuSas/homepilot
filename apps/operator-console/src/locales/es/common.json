@@ -287,6 +287,8 @@
   "inbox": {
     "title": "Gestor de Dispositivos",
     "subtitle": "Controlador de Estilo Appliance v3.1",
+    "discovery_subtitle": "Cola de incorporación para nuevas unidades de hardware detectadas en el Edge.",
+    "manager_subtitle": "Supervisión operativa y control directo de las unidades de hardware asignadas.",
     "no_rooms": "Sin Habitaciones",
     "empty_state": "No hay dispositivos conectados",
     "filters": {

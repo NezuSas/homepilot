@@ -328,7 +328,8 @@ useEffect(() => {
       });
   }, [findings]);
 
-  if (snapshotLoading || assistantLoading) {
+  const hasInitialData = devices.length > 0;
+  if ((snapshotLoading && !hasInitialData) || (assistantLoading && findings.length === 0)) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-10 h-10 animate-spin text-primary/40" />

@@ -645,8 +645,8 @@ function App() {
              )}
 
              {/* System section views */}
-             {currentView === 'system-devices' && <InboxView />}
-             {currentView === 'system-inbox' && <InboxView />}
+             {currentView === 'system-devices' && <InboxView mode="manager" />}
+             {currentView === 'system-inbox' && <InboxView mode="discovery" />}
              {currentView === 'system-diagnostics' && <DiagnosticsView />}
              {currentView === 'system-audit' && <AuditLogsView />}
              {currentView === 'system-ha' && <HomeAssistantSettingsView />}

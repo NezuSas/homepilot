@@ -48,7 +48,8 @@ export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
   ...initialState,
 
   refreshFindings: async () => {
-    set((state) => ({ isLoading: state.findings.length === 0 }));
+    const hasData = get().findings.length > 0;
+    set({ isLoading: !hasData });
 
     try {
       const response = await fetch(API_ENDPOINTS.assistant.findings);

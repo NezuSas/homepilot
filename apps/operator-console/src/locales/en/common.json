@@ -293,6 +293,8 @@
   "inbox": {
     "title": "Device Manager",
     "subtitle": "Appliance-Style Controller v3.1",
+    "discovery_subtitle": "Onboarding queue for new hardware units detected in the Edge.",
+    "manager_subtitle": "Operational oversight and direct control of assigned hardware units.",
     "no_rooms": "No Rooms",
     "empty_state": "No devices connected",
     "filters": {
