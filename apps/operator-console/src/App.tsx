@@ -413,12 +413,14 @@ function App() {
              <SidebarItem 
                icon={BarChart2} 
                label={t('nav.dashboards')} 
-               soonText="Soon"
+               active={currentView === 'dashboards'}
+               onClick={() => navigateTo('dashboards')}
              />
              <SidebarItem 
                icon={Zap} 
                label={t('nav.energy')} 
-               soonText="Soon"
+               active={currentView === 'energy'}
+               onClick={() => navigateTo('energy')}
              />
           </div>
 
