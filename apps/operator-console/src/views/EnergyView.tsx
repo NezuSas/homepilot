@@ -49,10 +49,10 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
             </div>
           </div>
           {/* Status badge — hidden on very small screens */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border/60 shrink-0">
-            <Cpu className="w-3 h-3 text-muted-foreground/60" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{t('energy.status_active')}</span>
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-pulse" />
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/20 shrink-0 shadow-sm">
+            <Cpu className="w-3 h-3 text-primary/60" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/80">{t('energy.status_active')}</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
           </div>
         </div>
       </div>

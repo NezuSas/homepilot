@@ -341,6 +341,7 @@
       "data_object": "Objeto de Datos Core HomePilot v2.0",
       "label_alias": "Alias Local / Sobrescritura de Identidad",
       "label_room": "Ubicación de Habitación",
+      "room_label": "Asignación de Estancia",
       "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER",
       "verified_edge": "Dispositivo Edge Verificado",
       "edge_active": "Edge Activo",
@@ -371,6 +372,7 @@
     "title": "Topología Estructural",
     "homes_title": "Hogares Registrados",
     "rooms_in": "Estancias en",
+    "rooms": "Estancias",
     "add_room": "Añadir Estancia",
     "placeholder": "Nombre de la estancia...",
     "creating": "Creando...",
@@ -754,6 +756,12 @@
       }
     }
   },
+  "dashboard": {
+    "active_units_one": "1 Activo",
+    "active_units_other": "{{count}} Activos",
+    "active_units": "{{count}} Activos",
+    "all_off": "Todo Apagado"
+  },
   "common": {
     "loading": "Cargando...",
     "error": "Error del Sistema",
@@ -771,6 +779,11 @@
     "disable": "Desactivar",
     "edit": "Editar",
     "never": "Nunca",
+    "turn_off_all": "Apagar Todo",
+    "severity_critical": "Crítica",
+    "severity_high": "Alta",
+    "severity_medium": "Media",
+    "severity_low": "Baja",
     "actions": {
       "open": "Abrir",
       "close": "Cerrar",

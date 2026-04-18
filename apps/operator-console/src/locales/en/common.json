@@ -347,6 +347,7 @@
       "data_object": "HomePilot Core Data Object v2.0",
       "label_alias": "Local Alias / Identity Override",
       "label_room": "Room Placement",
+      "room_label": "Room Assignment",
       "json_parser_hint": "READ_ONLY_MODE::JSON_PARSER",
       "verified_edge": "Verified Edge Device",
       "edge_active": "Edge Active",
@@ -377,6 +378,7 @@
     "title": "Structural Topology",
     "homes_title": "Registered Homes",
     "rooms_in": "Rooms in",
+    "rooms": "Rooms",
     "add_room": "Add Room",
     "placeholder": "Room name...",
     "creating": "Creating...",
@@ -754,6 +756,12 @@
       }
     }
   },
+  "dashboard": {
+    "active_units_one": "1 Active",
+    "active_units_other": "{{count}} Active",
+    "active_units": "{{count}} Active",
+    "all_off": "All Off"
+  },
   "common": {
     "loading": "Loading...",
     "error": "System Error",
@@ -774,6 +782,11 @@
     "disable": "Disable",
     "edit": "Edit",
     "never": "Never",
+    "turn_off_all": "Turn Off All",
+    "severity_critical": "Critical",
+    "severity_high": "High",
+    "severity_medium": "Medium",
+    "severity_low": "Low",
     "actions": {
       "open": "Open",
       "close": "Close",

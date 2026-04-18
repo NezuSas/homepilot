@@ -110,7 +110,7 @@ function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
       {/* Value pillars */}
       <div className="flex items-center gap-6 flex-wrap justify-center">
           {([
-          { icon: Home,     labelKey: 'topology.rooms_in' },
+          { icon: Home,     labelKey: 'topology.rooms' },
           { icon: Cpu,      labelKey: 'nav.system_devices' },
           { icon: Sparkles, labelKey: 'nav.assistant' },
         ] as { icon: React.FC<{ className?: string }>; labelKey: string }[]).map(({ icon: Icon, labelKey }) => (
