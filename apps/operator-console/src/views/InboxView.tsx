@@ -240,6 +240,7 @@ export const InboxView: React.FC = () => {
   const { t } = useTranslation();
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'light' | 'switch' | 'sensor'>('all');
+  const [originFilter, setOriginFilter] = useState<'all' | 'local' | 'bridged'>('all');
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const loading = useDeviceSnapshotStore((state) => state.isLoading);
@@ -258,8 +259,10 @@ export const InboxView: React.FC = () => {
 
   // Grouping logic
   const filtered = devices.filter((d: Device) => {
-    if (filter === 'all') return true;
-    return d.type === filter;
+    const matchesType = filter === 'all' || d.type === filter;
+    const isLocal = d.integrationSource === 'sonoff';
+    const matchesOrigin = originFilter === 'all' || (originFilter === 'local' ? isLocal : (originFilter === 'bridged' ? !isLocal : true));
+    return matchesType && matchesOrigin;
   });
 
   const roomsFlattened = Object.values(roomsByHome).flat();
@@ -316,19 +319,38 @@ export const InboxView: React.FC = () => {
         subtitle={t('inbox.subtitle')}
         icon={Inbox}
         action={
-          <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
-            {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                 filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
-                )}
-              >
-                {t(`inbox.filters.${f}`)}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* Origin Filter */}
+            <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50">
+              {(['all', 'local', 'bridged'] as const).map(o => (
+                <button
+                  key={o}
+                  onClick={() => setOriginFilter(o)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                    originFilter === o ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
+                  )}
+                >
+                  {o === 'all' ? t('common.all') : (o === 'local' ? 'Local' : 'Bridged')}
+                </button>
+              ))}
+            </div>
+
+            {/* Type Filter */}
+            <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
+              {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                   filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
+                  )}
+                >
+                  {t(`inbox.filters.${f}`)}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />
