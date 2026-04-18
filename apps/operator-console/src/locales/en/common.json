@@ -289,7 +289,8 @@
       "stable": "System stable",
       "syncing": "Synchronizing system",
       "updated_now": "Updated now",
-      "mode_label": "Mode {{mode}}"
+      "mode_label": "Mode {{mode}}",
+      "edge_active": "Edge Network Active"
     },
     "tooltips": {
       "switch_language": "Switch Language"
@@ -299,7 +300,9 @@
     "title": "Device Manager",
     "subtitle": "Unified Device Management",
     "discovery_subtitle": "Onboarding queue for new hardware units detected in the Edge.",
-    "manager_subtitle": "Operational oversight and direct control of assigned hardware units.",
+    "manager_subtitle": "Operational supervision and direct control of assigned hardware units.",
+    "edge_mode_active": "Edge Mode Active",
+    "edge_hint": "Local control capabilities enabled. Network independence active.",
     "no_rooms": "No Rooms",
     "empty_state": "No devices connected",
     "native_local": "Native Local",
@@ -420,7 +423,9 @@
       "select_scene": "Select Scene...",
       "select_command": "Select Command...",
       "state_key": "State Attribute",
-      "expected_value": "Expected Value"
+      "expected_value": "Expected Value",
+      "device_label": "Device:",
+      "target_label": "Target:"
     },
     "summary": {
       "at_time": "At {{time}}",
@@ -640,7 +645,55 @@
     "offline_verified": "Offline execution verified",
     "intelligence_note": "All autonomous logic is evaluated locally by the HomePilot core, ensuring functionality during internet partitions.",
     "synergy_title": "System Synergy",
-    "synergy_stats": "Aggregated from {{devices}} Devices • {{scenes}} Scenes • {{rules}} Rules"
+    "synergy_stats": "Aggregate of {{devices}} Devices • {{scenes}} Scenes • {{rules}} Rules"
+  },
+  "dashboards": {
+    "title": "My Spaces",
+    "category": "Personal Dashboards",
+    "empty_title": "Your Space, Your Way",
+    "empty_description": "Create personalized dashboards with the devices, rooms, and insights that matter to you.",
+    "action_create": "Create your first dashboard",
+    "action_new": "New Dashboard",
+    "action_add_widget": "Add Widget",
+    "tabs_empty": "No tabs yet",
+    "tabs_hint": "Tabs let you organize your dashboard into distinct sections.",
+    "action_add_tab": "Add a tab",
+    "widgets_empty": "This tab is empty. Add your first widget below.",
+    "loading": "Loading your dashboards",
+    "rename": "Rename",
+    "delete": "Delete dashboard",
+    "remove_widget": "Remove widget",
+    "status": {
+      "edge_active": "Edge Network Active",
+      "local_control": "Independent Local Control",
+      "bridged": "Bridged",
+      "resilient": "Resilient",
+      "local": "Local",
+      "autonomous": "Autonomous",
+      "edge": "Edge"
+    },
+    "widgets": {
+      "room_summary": {
+        "label": "Room Summary",
+        "description": "Status overview of a room"
+      },
+      "selected_device": {
+        "label": "Device Card",
+        "description": "Control an individual device"
+      },
+      "scenes_shortcut": {
+        "label": "Scene Shortcut",
+        "description": "Quick access to a scene"
+      },
+      "assistant_insights": {
+        "label": "Assistant Insights",
+        "description": "Proactive system insights"
+      },
+      "energy_insight": {
+        "label": "Energy Insight",
+        "description": "Real-time energy signals"
+      }
+    }
   },
   "demo": {
     "start_button": "Start Guided Demo",

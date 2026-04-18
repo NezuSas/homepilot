@@ -330,9 +330,9 @@ export const AutomationWorkbenchView: React.FC = () => {
                     onChange={e => setFormData({...formData, command: e.target.value})}
                     className="bg-primary text-primary-foreground rounded-xl p-3 text-xs font-black uppercase tracking-widest outline-none shadow-lg shadow-primary/20 appearance-none text-center cursor-pointer active:scale-95 transition-transform"
                   >
-                    <option value="turn_on">TURN ON</option>
-                    <option value="turn_off">TURN OFF</option>
-                    <option value="toggle">TOGGLE</option>
+                    <option value="turn_on">{t('common.on')}</option>
+                    <option value="turn_off">{t('common.off')}</option>
+                    <option value="toggle">{t('common.actions.toggle')}</option>
                   </select>
                 </div>
               </div>
@@ -461,7 +461,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                        <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-[9px] font-black text-muted-foreground">{t('automations.rule.if_trigger')}</span>
                        <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
                          <div className="flex items-center gap-2">
-                           <span className="text-primary/40 italic">Device:</span> 
+                           <span className="text-primary/40 italic">{t('automations.form.device_label')}</span> 
                            <span className="text-foreground/70">{rule.trigger.deviceId}</span>
                          </div>
                          <div className="h-[1px] w-full bg-border/40" />
@@ -485,7 +485,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                        <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-[9px] font-black text-primary/70">{t('automations.rule.then_action')}</span>
                        <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
                           <div className="flex items-center gap-2">
-                             <span className="text-primary/40 italic">Target:</span> 
+                             <span className="text-primary/40 italic">{t('automations.form.target_label')}</span> 
                              <span className="text-foreground/70">{rule.action.targetDeviceId}</span>
                           </div>
                           <div className="h-[1px] w-full bg-primary/10" />

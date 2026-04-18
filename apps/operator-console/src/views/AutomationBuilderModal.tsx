@@ -409,7 +409,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                <div className="relative space-y-8">
                   <div className="flex items-start gap-5">
                     <div className="w-10 h-10 rounded-full bg-background border flex items-center justify-center shrink-0">
-                       <span className="text-[10px] font-black">IF</span>
+                        <span className="text-[10px] font-black">{t('automations.summary.if')}</span>
                     </div>
                     <p className="text-xl font-black tracking-tight pt-1">{triggerDesc}</p>
                   </div>
@@ -418,7 +418,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   </div>
                   <div className="flex items-start gap-5">
                     <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                       <span className="text-[10px] font-black">THEN</span>
+                        <span className="text-[10px] font-black">{t('automations.summary.then')}</span>
                     </div>
                     <p className="text-xl font-black tracking-tight pt-1">{actionDesc}</p>
                   </div>

@@ -137,9 +137,7 @@ const DashDeviceTile: React.FC<{
       <div className="flex flex-col min-w-0">
         <div className="flex items-center justify-between gap-1 mb-1">
           <h4 className="text-xs font-bold truncate tracking-tight">{displayName}</h4>
-          {isSonoff && (
-            <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">Local</span>
-          )}
+            <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">{t('dashboards.status.local')}</span>
         </div>
         <div className="flex items-center gap-1.5 min-h-[12px]">
           {isProcessing ? (
@@ -161,7 +159,7 @@ const DashDeviceTile: React.FC<{
                 <>
                   <span className="w-1 h-1 bg-border rounded-full shrink-0" />
                   <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
-                    {isOnline ? "Online" : "Offline"}
+                    {isOnline ? t('common.online') : t('common.offline')}
                   </span>
                 </>
               )}
@@ -364,27 +362,27 @@ useEffect(() => {
            {/* Badge */}
            <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-[9px] font-black uppercase tracking-widest text-primary/80 backdrop-blur-md shadow-sm">
               <Cpu className="w-3.5 h-3.5" />
-              <span>Edge Network Active</span>
+              <span>{t('shell.status.edge_active')}</span>
               <div className="w-1 h-1 bg-primary rounded-full animate-pulse mx-1" />
-              <span className="text-muted-foreground/60 tracking-wider">Independent Local Control</span>
+              <span className="text-muted-foreground/60 tracking-wider">{t('shell.subtitle')}</span>
            </div>
 
            {/* Stats Summary */}
            <div className="flex items-center gap-8 py-1">
               <div className="flex flex-col items-center gap-1 group">
                  <span className="text-[14px] font-black text-foreground tracking-tight">{localDevices.length}</span>
-                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-success/60">Local {onlineLocalCount < localDevices.length && `(${onlineLocalCount} Online)`}</span>
+                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-success/60">{t('dashboards.status.local')} {onlineLocalCount < localDevices.length && `(${onlineLocalCount} ${t('common.online')})`}</span>
               </div>
               <div className="w-px h-6 bg-border/40" />
               <div className="flex flex-col items-center gap-1">
                  <span className="text-[14px] font-black text-foreground tracking-tight">{bridgedCount}</span>
-                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Bridged</span>
+                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">{t('dashboards.status.bridged')}</span>
               </div>
               <div className="w-px h-6 bg-border/40" />
               <div className="flex flex-col gap-1 items-start max-w-[120px]">
                  <div className="flex items-center gap-1.5">
                     <ShieldCheck className="w-2.5 h-2.5 text-primary opacity-60" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-primary/60">Resilient</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-primary/60">{t('dashboards.status.resilient')}</span>
                  </div>
                  <p className="text-[7px] font-bold leading-tight text-muted-foreground/40 uppercase italic">
                     {t('dashboard.resilience_hint', 'Hardware-level autonomy active. Network independence verified.')}
@@ -496,7 +494,7 @@ useEffect(() => {
                           ? "bg-white/20 border-white/40 text-white" 
                           : "bg-success/5 border-success/20 text-success/80"
                       )}>
-                        {isFullyAutonomous ? "Autonomous" : "Edge"}
+                        {isFullyAutonomous ? t('dashboards.status.autonomous') : t('dashboards.status.edge')}
                       </span>
                     )}
                   </div>

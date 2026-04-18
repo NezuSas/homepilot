@@ -283,7 +283,8 @@
       "stable": "Sistema estable",
       "syncing": "Sincronizando sistema",
       "updated_now": "Actualizado ahora",
-      "mode_label": "Modo {{mode}}"
+      "mode_label": "Modo {{mode}}",
+      "edge_active": "Red Edge Activa"
     },
     "tooltips": {
       "switch_language": "Cambiar Idioma"
@@ -310,6 +311,8 @@
       "device_count_other": "{{count}} Unidades",
       "device_count": "{{count}} Unidades"
     },
+    "edge_mode_active": "Modo Edge Activo",
+    "edge_hint": "Capacidades de control local activadas. Independencia de red activa.",
     "inspector": {
       "title": "Inspector Técnico",
       "no_logs": "No hay registros grabados",
@@ -414,7 +417,9 @@
       "select_scene": "Seleccionar Escena...",
       "select_command": "Seleccionar Comando...",
       "state_key": "Atributo de Estado",
-      "expected_value": "Valor Esperado"
+      "expected_value": "Valor Esperado",
+      "device_label": "Dispositivo:",
+      "target_label": "Objetivo:"
     },
     "summary": {
       "at_time": "A las {{time}}",
@@ -641,6 +646,54 @@
     "intelligence_note": "Toda la lógica autónoma es evaluada localmente por el núcleo de HomePilot, asegurando funcionalidad durante particiones de internet.",
     "synergy_title": "Sinergia del Sistema",
     "synergy_stats": "Agregado de {{devices}} Dispositivos • {{scenes}} Escenas • {{rules}} Reglas"
+  },
+  "dashboards": {
+    "title": "Mis Espacios",
+    "category": "Paneles Personales",
+    "empty_title": "Tu Espacio, a tu Manera",
+    "empty_description": "Crea paneles personalizados con los dispositivos, habitaciones e información que te importan.",
+    "action_create": "Crea tu primer panel",
+    "action_new": "Nuevo Panel",
+    "action_add_widget": "Añadir Widget",
+    "tabs_empty": "Sin pestañas aún",
+    "tabs_hint": "Las pestañas te permiten organizar tu panel en distintas secciones.",
+    "action_add_tab": "Añadir una pestaña",
+    "widgets_empty": "Esta pestaña está vacía. Añade tu primer widget abajo.",
+    "loading": "Cargando tus paneles",
+    "rename": "Renombrar",
+    "delete": "Eliminar panel",
+    "remove_widget": "Quitar widget",
+    "status": {
+      "edge_active": "Red Edge Activa",
+      "local_control": "Control Local Independiente",
+      "bridged": "Puenteado",
+      "resilient": "Resiliente",
+      "local": "Local",
+      "autonomous": "Autónomo",
+      "edge": "Edge"
+    },
+    "widgets": {
+      "room_summary": {
+        "label": "Resumen de Habitación",
+        "description": "Vista general del estado de una habitación"
+      },
+      "selected_device": {
+        "label": "Tarjeta de Dispositivo",
+        "description": "Control de un dispositivo individual"
+      },
+      "scenes_shortcut": {
+        "label": "Acceso Directo a Escena",
+        "description": "Acceso rápido a una escena"
+      },
+      "assistant_insights": {
+        "label": "Insights del Asistente",
+        "description": "Sugerencias proactivas del sistema"
+      },
+      "energy_insight": {
+        "label": "Insight de Energía",
+        "description": "Señales de energía en tiempo real"
+      }
+    }
   },
   "demo": {
     "start_button": "Iniciar Demo Guiada",

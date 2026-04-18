@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Trash2, LayoutDashboard, ChevronRight, Zap, Sparkles,
   Home, PlaySquare, Cpu, PenLine, Check, X
@@ -35,12 +36,12 @@ interface Dashboard {
 
 // ─── Widget Metadata ──────────────────────────────────────────────────────────
 
-const WIDGET_META: Record<DashboardWidget['type'], { label: string; icon: React.FC<any>; accent: string; description: string }> = {
-  room_summary:       { label: 'Room Summary',        icon: Home,             accent: 'blue',    description: 'Status overview of a room' },
-  selected_device:    { label: 'Device Card',         icon: Cpu,              accent: 'violet',  description: 'Control an individual device' },
-  scenes_shortcut:    { label: 'Scene Shortcut',      icon: PlaySquare,       accent: 'emerald', description: 'Quick access to a scene' },
-  assistant_insights: { label: 'Assistant Insights',  icon: Sparkles,         accent: 'amber',   description: 'Proactive system insights' },
-  energy_insight:     { label: 'Energy Insight',      icon: Zap,              accent: 'orange',  description: 'Real-time energy signals' },
+const WIDGET_META: Record<DashboardWidget['type'], { labelKey: string; icon: React.FC<any>; accent: string; descriptionKey: string }> = {
+  room_summary:       { labelKey: 'dashboards.widgets.room_summary.label',        icon: Home,             accent: 'blue',    descriptionKey: 'dashboards.widgets.room_summary.description' },
+  selected_device:    { labelKey: 'dashboards.widgets.room_summary.label',        icon: Cpu,              accent: 'violet',  descriptionKey: 'dashboards.widgets.selected_device.description' },
+  scenes_shortcut:    { labelKey: 'dashboards.widgets.scenes_shortcut.label',     icon: PlaySquare,       accent: 'emerald', descriptionKey: 'dashboards.widgets.scenes_shortcut.description' },
+  assistant_insights: { labelKey: 'dashboards.widgets.assistant_insights.label',  icon: Sparkles,         accent: 'amber',   descriptionKey: 'dashboards.widgets.assistant_insights.description' },
+  energy_insight:     { labelKey: 'dashboards.widgets.energy_insight.label',      icon: Zap,              accent: 'orange',  descriptionKey: 'dashboards.widgets.energy_insight.description' },
 };
 
 const SUPPORTED_WIDGETS = Object.keys(WIDGET_META) as DashboardWidget['type'][];
@@ -56,6 +57,7 @@ const ACCENT_STYLES: Record<string, string> = {
 // ─── Widget Card ──────────────────────────────────────────────────────────────
 
 function WidgetCard({ widget, onRemove }: { widget: DashboardWidget; onRemove: () => void }) {
+  const { t } = useTranslation();
   const meta = WIDGET_META[widget.type];
   const Icon = meta.icon;
   const accentCls = ACCENT_STYLES[meta.accent];
@@ -66,13 +68,13 @@ function WidgetCard({ widget, onRemove }: { widget: DashboardWidget; onRemove: (
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-foreground">{meta.label}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{meta.description}</p>
+        <p className="text-sm font-bold text-foreground">{t(meta.labelKey)}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
       </div>
       <button
         onClick={onRemove}
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-        title="Remove widget"
+        title={t('dashboards.remove_widget')}
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
@@ -83,6 +85,7 @@ function WidgetCard({ widget, onRemove }: { widget: DashboardWidget; onRemove: (
 // ─── Empty States ─────────────────────────────────────────────────────────────
 
 function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[480px] gap-6 text-center select-none">
       <div className="relative">
@@ -94,43 +97,45 @@ function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
         </div>
       </div>
       <div className="space-y-2 max-w-xs">
-        <h3 className="text-xl font-black text-foreground tracking-tight">Your Space, Your Way</h3>
+        <h3 className="text-xl font-black text-foreground tracking-tight">{t('dashboards.empty_title')}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Create personalized dashboards with the devices, rooms, and insights that matter to you.
+          {t('dashboards.empty_description')}
         </p>
       </div>
       <Button variant="primary" onClick={onCreate} className="flex items-center gap-2 px-6">
         <Plus className="w-4 h-4" />
-        Create your first dashboard
+        {t('dashboards.action_create')}
       </Button>
     </div>
   );
 }
 
 function EmptyTabs({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 text-center border border-dashed border-border/60 rounded-2xl bg-muted/5">
       <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center">
         <PenLine className="w-7 h-7 text-muted-foreground/50" />
       </div>
       <div className="space-y-1 max-w-xs">
-        <p className="text-sm font-bold text-foreground/70">No tabs yet</p>
-        <p className="text-xs text-muted-foreground">Tabs let you organize your dashboard into distinct sections.</p>
+        <p className="text-sm font-bold text-foreground/70">{t('dashboards.tabs_empty')}</p>
+        <p className="text-xs text-muted-foreground">{t('dashboards.tabs_hint')}</p>
       </div>
       <Button size="sm" variant="secondary" onClick={onAdd} className="flex items-center gap-2">
         <Plus className="w-3.5 h-3.5" />
-        Add a tab
+        {t('dashboards.action_add_tab')}
       </Button>
     </div>
   );
 }
 
 function EmptyWidgets({ onAdd }: { onAdd: (type: DashboardWidget['type']) => void }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center justify-center min-h-[180px] gap-3 text-center border border-dashed border-border/60 rounded-2xl bg-muted/5">
         <Sparkles className="w-8 h-8 text-muted-foreground/30" />
-        <p className="text-xs text-muted-foreground">This tab is empty. Add your first widget below.</p>
+        <p className="text-xs text-muted-foreground">{t('dashboards.widgets_empty')}</p>
       </div>
       <WidgetPicker onAdd={onAdd} />
     </div>
@@ -140,9 +145,10 @@ function EmptyWidgets({ onAdd }: { onAdd: (type: DashboardWidget['type']) => voi
 // ─── Widget Picker ────────────────────────────────────────────────────────────
 
 function WidgetPicker({ onAdd }: { onAdd: (type: DashboardWidget['type']) => void }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Add Widget</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{t('dashboards.action_add_widget')}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {SUPPORTED_WIDGETS.map(type => {
           const meta = WIDGET_META[type];
@@ -158,8 +164,8 @@ function WidgetPicker({ onAdd }: { onAdd: (type: DashboardWidget['type']) => voi
                 <Icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold text-foreground">{meta.label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{meta.description}</p>
+                <p className="text-xs font-bold text-foreground">{t(meta.labelKey)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t(meta.descriptionKey)}</p>
               </div>
             </button>
           );
@@ -172,6 +178,7 @@ function WidgetPicker({ onAdd }: { onAdd: (type: DashboardWidget['type']) => voi
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export function DashboardsView() {
+  const { t } = useTranslation();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const [active, setActive]             = useState<Dashboard | null>(null);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
@@ -247,7 +254,7 @@ export function DashboardsView() {
 
   const handleAddTab = async () => {
     if (!active) return;
-    const tabTitle = prompt('Tab name:');
+    const tabTitle = prompt(t('dashboards.action_add_tab') + ':');
     if (!tabTitle) return;
     await patch(active.id, { tabs: [...active.tabs, { id: crypto.randomUUID(), title: tabTitle, widgets: [] }] });
   };
@@ -281,7 +288,7 @@ export function DashboardsView() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <LayoutDashboard className="w-8 h-8 text-primary/40 animate-pulse" />
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest animate-pulse">Loading your dashboards</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest animate-pulse">{t('dashboards.loading')}</p>
         </div>
       </div>
     );
@@ -303,15 +310,15 @@ export function DashboardsView() {
               <LayoutDashboard className="w-7 h-7 text-primary-foreground" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70 mb-1">Personal Dashboards</p>
-              <h2 className="text-2xl font-black text-foreground tracking-tight">My Spaces</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Custom views tailored to your workflow and preferences.</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70 mb-1">{t('dashboards.category')}</p>
+              <h2 className="text-2xl font-black text-foreground tracking-tight">{t('dashboards.title')}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('dashboards.empty_description')}</p>
             </div>
           </div>
           {!creating && (
             <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2 shrink-0">
               <Plus className="w-4 h-4" />
-              New Dashboard
+              {t('dashboards.action_new')}
             </Button>
           )}
         </div>
@@ -320,18 +327,18 @@ export function DashboardsView() {
       {/* ── Create Form ──────────────────────────────────────────────── */}
       {creating && (
         <div className="mb-6 p-5 rounded-2xl bg-card border border-primary/30 shadow-lg shadow-primary/5 animate-in slide-in-from-top-2 duration-300">
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">New Dashboard</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">{t('dashboards.action_new')}</p>
           <div className="flex items-center gap-3">
             <input
               autoFocus
               className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:border-primary transition-colors"
-              placeholder="Dashboard title..."
+              placeholder={t('dashboards.placeholder_title', { defaultValue: 'Dashboard title...' })}
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setCreating(false); setNewTitle(''); } }}
             />
             <Button size="sm" variant="primary" onClick={handleCreate} className="flex items-center gap-2">
-              <Check className="w-4 h-4" /> Create
+              <Check className="w-4 h-4" /> {t('common.confirm')}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => { setCreating(false); setNewTitle(''); }} className="flex items-center gap-2">
               <X className="w-4 h-4" />
@@ -348,7 +355,7 @@ export function DashboardsView() {
 
           {/* ── Dashboard List (left rail) ── */}
           <nav className="flex flex-col gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-1 mb-1">Dashboards</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-1 mb-1">{t('nav.dashboards')}</p>
             {dashboards.map(d => {
               const isActive = active?.id === d.id;
               return (
@@ -396,7 +403,7 @@ export function DashboardsView() {
                     <button
                       onClick={() => { setDraftTitle(active.title); setEditingTitle(true); }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-                      title="Rename"
+                      title={t('dashboards.rename')}
                     >
                       <PenLine className="w-4 h-4" />
                     </button>
@@ -405,7 +412,7 @@ export function DashboardsView() {
                 <button
                   onClick={() => handleDelete(active.id)}
                   className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                  title="Delete dashboard"
+                  title={t('dashboards.delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -436,7 +443,7 @@ export function DashboardsView() {
                       className="flex items-center gap-1 px-3 py-3 text-xs font-black uppercase tracking-widest text-muted-foreground/50 hover:text-primary transition-colors rounded-t-xl hover:bg-primary/5 border-b-2 border-transparent"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      Add tab
+                      {t('dashboards.action_add_tab')}
                     </button>
                   </div>
 
