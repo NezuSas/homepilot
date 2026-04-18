@@ -303,7 +303,9 @@
       "all": "Todo",
       "light": "Luces",
       "switch": "Interruptores",
-      "sensor": "Sensores"
+      "sensor": "Sensores",
+      "local": "Local",
+      "bridged": "Puenteado"
     },
     "rooms": {
       "unassigned": "Sin Asignar / Pendiente de Puesta en Marcha",
@@ -519,7 +521,8 @@
       "operator_desc": "Operador (Acceso Estándar)",
       "admin_desc": "Admin (Todo el Sistema)",
       "submit": "Crear Contexto de Seguridad",
-      "password_hint": "Mínimo 8 caracteres requeridos"
+      "password_hint": "Mín. 8 caracteres",
+      "username_placeholder": "ej. operador_1"
     },
     "header": {
       "title": "Directorio de Edge Activo",
@@ -587,7 +590,9 @@
       "docker_hint": "¿Corriendo en Docker? Usa <code class=\"bg-muted px-1 py-0.5 rounded text-xs font-mono\">http://homeassistant:8123</code> para acceso a la red interna.",
       "test": "Probar Conexión",
       "save": "Guardar y Continuar",
-      "success": "¡Conexión exitosa!"
+      "success": "¡Conexión exitosa!",
+      "url_placeholder": "http://homeassistant.local:8123",
+      "token_placeholder": "Token de acceso de larga duración..."
     },
     "step3": {
       "title": "Sistema Listo",
@@ -732,6 +737,8 @@
     "delete": "Eliminar",
     "confirm": "Confirmar",
     "retry": "Reintentar",
+    "not_available": "N/D",
+    "password_mask": "••••••••",
     "online": "En línea",
     "offline": "Fuera de línea",
     "enable": "Activar",

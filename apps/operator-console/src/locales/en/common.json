@@ -311,7 +311,9 @@
       "all": "All",
       "light": "Lights",
       "switch": "Switches",
-      "sensor": "Sensors"
+      "sensor": "Sensors",
+      "local": "Local",
+      "bridged": "Bridged"
     },
     "rooms": {
       "unassigned": "Unassigned / Pending Commissioning",
@@ -519,7 +521,8 @@
       "operator_desc": "Operator (Standard Access)",
       "admin_desc": "Admin (System Wide)",
       "submit": "Create Security Context",
-      "password_hint": "Min 8 chars required"
+      "password_hint": "Min 8 chars required",
+      "username_placeholder": "e.g. operator_1"
     },
     "header": {
       "title": "Active Edge Directory",
@@ -587,7 +590,9 @@
       "docker_hint": "Running in Docker? Use <code class=\"bg-muted px-1 py-0.5 rounded text-xs font-mono\">http://homeassistant:8123</code> for internal network access.",
       "test": "Test Connection",
       "save": "Save & Continue",
-      "success": "Connection successful!"
+      "success": "Connection successful!",
+      "url_placeholder": "http://homeassistant.local:8123",
+      "token_placeholder": "Long-lived access token..."
     },
     "step3": {
       "title": "System Ready",
@@ -733,6 +738,8 @@
     "import": "Import",
     "confirm": "Confirm",
     "retry": "Retry",
+    "not_available": "N/A",
+    "password_mask": "••••••••",
     "online": "Online",
     "offline": "Offline",
     "unknown": "Unknown",

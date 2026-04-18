@@ -169,7 +169,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <Server className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <input
                     type="url"
-                    placeholder="http://homeassistant.local:8123"
+                    placeholder={t('onboarding.step2.url_placeholder')}
                     value={haUrl}
                     onChange={(e) => setHaUrl(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -184,7 +184,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <input
                     type="password"
-                    placeholder="eyJh..."
+                    placeholder={t('onboarding.step2.token_placeholder')}
                     value={haToken}
                     onChange={(e) => setHaToken(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

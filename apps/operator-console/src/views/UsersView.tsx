@@ -130,7 +130,7 @@ export function UsersView() {
                   value={newUsername} 
                   onChange={e => setNewUsername(e.target.value)} 
                   className="w-full bg-background border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder="operator_1"
+                  placeholder={t('users.create_form.username_placeholder')}
                   required 
                 />
               </div>
@@ -141,7 +141,7 @@ export function UsersView() {
                   value={newPassword} 
                   onChange={e => setNewPassword(e.target.value)} 
                   className="w-full bg-background border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder="••••••••"
+                  placeholder={t('common.password_mask')}
                   required 
                 />
                 <p className="text-[10px] text-muted-foreground mt-1 text-right">{t('users.create_form.password_hint')}</p>
@@ -225,7 +225,7 @@ export function UsersView() {
                           : 'bg-primary/10 text-primary border-primary/20'
                       }`}>
                         {u.role === 'admin' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                        {u.role.toUpperCase()}
+                        {t('common.roles.' + u.role).toUpperCase()}
                       </span>
                     </td>
                     <td className="px-5 py-4">

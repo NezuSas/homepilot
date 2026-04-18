@@ -341,7 +341,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                     originFilter === o ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
                   )}
                 >
-                  {o === 'all' ? t('common.all') : (o === 'local' ? 'Local' : 'Bridged')}
+                  {o === 'all' ? t('common.all') : (o === 'local' ? t('inbox.filters.local') : t('inbox.filters.bridged'))}
                 </button>
               ))}
             </div>
@@ -672,7 +672,7 @@ const DeviceInspector: React.FC<{
                        <div className="flex items-center gap-1">
                           <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-success animate-pulse" : "bg-destructive")} />
                           <span className={cn("text-[8px] font-black uppercase", isOnline ? "text-success" : "text-destructive")}>
-                             {isOnline ? "Online" : "Offline"}
+                             {isOnline ? t('common.online') : t('common.offline')}
                           </span>
                        </div>
                     )}
@@ -762,7 +762,7 @@ const DeviceInspector: React.FC<{
                        <div className="flex items-center gap-2 opacity-40">
                           <Clock className="w-3 h-3" />
                           <span className="text-[8px] font-black uppercase tracking-tighter">
-                            {device.updatedAt ? new Date(device.updatedAt).toLocaleTimeString() : 'N/A'}
+                            {device.updatedAt ? new Date(device.updatedAt).toLocaleTimeString() : t('common.not_available')}
                           </span>
                        </div>
                     </div>
