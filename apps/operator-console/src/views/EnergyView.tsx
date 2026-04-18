@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Zap, Cpu, TrendingDown, AlertTriangle, Leaf, ChevronRight } from 'lucide-react';
-import { cn } from '../lib/utils';
 import type { View } from '../types';
 
 interface EnergyViewProps {
@@ -98,18 +97,14 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <p className="text-xs font-black text-foreground">{t('nav.assistant')}</p>
-                <p className="text-[10px] text-muted-foreground/60">{t('energy.status_active')}</p>
+                <p className="text-[10px] text-muted-foreground/60">{t('assistant.subtitle')}</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{t('energy.insight_hint')}</p>
             {onNavigate && (
               <button
                 onClick={() => onNavigate('assistant')}
-                className={cn(
-                  'flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl',
-                  'bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30',
-                  'transition-all duration-200 group active:scale-[0.98]'
-                )}
+                className="flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 group active:scale-[0.98]"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-primary/80 group-hover:text-primary">
                   {t('energy.go_to_assistant')}
@@ -119,22 +114,17 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
             )}
           </div>
 
-          {/* Placeholder metric cards — visually rich, clearly "coming soon" */}
-          {(['Bedroom', 'Living Room', 'Kitchen'] as const).map((room, i) => (
-            <div key={room} className={cn(
-              'rounded-2xl border border-border/40 bg-card/60 p-5 flex items-center gap-4',
-              'opacity-30 select-none pointer-events-none'
-            )}
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
+          {/* Placeholder metric cards — pure skeleton shapes, no hardcoded strings */}
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-2xl border border-border/40 bg-card/60 p-5 flex items-center gap-4 opacity-25 select-none pointer-events-none">
               <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
                 <Zap className="w-4 h-4 text-muted-foreground/30" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="h-2.5 w-20 bg-muted rounded-full mb-2" />
-                <div className="h-2 w-12 bg-muted/60 rounded-full" />
+                <div className="h-2.5 bg-muted rounded-full mb-2" style={{ width: `${60 + i * 12}px` }} />
+                <div className="h-2 bg-muted/60 rounded-full" style={{ width: `${36 + i * 8}px` }} />
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <div className="h-3 w-12 bg-muted rounded-full mb-1.5 ml-auto" />
                 <div className="h-2 w-8 bg-muted/50 rounded-full ml-auto" />
               </div>

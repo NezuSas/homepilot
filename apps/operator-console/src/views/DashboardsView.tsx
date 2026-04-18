@@ -109,14 +109,14 @@ function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
 
       {/* Value pillars */}
       <div className="flex items-center gap-6 flex-wrap justify-center">
-        {([
-          { icon: Home, label: 'Rooms' },
-          { icon: Cpu, label: 'Devices' },
-          { icon: Sparkles, label: 'Insights' },
-        ] as { icon: React.FC<{ className?: string }>; label: string }[]).map(({ icon: Icon, label }) => (
-          <div key={label} className="flex items-center gap-2 text-muted-foreground/50">
+          {([
+          { icon: Home,     labelKey: 'topology.rooms_in' },
+          { icon: Cpu,      labelKey: 'nav.system_devices' },
+          { icon: Sparkles, labelKey: 'nav.assistant' },
+        ] as { icon: React.FC<{ className?: string }>; labelKey: string }[]).map(({ icon: Icon, labelKey }) => (
+          <div key={labelKey} className="flex items-center gap-2 text-muted-foreground/50">
             <Icon className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{t(labelKey)}</span>
           </div>
         ))}
       </div>
@@ -371,12 +371,19 @@ export function DashboardsView() {
               <p className="text-xs text-muted-foreground mt-0.5">{t('dashboards.intro_subtitle')}</p>
             </div>
           </div>
-          {!creating && (
-            <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2 shrink-0">
-              <Plus className="w-4 h-4" />
-              {t('dashboards.action_new')}
-            </Button>
-          )}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <Cpu className="w-3 h-3 text-primary/60" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">{t('dashboards.personal_label')}</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" />
+            </div>
+            {!creating && (
+              <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                {t('dashboards.action_new')}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
