@@ -54,7 +54,7 @@ describe('Topology API Boundary', () => {
   describe('HomeController Unit Tests', () => {
     // Mockeos deterministas directos
     const mockCreateDeps = {
-      homeRepository: { saveHome: async () => {}, findHomesByUserId: async () => [], findHomeById: async () => null },
+      homeRepository: { saveHome: async () => {}, findHomesByUserId: async () => [], findHomeById: async () => null, findAll: async () => [] },
       eventPublisher: { publish: async () => {} },
       idGenerator: { generate: () => 'fixed-id' },
       clock: { now: () => 'fixed-time' }
@@ -80,7 +80,7 @@ describe('Topology API Boundary', () => {
 
   describe('RoomController Unit Tests', () => {
     const testRoomDeps = {
-      homeRepository: { saveHome: async() => {}, findHomesByUserId: async() => [], findHomeById: async () => ({ id: 'h1', ownerId: 'u1', name: 'H', entityVersion: 1, createdAt: '', updatedAt: '' }) },
+      homeRepository: { saveHome: async() => {}, findHomesByUserId: async() => [], findHomeById: async () => ({ id: 'h1', ownerId: 'u1', name: 'H', entityVersion: 1, createdAt: '', updatedAt: '' }), findAll: async () => [] },
       roomRepository: { 
         saveRoom: async() => {}, 
         findRoomsByHomeId: async() => [],

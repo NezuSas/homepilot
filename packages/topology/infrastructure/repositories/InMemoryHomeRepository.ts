@@ -35,6 +35,10 @@ export class InMemoryHomeRepository implements HomeRepository {
     return Promise.resolve(home);
   }
 
+  async findAll(): Promise<ReadonlyArray<Home>> {
+    return Promise.resolve(Object.freeze(Array.from(this.store.values())));
+  }
+
   /**
    * Limpia la base de datos temporal (utilidad técnica para teardown de Unit Tests).
    */
