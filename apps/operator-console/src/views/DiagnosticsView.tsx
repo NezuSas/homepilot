@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Cpu, ShieldCheck } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 interface DiagnosticsCounters {
   recentReconnects: number;
@@ -47,6 +48,11 @@ export function DiagnosticsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [scenes, setScenes] = useState<any[]>([]);
+  const [automations, setAutomations] = useState<any[]>([]);
+  
+  const devices = useDeviceSnapshotStore(state => state.devices);
+  const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -59,15 +65,20 @@ export function DiagnosticsView() {
 
   const fetchDiagnostics = async () => {
     try {
-      const [snapshotRes, eventsRes] = await Promise.all([
+      const [snapshotRes, eventsRes, scenesRes, automationsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/v1/system/diagnostics`),
-        fetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`)
+        fetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`),
+        fetch(`${API_BASE_URL}/api/v1/scenes`),
+        fetch(`${API_BASE_URL}/api/v1/automations`)
       ]);
 
       if (!snapshotRes.ok || !eventsRes.ok) throw new Error(t('common.errors.api_failed'));
 
       setSnapshot(await snapshotRes.json());
       setEvents(await eventsRes.json());
+      if (scenesRes.ok) setScenes(await scenesRes.json());
+      if (automationsRes.ok) setAutomations(await automationsRes.json());
+      await refreshSnapshot();
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -139,6 +150,70 @@ export function DiagnosticsView() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
+
+      {/* LOCAL RESILIENCE SUMMARY */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-1000">
+         {[
+           {
+             label: 'Native Local',
+             value: devices.filter(d => d.integrationSource === 'sonoff').length,
+             sub: `${devices.filter(d => d.integrationSource === 'sonoff' && (Date.now() - new Date(d.updatedAt || 0).getTime() < 300000)).length} Online`,
+             icon: Cpu,
+             color: 'text-success'
+           },
+           {
+             label: 'Bridged (HA)',
+             value: devices.filter(d => d.integrationSource !== 'sonoff').length,
+             sub: 'External Mesh',
+             icon: Server,
+             color: 'text-primary'
+           },
+           {
+             label: 'Autonomous Scenes',
+             value: scenes.filter(s => {
+               const actions = s.actions || [];
+               return actions.length > 0 && actions.every((a: any) => devices.find(d => d.id === a.deviceId)?.integrationSource === 'sonoff');
+             }).length,
+             sub: 'Edge Executable',
+             icon: Zap,
+             color: 'text-warning'
+           },
+           {
+             label: 'Hardware Autonomy',
+             value: automations.filter(rule => {
+                const triggerDevice = devices.find(d => d.id === rule.trigger?.deviceId);
+                const actionDevice = devices.find(d => d.id === rule.action?.targetDeviceId);
+                const targetScene = scenes.find(s => s.id === rule.action?.sceneId);
+                const isLocal = (d?: any) => d?.integrationSource === 'sonoff';
+                
+                const triggerIsLocal = rule.trigger?.type === 'time' || isLocal(triggerDevice);
+                let actionIsLocal = false;
+                if (rule.action?.type === 'device_command') {
+                  actionIsLocal = isLocal(actionDevice);
+                } else if (rule.action?.type === 'execute_scene' && targetScene?.actions) {
+                  actionIsLocal = targetScene.actions.every((a: any) => isLocal(devices.find(d => d.id === a.deviceId)));
+                }
+                return triggerIsLocal && actionIsLocal;
+             }).length,
+             sub: 'Zero-Cloud Rules',
+             icon: ShieldCheck,
+             color: 'text-success'
+           }
+         ].map((stat, i) => (
+           <div key={i} className="bg-card border border-border/60 rounded-2xl p-4 flex items-center justify-between group hover:border-primary/40 transition-all shadow-sm">
+              <div className="space-y-1">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">{stat.label}</p>
+                 <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-black tabular-nums">{stat.value}</span>
+                    <span className="text-[8px] font-bold text-muted-foreground/60 uppercase">{stat.sub}</span>
+                 </div>
+              </div>
+              <div className={cn("p-3 rounded-xl bg-muted/50 group-hover:scale-110 transition-transform", stat.color)}>
+                 <stat.icon className="w-5 h-5" />
+              </div>
+           </div>
+         ))}
+      </div>
       
       {/* OVERALL HEALTH BANNER */}
       <div className={cn(
