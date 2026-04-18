@@ -452,37 +452,66 @@ useEffect(() => {
               {t('dashboard.new_scene')}
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {scenes.map(scene => (
+            {scenes.map(scene => {
+              const sceneActions = scene.actions || [];
+              const localActions = sceneActions.filter(action => {
+                const device = allDevices.find(d => d.id === action.deviceId);
+                return device?.integrationSource === 'sonoff';
+              });
+              const isEdgeResilient = localActions.length > 0;
+              const isFullyAutonomous = localActions.length === sceneActions.length && sceneActions.length > 0;
+              const isProcessingThis = roomProcessing === 'scene_' + scene.id;
+
+              return (
               <button
                 key={scene.id}
                 onClick={() => handleSceneExecute(scene)}
                 disabled={!!roomProcessing}
                 className={cn(
                   "group relative flex items-center gap-6 p-6 rounded-[2.5rem] transition-all duration-500 text-left overflow-hidden border-2 active:scale-95 disabled:opacity-50 hover:-translate-y-1 hover:shadow-xl",
-                  roomProcessing === 'scene_' + scene.id 
+                  isProcessingThis 
                     ? "bg-primary border-primary text-primary-foreground shadow-2xl" 
-                    : "bg-card border-border shadow-md hover:border-primary/40"
+                    : "bg-card border-border shadow-md hover:border-primary/40",
+                  (isEdgeResilient && !isProcessingThis) && "hover:border-success/30"
                 )}
               >
+                {/* Edge Atmospheric Pulsar */}
+                {isEdgeResilient && isProcessingThis && (
+                  <div className="absolute inset-0 bg-success/10 animate-atmospheric-glow pointer-events-none" />
+                )}
+
                 <div className={cn(
-                  "p-4 rounded-2xl transition-all duration-700",
-                  roomProcessing === 'scene_' + scene.id ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
+                  "p-4 rounded-2xl transition-all duration-700 z-10",
+                  isProcessingThis ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
+                  (isEdgeResilient && isProcessingThis) && "bg-success shadow-lg shadow-success/40 scale-110"
                 )}>
-                  <Zap className="w-5 h-5" />
+                  {isEdgeResilient && isProcessingThis ? <Cpu className="w-5 h-5 animate-pulse" /> : <Zap className="w-5 h-5" />}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-black tracking-tight truncate">{scene.name}</h3>
+                <div className="min-w-0 flex-1 z-10">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="text-base font-black tracking-tight truncate">{scene.name}</h3>
+                    {isEdgeResilient && (
+                      <span className={cn(
+                        "text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0",
+                        isProcessingThis 
+                          ? "bg-white/20 border-white/40 text-white" 
+                          : "bg-success/5 border-success/20 text-success/80"
+                      )}>
+                        {isFullyAutonomous ? "Autonomous" : "Edge"}
+                      </span>
+                    )}
+                  </div>
                   <p className={cn(
                     "text-[10px] font-medium italic opacity-60 truncate",
-                    roomProcessing === 'scene_' + scene.id ? "text-white" : "text-muted-foreground"
+                    isProcessingThis ? "text-white" : "text-muted-foreground"
                   )}>
-                    {scene.description || t('dashboard.experience')}
+                    {isFullyAutonomous ? "Hardware-level execution active" : (scene.description || t('dashboard.experience'))}
                   </p>
                 </div>
               </button>
-            ))}
+            )})}
           </div>
         </div>
       )}
