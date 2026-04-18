@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Trash2, Clock, Zap, AlertCircle, 
-  Pencil, ArrowRight, Loader2, CheckCircle2
+  Pencil, ArrowRight, Loader2, CheckCircle2, Cpu
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
@@ -36,11 +36,14 @@ interface AutomationRule {
 interface Device {
   id: string;
   name: string;
+  integrationSource?: string;
+  updatedAt?: string;
 }
 
 interface Scene {
   id: string;
   name: string;
+  actions?: { deviceId: string; command: string }[];
 }
 
 const AutomationsView: React.FC = () => {
@@ -152,6 +155,33 @@ const AutomationsView: React.FC = () => {
     const isEnabled = rule.enabled;
     const isWorking = processingId === rule.id;
 
+    // Resilience Detection
+    const triggerDevice = devices.find(d => d.id === rule.trigger.deviceId);
+    const actionDevice = devices.find(d => d.id === rule.action.targetDeviceId);
+    const targetScene = scenes.find(s => s.id === rule.action.sceneId);
+    
+    let isFullyAutonomous = false;
+    let isEdgeCapable = false;
+
+    const isDeviceLocal = (d?: Device) => d?.integrationSource === 'sonoff';
+    
+    const triggerIsLocal = rule.trigger.type === 'time' || isDeviceLocal(triggerDevice);
+    
+    let actionIsLocal = false;
+    if (rule.action.type === 'device_command') {
+      actionIsLocal = isDeviceLocal(actionDevice);
+    } else if (rule.action.type === 'execute_scene' && targetScene?.actions) {
+      const sceneDevices = targetScene.actions.map(a => devices.find(d => d.id === a.deviceId));
+      actionIsLocal = sceneDevices.every(isDeviceLocal);
+      const someLocal = sceneDevices.some(isDeviceLocal);
+      if (someLocal) isEdgeCapable = true;
+    }
+
+    isFullyAutonomous = triggerIsLocal && actionIsLocal;
+    isEdgeCapable = isEdgeCapable || triggerIsLocal || actionIsLocal;
+
+    const resilienceLabel = isFullyAutonomous ? "Autonomous" : (isEdgeCapable ? "Edge Capable" : "Bridged");
+
     return (
       <div 
         className={cn(
@@ -159,16 +189,32 @@ const AutomationsView: React.FC = () => {
           isEnabled ? "border-primary/20 shadow-2xl p-8" : "border-border/30 opacity-60 p-8 grayscale"
         )}
       >
+        {/* Resilience Glow */}
+        {isEnabled && isFullyAutonomous && (
+          <div className="absolute inset-0 bg-success/[0.02] pointer-events-none" />
+        )}
+
         <div className="flex items-start justify-between mb-8">
           <div className="flex items-center gap-5">
             <div className={cn(
               "p-5 rounded-[1.8rem] transition-all duration-700",
-              isEnabled ? "bg-primary text-primary-foreground premium-glow" : "bg-muted text-muted-foreground"
+              isEnabled ? (isFullyAutonomous ? "bg-success text-white premium-glow-success" : "bg-primary text-primary-foreground premium-glow") : "bg-muted text-muted-foreground"
             )}>
               {rule.trigger.type === 'time' ? <Clock className="w-7 h-7" /> : <Zap className="w-7 h-7" />}
             </div>
             <div>
-               <h4 className="text-2xl font-black tracking-tighter leading-none mb-1">{rule.name}</h4>
+               <div className="flex items-center gap-2 mb-1">
+                 <h4 className="text-2xl font-black tracking-tighter leading-none">{rule.name}</h4>
+                 {isEnabled && (
+                    <span className={cn(
+                      "text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border shrink-0",
+                      isFullyAutonomous ? "bg-success/10 border-success/20 text-success" : 
+                      (isEdgeCapable ? "bg-primary/10 border-primary/20 text-primary" : "bg-muted border-border text-muted-foreground opacity-40")
+                    )}>
+                      {resilienceLabel}
+                    </span>
+                 )}
+               </div>
                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
                  {rule.trigger.type === 'time' ? t('automations.summary.schedule_based') : t('automations.summary.event_driven')}
                </span>
@@ -181,7 +227,7 @@ const AutomationsView: React.FC = () => {
                 disabled={isWorking}
                 className={cn(
                   "px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
-                  isEnabled ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  isEnabled ? (isFullyAutonomous ? "bg-success/20 text-success" : "bg-primary/20 text-primary") : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
                 )}
              >
                 {isWorking ? <Loader2 className="w-4 h-4 animate-spin" /> : (isEnabled ? t('automations.summary.active') : t('automations.summary.paused'))}
@@ -231,11 +277,12 @@ const AutomationsView: React.FC = () => {
 
         <div className="mt-8 flex items-center justify-between">
            <div className="flex items-center gap-3">
-              <div className={cn("w-2 h-2 rounded-full", isEnabled ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+              <div className={cn("w-2 h-2 rounded-full", isEnabled ? (isFullyAutonomous ? "bg-success animate-pulse" : "bg-primary animate-pulse") : "bg-muted-foreground/30")} />
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                 {isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_recipe')}
+                 {isFullyAutonomous ? "Verified Hardware Autonomy" : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_recipe'))}
               </span>
            </div>
+           {isFullyAutonomous && <Cpu className="w-3 h-3 text-success opacity-40" />}
            <span className="text-[9px] font-bold text-muted-foreground opacity-20 uppercase">{t('shell.subtitle')}</span>
         </div>
       </div>
