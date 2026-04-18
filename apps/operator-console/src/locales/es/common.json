@@ -110,25 +110,29 @@
   },
   "dashboard": {
     "scene_create": "Crear Escena",
-    "atmosphere_recipes": "Recetas de Atmósfera",
+    "atmosphere_recipes": "Escenas",
     "new_scene": "Nueva Escena",
     "active": "Activos",
     "elements": "Elementos",
-    "living_space": "Atmósfera y Espacios",
+    "living_space": "Escenas y Espacios",
     "spaces_subtitle": "Habitaciones y espacios de tu hogar",
     "topology": "Topología del Sistema",
     "discovery": "Descubrimiento de Dispositivos",
     "logic_engine": "Motor de Lógica",
-    "recipes": "Recetas de Atmósfera",
+    "recipes": "Escenas",
     "platform": "Integración de Plataforma",
     "observability": "Observabilidad del Sistema",
     "experience": "Experiencia curada",
     "resilience_insight": "Auditoría de autonomía",
     "resilience_hint": "Fiabilidad Verificada • Control Local Independiente",
     "actionable_insights": "Sugerencias Inteligentes",
-    "atmosphere_recipes": "Ambientes",
     "energy_insight": "Ahorro de Energía",
-    "proactive": "Optimización"
+    "proactive": "Optimización",
+    "scene_global": "Escena Global",
+    "active_units_one": "1 Activo",
+    "active_units_other": "{{count}} Activos",
+    "active_units": "{{count}} Activos",
+    "all_off": "Todo Apagado"
   },
   "scenes": {
     "empty_title": "No se encontraron escenas",
@@ -136,19 +140,25 @@
     "delete_title": "¿Eliminar Escena?",
     "delete_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados.",
     "builder": {
-      "title_create": "Curar Atmósfera",
-      "title_edit": "Refinar Atmósfera",
-      "subtitle": "Definición de Modo de Vida",
+      "title_create": "Crear Escena",
+      "title_edit": "Editar Escena",
+      "subtitle": "Definición de Escena",
       "identity": "Identidad",
       "scope": "Alcance",
-      "intent": "Intención de la Atmósfera",
+      "intent": "Intención de la Escena",
       "select_units": "Seleccionar Unidades Activas ({{count}})",
       "grouping_hint": "Agrupamiento inteligente",
-      "commit": "Confirmar Atmósfera",
+      "commit": "Guardar Escena",
       "errors": {
-        "no_name": "El nombre de la atmósfera es obligatorio",
+        "no_name": "El nombre de la escena es obligatorio",
         "no_actions": "Por favor, selecciona al menos una unidad",
-        "sync_failed": "Fallo al sincronizar el modo de vida"
+        "sync_failed": "Fallo al guardar la escena"
+      },
+      "actions": {
+        "direct_command": "Comando Directo",
+        "direct_command_desc": "Controlar una unidad específica",
+        "invoke_scene": "Invocar Escena",
+        "invoke_scene_desc": "Activar una escena"
       },
       "placeholders": {
         "name": "Ej: Cena con invitados",
@@ -160,7 +170,7 @@
       "night": "Sombras profundas y brillos cálidos para un descanso reparador",
       "relax": "Niveles de ambiente diseñados para el confort puro",
       "work": "Entorno de alta claridad para una productividad enfocada",
-      "welcome": "La atmósfera perfecta para dar la bienvenida al hogar",
+      "welcome": "La escena perfecta para dar la bienvenida al hogar",
       "generic": "Un entorno a medida para este momento"
     },
     "header": {
@@ -272,6 +282,16 @@
       "state_delta": "Delta de Estado",
       "divergences_fixed": "Divergencias Corregidas",
       "last_cycle": "Último Ciclo"
+    },
+    "metrics": {
+      "native_local": "Local Nativo",
+      "online": "En línea",
+      "bridged": "Puenteado (HA)",
+      "external_mesh": "Malla externa",
+      "autonomous": "Escenas Autónomas",
+      "edge_executable": "Ejecutable en Edge",
+      "hardware_autonomy": "Autonomía de Hardware",
+      "zero_cloud": "Reglas sin nube"
     }
   },
   "shell": {
@@ -754,24 +774,6 @@
         "title": "Diseñado para la vida real",
         "description": "El sistema sigue funcionando incluso sin conexión o servicios externos."
       }
-    }
-  },
-  "dashboard": {
-    "active_units_one": "1 Activo",
-    "active_units_other": "{{count}} Activos",
-    "active_units": "{{count}} Activos",
-    "all_off": "Todo Apagado"
-  },
-  "diagnostics": {
-    "metrics": {
-      "native_local": "Local Nativo",
-      "online": "En línea",
-      "bridged": "Puenteado (HA)",
-      "external_mesh": "Malla externa",
-      "autonomous": "Escenas Autónomas",
-      "edge_executable": "Ejecutable en Edge",
-      "hardware_autonomy": "Autonomía de Hardware",
-      "zero_cloud": "Reglas sin nube"
     }
   },
   "common": {

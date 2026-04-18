@@ -110,25 +110,29 @@
   },
   "dashboard": {
     "scene_create": "Create Scene",
-    "atmosphere_recipes": "Atmosphere Recipes",
+    "atmosphere_recipes": "Scenes",
     "new_scene": "New Scene",
     "active": "Active",
     "elements": "Elements",
-    "living_space": "Atmosphere & Living Space",
+    "living_space": "Scenes & Spaces",
     "spaces_subtitle": "Rooms & Spaces in your home",
     "topology": "System Topology",
     "discovery": "Device Discovery",
     "logic_engine": "Logic Engine",
-    "recipes": "Atmosphere Recipes",
+    "recipes": "Scenes",
     "platform": "Platform Integration",
     "observability": "System Observability",
     "experience": "Curated experience",
     "resilience_insight": "Hardware autonomy audit",
     "resilience_hint": "Reliability Verified • Independent Local Control",
     "actionable_insights": "Smart Suggestions",
-    "atmosphere_recipes": "Ambiances",
     "energy_insight": "Energy Efficiency",
-    "proactive": "Optimization"
+    "proactive": "Optimization",
+    "scene_global": "Global Scene",
+    "active_units_one": "1 Active",
+    "active_units_other": "{{count}} Active",
+    "active_units": "{{count}} Active",
+    "all_off": "All Off"
   },
   "scenes": {
     "empty_title": "No scenes found",
@@ -136,25 +140,25 @@
     "delete_title": "Delete Scene?",
     "delete_description": "This will permanently remove the scene. Individual devices will not be affected.",
     "builder": {
-      "title_create": "Curate Atmosphere",
-      "title_edit": "Refine Atmosphere",
-      "subtitle": "Lifestyle Mode Definition",
+      "title_create": "Create Scene",
+      "title_edit": "Edit Scene",
+      "subtitle": "Scene Definition",
       "identity": "Identity",
       "scope": "Scope",
-      "intent": "Atmosphere Intent",
+      "intent": "Scene Intent",
       "select_units": "Select Active Units ({{count}})",
       "grouping_hint": "Intelligent grouping",
-      "commit": "Commit Atmosphere",
+      "commit": "Save Scene",
       "errors": {
-        "no_name": "Atmosphere name is required",
+        "no_name": "Scene name is required",
         "no_actions": "Please select at least one unit",
-        "sync_failed": "Failed to synchronize lifestyle mode"
+        "sync_failed": "Failed to save scene"
       },
       "actions": {
         "direct_command": "Direct Command",
         "direct_command_desc": "Control a specific unit",
         "invoke_scene": "Invoke Scene",
-        "invoke_scene_desc": "Activate a lifestyle mode"
+        "invoke_scene_desc": "Activate a scene"
       },
       "placeholders": {
         "name": "e.g. Dinner Party",
@@ -166,7 +170,7 @@
       "night": "Deep shadows and warm glows for restorative rest",
       "relax": "Ambient levels tailored for pure comfort",
       "work": "High-clarity environment for focused productivity",
-      "welcome": "The perfect welcome home atmosphere",
+      "welcome": "The perfect welcome home scene",
       "generic": "A tailored environment for this moment"
     },
     "header": {
@@ -278,6 +282,16 @@
       "state_delta": "State Delta",
       "divergences_fixed": "Divergences Fixed",
       "last_cycle": "Last Cycle"
+    },
+    "metrics": {
+      "native_local": "Native Local",
+      "online": "Online",
+      "bridged": "Bridged (HA)",
+      "external_mesh": "External Mesh",
+      "autonomous": "Autonomous Scenes",
+      "edge_executable": "Edge Executable",
+      "hardware_autonomy": "Hardware Autonomy",
+      "zero_cloud": "Zero-Cloud Rules"
     }
   },
   "shell": {
@@ -754,24 +768,6 @@
         "title": "Built for Real-World Reliability",
         "description": "This system continues operating even during outages. Your home is not dependent on external systems."
       }
-    }
-  },
-  "dashboard": {
-    "active_units_one": "1 Active",
-    "active_units_other": "{{count}} Active",
-    "active_units": "{{count}} Active",
-    "all_off": "All Off"
-  },
-  "diagnostics": {
-    "metrics": {
-      "native_local": "Native Local",
-      "online": "Online",
-      "bridged": "Bridged (HA)",
-      "external_mesh": "External Mesh",
-      "autonomous": "Autonomous Scenes",
-      "edge_executable": "Edge Executable",
-      "hardware_autonomy": "Hardware Autonomy",
-      "zero_cloud": "Zero-Cloud Rules"
     }
   },
   "common": {
