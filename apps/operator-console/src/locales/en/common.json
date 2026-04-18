@@ -652,6 +652,22 @@
     "synergy_title": "System Synergy",
     "synergy_stats": "Aggregate of {{devices}} Devices • {{scenes}} Scenes • {{rules}} Rules"
   },
+  "energy": {
+    "category": "Energy Intelligence",
+    "title": "Energy Awareness",
+    "subtitle": "Know where energy goes and where to save.",
+    "status_active": "Energy monitoring active",
+    "empty_title": "Energy Awareness Coming Soon",
+    "empty_description": "HomePilot will surface consumption patterns, idle devices, and savings opportunities from your local device data.",
+    "what_you_will_see": "What you'll see here",
+    "feature_consumption": "Live consumption by room and device",
+    "feature_idle": "Idle device detection and alerts",
+    "feature_savings": "Savings suggestions from your usage patterns",
+    "feature_offline": "100% local — no cloud dependency",
+    "powered_by_local": "Powered by local edge data only",
+    "insight_hint": "The Assistant already surfaces energy waste in real time. Energy view will consolidate this into a full picture.",
+    "go_to_assistant": "View energy insights in Assistant"
+  },
   "dashboards": {
     "title": "My Spaces",
     "category": "Personal Dashboards",

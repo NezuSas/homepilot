@@ -652,6 +652,22 @@
     "synergy_title": "Sinergia del Sistema",
     "synergy_stats": "Agregado de {{devices}} Dispositivos • {{scenes}} Escenas • {{rules}} Reglas"
   },
+  "energy": {
+    "category": "Inteligencia Energética",
+    "title": "Consciencia Energética",
+    "subtitle": "Saber dónde va la energía y dónde ahorrar.",
+    "status_active": "Monitoreo energético activo",
+    "empty_title": "Consciencia Energética Próximamente",
+    "empty_description": "HomePilot mostrará patrones de consumo, dispositivos inactivos y oportunidades de ahorro desde tus datos locales.",
+    "what_you_will_see": "Qué verás aquí",
+    "feature_consumption": "Consumo en vivo por habitación y dispositivo",
+    "feature_idle": "Detección de dispositivos inactivos y alertas",
+    "feature_savings": "Sugerencias de ahorro basadas en tus patrones",
+    "feature_offline": "100% local — sin dependencia de la nube",
+    "powered_by_local": "Basado únicamente en datos del edge local",
+    "insight_hint": "El Asistente ya detecta desperdicio energético en tiempo real. La vista de Energía consolidará todo en un cuadro completo.",
+    "go_to_assistant": "Ver insights energéticos en el Asistente"
+  },
   "dashboards": {
     "title": "Mis Espacios",
     "category": "Paneles Personales",

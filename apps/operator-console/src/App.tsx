@@ -39,6 +39,7 @@ import ScenesView from './views/ScenesView';
 import { AssistantView } from './views/AssistantView';
 import { DashboardsView } from './views/DashboardsView';
 import ResilienceShowcaseView from './views/ResilienceShowcaseView';
+import { EnergyView } from './views/EnergyView';
 import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
@@ -636,13 +637,9 @@ function App() {
               {/* Custom Dashboards */}
                {currentView === 'dashboards' && <DashboardsView />}
 
-             {currentView === 'energy' && (
-               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border border-dashed border-border rounded-xl bg-muted/10">
-                 <Zap className="w-8 h-8 mb-3 opacity-30" />
-                 <p className="text-sm font-bold">{t('nav.energy')}</p>
-                 <p className="text-xs mt-1 opacity-50">{t('nav.coming_soon')}</p>
-               </div>
-             )}
+              {currentView === 'energy' && (
+                <EnergyView onNavigate={navigateTo} />
+              )}
 
              {/* System section views */}
              {currentView === 'system-devices' && <InboxView mode="manager" />}
