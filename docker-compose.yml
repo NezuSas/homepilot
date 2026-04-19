@@ -14,7 +14,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - TZ=America/Guayaquil
       - HOMEPILOT_DB_PATH=/app/data/homepilot.db
       - INTERNAL_HA_URL=http://homeassistant:8123
       - HOMEPILOT_DEV_BOOTSTRAP=${HOMEPILOT_DEV_BOOTSTRAP:-false}
