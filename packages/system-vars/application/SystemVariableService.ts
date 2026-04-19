@@ -121,11 +121,20 @@ export class SystemVariableService {
 
   /**
    * Resolve the system-wide timezone.
-   * Default to 'UTC' if not explicitly configured as 'system_timezone' (global).
+   * Logic:
+   * 1. Explicit 'system_timezone' global variable (Database)
+   * 2. Runtime/Env detection (Intl.DateTimeFormat)
+   * 3. Fallback to 'UTC'
    */
   async getSystemTimezone(): Promise<string> {
     const tzVar = await this.get('global', null, 'system_timezone');
-    if (!tzVar) return 'UTC';
-    return tzVar.value || 'UTC';
+    if (tzVar && tzVar.value) return tzVar.value;
+
+    // Detection from the homepilot appliance runtime environment
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    } catch {
+      return 'UTC';
+    }
   }
 }
