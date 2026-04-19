@@ -130,7 +130,10 @@ export class SystemVariableService {
     const tzVar = await this.get('global', null, 'system_timezone');
     if (tzVar && tzVar.value) return tzVar.value;
 
-    // Detection from the homepilot appliance runtime environment
+    // Authority from runtime process environment (e.g., Docker TZ variable)
+    if (process.env.TZ) return process.env.TZ;
+
+    // Detection fallback from the homepilot appliance runtime environment
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     } catch {
