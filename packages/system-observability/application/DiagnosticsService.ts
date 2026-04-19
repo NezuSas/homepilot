@@ -4,6 +4,8 @@ import {
   ObservableAutomationEngineStateProvider, 
   ObservableRealtimeSyncStateProvider 
 } from '../domain/ObservableStateProviders';
+import { DateTime } from 'luxon';
+import { SystemVariableService } from '../../system-vars/application/SystemVariableService';
 import { 
   DiagnosticEvent, 
   DiagnosticsSnapshot, 
@@ -18,7 +20,8 @@ export class DiagnosticsService {
     private readonly settingsService: HomeAssistantSettingsService,
     private readonly realtimeSyncProvider: ObservableRealtimeSyncStateProvider,
     private readonly automationEngineProvider: ObservableAutomationEngineStateProvider,
-    private readonly activityLogRepository: ActivityLogRepository
+    private readonly activityLogRepository: ActivityLogRepository,
+    private readonly systemVariableService: SystemVariableService
   ) {}
 
   public async getSnapshot(): Promise<DiagnosticsSnapshot> {
@@ -105,6 +108,9 @@ export class DiagnosticsService {
       lastReconciliationAt: syncState.lastReconciliationAt,
       lastSuccessfulCommandAt: null, // Command persistence logic to be wired if needed
       lastAutomationExecutionAt: engineState.lastExecutionAt,
+      systemTime: DateTime.now().setZone(await this.systemVariableService.getSystemTimezone()).toISO() || new Date().toISOString(),
+      systemTimeLocal: DateTime.now().setZone(await this.systemVariableService.getSystemTimezone()).toFormat('HH:mm'),
+      systemTimezone: await this.systemVariableService.getSystemTimezone(),
       counters,
       issues
     };

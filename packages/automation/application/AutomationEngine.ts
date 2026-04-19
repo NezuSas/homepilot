@@ -16,6 +16,8 @@ import {
   CompoundTrigger,
   DelayAction,
 } from '../../devices/domain/automation/types';
+import { DateTime } from 'luxon';
+import { SystemVariableService } from '../../system-vars/application/SystemVariableService';
 
 /**
  * Simple dispatch port used by the engine to execute commands and scenes.
@@ -51,6 +53,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     private readonly sceneRepository: SceneRepository,
     private readonly commandDispatcher: AutomationCommandDispatcher,
     private readonly activityLogRepository: ActivityLogRepository,
+    private readonly systemVariableService: SystemVariableService,
     private readonly idGenerator: { generate: () => string }
   ) {
     // Periodic leak prevention for deduplication and time-guard caches.
@@ -94,28 +97,31 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
    * Process a UTC minute boundary tick.
    * @param currentTime "HH:mm" always in UTC.
    */
-  public async handleTimeEvent(currentTime: string): Promise<void> {
+  public async handleTimeEvent(currentTimeUTC: string): Promise<void> {
     try {
       const allRules = await this.ruleRepository.findAll();
       const timeRules = allRules.filter(
         (r) => r.enabled && this.triggerContainsTimeTrigger(r.trigger)
       );
 
-      const now = new Date();
-      const currentDay = now.getDay(); // 0 = Sunday
+      // Resolve effective local time for the appliance based on system settings.
+      const systemTimezone = await this.systemVariableService.getSystemTimezone();
+      const nowLocal = DateTime.now().setZone(systemTimezone);
+      const currentTimeLocal = nowLocal.toFormat('HH:mm');
+      const currentDayLocal = nowLocal.weekday === 7 ? 0 : nowLocal.weekday; // match JS getDay() 0=Sun
 
       for (const rule of timeRules) {
         try {
           const matches = await this.evaluateTriggerForTimeEvent(
             rule.trigger,
-            currentTime,
-            currentDay
+            currentTimeLocal,
+            currentDayLocal
           );
           if (!matches) continue;
 
-          // Once-per-minute guard (strictly tied to Date + HH:mm)
-          const dateStr = now.toISOString().split('T')[0];
-          const fireKey = `${dateStr} ${currentTime}`;
+          // Once-per-minute guard (strictly tied to Date + HH:mm in local context)
+          const dateStr = nowLocal.toISODate();
+          const fireKey = `${dateStr} ${currentTimeLocal}`;
 
           if (this.timeFireGuard.get(rule.id) === fireKey) continue;
           this.timeFireGuard.set(rule.id, fireKey);
@@ -191,7 +197,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
    */
   private async evaluateTriggerForTimeEvent(
     trigger: AutomationTrigger,
-    currentTimeUTC: string,
+    currentTimeLocal: string,
     currentDay: number
   ): Promise<boolean> {
     if (trigger.type === 'device_state_changed') {
@@ -204,12 +210,12 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     }
 
     if (trigger.type === 'time') {
-      return this.matchTimeTrigger(trigger, currentTimeUTC, currentDay);
+      return this.matchTimeTrigger(trigger, currentTimeLocal, currentDay);
     }
 
     if (trigger.type === 'compound') {
       return this.evaluateCompound(trigger, (sub) =>
-        this.evaluateTriggerForTimeEvent(sub, currentTimeUTC, currentDay)
+        this.evaluateTriggerForTimeEvent(sub, currentTimeLocal, currentDay)
       );
     }
 
@@ -259,11 +265,11 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
 
   private matchTimeTrigger(
     trigger: TimeTrigger,
-    currentTimeUTC: string,
+    currentTimeLocal: string,
     currentDay: number
   ): boolean {
-    const targetTime = trigger.timeUTC || trigger.time;
-    if (targetTime !== currentTimeUTC) return false;
+    const targetTime = trigger.timeLocal || trigger.time || trigger.timeUTC;
+    if (targetTime !== currentTimeLocal) return false;
     if (trigger.days && trigger.days.length > 0 && !trigger.days.includes(currentDay)) {
       return false;
     }

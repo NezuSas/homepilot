@@ -210,6 +210,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   } else {
     // HA not configured
   }
+  // -- SYSTEM VARIABLES --
+  const systemVariableRepository = new SqliteSystemVariableRepository(dbPath);
+  const systemVariableService = new SystemVariableService(
+    systemVariableRepository,
+    { generate: () => crypto.randomUUID() }
+  );
 
   const automationEngine = new AutomationEngine(
     automationRuleRepository,
@@ -307,6 +313,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       }
     },
     activityLogRepository,
+    systemVariableService,
     { generate: () => crypto.randomUUID() } // idGenerator para AutomationEngine
   );
 
@@ -367,7 +374,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     settingsService,
     syncManager,
     automationEngine,
-    activityLogRepository
+    activityLogRepository,
+    systemVariableService
   );
 
   // -- INIT AUTH V1 --
@@ -407,12 +415,6 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     }
   }
 
-  // -- SYSTEM VARIABLES --
-  const systemVariableRepository = new SqliteSystemVariableRepository(dbPath);
-  const systemVariableService = new SystemVariableService(
-    systemVariableRepository,
-    { generate: () => crypto.randomUUID() }
-  );
 
   // -- INIT SYSTEM SETUP V1 --
   const systemSetupRepository = new SqliteSystemSetupRepository(dbPath);

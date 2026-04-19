@@ -49,6 +49,9 @@ export interface DiagnosticsSnapshot {
   readonly lastReconciliationAt: string | null;
   readonly lastSuccessfulCommandAt: string | null;
   readonly lastAutomationExecutionAt: string | null;
+  readonly systemTime: string;
+  readonly systemTimeLocal: string;
+  readonly systemTimezone: string;
   readonly counters: DiagnosticsCounters;
   readonly issues: ReadonlyArray<SystemIssue>;
 }

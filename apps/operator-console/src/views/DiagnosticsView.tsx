@@ -28,6 +28,9 @@ interface DiagnosticsSnapshot {
   lastReconnectAt: string | null;
   lastReconciliationAt: string | null;
   lastAutomationExecutionAt: string | null;
+  systemTime: string;
+  systemTimeLocal: string;
+  systemTimezone: string;
   counters: DiagnosticsCounters;
   issues: SystemIssue[];
 }
@@ -235,9 +238,20 @@ export function DiagnosticsView() {
             </p>
           </div>
         </div>
-        <div className="sm:text-right">
-          <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.last_event')}</div>
-          <div className="font-mono font-bold mt-1 text-sm">{formatTime(snapshot.lastEventAt)}</div>
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-12">
+          <div className="sm:text-right">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.appliance_time')}</div>
+            <div className="font-mono font-bold mt-1 text-sm">
+              {snapshot.systemTimeLocal}
+              <span className="text-[10px] bg-background/50 px-1.5 py-0.5 rounded border border-white/5 ml-2 font-medium text-muted-foreground whitespace-nowrap">
+                {snapshot.systemTimezone}
+              </span>
+            </div>
+          </div>
+          <div className="sm:text-right">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.last_event')}</div>
+            <div className="font-mono font-bold mt-1 text-sm">{formatTime(snapshot.lastEventAt)}</div>
+          </div>
         </div>
       </div>
 

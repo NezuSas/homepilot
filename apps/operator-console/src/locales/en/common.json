@@ -232,6 +232,8 @@
     "loading": "Gathering diagnostics heartbeat...",
     "error_loading": "Failed to load diagnostics",
     "system_status": "System Status: {{status}}",
+    "appliance_time": "Appliance Local Time",
+    "appliance_timezone": "Appliance Timezone",
     "last_event": "Last Event",
     "active_issues": "Active Issues",
     "no_events": "No recent events in timeline",

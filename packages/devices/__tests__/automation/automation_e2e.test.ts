@@ -7,6 +7,7 @@ import { SceneRepository } from '../../domain/repositories/SceneRepository';
 import { AutomationCommandDispatcher } from '../../../automation/application/AutomationEngine';
 import { TopologyReferencePort } from '../../application/ports/TopologyReferencePort';
 import { AuthenticatedHttpRequest } from '../../../topology/api/core/http';
+import { SystemVariableService } from '../../../system-vars/application/SystemVariableService';
 
 describe('Automation E2E: Full Reactive Flow', () => {
   let ruleRepo: InMemoryAutomationRuleRepository;
@@ -18,6 +19,7 @@ describe('Automation E2E: Full Reactive Flow', () => {
   
   let controller: AutomationController;
   let engine: AutomationEngine;
+  let systemVarServiceMock: jest.Mocked<SystemVariableService>;
 
   const idGen = { generate: () => 'e2e-rule-id' };
 
@@ -46,12 +48,17 @@ describe('Automation E2E: Full Reactive Flow', () => {
 
     controller = new AutomationController(ruleRepo, deviceRepo, topologyMock, idGen);
     
+    systemVarServiceMock = {
+      getSystemTimezone: jest.fn().mockResolvedValue('UTC'),
+    } as any;
+
     engine = new AutomationEngine(
       ruleRepo,
       deviceRepo,
       sceneRepoMock,
       dispatcherMock,
       logRepo,
+      systemVarServiceMock,
       idGen
     );
   });

@@ -232,6 +232,8 @@
     "loading": "Recuperando pulso de diagnósticos...",
     "error_loading": "Error al cargar diagnósticos",
     "system_status": "Estado del Sistema: {{status}}",
+    "appliance_time": "Hora Local del Equipo",
+    "appliance_timezone": "Zona Horaria del Equipo",
     "last_event": "Último Evento",
     "active_issues": "Problemas Activos",
     "no_events": "No hay eventos recientes en el timeline",

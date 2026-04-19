@@ -118,4 +118,14 @@ export class SystemVariableService {
   async purgeExpired(): Promise<number> {
     return this.repository.deleteExpired();
   }
+
+  /**
+   * Resolve the system-wide timezone.
+   * Default to 'UTC' if not explicitly configured as 'system_timezone' (global).
+   */
+  async getSystemTimezone(): Promise<string> {
+    const tzVar = await this.get('global', null, 'system_timezone');
+    if (!tzVar) return 'UTC';
+    return tzVar.value || 'UTC';
+  }
 }
