@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   Inbox, RadioTower, Box, Activity,
   Loader2, RefreshCw, X, AlertCircle, ArrowRight,
-  Settings, Database, Clock, Terminal, Cpu, Blinds
+  Settings, Database, Clock, Terminal, Cpu, Blinds, Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
@@ -342,7 +342,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                     originFilter === o ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
                   )}
                 >
-                  {o === 'all' ? t('common.all') : (o === 'local' ? t('inbox.filters.local') : t('inbox.filters.bridged'))}
+                  {o === 'all' ? t('inbox.filters.all') : (o === 'local' ? t('inbox.filters.local') : t('inbox.filters.bridged'))}
                 </button>
               ))}
             </div>
@@ -398,10 +398,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
           </section>
         ))}
 
-        {devices.length === 0 && (
-          <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-20">
-             <Cpu className="w-12 h-12 mb-4" />
-             <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state')}</p>
+        {Object.keys(grouped).length === 0 && (
+          <div className="py-24 border-2 border-dashed border-border/40 rounded-[3rem] flex flex-col items-center justify-center text-center bg-card/5">
+             <Zap className="w-12 h-12 mb-4 text-primary opacity-20" />
+             <h3 className="text-xl font-black mb-2 tracking-tight">
+               {mode === 'discovery' ? t('inbox.discovery.no_entities') : t('inbox.empty_state')}
+             </h3>
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
+               {mode === 'discovery' ? t('nav.system_inbox') : t('nav.system_devices')}
+             </p>
           </div>
         )}
       </div>

@@ -10,7 +10,7 @@ import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
-import type { HomeMode } from '../types';
+import type { HomeMode, View } from '../types';
 import { HomeModeSelector } from '../components/HomeModeSelector';
 import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
 import { Button } from '../components/ui/Button';
@@ -186,7 +186,8 @@ const mapSnapshotToDevice = (snapshot: SnapshotDevice): Device => {
 export const DashboardView: React.FC<{ 
   onModeChange?: (mode: HomeMode) => void;
   onActionExecute?: (label: string) => void;
-}> = ({ onModeChange, onActionExecute }) => {
+  onNavigate?: (view: View, params?: any) => void;
+}> = ({ onModeChange, onActionExecute, onNavigate }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [activeAction, setActiveAction] = useState<any | null>(null);
@@ -290,6 +291,24 @@ useEffect(() => {
   };
 
   const handleAction = async (finding: any, action: any) => {
+    if (action.type === 'ignore' || action.type === 'dismiss') {
+      try {
+        await resolveFinding(finding.id); // Or dismissFinding, but Dashboard uses resolveFinding mainly
+        await fetchData();
+        if (onActionExecute) onActionExecute(t('common.feedback.action_success', { name: finding.id, action: t('assistant.actions.ignore') }));
+      } catch (e) {
+        console.error('Dismiss failed:', e);
+      }
+      return;
+    }
+
+    if (action.type === 'configure_automation') {
+      if (onNavigate) {
+        onNavigate('automations');
+      }
+      return;
+    }
+
     if (action.type === 'turn_off_device') {
       try {
         await apiFetch(`${API_URL}/devices/${action.payload.deviceId}/command`, {
@@ -442,9 +461,9 @@ useEffect(() => {
             <Button 
               variant="ghost"
               onClick={() => setIsSceneModalOpen(true)}
-              className="group gap-2 text-[10px] text-primary/60 hover:text-primary px-0 h-auto"
+              className="group gap-2 text-xs font-black text-primary/60 hover:text-primary px-0 h-auto uppercase tracking-wider"
             >
-              <Plus className="w-3 h-3 group-hover:rotate-90 transition-transform duration-500" />
+              <Plus className="w-3.5 h-3.5 stroke-[3] group-hover:rotate-90 transition-transform duration-500" />
               {t('dashboard.new_scene')}
             </Button>
           </div>
@@ -512,9 +531,45 @@ useEffect(() => {
         </div>
       )}
 
+      {scenes.length === 0 && (
+        <div className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5">
+           <Zap className="w-12 h-12 text-primary opacity-20 mb-4" />
+           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">{t('scenes.empty_title')}</p>
+           <Button 
+             variant="ghost" 
+             size="sm"
+             onClick={() => setIsSceneModalOpen(true)}
+             className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary/60"
+           >
+             {t('dashboard.scene_create')}
+           </Button>
+        </div>
+      )}
+
+      {scenes.length === 0 && (
+        <div className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5">
+           <Zap className="w-12 h-12 text-primary opacity-20 mb-4" />
+           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">{t('scenes.empty_title')}</p>
+           <Button 
+             variant="ghost" 
+             size="sm"
+             onClick={() => setIsSceneModalOpen(true)}
+             className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary/60"
+           >
+             {t('dashboard.scene_create')}
+           </Button>
+        </div>
+      )}
+
       {/* LEVEL 3: Spatial Context (Rooms) */}
       <div className="space-y-12">
-        {Array.isArray(activeRooms) && activeRooms.map(room => {
+        {activeRooms.length === 0 ? (
+          <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-40">
+             <Cpu className="w-12 h-12 mb-4 text-muted-foreground" />
+             <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state')}</p>
+          </div>
+        ) : (
+          activeRooms.map(room => {
           const roomDevices = (Array.isArray(devices) ? devices : []).filter(d => d.roomId === room.id);
           const onCount = roomDevices.filter(d => {
              const s = d.lastKnownState as DeviceState || {};
@@ -573,7 +628,7 @@ useEffect(() => {
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
 
       {isSceneModalOpen && homeId && (

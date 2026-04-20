@@ -217,7 +217,6 @@ function App() {
     }
 
     pulseSyncStatus();
-
     const REFRESH_TRIGGER_EVENTS = [
       'DeviceDiscoveredEvent',
       'HomeCreatedEvent',
@@ -611,7 +610,7 @@ function App() {
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto w-full relative z-10">
+          <div className="max-w-[1600px] mx-auto w-full relative z-10">
             {/* Breadcrumb-style section label */}
             {activeSystemSection && (
               <p className="text-[8.5px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-1.5">
@@ -633,7 +632,7 @@ function App() {
         
         <section className="flex-1 overflow-y-auto min-h-0 relative scroll-smooth p-4 sm:p-8">
            {isBackendOffline && (
-             <div className="max-w-7xl mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+             <div className="max-w-[1600px] mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
                <div className="bg-destructive/10 border-2 border-destructive/20 rounded-[2rem] p-6 flex items-center justify-between gap-6 backdrop-blur-xl">
                  <div className="flex items-center gap-4">
                    <div className="p-3 bg-destructive text-destructive-foreground rounded-2xl shadow-lg shadow-destructive/20">
@@ -653,13 +652,14 @@ function App() {
                </div>
              </div>
            )}
-           <div className="max-w-7xl mx-auto w-full">
+           <div className="max-w-[1600px] mx-auto w-full">
              {currentView === 'dashboard' && (
                 <DashboardView 
                   onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
                   onActionExecute={() => {
                     pulseSyncStatus();
                   }}
+                  onNavigate={navigateTo}
                 />
               )}
              {/* Spaces = TopologyView (user-facing room management) */}
