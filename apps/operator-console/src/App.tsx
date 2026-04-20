@@ -372,20 +372,24 @@ function App() {
 
       {/* Sidebar (Responsive Drawer) */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-[50] w-72 border-r bg-card flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:flex lg:w-64 lg:bg-muted/40",
-        isSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-[50] w-72 border-r border-border/60 bg-card flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:flex lg:w-[15.5rem] lg:bg-card",
+        isSidebarOpen ? "translate-x-0 shadow-[4px_0_32px_-4px_hsl(210_30%_2%/0.6)]" : "-translate-x-full"
       )}>
-        <div className="p-6 border-b flex flex-col gap-1 shrink-0 bg-background/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-primary">
-              <Cpu className="w-6 h-6" />
-              <h2 className="font-black tracking-tighter text-xl">{t('shell.app_title')} <span className="text-foreground">{t('shell.app_edge')}</span></h2>
+        {/* Logo area */}
+        <div className="px-5 pt-5 pb-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20">
+              <Cpu className="w-4 h-4 text-primary" />
             </div>
+            <h2 className="font-black tracking-tighter text-base leading-none">
+              {t('shell.app_title')}{' '}
+              <span className="text-foreground/60 font-semibold">{t('shell.app_edge')}</span>
+            </h2>
           </div>
-          <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground opacity-50 mt-1">{t('shell.subtitle')}</span>
+          <span className="text-[9px] uppercase font-black tracking-[0.22em] text-muted-foreground/35 mt-1 ml-[2.625rem]">{t('shell.subtitle')}</span>
         </div>
         
-        <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar">
 
           {/* ── PRIMARY ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-0.5">
@@ -435,8 +439,8 @@ function App() {
           </div>
 
           {/* ── PERSONALIZATION ────────────────────────────────────── */}
-          <div className="mt-4 mb-1">
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground opacity-40 px-3">{t('nav.group_personalization')}</span>
+          <div className="mt-3 mb-1 px-2">
+            <span className="text-[8.5px] font-black uppercase tracking-[0.22em] text-muted-foreground/30">{t('nav.group_personalization')}</span>
           </div>
           <div className="flex flex-col gap-0.5">
              <SidebarItem 
@@ -454,7 +458,7 @@ function App() {
           </div>
 
           {/* ── DIVIDER ────────────────────────────────────────────── */}
-          <div className="mx-3 my-4 border-t border-border/50" />
+          <div className="mx-2 my-3 border-t border-border/30" />
 
           {/* ── SYSTEM ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-0.5">
@@ -598,26 +602,32 @@ function App() {
           </div>
         </header>
 
-        <header className="hidden lg:block border-b px-12 py-8 bg-card/60 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 flex items-center gap-3 animate-in fade-in duration-1000">
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('shell.status.online')}</span>
+        <header className="hidden lg:block view-header-accent px-10 py-6 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
+          {/* Online badge */}
+          <div className="absolute top-0 right-0 p-6 flex items-center gap-3 animate-in fade-in duration-700">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-success/8 rounded-full border border-success/15">
+              <div className="status-dot-synced" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-success/70">{t('shell.status.online')}</span>
             </div>
           </div>
 
           <div className="max-w-7xl mx-auto w-full relative z-10">
+            {/* Breadcrumb-style section label */}
             {activeSystemSection && (
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mb-1">
+              <p className="text-[8.5px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-1.5">
                 {t('nav.system')}
               </p>
             )}
-            <h1 className="text-3xl font-black tracking-tighter text-foreground/90 leading-tight">
+            {/* View title */}
+            <h1 className="text-[1.6rem] font-black tracking-tighter text-foreground/90 leading-none">
               {viewTitle()}
             </h1>
-            <p className="text-xs text-muted-foreground mt-1 max-w-2xl font-bold uppercase tracking-widest opacity-40">
-              {viewSubtitle()}
-            </p>
+            {/* Subtitle as eyebrow below title */}
+            {viewSubtitle() && (
+              <p className="text-[9px] text-muted-foreground/40 mt-1.5 font-black uppercase tracking-[0.2em]">
+                {viewSubtitle()}
+              </p>
+            )}
           </div>
         </header>
         

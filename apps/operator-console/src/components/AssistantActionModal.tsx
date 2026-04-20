@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Check, Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 interface AssistantActionModalProps {
   findingId: string;
@@ -31,9 +32,9 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
 
   useEffect(() => {
     if (action.type === 'assign_room') {
-      fetch(API_ENDPOINTS.topology.rooms)
+      apiFetch(API_ENDPOINTS.topology.rooms)
         .then(res => res.json())
-        .then(data => setRooms(data))
+        .then(data => { if (Array.isArray(data)) setRooms(data); })
         .catch(console.error);
     }
   }, [action.type]);
@@ -46,7 +47,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
       if (action.type === 'rename_device') payload.newName = newName;
       if (action.type === 'activate_draft') payload.draftId = action.payload?.draftId;
 
-      const resp = await fetch(API_ENDPOINTS.assistant.executeAction, {
+      const resp = await apiFetch(API_ENDPOINTS.assistant.executeAction, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

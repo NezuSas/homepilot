@@ -252,7 +252,7 @@ useEffect(() => {
     if (onActionExecute) onActionExecute(scene.name);
 
     try {
-      await fetch(`${API_URL}/scenes/${scene.id}/execute`, { method: 'POST' });
+      await apiFetch(`${API_URL}/scenes/${scene.id}/execute`, { method: 'POST' });
       await fetchData();
     } catch (e) {
       console.error(e);
@@ -275,7 +275,7 @@ useEffect(() => {
     const devicesToTurnOff = devices.filter(d => d.roomId === roomId && (d.lastKnownState?.on === true || d.lastKnownState?.state === 'on' || Number(d.lastKnownState?.brightness) > 0));
     try {
       await Promise.all((Array.isArray(devicesToTurnOff) ? devicesToTurnOff : []).map(d => 
-        fetch(`${API_URL}/devices/${d.id}/command`, {
+        apiFetch(`${API_URL}/devices/${d.id}/command`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command: 'turn_off' })
@@ -292,7 +292,7 @@ useEffect(() => {
   const handleAction = async (finding: any, action: any) => {
     if (action.type === 'turn_off_device') {
       try {
-        await fetch(`${API_URL}/devices/${action.payload.deviceId}/command`, {
+        await apiFetch(`${API_URL}/devices/${action.payload.deviceId}/command`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command: 'turn_off' })

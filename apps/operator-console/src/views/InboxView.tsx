@@ -75,7 +75,7 @@ const DeviceTile: React.FC<{
     setError(null);
     try {
       const command = isOn ? 'turn_off' : 'turn_on';
-      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })

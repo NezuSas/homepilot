@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { humanize, disambiguate } from '../lib/naming-utils';
 
 interface DeviceState {
@@ -79,7 +80,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
     
     setIsProcessing(command);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })
