@@ -201,7 +201,7 @@ export function DiagnosticsView() {
   );
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-10">
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
 
       {/* LOCAL RESILIENCE SUMMARY */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-1000">

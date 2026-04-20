@@ -103,7 +103,7 @@ export function UsersView() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-8 pb-10">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10">
       
       {error && (
       <div className="bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg text-sm flex items-center">
