@@ -38,6 +38,7 @@ export class SqliteSystemVariableRepository implements SystemVariableRepository 
         : null;
 
     // Try to find an existing row to preserve its id and created_at
+    // We use 'IS ?' to properly handle NULL matches for home_id
     const existing = this.db
       .prepare(
         'SELECT id, created_at FROM system_variables WHERE scope = ? AND home_id IS ? AND name = ?'
@@ -46,49 +47,79 @@ export class SqliteSystemVariableRepository implements SystemVariableRepository 
       | { id: string; created_at: string }
       | undefined;
 
-    const id = existing?.id ?? idGenerator();
-    const createdAt = existing?.created_at ?? now;
+    if (existing) {
+      // UPDATE by Primary Key (always safe)
+      this.db
+        .prepare(
+          `UPDATE system_variables SET
+            value       = ?,
+            value_type  = ?,
+            description = ?,
+            ttl_seconds = ?,
+            expires_at  = ?,
+            updated_at  = ?
+          WHERE id = ?`
+        )
+        .run(
+          payload.value,
+          payload.valueType,
+          payload.description ?? null,
+          payload.ttlSeconds ?? null,
+          expiresAt,
+          now,
+          existing.id
+        );
 
-    this.db
-      .prepare(
-        `INSERT INTO system_variables
-          (id, scope, home_id, name, value, value_type, description, ttl_seconds, expires_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(scope, home_id, name) DO UPDATE SET
-           value       = excluded.value,
-           value_type  = excluded.value_type,
-           description = excluded.description,
-           ttl_seconds = excluded.ttl_seconds,
-           expires_at  = excluded.expires_at,
-           updated_at  = excluded.updated_at`
-      )
-      .run(
+      return this.mapRow({
+        id: existing.id,
+        scope: payload.scope,
+        home_id: payload.homeId ?? null,
+        name: payload.name,
+        value: payload.value,
+        value_type: payload.valueType,
+        description: payload.description ?? null,
+        ttl_seconds: payload.ttlSeconds ?? null,
+        expires_at: expiresAt,
+        created_at: existing.created_at,
+        updated_at: now,
+      });
+    } else {
+      // INSERT new row
+      const id = idGenerator();
+      this.db
+        .prepare(
+          `INSERT INTO system_variables
+            (id, scope, home_id, name, value, value_type, description, ttl_seconds, expires_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          id,
+          payload.scope,
+          payload.homeId ?? null,
+          payload.name,
+          payload.value,
+          payload.valueType,
+          payload.description ?? null,
+          payload.ttlSeconds ?? null,
+          expiresAt,
+          now,
+          now
+        );
+
+      return this.mapRow({
         id,
-        payload.scope,
-        payload.homeId ?? null,
-        payload.name,
-        payload.value,
-        payload.valueType,
-        payload.description ?? null,
-        payload.ttlSeconds ?? null,
-        expiresAt,
-        createdAt,
-        now
-      );
-
-    return this.mapRow({
-      id,
-      scope: payload.scope,
-      home_id: payload.homeId ?? null,
-      name: payload.name,
-      value: payload.value,
-      value_type: payload.valueType,
-      description: payload.description ?? null,
-      ttl_seconds: payload.ttlSeconds ?? null,
-      expires_at: expiresAt,
-      created_at: createdAt,
-      updated_at: now,
-    });
+        scope: payload.scope,
+        home_id: payload.homeId ?? null,
+        name: payload.name,
+        value: payload.value,
+        value_type: payload.valueType,
+        description: payload.description ?? null,
+        ttl_seconds: payload.ttlSeconds ?? null,
+        expires_at: expiresAt,
+        created_at: now,
+        updated_at: now,
+      });
+    }
   }
 
   async findByKey(
