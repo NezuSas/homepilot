@@ -170,6 +170,9 @@ export class TopologyRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid or missing action'), true;
         }
 
+        const room = db.prepare('SELECT name FROM rooms WHERE id = ?').get(roomId) as { name: string } | undefined;
+        const roomName = room?.name || 'Room';
+
         const roomDevices = db
           .prepare('SELECT id, type FROM devices WHERE room_id = ?')
           .all(roomId) as LocalDeviceRow[];
@@ -250,8 +253,16 @@ export class TopologyRoutes extends ApiRoutes {
           deviceId: null,
           correlationId,
           type: resultType,
-          description: `Room action finished with ${failedCount} failures`,
-          data: { roomId, failedCount, totalCount, isPartial: failedCount > 0 && failedCount < totalCount },
+          description: `Room action for "${roomName}" finished. (${succeededCount}/${totalCount} success)`,
+          data: { 
+            roomId, 
+            sceneName: roomName, 
+            userName: req.user!.username,
+            successCount: succeededCount,
+            totalCount, 
+            failedCount,
+            isPartial: failedCount > 0 && failedCount < totalCount 
+          },
         });
 
         if (failedCount === totalCount) {

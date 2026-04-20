@@ -161,9 +161,13 @@ export const AuditLogsView: React.FC = () => {
                         name: data.name || data.sceneName || t('common.unknown'),
                         userName: data.userName || data.user || t('common.system'),
                         user: data.user || data.userName || t('common.system'),
-                        successCount: data.successCount !== undefined ? data.successCount : (data.success !== undefined ? data.success : '0'),
-                        totalCount: data.totalCount !== undefined ? data.totalCount : (data.total !== undefined ? data.total : '0'),
-                        total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : '0'),
+                        successCount: data.successCount !== undefined ? data.successCount : 
+                                     (data.success !== undefined ? data.success : 
+                                     (data.totalActions !== undefined ? (Number(data.totalActions) - Number(data.failedActions || 0)) : '0')),
+                        totalCount: data.totalCount !== undefined ? data.totalCount : 
+                                   (data.total !== undefined ? data.total : 
+                                   (data.totalActions !== undefined ? data.totalActions : '0')),
+                        total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : (data.totalActions || '0')),
                         success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : '0'),
                         command: data.command || t('common.unknown'),
                         // Automations

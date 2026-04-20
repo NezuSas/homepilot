@@ -502,22 +502,35 @@ export function DiagnosticsView() {
                                 key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
                               }
 
+                              // 3. Mapeo explícito de variables (Puente entre versiones de esquema)
                               return t(key, { 
                                 ...data, 
-                                sceneName: data.sceneName || data.name || '',
-                                name: data.name || data.sceneName || '',
-                                userName: data.userName || data.user || '',
-                                user: data.user || data.userName || '',
-                                successCount: data.successCount !== undefined ? data.successCount : (data.success !== undefined ? data.success : ''),
-                                totalCount: data.totalCount !== undefined ? data.totalCount : (data.total !== undefined ? data.total : ''),
-                                total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : ''),
-                                success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : ''),
-                                ruleName: data.ruleName || data.name || '',
-                                state: data.state !== undefined ? String(data.state) : (data.new_state !== undefined ? String(data.new_state) : ''),
-                                new_state: data.new_state !== undefined ? String(data.new_state) : (data.state !== undefined ? String(data.state) : ''),
-                                deviceName: data.deviceName || '',
-                                command: data.command || '',
-                                reason: data.reason || '',
+                                // Scenes & Commands
+                                sceneName: data.sceneName || data.name || t('common.unknown_scene'),
+                                name: data.name || data.sceneName || t('common.unknown'),
+                                userName: data.userName || data.user || t('common.system'),
+                                user: data.user || data.userName || t('common.system'),
+                                successCount: data.successCount !== undefined ? data.successCount : 
+                                             (data.success !== undefined ? data.success : 
+                                             (data.totalActions !== undefined ? (Number(data.totalActions) - Number(data.failedActions || 0)) : '0')),
+                                totalCount: data.totalCount !== undefined ? data.totalCount : 
+                                           (data.total !== undefined ? data.total : 
+                                           (data.totalActions !== undefined ? data.totalActions : '0')),
+                                total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : (data.totalActions || '0')),
+                                success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : '0'),
+                                command: data.command || t('common.unknown'),
+                                // Automations
+                                ruleName: data.ruleName || data.name || t('common.unknown'),
+                                ruleId: data.ruleId || '',
+                                deviceName: data.deviceName || t('common.unknown'),
+                                // Device State
+                                state: data.state !== undefined ? String(data.state) : (data.new_state !== undefined ? String(data.new_state) : t('common.unknown')),
+                                new_state: data.new_state !== undefined ? String(data.new_state) : (data.state !== undefined ? String(data.state) : t('common.unknown')),
+                                // Users
+                                targetUser: data.targetUser || data.username || t('common.unknown'),
+                                role: data.role || data.newRole || '',
+                                // Utils
+                                reason: data.reason || t('common.errors.unknown'),
                                 defaultValue: ev.description, 
                                 interpolation: { escapeValue: false } 
                               });
@@ -563,25 +576,33 @@ export function DiagnosticsView() {
                                           cData = {};
                                         }
                                         
-                                        return t(`audit_logs.messages.${child.eventType}`, { 
-                                          ...cData, 
-                                          sceneName: cData.sceneName || cData.name || '',
-                                          name: cData.name || cData.sceneName || '',
-                                          userName: cData.userName || cData.user || '',
-                                          user: cData.user || cData.userName || '',
-                                          successCount: cData.successCount !== undefined ? cData.successCount : (cData.success !== undefined ? cData.success : ''),
-                                          totalCount: cData.totalCount !== undefined ? cData.totalCount : (cData.total !== undefined ? cData.total : ''),
-                                          total: cData.total !== undefined ? cData.total : (cData.totalCount !== undefined ? cData.totalCount : ''),
-                                          success: cData.success !== undefined ? cData.success : (cData.successCount !== undefined ? cData.successCount : ''),
-                                          ruleName: cData.ruleName || cData.name || '',
-                                          state: cData.state !== undefined ? String(cData.state) : (cData.new_state !== undefined ? String(cData.new_state) : ''),
-                                          new_state: cData.new_state !== undefined ? String(cData.new_state) : (cData.state !== undefined ? String(cData.state) : ''),
-                                          deviceName: cData.deviceName || '',
-                                          command: cData.command || '',
-                                          reason: cData.reason || '',
-                                          defaultValue: child.description, 
-                                          interpolation: { escapeValue: false } 
-                                        });
+                                          return t(`audit_logs.messages.${child.eventType}`, { 
+                                            ...cData, 
+                                            // Scenes & Commands
+                                            sceneName: cData.sceneName || cData.name || t('common.unknown_scene'),
+                                            name: cData.name || cData.sceneName || t('common.unknown'),
+                                            userName: cData.userName || cData.user || t('common.system'),
+                                            user: cData.user || cData.userName || t('common.system'),
+                                            successCount: cData.successCount !== undefined ? cData.successCount : (cData.success !== undefined ? cData.success : '0'),
+                                            totalCount: cData.totalCount !== undefined ? cData.totalCount : (cData.total !== undefined ? cData.total : '0'),
+                                            total: cData.total !== undefined ? cData.total : (cData.totalCount !== undefined ? cData.totalCount : '0'),
+                                            success: cData.success !== undefined ? cData.success : (cData.successCount !== undefined ? cData.successCount : '0'),
+                                            command: cData.command || t('common.unknown'),
+                                            // Automations
+                                            ruleName: cData.ruleName || cData.name || t('common.unknown'),
+                                            ruleId: cData.ruleId || '',
+                                            deviceName: cData.deviceName || t('common.unknown'),
+                                            // Device State
+                                            state: cData.state !== undefined ? String(cData.state) : (cData.new_state !== undefined ? String(cData.new_state) : t('common.unknown')),
+                                            new_state: cData.new_state !== undefined ? String(cData.new_state) : (cData.state !== undefined ? String(cData.state) : t('common.unknown')),
+                                            // Users
+                                            targetUser: cData.targetUser || cData.username || t('common.unknown'),
+                                            role: cData.role || cData.newRole || '',
+                                            // Utils
+                                            reason: cData.reason || t('common.errors.unknown'),
+                                            defaultValue: child.description, 
+                                            interpolation: { escapeValue: false } 
+                                          });
                                       })()}
                                     </div>
 
