@@ -468,7 +468,9 @@
       "inactive_automation": "Automatización Inactiva",
       "clock_hits": "El reloj marca las {{time}}",
       "if": "SI",
-      "then": "ENTONCES"
+      "then": "ENTONCES",
+      "trigger_label": "DISPARADOR",
+      "action_label": "EJECUCIÓN DEL SISTEMA"
     },
     "notifications": {
       "deleted": "Automatización eliminada de la biblioteca de inteligencia",

@@ -257,35 +257,59 @@ const AutomationsView: React.FC = () => {
           </div>
         </div>
 
-        <div className="relative p-5 rounded-2xl bg-foreground/[0.02] border border-foreground/[0.05] flex flex-col gap-4">
-           {/* Logic Flow Line */}
-           <div className="absolute left-10 top-12 bottom-12 w-[1.5px] border-l border-dashed border-foreground/10" />
+        <div className="relative p-6 rounded-[2rem] bg-foreground/[0.02] border border-foreground/[0.05] flex flex-col gap-8">
+           {/* Logic Flow Line - More structured */}
+           <div className="absolute left-[2.35rem] top-12 bottom-12 w-[1px] bg-gradient-to-b from-border/20 via-primary/20 to-border/20" />
 
-           <div className="flex items-start gap-4 relative z-10">
-              <div className="w-9 h-9 rounded-full bg-background border border-foreground/10 flex items-center justify-center shrink-0 shadow-sm">
-                 <span className="text-[9px] font-black opacity-30">{t('automations.summary.if')}</span>
+           <div className="flex items-start gap-5 relative z-10">
+              <div className={cn(
+                "h-8 px-3 rounded-full flex items-center justify-center shrink-0 shadow-sm border transition-all duration-700",
+                isEnabled ? "bg-background border-border" : "bg-muted/50 border-transparent"
+              )}>
+                 <span className={cn("text-[9px] font-black tracking-tighter", isEnabled ? "opacity-40" : "opacity-20")}>{t('automations.summary.if')}</span>
               </div>
-              <div className="pt-2.5">
-                <p className="text-base font-bold tracking-tight leading-tight text-foreground/80">
+              <div className="pt-0.5">
+                <p className={cn(
+                  "text-lg font-black tracking-tight leading-tight transition-colors duration-700",
+                  isEnabled ? "text-foreground/90" : "text-muted-foreground/40"
+                 )}>
                    {rule.trigger.type === 'time' 
                       ? t('automations.summary.clock_hits', { time: rule.trigger.timeLocal || rule.trigger.time }) 
                       : t('automations.summary.when_device', { name: getDeviceName(rule.trigger.deviceId), value: rule.trigger.expectedValue })}
                 </p>
-                <span className="text-[7.5px] font-black uppercase tracking-widest text-muted-foreground opacity-30 mt-0.5 block">Trigger Event</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-muted-foreground opacity-30 mt-1.5 block">
+                  {t('automations.summary.trigger_label')}
+                </span>
               </div>
            </div>
 
-           <div className="flex items-start gap-4 relative z-10">
-              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-sm">
-                 <span className="text-[9px] font-black">{t('automations.summary.then')}</span>
+           <div className="flex items-start gap-5 relative z-10">
+              <div className={cn(
+                "h-8 px-4 rounded-full flex items-center justify-center shrink-0 shadow-lg transition-all duration-700",
+                isEnabled 
+                  ? (isFullyAutonomous ? "bg-success text-white premium-glow-success" : "bg-primary text-white premium-glow") 
+                  : "bg-muted text-muted-foreground/30"
+              )}>
+                 <span className="text-[9px] font-black tracking-tighter">{t('automations.summary.then')}</span>
               </div>
-              <div className="pt-2.5">
-                <p className="text-base font-bold tracking-tight leading-tight">
+              <div className="pt-0.5">
+                <p className={cn(
+                  "text-lg font-black tracking-tight leading-tight transition-all duration-700",
+                  isEnabled ? (isFullyAutonomous ? "text-success" : "text-primary") : "text-muted-foreground/40"
+                )}>
                    {rule.action.type === 'device_command'
-                      ? t('automations.summary.run_command', { command: rule.action.command?.replace('_', ' ').toUpperCase(), name: getDeviceName(rule.action.targetDeviceId) })
+                      ? t('automations.summary.run_command', { 
+                          command: t(`automations.builder.commands.${rule.action.command}`, { defaultValue: rule.action.command || '' }).toUpperCase(), 
+                          name: getDeviceName(rule.action.targetDeviceId) 
+                        })
                       : t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) })}
                 </p>
-                <span className="text-[7.5px] font-black uppercase tracking-widest text-primary/40 mt-0.5 block">System Execution</span>
+                <span className={cn(
+                  "text-[8px] font-black uppercase tracking-[0.25em] mt-1.5 block transition-colors duration-700",
+                  isEnabled ? (isFullyAutonomous ? "text-success/50" : "text-primary/50") : "text-muted-foreground/30"
+                )}>
+                  {t('automations.summary.action_label')}
+                </span>
               </div>
            </div>
         </div>

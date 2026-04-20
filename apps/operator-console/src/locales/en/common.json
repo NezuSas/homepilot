@@ -466,6 +466,8 @@
       "paused": "Paused",
       "if": "IF",
       "then": "THEN",
+      "trigger_label": "TRIGGER",
+      "action_label": "SYSTEM EXECUTION",
       "system_rule": "System Monitoring Rule",
       "inactive_automation": "Inactive Automation",
       "clock_hits": "The clock hits {{time}}"
