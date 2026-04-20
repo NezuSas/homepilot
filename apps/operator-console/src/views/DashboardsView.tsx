@@ -245,16 +245,20 @@ export function DashboardsView() {
     try {
       const res = await fetch(`${API}/dashboards`);
       if (res.ok) {
-        const data: Dashboard[] = await res.json();
-        setDashboards(data);
-        if (data.length > 0) {
-          if (isInitial) {
-            setActive(data[0]);
-            setActiveTabIdx(0);
-          } else {
-            const current = data.find(d => d.id === active?.id);
-            if (current) setActive(current);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setDashboards(data);
+          if (data.length > 0) {
+            if (isInitial) {
+              setActive(data[0]);
+              setActiveTabIdx(0);
+            } else {
+              const current = data.find(d => d.id === active?.id);
+              if (current) setActive(current);
+            }
           }
+        } else {
+          console.error('[DashboardsView] Expected array of dashboards but received:', data);
         }
       }
     } catch { /* silent */ }
@@ -418,11 +422,10 @@ export function DashboardsView() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8">
 
-          {/* ── Workspace Library (left rail) ── */}
           <nav className="flex flex-col gap-2">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 px-1 mb-2">{t('dashboards.personal_label')}</p>
             <div className="flex flex-col gap-2">
-              {dashboards.map(d => {
+              {Array.isArray(dashboards) && dashboards.map(d => {
                 const isActive = active?.id === d.id;
                 return (
                   <button
@@ -500,7 +503,7 @@ export function DashboardsView() {
                 <div className="flex flex-col gap-6">
                   {/* Tab strip container with horizontal scroll */}
                   <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-border/60 pb-0 -mb-px">
-                    {active.tabs.map((tab, idx) => (
+                    {Array.isArray(active.tabs) && active.tabs.map((tab, idx) => (
                       <div key={tab.id} className="group/tab relative flex items-center">
                         <button
                           onClick={() => setActiveTabIdx(idx)}
@@ -552,7 +555,7 @@ export function DashboardsView() {
                       ) : (
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {activeTab.widgets.map(w => (
+                            {Array.isArray(activeTab.widgets) && activeTab.widgets.map(w => (
                               <WidgetCard key={w.id} widget={w} onRemove={() => handleRemoveWidget(w.id)} />
                             ))}
                           </div>

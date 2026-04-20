@@ -95,9 +95,14 @@ export const AutomationWorkbenchView: React.FC = () => {
       setLoading(true);
       const res = await fetch(`${API_URL}/automations`);
       if (!res.ok) throw new Error('Error de conexión con el motor de reglas');
-      const data = (await res.json()) as AutomationRule[];
-      setRules(data.map(r => ({ ...r, _processing: false, _error: null, _confirmingDelete: false })));
-      setError(null);
+      const rawData = await res.json();
+      if (Array.isArray(rawData)) {
+        setRules(rawData.map(r => ({ ...r, _processing: false, _error: null, _confirmingDelete: false })));
+        setError(null);
+      } else {
+        console.error('[AutomationWorkbench] Expected array of rules but received:', rawData);
+        setError(t('common.error_invalid_response_shape'));
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error de red fatal');
     } finally {
@@ -109,8 +114,12 @@ export const AutomationWorkbenchView: React.FC = () => {
     try {
       const res = await fetch(`${API_URL}/devices`);
       if (res.ok) {
-        const data = (await res.json()) as Device[];
-        setDevices(data.filter(d => d.status === 'ASSIGNED'));
+        const rawData = await res.json();
+        if (Array.isArray(rawData)) {
+          setDevices(rawData.filter(d => d.status === 'ASSIGNED'));
+        } else {
+          console.warn('[AutomationWorkbench] Expected array of devices but received:', rawData);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch devices for form', err);
@@ -284,7 +293,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                   onChange={e => setFormData({...formData, triggerDeviceId: e.target.value})}
                 >
                   <option value="">{t('automations.form.select_device')}</option>
-                  {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
+                  {Array.isArray(devices) && devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
                 </Select>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -319,7 +328,7 @@ export const AutomationWorkbenchView: React.FC = () => {
                   onChange={e => setFormData({...formData, targetDeviceId: e.target.value})}
                 >
                   <option value="">{t('automations.form.select_target')}</option>
-                  {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
+                  {Array.isArray(devices) && devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
                 </Select>
 
                 <div className="flex flex-col gap-2">
@@ -367,7 +376,7 @@ export const AutomationWorkbenchView: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-col gap-8">
-          {rules.map(rule => (
+          {Array.isArray(rules) && rules.map(rule => (
             <div key={rule.id} className={cn(
               "relative flex flex-col md:flex-row border border-border rounded-[2.5rem] bg-card overflow-hidden transition-all duration-500",
               !rule.enabled && "opacity-60 grayscale-[0.5]",

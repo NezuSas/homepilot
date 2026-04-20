@@ -64,8 +64,15 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
         throw new Error('DEVICE_REFRESH_ERROR');
       }
 
-      const devices = await devicesResponse.json() as SnapshotDevice[];
+      const rawDevices = await devicesResponse.json();
+      const devices = Array.isArray(rawDevices) ? rawDevices as SnapshotDevice[] : null;
       
+      if (!devices) {
+        console.error('[DeviceSnapshotStore] Received non-array devices response:', rawDevices);
+        set({ isLoading: false });
+        return;
+      }
+
       // Update devices immediately to unblock the main dashboard UI
       set({ devices, isLoading: false });
 
@@ -78,7 +85,12 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
 
       let homes = get().homes;
       if (homesRes.ok) {
-        homes = await homesRes.json() as SnapshotHome[];
+        const rawHomes = await homesRes.json();
+        if (Array.isArray(rawHomes)) {
+          homes = rawHomes as SnapshotHome[];
+        } else {
+          console.warn('[DeviceSnapshotStore] Received non-array homes response:', rawHomes);
+        }
       }
 
       const homeIds = Array.from(new Set([...homeIdsFromDevices, ...homes.map((home) => home.id)]));
@@ -89,7 +101,12 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
           try {
             const roomsResponse = await apiFetch(`${API_URL}/homes/${homeId}/rooms`);
             if (!roomsResponse.ok) return [homeId, get().roomsByHome[homeId] || []] as const;
-            const rooms = await roomsResponse.json() as SnapshotRoom[];
+            const rawRooms = await roomsResponse.json();
+            if (!Array.isArray(rawRooms)) {
+               console.warn(`[DeviceSnapshotStore] Received non-array rooms response for home ${homeId}:`, rawRooms);
+               return [homeId, get().roomsByHome[homeId] || []] as const;
+            }
+            const rooms = rawRooms as SnapshotRoom[];
             return [homeId, rooms] as const;
           } catch {
             return [homeId, get().roomsByHome[homeId] || []] as const;

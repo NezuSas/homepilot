@@ -56,9 +56,12 @@ export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
       const response = await apiFetch(API_ENDPOINTS.assistant.findings);
       const findings = await readJsonResponse<AssistantFinding[]>(response);
 
-      if (findings) {
+      if (Array.isArray(findings)) {
         set({ findings });
         await useAppShellStore.getState().refreshAssistantSummary();
+      } else if (findings !== null) {
+         // Log unexpected non-null, non-array shape
+         console.warn('[AssistantStore] Expected array of findings but received:', findings);
       }
     } catch (error) {
       console.error('[AssistantStore] Failed to fetch findings:', error);

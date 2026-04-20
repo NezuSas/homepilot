@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -24,7 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { API_ENDPOINTS, API_BASE_URL } from './config';
-import { apiFetch, configureApiClient } from './lib/apiClient';
+import { apiFetch } from './lib/apiClient';
 import { useSession } from './lib/useSession';
 import { DashboardView } from './views/DashboardView';
 import { TopologyView } from './views/TopologyView';
@@ -132,21 +132,7 @@ function App() {
 
   const { isAuthenticated, user, handleLoginSuccess, handleLogout, clearSession } = useSession(onSessionCleared);
 
-  // Use a ref so the 401 callback always calls the latest clearSession,
-  // even if the reference changes due to React re-renders.
-  const clearSessionRef = useRef(clearSession);
-  clearSessionRef.current = clearSession;
-
-  // Configure API client once at mount. The ref pattern guarantees the
-  // onUnauthorized callback is never stale without adding clearSession as a dep.
-  useEffect(() => {
-    configureApiClient({
-      getToken: () => localStorage.getItem('hp_session_token'),
-      onUnauthorized: () => clearSessionRef.current(),
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // ─── Real-time Integration ───────────────────────────────────────────
   const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(isAuthenticated);
   const assistantSummary = useAppShellStore((state) => state.assistantSummary);
   const isAllSynced = useAppShellStore((state) => state.isAllSynced);

@@ -55,8 +55,14 @@ export const useAppShellStore = create<AppShellState>((set) => ({
         return;
       }
 
-      const assistantSummary = await response.json() as AssistantSummary;
-      set({ assistantSummary });
+      const rawSummary = await response.json() as any;
+      
+      // Basic shape validation for luxury/premium robustness
+      if (rawSummary && typeof rawSummary === 'object' && 'totalOpen' in rawSummary) {
+        set({ assistantSummary: rawSummary as AssistantSummary });
+      } else {
+        console.warn('[AppShellStore] Received invalid assistant summary shape:', rawSummary);
+      }
     } catch {
       // Keep current summary state if refresh fails.
     }
