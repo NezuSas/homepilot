@@ -490,7 +490,13 @@ export function DiagnosticsView() {
                             {(() => {
                               let key = `audit_logs.messages.${ev.eventType}`;
                               const dataRaw = ev.data || {};
-                              const data = (typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw) as Record<string, any>;
+                              let data: Record<string, any> = {};
+                              try {
+                                data = typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw;
+                                if (typeof data !== 'object' || data === null) data = {};
+                              } catch (e) {
+                                data = {};
+                              }
 
                               if (ev.eventType === 'COMMAND_DISPATCHED' && (data.name || data.sceneName)) {
                                 key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
@@ -498,10 +504,20 @@ export function DiagnosticsView() {
 
                               return t(key, { 
                                 ...data, 
-                                sceneName: data.sceneName || data.name,
-                                userName: data.userName || data.user,
-                                successCount: data.successCount ?? data.success,
-                                totalCount: data.totalCount ?? data.total,
+                                sceneName: data.sceneName || data.name || '',
+                                name: data.name || data.sceneName || '',
+                                userName: data.userName || data.user || '',
+                                user: data.user || data.userName || '',
+                                successCount: data.successCount !== undefined ? data.successCount : (data.success !== undefined ? data.success : ''),
+                                totalCount: data.totalCount !== undefined ? data.totalCount : (data.total !== undefined ? data.total : ''),
+                                total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : ''),
+                                success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : ''),
+                                ruleName: data.ruleName || data.name || '',
+                                state: data.state !== undefined ? String(data.state) : (data.new_state !== undefined ? String(data.new_state) : ''),
+                                new_state: data.new_state !== undefined ? String(data.new_state) : (data.state !== undefined ? String(data.state) : ''),
+                                deviceName: data.deviceName || '',
+                                command: data.command || '',
+                                reason: data.reason || '',
                                 defaultValue: ev.description, 
                                 interpolation: { escapeValue: false } 
                               });
@@ -539,13 +555,30 @@ export function DiagnosticsView() {
                                     <div className="opacity-80">
                                       {(() => {
                                         const cDataRaw = child.data || {};
-                                        const cData = (typeof cDataRaw === 'string' ? JSON.parse(cDataRaw) : cDataRaw) as Record<string, any>;
+                                        let cData: Record<string, any> = {};
+                                        try {
+                                          cData = typeof cDataRaw === 'string' ? JSON.parse(cDataRaw) : cDataRaw;
+                                          if (typeof cData !== 'object' || cData === null) cData = {};
+                                        } catch (e) {
+                                          cData = {};
+                                        }
+                                        
                                         return t(`audit_logs.messages.${child.eventType}`, { 
                                           ...cData, 
-                                          sceneName: cData.sceneName || cData.name,
-                                          userName: cData.userName || cData.user,
-                                          successCount: cData.successCount ?? cData.success,
-                                          totalCount: cData.totalCount ?? cData.total,
+                                          sceneName: cData.sceneName || cData.name || '',
+                                          name: cData.name || cData.sceneName || '',
+                                          userName: cData.userName || cData.user || '',
+                                          user: cData.user || cData.userName || '',
+                                          successCount: cData.successCount !== undefined ? cData.successCount : (cData.success !== undefined ? cData.success : ''),
+                                          totalCount: cData.totalCount !== undefined ? cData.totalCount : (cData.total !== undefined ? cData.total : ''),
+                                          total: cData.total !== undefined ? cData.total : (cData.totalCount !== undefined ? cData.totalCount : ''),
+                                          success: cData.success !== undefined ? cData.success : (cData.successCount !== undefined ? cData.successCount : ''),
+                                          ruleName: cData.ruleName || cData.name || '',
+                                          state: cData.state !== undefined ? String(cData.state) : (cData.new_state !== undefined ? String(cData.new_state) : ''),
+                                          new_state: cData.new_state !== undefined ? String(cData.new_state) : (cData.state !== undefined ? String(cData.state) : ''),
+                                          deviceName: cData.deviceName || '',
+                                          command: cData.command || '',
+                                          reason: cData.reason || '',
                                           defaultValue: child.description, 
                                           interpolation: { escapeValue: false } 
                                         });

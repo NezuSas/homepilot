@@ -130,9 +130,17 @@ export const AuditLogsView: React.FC = () => {
                   <p className="text-sm font-bold tracking-tight text-foreground/90">
                     {(() => {
                       let key = `audit_logs.messages.${log.type}`;
+                      // 1. Parsing robusto de datos (maneja strings, objetos o nulos)
                       const dataRaw = log.data || {};
-                      const data = (typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw) as Record<string, any>;
+                      let data: Record<string, any> = {};
+                      try {
+                        data = typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw;
+                        if (typeof data !== 'object' || data === null) data = {};
+                      } catch (e) {
+                        data = {};
+                      }
                       
+                      // 2. Selección inteligente de clave (Refinamiento de tipos genéricos)
                       if (log.type === 'HA_RESILIENCE' && data.source) {
                         const source = data.source as string;
                         if (source === 'reconciliation') key = 'audit_logs.messages.RECONCILIATION_DONE';
@@ -142,16 +150,34 @@ export const AuditLogsView: React.FC = () => {
                         key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
                       }
                       
-                      return t(key, { 
-                        ...data, 
-                        // Compatibilidad con claves antiguas/nueas
-                        sceneName: data.sceneName || data.name,
-                        userName: data.userName || data.user,
-                        successCount: data.successCount ?? data.success,
-                        totalCount: data.totalCount ?? data.total,
-                        defaultValue: log.description, 
-                        interpolation: { escapeValue: false } 
-                      });
+                      // 3. Mapeo explícito de variables (Puente entre versiones de esquema)
+                      // i18next v26+ es estricto; forzamos las variables al primer nivel del objeto de opciones.
+                      const options = {
+                        ...data,
+                        // Scenes & Commands
+                        sceneName: data.sceneName || data.name || '',
+                        name: data.name || data.sceneName || '',
+                        userName: data.userName || data.user || '',
+                        user: data.user || data.userName || '',
+                        successCount: data.successCount !== undefined ? data.successCount : (data.success !== undefined ? data.success : ''),
+                        totalCount: data.totalCount !== undefined ? data.totalCount : (data.total !== undefined ? data.total : ''),
+                        total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : ''),
+                        success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : ''),
+                        command: data.command || '',
+                        // Automations
+                        ruleName: data.ruleName || data.name || '',
+                        ruleId: data.ruleId || '',
+                        deviceName: data.deviceName || '',
+                        // Device State
+                        state: data.state !== undefined ? String(data.state) : (data.new_state !== undefined ? String(data.new_state) : ''),
+                        new_state: data.new_state !== undefined ? String(data.new_state) : (data.state !== undefined ? String(data.state) : ''),
+                        // Utils
+                        reason: data.reason || '',
+                        defaultValue: log.description,
+                        interpolation: { escapeValue: false }
+                      };
+                      
+                      return t(key, options);
                     })()}
                   </p>
                </div>
