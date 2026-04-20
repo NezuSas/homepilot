@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import ConfirmModal from './ConfirmModal';
 
@@ -85,21 +86,21 @@ const ScenesView: React.FC<{
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const homesRes = await fetch(`${API_BASE_URL}/api/v1/homes`);
+        const homesRes = await apiFetch(`${API_BASE_URL}/api/v1/homes`);
         const homes = await homesRes.json();
-        if (homes.length > 0) {
+        if (Array.isArray(homes) && homes.length > 0) {
           const hId = homes[0].id;
           setHomeId(hId);
 
           const [scenesRes, roomsRes, devicesRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/v1/scenes`),
-            fetch(`${API_BASE_URL}/api/v1/homes/${hId}/rooms`),
-            fetch(`${API_BASE_URL}/api/v1/devices`)
+            apiFetch(`${API_BASE_URL}/api/v1/scenes`),
+            apiFetch(`${API_BASE_URL}/api/v1/homes/${hId}/rooms`),
+            apiFetch(`${API_BASE_URL}/api/v1/devices`)
           ]);
 
-          setScenes(await scenesRes.json());
-          setRooms(await roomsRes.json());
-          setDevices(await devicesRes.json());
+          if (scenesRes.ok) { const d = await scenesRes.json(); if (Array.isArray(d)) setScenes(d); }
+          if (roomsRes.ok) { const d = await roomsRes.json(); if (Array.isArray(d)) setRooms(d); }
+          if (devicesRes.ok) { const d = await devicesRes.json(); if (Array.isArray(d)) setDevices(d); }
         }
       } catch (error) {
         console.error('Failed to fetch scenes data:', error);
@@ -116,7 +117,7 @@ const ScenesView: React.FC<{
     trackRecent(scene.id);
     if (onActionExecute) onActionExecute(scene.name);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/scenes/${scene.id}/execute`, { method: 'POST' });
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/scenes/${scene.id}/execute`, { method: 'POST' });
       if (res.ok) {
         setSuccessId(scene.id);
         setTimeout(() => setSuccessId(null), 2000);
@@ -130,7 +131,7 @@ const ScenesView: React.FC<{
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/scenes/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/scenes/${id}`, { method: 'DELETE' });
       if (res.status === 204 || res.ok) {
         setScenes(prev => prev.filter(s => s.id !== id));
       }
@@ -144,9 +145,9 @@ const ScenesView: React.FC<{
   const handleSaved = () => {
     setShowBuilder(false);
     setEditingScene(null);
-    fetch(`${API_BASE_URL}/api/v1/scenes`)
+    apiFetch(`${API_BASE_URL}/api/v1/scenes`)
       .then(res => res.json())
-      .then(setScenes);
+      .then(data => { if (Array.isArray(data)) setScenes(data); });
   };
 
   const getSceneIcon = (name: string) => {

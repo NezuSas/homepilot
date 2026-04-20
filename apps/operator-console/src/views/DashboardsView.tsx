@@ -5,6 +5,7 @@ import {
   Home, PlaySquare, Cpu, PenLine, Check, X, ChevronRight
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { Button } from '../components/ui/Button';
 import { cn } from '../lib/utils';
 
@@ -243,7 +244,7 @@ export function DashboardsView() {
 
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`${API}/dashboards`);
+      const res = await apiFetch(`${API}/dashboards`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -268,7 +269,7 @@ export function DashboardsView() {
   useEffect(() => { fetchDashboards(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
-    const res = await fetch(`${API}/dashboards/${id}`, {
+    const res = await apiFetch(`${API}/dashboards/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -282,7 +283,7 @@ export function DashboardsView() {
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
-    const res = await fetch(`${API}/dashboards`, {
+    const res = await apiFetch(`${API}/dashboards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle.trim() })
@@ -335,7 +336,7 @@ export function DashboardsView() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`${API}/dashboards/${id}`, { method: 'DELETE' });
+    await apiFetch(`${API}/dashboards/${id}`, { method: 'DELETE' });
     const remaining = dashboards.filter(d => d.id !== id);
     setDashboards(remaining);
     setActive(remaining.length > 0 ? remaining[0] : null);

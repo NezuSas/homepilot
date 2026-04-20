@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import ConfirmModal from './ConfirmModal';
 import { Button } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -98,7 +99,7 @@ const DeviceTile: React.FC<{
     setIsProcessing(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId: selectedRoomId })
@@ -430,8 +431,8 @@ const DeviceInspector: React.FC<{
     try {
       if (isInitial) setLoading(true);
       const [devRes, logsRes] = await Promise.all([
-        fetch(`${API_URL}/devices/${deviceId}`),
-        fetch(`${API_URL}/devices/${deviceId}/activity-logs`)
+        apiFetch(`${API_URL}/devices/${deviceId}`),
+        apiFetch(`${API_URL}/devices/${deviceId}/activity-logs`)
       ]);
       if (devRes.ok) {
         const devData = await devRes.json() as InspectableDevice;
@@ -447,7 +448,7 @@ const DeviceInspector: React.FC<{
     } finally {
       if (isInitial) setLoading(false);
     }
-  }, [deviceId, API_URL]);
+  }, [deviceId]);
 
   useEffect(() => {
     fetchDetails(true);
@@ -460,7 +461,7 @@ const DeviceInspector: React.FC<{
     }
     setIsActionLoading(true);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName.trim() })
@@ -482,7 +483,7 @@ const DeviceInspector: React.FC<{
     if (!device || isActionLoading) return;
     setIsActionLoading(true);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })
@@ -501,7 +502,7 @@ const DeviceInspector: React.FC<{
     if (!device || isActionLoading) return;
     setIsActionLoading(true);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId: null })
@@ -524,7 +525,7 @@ const DeviceInspector: React.FC<{
     if (!device || !newRoomId || isActionLoading) return;
     setIsActionLoading(true);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/assign`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId: newRoomId })
@@ -546,14 +547,13 @@ const DeviceInspector: React.FC<{
     setIsRefreshing(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/devices/${device.id}/refresh`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/refresh`, {
         method: 'POST'
       });
       if (res.ok) {
         const updated = await res.json() as InspectableDevice;
         setDevice(updated);
         onUpdate(updated);
-        // REMOVED: redundant HA sync log fetch.
       } else {
         const data = await res.json() as { error: string };
         throw new Error(data.error || t('inbox.discovery.refresh_failed'));
@@ -909,8 +909,8 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/ha/entities`);
-      if (!res.ok) throw new Error('Failed to fetch entities from Home Assistant');
+      const res = await apiFetch(`${API_URL}/ha/entities?mode=all`);
+      if (!res.ok) throw new Error(t('inbox.discovery.fetch_failed'));
       setEntities(await res.json());
       setShowDiscovery(true);
     } catch (err) {
@@ -923,7 +923,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
   const handleImport = async (entity: HaEntityCandidate) => {
     setImportingId(entity.entityId);
     try {
-      const res = await fetch(`${API_URL}/ha/import`, {
+      const res = await apiFetch(`${API_URL}/ha/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entityId: entity.entityId })

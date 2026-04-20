@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Cpu, ShieldCheck, Activity, Shield, Layers } from 'lucide-react';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 const ResilienceShowcaseView: React.FC = () => {
   const { t } = useTranslation();
@@ -17,11 +18,11 @@ const ResilienceShowcaseView: React.FC = () => {
     const fetchData = async () => {
       try {
         const [scenesRes, automationsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/v1/scenes`),
-          fetch(`${API_BASE_URL}/api/v1/automations`)
+          apiFetch(`${API_BASE_URL}/api/v1/scenes`),
+          apiFetch(`${API_BASE_URL}/api/v1/automations`)
         ]);
-        if (scenesRes.ok) setScenes(await scenesRes.json());
-        if (automationsRes.ok) setAutomations(await automationsRes.json());
+        if (scenesRes.ok) { const d = await scenesRes.json(); if (Array.isArray(d)) setScenes(d); }
+        if (automationsRes.ok) { const d = await automationsRes.json(); if (Array.isArray(d)) setAutomations(d); }
         await refreshSnapshot();
       } catch (e) {
         console.error('Failed to fetch metrics for showcase', e);

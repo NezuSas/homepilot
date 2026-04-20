@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import AutomationBuilderModal from './AutomationBuilderModal.tsx';
 import ConfirmModal from './ConfirmModal.tsx';
 import { humanize } from '../lib/naming-utils';
@@ -69,7 +70,7 @@ const AutomationsView: React.FC = () => {
   }, [notification]);
 
   const fetchJSON = async (url: string, options?: RequestInit) => {
-    const res = await fetch(url, options);
+    const res = await apiFetch(url, options);
     if (res.status === 204) return null;
     const contentType = res.headers.get('content-type');
     if (!res.ok) {
@@ -91,9 +92,9 @@ const AutomationsView: React.FC = () => {
         fetchJSON(API_ENDPOINTS.devices.list),
         fetchJSON(API_ENDPOINTS.scenes.list)
       ]);
-      setRules(rulesData);
-      setDevices(devicesData);
-      setScenes(scenesData);
+      if (Array.isArray(rulesData)) setRules(rulesData);
+      if (Array.isArray(devicesData)) setDevices(devicesData);
+      if (Array.isArray(scenesData)) setScenes(scenesData);
       setError(null);
     } catch (err: any) {
       setError(err.message || t('common.errors.connection_error'));

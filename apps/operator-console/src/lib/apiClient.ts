@@ -75,9 +75,17 @@ export async function apiFetch(
 
   if (!whitelisted && config) {
     const token = config.getToken();
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+    if (!token) {
+      // Fail-closed: if we know it's protected and we have no token, 
+      // trigger unauthorized logic immediately without hitting network.
+      window.dispatchEvent(new CustomEvent('hp-session-unauthorized'));
+      config.onUnauthorized();
+      return new Response(JSON.stringify({ error: 'UNAUTHORIZED_PREFLIGHT' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(input, { ...init, headers });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Globe, Database, Cpu, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 interface HASettingsStatus {
   baseUrl: string;
@@ -27,7 +28,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
   const fetchStatus = async () => {
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/api/v1/settings/home-assistant`);
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/settings/home-assistant`);
       if (!response.ok) throw new Error(`Server returned ${response.status}`);
       const data = await response.json();
       setStatus(data);
@@ -47,7 +48,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/settings/home-assistant`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/settings/home-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl, accessToken: token || undefined })
@@ -72,7 +73,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
     setTesting(true);
     setTestResult(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/settings/test-ha-connection`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/settings/test-ha-connection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl, accessToken: token || '' })

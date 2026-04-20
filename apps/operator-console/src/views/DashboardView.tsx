@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
@@ -77,7 +78,7 @@ const DashDeviceTile: React.FC<{
 
     try {
       const command = nextState ? 'turn_on' : 'turn_off';
-      const res = await fetch(`${API_URL}/devices/${device.id}/command`, {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })
@@ -223,7 +224,7 @@ const fetchData = useCallback(async () => {
     await Promise.all([refreshSnapshot(), refreshFindings()]);
 
     if (homeId) {
-      const response = await fetch(`${API_URL}/scenes?homeId=${homeId}`);
+      const response = await apiFetch(`${API_URL}/scenes?homeId=${homeId}`);
       if (response.ok) {
         setScenes(await response.json());
       }

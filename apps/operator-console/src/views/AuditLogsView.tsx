@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, ShieldAlert, AlertCircle, Clock, Zap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { mapActivityType } from '../lib/i18n-mapping-utils';
 
 /**
@@ -29,10 +30,10 @@ export const AuditLogsView: React.FC = () => {
   const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/v1/activity-logs`);
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/activity-logs`);
       if (!res.ok) throw new Error(t('audit_logs.fetch_error'));
       const data = await res.json() as ActivityRecord[];
-      setLogs(data);
+      setLogs(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('common.errors.api_failed'));

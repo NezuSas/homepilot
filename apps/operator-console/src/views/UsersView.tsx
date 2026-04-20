@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, RefreshCcw, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 interface PublicUserDto {
   id: string;
@@ -30,12 +31,12 @@ export function UsersView() {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`);
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/admin/users`);
       if (!res.ok) {
         throw new Error(t('users.errors.fetch_failed'));
       }
       const data = await res.json();
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -54,7 +55,7 @@ export function UsersView() {
       return setCreateError(t('change_password.error_length'));
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -246,7 +247,7 @@ export function UsersView() {
                         {/* TOGGLE ACTIVE */}
                         <button
                           onClick={() => handleAction(
-                            () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/active`, { 
+                            () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/active`, { 
                               method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !u.isActive }) 
                             }),
                             u.isActive ? t('users.actions.confirm_suspend') : t('users.actions.confirm_restore')
@@ -264,7 +265,7 @@ export function UsersView() {
                         {/* CHANGE ROLE */}
                         <button
                           onClick={() => handleAction(
-                            () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
+                            () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
                               method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
                             }),
                             t('users.actions.confirm_role', { username: u.username })
@@ -278,7 +279,7 @@ export function UsersView() {
                         {/* REVOKE SESSIONS */}
                         <button
                           onClick={() => handleAction(
-                            () => fetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/revoke-sessions`, { 
+                            () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/revoke-sessions`, { 
                               method: 'POST'
                             }),
                             t('users.actions.confirm_revoke', { username: u.username })

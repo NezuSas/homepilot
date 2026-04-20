@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -58,7 +59,7 @@ export const useEnergyStore = create<EnergyState>((set, get) => ({
     }
 
     try {
-      const res = await fetch(`${API_URL}/ha/entities?mode=all`);
+      const res = await apiFetch(`${API_URL}/ha/entities?mode=all`);
 
       if (!res.ok) {
         throw new Error('ENERGY_REFRESH_ERROR');

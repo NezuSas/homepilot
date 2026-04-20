@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 
 interface Home {
@@ -30,13 +31,13 @@ export const TopologyView: React.FC = () => {
   const API_URL = `${API_BASE_URL}/api/v1`;
 
   useEffect(() => {
-    fetch(`${API_URL}/homes`)
+    apiFetch(`${API_URL}/homes`)
       .then((res) => res.json())
       .then((data: Home[]) => {
-        setHomes(data || []);
-        if (data.length > 0) {
-          // Si solo hay uno, o no hay ninguno seleccionado, seleccionamos el primero
-          handleSelectHome(data[0]);
+        const homes = Array.isArray(data) ? data : [];
+        setHomes(homes);
+        if (homes.length > 0) {
+          handleSelectHome(homes[0]);
         }
         setLoadingHomes(false);
       })
@@ -49,7 +50,7 @@ export const TopologyView: React.FC = () => {
   const handleSelectHome = (home: Home) => {
     setSelectedHome(home);
     setLoadingRooms(true);
-    fetch(`${API_URL}/homes/${home.id}/rooms`)
+    apiFetch(`${API_URL}/homes/${home.id}/rooms`)
       .then((res) => res.json())
       .then((data) => {
         setRooms(Array.isArray(data) ? data : []);
@@ -65,7 +66,7 @@ export const TopologyView: React.FC = () => {
     if (!selectedHome || !newRoomName.trim()) return;
     setIsCreatingRoom(true);
     try {
-      const res = await fetch(`${API_URL}/homes/${selectedHome.id}/rooms`, {
+      const res = await apiFetch(`${API_URL}/homes/${selectedHome.id}/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newRoomName.trim() })

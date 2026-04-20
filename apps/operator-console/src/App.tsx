@@ -212,7 +212,7 @@ function App() {
   }, [status, refreshAssistantSummary]);
 
   useEffect(() => {
-    if (!lastRealtimeEvent) {
+    if (status !== 'authenticated' || !lastRealtimeEvent) {
       return;
     }
 
@@ -230,7 +230,7 @@ function App() {
       refreshAssistantFindings();
       refreshAssistantSummary();
     }
-  }, [lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshAssistantSummary, refreshDeviceSnapshot]);
+  }, [status, lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshAssistantSummary, refreshDeviceSnapshot]);
 
   const onLogout = useCallback(async () => {
     await handleLogout(async () => {

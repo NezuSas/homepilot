@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Play, Pause, Zap, ArrowRight, Loader2, AlertCircle, RefreshCw, Ghost, Cpu, Plus, X, CheckCircle2, Trash2, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -93,7 +94,7 @@ export const AutomationWorkbenchView: React.FC = () => {
   const fetchRules = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/automations`);
+      const res = await apiFetch(`${API_URL}/automations`);
       if (!res.ok) throw new Error('Error de conexión con el motor de reglas');
       const rawData = await res.json();
       if (Array.isArray(rawData)) {
@@ -112,7 +113,7 @@ export const AutomationWorkbenchView: React.FC = () => {
 
   const fetchDevices = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/devices`);
+      const res = await apiFetch(`${API_URL}/devices`);
       if (res.ok) {
         const rawData = await res.json();
         if (Array.isArray(rawData)) {
@@ -135,7 +136,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: true, _error: null } : r));
     try {
       const act = currentlyEnabled ? 'disable' : 'enable';
-      const res = await fetch(`${API_URL}/automations/${id}/${act}`, { method: 'PATCH' });
+      const res = await apiFetch(`${API_URL}/automations/${id}/${act}`, { method: 'PATCH' });
       const data = (await res.json()) as AutomationRule | { error: string };
 
       if (!res.ok) throw new Error('error' in data ? data.error : 'Fallo en la operación');
@@ -151,7 +152,7 @@ export const AutomationWorkbenchView: React.FC = () => {
   const handleDelete = async (id: string) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: true, _error: null } : r));
     try {
-      const res = await fetch(`${API_URL}/automations/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_URL}/automations/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = (await res.json()) as { error: string };
         throw new Error(data.error || 'Error al eliminar la regla');
@@ -204,7 +205,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       const method = editingId ? 'PATCH' : 'POST';
       const endpoint = editingId ? `${API_URL}/automations/${editingId}` : `${API_URL}/automations`;
 
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

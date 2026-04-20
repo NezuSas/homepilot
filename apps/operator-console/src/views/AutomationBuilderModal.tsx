@@ -5,6 +5,7 @@ import {
   AlertCircle, Save, ArrowRight, Loader2
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import Select from './Select';
 import { humanize } from '../lib/naming-utils';
 import { cn } from '../lib/utils';
@@ -111,7 +112,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         ? `${API_ENDPOINTS.automations.list}/${existingAutomation.id}`
         : API_ENDPOINTS.automations.list;
       
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: existingAutomation ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

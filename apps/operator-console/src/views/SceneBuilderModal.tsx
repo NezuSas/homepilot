@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Save, PlayCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
 import { Input } from '../components/ui/Input';
 import Select from './Select';
@@ -99,7 +100,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         ? `${API_URL}/scenes/${existingScene.id}` 
         : `${API_URL}/scenes`;
       
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: existingScene ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

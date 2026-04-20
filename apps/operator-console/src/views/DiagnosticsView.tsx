@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Cpu, ShieldCheck } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 interface DiagnosticsCounters {
@@ -98,10 +99,10 @@ export function DiagnosticsView() {
   const fetchDiagnostics = async () => {
     try {
       const [snapshotRes, eventsRes, scenesRes, automationsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/v1/system/diagnostics`),
-        fetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`),
-        fetch(`${API_BASE_URL}/api/v1/scenes`),
-        fetch(`${API_BASE_URL}/api/v1/automations`)
+        apiFetch(`${API_BASE_URL}/api/v1/system/diagnostics`),
+        apiFetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`),
+        apiFetch(`${API_BASE_URL}/api/v1/scenes`),
+        apiFetch(`${API_BASE_URL}/api/v1/automations`)
       ]);
 
       if (!snapshotRes.ok || !eventsRes.ok) throw new Error(t('common.errors.api_failed'));
@@ -122,12 +123,9 @@ export function DiagnosticsView() {
   const handleTimezoneChange = async (newTz: string) => {
     setUpdatingTz(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/system/timezone`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/system/timezone`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('hp_session_token')}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timezone: newTz })
       });
 

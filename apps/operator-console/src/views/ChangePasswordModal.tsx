@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -38,7 +39,7 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
     setError(null);
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
+      const resp = await apiFetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
