@@ -174,12 +174,13 @@
       "generic": "A tailored environment for this moment"
     },
     "header": {
-      "available": "{{count}} Master Recipes Available"
+      "available": "{{count}} Scenes Available"
     },
     "favorites": "Favorite Environments",
     "recents": "Command History",
     "all_scenes": "All System Scenes",
-    "point_count": "{{count}} Points",
+    "point_count_one": "1 Point",
+    "point_count_other": "{{count}} Points",
     "delete_confirm_title": "Delete Scene?",
     "delete_confirm_description": "This will permanently remove the scene. Individual devices will not be affected."
   },
@@ -257,8 +258,24 @@
       "running": "Running",
       "failed": "Failed"
     },
+    "events": {
+      "SCENE_EXECUTION_STARTED": "Scene Execution Started",
+      "SCENE_EXECUTION_COMPLETED": "Scene Execution Completed",
+      "SCENE_EXECUTION_FAILED": "Scene Execution Failed",
+      "COMMAND_DISPATCHED": "Command Dispatched",
+      "STATE_CHANGED": "State Changed",
+      "AUTOMATION_TRIGGERED": "Automation Triggered",
+      "automation_executed": "Automation Executed"
+    },
+    "categories": {
+      "resilience": "Resilience",
+      "automation": "Automation",
+      "auth": "Auth",
+      "command": "Command"
+    },
     "messages": {
       "healthy": "All core loops operating exceptionally.",
+
       "degraded": "Subsystems operating below SLA.",
       "offline": "Core link broken.",
       "ha_not_configured": "Integration missing or empty credentials.",
@@ -474,7 +491,7 @@
       "clock_hits": "The clock hits {{time}}"
     },
     "notifications": {
-      "deleted": "Recipe removed from intelligence library",
+      "deleted": "Automation removed from intelligence library",
       "updated": "Intelligence library updated"
     },
     "builder": {
@@ -552,7 +569,22 @@
       "AUTH_FAILED": "Auth Failed",
       "AUTOMATION_TRIGGERED": "Automation Triggered",
       "DISCOVERY_START": "Discovery Started",
-      "DISCOVERY_RESULT": "Discovery Result"
+      "DISCOVERY_RESULT": "Discovery Result",
+      "SCENE_EXECUTION_STARTED": "Scene Execution Started",
+      "SCENE_EXECUTION_COMPLETED": "Scene Execution Completed",
+      "COMMAND_DISPATCHED": "Command Dispatched",
+      "STATE_CHANGED": "State Changed"
+    },
+    "log_messages": {
+      "scene_executed": "Scene \"{{name}}\" executed by {{user}}. ({{success}}/{{total}} success)",
+      "scene_dispatched": "Persistent Scene \"{{name}}\" dispatched: {{command}}",
+      "user_triggered_scene": "User triggered Scene \"{{name}}\"",
+      "device_state_updated": "Device state updated to {{state}}",
+      "command_dispatched": "Command \"{{command}}\" dispatched correctly",
+      "command_failed": "Command \"{{command}}\" failed. Reason: {{reason}}",
+      "triggered_by_automation": "Triggered by Automation: {{ruleName}}",
+      "automation_failed": "Automation failed: {{reason}}",
+      "automation_executed_desc": "Automation \"{{ruleName}}\" executed successfully"
     }
   },
   "users": {

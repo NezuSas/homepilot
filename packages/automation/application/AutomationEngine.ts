@@ -256,7 +256,7 @@ export class AutomationEngine {
           timestamp: new Date().toISOString(),
           deviceId: action.targetDeviceId,
           type: 'COMMAND_DISPATCHED',
-          description: `Triggered by Automation: ${rule.name}`,
+          description: 'audit_logs.log_messages.triggered_by_automation',
           correlationId,
           data: { ruleId: rule.id, ruleName: rule.name, command: action.command }
         });
@@ -306,7 +306,7 @@ export class AutomationEngine {
         timestamp: new Date().toISOString(),
         deviceId,
         type: (status === 'error' ? 'AUTOMATION_FAILED' : 'AUTOMATION_EXECUTED') as ActivityType,
-        description: `Automation "${rule.name}" ${status === 'error' ? 'failed' : 'executed successfully'}.`,
+        description: status === 'error' ? 'audit_logs.log_messages.automation_failed' : 'audit_logs.log_messages.automation_executed_desc',
         correlationId,
         data: {
           ruleId: rule.id,

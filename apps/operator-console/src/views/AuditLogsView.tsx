@@ -127,7 +127,9 @@ export const AuditLogsView: React.FC = () => {
             <div className="flex-1 p-5 flex flex-col justify-center gap-4">
                <div className="flex items-center gap-3">
                   <Zap className="w-4 h-4 text-primary opacity-40" />
-                  <p className="text-sm font-bold tracking-tight text-foreground/90">{t(log.description as string)}</p>
+                  <p className="text-sm font-bold tracking-tight text-foreground/90">
+                    {t(log.description as string, { ...((log.data || {}) as object), defaultValue: log.description })}
+                  </p>
                </div>
                <div className="flex flex-wrap items-center gap-4">
                   {log.deviceId && (

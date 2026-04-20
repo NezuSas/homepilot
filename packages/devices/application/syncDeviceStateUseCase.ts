@@ -73,8 +73,8 @@ export async function syncDeviceStateUseCase(
       timestamp: now,
       deviceId: device.id,
       type: 'STATE_CHANGED',
-      description: `Device state updated to ${JSON.stringify(newState)}`,
-      data: { ...newState }
+      description: 'audit_logs.log_messages.device_state_updated',
+      data: { ...newState, state: JSON.stringify(newState) }
     });
   } catch (_error) {
     // El fallo en el log de actividad no debe revertir la sincronización del estado principal

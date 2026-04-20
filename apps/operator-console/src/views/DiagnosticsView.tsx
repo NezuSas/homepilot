@@ -474,17 +474,23 @@ export function DiagnosticsView() {
                         <div className="flex-1 flex flex-col gap-1.5">
                           <div className="flex items-center gap-2">
                             <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
-                              {ev.category}
+                              {t(`diagnostics.categories.${ev.category}`, { defaultValue: ev.category })}
                             </span>
-                            <span className={cn("font-bold text-sm tracking-tight", isError ? "text-danger" : "")}>{ev.eventType}</span>
+                            <span className={cn("font-bold text-sm tracking-tight", isError ? "text-danger" : "")}>
+                              {t(`diagnostics.events.${ev.eventType}`, { defaultValue: ev.eventType })}
+                            </span>
                             {(hasChildren || hasData) && (
+
                               <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
                                 {isExpanded ? t('diagnostics.hide_details') : t('diagnostics.view_details')}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm font-medium text-foreground/70">{t(ev.description as string)}</p>
+                          <p className="text-sm font-medium text-foreground/70">
+                            {t(ev.description as string, { ...ev.data, defaultValue: ev.description })}
+                          </p>
                         </div>
+
                       </div>
                       
                       {isExpanded && (hasData || hasChildren) && (
@@ -508,9 +514,14 @@ export function DiagnosticsView() {
                                   </div>
                                   <div className="flex-1 space-y-1">
                                     <div className="font-bold flex items-center gap-2">
-                                      <span className={child.eventType.includes('FAILED') ? 'text-danger' : 'text-foreground'}>{child.eventType}</span>
+                                      <span className={child.eventType.includes('FAILED') ? 'text-danger' : 'text-foreground'}>
+                                        {t(`diagnostics.events.${child.eventType}`, { defaultValue: child.eventType })}
+                                      </span>
                                     </div>
-                                    <div className="opacity-80">{t(child.description as string)}</div>
+                                    <div className="opacity-80">
+                                      {t(child.description as string, { ...child.data, defaultValue: child.description })}
+                                    </div>
+
                                   </div>
                                 </div>
                               ))}

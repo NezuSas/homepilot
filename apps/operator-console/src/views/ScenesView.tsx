@@ -228,7 +228,7 @@ const ScenesView: React.FC<{
         <button 
           onClick={(e) => toggleFavorite(scene.id, e)}
           className={cn(
-            "absolute top-8 right-8 p-3 rounded-full transition-all duration-300",
+            "absolute top-8 right-8 p-3 rounded-full transition-all duration-300 z-20",
             isFav ? "text-rose-500 bg-rose-500/10 shadow-lg shadow-rose-500/20" : "text-muted-foreground/40 hover:bg-muted hover:text-rose-400"
           )}
         >
@@ -236,7 +236,7 @@ const ScenesView: React.FC<{
         </button>
 
         {/* Action Overlay (Subtle Edit/Trash) */}
-        <div className="absolute bottom-6 right-8 flex gap-2 transition-all">
+        <div className="absolute bottom-6 right-8 flex gap-2 transition-all z-20">
             <button 
               onClick={(e) => { e.stopPropagation(); setEditingScene(scene); setShowBuilder(true); }}
               className="p-3 bg-muted/40 hover:bg-muted border border-border/40 rounded-2xl hover:text-primary transition-all"

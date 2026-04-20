@@ -95,7 +95,7 @@ export async function executeDeviceCommandUseCase(
           timestamp: deps.clock.now(),
           deviceId: device.id,
           type: 'COMMAND_FAILED',
-          description: `Command ${command} failed. Reason: ${reason}`,
+          description: 'audit_logs.log_messages.command_failed',
           data: { command, reason, isAutomation: false }
         });
       } catch (_logErr) { /* silenciar */ }
@@ -123,8 +123,8 @@ export async function executeDeviceCommandUseCase(
       timestamp: now,
       deviceId: device.id,
       type: 'COMMAND_DISPATCHED',
-      description: options?.customDescription || `Command ${command} dispatched correctly to gateway.`,
-      data: { command, isAutomation: !!options?.isAutomation, correlationId }
+      description: options?.customDescription || 'audit_logs.log_messages.command_dispatched',
+      data: options?.data || { command, isAutomation: !!options?.isAutomation, correlationId }
     });
   } catch (_logErr) { /* silenciar */ }
 }
