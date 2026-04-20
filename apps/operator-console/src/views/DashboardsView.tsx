@@ -57,14 +57,17 @@ const ACCENT_STYLES: Record<string, string> = {
 
 // ─── Widget Card ──────────────────────────────────────────────────────────────
 
-function WidgetCard({ widget, onRemove }: { widget: DashboardWidget; onRemove: () => void }) {
+function WidgetCard({ widget, onRemove, onClick }: { widget: DashboardWidget; onRemove: () => void; onClick: () => void }) {
   const { t } = useTranslation();
   const meta = WIDGET_META[widget.type];
   const Icon = meta.icon;
   const accentCls = ACCENT_STYLES[meta.accent];
 
   return (
-    <div className="group relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+    <div 
+      onClick={onClick}
+      className="group cursor-pointer relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]"
+    >
       <div className={cn('p-2.5 rounded-xl border shrink-0', accentCls)}>
         <Icon className="w-4 h-4" />
       </div>
@@ -73,7 +76,7 @@ function WidgetCard({ widget, onRemove }: { widget: DashboardWidget; onRemove: (
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
       </div>
       <button
-        onClick={onRemove}
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         title={t('dashboards.remove_widget')}
       >
@@ -200,8 +203,8 @@ function WidgetPicker({ onAdd }: { onAdd: (type: DashboardWidget['type']) => voi
 
 // ─── Inline Tab Creator ───────────────────────────────────────────────────────
 
-function InlineTabCreator({ onConfirm, onCancel, placeholder }: { onConfirm: (title: string) => void; onCancel: () => void; placeholder: string }) {
-  const [value, setValue] = useState('');
+function InlineTabCreator({ onConfirm, onCancel, placeholder, initialValue = '' }: { onConfirm: (title: string) => void; onCancel: () => void; placeholder: string, initialValue?: string }) {
+  const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -228,6 +231,49 @@ function InlineTabCreator({ onConfirm, onCancel, placeholder }: { onConfirm: (ti
   );
 }
 
+// ─── Widget Configurator Modal ──────────────────────────────────────────────────
+
+function WidgetConfigurator({ widget, onClose, onSave }: { widget: DashboardWidget; onClose: () => void; onSave: (config: any) => void }) {
+  const { t } = useTranslation();
+  const meta = WIDGET_META[widget.type];
+  const Icon = meta.icon;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-300" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-card border border-border/60 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-5 flex items-center justify-between border-b border-border/40 bg-muted/30">
+           <div className="flex items-center gap-4">
+             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                <Icon className="w-5 h-5 text-primary" />
+             </div>
+             <div>
+               <h3 className="font-black tracking-tight">{t(meta.labelKey)}</h3>
+               <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mt-0.5">Configuración de Widget</p>
+             </div>
+           </div>
+           <button onClick={onClose} className="p-2 bg-muted/60 rounded-xl hover:bg-muted text-foreground transition-colors"><X className="w-4 h-4"/></button>
+        </div>
+        <div className="p-8 flex flex-col items-center justify-center text-center gap-4 min-h-[220px] bg-muted/5">
+           <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
+             <LayoutDashboard className="w-6 h-6 text-muted-foreground/40" />
+           </div>
+           <div>
+             <h4 className="text-sm font-bold text-foreground">En Construcción</h4>
+             <p className="text-xs text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
+               El panel de configuración para este widget estará disponible en la próxima actualización de componentes.
+             </p>
+           </div>
+        </div>
+        <div className="p-5 border-t border-border/40 flex justify-end gap-3 bg-muted/20">
+           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+           <Button variant="primary" onClick={() => onSave(widget.config)}>Guardar</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export function DashboardsView() {
@@ -241,6 +287,8 @@ export function DashboardsView() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle]     = useState('');
   const [addingTab, setAddingTab]       = useState(false);
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(null);
 
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
@@ -481,8 +529,8 @@ export function DashboardsView() {
                     <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">{active.title}</h3>
                     <button
                       onClick={() => { setDraftTitle(active.title); setEditingTitle(true); }}
-                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-                      title={t('dashboards.rename')}
+                      className="opacity-30 hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                      title={t('dashboards.rename') || 'Renombrar'}
                     >
                       <PenLine className="w-3.5 h-3.5" />
                     </button>
@@ -506,26 +554,51 @@ export function DashboardsView() {
                   <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-border/60 pb-0 -mb-px">
                     {Array.isArray(active.tabs) && active.tabs.map((tab, idx) => (
                       <div key={tab.id} className="group/tab relative flex items-center">
-                        <button
-                          onClick={() => setActiveTabIdx(idx)}
-                          className={cn(
-                            'px-5 py-3 text-xs font-black uppercase tracking-widest rounded-t-xl transition-all duration-200 border-b-2',
-                            activeTabIdx === idx
-                              ? 'text-primary border-primary bg-primary/5'
-                              : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
-                          )}
-                        >
-                          {tab.title}
-                        </button>
-                        {/* Tab delete — only visible on hover, only for inactive or if >1 tab */}
-                        {active.tabs.length > 1 && (
-                          <button
-                            onClick={() => handleDeleteTab(idx)}
-                            className="absolute -top-1 -right-1 opacity-0 group-hover/tab:opacity-100 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center transition-opacity hover:bg-destructive"
-                            title={t('dashboards.delete_tab_confirm')}
-                          >
-                            <X className="w-2 h-2" />
-                          </button>
+                        {editingTabId === tab.id ? (
+                          <div className="mx-2">
+                            <InlineTabCreator
+                              initialValue={tab.title}
+                              placeholder={t('dashboards.rename') || 'Renombrar'}
+                              onConfirm={async (newTitle) => {
+                                const updatedTabs = [...active.tabs];
+                                updatedTabs[idx].title = newTitle;
+                                await patch(active.id, { tabs: updatedTabs });
+                                setEditingTabId(null);
+                              }}
+                              onCancel={() => setEditingTabId(null)}
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setActiveTabIdx(idx)}
+                              onDoubleClick={() => setEditingTabId(tab.id)}
+                              className={cn(
+                                'px-5 py-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest rounded-t-xl transition-all duration-200 border-b-2',
+                                activeTabIdx === idx
+                                  ? 'text-primary border-primary bg-primary/5'
+                                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
+                              )}
+                            >
+                              <span className="truncate">{tab.title}</span>
+                              <div 
+                                onClick={(e) => { e.stopPropagation(); setEditingTabId(tab.id); }}
+                                className="opacity-0 group-hover/tab:opacity-50 hover:!opacity-100 p-1 hover:bg-primary/10 rounded"
+                              >
+                                <PenLine className="w-3 h-3" />
+                              </div>
+                            </button>
+                            {/* Tab delete — only visible on hover, only for inactive or if >1 tab */}
+                            {active.tabs.length > 1 && (
+                              <button
+                                onClick={() => handleDeleteTab(idx)}
+                                className="absolute -top-1 -right-1 opacity-0 group-hover/tab:opacity-100 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center transition-opacity hover:bg-destructive"
+                                title={t('dashboards.delete_tab_confirm')}
+                              >
+                                <X className="w-2 h-2" />
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}
@@ -557,7 +630,7 @@ export function DashboardsView() {
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {Array.isArray(activeTab.widgets) && activeTab.widgets.map(w => (
-                              <WidgetCard key={w.id} widget={w} onRemove={() => handleRemoveWidget(w.id)} />
+                              <WidgetCard key={w.id} widget={w} onRemove={() => handleRemoveWidget(w.id)} onClick={() => setEditingWidget(w)} />
                             ))}
                           </div>
                           <WidgetPicker onAdd={handleAddWidget} />
@@ -570,6 +643,18 @@ export function DashboardsView() {
             </div>
           )}
         </div>
+      )}
+      
+      {/* Modals */}
+      {editingWidget && (
+        <WidgetConfigurator
+          widget={editingWidget}
+          onClose={() => setEditingWidget(null)}
+          onSave={async () => {
+            // Save logic to be expanded later
+            setEditingWidget(null);
+          }}
+        />
       )}
     </div>
   );
