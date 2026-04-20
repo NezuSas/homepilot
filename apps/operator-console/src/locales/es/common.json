@@ -544,7 +544,7 @@
       "WS_CONNECTED": "Conexión WebSocket establecida",
       "AUTH_FAILED": "Fallo de autenticación permanente",
       "SCENE_EXECUTION_STARTED": "Usuario activó la Escena \"{{name}}\"",
-      "SCENE_EXECUTION_COMPLETED": "Escena '{{name}}' ejecutada por {{user}} ({{success}}/{{total}} éxito)",
+      "SCENE_EXECUTION_COMPLETED": "Escena '{{sceneName}}' ejecutada por {{userName}} ({{successCount}}/{{totalCount}} éxito)",
       "SCENE_EXECUTION_FAILED": "Fallo al ejecutar la Escena \"{{name}}\"",
       "COMMAND_DISPATCHED": "Comando \"{{command}}\" enviado correctamente",
       "COMMAND_FAILED": "Comando \"{{command}}\" falló. Razón: {{reason}}",
@@ -552,7 +552,7 @@
       "AUTOMATION_TRIGGERED": "Automatización disparada para {{deviceName}}",
       "AUTOMATION_EXECUTED": "Automatización \"{{ruleName}}\" ejecutada con éxito",
       "AUTOMATION_FAILED": "Automatización \"{{ruleName}}\" falló: {{reason}}",
-      "SCENE_DISPATCHED_PERSISTENT": "Escena persistente \"{{name}}\" lanzada: {{command}}",
+      "SCENE_DISPATCHED_PERSISTENT": "Escena persistente '{{sceneName}}' lanzada: {{command}}",
       "TRIGGERED_BY_AUTOMATION": "Activado por automatización: {{ruleName}}"
     }
   },

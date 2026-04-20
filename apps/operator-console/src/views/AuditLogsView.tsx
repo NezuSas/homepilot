@@ -130,18 +130,28 @@ export const AuditLogsView: React.FC = () => {
                   <p className="text-sm font-bold tracking-tight text-foreground/90">
                     {(() => {
                       let key = `audit_logs.messages.${log.type}`;
-                      const data = (log.data || {}) as Record<string, any>;
+                      const dataRaw = log.data || {};
+                      const data = (typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw) as Record<string, any>;
                       
                       if (log.type === 'HA_RESILIENCE' && data.source) {
                         const source = data.source as string;
                         if (source === 'reconciliation') key = 'audit_logs.messages.RECONCILIATION_DONE';
                         else if (source === 'reconnect') key = 'audit_logs.messages.WS_CONNECTED';
                         else if (source === 'auth_error') key = 'audit_logs.messages.AUTH_FAILED';
-                      } else if (log.type === 'COMMAND_DISPATCHED' && data.name) {
+                      } else if (log.type === 'COMMAND_DISPATCHED' && (data.name || data.sceneName)) {
                         key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
                       }
                       
-                      return t(key, { ...data, defaultValue: log.description, interpolation: { escapeValue: false } });
+                      return t(key, { 
+                        ...data, 
+                        // Compatibilidad con claves antiguas/nueas
+                        sceneName: data.sceneName || data.name,
+                        userName: data.userName || data.user,
+                        successCount: data.successCount ?? data.success,
+                        totalCount: data.totalCount ?? data.total,
+                        defaultValue: log.description, 
+                        interpolation: { escapeValue: false } 
+                      });
                     })()}
                   </p>
                </div>

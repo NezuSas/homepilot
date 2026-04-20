@@ -489,11 +489,22 @@ export function DiagnosticsView() {
                           <p className="text-sm font-medium text-foreground/70">
                             {(() => {
                               let key = `audit_logs.messages.${ev.eventType}`;
-                              const data = (ev.data || {}) as Record<string, any>;
-                              if (ev.eventType === 'COMMAND_DISPATCHED' && data.name) {
+                              const dataRaw = ev.data || {};
+                              const data = (typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw) as Record<string, any>;
+
+                              if (ev.eventType === 'COMMAND_DISPATCHED' && (data.name || data.sceneName)) {
                                 key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
                               }
-                              return t(key, { ...data, defaultValue: ev.description, interpolation: { escapeValue: false } });
+
+                              return t(key, { 
+                                ...data, 
+                                sceneName: data.sceneName || data.name,
+                                userName: data.userName || data.user,
+                                successCount: data.successCount ?? data.success,
+                                totalCount: data.totalCount ?? data.total,
+                                defaultValue: ev.description, 
+                                interpolation: { escapeValue: false } 
+                              });
                             })()}
                           </p>
                         </div>
@@ -526,7 +537,19 @@ export function DiagnosticsView() {
                                       </span>
                                     </div>
                                     <div className="opacity-80">
-                                      {t(`audit_logs.messages.${child.eventType}`, { ...child.data, defaultValue: child.description, interpolation: { escapeValue: false } })}
+                                      {(() => {
+                                        const cDataRaw = child.data || {};
+                                        const cData = (typeof cDataRaw === 'string' ? JSON.parse(cDataRaw) : cDataRaw) as Record<string, any>;
+                                        return t(`audit_logs.messages.${child.eventType}`, { 
+                                          ...cData, 
+                                          sceneName: cData.sceneName || cData.name,
+                                          userName: cData.userName || cData.user,
+                                          successCount: cData.successCount ?? cData.success,
+                                          totalCount: cData.totalCount ?? cData.total,
+                                          defaultValue: child.description, 
+                                          interpolation: { escapeValue: false } 
+                                        });
+                                      })()}
                                     </div>
 
                                   </div>

@@ -544,7 +544,7 @@
       "WS_CONNECTED": "WebSocket connection established",
       "AUTH_FAILED": "Permanent authentication failure",
       "SCENE_EXECUTION_STARTED": "User triggered Scene \"{{name}}\"",
-      "SCENE_EXECUTION_COMPLETED": "Scene '{{name}}' executed by {{user}} ({{success}}/{{total}} success)",
+      "SCENE_EXECUTION_COMPLETED": "Scene '{{sceneName}}' executed by {{userName}} ({{successCount}}/{{totalCount}} success)",
       "SCENE_EXECUTION_FAILED": "Failed to execute Scene \"{{name}}\"",
       "COMMAND_DISPATCHED": "Command \"{{command}}\" dispatched correctly",
       "COMMAND_FAILED": "Command \"{{command}}\" failed. Reason: {{reason}}",
@@ -552,7 +552,7 @@
       "AUTOMATION_TRIGGERED": "Automation triggered for {{deviceName}}",
       "AUTOMATION_EXECUTED": "Automation \"{{ruleName}}\" executed successfully",
       "AUTOMATION_FAILED": "Automation \"{{ruleName}}\" failed: {{reason}}",
-      "SCENE_DISPATCHED_PERSISTENT": "Persistent Scene \"{{name}}\" dispatched: {{command}}",
+      "SCENE_DISPATCHED_PERSISTENT": "Persistent Scene '{{sceneName}}' dispatched: {{command}}",
       "TRIGGERED_BY_AUTOMATION": "Triggered by Automation: {{ruleName}}"
     }
   },
