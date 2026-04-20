@@ -168,7 +168,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* IF SECTION (Trigger) */}
-            <div className="space-y-4 p-6 rounded-[2rem] bg-muted/10 border border-border/10 relative overflow-hidden">
+            <div className="space-y-4 p-6 rounded-[2rem] bg-muted/10 border border-border/10 relative">
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0 min-w-8">
                   <span className="text-[9px] font-black">{t('automations.summary.if')}</span>
@@ -177,7 +177,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               </div>
 
               {/* Trigger Type Switcher */}
-              <div className="flex bg-background/50 p-1.5 rounded-2xl gap-1 border border-border/10">
+              <div className="flex bg-background/50 p-1.5 rounded-2xl gap-2 border border-border/10">
                 <button 
                   onClick={() => setTriggerType('device_state_changed')}
                   className={cn(
@@ -286,7 +286,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             </div>
 
             {/* THEN SECTION (Action) */}
-            <div className="space-y-4 p-6 rounded-[2rem] bg-primary/[0.02] border border-primary/10 relative overflow-hidden">
+            <div className="space-y-4 p-6 rounded-[2rem] bg-primary/[0.02] border border-primary/10 relative">
                <div className="flex items-center gap-3 mb-2">
                 <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground border-none flex items-center justify-center shrink-0 min-w-8">
                   <span className="text-[9px] font-black">{t('automations.summary.then')}</span>
@@ -295,7 +295,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               </div>
 
               {/* Action Type Switcher */}
-              <div className="flex bg-primary/[0.05] p-1.5 rounded-2xl gap-1 border border-primary/10">
+              <div className="flex bg-primary/[0.05] p-1.5 rounded-2xl gap-2 border border-primary/10">
                 <button 
                   onClick={() => setActionType('device_command')}
                   className={cn(
