@@ -5,12 +5,14 @@
 /*
  * HomePilot Design System — CSS Custom Properties
  *
- * Dark mode is the ONLY theme. No light-mode overrides.
+ * Both Dark and Light modes are supported.
  * Surfaces follow a strict elevation ladder:
- *   depth-0 → background   #080C10  (base canvas)
- *   depth-1 → card         #0D1117  (panels, sidebar)
- *   depth-2 → popover      #131920  (modals, dropdowns, elevated cards)
- *   depth-3 → muted        #192030  (subtle fills, hover states)
+ *   [Dark ] depth-0 → background   #080C10  (base canvas)
+ *           depth-1 → card         #0D1117  (panels, sidebar)
+ *           depth-2 → popover      #131920  (modals, dropdowns, elevated cards)
+ *   [Light] depth-0 → background   #F8FAFC
+ *           depth-1 → card         #FFFFFF
+ *           depth-2 → popover      #FFFFFF
  */
 
 @layer base {
@@ -82,6 +84,59 @@
     --device-on-glow:    0 0 20px -4px hsl(var(--primary) / 0.3), inset 0 1px 0 hsl(var(--primary) / 0.1);
     --device-off-shadow: 0 1px 3px hsl(210 30% 2% / 0.4);
   }
+
+  .light {
+    /* ── Core Surfaces (elevation ladder) ─────────────────── */
+    --background:          210 33% 98%;      /* #F8FAFC */
+    --card:                0 0% 100%;        /* #FFFFFF */
+    --card-foreground:     216 14% 15%;
+    --popover:             0 0% 100%;       
+    --popover-foreground:  216 14% 15%;
+
+    /* ── Text ───────────────────────────────────────────────── */
+    --foreground:          216 28% 15%;      /* Dark text */
+
+    /* ── Border ─────────────────────────────────────────────── */
+    --border:              214 32% 91%;      /* #E2E8F0 */
+    --border-subtle:       214 32% 94%;      /* Lighter lines */
+    --input:               214 32% 91%;
+    --ring:                210 100% 50%;
+
+    /* ── Primary (Interaction) ──────────────────────────────── */
+    --primary:             210 100% 50%;     /* Pure blue */
+    --primary-foreground:  0 0% 100%;        /* White text */
+
+    /* ── Secondary / Muted ──────────────────────────────────── */
+    --secondary:           214 32% 96%;      /* Light background filler */
+    --secondary-foreground: 216 28% 15%;     
+    --muted:               210 20% 96%;
+    --muted-foreground:    215 16% 47%;      /* #64748B */
+
+    /* ── Accent ─────────────────────────────────────────────── */
+    --accent:              210 100% 50%;
+    --accent-foreground:   0 0% 100%;
+
+    /* ── Destructive / Danger ───────────────────────────────── */
+    --destructive:         0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ── Semantic Status ────────────────────────────────────── */
+    --success:             142 69% 38%;     
+    --success-foreground:  0 0% 100%;
+    --warning:             38 92% 50%;
+    --warning-foreground:  38 92% 10%;
+    --danger:              0 84% 60%;
+    --danger-foreground:   0 0% 100%;
+
+    /* ── Effects (Light mode relies more on shadow than brightness) ─ */
+    --premium-glow:           0 8px 24px -6px hsl(var(--primary) / 0.25);
+    --premium-glow-success:   0 8px 24px -6px hsl(var(--success) / 0.25);
+    --premium-glow-danger:    0 8px 24px -6px hsl(var(--danger) / 0.25);
+    --premium-glow-warning:   0 8px 20px -6px hsl(var(--warning) / 0.25);
+
+    --device-on-glow:    0 4px 16px -2px hsl(var(--primary) / 0.2), inset 0 1px 0 hsl(var(--primary) / 0.05);
+    --device-off-shadow: 0 1px 2px hsl(210 30% 15% / 0.1);
+  }
 }
 
 @layer base {
@@ -95,6 +150,10 @@
     background-image: radial-gradient(hsl(210 30% 100% / 0.018) 1px, transparent 1px);
     background-size: 32px 32px;
     background-attachment: fixed;
+  }
+
+  .light body {
+    background-image: radial-gradient(hsl(210 30% 0% / 0.04) 1px, transparent 1px);
   }
 
   /* ── Focus rings ─────────────────────────────────────────── */
@@ -185,10 +244,19 @@
     @apply relative overflow-hidden bg-card/50 border border-border/60 rounded-[2rem] transition-all duration-300;
     box-shadow: 0 1px 3px hsl(210 30% 2% / 0.35), 0 1px 0 hsl(210 30% 100% / 0.03) inset;
   }
+  .light .premium-card {
+    box-shadow: 0 1px 3px hsl(210 30% 2% / 0.08), 0 1px 0 hsl(210 30% 100% / 0.5) inset;
+    @apply bg-card/80;
+  }
+  
   .premium-card:hover {
     border-color: hsl(var(--primary) / 0.25);
     box-shadow: 0 4px 16px hsl(210 30% 2% / 0.5), 0 1px 0 hsl(210 30% 100% / 0.05) inset;
     transform: translateY(-1px);
+  }
+  
+  .light .premium-card:hover {
+    box-shadow: 0 6px 20px hsl(210 30% 2% / 0.06), 0 1px 0 hsl(210 30% 100% / 0.5) inset;
   }
 
   .luxury-text-gradient {
@@ -216,6 +284,9 @@
     background: hsl(var(--background));
     border-color: hsl(var(--border) / 0.7);
     box-shadow: var(--device-off-shadow);
+  }
+  .light .device-state-off {
+    background: hsl(var(--card));
   }
   .device-state-off:hover {
     border-color: hsl(var(--primary) / 0.2);

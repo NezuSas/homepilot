@@ -20,7 +20,9 @@ import {
   Server,
   ChevronDown,
   ChevronRight,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
@@ -123,6 +125,17 @@ function App() {
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
   const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
   const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
+
+  const theme = useAppShellStore((state) => state.theme);
+  const setTheme = useAppShellStore((state) => state.setTheme);
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
 
   // ─── Session Management ───────────────────────────────────────────────
   const onSessionCleared = useCallback(() => {
@@ -550,6 +563,13 @@ function App() {
                 <span className="text-sm font-black tracking-tight truncate">{user?.username || t('common.unknown')}</span>
               </div>
               <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
+                  title={theme === 'dark' ? t('shell.tooltips.light_mode', 'Modo Claro') : t('shell.tooltips.dark_mode', 'Modo Oscuro')}
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
                 <button 
                   onClick={toggleLanguage}
                   className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"

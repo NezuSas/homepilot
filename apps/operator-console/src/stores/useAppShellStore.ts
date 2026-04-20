@@ -13,6 +13,8 @@ export interface RealtimeEventMessage {
 }
 
 interface AppShellState {
+  theme: 'dark' | 'light';
+  setTheme: (theme: 'dark' | 'light') => void;
   assistantSummary: AssistantSummary | null;
   isAllSynced: boolean;
   isRealtimeConnected: boolean;
@@ -31,7 +33,16 @@ const MAX_RECENT_REALTIME_EVENTS = 20;
 
 let syncStatusResetTimer: ReturnType<typeof window.setTimeout> | null = null;
 
+const getInitialTheme = (): 'dark' | 'light' => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('__homepilot_theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+  }
+  return 'dark';
+};
+
 const initialState = {
+  theme: getInitialTheme(),
   assistantSummary: null,
   isAllSynced: true,
   isRealtimeConnected: false,
@@ -41,6 +52,18 @@ const initialState = {
 
 export const useAppShellStore = create<AppShellState>((set) => ({
   ...initialState,
+
+  setTheme: (theme) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('__homepilot_theme', theme);
+      if (theme === 'light') {
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+      }
+    }
+    set({ theme });
+  },
 
   setAssistantSummary: (assistantSummary) => {
     set({ assistantSummary });
