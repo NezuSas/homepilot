@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -23,7 +23,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
-import { API_ENDPOINTS } from './config';
+import { API_ENDPOINTS, API_BASE_URL } from './config';
+import { apiFetch, configureApiClient } from './lib/apiClient';
+import { useSession } from './lib/useSession';
 import { DashboardView } from './views/DashboardView';
 import { TopologyView } from './views/TopologyView';
 import { InboxView } from './views/InboxView';
@@ -40,7 +42,6 @@ import { AssistantView } from './views/AssistantView';
 import { DashboardsView } from './views/DashboardsView';
 import ResilienceShowcaseView from './views/ResilienceShowcaseView';
 import { EnergyView } from './views/EnergyView';
-import { API_BASE_URL } from './config';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
 import { Button } from './components/ui/Button';
@@ -98,28 +99,56 @@ function isSystemView(view: View): boolean {
  * Aplicación principal de la Operator Console V1.
  * Gestiona el enrutamiento básico y el layout global.
  */
+/** Shape returned by /api/v1/system/setup-status — mirrors OnboardingView.SetupStatus */
+interface SetupStatus {
+  isInitialized: boolean;
+  requiresOnboarding: boolean;
+  hasAdminUser: boolean;
+  hasHAConfig: boolean;
+  haConnectionValid: boolean;
+}
+
 function App() {
   const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('hp_session_token'));
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
-  const [setupStatus, setSetupStatus] = useState<any>(null);
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
-  /** Controls whether the System sub-list is expanded in the sidebar. */
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
+
+  const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
+  const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
+  const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
+
+  // ─── Session Management ───────────────────────────────────────────────
+  const onSessionCleared = useCallback(() => {
+    resetAppShellState();
+    resetAssistantState();
+    resetSnapshotState();
+  }, [resetAppShellState, resetAssistantState, resetSnapshotState]);
+
+  const { isAuthenticated, user, handleLoginSuccess, handleLogout, clearSession } = useSession(onSessionCleared);
+
+  // Configure 401 interceptor once — when the component mounts.
+  useEffect(() => {
+    configureApiClient({
+      onUnauthorized: () => {
+        clearSession();
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(isAuthenticated);
   const assistantSummary = useAppShellStore((state) => state.assistantSummary);
   const isAllSynced = useAppShellStore((state) => state.isAllSynced);
   const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
   const pulseSyncStatus = useAppShellStore((state) => state.pulseSyncStatus);
-  const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
   const refreshAssistantFindings = useAssistantStore((state) => state.refreshFindings);
-  const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
   const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
-  const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
   const startDemo = useDemoGuideStore((state) => state.startDemo);
 
   const DEMO_STEPS: DemoStep[] = [
@@ -153,13 +182,6 @@ function App() {
     }
   ];
 
-  // ─── AUTH-1: Session Monitor ─────────────────────────────────────────
-  useEffect(() => {
-    if (!isAuthenticated && localStorage.getItem('hp_session_token')) {
-      setIsAuthenticated(true);
-    }
-  }, [isAuthenticated]);
-
   const toggleLanguage = () => {
     const nextLang = i18n.language.startsWith('es') ? 'en' : 'es';
     i18n.changeLanguage(nextLang);
@@ -169,13 +191,13 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       setLoadingSetup(true);
-      fetch(API_ENDPOINTS.system.setupStatus)
+      apiFetch(API_ENDPOINTS.system.setupStatus)
         .then(res => {
           const contentType = res.headers.get('content-type');
           if (!res.ok || !contentType || !contentType.includes('application/json')) {
              throw new Error('BACKEND_ERROR');
           }
-          return res.json();
+          return res.json() as Promise<SetupStatus>;
         })
         .then(data => {
           setSetupStatus(data);
@@ -212,43 +234,20 @@ function App() {
     }
   }, [lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshAssistantSummary, refreshDeviceSnapshot]);
 
-  const handleLoginSuccess = (token: string, user: any) => {
-    localStorage.setItem('hp_session_token', token);
-    localStorage.setItem('hp_user_ctx', JSON.stringify(user));
-    setIsAuthenticated(true);
-  };
+  const onLogout = useCallback(async () => {
+    await handleLogout(async () => {
+      await apiFetch(`${API_BASE_URL}/api/v1/auth/logout`, { method: 'POST' });
+    });
+  }, [handleLogout]);
 
-  const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, { method: 'POST' });
-    } catch (e) {
-      // Ignore errors if network is down or token is garbage, we still log out locally.
-    } finally {
-      localStorage.removeItem('hp_session_token');
-      localStorage.removeItem('hp_user_ctx');
-      resetAppShellState();
-      resetAssistantState();
-      resetSnapshotState();
-      setIsAuthenticated(false);
-    }
-  };
+  const handlePasswordChanged = useCallback(() => {
+    clearSession();
+    setShowPwdModal(false);
+  }, [clearSession]);
 
   if (!isAuthenticated) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
-
-  const handlePasswordChanged = () => {
-    localStorage.removeItem('hp_session_token');
-    localStorage.removeItem('hp_user_ctx');
-    resetAppShellState();
-    resetAssistantState();
-    resetSnapshotState();
-    setIsAuthenticated(false);
-    setShowPwdModal(false);
-  };
-
-  const userCtxStr = localStorage.getItem('hp_user_ctx');
-  const user = userCtxStr ? JSON.parse(userCtxStr) : null;
 
   if (loadingSetup) {
     return (
@@ -270,7 +269,7 @@ function App() {
           <OnboardingView 
             statusProvider={setupStatus} 
             userContext={user} 
-            onCompleted={() => setSetupStatus((prev: any) => ({ ...prev, requiresOnboarding: false }))} 
+            onCompleted={() => setSetupStatus((prev) => prev ? { ...prev, requiresOnboarding: false } : null)} 
           />
         </main>
       </div>
@@ -529,7 +528,7 @@ function App() {
                   <KeyRound className="w-4 h-4" />
                 </button>
                 <Button 
-                  onClick={handleLogout}
+                  onClick={onLogout}
                   variant="danger"
                   size="sm"
                   className="px-2 py-1.5 h-auto text-[10px] uppercase tracking-tighter"

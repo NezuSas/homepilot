@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { API_ENDPOINTS } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 export interface AssistantSummary {
   totalOpen: number;
@@ -47,7 +48,7 @@ export const useAppShellStore = create<AppShellState>((set) => ({
 
   refreshAssistantSummary: async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.assistant.summary);
+      const response = await apiFetch(API_ENDPOINTS.assistant.summary);
       const contentType = response.headers.get('content-type');
 
       if (!response.ok || !contentType || !contentType.includes('application/json')) {

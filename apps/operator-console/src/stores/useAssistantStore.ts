@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { API_ENDPOINTS } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { useAppShellStore } from './useAppShellStore';
 
 export interface AssistantFinding {
@@ -52,7 +53,7 @@ export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
     set({ isLoading: !hasData });
 
     try {
-      const response = await fetch(API_ENDPOINTS.assistant.findings);
+      const response = await apiFetch(API_ENDPOINTS.assistant.findings);
       const findings = await readJsonResponse<AssistantFinding[]>(response);
 
       if (findings) {
@@ -70,7 +71,7 @@ export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
     set({ isScanning: true });
 
     try {
-      const response = await fetch(API_ENDPOINTS.assistant.scan, { method: 'POST' });
+      const response = await apiFetch(API_ENDPOINTS.assistant.scan, { method: 'POST' });
       if (!response.ok) {
         throw new Error(`SCAN_FAILED_${response.status}`);
       }
@@ -85,7 +86,7 @@ export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
 
   dismissFinding: async (id: string) => {
     try {
-      const response = await fetch(API_ENDPOINTS.assistant.dismiss(id), { method: 'POST' });
+      const response = await apiFetch(API_ENDPOINTS.assistant.dismiss(id), { method: 'POST' });
       if (!response.ok) {
         throw new Error(`DISMISS_FAILED_${response.status}`);
       }
@@ -99,7 +100,7 @@ export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
 
   resolveFinding: async (id: string) => {
     try {
-      const response = await fetch(API_ENDPOINTS.assistant.resolve(id), { method: 'POST' });
+      const response = await apiFetch(API_ENDPOINTS.assistant.resolve(id), { method: 'POST' });
       if (!response.ok) {
         throw new Error(`RESOLVE_FAILED_${response.status}`);
       }
