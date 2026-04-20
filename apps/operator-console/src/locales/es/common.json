@@ -857,6 +857,7 @@
     "unknown": "Desconocido",
     "unknown_scene": "Escena Desconocida",
     "system": "Sistema",
+    "days_min": ["D", "L", "M", "M", "J", "V", "S"],
     "roles": {
       "admin": "Administrador",
       "operator": "Operador"

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  X, Clock, Zap, Play, 
+  X, Clock, Zap, Terminal, 
   AlertCircle, Save, ArrowRight, Loader2
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../config';
@@ -154,14 +154,14 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
         <div className="p-8 pt-2 max-h-[82vh] overflow-y-auto custom-scrollbar space-y-6">
           {/* Identity Section */}
-          <div className="space-y-3">
+          <div className="space-y-3 mb-6">
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('automations.builder.naming_label')}</label>
             <input 
               type="text" 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('automations.builder.placeholders.name')}
-              className="w-full bg-muted/20 border-2 border-border/10 rounded-[1.2rem] px-5 py-4 text-xl font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+              className="w-full h-14 bg-muted/20 border-2 border-border/10 rounded-[1.2rem] px-5 text-xl font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
               autoFocus
             />
           </div>
@@ -226,7 +226,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                         value={triggerConfig.expectedValue || ''}
                         onChange={(e) => setTriggerConfig({ ...triggerConfig, expectedValue: e.target.value })}
                         placeholder={t('automations.builder.placeholders.expected_value')}
-                        className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-2.5 text-sm font-bold tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20 translate-y-[1px]"
+                        className="w-full h-11 bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 text-sm font-bold tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20 translate-y-[1px]"
                       />
                     </div>
                   </div>
@@ -260,7 +260,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   <div className="space-y-2">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.days_label')}</label>
                     <div className="grid grid-cols-7 gap-1">
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => {
+                      {(t('common.days_min', { returnObjects: true }) as string[]).map((day, i) => {
                         const isSelected = (triggerConfig.days || [0,1,2,3,4,5,6]).includes(i);
                         return (
                           <button
@@ -303,7 +303,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                     actionType === 'device_command' ? "bg-primary text-primary-foreground shadow-lg" : "text-primary/40 hover:bg-primary/10 hover:text-primary"
                   )}
                 >
-                  <Play className="w-3 h-3 rotate-90" /> {t('automations.builder.actions.direct_command')}
+                  <Terminal className="w-4 h-4" /> {t('automations.builder.actions.direct_command')}
                 </button>
                 <button 
                   onClick={() => setActionType('execute_scene')}
@@ -370,7 +370,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
           )}
 
           {/* Footer - Integrated Action Button */}
-          <div className="pt-2 pb-32">
+          <div className="pt-2 pb-10">
             <button 
               disabled={isSubmitting || !name || (triggerType === 'device_state_changed' && !triggerConfig.deviceId) || (actionType === 'device_command' && !actionConfig.targetDeviceId) || (actionType === 'execute_scene' && !actionConfig.sceneId)}
               onClick={handleSubmit}

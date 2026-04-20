@@ -53,7 +53,7 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-left flex items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-primary/20",
+          "w-full h-11 bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 flex items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-primary/20",
           isOpen && "ring-2 ring-primary/20 border-primary/40 bg-foreground/[0.05]"
         )}
       >

@@ -824,6 +824,7 @@
     "unknown": "Unknown",
     "unknown_scene": "Unknown Scene",
     "system": "System",
+    "days_min": ["S", "M", "T", "W", "T", "F", "S"],
     "enable": "Enable",
     "disable": "Disable",
     "edit": "Edit",
