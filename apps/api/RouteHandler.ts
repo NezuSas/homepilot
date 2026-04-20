@@ -1,4 +1,5 @@
 import * as http from 'http';
+import { HomePilotRequest } from '../../packages/shared/domain/http';
 import { BootstrapContainer } from '../../bootstrap';
 
 /**
@@ -8,7 +9,7 @@ import { BootstrapContainer } from '../../bootstrap';
  */
 export interface RouteHandler {
   handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,

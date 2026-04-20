@@ -1,13 +1,14 @@
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * Admin routes: /api/v1/admin/users/*
  */
 export class AdminRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -15,10 +16,9 @@ export class AdminRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/admin/users')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
-    if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
     // GET /api/v1/admin/users
     if (method === 'GET' && pathname === '/api/v1/admin/users') {
@@ -35,7 +35,7 @@ export class AdminRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/admin/users') {
       try {
         const payload = await this.parseBody<any>(req);
-        const result = await container.services.userManagementService.createUser(authReq.user.id, payload);
+        const result = await container.services.userManagementService.createUser(req.user!.id, payload);
         this.sendJson(res, result, 201);
       } catch (e: any) {
         let code = 'USER_CREATE_ERROR';
@@ -51,8 +51,8 @@ export class AdminRoutes extends ApiRoutes {
     if (patchRoleMatch) {
       const targetId = patchRoleMatch[1];
       try {
-        const payload = await this.parseBody<{ role: any }>(req);
-        await container.services.userManagementService.updateUserRole(authReq.user.id, targetId, payload.role);
+        const payload = await this.parseBody<{ role: string }>(req);
+        await container.services.userManagementService.updateUserRole(req.user!.id, targetId, payload.role as any); // Small cast for UserRole union is acceptable if API is generic
         this.sendJson(res, { success: true });
       } catch (e: any) {
         let status = 400;
@@ -71,7 +71,7 @@ export class AdminRoutes extends ApiRoutes {
       try {
         const payload = await this.parseBody<{ isActive: boolean }>(req);
         await container.services.userManagementService.setUserActiveState(
-          authReq.user.id,
+          req.user!.id,
           targetId,
           payload.isActive === true
         );
@@ -92,7 +92,7 @@ export class AdminRoutes extends ApiRoutes {
     if (revokeMatch) {
       const targetId = revokeMatch[1];
       try {
-        await container.services.userManagementService.revokeUserSessions(authReq.user.id, targetId);
+        await container.services.userManagementService.revokeUserSessions(req.user!.id, targetId);
         this.sendJson(res, { success: true });
       } catch (e: any) {
         this.sendError(res, e.message.includes('USER_NOT_FOUND') ? 404 : 500, 'USER_REVOKE_ERROR', e.message);

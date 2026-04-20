@@ -49,10 +49,7 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
   const authGuard = new AuthGuard(authService);
 
   if (process.env.NODE_ENV === 'test') {
-    (authGuard as any).requireRole = (req: any, res: any, role: string) => {
-      req.user = { id: 'u-01', role: 'admin' };
-      return true;
-    };
+    authGuard.setRoleChecker(() => true);
   }
 
   const isDevBootstrap = process.env.HOMEPILOT_DEV_BOOTSTRAP === 'true';

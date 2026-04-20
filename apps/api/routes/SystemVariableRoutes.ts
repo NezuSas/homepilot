@@ -2,6 +2,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import type { SystemVariable } from '../../../packages/system-vars/domain/SystemVariable';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * System Variable routes: /api/v1/system-variables/*
@@ -11,7 +12,7 @@ import type { SystemVariable } from '../../../packages/system-vars/domain/System
  */
 export class SystemVariableRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -19,9 +20,8 @@ export class SystemVariableRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/system-variables')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
 
     // GET /api/v1/system-variables
     if (method === 'GET' && pathname === '/api/v1/system-variables') {
@@ -57,7 +57,7 @@ export class SystemVariableRoutes extends ApiRoutes {
 
     // POST /api/v1/system-variables (create or update)
     if (method === 'POST' && pathname === '/api/v1/system-variables') {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const body = await this.parseBody<{
           scope?: string;
@@ -108,7 +108,7 @@ export class SystemVariableRoutes extends ApiRoutes {
     // DELETE /api/v1/system-variables/:id
     const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/system-variables\/([^/]+)$/);
     if (deleteMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const deleted = await container.services.systemVariableService.delete(deleteMatch[1]);
         if (!deleted) return this.sendError(res, 404, 'NOT_FOUND', 'Variable not found'), true;

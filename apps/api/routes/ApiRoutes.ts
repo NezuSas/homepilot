@@ -1,6 +1,9 @@
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { RouteHandler } from '../RouteHandler';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
+
+import { ActivityType } from '../../../packages/devices/domain/repositories/ActivityLogRepository';
 
 /**
  * Safe messages map — sanitizes error details sent to clients.
@@ -48,21 +51,19 @@ const DEFAULT_STATUS_CODES: Record<string, number> = {
  */
 export abstract class ApiRoutes implements RouteHandler {
   abstract handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
     container: BootstrapContainer
   ): Promise<boolean>;
 
-  protected parseBody<T>(req: http.IncomingMessage): Promise<T> {
+  protected parseBody<T>(req: HomePilotRequest): Promise<T> {
     // Fastify pre-buffers request bodies and attaches them to request.raw via
     // _fastifyParsedBody (set in ApiGateway.registerCatchAllRoute).
-    // Reading from this property avoids re-consuming the already-drained stream.
-    const fastifyBody = (req as unknown as Record<string, unknown>)['_fastifyParsedBody'];
-    if (fastifyBody !== undefined) {
+    if (req._fastifyParsedBody !== undefined) {
       try {
-        return Promise.resolve(JSON.parse((fastifyBody as string) || '{}') as T);
+        return Promise.resolve(JSON.parse(req._fastifyParsedBody || '{}') as T);
       } catch {
         return Promise.reject(new Error('INVALID_JSON'));
       }
@@ -82,7 +83,7 @@ export abstract class ApiRoutes implements RouteHandler {
     });
   }
 
-  protected sendJson(res: http.ServerResponse, data: any, status: number = 200): void {
+  protected sendJson(res: http.ServerResponse, data: unknown, status: number = 200): void {
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(data));
   }

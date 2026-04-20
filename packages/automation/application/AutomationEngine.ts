@@ -1,51 +1,50 @@
+import { DateTime } from 'luxon';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
-import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
+import { ActivityLogRepository, ActivityType } from '../../devices/domain/repositories/ActivityLogRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { SystemStateChangeEvent } from '../../integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import {
-  ObservableAutomationEngineStateProvider,
-  AutomationEngineObservableState,
-} from '../../system-observability/domain/ObservableStateProviders';
-import {
   AutomationRule,
-  AutomationTrigger,
   AutomationAction,
   DeviceStateTrigger,
   TimeTrigger,
   CompoundTrigger,
-  DelayAction,
 } from '../../devices/domain/automation/types';
-import { DateTime } from 'luxon';
 import { SystemVariableService } from '../../system-vars/application/SystemVariableService';
 
-/**
- * Simple dispatch port used by the engine to execute commands and scenes.
- */
 export interface AutomationCommandDispatcher {
-  dispatchCommand(
-    homeId: string,
-    deviceId: string,
-    command: string,
-    correlationId: string
-  ): Promise<void>;
+  dispatchCommand(homeId: string, deviceId: string, command: string, correlationId: string): Promise<void>;
   executeScene(homeId: string, sceneId: string, correlationId: string): Promise<void>;
 }
 
-export class AutomationEngine implements ObservableAutomationEngineStateProvider {
-  // In-memory deduplication window (2 000 ms) to prevent echo loops.
-  private readonly loopPreventionCache = new Map<string, number>();
+export interface IdGenerator {
+  generate(): string;
+}
+
+export interface AutomationEngineObservableState {
+  status: 'idle' | 'active' | 'error';
+  lastExecutionAt: string | null;
+  totalSuccesses: number;
+  totalFailures: number;
+}
+
+/**
+ * AutomationEngine — The core "Brain" of HomePilot Edge.
+ * Orchestrates event-driven and time-driven automations.
+ */
+export class AutomationEngine {
+  private lastExecutionAt: string | null = null;
+  private totalSuccesses = 0;
+  private totalFailures = 0;
+  private lastStatus: 'idle' | 'active' | 'error' = 'idle';
+
+  // Loop prevention: ruleId -> timestamp
+  private loopPreventionCache = new Map<string, number>();
   private readonly DEDUPLICATION_WINDOW_MS = 2000;
 
-  // Guard to prevent time-rules firing more than once per UTC minute boundary.
-  // key: ruleId, value: last-fired "YYYY-MM-DD HH:mm"
-  private readonly timeFireGuard = new Map<string, string>();
-
-  // ─── Observability State ─────────────────────────────────────────────────────
-  private lastExecutionAt: string | null = null;
-  private totalSuccesses: number = 0;
-  private totalFailures: number = 0;
-  private lastStatus: 'active' | 'idle' | 'error' = 'idle';
+  // Time-guard: ruleId -> YYYY-MM-DD-HH-mm (Ensures time triggers fire only once per scheduled slot)
+  private timeFireGuard = new Map<string, string>();
 
   constructor(
     private readonly ruleRepository: AutomationRuleRepository,
@@ -54,189 +53,95 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     private readonly commandDispatcher: AutomationCommandDispatcher,
     private readonly activityLogRepository: ActivityLogRepository,
     private readonly systemVariableService: SystemVariableService,
-    private readonly idGenerator: { generate: () => string }
-  ) {
-    // Periodic leak prevention for deduplication and time-guard caches.
-    setInterval(() => this.cleanCache(), 60_000).unref();
-  }
-
-  // ─── Public handlers ─────────────────────────────────────────────────────────
+    private readonly idGenerator: IdGenerator
+  ) {}
 
   /**
-   * Process a device state-change event.
-   * Evaluates all enabled rules whose trigger (directly or via compound logic)
-   * references the changed device.
+   * Main entry point for state changes (Event-driven).
    */
   public async handleSystemEvent(event: SystemStateChangeEvent): Promise<void> {
-    try {
-      const allRules = await this.ruleRepository.findAll();
-      const candidates = allRules.filter(
-        (r) => r.enabled && this.triggerReferencesDevice(r.trigger, event.deviceId)
-      );
+    const rules = await this.ruleRepository.findAll();
+    const correlationId = `auto-evt-${Date.now()}`;
 
-      for (const rule of candidates) {
-        try {
-          const matches = await this.evaluateTriggerForDeviceEvent(rule.trigger, event);
-          if (matches) {
-            await this.fireRule(rule, event.eventId);
-          }
-        } catch (ruleError: any) {
-          console.error(
-            `[AutomationEngine] Error isolating rule ${rule.id} (correlationId: ${event.eventId}):`,
-            ruleError.message
-          );
-        }
-      }
-    } catch (globalError: any) {
-      this.lastStatus = 'error';
-      console.error('[AutomationEngine] Fatal error processing system event:', globalError.message);
-    }
-  }
+    for (const rule of rules) {
+      if (!rule.enabled) continue;
 
-  /**
-   * Process a UTC minute boundary tick.
-   * @param currentTime "HH:mm" always in UTC.
-   */
-  public async handleTimeEvent(currentTimeUTC: string): Promise<void> {
-    try {
-      const allRules = await this.ruleRepository.findAll();
-      const timeRules = allRules.filter(
-        (r) => r.enabled && this.triggerContainsTimeTrigger(r.trigger)
-      );
-
-      // Resolve effective local time for the appliance based on system settings.
-      const systemTimezone = await this.systemVariableService.getSystemTimezone();
-      const nowLocal = DateTime.now().setZone(systemTimezone);
-      const currentTimeLocal = nowLocal.toFormat('HH:mm');
-      const currentDayLocal = nowLocal.weekday === 7 ? 0 : nowLocal.weekday; // match JS getDay() 0=Sun
-
-      console.log(`[AutomationEngine] Tick: EngineLocalTime=${currentTimeLocal} (Zone=${systemTimezone}) RulesToEval=${timeRules.length}`);
-
-      for (const rule of timeRules) {
-        try {
-          const matches = await this.evaluateTriggerForTimeEvent(
-            rule.trigger,
-            currentTimeLocal,
-            currentDayLocal
-          );
-          if (!matches) continue;
-
-          // Once-per-minute guard (strictly tied to Date + HH:mm in local context)
-          const dateStr = nowLocal.toISODate();
-          const fireKey = `${dateStr} ${currentTimeLocal}`;
-
-          if (this.timeFireGuard.get(rule.id) === fireKey) continue;
-          this.timeFireGuard.set(rule.id, fireKey);
-
-          const correlationId = this.idGenerator.generate();
+      if (rule.trigger.type === 'device_state_changed') {
+        const trigger = rule.trigger as DeviceStateTrigger;
+        if (this.matchDeviceStateTrigger(trigger, event)) {
           await this.fireRule(rule, correlationId);
-        } catch (ruleError: any) {
-          console.error(
-            `[AutomationEngine] Error executing time rule ${rule.id}:`,
-            ruleError.message
-          );
+        }
+      } else if (rule.trigger.type === 'compound') {
+        const trigger = rule.trigger as CompoundTrigger;
+        if (await this.evaluateCompound(trigger, event, null, null)) {
+          await this.fireRule(rule, correlationId);
         }
       }
-    } catch (globalError: any) {
-      console.error('[AutomationEngine] Fatal error processing time event:', globalError.message);
     }
   }
 
-  // ─── Trigger evaluation ───────────────────────────────────────────────────────
-
   /**
-   * Returns true if the trigger (or any sub-trigger) references deviceId.
-   * Used to quickly filter which rules are relevant for a given state-change event.
+   * Periodic tick for time-scheduled rules (Time-driven).
    */
-  private triggerReferencesDevice(trigger: AutomationTrigger, deviceId: string): boolean {
-    if (trigger.type === 'device_state_changed') return trigger.deviceId === deviceId;
-    if (trigger.type === 'compound') {
-      return trigger.conditions.some((c) => this.triggerReferencesDevice(c, deviceId));
+  public async handleTimeEvent(pulseTimeUTC: string, referenceDate?: Date): Promise<void> {
+    const rules = await this.ruleRepository.findAll();
+    const systemTimezone = await this.systemVariableService.getSystemTimezone();
+    
+    // Construct the deterministic UTC moment of the pulse
+    const anchor = referenceDate || new Date();
+    const baseMoment = DateTime.fromFormat(pulseTimeUTC, 'HH:mm', { zone: 'utc' })
+      .set({
+        year: anchor.getUTCFullYear(),
+        month: anchor.getUTCMonth() + 1,
+        day: anchor.getUTCDate()
+      });
+
+    const todayPrefix = anchor.toISOString().split('T')[0];
+    const timeSlotKey = `${todayPrefix}-${pulseTimeUTC}`;
+
+    for (const rule of rules) {
+      if (!rule.enabled) continue;
+
+      if (rule.trigger.type === 'time') {
+        const trigger = rule.trigger as TimeTrigger;
+
+        // Ensure we haven't already fired this specific time slot for this rule
+        if (this.timeFireGuard.get(rule.id) === timeSlotKey) continue;
+
+        if (this.matchTimeTrigger(trigger, baseMoment, systemTimezone)) {
+          this.timeFireGuard.set(rule.id, timeSlotKey);
+          await this.fireRule(rule, `auto-time-${this.idGenerator.generate()}`);
+        }
+      }
     }
-    return false;
+
+    this.cleanCache();
   }
 
-  /**
-   * Returns true if the trigger contains at least one TimeTrigger.
-   * Used to filter rules relevant for a time event.
-   */
-  private triggerContainsTimeTrigger(trigger: AutomationTrigger): boolean {
-    if (trigger.type === 'time') return true;
-    if (trigger.type === 'compound') {
-      return trigger.conditions.some((c) => this.triggerContainsTimeTrigger(c));
-    }
-    return false;
-  }
+  // ─── Trigger Matching ────────────────────────────────────────────────────────
 
-  /**
-   * Evaluate a trigger against a device state-change event.
-   * For CompoundTrigger: TimeTrigger sub-conditions always return false
-   * (time is evaluated separately in handleTimeEvent).
-   */
-  private async evaluateTriggerForDeviceEvent(
-    trigger: AutomationTrigger,
-    event: SystemStateChangeEvent
-  ): Promise<boolean> {
-    if (trigger.type === 'time') return false;
-
-    if (trigger.type === 'device_state_changed') {
-      return this.matchDeviceStateTrigger(trigger, event);
-    }
-
-    if (trigger.type === 'compound') {
-      return this.evaluateCompound(trigger, (sub) =>
-        this.evaluateTriggerForDeviceEvent(sub, event)
-      );
-    }
-
-    return false;
-  }
-
-  /**
-   * Evaluate a trigger against the current time.
-   * For CompoundTrigger: DeviceStateTrigger sub-conditions are evaluated
-   * against current device state from the repository.
-   */
-  private async evaluateTriggerForTimeEvent(
-    trigger: AutomationTrigger,
-    currentTimeLocal: string,
-    currentDay: number
-  ): Promise<boolean> {
-    if (trigger.type === 'device_state_changed') {
-      // Fetch current state from repository
-      const device = await this.deviceRepository.findDeviceById(trigger.deviceId);
-      if (!device) return false;
-
-      const currentValue = this.resolveStateValue(device.lastKnownState, trigger.stateKey);
-      return String(currentValue) === String(trigger.expectedValue);
-    }
-
-    if (trigger.type === 'time') {
-      return this.matchTimeTrigger(trigger, currentTimeLocal, currentDay);
-    }
-
-    if (trigger.type === 'compound') {
-      return this.evaluateCompound(trigger, (sub) =>
-        this.evaluateTriggerForTimeEvent(sub, currentTimeLocal, currentDay)
-      );
-    }
-
-    return false;
-  }
-
-  /**
-   * Evaluate a CompoundTrigger by applying its operator over all sub-conditions.
-   */
   private async evaluateCompound(
     trigger: CompoundTrigger,
-    evalFn: (sub: AutomationTrigger) => Promise<boolean>
+    event: SystemStateChangeEvent | null,
+    baseMoment: DateTime | null,
+    systemTimezone: string | null
   ): Promise<boolean> {
     const { operator, conditions } = trigger;
 
-    if (operator === 'NOT') {
-      if (conditions.length === 0) return false;
-      return !(await evalFn(conditions[0]));
-    }
+    const evalFn = async (sub: any): Promise<boolean> => {
+      if (sub.type === 'device_state_changed') {
+        if (!event) return false;
+        return this.matchDeviceStateTrigger(sub as DeviceStateTrigger, event);
+      }
+      if (sub.type === 'time') {
+        if (baseMoment === null || systemTimezone === null) return false;
+        return this.matchTimeTrigger(sub as TimeTrigger, baseMoment, systemTimezone);
+      }
+      if (sub.type === 'compound') {
+        return this.evaluateCompound(sub as CompoundTrigger, event, baseMoment, systemTimezone);
+      }
+      return false;
+    };
 
     if (operator === 'AND') {
       for (const sub of conditions) {
@@ -267,19 +172,43 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
 
   private matchTimeTrigger(
     trigger: TimeTrigger,
-    currentTimeLocal: string,
-    currentDay: number
+    baseMoment: DateTime,
+    systemTimezone: string
   ): boolean {
-    const targetTime = trigger.timeLocal || trigger.time || trigger.timeUTC;
-    const timeMatches = targetTime === currentTimeLocal;
-    const dayMatches = !trigger.days || trigger.days.length === 0 || trigger.days.includes(currentDay);
+    const luxonToRuleDay = (lx: number): number => (lx === 7 ? 0 : lx);
 
-    console.log(`[AutomationEngine] TimeCheck: Target=${targetTime} Current=${currentTimeLocal} | DayCheck: RuleDays=${JSON.stringify(trigger.days)} CurrentDay=${currentDay} | Result: Time=${timeMatches} Day=${dayMatches}`);
+    // STRATEGY 1: Local Rule (timeLocal + timezone)
+    if (trigger.timeLocal) {
+      const targetTz = trigger.timezone || systemTimezone;
+      const localMoment = baseMoment.setZone(targetTz);
+      
+      const timeMatches = localMoment.toFormat('HH:mm') === trigger.timeLocal;
+      const localDay = luxonToRuleDay(localMoment.weekday);
+      const dayMatches = !trigger.days || trigger.days.length === 0 || trigger.days.includes(localDay);
+      
+      return timeMatches && dayMatches;
+    }
 
-    if (!timeMatches) return false;
-    if (!dayMatches) return false;
-    
-    return true;
+    // STRATEGY 2: UTC Rule (timeUTC)
+    if (trigger.timeUTC) {
+      const timeMatches = baseMoment.toFormat('HH:mm') === trigger.timeUTC;
+      const utcDay = luxonToRuleDay(baseMoment.weekday);
+      const dayMatches = !trigger.days || trigger.days.length === 0 || trigger.days.includes(utcDay);
+      
+      return timeMatches && dayMatches;
+    }
+
+    // STRATEGY 3: Legacy/Fallthrough Rule (deprecated time field)
+    if (trigger.time) {
+      const localMoment = baseMoment.setZone(systemTimezone);
+      const timeMatches = localMoment.toFormat('HH:mm') === trigger.time;
+      const localDay = luxonToRuleDay(localMoment.weekday);
+      const dayMatches = !trigger.days || trigger.days.length === 0 || trigger.days.includes(localDay);
+      
+      return timeMatches && dayMatches;
+    }
+
+    return false;
   }
 
   private resolveStateValue(
@@ -287,7 +216,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     stateKey: string
   ): unknown {
     if (!state) return undefined;
-    if (stateKey === 'state') return (state as any).state ?? state['state'];
+    if (stateKey === 'state') return state.state ?? state['state'];
     if (state.attributes && typeof state.attributes === 'object') {
       return (state.attributes as Record<string, unknown>)[stateKey];
     }
@@ -296,14 +225,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
 
   // ─── Rule execution ───────────────────────────────────────────────────────────
 
-  /**
-   * Fire a rule after the trigger condition has been confirmed.
-   * Applies deduplication to prevent rapid re-fires within DEDUPLICATION_WINDOW_MS.
-   */
   private async fireRule(rule: AutomationRule, correlationId: string): Promise<void> {
-    // Deduplication signature: ruleId to prevent event echo within 2 s
-    const cacheKey = rule.id;
-    console.log(`[AutomationEngine] Firing rule: ${rule.name} (RuleId=${rule.id}) CorrelationId=${correlationId}`);
     await this.executeRuleAction(rule, rule.action, correlationId);
   }
 
@@ -319,8 +241,8 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
 
         // Skip if device is already in the desired state (turn_on/off only)
         const projected = this.projectCommandToState(action.command);
-        if (projected !== null && (targetDevice.lastKnownState as any)?.state === projected) {
-          console.log(`[AutomationEngine] Skipping action for rule ${rule.id}: Device ${action.targetDeviceId} is already ${projected}`);
+        const lastState = targetDevice.lastKnownState as Record<string, unknown> | null;
+        if (projected !== null && lastState?.state === projected) {
           return;
         }
 
@@ -333,7 +255,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         await this.activityLogRepository.saveActivity({
           timestamp: new Date().toISOString(),
           deviceId: action.targetDeviceId,
-          type: 'COMMAND_DISPATCHED' as any,
+          type: 'COMMAND_DISPATCHED',
           description: `Triggered by Automation: ${rule.name}`,
           correlationId,
           data: { ruleId: rule.id, ruleName: rule.name, command: action.command }
@@ -342,39 +264,15 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         this.lastExecutionAt = new Date().toISOString();
         this.lastStatus = 'active';
         return;
-      } else if (action.type === 'execute_scene') {
-        const scene = await this.sceneRepository.findSceneById(action.sceneId);
-        if (!scene) throw new Error(`Scene ${action.sceneId} not found.`);
-
-        await this.commandDispatcher.executeScene(scene.homeId, action.sceneId, correlationId);
-      } else if (action.type === 'delay') {
-        // Schedule the nested action after delaySeconds.
-        // NOTE: Delay is in-memory (setTimeout). Pending delays are lost on restart.
-        const delayMs = (action as DelayAction).delaySeconds * 1000;
-        const nestedAction = (action as DelayAction).then;
-
-        setTimeout(() => {
-          this.executeRuleAction(rule, nestedAction, correlationId).catch((err) => {
-            console.error(
-              `[AutomationEngine] Delayed action for rule ${rule.id} failed:`,
-              err.message
-            );
-          });
-        }, delayMs).unref();
-
-        // Treat scheduling itself as success
-        this.totalSuccesses++;
-        this.lastExecutionAt = new Date().toISOString();
-        this.lastStatus = 'active';
-        await this.logExecution(rule, correlationId, 'success', `Delay action scheduled (${(action as DelayAction).delaySeconds}s).`);
-        return;
       }
 
-      this.totalSuccesses++;
-      this.lastExecutionAt = new Date().toISOString();
-      this.lastStatus = 'active';
-      await this.logExecution(rule, correlationId, 'success', 'Automation executed successfully.');
-    } catch (dispatchError: any) {
+      if (action.type === 'execute_scene') {
+        await this.commandDispatcher.executeScene(rule.homeId, action.sceneId, correlationId);
+        this.totalSuccesses++;
+        return;
+      }
+    } catch (error: any) {
+      const dispatchError = error instanceof Error ? error : new Error(String(error));
       this.totalFailures++;
       this.lastExecutionAt = new Date().toISOString();
       this.lastStatus = 'error';
@@ -385,7 +283,6 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         `Automation failed: ${dispatchError.message}`,
         action.type === 'device_command' ? action.targetDeviceId : undefined
       );
-      throw dispatchError;
     }
   }
 
@@ -408,7 +305,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
       await this.activityLogRepository.saveActivity({
         timestamp: new Date().toISOString(),
         deviceId,
-        type: (status === 'error' ? 'AUTOMATION_FAILED' : 'AUTOMATION_EXECUTED') as any,
+        type: (status === 'error' ? 'AUTOMATION_FAILED' : 'AUTOMATION_EXECUTED') as ActivityType,
         description: `Automation "${rule.name}" ${status === 'error' ? 'failed' : 'executed successfully'}.`,
         correlationId,
         data: {

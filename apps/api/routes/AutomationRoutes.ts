@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import * as http from 'http';
 import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { BootstrapContainer } from '../../../bootstrap';
@@ -7,6 +8,7 @@ import { disableAutomationRuleUseCase } from '../../../packages/devices/applicat
 import { deleteAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/DeleteAutomationRuleUseCase';
 import { updateAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 interface CreateAutomationPayload {
   name: string;
@@ -29,7 +31,7 @@ export class AutomationRoutes extends ApiRoutes {
   }
 
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -37,9 +39,8 @@ export class AutomationRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/automations')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
 
     // GET /api/v1/automations
     if (method === 'GET' && pathname === '/api/v1/automations') {
@@ -54,7 +55,7 @@ export class AutomationRoutes extends ApiRoutes {
 
     // POST /api/v1/automations
     if (method === 'POST' && pathname === '/api/v1/automations') {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const payload = await this.parseBody<CreateAutomationPayload>(req);
         const db = SqliteDatabaseManager.getInstance(this.dbPath);
@@ -64,7 +65,7 @@ export class AutomationRoutes extends ApiRoutes {
         const result = await createAutomationRuleUseCase(
           {
             homeId: home.id,
-            userId: authReq.user.id,
+            userId: req.user!.id,
             name: payload.name,
             trigger: payload.trigger,
             action: payload.action,
@@ -95,7 +96,7 @@ export class AutomationRoutes extends ApiRoutes {
     // PATCH /api/v1/automations/:id
     const patchAutoMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
     if (patchAutoMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       const ruleId = patchAutoMatch[1];
       try {
         const payload = await this.parseBody<UpdateAutomationPayload>(req);
@@ -104,7 +105,7 @@ export class AutomationRoutes extends ApiRoutes {
           validateHomeExists: async () => {},
           validateRoomBelongsToHome: async () => {},
         };
-        const result = await updateAutomationRuleUseCase(ruleId, authReq.user.id, payload, {
+        const result = await updateAutomationRuleUseCase(ruleId, req.user!.id, payload, {
           automationRuleRepository: container.repositories.automationRuleRepository,
           deviceRepository: container.repositories.deviceRepository,
           topologyReferencePort: ports,
@@ -124,7 +125,7 @@ export class AutomationRoutes extends ApiRoutes {
     // PATCH /api/v1/automations/:id/(enable|disable)
     const autoMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)\/(enable|disable)$/);
     if (autoMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       const ruleId = autoMatch[1];
       const act = autoMatch[2];
       try {
@@ -135,11 +136,11 @@ export class AutomationRoutes extends ApiRoutes {
         };
         const result =
           act === 'enable'
-            ? await enableAutomationRuleUseCase(ruleId, authReq.user.id, {
+            ? await enableAutomationRuleUseCase(ruleId, req.user!.id, {
                 automationRuleRepository: container.repositories.automationRuleRepository,
                 topologyReferencePort: ports,
               })
-            : await disableAutomationRuleUseCase(ruleId, authReq.user.id, {
+            : await disableAutomationRuleUseCase(ruleId, req.user!.id, {
                 automationRuleRepository: container.repositories.automationRuleRepository,
                 topologyReferencePort: ports,
               });
@@ -154,7 +155,7 @@ export class AutomationRoutes extends ApiRoutes {
     // DELETE /api/v1/automations/:id
     const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
     if (deleteMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       const ruleId = deleteMatch[1];
       try {
         const ports = {
@@ -162,7 +163,7 @@ export class AutomationRoutes extends ApiRoutes {
           validateHomeExists: async () => {},
           validateRoomBelongsToHome: async () => {},
         };
-        await deleteAutomationRuleUseCase(ruleId, authReq.user.id, {
+        await deleteAutomationRuleUseCase(ruleId, req.user!.id, {
           automationRuleRepository: container.repositories.automationRuleRepository,
           topologyReferencePort: ports,
         });

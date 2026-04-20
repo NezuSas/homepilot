@@ -196,8 +196,8 @@ describe('Automation Engine: Reactive Execution', () => {
         action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' }
       });
 
-      // Pass UTC pulse
-      await engine.handleTimeEvent('15:30');
+      // Pass UTC pulse with deterministic date anchor
+      await engine.handleTimeEvent('15:30', mockNow.toJSDate());
 
       expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
       
@@ -226,7 +226,7 @@ describe('Automation Engine: Reactive Execution', () => {
       });
 
       // Heartbeat fires at 04:30 UTC (which is Tuesday in UTC, but Monday 23:30 in Ecuador)
-      await engine.handleTimeEvent('04:30');
+      await engine.handleTimeEvent('04:30', mockNow.toJSDate());
 
       // SHOULD fire because it's still Monday in Ecuador
       expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
@@ -252,7 +252,7 @@ describe('Automation Engine: Reactive Execution', () => {
       });
 
       // Heartbeat fires at some time, but it's Tuesday 00:30 local. 
-      await engine.handleTimeEvent('05:30'); 
+      await engine.handleTimeEvent('05:30', mockNow.toJSDate()); 
 
       expect(dispatcherMock.dispatchCommand).not.toHaveBeenCalled();
       

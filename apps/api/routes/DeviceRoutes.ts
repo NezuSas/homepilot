@@ -8,6 +8,7 @@ import { syncDeviceStateUseCase } from '../../../packages/devices/application/sy
 import { DeviceCommandV1, isValidCommand } from '../../../packages/devices/domain/commands';
 import { HomeAssistantState } from '../../../packages/devices/infrastructure/adapters/HomeAssistantClient';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 interface LocalDeviceRow {
   id: string;
@@ -34,15 +35,14 @@ export class DeviceRoutes extends ApiRoutes {
   }
 
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
 
     // GET /api/v1/devices/:id/activity-logs
     const deviceLogsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/activity-logs$/);
@@ -115,20 +115,20 @@ export class DeviceRoutes extends ApiRoutes {
 
     // GET /api/v1/ha/entities
     if (method === 'GET' && pathname === '/api/v1/ha/entities') {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       return this.handleHaDiscovery(req, res, container);
     }
 
     // POST /api/v1/ha/import
     if (method === 'POST' && pathname === '/api/v1/ha/import') {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
-      return this.handleHaImport(req, res, container, authReq);
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      return this.handleHaImport(req, res, container);
     }
 
     // POST /api/v1/devices/:id/refresh
     const refreshMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/refresh$/);
     if (refreshMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const deviceId = refreshMatch[1];
         let device = await container.repositories.deviceRepository.findDeviceById(deviceId);
@@ -146,11 +146,11 @@ export class DeviceRoutes extends ApiRoutes {
 
         container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
 
-        const newState: Record<string, unknown> = { ...device.lastKnownState };
+        const newState: Record<string, unknown> = { ...device.lastKnownState as Record<string, unknown> };
         if (haState.state === 'on') newState.on = true;
         else if (haState.state === 'off') newState.on = false;
 
-        await syncDeviceStateUseCase(deviceId, newState, authReq.user.id, {
+        await syncDeviceStateUseCase(deviceId, newState, req.user!.id, {
           deviceRepository: container.repositories.deviceRepository,
           eventPublisher: container.adapters.deviceEventPublisher,
           activityLogRepository: container.repositories.activityLogRepository,
@@ -169,11 +169,11 @@ export class DeviceRoutes extends ApiRoutes {
     // POST /api/v1/devices/:id/assign
     const assignMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/assign$/);
     if (assignMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const payload = await this.parseBody<{ roomId?: string | null }>(req);
         if (payload.roomId === undefined) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing roomId'), true;
-        const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, authReq.user.id, 'op-console', {
+        const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, req.user!.id, 'op-console', {
           deviceRepository: container.repositories.deviceRepository,
           eventPublisher: container.adapters.deviceEventPublisher,
           topologyPort: {
@@ -213,7 +213,7 @@ export class DeviceRoutes extends ApiRoutes {
         await executeDeviceCommandUseCase(
           commandMatch[1],
           payload.command as DeviceCommandV1,
-          authReq.user.id,
+          req.user!.id,
           correlationId,
           {
             deviceRepository: container.repositories.deviceRepository,
@@ -259,7 +259,7 @@ export class DeviceRoutes extends ApiRoutes {
     // PATCH /api/v1/devices/:id
     const devicePatchMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)$/);
     if (devicePatchMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const deviceId = devicePatchMatch[1];
         const payload = await this.parseBody<{ name?: string }>(req);
@@ -269,7 +269,7 @@ export class DeviceRoutes extends ApiRoutes {
 
         // Ownership validation
         const home = await container.repositories.homeRepository.findHomeById(device.homeId);
-        if (!home || home.ownerId !== authReq.user.id) {
+        if (!home || home.ownerId !== req.user!.id) {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
         }
 
@@ -295,7 +295,7 @@ export class DeviceRoutes extends ApiRoutes {
   }
 
   private async handleHaDiscovery(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     container: BootstrapContainer
   ): Promise<boolean> {
@@ -356,10 +356,9 @@ export class DeviceRoutes extends ApiRoutes {
   }
 
   private async handleHaImport(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
-    container: BootstrapContainer,
-    authReq: any
+    container: BootstrapContainer
   ): Promise<boolean> {
     try {
       const payload = await this.parseBody<{ entityId: string; name?: string }>(req);
@@ -367,7 +366,7 @@ export class DeviceRoutes extends ApiRoutes {
 
       const device = await container.services.haImportService.importDevice(
         payload.entityId,
-        authReq.user.id,
+        req.user!.id,
         payload.name
       );
 

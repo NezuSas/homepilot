@@ -1,13 +1,14 @@
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * Settings routes: /api/v1/settings/*
  */
 export class SettingsRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -15,9 +16,8 @@ export class SettingsRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/settings/')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
 
     // POST /api/v1/settings/test-ha-connection
     if (method === 'POST' && pathname === '/api/v1/settings/test-ha-connection') {
@@ -45,7 +45,7 @@ export class SettingsRoutes extends ApiRoutes {
 
     // POST /api/v1/settings/home-assistant
     if (method === 'POST' && pathname === '/api/v1/settings/home-assistant') {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
       try {
         const payload = await this.parseBody<{ baseUrl?: string; accessToken?: string }>(req);

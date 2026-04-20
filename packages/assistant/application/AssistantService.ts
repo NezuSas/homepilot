@@ -6,6 +6,8 @@ import { AssistantLearningService } from './AssistantLearningService';
 import { AssistantFeedbackRepository } from '../domain/repositories/AssistantFeedbackRepository';
 import { AssistantFeedbackEvent } from '../domain/AssistantFeedbackEvent';
 
+export type AssistantFeedbackType = 'dismissed' | 'completed';
+
 export class AssistantService {
   private isScanning = false;
 
@@ -97,18 +99,20 @@ export class AssistantService {
     await this.repository.updateStatus(id, 'resolved');
   }
 
-  private async recordFeedback(finding: AssistantFinding, type: any): Promise<void> {
+  private async recordFeedback(finding: AssistantFinding, type: AssistantFeedbackType): Promise<void> {
     const event: AssistantFeedbackEvent = {
       id: randomUUID(),
       findingType: finding.type,
       relatedEntityType: finding.relatedEntityType,
       relatedEntityId: finding.relatedEntityId,
-      roomId: finding.metadata?.roomId || null,
-      domain: finding.metadata?.domain || null,
+      roomId: (finding.metadata.roomId as string) || null,
+      domain: (finding.metadata.domain as string) || null,
       actionType: null, // Could be refined if we track specific action clicked
       feedbackType: type,
       createdAt: new Date().toISOString(),
       metadata: {}
     };
+
+    await this.feedbackRepository.save(event);
   }
 }

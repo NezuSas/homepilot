@@ -2,13 +2,14 @@ import * as crypto from 'crypto';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * Assistant routes: /api/v1/assistant/*
  */
 export class AssistantRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -16,10 +17,8 @@ export class AssistantRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/assistant/')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-
-    const authReq = req as any;
 
     // GET /api/v1/assistant/findings
     if (method === 'GET' && pathname === '/api/v1/assistant/findings') {
@@ -46,7 +45,7 @@ export class AssistantRoutes extends ApiRoutes {
     // POST /api/v1/assistant/scan
     if (method === 'POST' && pathname === '/api/v1/assistant/scan') {
       try {
-        const homes = await container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         if (homes.length > 0) {
           await container.services.assistantService.scan(homes[0].id, 'manual_trigger');
         }
@@ -84,7 +83,7 @@ export class AssistantRoutes extends ApiRoutes {
     // POST /api/v1/assistant/actions
     if (method === 'POST' && pathname === '/api/v1/assistant/actions') {
       try {
-        const body = await this.parseBody<{ findingId: string; actionType: string; payload?: any }>(req);
+        const body = await this.parseBody<{ findingId: string; actionType: string; payload?: unknown }>(req);
         if (!body.findingId || !body.actionType) {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'findingId and actionType are required'), true;
         }
@@ -98,7 +97,7 @@ export class AssistantRoutes extends ApiRoutes {
           body.findingId,
           body.actionType,
           body.payload || {},
-          authReq.user.id,
+          req.user!.id,
           correlationId
         );
 

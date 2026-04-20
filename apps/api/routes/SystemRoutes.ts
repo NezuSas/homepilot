@@ -1,13 +1,14 @@
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * System routes: /health, /api/v1/system/*
  */
 export class SystemRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -21,10 +22,9 @@ export class SystemRoutes extends ApiRoutes {
 
     // GET /api/v1/system/setup-status
     if (method === 'GET' && pathname === '/api/v1/system/setup-status') {
-      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
-      const authReq = req as any;
-      if (!container.guards.authGuard.requireRole(authReq, res, 'operator')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
 
       try {
         const status = await container.services.systemSetupService.getSetupStatus();
@@ -37,14 +37,13 @@ export class SystemRoutes extends ApiRoutes {
 
     // POST /api/v1/system/setup-status/complete
     if (method === 'POST' && pathname === '/api/v1/system/setup-status/complete') {
-      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
 
-      const authReq = req as any;
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
       try {
-        await container.services.systemSetupService.completeOnboarding(authReq.user!.id);
+        await container.services.systemSetupService.completeOnboarding(req.user!.id);
         this.sendJson(res, { success: true });
       } catch (e: any) {
         const msg = e.message;
@@ -69,7 +68,7 @@ export class SystemRoutes extends ApiRoutes {
 
     // GET /api/v1/system/diagnostics
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics') {
-      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
 
       try {
@@ -83,7 +82,7 @@ export class SystemRoutes extends ApiRoutes {
 
     // GET /api/v1/system/diagnostics/events
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics/events') {
-      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
 
       try {
@@ -97,7 +96,7 @@ export class SystemRoutes extends ApiRoutes {
 
     // GET /api/v1/system/timezone
     if (method === 'GET' && pathname === '/api/v1/system/timezone') {
-      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
 
       try {
@@ -111,11 +110,10 @@ export class SystemRoutes extends ApiRoutes {
 
     // POST /api/v1/system/timezone
     if (method === 'POST' && pathname === '/api/v1/system/timezone') {
-      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
 
-      const authReq = req as any;
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
       try {
         const body = await this.parseBody<{ timezone: string }>(req);

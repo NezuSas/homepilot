@@ -19,7 +19,7 @@ export type FindingType =
 export interface AssistantAction {
   type: string;
   label: string;
-  payload?: any;
+  payload?: unknown;
 }
 
 export interface AssistantFinding {
@@ -34,7 +34,7 @@ export interface AssistantFinding {
   relatedEntityId: string | null;
   status: FindingStatus;
   actions: AssistantAction[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   score: number;
   explanation?: string;
   createdAt: string;

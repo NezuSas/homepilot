@@ -1,13 +1,14 @@
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * Auth routes: /api/v1/auth/*
  */
 export class AuthRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -29,10 +30,10 @@ export class AuthRoutes extends ApiRoutes {
           try {
             await container.repositories.activityLogRepository.saveActivity({
               deviceId: 'system-auth',
-              type: 'AUTH_FAILED' as any,
+              type: 'COMMAND_FAILED', // Use existing type logic
               timestamp: new Date().toISOString(),
               description: `Failed login attempt for user ${payload.username}`,
-              data: {},
+              data: { username: payload.username },
             });
           } catch {
             /* ignore */
@@ -43,7 +44,7 @@ export class AuthRoutes extends ApiRoutes {
         try {
           await container.repositories.activityLogRepository.saveActivity({
             deviceId: 'system-auth',
-            type: 'AUTH_SUCCESS' as any,
+            type: 'COMMAND_DISPATCHED', // Use existing type logic for session start
             timestamp: new Date().toISOString(),
             description: `User ${result.user.username} logged in`,
             data: { username: result.user.username },
@@ -68,10 +69,8 @@ export class AuthRoutes extends ApiRoutes {
     }
 
     // Protected auth routes
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-
-    const authReq = req as any;
 
     // POST /api/v1/auth/logout
     if (method === 'POST' && pathname === '/api/v1/auth/logout') {
@@ -85,7 +84,7 @@ export class AuthRoutes extends ApiRoutes {
 
     // GET /api/v1/auth/me
     if (method === 'GET' && pathname === '/api/v1/auth/me') {
-      this.sendJson(res, authReq.user);
+      this.sendJson(res, req.user);
       return true;
     }
 
@@ -98,7 +97,7 @@ export class AuthRoutes extends ApiRoutes {
         }
 
         const result = await container.services.authService.changePassword(
-          authReq.user.id,
+          req.user!.id,
           payload.currentPassword,
           payload.newPassword
         );

@@ -1,17 +1,35 @@
 import * as http from 'http';
 import { AuthService } from '../application/AuthService';
-import { User, UserRole } from '../domain/User';
+import { UserRole } from '../domain/User';
+import { HomePilotRequest, RequestUser } from '../../shared/domain/http';
 
-export interface AuthenticatedRequest extends http.IncomingMessage {
-  user?: {
-    id: string;
-    username: string;
-    role: UserRole;
-  };
-}
+export type RoleCheckerFn = (user: RequestUser, requiredRole: UserRole) => boolean;
 
 export class AuthGuard {
+  private roleChecker: RoleCheckerFn = (user, requiredRole) => {
+    // Admin has absolute power
+    if (user.role === 'admin') {
+      return true;
+    }
+
+    // If needed role is operator, then an operator can pass. 
+    // In our system, checking for 'operator' allows anyone (since 'admin' is checked above). 
+    // Checking for 'admin' will reject an 'operator'.
+    if (requiredRole === 'admin') {
+      return false;
+    }
+
+    return true;
+  };
+
   constructor(private authService: AuthService) {}
+
+  /**
+   * Formal override for testing scenarios to bypass role checks.
+   */
+  public setRoleChecker(checker: RoleCheckerFn): void {
+    this.roleChecker = checker;
+  }
 
   /**
    * Evaluates the Authorization header and attaches the user context to the request.
@@ -22,12 +40,12 @@ export class AuthGuard {
    * @param isRequired If true, instantly returns 401/403 on failure. Else, just attaches nothing.
    * @returns boolean true if allowed/attached, false if response was terminated.
    */
-  public async protect(req: AuthenticatedRequest, res: http.ServerResponse, isRequired: boolean = true): Promise<boolean> {
+  public async protect(req: HomePilotRequest, res: http.ServerResponse, isRequired: boolean = true): Promise<boolean> {
     // SECURITY: Surgical bypass for internal integration tests ONLY.
     // Must satisfy strict environment and header constraints.
     if (process.env.NODE_ENV === 'test' && req.headers['x-hp-test-bypass'] === 'true') {
       req.user = {
-        id: 'test-admin-bypass',
+        id: 'u-01',
         username: 'test_admin',
         role: 'admin'
       };
@@ -81,21 +99,13 @@ export class AuthGuard {
    * Helper that checks if the already injected `req.user` satisfies the minimum role.
    * Note: The request MUST have passed `protect` successfully first.
    */
-  public requireRole(req: AuthenticatedRequest, res: http.ServerResponse, role: UserRole): boolean {
+  public requireRole(req: HomePilotRequest, res: http.ServerResponse, role: UserRole): boolean {
     if (!req.user) {
       this.sendError(res, 401, 'Unauthorized', 'NO_CONTEXT');
       return false;
     }
 
-    // Admin has absolute power
-    if (req.user.role === 'admin') {
-      return true;
-    }
-
-    // If needed role is operator, then an operator can pass. 
-    // In our system, checking for 'operator' allows anyone (since 'admin' is checked above). 
-    // Checking for 'admin' will reject an 'operator'.
-    if (role === 'admin') {
+    if (!this.roleChecker(req.user, role)) {
       this.sendError(res, 403, 'Forbidden. Admin role required.', 'INSUFFICIENT_ROLE');
       return false;
     }

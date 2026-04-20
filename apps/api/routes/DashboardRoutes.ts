@@ -1,13 +1,14 @@
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * Dashboard routes: /api/v1/dashboards/*
  */
 export class DashboardRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -15,16 +16,15 @@ export class DashboardRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/dashboards')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
 
     // GET /api/v1/dashboards
     if (method === 'GET' && pathname === '/api/v1/dashboards') {
       try {
         const dashboards = await container.services.dashboardService.getDashboardsForUser(
-          authReq.user.id,
-          authReq.user.role
+          req.user!.id,
+          req.user!.role
         );
         this.sendJson(res, dashboards);
       } catch (e: any) {
@@ -38,7 +38,7 @@ export class DashboardRoutes extends ApiRoutes {
       try {
         const body = await this.parseBody<{ title?: string }>(req);
         if (!body.title) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Title is required'), true;
-        const dashboard = await container.services.dashboardService.createDashboard(authReq.user.id, body.title);
+        const dashboard = await container.services.dashboardService.createDashboard(req.user!.id, body.title);
         this.sendJson(res, dashboard, 201);
       } catch (e: any) {
         this.sendError(res, 500, 'DASHBOARD_ERROR', e.message);
@@ -52,8 +52,8 @@ export class DashboardRoutes extends ApiRoutes {
       try {
         const body = await this.parseBody<any>(req);
         const updated = await container.services.dashboardService.updateDashboard(
-          authReq.user.id,
-          authReq.user.role,
+          req.user!.id,
+          req.user!.role,
           patchMatch[1],
           body
         );
@@ -69,7 +69,7 @@ export class DashboardRoutes extends ApiRoutes {
     const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)$/);
     if (deleteMatch) {
       try {
-        await container.services.dashboardService.deleteDashboard(authReq.user.id, authReq.user.role, deleteMatch[1]);
+        await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, deleteMatch[1]);
         this.sendJson(res, { success: true });
       } catch (e: any) {
         const status = e.message === 'FORBIDDEN' ? 403 : 500;

@@ -3,6 +3,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { WebSocketServer, WebSocket } from 'ws';
 import { BootstrapContainer } from '../../bootstrap';
 import { RouteHandler } from './RouteHandler';
+import { HomePilotRequest } from '../../packages/shared/domain/http';
 
 interface RealtimeEventMessage {
   type: string;
@@ -122,7 +123,7 @@ export class ApiGateway {
       // Transfer response ownership — Fastify will not touch headers or body.
       reply.hijack();
 
-      const rawReq = request.raw as http.IncomingMessage & { _fastifyParsedBody?: string };
+      const rawReq = request.raw as HomePilotRequest;
       const rawRes = reply.raw;
 
       // CORS — set before any handler writes to the response.

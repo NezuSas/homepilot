@@ -5,6 +5,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { createRoomUseCase } from '../../../packages/topology/application/createRoomUseCase';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 interface LocalRoomRow {
   id: string;
@@ -49,21 +50,21 @@ export class TopologyRoutes extends ApiRoutes {
   }
 
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
+    
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
     // GET /api/v1/rooms
     if (method === 'GET' && pathname === '/api/v1/rooms') {
       try {
-        const homes = await container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         if (homes.length === 0) {
           this.sendJson(res, []);
           return true;
@@ -139,13 +140,13 @@ export class TopologyRoutes extends ApiRoutes {
     // POST /api/v1/homes/:id/rooms
     const createRoomMatch = method === 'POST' && pathname.match(/^\/api\/v1\/homes\/([^\/]+)\/rooms$/);
     if (createRoomMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const homeId = createRoomMatch[1];
         const payload = await this.parseBody<{ name: string }>(req);
         if (!payload.name) return this.sendError(res, 400, 'INVALID_INPUT', 'Room name is required'), true;
 
-        const room = await createRoomUseCase(payload.name, homeId, authReq.user.id, crypto.randomUUID(), {
+        const room = await createRoomUseCase(payload.name, homeId, req.user!.id, crypto.randomUUID(), {
           homeRepository: container.repositories.homeRepository,
           roomRepository: container.repositories.roomRepository,
           eventPublisher: container.adapters.topologyEventPublisher,
@@ -188,9 +189,9 @@ export class TopologyRoutes extends ApiRoutes {
           timestamp: new Date().toISOString(),
           deviceId: null,
           correlationId,
-          type: 'SCENE_EXECUTION_STARTED' as any,
+          type: 'SCENE_EXECUTION_STARTED',
           description: `User triggered Quick Action on Room`,
-          data: { roomId, userId: authReq.user.id, action: commandStr, totalActions: targetDevices.length },
+          data: { roomId, userId: req.user!.id, action: commandStr, totalActions: targetDevices.length },
         });
 
         const results = await Promise.allSettled(
@@ -198,7 +199,7 @@ export class TopologyRoutes extends ApiRoutes {
             executeDeviceCommandUseCase(
               d.id,
               commandStr,
-              authReq.user.id,
+              req.user!.id,
               correlationId,
               {
                 deviceRepository: container.repositories.deviceRepository,
@@ -240,7 +241,7 @@ export class TopologyRoutes extends ApiRoutes {
           failures: structuredFailures,
         };
 
-        let resultType = 'SCENE_EXECUTION_COMPLETED' as any;
+        let resultType: any = 'SCENE_EXECUTION_COMPLETED';
         if (failedCount === totalCount) resultType = 'SCENE_EXECUTION_FAILED';
         else if (failedCount > 0) resultType = 'SCENE_EXECUTION_FAILED';
 

@@ -174,7 +174,7 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
         const currentTimeUTC = triggerDate.toISOString().slice(11, 16);
 
         console.log(`[Pulse] Minute Boundary Reached (UTC): ${currentTimeUTC}`);
-        automationEngine.handleTimeEvent(currentTimeUTC).catch(e =>
+        automationEngine.handleTimeEvent(currentTimeUTC, triggerDate).catch(e =>
           console.error('[Engine] Fallo en pulso de tiempo:', e.message)
         );
 

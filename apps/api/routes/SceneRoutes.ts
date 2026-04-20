@@ -3,13 +3,14 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { ApiRoutes } from './ApiRoutes';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
 /**
  * Scene routes: /api/v1/scenes/*
  */
 export class SceneRoutes extends ApiRoutes {
   async handle(
-    req: http.IncomingMessage,
+    req: HomePilotRequest,
     res: http.ServerResponse,
     pathname: string,
     method: string,
@@ -17,9 +18,8 @@ export class SceneRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/scenes')) return false;
 
-    const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    const authReq = req as any;
 
     // GET /api/v1/scenes
     if (method === 'GET' && pathname === '/api/v1/scenes') {
@@ -27,7 +27,7 @@ export class SceneRoutes extends ApiRoutes {
         const urlParams = new URL(req.url!, `http://${req.headers.host}`).searchParams;
         let homeId = urlParams.get('homeId');
         if (!homeId) {
-          const homes = await container.repositories.homeRepository.findHomesByUserId(authReq.user.id);
+          const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
           if (homes.length > 0) homeId = homes[0].id;
         }
         if (!homeId) return this.sendJson(res, []), true;
@@ -42,7 +42,7 @@ export class SceneRoutes extends ApiRoutes {
 
     // POST /api/v1/scenes
     if (method === 'POST' && pathname === '/api/v1/scenes') {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const payload = await this.parseBody<any>(req);
         if (!payload.name || !payload.homeId || !Array.isArray(payload.actions)) {
@@ -68,7 +68,7 @@ export class SceneRoutes extends ApiRoutes {
     // PATCH /api/v1/scenes/:id
     const patchSceneMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/scenes\/([^\/]+)$/);
     if (patchSceneMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const sceneId = patchSceneMatch[1];
         const scene = await container.repositories.sceneRepository.findSceneById(sceneId);
@@ -93,7 +93,7 @@ export class SceneRoutes extends ApiRoutes {
     // DELETE /api/v1/scenes/:id
     const deleteSceneMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/scenes\/([^\/]+)$/);
     if (deleteSceneMatch) {
-      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         await container.repositories.sceneRepository.deleteScene(deleteSceneMatch[1]);
         res.writeHead(204).end();
@@ -122,9 +122,9 @@ export class SceneRoutes extends ApiRoutes {
           timestamp: new Date().toISOString(),
           deviceId: null,
           correlationId,
-          type: 'SCENE_EXECUTION_STARTED' as any,
+          type: 'SCENE_EXECUTION_STARTED',
           description: `User triggered Scene "${scene.name}"`,
-          data: { sceneId: scene.id, userId: authReq.user.id, name: scene.name, totalActions: scene.actions.length },
+          data: { sceneId: scene.id, userId: req.user!.id, name: scene.name, totalActions: scene.actions.length },
         });
 
         const results = await Promise.allSettled(
@@ -132,7 +132,7 @@ export class SceneRoutes extends ApiRoutes {
             executeDeviceCommandUseCase(
               action.deviceId,
               action.command,
-              authReq.user.id,
+              req.user!.id,
               correlationId,
               {
                 deviceRepository: container.repositories.deviceRepository,
@@ -172,7 +172,7 @@ export class SceneRoutes extends ApiRoutes {
           failures: structuredFailures,
         };
 
-        let resultType = 'SCENE_EXECUTION_COMPLETED' as any;
+        let resultType: any = 'SCENE_EXECUTION_COMPLETED';
         if (failedCount === totalCount) resultType = 'SCENE_EXECUTION_FAILED';
         else if (failedCount > 0) resultType = 'SCENE_EXECUTION_FAILED';
 
@@ -182,11 +182,11 @@ export class SceneRoutes extends ApiRoutes {
             deviceId: null,
             correlationId,
             type: resultType,
-            description: `Scene "${scene.name}" executed by ${authReq.user.username}. (${totalCount - failedCount}/${totalCount} success)`,
+            description: `Scene "${scene.name}" executed by ${req.user!.username}. (${totalCount - failedCount}/${totalCount} success)`,
             data: {
               sceneId: scene.id,
               sceneName: scene.name,
-              userId: authReq.user.id,
+              userId: req.user!.id,
               totalActions: totalCount,
               failedActions: failedCount,
               failures: structuredFailures,
