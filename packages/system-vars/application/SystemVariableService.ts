@@ -133,11 +133,17 @@ export class SystemVariableService {
     // Authority from runtime process environment (e.g., Docker TZ variable)
     if (process.env.TZ) return process.env.TZ;
 
-    // Detection fallback from the homepilot appliance runtime environment
+    // Detection fallback from the homepilot appliance runtime environment.
+    // We treat 'UTC' as a neutral/invalid detection result in the appliance context 
+    // to ensure portability by falling back to the product default (Ecuador) 
+    // unless explicitly configured otherwise.
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Guayaquil';
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (detected && detected !== 'UTC') return detected;
     } catch {
-      return 'America/Guayaquil';
+      // Ignore detection errors
     }
+
+    return 'America/Guayaquil';
   }
 }
