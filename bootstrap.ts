@@ -254,18 +254,24 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
             dispatch: async (dId: string, cmd: string) => {
                const target = await deviceRepository.findDeviceById(dId);
                if (!target || target.integrationSource !== 'ha') return;
-               const [domain] = target.externalId.split('.');
+               
+               // Correctly parse HA externalId (format: "ha:domain.entity_id")
+               const haEntityId = target.externalId.replace('ha:', '');
+               const haDomain = haEntityId.split('.')[0] || 'homeassistant';
+
                let service = '';
                if (cmd === 'turn_on') service = 'turn_on';
                if (cmd === 'turn_off') service = 'turn_off';
                if (cmd === 'toggle') service = 'toggle';
-                if (service) {
-                   if (connectionProvider.hasClient()) {
-                      await connectionProvider.getClient().callService(domain, service, target.externalId.split(':')[1]);
-                   } else {
-                      console.warn(`[Engine] Skipping HA command for ${target.externalId}: HA not configured.`);
-                   }
-                }
+
+               if (service) {
+                  if (connectionProvider.hasClient()) {
+                     // Use specific HA domain if available, fallback to 'homeassistant' helper domain
+                     await connectionProvider.getClient().callService(haDomain, service, haEntityId);
+                  } else {
+                     console.warn(`[Engine] Skipping HA command for ${target.externalId}: HA not configured.`);
+                  }
+               }
             }
           },
           activityLogRepository,
