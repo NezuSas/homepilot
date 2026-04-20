@@ -271,10 +271,14 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
     currentDay: number
   ): boolean {
     const targetTime = trigger.timeLocal || trigger.time || trigger.timeUTC;
-    if (targetTime !== currentTimeLocal) return false;
-    if (trigger.days && trigger.days.length > 0 && !trigger.days.includes(currentDay)) {
-      return false;
-    }
+    const timeMatches = targetTime === currentTimeLocal;
+    const dayMatches = !trigger.days || trigger.days.length === 0 || trigger.days.includes(currentDay);
+
+    console.log(`[AutomationEngine] TimeCheck: Target=${targetTime} Current=${currentTimeLocal} | DayCheck: RuleDays=${JSON.stringify(trigger.days)} CurrentDay=${currentDay} | Result: Time=${timeMatches} Day=${dayMatches}`);
+
+    if (!timeMatches) return false;
+    if (!dayMatches) return false;
+    
     return true;
   }
 
