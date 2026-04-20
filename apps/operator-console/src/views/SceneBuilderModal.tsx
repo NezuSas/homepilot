@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Save, PlayCircle } from 'lucide-react';
+import { X, Save, PlayCircle, Loader2, List, Settings, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
-import { Input } from '../components/ui/Input';
 import Select from './Select';
-import { Button } from '../components/ui/Button';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -117,165 +115,181 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl animate-in fade-in duration-500" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
       
-      <div className="relative bg-card/60 backdrop-blur-2xl w-full max-w-2xl max-h-[85vh] border-2 border-border/40 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
+      <div className="relative w-full max-w-2xl bg-card/60 backdrop-blur-2xl border-2 border-border/40 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-500 flex flex-col max-h-[90vh]">
         
-        {/* Header - Condensed */}
-        <div className="flex items-center justify-between px-8 pt-8 pb-4 shrink-0">
+        {/* Header */}
+        <div className="px-8 pt-8 pb-4 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-2xl font-black tracking-tighter leading-none mb-1">
+            <h2 className="text-2xl font-black tracking-tighter">
               {existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
             </h2>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">{t('scenes.builder.subtitle')}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">
+              {t('scenes.builder.subtitle')}
+            </p>
           </div>
           <button onClick={onClose} className="p-3 bg-muted/40 hover:bg-muted rounded-xl transition-all">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 pb-8 pt-2 flex flex-col gap-6 custom-scrollbar">
+        <div className="p-8 pt-2 overflow-y-auto custom-scrollbar space-y-6 flex-1">
           {error && (
             <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive animate-shake">
               <X className="w-4 h-4 shrink-0" />
-              <p className="font-black text-[10px] uppercase tracking-wider">{error}</p>
+              <p className="text-[10px] font-black uppercase tracking-wider leading-none">{error}</p>
             </div>
           )}
 
-          {/* Name & Scope Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.identity')}</label>
-               <Input 
-                 value={name} 
-                 onChange={e => setName(e.target.value)} 
-                 placeholder={t('scenes.builder.placeholders.name')}
-                 className="text-lg font-black tracking-tighter rounded-xl"
-               />
-            </div>
-            <div className="space-y-3">
-               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
-               <Select 
-                 searchable
-                 value={roomId || ''} 
-                 onChange={(val) => {
-                   setRoomId(val || null);
-                   setActions([]);
-                 }}
-                 options={[
-                   { value: '', label: t('dashboard.scene_global') },
-                   ...rooms.map(r => ({ value: r.id, label: r.name.toUpperCase() }))
-                 ]}
-                 placeholder="Select Room..."
-               />
-            </div>
-          </div>
+          {/* Identity Section */}
+          <div className="space-y-4 p-6 rounded-[2rem] bg-muted/10 border border-border/10 relative">
+             <div className="flex items-center gap-3 mb-2">
+                <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0">
+                  <Settings className="w-3 h-3 text-foreground/40" />
+                </div>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{t('scenes.builder.identity')}</label>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.name')}</label>
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter name..."
+                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-lg font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
+                  <Select 
+                    searchable
+                    value={roomId || ''} 
+                    onChange={(val) => {
+                      setRoomId(val || null);
+                      setActions([]);
+                    }}
+                    options={[
+                      { value: '', label: t('dashboard.scene_global') },
+                      ...rooms.map(r => ({ value: r.id, label: r.name.toUpperCase() }))
+                    ]}
+                    placeholder="Global"
+                  />
+                </div>
+             </div>
 
-          <div className="space-y-3">
-             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.intent')}</label>
-             <Input 
-               value={description} 
-               onChange={e => setDescription(e.target.value)} 
-               placeholder={t('scenes.builder.placeholders.description')}
-               className="text-sm font-medium rounded-xl"
-             />
+             <div className="space-y-2 mt-2">
+                <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.description')}</label>
+                <input 
+                  type="text" 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What does this scene do?"
+                  className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-sm font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                />
+             </div>
           </div>
 
           {/* Device Selection Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 ml-1">{t('scenes.builder.select_units', { count: actions.length })}</label>
-               <div className="relative w-48">
-                  <Input 
-                    placeholder="Search units..."
+          <div className="space-y-4 p-6 rounded-[2rem] bg-primary/[0.02] border border-primary/10 relative">
+             <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                    <List className="w-3 h-3" />
+                  </div>
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">
+                    {t('scenes.builder.select_units', { count: actions.length })}
+                  </label>
+                </div>
+                <div className="relative">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-primary/40" />
+                   <input 
+                    type="text"
                     value={deviceSearch}
-                    onChange={e => setDeviceSearch(e.target.value)}
-                    className="h-8 text-[10px] bg-muted/20 border-none rounded-lg pl-3"
-                  />
-               </div>
-            </div>
-            
-            {availableDevices.length === 0 ? (
-              <div className="p-8 text-center bg-muted/10 border-4 border-dashed border-border/20 rounded-[2rem]">
-                <p className="text-xs font-bold text-muted-foreground opacity-40">{t('dashboard.scene_no_devices')}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {availableDevices.map(d => {
-                  const action = actions.find(a => a.deviceId === d.id);
-                  const isSelected = !!action;
-                  const deviceRoom = rooms.find(r => r.id === d.roomId);
-                  
-                  return (
-                    <div key={d.id} className={cn(
-                      "group relative overflow-hidden bg-muted/20 border transition-all duration-500 rounded-2xl",
-                      isSelected ? "border-primary bg-primary/5 shadow-lg" : "border-border/30 opacity-60 grayscale hover:opacity-100 hover:grayscale-0"
-                    )}>
-                      <div className="p-4 flex items-center justify-between gap-4 cursor-pointer" onClick={() => toggleDevice(d.id)}>
+                    onChange={(e) => setDeviceSearch(e.target.value)}
+                    placeholder="Search..."
+                    className="bg-primary/5 border-none rounded-lg pl-8 pr-3 py-1.5 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 w-32 transition-all focus:w-48 outline-none"
+                   />
+                </div>
+             </div>
+
+             {availableDevices.length === 0 ? (
+                <div className="p-8 text-center bg-primary/[0.03] border-2 border-dashed border-primary/10 rounded-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">{t('dashboard.scene_no_devices')}</p>
+                </div>
+             ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {availableDevices.map(d => {
+                    const action = actions.find(a => a.deviceId === d.id);
+                    const isSelected = !!action;
+                    
+                    return (
+                      <div key={d.id} className={cn(
+                        "group p-3 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4 cursor-pointer",
+                        isSelected ? "bg-primary/10 border-primary/30 shadow-lg" : "bg-foreground/[0.02] border-foreground/5 hover:border-primary/20"
+                      )} onClick={() => toggleDevice(d.id)}>
                         <div className="flex items-center gap-4 min-w-0">
                           <div className={cn(
                             "w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-700 shrink-0",
-                            isSelected ? "bg-primary border-primary text-primary-foreground premium-glow" : "bg-background border-border"
+                            isSelected ? "bg-primary border-primary text-primary-foreground premium-glow shadow-primary/20" : "bg-background border-border/40 text-foreground/30"
                           )}>
                              <PlayCircle className={cn("w-5 h-5", isSelected && "animate-pulse")} />
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-black tracking-tight leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
-                               {deviceRoom ? deviceRoom.name : t('common.unassigned')}
+                            <span className="text-sm font-black tracking-tighter leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
+                               {d.type.toUpperCase()}
                             </span>
                           </div>
                         </div>
 
                         {isSelected && (
-                          <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
-                            <Button 
-                              size="sm"
-                              variant={action?.command === 'turn_on' || action?.command === 'open' ? "primary" : "secondary"}
+                          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                            <button 
                               onClick={() => setCommand(d.id, d.type === 'cover' ? 'open' : 'turn_on')}
-                              className="px-4 py-2 text-[9px] font-black uppercase tracking-widest h-auto"
+                              className={cn(
+                                "px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border",
+                                action?.command === 'turn_on' || action?.command === 'open' 
+                                  ? "bg-primary border-primary text-primary-foreground shadow-lg" 
+                                  : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
+                              )}
                             >
-                              {d.type === 'cover' ? t('common.actions.open') : t('common.on')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={action?.command === 'turn_off' || action?.command === 'close' ? "primary" : "secondary"}
+                               {d.type === 'cover' ? t('common.actions.open') : t('common.on')}
+                            </button>
+                            <button 
                               onClick={() => setCommand(d.id, d.type === 'cover' ? 'close' : 'turn_off')}
-                              className="px-4 py-2 text-[9px] font-black uppercase tracking-widest h-auto"
+                              className={cn(
+                                "px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border",
+                                action?.command === 'turn_off' || action?.command === 'close' 
+                                  ? "bg-primary border-primary text-primary-foreground shadow-lg" 
+                                  : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
+                              )}
                             >
-                              {d.type === 'cover' ? t('common.actions.close') : t('common.off')}
-                            </Button>
+                               {d.type === 'cover' ? t('common.actions.close') : t('common.off')}
+                            </button>
                           </div>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+             )}
           </div>
-        </div>
 
-        {/* Footer - Condensed */}
-        <div className="px-8 py-6 border-t border-border/20 bg-card flex gap-4 shrink-0">
-          <Button 
-            variant="secondary"
-            onClick={onClose} 
-            className="flex-1 py-4 h-auto text-[10px] font-black uppercase tracking-widest rounded-2xl"
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button 
-            variant="primary"
-            onClick={handleSave} 
-            disabled={saving || actions.length === 0 || !name}
-            className="flex-[2] py-4 h-auto text-[10px] font-black uppercase tracking-widest rounded-2xl premium-glow"
-            isLoading={saving}
-          >
-            {!saving && <Save className="w-4 h-4 mr-2 inline-block" />}
-            {t('scenes.builder.commit')}
-          </Button>
+          {/* Footer - Integrated Action Button */}
+          <div className="pt-2 pb-4">
+            <button 
+              disabled={saving || !name || actions.length === 0}
+              onClick={handleSave}
+              className="w-full bg-primary text-primary-foreground py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
+            >
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              {t('scenes.builder.commit')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

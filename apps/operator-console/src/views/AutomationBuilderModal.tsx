@@ -259,7 +259,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.days_label')}</label>
-                    <div className="flex flex-wrap gap-1.5 justify-between">
+                    <div className="flex flex-wrap gap-2 justify-between">
                       {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => {
                         const isSelected = (triggerConfig.days || [0,1,2,3,4,5,6]).includes(i);
                         return (

@@ -229,14 +229,14 @@ const ScenesView: React.FC<{
           onClick={(e) => toggleFavorite(scene.id, e)}
           className={cn(
             "absolute top-8 right-8 p-3 rounded-full transition-all duration-300",
-            isFav ? "text-rose-500 bg-rose-500/10 shadow-lg shadow-rose-500/20" : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted"
+            isFav ? "text-rose-500 bg-rose-500/10 shadow-lg shadow-rose-500/20" : "text-muted-foreground/40 hover:bg-muted hover:text-rose-400"
           )}
         >
           <Heart className={cn("w-5 h-5", isFav && "fill-current")} />
         </button>
 
         {/* Action Overlay (Subtle Edit/Trash) */}
-        <div className="absolute bottom-6 right-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+        <div className="absolute bottom-6 right-8 flex gap-2 transition-all">
             <button 
               onClick={(e) => { e.stopPropagation(); setEditingScene(scene); setShowBuilder(true); }}
               className="p-3 bg-muted/40 hover:bg-muted border border-border/40 rounded-2xl hover:text-primary transition-all"
