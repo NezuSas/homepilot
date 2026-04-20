@@ -498,7 +498,7 @@ export function DashboardsView() {
               </div>
 
               {/* ── Tabs ── */}
-              {active.tabs.length === 0 ? (
+              {active.tabs.length === 0 && !addingTab ? (
                 <EmptyTabs onAdd={() => setAddingTab(true)} />
               ) : (
                 <div className="flex flex-col gap-6">

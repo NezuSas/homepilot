@@ -20,6 +20,7 @@ import {
   Server,
   ChevronDown,
   ChevronRight,
+  LogOut
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
@@ -44,7 +45,6 @@ import ResilienceShowcaseView from './views/ResilienceShowcaseView';
 import { EnergyView } from './views/EnergyView';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
-import { Button } from './components/ui/Button';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
 import type { HomeMode, View } from './types';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
@@ -115,6 +115,7 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
@@ -369,10 +370,13 @@ function App() {
         />
       )}
 
-      {/* Sidebar (Responsive Drawer) */}
+      {/* Sidebar (Responsive Drawer on Mobile, Collapsible on Desktop) */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-[50] w-72 border-r border-border/60 bg-card flex flex-col transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:flex lg:w-[15.5rem] lg:bg-card",
-        isSidebarOpen ? "translate-x-0 shadow-[4px_0_32px_-4px_hsl(210_30%_2%/0.6)]" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-[50] border-r border-border/60 bg-card flex flex-col transition-all duration-300 ease-in-out shrink-0",
+        isSidebarOpen ? "w-72 translate-x-0 shadow-[4px_0_32px_-4px_hsl(210_30%_2%/0.6)]" : "w-72 -translate-x-full",
+        // Desktop override:
+        "lg:relative",
+        isDesktopSidebarOpen ? "lg:w-[15.5rem] lg:translate-x-0" : "lg:w-0 lg:overflow-hidden lg:border-none lg:-translate-x-full"
       )}>
         {/* Logo area */}
         <div className="px-5 pt-5 pb-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0">
@@ -560,14 +564,13 @@ function App() {
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>
-                <Button 
+                <button 
                   onClick={onLogout}
-                  variant="danger"
-                  size="sm"
-                  className="px-2 py-1.5 h-auto text-[10px] uppercase tracking-tighter"
+                  className="text-muted-foreground hover:text-destructive transition-all p-2 rounded-lg hover:bg-destructive/10"
+                  title={t('nav.logout')}
                 >
-                  {t('nav.logout')}
-                </Button>
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -601,7 +604,7 @@ function App() {
           </div>
         </header>
 
-        <header className="hidden lg:block view-header-accent px-10 py-6 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
+        <header className="hidden lg:flex view-header-accent pl-6 pr-10 py-6 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
           {/* Online badge */}
           <div className="absolute top-0 right-0 p-6 flex items-center gap-3 animate-in fade-in duration-700">
             <div className="flex items-center gap-1.5 px-3 py-1 bg-success/8 rounded-full border border-success/15">
@@ -610,23 +613,32 @@ function App() {
             </div>
           </div>
 
-          <div className="max-w-[1600px] mx-auto w-full relative z-10">
-            {/* Breadcrumb-style section label */}
-            {activeSystemSection && (
-              <p className="text-[8.5px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-1.5">
-                {t('nav.system')}
-              </p>
-            )}
-            {/* View title */}
-            <h1 className="text-[1.6rem] font-black tracking-tighter text-foreground/90 leading-none">
-              {viewTitle()}
-            </h1>
-            {/* Subtitle as eyebrow below title */}
-            {viewSubtitle() && (
-              <p className="text-[9px] text-muted-foreground/40 mt-1.5 font-black uppercase tracking-[0.2em]">
-                {viewSubtitle()}
-              </p>
-            )}
+          <div className="max-w-[1600px] mx-auto w-full relative z-10 flex items-center gap-6">
+            <button
+              onClick={() => setIsDesktopSidebarOpen(prev => !prev)}
+              className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 rounded-xl transition-all"
+              title="Toggle Sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col min-w-0">
+              {/* Breadcrumb-style section label */}
+              {activeSystemSection && (
+                <p className="text-[8.5px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-1.5">
+                  {t('nav.system')}
+                </p>
+              )}
+              {/* View title */}
+              <h1 className="text-[1.6rem] font-black tracking-tighter text-foreground/90 leading-none truncate">
+                {viewTitle()}
+              </h1>
+              {/* Subtitle as eyebrow below title */}
+              {viewSubtitle() && (
+                <p className="text-[9px] text-muted-foreground/40 mt-1.5 font-black uppercase tracking-[0.2em] truncate">
+                  {viewSubtitle()}
+                </p>
+              )}
+            </div>
           </div>
         </header>
         
