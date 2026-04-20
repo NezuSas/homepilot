@@ -8,33 +8,49 @@
  *  2. Interceptar respuestas 401 y ejecutar un callback de logout explícito.
  *  3. Exponer una función tipada `apiFetch` como sustituto de `fetch`.
  *
- * No se parchea `window.fetch`. El interceptor 401 se configura
- * de forma explícita mediante `configureApiClient()` al inicio de la app.
+ * Diseño:
+ *  - SIN acoplamiento a localStorage. El token se obtiene mediante `getToken()`,
+ *    inyectado explícitamente en `configureApiClient()`.
+ *  - SIN monkey-patching de `window.fetch`.
+ *  - Configurable una sola vez al inicio. Seguro ante hot-module-replacement.
  */
 
 const AUTH_WHITELISTED = ['/api/v1/auth/login', '/health'];
 
+type TokenGetter = () => string | null;
 type UnauthorizedCallback = () => void;
 
-let onUnauthorized: UnauthorizedCallback | null = null;
+interface ApiClientConfig {
+  /** Función para obtener el token de sesión actual. */
+  getToken: TokenGetter;
+  /** Callback invocado cuando se recibe una respuesta 401 no-whitelisted. */
+  onUnauthorized: UnauthorizedCallback;
+}
+
+let config: ApiClientConfig | null = null;
 
 /**
- * Configura el callback global ejecutado cuando cualquier respuesta es 401.
- * Debe llamarse UNA SOLA VEZ desde el punto de montaje de la app (App.tsx).
+ * Configura el cliente API.
+ * Debe llamarse UNA SOLA VEZ al inicio de la aplicación (o ante cambios de sesión).
+ * Recibe un `getToken` lazy — se invoca en cada petición, siempre refleja el estado actual.
  */
-export function configureApiClient(callbacks: { onUnauthorized: UnauthorizedCallback }): void {
-  onUnauthorized = callbacks.onUnauthorized;
+export function configureApiClient(clientConfig: ApiClientConfig): void {
+  config = clientConfig;
 }
 
 /**
- * Obtiene el token de sesión del almacenamiento local.
+ * Extrae la URL como string desde los tipos que acepta `fetch`.
+ * Evita casts frágiles usando guards de tipo explícitos.
  */
-function getSessionToken(): string | null {
-  return localStorage.getItem('hp_session_token');
+function resolveUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.href;
+  // Request object — tiene .url garantizado por la interfaz
+  return (input as Request).url;
 }
 
 /**
- * Determina si una URL está exenta de inyección de token.
+ * Determina si una URL está exenta de autenticación.
  */
 function isWhitelisted(url: string): boolean {
   return AUTH_WHITELISTED.some((path) => url.includes(path));
@@ -43,26 +59,22 @@ function isWhitelisted(url: string): boolean {
 /**
  * Cliente HTTP autenticado. Sustituye a `fetch` en toda la aplicación.
  *
- * - Inyecta `Authorization: Bearer <token>` automáticamente.
- * - Dispara `onUnauthorized()` ante respuestas 401 (solo si se configuró).
- * - Preserva la semántica de `fetch` (retorna `Response`, no lanza en !ok).
+ * - Inyecta `Authorization: Bearer <token>` si hay token y la URL no es whitelisted.
+ * - Dispara `onUnauthorized()` ante respuestas 401 si el cliente fue configurado.
+ * - Preserva semántica `fetch`: retorna `Response`, nunca lanza en !ok.
+ *
+ * @throws Solo si `fetch` en sí lanza (e.g. red caída, CORS).
  */
 export async function apiFetch(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> {
-  const urlStr =
-    typeof input === 'string'
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : (input as Request).url;
-
-  const whitelisted = isWhitelisted(urlStr);
+  const url = resolveUrl(input);
+  const whitelisted = isWhitelisted(url);
   const headers = new Headers(init?.headers);
 
-  if (!whitelisted) {
-    const token = getSessionToken();
+  if (!whitelisted && config) {
+    const token = config.getToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -70,10 +82,10 @@ export async function apiFetch(
 
   const response = await fetch(input, { ...init, headers });
 
-  if (response.status === 401 && !whitelisted) {
-    if (getSessionToken()) {
-      // Invoca el callback de logout; el consumidor decide qué limpiar.
-      onUnauthorized?.();
+  if (response.status === 401 && !whitelisted && config) {
+    // Verificamos que realmente había un token — evita falsos positivos en requests públicos
+    if (config.getToken()) {
+      config.onUnauthorized();
     }
   }
 

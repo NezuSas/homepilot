@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -132,12 +132,17 @@ function App() {
 
   const { isAuthenticated, user, handleLoginSuccess, handleLogout, clearSession } = useSession(onSessionCleared);
 
-  // Configure 401 interceptor once — when the component mounts.
+  // Use a ref so the 401 callback always calls the latest clearSession,
+  // even if the reference changes due to React re-renders.
+  const clearSessionRef = useRef(clearSession);
+  clearSessionRef.current = clearSession;
+
+  // Configure API client once at mount. The ref pattern guarantees the
+  // onUnauthorized callback is never stale without adding clearSession as a dep.
   useEffect(() => {
     configureApiClient({
-      onUnauthorized: () => {
-        clearSession();
-      },
+      getToken: () => localStorage.getItem('hp_session_token'),
+      onUnauthorized: () => clearSessionRef.current(),
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
