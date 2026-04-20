@@ -44,29 +44,29 @@ interface DiagnosticEvent {
   correlationId?: string;
 }
 
-const TIMEZONES = [
-  { value: 'America/Guayaquil', label: 'Ecuador (Guayaquil)' },
-  { value: 'America/Bogota', label: 'Colombia (Bogota)' },
-  { value: 'America/Mexico_City', label: 'Mexico (CDMX)' },
-  { value: 'America/New_York', label: 'USA (New York)' },
-  { value: 'America/Chicago', label: 'USA (Chicago)' },
-  { value: 'America/Denver', label: 'USA (Denver)' },
-  { value: 'America/Los_Angeles', label: 'USA (Los Angeles)' },
-  { value: 'America/Santiago', label: 'Chile (Santiago)' },
-  { value: 'America/Buenos_Aires', label: 'Argentina (Buenos Aires)' },
-  { value: 'America/Lima', label: 'Peru (Lima)' },
-  { value: 'America/Caracas', label: 'Venezuela (Caracas)' },
-  { value: 'Europe/London', label: 'UK (London)' },
-  { value: 'Europe/Madrid', label: 'Spain (Madrid)' },
-  { value: 'Europe/Paris', label: 'France (Paris)' },
-  { value: 'Europe/Berlin', label: 'Germany (Berlin)' },
-  { value: 'Europe/Rome', label: 'Italy (Rome)' },
-  { value: 'Asia/Dubai', label: 'UAE (Dubai)' },
-  { value: 'Asia/Singapore', label: 'Singapore' },
-  { value: 'Asia/Tokyo', label: 'Japan (Tokyo)' },
-  { value: 'Australia/Sydney', label: 'Australia (Sydney)' },
-  { value: 'Pacific/Auckland', label: 'New Zealand (Auckland)' },
-  { value: 'UTC', label: 'Universal (UTC)' }
+const TIMEZONE_VALUES = [
+  'America/Guayaquil',
+  'America/Bogota',
+  'America/Mexico_City',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Santiago',
+  'America/Buenos_Aires',
+  'America/Lima',
+  'America/Caracas',
+  'Europe/London',
+  'Europe/Madrid',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Rome',
+  'Asia/Dubai',
+  'Asia/Singapore',
+  'Asia/Tokyo',
+  'Australia/Sydney',
+  'Pacific/Auckland',
+  'UTC'
 ];
 
 export function DiagnosticsView() {
@@ -131,7 +131,7 @@ export function DiagnosticsView() {
         body: JSON.stringify({ timezone: newTz })
       });
 
-      if (!res.ok) throw new Error('Update failed');
+      if (!res.ok) throw new Error(t('diagnostics.update_failed'));
       
       await fetchDiagnostics();
     } catch (err: any) {
@@ -307,8 +307,8 @@ export function DiagnosticsView() {
                      disabled={updatingTz}
                      onChange={(e) => handleTimezoneChange(e.target.value)}
                    >
-                     {TIMEZONES.map(tz => (
-                       <option key={tz.value} value={tz.value}>{tz.label}</option>
+                     {TIMEZONE_VALUES.map(tz => (
+                       <option key={tz} value={tz}>{t(`timezones.${tz}`)}</option>
                      ))}
                    </select>
                    {updatingTz && <RefreshCw className="w-3 h-3 animate-spin text-primary" />}
@@ -412,7 +412,7 @@ export function DiagnosticsView() {
             <div className="flex justify-between items-end pb-3">
               <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.state_delta')}</span>
               <div className="text-xs font-mono font-bold">
-                 {snapshot.counters.recentReconciliations} cycles 
+                 {snapshot.counters.recentReconciliations} {t('diagnostics.probes.cycles')}
               </div>
             </div>
             <div className="flex justify-between text-[11px] border-t border-border/50 pt-3">

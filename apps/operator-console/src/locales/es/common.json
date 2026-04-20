@@ -236,7 +236,9 @@
     "appliance_timezone": "Zona Horaria del Equipo",
     "change_timezone": "Configurar Zona Horaria",
     "select_timezone": "Seleccionar Zona Horaria",
+    "timezone": "Zona Horaria",
     "timezone_updated": "Zona horaria actualizada correctamente",
+    "update_failed": "Fallo al actualizar",
     "last_event": "Último Evento",
     "active_issues": "Problemas Activos",
     "no_events": "No hay eventos recientes en el timeline",
@@ -286,7 +288,8 @@
       "last_execution": "Última Ejecución",
       "state_delta": "Delta de Estado",
       "divergences_fixed": "Divergencias Corregidas",
-      "last_cycle": "Último Ciclo"
+      "last_cycle": "Último Ciclo",
+      "cycles": "ciclos"
     },
     "metrics": {
       "native_local": "Local Nativo",
@@ -728,7 +731,9 @@
       "resilient": "Resiliente",
       "local": "Local",
       "autonomous": "Autónomo",
-      "edge": "Edge"
+      "edge": "Edge",
+      "edge_exec": "Ejecución Edge",
+      "hardware_execution": "Ejecución a nivel de hardware activa"
     },
     "widgets": {
       "room_summary": {
@@ -846,6 +851,30 @@
       "opening": "Abriendo",
       "closing": "Cerrando",
       "unknown": "Desconocido"
+    },
+    "timezones": {
+      "America/Guayaquil": "Ecuador (Guayaquil)",
+      "America/Bogota": "Colombia (Bogotá)",
+      "America/Mexico_City": "México (CDMX)",
+      "America/New_York": "EE.UU. (Nueva York)",
+      "America/Chicago": "EE.UU. (Chicago)",
+      "America/Denver": "EE.UU. (Denver)",
+      "America/Los_Angeles": "EE.UU. (Los Ángeles)",
+      "America/Santiago": "Chile (Santiago)",
+      "America/Buenos_Aires": "Argentina (Buenos Aires)",
+      "America/Lima": "Perú (Lima)",
+      "America/Caracas": "Venezuela (Caracas)",
+      "Europe/London": "Reino Unido (Londres)",
+      "Europe/Madrid": "España (Madrid)",
+      "Europe/Paris": "Francia (París)",
+      "Europe/Berlin": "Alemania (Berlín)",
+      "Europe/Rome": "Italia (Roma)",
+      "Asia/Dubai": "EAU (Dubái)",
+      "Asia/Singapore": "Singapur",
+      "Asia/Tokyo": "Japón (Tokio)",
+      "Australia/Sydney": "Australia (Sídney)",
+      "Pacific/Auckland": "Nueva Zelanda (Auckland)",
+      "UTC": "Universal (UTC)"
     }
   }
 }

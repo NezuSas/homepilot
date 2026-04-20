@@ -236,7 +236,9 @@
     "appliance_timezone": "Appliance Timezone",
     "change_timezone": "Configure Timezone",
     "select_timezone": "Select Timezone",
+    "timezone": "Timezone",
     "timezone_updated": "Timezone updated successfully",
+    "update_failed": "Update failed",
     "last_event": "Last Event",
     "active_issues": "Active Issues",
     "no_events": "No recent events in timeline",
@@ -286,7 +288,8 @@
       "last_execution": "Last Execution",
       "state_delta": "State Delta",
       "divergences_fixed": "Divergences Fixed",
-      "last_cycle": "Last Cycle"
+      "last_cycle": "Last Cycle",
+      "cycles": "cycles"
     },
     "metrics": {
       "native_local": "Native Local",
@@ -722,7 +725,9 @@
       "resilient": "Resilient",
       "local": "Local",
       "autonomous": "Autonomous",
-      "edge": "Edge"
+      "edge": "Edge",
+      "edge_exec": "Edge Exec",
+      "hardware_execution": "Hardware-level execution active"
     },
     "widgets": {
       "room_summary": {
@@ -840,6 +845,30 @@
       "opening": "Opening",
       "closing": "Closing",
       "unknown": "Unknown"
+    },
+    "timezones": {
+      "America/Guayaquil": "Ecuador (Guayaquil)",
+      "America/Bogota": "Colombia (Bogotá)",
+      "America/Mexico_City": "Mexico (CDMX)",
+      "America/New_York": "USA (New York)",
+      "America/Chicago": "USA (Chicago)",
+      "America/Denver": "USA (Denver)",
+      "America/Los_Angeles": "USA (Los Angeles)",
+      "America/Santiago": "Chile (Santiago)",
+      "America/Buenos_Aires": "Argentina (Buenos Aires)",
+      "America/Lima": "Peru (Lima)",
+      "America/Caracas": "Venezuela (Caracas)",
+      "Europe/London": "UK (London)",
+      "Europe/Madrid": "Spain (Madrid)",
+      "Europe/Paris": "France (Paris)",
+      "Europe/Berlin": "Germany (Berlin)",
+      "Europe/Rome": "Italy (Rome)",
+      "Asia/Dubai": "UAE (Dubai)",
+      "Asia/Singapore": "Singapore",
+      "Asia/Tokyo": "Japan (Tokyo)",
+      "Australia/Sydney": "Australia (Sydney)",
+      "Pacific/Auckland": "New Zealand (Auckland)",
+      "UTC": "Universal (UTC)"
     }
   }
 }

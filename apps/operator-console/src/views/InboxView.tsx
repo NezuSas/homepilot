@@ -305,7 +305,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
           <Cpu className="w-3.5 h-3.5 text-success/80" />
           <span className="text-[10px] font-black uppercase tracking-widest text-success/90 bg-success/10 px-2 py-0.5 rounded">{t('inbox.edge_mode_active')}</span>
           <span className="text-[10px] font-medium text-muted-foreground/60 tracking-wide border-l border-border/50 pl-3">
-             {t('inbox.edge_hint', { defaultValue: 'Local control capabilities enabled. Network independence active.' })}
+             {t('inbox.edge_hint')}
           </span>
         </div>
       )}
@@ -400,7 +400,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         {devices.length === 0 && (
           <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-20">
              <Cpu className="w-12 h-12 mb-4" />
-             <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state', { defaultValue: 'No devices connected' })}</p>
+             <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state')}</p>
           </div>
         )}
       </div>
@@ -556,10 +556,10 @@ const DeviceInspector: React.FC<{
         // REMOVED: redundant HA sync log fetch.
       } else {
         const data = await res.json() as { error: string };
-        throw new Error(data.error || 'Failed to refresh state from Home Assistant');
+        throw new Error(data.error || t('inbox.discovery.refresh_failed'));
       }
     } catch (err: any) {
-      const msg = err.error?.message || (typeof err.error === 'string' ? err.error : (err.message || 'Error syncing with HA'));
+      const msg = err.error?.message || (typeof err.error === 'string' ? err.error : (err.message || t('ha_settings.messages.network_error')));
       setError(msg);
     } finally {
       setIsRefreshing(false);

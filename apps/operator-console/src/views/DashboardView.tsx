@@ -144,7 +144,7 @@ const DashDeviceTile: React.FC<{
             <>
               <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSonoff ? "bg-success animate-ping" : "status-dot-updating")} />
               <span className={cn("text-[8px] font-black uppercase tracking-widest truncate", isSonoff ? "text-success" : "opacity-40")}>
-                {isSonoff ? "Edge Exec" : t('device_states.updating')}
+                {isSonoff ? t('dashboards.status.edge_exec') : t('device_states.updating')}
               </span>
             </>
           ) : (
@@ -385,7 +385,7 @@ useEffect(() => {
                     <span className="text-[8px] font-black uppercase tracking-widest text-primary/60">{t('dashboards.status.resilient')}</span>
                  </div>
                  <p className="text-[7px] font-bold leading-tight text-muted-foreground/40 uppercase italic">
-                    {t('dashboard.resilience_hint', 'Hardware-level autonomy active. Network independence verified.')}
+                    {t('dashboard.resilience_hint')}
                  </p>
               </div>
            </div>
@@ -397,7 +397,7 @@ useEffect(() => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
           <div className="flex items-center gap-3 px-2">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-               {t('dashboard.actionable_insights', 'Actionable Insights')}
+               {t('dashboard.actionable_insights')}
             </h2>
             <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
           </div>
@@ -408,7 +408,7 @@ useEffect(() => {
                <AssistantCard 
                   key={finding.id}
                   icon={isEnergy ? Zap : Sparkles}
-                  category={isEnergy ? t('dashboard.energy_insight', 'ENERGY INSIGHT') : t('dashboard.proactive', 'PROACTIVE')}
+                  category={isEnergy ? t('dashboard.energy_insight') : t('dashboard.proactive')}
                   title={finding.metadata?.displayTitle ? finding.metadata.displayTitle : t(`assistant.types.${finding.type}`)}
                   description={finding.metadata?.displayDescription ? finding.metadata.displayDescription : t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
                   severity={finding.severity}
@@ -502,7 +502,7 @@ useEffect(() => {
                     "text-[10px] font-medium italic opacity-60 truncate",
                     isProcessingThis ? "text-white" : "text-muted-foreground"
                   )}>
-                    {isFullyAutonomous ? "Hardware-level execution active" : (scene.description || t('dashboard.experience'))}
+                    {isFullyAutonomous ? t('dashboards.status.hardware_execution') : (scene.description || t('dashboard.experience'))}
                   </p>
                 </div>
               </button>
@@ -529,7 +529,7 @@ useEffect(() => {
                     "text-[10px] font-black uppercase tracking-widest transition-colors",
                     onCount > 0 ? "text-warning" : "text-muted-foreground/40"
                   )}>
-                    {onCount > 0 ? t('dashboard.active_units', { count: onCount, defaultValue: `${onCount} Active` }) : t('dashboard.all_off', { defaultValue: 'All Off' })}
+                    {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
                   </span>
                 </div>
                 {onCount > 0 && (
@@ -540,7 +540,7 @@ useEffect(() => {
                     onClick={() => handleRoomTurnOff(room.id)}
                     className="text-[9px] uppercase tracking-widest px-4 py-2 bg-transparent hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
                   >
-                    {!roomProcessing && t('common.turn_off_all', { defaultValue: 'Turn Off All' })}
+                    {!roomProcessing && t('common.turn_off_all')}
                   </Button>
                 )}
               </div>
