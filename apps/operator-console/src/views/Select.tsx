@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -19,7 +20,7 @@ interface SelectProps {
 const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, className, searchable = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [openUpwards, setOpenUpwards] = useState(false);
+  const [rect, setRect] = useState<DOMRect | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,7 +28,12 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      // Check if click is inside the portal dropdown by adding a specific class or ID to it.
+      // But simpler: just close it on any outside click. The portal content stops propagation.
+      const target = event.target as Node;
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        // If the click is inside a portal element with a specific class, ignore.
+        if ((target as Element).closest?.('.portal-select-dropdown')) return;
         setIsOpen(false);
       }
     };
@@ -40,18 +46,33 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
       if (searchable) {
         setTimeout(() => searchInputRef.current?.focus(), 100);
       }
-      
-      // Calculate placement
       if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const menuHeight = Math.min(options.length * 40 + (searchable ? 50 : 0), 240); // Estimate
-        setOpenUpwards(spaceBelow < menuHeight + 20);
+        setRect(containerRef.current.getBoundingClientRect());
       }
     } else {
       setSearchQuery('');
+      setRect(null);
     }
-  }, [isOpen, searchable, options.length]);
+  }, [isOpen, searchable]);
+
+  // Close dropdown on container scroll or window resize to prevent it from floating disconnected
+  useEffect(() => {
+    const handleScrollOrResize = (e: Event) => {
+      const target = e.target as Element;
+      // Don't close if exactly the dropdown's inner list is scrolling
+      if (target.classList?.contains('portal-select-dropdown-list')) return;
+      if (isOpen) setIsOpen(false);
+    };
+
+    if (isOpen) {
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      window.addEventListener('resize', handleScrollOrResize);
+    }
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen]);
 
   const filteredOptions = options.filter(option => 
     option.label.toLowerCase().includes(searchQuery.toLowerCase())
@@ -73,11 +94,15 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
         <ChevronDown className={cn("w-4 h-4 text-foreground/30 transition-transform shrink-0", isOpen && "rotate-180")} />
       </button>
 
-      {isOpen && (
-        <div className={cn(
-          "absolute z-[100] w-full bg-card/95 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-200",
-          openUpwards ? "bottom-full mb-2" : "top-full mt-2"
-        )}>
+      {isOpen && rect && createPortal(
+        <div 
+          className="portal-select-dropdown fixed z-[99999] bg-card/95 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          style={{
+            top: rect.bottom + 8,
+            left: rect.left,
+            width: rect.width,
+          }}
+        >
           {searchable && (
             <div className="p-2 border-b border-foreground/5">
               <div className="relative">
@@ -93,7 +118,7 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
               </div>
             </div>
           )}
-          <div className="max-h-60 overflow-y-auto custom-scrollbar p-1.5">
+          <div className="portal-select-dropdown-list max-h-60 overflow-y-auto custom-scrollbar p-1.5">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-foreground/30 font-medium">
                 No results found
@@ -120,7 +145,8 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
