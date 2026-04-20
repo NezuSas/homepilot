@@ -128,7 +128,21 @@ export const AuditLogsView: React.FC = () => {
                <div className="flex items-center gap-3">
                   <Zap className="w-4 h-4 text-primary opacity-40" />
                   <p className="text-sm font-bold tracking-tight text-foreground/90">
-                    {t(`audit_logs.messages.${log.type}`, { ...((log.data || {}) as object), defaultValue: log.description })}
+                    {(() => {
+                      let key = `audit_logs.messages.${log.type}`;
+                      const data = (log.data || {}) as Record<string, any>;
+                      
+                      if (log.type === 'HA_RESILIENCE' && data.source) {
+                        const source = data.source as string;
+                        if (source === 'reconciliation') key = 'audit_logs.messages.RECONCILIATION_DONE';
+                        else if (source === 'reconnect') key = 'audit_logs.messages.WS_CONNECTED';
+                        else if (source === 'auth_error') key = 'audit_logs.messages.AUTH_FAILED';
+                      } else if (log.type === 'COMMAND_DISPATCHED' && data.name) {
+                        key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
+                      }
+                      
+                      return t(key, { ...data, defaultValue: log.description, interpolation: { escapeValue: false } });
+                    })()}
                   </p>
                </div>
                <div className="flex flex-wrap items-center gap-4">

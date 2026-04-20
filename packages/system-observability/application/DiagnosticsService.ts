@@ -134,10 +134,14 @@ export class DiagnosticsService {
 
       if (log.type === 'HA_RESILIENCE') {
         category = 'resilience';
-        eventType = (log.data?.source as string) || 'resilience_event';
-      } else if (log.type === 'COMMAND_DISPATCHED' || log.type === 'AUTOMATION_FAILED') {
+        const source = log.data?.source as string;
+        if (source === 'reconciliation') eventType = 'RECONCILIATION_DONE';
+        else if (source === 'reconnect') eventType = 'WS_CONNECTED';
+        else if (source === 'auth_error') eventType = 'AUTH_FAILED';
+        else eventType = source || 'HA_RESILIENCE';
+      } else if (log.type === 'COMMAND_DISPATCHED' || log.type === 'AUTOMATION_EXECUTED') {
         category = 'automation';
-        eventType = log.data?.status === 'error' ? 'automation_failed' : 'automation_executed';
+        eventType = log.data?.status === 'error' ? 'AUTOMATION_FAILED' : 'AUTOMATION_EXECUTED';
       }
 
       events.push({

@@ -487,7 +487,14 @@ export function DiagnosticsView() {
                             )}
                           </div>
                           <p className="text-sm font-medium text-foreground/70">
-                            {t(`audit_logs.messages.${ev.eventType}`, { ...ev.data, defaultValue: ev.description })}
+                            {(() => {
+                              let key = `audit_logs.messages.${ev.eventType}`;
+                              const data = (ev.data || {}) as Record<string, any>;
+                              if (ev.eventType === 'COMMAND_DISPATCHED' && data.name) {
+                                key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
+                              }
+                              return t(key, { ...data, defaultValue: ev.description, interpolation: { escapeValue: false } });
+                            })()}
                           </p>
                         </div>
 
@@ -519,7 +526,7 @@ export function DiagnosticsView() {
                                       </span>
                                     </div>
                                     <div className="opacity-80">
-                                      {t(`audit_logs.messages.${child.eventType}`, { ...child.data, defaultValue: child.description })}
+                                      {t(`audit_logs.messages.${child.eventType}`, { ...child.data, defaultValue: child.description, interpolation: { escapeValue: false } })}
                                     </div>
 
                                   </div>

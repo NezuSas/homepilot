@@ -544,7 +544,7 @@
       "WS_CONNECTED": "WebSocket connection established",
       "AUTH_FAILED": "Permanent authentication failure",
       "SCENE_EXECUTION_STARTED": "User triggered Scene \"{{name}}\"",
-      "SCENE_EXECUTION_COMPLETED": "Scene \"{{name}}\" executed by {{user}}. ({{success}}/{{total}} success)",
+      "SCENE_EXECUTION_COMPLETED": "Scene '{{name}}' executed by {{user}} ({{success}}/{{total}} success)",
       "SCENE_EXECUTION_FAILED": "Failed to execute Scene \"{{name}}\"",
       "COMMAND_DISPATCHED": "Command \"{{command}}\" dispatched correctly",
       "COMMAND_FAILED": "Command \"{{command}}\" failed. Reason: {{reason}}",

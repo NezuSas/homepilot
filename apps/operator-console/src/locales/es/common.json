@@ -544,7 +544,7 @@
       "WS_CONNECTED": "Conexión WebSocket establecida",
       "AUTH_FAILED": "Fallo de autenticación permanente",
       "SCENE_EXECUTION_STARTED": "Usuario activó la Escena \"{{name}}\"",
-      "SCENE_EXECUTION_COMPLETED": "Escena \"{{name}}\" ejecutada por {{user}}. ({{success}}/{{total}} éxito)",
+      "SCENE_EXECUTION_COMPLETED": "Escena '{{name}}' ejecutada por {{user}} ({{success}}/{{total}} éxito)",
       "SCENE_EXECUTION_FAILED": "Fallo al ejecutar la Escena \"{{name}}\"",
       "COMMAND_DISPATCHED": "Comando \"{{command}}\" enviado correctamente",
       "COMMAND_FAILED": "Comando \"{{command}}\" falló. Razón: {{reason}}",
