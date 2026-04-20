@@ -148,6 +148,8 @@ export const AuditLogsView: React.FC = () => {
                         else if (source === 'auth_error') key = 'audit_logs.messages.AUTH_FAILED';
                       } else if (log.type === 'COMMAND_DISPATCHED' && (data.name || data.sceneName)) {
                         key = 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT';
+                      } else if (log.type.startsWith('USER_')) {
+                        key = `audit_logs.messages.${log.type}`;
                       }
                       
                       // 3. Mapeo explícito de variables (Puente entre versiones de esquema)
@@ -155,24 +157,27 @@ export const AuditLogsView: React.FC = () => {
                       const options = {
                         ...data,
                         // Scenes & Commands
-                        sceneName: data.sceneName || data.name || '',
-                        name: data.name || data.sceneName || '',
-                        userName: data.userName || data.user || '',
-                        user: data.user || data.userName || '',
-                        successCount: data.successCount !== undefined ? data.successCount : (data.success !== undefined ? data.success : ''),
-                        totalCount: data.totalCount !== undefined ? data.totalCount : (data.total !== undefined ? data.total : ''),
-                        total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : ''),
-                        success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : ''),
-                        command: data.command || '',
+                        sceneName: data.sceneName || data.name || t('common.unknown_scene'),
+                        name: data.name || data.sceneName || t('common.unknown'),
+                        userName: data.userName || data.user || t('common.system'),
+                        user: data.user || data.userName || t('common.system'),
+                        successCount: data.successCount !== undefined ? data.successCount : (data.success !== undefined ? data.success : '0'),
+                        totalCount: data.totalCount !== undefined ? data.totalCount : (data.total !== undefined ? data.total : '0'),
+                        total: data.total !== undefined ? data.total : (data.totalCount !== undefined ? data.totalCount : '0'),
+                        success: data.success !== undefined ? data.success : (data.successCount !== undefined ? data.successCount : '0'),
+                        command: data.command || t('common.unknown'),
                         // Automations
-                        ruleName: data.ruleName || data.name || '',
+                        ruleName: data.ruleName || data.name || t('common.unknown'),
                         ruleId: data.ruleId || '',
-                        deviceName: data.deviceName || '',
+                        deviceName: data.deviceName || t('common.unknown'),
                         // Device State
-                        state: data.state !== undefined ? String(data.state) : (data.new_state !== undefined ? String(data.new_state) : ''),
-                        new_state: data.new_state !== undefined ? String(data.new_state) : (data.state !== undefined ? String(data.state) : ''),
+                        state: data.state !== undefined ? String(data.state) : (data.new_state !== undefined ? String(data.new_state) : t('common.unknown')),
+                        new_state: data.new_state !== undefined ? String(data.new_state) : (data.state !== undefined ? String(data.state) : t('common.unknown')),
+                        // Users
+                        targetUser: data.targetUser || data.username || t('common.unknown'),
+                        role: data.role || data.newRole || '',
                         // Utils
-                        reason: data.reason || '',
+                        reason: data.reason || t('common.errors.unknown'),
                         defaultValue: log.description,
                         interpolation: { escapeValue: false }
                       };

@@ -544,7 +544,7 @@
       "WS_CONNECTED": "Conexión WebSocket establecida",
       "AUTH_FAILED": "Fallo de autenticación permanente",
       "SCENE_EXECUTION_STARTED": "Usuario activó la Escena '{{sceneName}}'",
-      "SCENE_EXECUTION_COMPLETED": "Escena '{{sceneName}}' ejecutada por {{userName}} ({{successCount}}/{{totalCount}} éxito)",
+      "SCENE_EXECUTION_COMPLETED": "Escena '{{sceneName}}' completada por {{userName}} ({{successCount}}/{{totalCount}} éxito)",
       "SCENE_EXECUTION_FAILED": "Fallo al ejecutar la Escena '{{sceneName}}'",
       "COMMAND_DISPATCHED": "Comando '{{command}}' enviado correctamente",
       "COMMAND_FAILED": "Comando '{{command}}' falló. Razón: {{reason}}",
@@ -553,7 +553,12 @@
       "AUTOMATION_EXECUTED": "Automatización '{{ruleName}}' ejecutada con éxito",
       "AUTOMATION_FAILED": "Automatización '{{ruleName}}' falló: {{reason}}",
       "SCENE_DISPATCHED_PERSISTENT": "Escena persistente '{{sceneName}}' lanzada: {{command}}",
-      "TRIGGERED_BY_AUTOMATION": "Activado por automatización: {{ruleName}}"
+      "TRIGGERED_BY_AUTOMATION": "Activado por automatización: {{ruleName}}",
+      "USER_CREATED": "Usuario '{{targetUser}}' registrado en el sistema",
+      "USER_DEACTIVATED": "Acceso suspendido para '{{targetUser}}'",
+      "USER_ACTIVATED": "Acceso restaurado para '{{targetUser}}'",
+      "USER_ROLE_CHANGED": "Rol de '{{targetUser}}' actualizado a {{role}}",
+      "USER_SESSIONS_REVOKED": "Todas las sesiones de '{{targetUser}}' han sido revocadas"
     }
   },
 
@@ -851,6 +856,7 @@
     "false": "FALSO",
     "unknown": "Desconocido",
     "unknown_scene": "Escena Desconocida",
+    "system": "Sistema",
     "roles": {
       "admin": "Administrador",
       "operator": "Operador"
@@ -882,7 +888,12 @@
       "STATE_CHANGED": "Cambio de Estado",
       "AUTOMATION_TRIGGERED": "Automatización Activada",
       "AUTOMATION_EXECUTED": "Ejecución Automática",
-      "AUTOMATION_FAILED": "Fallo de Automatización"
+      "AUTOMATION_FAILED": "Fallo de Automatización",
+      "USER_CREATED": "Usuario Creado",
+      "USER_DEACTIVATED": "Usuario Desactivado",
+      "USER_ACTIVATED": "Usuario Activado",
+      "USER_ROLE_CHANGED": "Rol Cambiado",
+      "USER_SESSIONS_REVOKED": "Sesiones Revocadas"
     }
   },
   "timezones": {
