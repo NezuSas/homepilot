@@ -185,105 +185,125 @@ const AutomationsView: React.FC = () => {
     return (
       <div 
         className={cn(
-          "group relative overflow-hidden bg-card/60 backdrop-blur-md rounded-[3rem] border-2 transition-all duration-500",
-          isEnabled ? "border-primary/20 shadow-2xl p-8" : "border-border/30 opacity-60 p-8 grayscale"
+          "group relative overflow-hidden bg-card/40 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-700",
+          isEnabled 
+            ? "border-primary/10 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] p-7" 
+            : "border-border/10 opacity-60 p-7 grayscale hover:grayscale-0 hover:opacity-100"
         )}
       >
-        {/* Resilience Glow */}
-        {isEnabled && isFullyAutonomous && (
-          <div className="absolute inset-0 bg-success/[0.02] pointer-events-none" />
+        {/* State Indicator Glow */}
+        {isEnabled && (
+          <div className={cn(
+            "absolute -top-24 -right-24 w-48 h-48 blur-[80px] opacity-20 pointer-events-none transition-colors duration-1000",
+            isFullyAutonomous ? "bg-success" : "bg-primary"
+          )} />
         )}
 
-        <div className="flex items-start justify-between mb-8">
-          <div className="flex items-center gap-5">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-4">
             <div className={cn(
-              "p-5 rounded-[1.8rem] transition-all duration-700",
-              isEnabled ? (isFullyAutonomous ? "bg-success text-white premium-glow-success" : "bg-primary text-primary-foreground premium-glow") : "bg-muted text-muted-foreground"
+              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700 relative overflow-hidden",
+              isEnabled 
+                ? (isFullyAutonomous ? "bg-success text-white premium-glow-success shadow-lg shadow-success/20" : "bg-primary text-white premium-glow shadow-lg shadow-primary/20") 
+                : "bg-muted text-muted-foreground"
             )}>
-              {rule.trigger.type === 'time' ? <Clock className="w-7 h-7" /> : <Zap className="w-7 h-7" />}
+              {rule.trigger.type === 'time' ? <Clock className="w-6 h-6 relative z-10" /> : <Zap className="w-6 h-6 relative z-10" />}
             </div>
             <div>
-               <div className="flex items-center gap-2 mb-1">
-                 <h4 className="text-2xl font-black tracking-tighter leading-none">{rule.name}</h4>
+               <div className="flex items-center gap-2 mb-0.5">
+                 <h4 className="text-xl font-black tracking-tight leading-tight">{rule.name}</h4>
                  {isEnabled && (
-                    <span className={cn(
-                      "text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border shrink-0",
-                      isFullyAutonomous ? "bg-success/10 border-success/20 text-success" : 
-                      (isEdgeCapable ? "bg-primary/10 border-primary/20 text-primary" : "bg-muted border-border text-muted-foreground opacity-40")
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-2 py-0.5 rounded-full border shrink-0 bg-background/40 backdrop-blur-md",
+                      isFullyAutonomous ? "border-success/30 text-success" : 
+                      (isEdgeCapable ? "border-primary/30 text-primary" : "border-border/30 text-muted-foreground opacity-40")
                     )}>
-                      {resilienceLabel}
-                    </span>
+                      {isFullyAutonomous && <Cpu className="w-2.5 h-2.5" />}
+                      <span className="text-[7.5px] font-black uppercase tracking-[0.1em]">{resilienceLabel}</span>
+                    </div>
                  )}
                </div>
-               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
+               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
                  {rule.trigger.type === 'time' ? t('automations.summary.schedule_based') : t('automations.summary.event_driven')}
                </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
              <button 
                 onClick={() => toggleRule(rule.id, isEnabled)}
                 disabled={isWorking}
                 className={cn(
-                  "px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
-                  isEnabled ? (isFullyAutonomous ? "bg-success/20 text-success" : "bg-primary/20 text-primary") : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  "h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm",
+                  isEnabled 
+                    ? (isFullyAutonomous ? "bg-success/10 text-success border border-success/10" : "bg-primary/10 text-primary border border-primary/10") 
+                    : "bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary"
                 )}
              >
                 {isWorking ? <Loader2 className="w-4 h-4 animate-spin" /> : (isEnabled ? t('automations.summary.active') : t('automations.summary.paused'))}
              </button>
              <button 
                 onClick={() => { setEditingAutomation(rule); setIsBuilderOpen(true); }}
-                className="p-3 bg-muted/40 hover:bg-muted rounded-xl transition-all"
+                className="w-10 h-10 flex items-center justify-center bg-muted/40 hover:bg-muted rounded-xl transition-all border border-transparent hover:border-border/20"
              >
-                <Pencil className="w-4 h-4" />
+                <Pencil className="w-4 h-4 text-muted-foreground" />
              </button>
              <button 
                 onClick={() => setConfirmDeleteId(rule.id)}
-                className="p-3 hover:bg-destructive/10 hover:text-destructive rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                className="w-10 h-10 flex items-center justify-center hover:bg-destructive/10 hover:text-destructive rounded-xl transition-all opacity-0 group-hover:opacity-100"
              >
                 <Trash2 className="w-4 h-4" />
              </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 bg-muted/20 rounded-[2rem] p-6 border border-border/20">
-           <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-background border flex items-center justify-center shrink-0">
-                 <span className="text-[10px] font-black">{t('automations.summary.if')}</span>
+        <div className="relative p-5 rounded-2xl bg-foreground/[0.02] border border-foreground/[0.05] flex flex-col gap-4">
+           {/* Logic Flow Line */}
+           <div className="absolute left-10 top-12 bottom-12 w-[1.5px] border-l border-dashed border-foreground/10" />
+
+           <div className="flex items-start gap-4 relative z-10">
+              <div className="w-9 h-9 rounded-full bg-background border border-foreground/10 flex items-center justify-center shrink-0 shadow-sm">
+                 <span className="text-[9px] font-black opacity-30">{t('automations.summary.if')}</span>
               </div>
-              <p className="text-lg font-bold leading-tight pt-2">
-                 {rule.trigger.type === 'time' 
-                    ? t('automations.summary.clock_hits', { time: rule.trigger.timeLocal || rule.trigger.time }) 
-                    : t('automations.summary.when_device', { name: getDeviceName(rule.trigger.deviceId), value: rule.trigger.expectedValue })}
-              </p>
-           </div>
-           
-           <div className="pl-5 border-l-2 border-dashed border-border/40 ml-5 py-2">
-              <ArrowRight className="w-5 h-5 text-primary opacity-40" />
+              <div className="pt-2.5">
+                <p className="text-base font-bold tracking-tight leading-tight text-foreground/80">
+                   {rule.trigger.type === 'time' 
+                      ? t('automations.summary.clock_hits', { time: rule.trigger.timeLocal || rule.trigger.time }) 
+                      : t('automations.summary.when_device', { name: getDeviceName(rule.trigger.deviceId), value: rule.trigger.expectedValue })}
+                </p>
+                <span className="text-[7.5px] font-black uppercase tracking-widest text-muted-foreground opacity-30 mt-0.5 block">Trigger Event</span>
+              </div>
            </div>
 
-           <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary/20 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                 <span className="text-[10px] font-black">{t('automations.summary.then')}</span>
+           <div className="flex items-start gap-4 relative z-10">
+              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-sm">
+                 <span className="text-[9px] font-black">{t('automations.summary.then')}</span>
               </div>
-              <p className="text-lg font-bold leading-tight pt-2">
-                 {rule.action.type === 'device_command'
-                    ? t('automations.summary.run_command', { command: rule.action.command?.replace('_', ' ').toUpperCase(), name: getDeviceName(rule.action.targetDeviceId) })
-                    : t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) })}
-              </p>
+              <div className="pt-2.5">
+                <p className="text-base font-bold tracking-tight leading-tight">
+                   {rule.action.type === 'device_command'
+                      ? t('automations.summary.run_command', { command: rule.action.command?.replace('_', ' ').toUpperCase(), name: getDeviceName(rule.action.targetDeviceId) })
+                      : t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) })}
+                </p>
+                <span className="text-[7.5px] font-black uppercase tracking-widest text-primary/40 mt-0.5 block">System Execution</span>
+              </div>
            </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between">
-           <div className="flex items-center gap-3">
-              <div className={cn("w-2 h-2 rounded-full", isEnabled ? (isFullyAutonomous ? "bg-success animate-pulse" : "bg-primary animate-pulse") : "bg-muted-foreground/30")} />
-              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                 {isFullyAutonomous ? "Verified Hardware Autonomy" : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_recipe'))}
+        <div className="mt-6 flex items-center justify-between">
+           <div className="flex items-center gap-2.5">
+              <div className={cn(
+                "w-1.5 h-1.5 rounded-full", 
+                isEnabled ? (isFullyAutonomous ? "bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]") : "bg-muted-foreground/20"
+              )} />
+              <span className="text-[8px] font-black uppercase tracking-[0.15em] text-muted-foreground opacity-40">
+                 {isFullyAutonomous ? "Verified Hardware Autonomy" : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_automation'))}
               </span>
            </div>
-           {isFullyAutonomous && <Cpu className="w-3 h-3 text-success opacity-40" />}
-           <span className="text-[9px] font-bold text-muted-foreground opacity-20 uppercase">{t('shell.subtitle')}</span>
+           <div className="flex items-center gap-1.5 opacity-10 grayscale">
+              <Cpu className="w-3 h-3" />
+              <span className="text-[7.5px] font-bold uppercase tracking-tighter">Nezu Core v1</span>
+           </div>
         </div>
       </div>
     );

@@ -416,7 +416,7 @@
       "subtitle": "{{count}} Reglas de Inteligencia Activas • Ejecución Local"
     },
     "loading": "Sincronizando Workbench...",
-    "active_recipes": "{{count}} Recetas Activas",
+    "active_recipes": "{{count}} Automatizaciones Activas",
     "create_rule": "Crear Regla",
     "rule_created": "Regla Creada Exitosamente",
     "rule_deleted": "Regla Eliminada",
@@ -451,7 +451,8 @@
       "state_key": "Atributo de Estado",
       "expected_value": "Valor Esperado",
       "device_label": "Dispositivo:",
-      "target_label": "Objetivo:"
+      "target_label": "Objetivo:",
+      "target_device": "Dispositivo Objetivo"
     },
     "summary": {
       "at_time": "A las {{time}}",
@@ -465,25 +466,25 @@
       "if": "SI",
       "then": "ENTONCES",
       "system_rule": "Regla de Monitoreo del Sistema",
-      "inactive_recipe": "Receta Inactiva",
+      "inactive_automation": "Automatización Inactiva",
       "clock_hits": "El reloj marca las {{time}}"
     },
     "notifications": {
-      "deleted": "Receta eliminada de la biblioteca de inteligencia",
+      "deleted": "Automatización eliminada de la biblioteca de inteligencia",
       "updated": "Biblioteca de inteligencia actualizada"
     },
     "builder": {
-      "title_create": "Nueva Receta",
-      "title_edit": "Refinar Receta",
-      "naming_label": "Asignar nombre a esta Receta",
+      "title_create": "Nueva Automatización",
+      "title_edit": "Refinar Automatización",
+      "naming_label": "Asignar nombre a esta Automatización",
       "trigger_label": "Seleccionar Disparador de Inteligencia",
       "trigger_device_hint": "Reacción a cambios en las unidades",
       "trigger_time_hint": "Activación basada en el reloj",
       "action_label": "Definir Consecuencia",
       "action_device_hint": "Controlar una unidad específica",
       "action_scene_hint": "Activar un modo de vida",
-      "review": "Revisar Receta",
-      "commit": "Confirmar Receta",
+      "review": "Revisar Automatización",
+      "commit": "Confirmar Automatización",
       "properties": {
         "state": "ESTADO",
         "lux": "LUZ",
@@ -501,6 +502,11 @@
       "placeholders": {
         "name": "Ej: Bienvenida o Noche de Cine",
         "expected_value": "Ej: on"
+      },
+      "commands": {
+        "turn_on": "Encender",
+        "turn_off": "Apagar",
+        "toggle": "Conmutar"
       }
     }
   },
@@ -794,6 +800,7 @@
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "confirm": "Confirmar",
+    "continue": "Continuar",
     "retry": "Reintentar",
     "not_available": "N/D",
     "password_mask": "••••••••",

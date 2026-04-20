@@ -416,7 +416,7 @@
       "subtitle": "{{count}} Active Intelligence Rules • Local Execution"
     },
     "loading": "Synchronizing Workbench...",
-    "active_recipes": "{{count}} Active Recipes",
+    "active_recipes": "{{count}} Active Automations",
     "create_rule": "Create Rule",
     "rule_created": "Rule Created Successfully",
     "rule_deleted": "Rule Deleted",
@@ -451,7 +451,8 @@
       "state_key": "State Attribute",
       "expected_value": "Expected Value",
       "device_label": "Device:",
-      "target_label": "Target:"
+      "target_label": "Target:",
+      "target_device": "Target Device"
     },
     "summary": {
       "at_time": "At {{time}}",
@@ -465,7 +466,7 @@
       "if": "IF",
       "then": "THEN",
       "system_rule": "System Monitoring Rule",
-      "inactive_recipe": "Inactive Recipe",
+      "inactive_automation": "Inactive Automation",
       "clock_hits": "The clock hits {{time}}"
     },
     "notifications": {
@@ -473,17 +474,17 @@
       "updated": "Intelligence library updated"
     },
     "builder": {
-      "title_create": "New Recipe",
-      "title_edit": "Refine Recipe",
-      "naming_label": "Naming this Recipe",
+      "title_create": "New Automation",
+      "title_edit": "Refine Automation",
+      "naming_label": "Naming this Automation",
       "trigger_label": "Select Intelligence Trigger",
       "trigger_device_hint": "Reaction to unit changes",
       "trigger_time_hint": "Clock-based activation",
       "action_label": "Define Consequence",
       "action_device_hint": "Control a specific unit",
       "action_scene_hint": "Activate a lifestyle mode",
-      "review": "Review Recipe",
-      "commit": "Commit Recipe",
+      "review": "Review Automation",
+      "commit": "Commit Automation",
       "properties": {
         "state": "STATE",
         "lux": "LUX",
@@ -495,6 +496,11 @@
       "placeholders": {
         "name": "e.g. Welcome Home or Movie Night",
         "expected_value": "e.g. on"
+      },
+      "commands": {
+        "turn_on": "Turn On",
+        "turn_off": "Turn Off",
+        "toggle": "Toggle"
       }
     }
   },
@@ -787,8 +793,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
-    "import": "Import",
     "confirm": "Confirm",
+    "continue": "Continue",
     "retry": "Retry",
     "not_available": "N/A",
     "password_mask": "••••••••",
