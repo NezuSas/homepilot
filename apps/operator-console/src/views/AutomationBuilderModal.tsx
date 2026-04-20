@@ -135,7 +135,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-card/60 backdrop-blur-2xl border-2 border-border/40 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-500">
+      <div className="relative w-full max-w-3xl bg-card/60 backdrop-blur-2xl border-2 border-border/40 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-500">
         
         {/* Header - Condensed */}
         <div className="px-8 pt-8 pb-4 flex items-center justify-between">
@@ -259,7 +259,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.days_label')}</label>
-                    <div className="flex flex-wrap gap-2 justify-between">
+                    <div className="grid grid-cols-7 gap-1">
                       {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => {
                         const isSelected = (triggerConfig.days || [0,1,2,3,4,5,6]).includes(i);
                         return (
@@ -271,7 +271,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                               setTriggerConfig({ ...triggerConfig, days: next });
                             }}
                             className={cn(
-                              "w-8 h-8 rounded-lg font-black text-[9px] transition-all border-2",
+                              "w-full aspect-square rounded-lg font-black text-[9px] transition-all border-2 flex items-center justify-center",
                               isSelected ? "bg-primary border-primary text-primary-foreground premium-glow" : "bg-muted/20 border-border/10 text-muted-foreground opacity-40 hover:opacity-100"
                             )}
                           >
@@ -370,7 +370,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
           )}
 
           {/* Footer - Integrated Action Button */}
-          <div className="pt-2">
+          <div className="pt-2 pb-32">
             <button 
               disabled={isSubmitting || !name || (triggerType === 'device_state_changed' && !triggerConfig.deviceId) || (actionType === 'device_command' && !actionConfig.targetDeviceId) || (actionType === 'execute_scene' && !actionConfig.sceneId)}
               onClick={handleSubmit}
