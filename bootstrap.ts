@@ -218,19 +218,21 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   );
 
   // -- SYSTEM TIMEZONE INITIALIZATION (PORTABILITY) --
-  // On first boot, if no system_timezone exists, persist the detected runtime timezone
-  // to establish the local appliance authority permanently.
+  // On first boot, if no system_timezone exists (or if it's trapped in UTC due to container defaults),
+  // persist America/Guayaquil to establish a stable local appliance authority.
   const existingTz = await systemVariableService.get('global', null, 'system_timezone');
-  if (!existingTz) {
-    const detectedTz = 'America/Guayaquil';
+  const needsReset = !existingTz || existingTz.value === 'UTC';
+  
+  if (needsReset) {
+    const targetTz = 'America/Guayaquil';
     await systemVariableService.set({
       scope: 'global',
       name: 'system_timezone',
-      value: detectedTz,
+      value: targetTz,
       valueType: 'string',
-      description: 'Appliance local timezone (auto-detected on first boot)'
+      description: 'Appliance local timezone (auto-initialized)'
     });
-    console.log(`[Bootstrap] Initialized appliance timezone authority to: ${detectedTz}`);
+    console.log(`[Bootstrap] ${!existingTz ? 'Initialized' : 'Corrected'} appliance timezone authority to: ${targetTz}`);
   }
 
 

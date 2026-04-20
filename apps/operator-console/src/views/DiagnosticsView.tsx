@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Cpu, ShieldCheck, Settings2 } from 'lucide-react';
+import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Cpu, ShieldCheck } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -78,7 +78,6 @@ export function DiagnosticsView() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [scenes, setScenes] = useState<any[]>([]);
   const [automations, setAutomations] = useState<any[]>([]);
-  const [isEditingTz, setIsEditingTz] = useState(false);
   const [updatingTz, setUpdatingTz] = useState(false);
   
   const devices = useDeviceSnapshotStore(state => state.devices);
@@ -135,7 +134,6 @@ export function DiagnosticsView() {
       if (!res.ok) throw new Error('Update failed');
       
       await fetchDiagnostics();
-      setIsEditingTz(false);
     } catch (err: any) {
       console.error('Timezone update failed:', err);
     } finally {
@@ -292,33 +290,19 @@ export function DiagnosticsView() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-12">
+          {/* APPLIANCE TIME */}
           <div className="sm:text-right">
-            <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60 flex items-center justify-end gap-2">
-              {t('diagnostics.appliance_time')}
-              {isAdmin && (
-                <button 
-                  onClick={() => setIsEditingTz(!isEditingTz)}
-                  className={cn("hover:text-primary transition-colors", isEditingTz && "text-primary")}
-                  title={t('diagnostics.change_timezone')}
-                >
-                  <Settings2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-2 mt-1">
+            <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.appliance_time')}</div>
+            <div className="flex flex-col items-end gap-1 mt-1">
               <div className="font-mono font-bold text-sm">
                 {snapshot.systemTimeLocal}
-                {!isEditingTz && (
-                  <span className="text-[10px] bg-background/50 px-1.5 py-0.5 rounded border border-white/5 ml-2 font-medium text-muted-foreground whitespace-nowrap">
-                    {snapshot.systemTimezone}
-                  </span>
-                )}
               </div>
               
-              {isEditingTz && (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+              {isAdmin && (
+                <div className="flex items-center gap-2 mt-1">
+                   <span className="text-[9px] uppercase font-bold text-muted-foreground/50 tracking-tighter">{t('diagnostics.timezone')}</span>
                    <select 
-                     className="bg-background border border-border rounded px-2 py-1 text-[10px] font-bold outline-none focus:border-primary transition-colors cursor-pointer"
+                     className="bg-background/50 border border-border/50 rounded px-2 py-0.5 text-[10px] font-bold outline-none focus:border-primary transition-colors cursor-pointer"
                      value={snapshot.systemTimezone}
                      disabled={updatingTz}
                      onChange={(e) => handleTimezoneChange(e.target.value)}
@@ -332,6 +316,8 @@ export function DiagnosticsView() {
               )}
             </div>
           </div>
+
+          {/* LAST EVENT */}
           <div className="sm:text-right">
             <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.last_event')}</div>
             <div className="font-mono font-bold mt-1 text-sm">{formatTime(snapshot.lastEventAt)}</div>
