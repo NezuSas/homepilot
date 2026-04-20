@@ -135,9 +135,9 @@ export class SystemVariableService {
 
     // Detection fallback from the homepilot appliance runtime environment
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Guayaquil';
     } catch {
-      return 'UTC';
+      return 'America/Guayaquil';
     }
   }
 }

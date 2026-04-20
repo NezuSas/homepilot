@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Cpu, ShieldCheck } from 'lucide-react';
+import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Cpu, ShieldCheck, Settings2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -44,6 +44,31 @@ interface DiagnosticEvent {
   correlationId?: string;
 }
 
+const TIMEZONES = [
+  { value: 'America/Guayaquil', label: 'Ecuador (Guayaquil)' },
+  { value: 'America/Bogota', label: 'Colombia (Bogota)' },
+  { value: 'America/Mexico_City', label: 'Mexico (CDMX)' },
+  { value: 'America/New_York', label: 'USA (New York)' },
+  { value: 'America/Chicago', label: 'USA (Chicago)' },
+  { value: 'America/Denver', label: 'USA (Denver)' },
+  { value: 'America/Los_Angeles', label: 'USA (Los Angeles)' },
+  { value: 'America/Santiago', label: 'Chile (Santiago)' },
+  { value: 'America/Buenos_Aires', label: 'Argentina (Buenos Aires)' },
+  { value: 'America/Lima', label: 'Peru (Lima)' },
+  { value: 'America/Caracas', label: 'Venezuela (Caracas)' },
+  { value: 'Europe/London', label: 'UK (London)' },
+  { value: 'Europe/Madrid', label: 'Spain (Madrid)' },
+  { value: 'Europe/Paris', label: 'France (Paris)' },
+  { value: 'Europe/Berlin', label: 'Germany (Berlin)' },
+  { value: 'Europe/Rome', label: 'Italy (Rome)' },
+  { value: 'Asia/Dubai', label: 'UAE (Dubai)' },
+  { value: 'Asia/Singapore', label: 'Singapore' },
+  { value: 'Asia/Tokyo', label: 'Japan (Tokyo)' },
+  { value: 'Australia/Sydney', label: 'Australia (Sydney)' },
+  { value: 'Pacific/Auckland', label: 'New Zealand (Auckland)' },
+  { value: 'UTC', label: 'Universal (UTC)' }
+];
+
 export function DiagnosticsView() {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<DiagnosticsSnapshot | null>(null);
@@ -53,9 +78,14 @@ export function DiagnosticsView() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [scenes, setScenes] = useState<any[]>([]);
   const [automations, setAutomations] = useState<any[]>([]);
+  const [isEditingTz, setIsEditingTz] = useState(false);
+  const [updatingTz, setUpdatingTz] = useState(false);
   
   const devices = useDeviceSnapshotStore(state => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
+
+  const user = JSON.parse(localStorage.getItem('hp_user_ctx') || '{}');
+  const isAdmin = user.role === 'admin';
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -87,6 +117,29 @@ export function DiagnosticsView() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTimezoneChange = async (newTz: string) => {
+    setUpdatingTz(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/system/timezone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('hp_session_token')}`
+        },
+        body: JSON.stringify({ timezone: newTz })
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+      
+      await fetchDiagnostics();
+      setIsEditingTz(false);
+    } catch (err: any) {
+      console.error('Timezone update failed:', err);
+    } finally {
+      setUpdatingTz(false);
     }
   };
 
@@ -240,12 +293,43 @@ export function DiagnosticsView() {
         </div>
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-12">
           <div className="sm:text-right">
-            <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.appliance_time')}</div>
-            <div className="font-mono font-bold mt-1 text-sm">
-              {snapshot.systemTimeLocal}
-              <span className="text-[10px] bg-background/50 px-1.5 py-0.5 rounded border border-white/5 ml-2 font-medium text-muted-foreground whitespace-nowrap">
-                {snapshot.systemTimezone}
-              </span>
+            <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60 flex items-center justify-end gap-2">
+              {t('diagnostics.appliance_time')}
+              {isAdmin && (
+                <button 
+                  onClick={() => setIsEditingTz(!isEditingTz)}
+                  className={cn("hover:text-primary transition-colors", isEditingTz && "text-primary")}
+                  title={t('diagnostics.change_timezone')}
+                >
+                  <Settings2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-2 mt-1">
+              <div className="font-mono font-bold text-sm">
+                {snapshot.systemTimeLocal}
+                {!isEditingTz && (
+                  <span className="text-[10px] bg-background/50 px-1.5 py-0.5 rounded border border-white/5 ml-2 font-medium text-muted-foreground whitespace-nowrap">
+                    {snapshot.systemTimezone}
+                  </span>
+                )}
+              </div>
+              
+              {isEditingTz && (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                   <select 
+                     className="bg-background border border-border rounded px-2 py-1 text-[10px] font-bold outline-none focus:border-primary transition-colors cursor-pointer"
+                     value={snapshot.systemTimezone}
+                     disabled={updatingTz}
+                     onChange={(e) => handleTimezoneChange(e.target.value)}
+                   >
+                     {TIMEZONES.map(tz => (
+                       <option key={tz.value} value={tz.value}>{tz.label}</option>
+                     ))}
+                   </select>
+                   {updatingTz && <RefreshCw className="w-3 h-3 animate-spin text-primary" />}
+                </div>
+              )}
             </div>
           </div>
           <div className="sm:text-right">

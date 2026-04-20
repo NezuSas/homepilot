@@ -95,6 +95,47 @@ export class SystemRoutes extends ApiRoutes {
       return true;
     }
 
+    // GET /api/v1/system/timezone
+    if (method === 'GET' && pathname === '/api/v1/system/timezone') {
+      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return true;
+
+      try {
+        const timezone = await container.services.systemVariableService.getSystemTimezone();
+        this.sendJson(res, { timezone });
+      } catch (e: any) {
+        this.sendError(res, 500, 'TIMEZONE_GET_ERROR', e.message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/system/timezone
+    if (method === 'POST' && pathname === '/api/v1/system/timezone') {
+      const isProtected = await container.guards.authGuard.protect(req as any, res, true);
+      if (!isProtected) return true;
+
+      const authReq = req as any;
+      if (!container.guards.authGuard.requireRole(authReq, res, 'admin')) return true;
+
+      try {
+        const body = await this.parseBody<{ timezone: string }>(req);
+        if (!body.timezone) throw new Error('MISSING_TIMEZONE');
+
+        await container.services.systemVariableService.set({
+          scope: 'global',
+          name: 'system_timezone',
+          value: body.timezone,
+          valueType: 'string',
+          description: 'System-wide appliance timezone'
+        });
+
+        this.sendJson(res, { success: true });
+      } catch (e: any) {
+        this.sendError(res, 400, 'TIMEZONE_UPDATE_ERROR', e.message);
+      }
+      return true;
+    }
+
     return false;
   }
 }

@@ -222,7 +222,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   // to establish the local appliance authority permanently.
   const existingTz = await systemVariableService.get('global', null, 'system_timezone');
   if (!existingTz) {
-    const detectedTz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const detectedTz = 'America/Guayaquil';
     await systemVariableService.set({
       scope: 'global',
       name: 'system_timezone',
