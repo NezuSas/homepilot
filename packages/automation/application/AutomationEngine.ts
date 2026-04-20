@@ -303,14 +303,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
   private async fireRule(rule: AutomationRule, correlationId: string): Promise<void> {
     // Deduplication signature: ruleId to prevent event echo within 2 s
     const cacheKey = rule.id;
-    const now = Date.now();
-    const lastExecution = this.loopPreventionCache.get(cacheKey);
-
-    if (lastExecution !== undefined && now - lastExecution < this.DEDUPLICATION_WINDOW_MS) {
-      return;
-    }
-    this.loopPreventionCache.set(cacheKey, now);
-
+    console.log(`[AutomationEngine] Firing rule: ${rule.name} (RuleId=${rule.id}) CorrelationId=${correlationId}`);
     await this.executeRuleAction(rule, rule.action, correlationId);
   }
 
@@ -327,6 +320,7 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
         // Skip if device is already in the desired state (turn_on/off only)
         const projected = this.projectCommandToState(action.command);
         if (projected !== null && (targetDevice.lastKnownState as any)?.state === projected) {
+          console.log(`[AutomationEngine] Skipping action for rule ${rule.id}: Device ${action.targetDeviceId} is already ${projected}`);
           return;
         }
 
