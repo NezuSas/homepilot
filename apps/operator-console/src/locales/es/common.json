@@ -452,7 +452,8 @@
       "expected_value": "Valor Esperado",
       "device_label": "Dispositivo:",
       "target_label": "Objetivo:",
-      "target_device": "Dispositivo Objetivo"
+      "target_device": "Dispositivo Objetivo",
+      "source_device": "Dispositivo de Origen"
     },
     "summary": {
       "at_time": "A las {{time}}",
@@ -463,11 +464,11 @@
       "event_driven": "Basado en Eventos",
       "active": "Activa",
       "paused": "Pausada",
-      "if": "SI",
-      "then": "ENTONCES",
       "system_rule": "Regla de Monitoreo del Sistema",
       "inactive_automation": "Automatización Inactiva",
-      "clock_hits": "El reloj marca las {{time}}"
+      "clock_hits": "El reloj marca las {{time}}",
+      "if": "SI",
+      "then": "ENTONCES"
     },
     "notifications": {
       "deleted": "Automatización eliminada de la biblioteca de inteligencia",
@@ -476,6 +477,10 @@
     "builder": {
       "title_create": "Nueva Automatización",
       "title_edit": "Refinar Automatización",
+      "cockpit_subtitle": "Consola de Configuración",
+      "trigger_subtitle": "Disparador de Inteligencia",
+      "action_subtitle": "Consecuencia Definida",
+      "scene_info": "Ejecutar una escena aplicará un conjunto de estados pre-configurados.",
       "naming_label": "Asignar nombre a esta Automatización",
       "trigger_label": "Seleccionar Disparador de Inteligencia",
       "trigger_device_hint": "Reacción a cambios en las unidades",
@@ -485,6 +490,11 @@
       "action_scene_hint": "Activar un modo de vida",
       "review": "Revisar Automatización",
       "commit": "Confirmar Automatización",
+      "commands": {
+        "turn_on": "Encender",
+        "turn_off": "Apagar",
+        "toggle": "Alternar"
+      },
       "properties": {
         "state": "ESTADO",
         "lux": "LUZ",
@@ -502,11 +512,6 @@
       "placeholders": {
         "name": "Ej: Bienvenida o Noche de Cine",
         "expected_value": "Ej: on"
-      },
-      "commands": {
-        "turn_on": "Encender",
-        "turn_off": "Apagar",
-        "toggle": "Conmutar"
       }
     }
   },

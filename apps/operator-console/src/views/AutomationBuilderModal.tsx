@@ -143,7 +143,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
               {existingAutomation ? t('automations.builder.title_edit') : t('automations.builder.title_create')}
             </h2>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">
-              Configuration Cockpit
+              {t('automations.builder.cockpit_subtitle')}
             </p>
           </div>
           <button onClick={onClose} className="p-3 bg-muted/40 hover:bg-muted rounded-xl transition-all">
@@ -169,10 +169,10 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             {/* IF SECTION (Trigger) */}
             <div className="space-y-4 p-6 rounded-[2rem] bg-muted/10 border border-border/10 relative overflow-hidden">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-background border flex items-center justify-center shrink-0">
+                <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0 min-w-8">
                   <span className="text-[9px] font-black">{t('automations.summary.if')}</span>
                 </div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">Intelligence Trigger</label>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{t('automations.builder.trigger_subtitle')}</label>
               </div>
 
               {/* Trigger Type Switcher */}
@@ -209,8 +209,8 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                       placeholder={t('automations.form.select_device')}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-5 gap-3">
+                    <div className="space-y-2 col-span-3">
                       <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.state_key')}</label>
                       <Select 
                         value={triggerConfig.stateKey || 'state'}
@@ -218,14 +218,14 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                         options={[{ value: 'state', label: t('automations.builder.properties.state') }, { value: 'brightness', label: t('automations.builder.properties.lux') }, { value: 'temperature', label: t('automations.builder.properties.temp') }]}
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 col-span-2">
                       <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.expected_value')}</label>
                       <input 
                         type="text" 
                         value={triggerConfig.expectedValue || ''}
                         onChange={(e) => setTriggerConfig({ ...triggerConfig, expectedValue: e.target.value })}
                         placeholder={t('automations.builder.placeholders.expected_value')}
-                        className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-2.5 text-sm font-bold tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                        className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-2.5 text-sm font-bold tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20 translate-y-[1px]"
                       />
                     </div>
                   </div>
@@ -287,10 +287,10 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             {/* THEN SECTION (Action) */}
             <div className="space-y-4 p-6 rounded-[2rem] bg-primary/[0.02] border border-primary/10 relative overflow-hidden">
                <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground border-none flex items-center justify-center shrink-0">
+                <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground border-none flex items-center justify-center shrink-0 min-w-8">
                   <span className="text-[9px] font-black">{t('automations.summary.then')}</span>
                 </div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">Defined Consequence</label>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">{t('automations.builder.action_subtitle')}</label>
               </div>
 
               {/* Action Type Switcher */}
@@ -354,7 +354,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
                   </div>
                   <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center gap-3">
                      <AlertCircle className="w-4 h-4 text-primary opacity-40 shrink-0" />
-                     <p className="text-[10px] font-medium leading-tight text-primary/60">Executing a scene will apply a set of pre-configured unit states.</p>
+                     <p className="text-[10px] font-medium leading-tight text-primary/60">{t('automations.builder.scene_info')}</p>
                   </div>
                 </div>
               )}

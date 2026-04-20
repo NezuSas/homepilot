@@ -452,7 +452,8 @@
       "expected_value": "Expected Value",
       "device_label": "Device:",
       "target_label": "Target:",
-      "target_device": "Target Device"
+      "target_device": "Target Device",
+      "source_device": "Source Device"
     },
     "summary": {
       "at_time": "At {{time}}",
@@ -476,6 +477,10 @@
     "builder": {
       "title_create": "New Automation",
       "title_edit": "Refine Automation",
+      "cockpit_subtitle": "Configuration Cockpit",
+      "trigger_subtitle": "Intelligence Trigger",
+      "action_subtitle": "Defined Consequence",
+      "scene_info": "Executing a scene will apply a set of pre-configured unit states.",
       "naming_label": "Naming this Automation",
       "trigger_label": "Select Intelligence Trigger",
       "trigger_device_hint": "Reaction to unit changes",
@@ -484,7 +489,12 @@
       "action_device_hint": "Control a specific unit",
       "action_scene_hint": "Activate a lifestyle mode",
       "review": "Review Automation",
-      "commit": "Commit Automation",
+      "commit": "Confirm Automation",
+      "commands": {
+        "turn_on": "Turn On",
+        "turn_off": "Turn Off",
+        "toggle": "Toggle"
+      },
       "properties": {
         "state": "STATE",
         "lux": "LUX",
@@ -493,14 +503,15 @@
       "errors": {
         "no_name": "Name is required"
       },
+      "actions": {
+        "direct_command": "Direct Command",
+        "direct_command_desc": "Control a specific unit",
+        "invoke_scene": "Invoke Scene",
+        "invoke_scene_desc": "Activate a lifestyle mode"
+      },
       "placeholders": {
         "name": "e.g. Welcome Home or Movie Night",
         "expected_value": "e.g. on"
-      },
-      "commands": {
-        "turn_on": "Turn On",
-        "turn_off": "Turn Off",
-        "toggle": "Toggle"
       }
     }
   },
@@ -830,6 +841,7 @@
     "off": "OFF",
     "done": "DONE",
     "execute": "EXECUTE",
+    "import": "IMPORT",
     "more": "more",
     "processing": "Processing...",
     "true": "TRUE",
