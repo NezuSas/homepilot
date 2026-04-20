@@ -85,6 +85,8 @@ export async function apiFetch(
   if (response.status === 401 && !whitelisted && config) {
     // Verificamos que realmente había un token — evita falsos positivos en requests públicos
     if (config.getToken()) {
+      // Disparamos evento global para que React (useSession) se entere y limpie estado
+      window.dispatchEvent(new CustomEvent('hp-session-unauthorized'));
       config.onUnauthorized();
     }
   }

@@ -299,9 +299,9 @@ const ScenesView: React.FC<{
                   <Star className="w-4 h-4 text-warning fill-current" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.favorites')}</h3>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {favoriteScenes.map(s => <SceneCard key={s.id} scene={s} />)}
-               </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.isArray(favoriteScenes) && favoriteScenes.map(s => <SceneCard key={s.id} scene={s} />)}
+                </div>
             </div>
           )}
 
@@ -312,9 +312,9 @@ const ScenesView: React.FC<{
                   <Clock className="w-4 h-4 text-primary" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.recents')}</h3>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {recentScenes.map(s => <SceneCard key={s.id} scene={s} />)}
-               </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.isArray(recentScenes) && recentScenes.map(s => <SceneCard key={s.id} scene={s} />)}
+                </div>
             </div>
           )}
 
@@ -324,9 +324,9 @@ const ScenesView: React.FC<{
                 <LayoutGrid className="w-4 h-4 text-muted-foreground" />
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('scenes.all_scenes')}</h3>
              </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {otherScenes.map(s => <SceneCard key={s.id} scene={s} />)}
-             </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.isArray(otherScenes) && otherScenes.map(s => <SceneCard key={s.id} scene={s} />)}
+              </div>
           </div>
 
         </div>

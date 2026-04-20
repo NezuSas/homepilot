@@ -205,7 +205,7 @@ export function UsersView() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {users.map(u => (
+                {Array.isArray(users) && users.map(u => (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">

@@ -326,7 +326,7 @@ export function DiagnosticsView() {
       </div>
 
       {/* ISSUES ALERT (only if there are issues) */}
-      {snapshot.issues.length > 0 && (
+      {Array.isArray(snapshot.issues) && snapshot.issues.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.active_issues')}</h3>
           {snapshot.issues.map((issue, idx) => (
@@ -442,7 +442,7 @@ export function DiagnosticsView() {
                 const groupedEvents: { id: string, main: DiagnosticEvent, children: DiagnosticEvent[] }[] = [];
                 const correlationMap = new Map<string, typeof groupedEvents[0]>();
 
-                events.forEach((ev, i) => {
+                (Array.isArray(events) ? events : []).forEach((ev, i) => {
                   if (!ev.correlationId) {
                     groupedEvents.push({ id: `standalone-${i}`, main: ev, children: [] });
                   } else {
@@ -494,7 +494,7 @@ export function DiagnosticsView() {
                           {hasData && (
                             <div className="text-[10px] font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
                               <span className="font-bold uppercase tracking-widest opacity-60 mb-2 block">{t('diagnostics.payload')}</span>
-                              {Object.entries(ev.data).map(([key, val]) => (
+                              {Array.isArray(Object.entries(ev.data)) && Object.entries(ev.data).map(([key, val]) => (
                                 <div key={key}><span className="opacity-50">{key}:</span> {typeof val === 'object' ? JSON.stringify(val) : String(val)}</div>
                               ))}
                             </div>
@@ -503,7 +503,7 @@ export function DiagnosticsView() {
                           {hasChildren && (
                             <div className="flex flex-col gap-3 mt-2">
                               <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">{t('diagnostics.trace_events')}</span>
-                              {group.children.map((child, cIdx) => (
+                              {Array.isArray(group.children) && group.children.map((child, cIdx) => (
                                 <div key={cIdx} className="flex gap-4 items-start text-xs text-muted-foreground bg-card border rounded p-3">
                                   <div className="w-20 shrink-0 font-mono opacity-60">
                                     {new Date(child.occurredAt).toLocaleTimeString()}

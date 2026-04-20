@@ -312,7 +312,8 @@
       "syncing": "Synchronizing system",
       "updated_now": "Updated now",
       "mode_label": "Mode {{mode}}",
-      "edge_active": "Edge Network Active"
+      "edge_active": "Edge Network Active",
+      "verifying_session": "Verifying Session..."
     },
     "tooltips": {
       "switch_language": "Switch Language"

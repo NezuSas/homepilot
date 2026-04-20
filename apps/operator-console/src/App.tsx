@@ -130,10 +130,17 @@ function App() {
     resetSnapshotState();
   }, [resetAppShellState, resetAssistantState, resetSnapshotState]);
 
-  const { isAuthenticated, user, handleLoginSuccess, handleLogout, clearSession } = useSession(onSessionCleared);
+  const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
+
+  // ─── Verification Orchestration ───────────────────────────────────────
+  useEffect(() => {
+    if (status === 'checking') {
+      validateSession();
+    }
+  }, [status, validateSession]);
 
   // ─── Real-time Integration ───────────────────────────────────────────
-  const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(isAuthenticated);
+  const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(status === 'authenticated');
   const assistantSummary = useAppShellStore((state) => state.assistantSummary);
   const isAllSynced = useAppShellStore((state) => state.isAllSynced);
   const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
@@ -180,7 +187,7 @@ function App() {
 
   // Check setup status once authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (status === 'authenticated') {
       setLoadingSetup(true);
       apiFetch(API_ENDPOINTS.system.setupStatus)
         .then(res => {
@@ -202,7 +209,7 @@ function App() {
       // Fetch assistant summary
       refreshAssistantSummary();
     }
-  }, [isAuthenticated, refreshAssistantSummary]);
+  }, [status, refreshAssistantSummary]);
 
   useEffect(() => {
     if (!lastRealtimeEvent) {
@@ -236,7 +243,39 @@ function App() {
     setShowPwdModal(false);
   }, [clearSession]);
 
-  if (!isAuthenticated) {
+  if (status === 'checking') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background relative overflow-hidden">
+        {/* Cinematic Atmospheric background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 animate-pulse duration-3000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] opacity-20 animate-pulse" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-ping duration-2000" />
+            <div className="relative w-16 h-16 bg-card border-2 border-primary/20 rounded-3xl flex items-center justify-center rotate-12 hover:rotate-0 transition-transform duration-500 shadow-2xl">
+              <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-xl font-black tracking-tighter uppercase">{t('shell.verifying_session')}</h2>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-12 text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground opacity-30">
+          HomePilot Edge Security Gate
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 

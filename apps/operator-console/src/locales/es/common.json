@@ -312,7 +312,8 @@
       "syncing": "Sincronizando sistema",
       "updated_now": "Actualizado ahora",
       "mode_label": "Modo {{mode}}",
-      "edge_active": "Red Edge Activa"
+      "edge_active": "Red Edge Activa",
+      "verifying_session": "Verificando Sesión..."
     },
     "tooltips": {
       "switch_language": "Cambiar Idioma"

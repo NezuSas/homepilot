@@ -111,7 +111,7 @@ export const TopologyView: React.FC = () => {
             </div>
           ) : (
             <ul className="divide-y divide-border/50">
-              {homes.map((home) => {
+              {Array.isArray(homes) && homes.map((home) => {
                 const isSelected = selectedHome?.id === home.id;
                 return (
                   <li 
@@ -209,7 +209,7 @@ export const TopologyView: React.FC = () => {
                     {t('topology.no_rooms', { defaultValue: 'No rooms associated with this environment.' })}
                   </div>
                 ) : (
-                  rooms.map((room) => (
+                  Array.isArray(rooms) && rooms.map((room) => (
                     <div 
                       key={room.id} 
                       className="flex flex-col p-5 border border-border rounded-xl bg-card shadow-sm hover:border-primary/50 hover:shadow-md transition-all group"

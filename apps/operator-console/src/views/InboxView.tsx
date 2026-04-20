@@ -211,8 +211,8 @@ const DeviceTile: React.FC<{
                  value={selectedRoomId}
                  onChange={(e) => setSelectedRoomId(e.target.value)}
                >
-                 {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-                 {rooms.length === 0 && <option value="">{t('common.unassigned')}</option>}
+                 {Array.isArray(rooms) && rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                 {(!Array.isArray(rooms) || rooms.length === 0) && <option value="">{t('common.unassigned')}</option>}
                </select>
              </div>
              <Button 
@@ -367,7 +367,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
       {/* Adaptive Grid Rendering */}
       <div className="flex flex-col gap-12">
-        {Object.entries(grouped).map(([id, group]) => (
+        {Array.isArray(Object.entries(grouped)) && Object.entries(grouped).map(([id, group]) => (
           <section key={id} className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/header">
               <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3">
@@ -383,7 +383,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             </div>
 
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
-              {group.devices.map(device => (
+              {Array.isArray(group.devices) && group.devices.map(device => (
                 <DeviceTile 
                   key={device.id} 
                   device={device} 
@@ -798,7 +798,7 @@ const DeviceInspector: React.FC<{
                           disabled={isActionLoading}
                         >
                           <option value="" disabled>{t('common.unassigned')}</option>
-                          {rooms.map(room => (
+                          {Array.isArray(rooms) && rooms.map(room => (
                             <option key={room.id} value={room.id}>{room.name}</option>
                           ))}
                         </select>
@@ -834,7 +834,7 @@ const DeviceInspector: React.FC<{
 
           {activeTab === 'logs' && (
             <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4 duration-500">
-              {logs.map((log: ActivityLog, index: number) => (
+              {Array.isArray(logs) && logs.map((log: ActivityLog, index: number) => (
                 <div key={index} className="p-5 bg-muted/10 border border-border/20 rounded-[1.5rem] flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-tighter">
@@ -965,7 +965,7 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
 
       {showDiscovery && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
-          {entities.map((entity: HaEntityCandidate) => (
+          {Array.isArray(entities) && entities.map((entity: HaEntityCandidate) => (
             <div key={entity.entityId} className="p-4 bg-card border border-border rounded-xl flex flex-col gap-3 group relative overflow-hidden">
                <div className="absolute top-0 right-0 p-2 opacity-5">
                  <RadioTower className="w-8 h-8" />

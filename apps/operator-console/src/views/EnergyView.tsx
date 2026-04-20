@@ -18,7 +18,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
 
   const totalPower = computeTotalPower();
   const totalEnergy = computeTotalEnergy();
-  const wEntities = entities.filter(e => e.unit === 'W').sort((a, b) => b.state - a.state);
+  const wEntities = (Array.isArray(entities) ? entities : []).filter(e => e.unit === 'W').sort((a, b) => b.state - a.state);
 
   const features: { icon: React.FC<{ className?: string }>; key: string }[] = [
     { icon: Zap,           key: 'feature_consumption' },
@@ -122,7 +122,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {wEntities.map((e) => (
+                    {Array.isArray(wEntities) && wEntities.map((e) => (
                       <div key={e.entity_id} className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border/60 shadow-sm transition-all hover:border-border">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">

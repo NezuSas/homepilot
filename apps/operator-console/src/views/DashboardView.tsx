@@ -273,7 +273,7 @@ useEffect(() => {
     setRoomProcessing(roomId);
     const devicesToTurnOff = devices.filter(d => d.roomId === roomId && (d.lastKnownState?.on === true || d.lastKnownState?.state === 'on' || Number(d.lastKnownState?.brightness) > 0));
     try {
-      await Promise.all(devicesToTurnOff.map(d => 
+      await Promise.all((Array.isArray(devicesToTurnOff) ? devicesToTurnOff : []).map(d => 
         fetch(`${API_URL}/devices/${d.id}/command`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -312,7 +312,7 @@ useEffect(() => {
   };
 
   const prioritizedFindings = useMemo(() => {
-    return findings
+    return (Array.isArray(findings) ? findings : [])
       .filter((finding: AssistantFinding) => finding.severity === 'high' || finding.severity === 'medium')
       .sort((a: AssistantFinding, b: AssistantFinding) => {
         const aEnergy = a.type.includes('energy') || a.type.includes('consumption') || a.type.includes('long_running') ? 1 : 0;
@@ -321,15 +321,15 @@ useEffect(() => {
       });
   }, [findings]);
 
-  const activeRooms = useMemo(() => rooms.filter(r => devices.some(d => d.roomId === r.id)), [rooms, devices]);
-  const localDevices = useMemo(() => devices.filter(d => d.integrationSource === 'sonoff'), [devices]);
+  const activeRooms = useMemo(() => (Array.isArray(rooms) ? rooms : []).filter(r => (Array.isArray(devices) ? devices : []).some(d => d.roomId === r.id)), [rooms, devices]);
+  const localDevices = useMemo(() => (Array.isArray(devices) ? devices : []).filter(d => d.integrationSource === 'sonoff'), [devices]);
   const hasLocalDevices = localDevices.length > 0;
-  const bridgedCount = devices.length - localDevices.length;
+  const bridgedCount = (Array.isArray(devices) ? devices : []).length - localDevices.length;
   const onlineLocalCount = useMemo(() => 
     localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
   [localDevices]);
 
-  const hasInitialData = devices.length > 0;
+  const hasInitialData = (Array.isArray(devices) ? devices : []).length > 0;
   if (snapshotLoading && !hasInitialData) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
@@ -402,7 +402,7 @@ useEffect(() => {
             <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {prioritizedFindings.slice(0, 2).map((finding) => {
+            {Array.isArray(prioritizedFindings) && prioritizedFindings.slice(0, 2).map((finding) => {
                const isEnergy = finding.type.includes('energy') || finding.type.includes('consumption') || finding.type.includes('long_running');
                return (
                <AssistantCard 
@@ -414,7 +414,7 @@ useEffect(() => {
                   severity={finding.severity}
                   actions={
                     <div className="flex gap-2 w-full mt-2">
-                      {finding.actions.map((a: any, idx: number) => (
+                      {Array.isArray(finding.actions) && finding.actions.map((a: any, idx: number) => (
                         <Button
                           key={idx}
                           size="sm"
@@ -449,7 +449,7 @@ useEffect(() => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {scenes.map(scene => {
+            {Array.isArray(scenes) && scenes.map(scene => {
               const sceneActions = scene.actions || [];
               const localActions = sceneActions.filter(action => {
                 const device = allDevices.find(d => d.id === action.deviceId);
@@ -513,8 +513,8 @@ useEffect(() => {
 
       {/* LEVEL 3: Spatial Context (Rooms) */}
       <div className="space-y-12">
-        {activeRooms.map(room => {
-          const roomDevices = devices.filter(d => d.roomId === room.id);
+        {Array.isArray(activeRooms) && activeRooms.map(room => {
+          const roomDevices = (Array.isArray(devices) ? devices : []).filter(d => d.roomId === room.id);
           const onCount = roomDevices.filter(d => {
              const s = d.lastKnownState as DeviceState || {};
              return s.on === true || s.state === 'on' || (Number(s.brightness) > 0);
