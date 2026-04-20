@@ -110,6 +110,8 @@ export class AutomationEngine implements ObservableAutomationEngineStateProvider
       const currentTimeLocal = nowLocal.toFormat('HH:mm');
       const currentDayLocal = nowLocal.weekday === 7 ? 0 : nowLocal.weekday; // match JS getDay() 0=Sun
 
+      console.log(`[AutomationEngine] Tick: EngineLocalTime=${currentTimeLocal} (Zone=${systemTimezone}) RulesToEval=${timeRules.length}`);
+
       for (const rule of timeRules) {
         try {
           const matches = await this.evaluateTriggerForTimeEvent(
