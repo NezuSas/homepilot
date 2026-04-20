@@ -509,7 +509,7 @@
         "no_name": "Name is required"
       },
       "actions": {
-        "direct_command": "Direct Command",
+        "direct_command": "Command",
         "direct_command_desc": "Control a specific unit",
         "invoke_scene": "Invoke Scene",
         "invoke_scene_desc": "Activate a lifestyle mode"

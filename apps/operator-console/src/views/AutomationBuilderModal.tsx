@@ -370,7 +370,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
           )}
 
           {/* Footer - Integrated Action Button */}
-          <div className="pt-2 pb-10">
+          <div className="pt-2 pb-6">
             <button 
               disabled={isSubmitting || !name || (triggerType === 'device_state_changed' && !triggerConfig.deviceId) || (actionType === 'device_command' && !actionConfig.targetDeviceId) || (actionType === 'execute_scene' && !actionConfig.sceneId)}
               onClick={handleSubmit}

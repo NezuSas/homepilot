@@ -509,7 +509,7 @@
         "no_name": "El nombre es obligatorio"
       },
       "actions": {
-        "direct_command": "Comando Directo",
+        "direct_command": "Comando",
         "direct_command_desc": "Controlar una unidad específica",
         "invoke_scene": "Invocar Escena",
         "invoke_scene_desc": "Activar un modo de vida"

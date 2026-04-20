@@ -19,6 +19,7 @@ interface SelectProps {
 const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, className, searchable = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [openUpwards, setOpenUpwards] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,13 +36,22 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
   }, []);
 
   useEffect(() => {
-    if (isOpen && searchable) {
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
-    if (!isOpen) {
+    if (isOpen) {
+      if (searchable) {
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+      }
+      
+      // Calculate placement
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const menuHeight = Math.min(options.length * 40 + (searchable ? 50 : 0), 240); // Estimate
+        setOpenUpwards(spaceBelow < menuHeight + 20);
+      }
+    } else {
       setSearchQuery('');
     }
-  }, [isOpen, searchable]);
+  }, [isOpen, searchable, options.length]);
 
   const filteredOptions = options.filter(option => 
     option.label.toLowerCase().includes(searchQuery.toLowerCase())
@@ -64,7 +74,10 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
       </button>
 
       {isOpen && (
-        <div className="absolute z-[100] mt-2 w-full bg-card/95 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className={cn(
+          "absolute z-[100] w-full bg-card/95 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-200",
+          openUpwards ? "bottom-full mb-2" : "top-full mt-2"
+        )}>
           {searchable && (
             <div className="p-2 border-b border-foreground/5">
               <div className="relative">
