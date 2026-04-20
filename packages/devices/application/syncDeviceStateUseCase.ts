@@ -73,7 +73,7 @@ export async function syncDeviceStateUseCase(
       timestamp: now,
       deviceId: device.id,
       type: 'STATE_CHANGED',
-      description: 'audit_logs.log_messages.device_state_updated',
+      description: `Device state updated to ${JSON.stringify(newState)}`,
       data: { ...newState, state: JSON.stringify(newState) }
     });
   } catch (_error) {

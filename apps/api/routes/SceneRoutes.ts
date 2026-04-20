@@ -147,7 +147,7 @@ export class SceneRoutes extends ApiRoutes {
                 idGenerator: { generate: () => crypto.randomUUID() },
                 clock: { now: () => new Date().toISOString() },
               },
-              { customDescription: 'audit_logs.log_messages.scene_dispatched', data: { name: scene.name, command: action.command } }
+              { customDescription: `Persistent Scene "${scene.name}" dispatched: ${action.command}`, data: { name: scene.name, command: action.command } }
             )
           )
         );
@@ -182,7 +182,7 @@ export class SceneRoutes extends ApiRoutes {
             deviceId: null,
             correlationId,
             type: resultType,
-            description: 'audit_logs.log_messages.scene_executed',
+            description: `Scene "${scene.name}" executed by ${req.user!.username}. (${totalCount - failedCount}/${totalCount} success)`,
             data: { 
               name: scene.name, 
               user: req.user!.username, 

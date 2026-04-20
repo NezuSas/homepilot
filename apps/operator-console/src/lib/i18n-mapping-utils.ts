@@ -22,7 +22,7 @@ export const mapDiagnosticsStatus = (status: string, t: TFunction): string => {
  * Maps internal activity/audit log types to friendly localized descriptions.
  */
 export const mapActivityType = (type: string, t: TFunction): string => {
-  const key = `audit_logs.types.${type}`;
+  const key = `common.events.${type}`;
   const translated = t(key);
   if (translated === key) {
     return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

@@ -258,21 +258,6 @@
       "running": "Running",
       "failed": "Failed"
     },
-    "events": {
-      "SCENE_EXECUTION_STARTED": "Scene Execution Started",
-      "SCENE_EXECUTION_COMPLETED": "Scene Execution Completed",
-      "SCENE_EXECUTION_FAILED": "Scene Execution Failed",
-      "COMMAND_DISPATCHED": "Command Dispatched",
-      "STATE_CHANGED": "State Changed",
-      "AUTOMATION_TRIGGERED": "Automation Triggered",
-      "automation_executed": "Automation Executed"
-    },
-    "categories": {
-      "resilience": "Resilience",
-      "automation": "Automation",
-      "auth": "Auth",
-      "command": "Command"
-    },
     "messages": {
       "healthy": "All core loops operating exceptionally.",
 
@@ -554,39 +539,24 @@
     "live_update": "LIVE UPDATE",
     "device_label": "Device:",
     "messages": {
-      "device_sync": "Device sync from HA WebSocket",
-      "ws_connected": "WebSocket connection established",
-      "reconciliation_done": "State reconciliation completed",
-      "auth_failed": "Auth failed permanently",
-      "scheduling_reconnect": "Scheduling reconnect attempt #{{attempt}}",
-      "automation_triggered": "Automation triggered for {{deviceName}}"
-    },
-    "types": {
-      "RECONCILIATION_DONE": "State Reconciliation",
-      "DEVICE_COMMAND_SUCCESS": "Device Command Success",
-      "DEVICE_SYNC": "Device Sync",
-      "WS_CONNECTED": "WS Connected",
-      "AUTH_FAILED": "Auth Failed",
-      "AUTOMATION_TRIGGERED": "Automation Triggered",
-      "DISCOVERY_START": "Discovery Started",
-      "DISCOVERY_RESULT": "Discovery Result",
-      "SCENE_EXECUTION_STARTED": "Scene Execution Started",
-      "SCENE_EXECUTION_COMPLETED": "Scene Execution Completed",
-      "COMMAND_DISPATCHED": "Command Dispatched",
-      "STATE_CHANGED": "State Changed"
-    },
-    "log_messages": {
-      "scene_executed": "Scene \"{{name}}\" executed by {{user}}. ({{success}}/{{total}} success)",
-      "scene_dispatched": "Persistent Scene \"{{name}}\" dispatched: {{command}}",
-      "user_triggered_scene": "User triggered Scene \"{{name}}\"",
-      "device_state_updated": "Device state updated to {{state}}",
-      "command_dispatched": "Command \"{{command}}\" dispatched correctly",
-      "command_failed": "Command \"{{command}}\" failed. Reason: {{reason}}",
-      "triggered_by_automation": "Triggered by Automation: {{ruleName}}",
-      "automation_failed": "Automation failed: {{reason}}",
-      "automation_executed_desc": "Automation \"{{ruleName}}\" executed successfully"
+      "RECONCILIATION_DONE": "Reconciliation completed successfully",
+      "DEVICE_SYNC": "Device sync from HA WebSocket",
+      "WS_CONNECTED": "WebSocket connection established",
+      "AUTH_FAILED": "Permanent authentication failure",
+      "SCENE_EXECUTION_STARTED": "User triggered Scene \"{{name}}\"",
+      "SCENE_EXECUTION_COMPLETED": "Scene \"{{name}}\" executed by {{user}}. ({{success}}/{{total}} success)",
+      "SCENE_EXECUTION_FAILED": "Failed to execute Scene \"{{name}}\"",
+      "COMMAND_DISPATCHED": "Command \"{{command}}\" dispatched correctly",
+      "COMMAND_FAILED": "Command \"{{command}}\" failed. Reason: {{reason}}",
+      "STATE_CHANGED": "Device state updated to {{state}}",
+      "AUTOMATION_TRIGGERED": "Automation triggered for {{deviceName}}",
+      "AUTOMATION_EXECUTED": "Automation \"{{ruleName}}\" executed successfully",
+      "AUTOMATION_FAILED": "Automation \"{{ruleName}}\" failed: {{reason}}",
+      "SCENE_DISPATCHED_PERSISTENT": "Persistent Scene \"{{name}}\" dispatched: {{command}}",
+      "TRIGGERED_BY_AUTOMATION": "Triggered by Automation: {{ruleName}}"
     }
   },
+
   "users": {
     "loading": "Loading user directory...",
     "create_form": {
@@ -898,6 +868,21 @@
       "opening": "Opening",
       "closing": "Closing",
       "unknown": "Unknown"
+    },
+    "events": {
+      "RECONCILIATION_DONE": "State Reconciliation",
+      "DEVICE_SYNC": "Device Sync",
+      "WS_CONNECTED": "WebSocket Connection",
+      "AUTH_FAILED": "Auth Failed",
+      "SCENE_EXECUTION_STARTED": "Scene Execution Started",
+      "SCENE_EXECUTION_COMPLETED": "Scene Execution Completed",
+      "SCENE_EXECUTION_FAILED": "Scene Execution Failed",
+      "COMMAND_DISPATCHED": "Command Dispatched",
+      "COMMAND_FAILED": "Command Failed",
+      "STATE_CHANGED": "State Changed",
+      "AUTOMATION_TRIGGERED": "Automation Triggered",
+      "AUTOMATION_EXECUTED": "Automation Executed",
+      "AUTOMATION_FAILED": "Automation Failed"
     }
   },
   "timezones": {

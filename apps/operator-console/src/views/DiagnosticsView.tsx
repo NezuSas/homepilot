@@ -477,7 +477,7 @@ export function DiagnosticsView() {
                               {t(`diagnostics.categories.${ev.category}`, { defaultValue: ev.category })}
                             </span>
                             <span className={cn("font-bold text-sm tracking-tight", isError ? "text-danger" : "")}>
-                              {t(`diagnostics.events.${ev.eventType}`, { defaultValue: ev.eventType })}
+                              {t(`common.events.${ev.eventType}`, { defaultValue: ev.eventType })}
                             </span>
                             {(hasChildren || hasData) && (
 
@@ -487,7 +487,7 @@ export function DiagnosticsView() {
                             )}
                           </div>
                           <p className="text-sm font-medium text-foreground/70">
-                            {t(ev.description as string, { ...ev.data, defaultValue: ev.description })}
+                            {t(`audit_logs.messages.${ev.eventType}`, { ...ev.data, defaultValue: ev.description })}
                           </p>
                         </div>
 
@@ -515,11 +515,11 @@ export function DiagnosticsView() {
                                   <div className="flex-1 space-y-1">
                                     <div className="font-bold flex items-center gap-2">
                                       <span className={child.eventType.includes('FAILED') ? 'text-danger' : 'text-foreground'}>
-                                        {t(`diagnostics.events.${child.eventType}`, { defaultValue: child.eventType })}
+                                        {t(`common.events.${child.eventType}`, { defaultValue: child.eventType })}
                                       </span>
                                     </div>
                                     <div className="opacity-80">
-                                      {t(child.description as string, { ...child.data, defaultValue: child.description })}
+                                      {t(`audit_logs.messages.${child.eventType}`, { ...child.data, defaultValue: child.description })}
                                     </div>
 
                                   </div>

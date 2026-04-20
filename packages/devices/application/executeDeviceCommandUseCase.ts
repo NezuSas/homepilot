@@ -44,6 +44,7 @@ export async function executeDeviceCommandUseCase(
     customDescription?: string;
     isAutomation?: boolean;
     allowPendingManualExecution?: boolean;
+    data?: Record<string, unknown>;
   }
 ): Promise<void> {
   // 1. Localización y Validación de Existencia
@@ -95,7 +96,7 @@ export async function executeDeviceCommandUseCase(
           timestamp: deps.clock.now(),
           deviceId: device.id,
           type: 'COMMAND_FAILED',
-          description: 'audit_logs.log_messages.command_failed',
+          description: `Command ${command} failed. Reason: ${reason}`,
           data: { command, reason, isAutomation: false }
         });
       } catch (_logErr) { /* silenciar */ }
@@ -123,7 +124,7 @@ export async function executeDeviceCommandUseCase(
       timestamp: now,
       deviceId: device.id,
       type: 'COMMAND_DISPATCHED',
-      description: options?.customDescription || 'audit_logs.log_messages.command_dispatched',
+      description: options?.customDescription || `Command ${command} dispatched correctly to gateway.`,
       data: options?.data || { command, isAutomation: !!options?.isAutomation, correlationId }
     });
   } catch (_logErr) { /* silenciar */ }

@@ -258,21 +258,6 @@
       "running": "Corriendo",
       "failed": "Fallido"
     },
-    "events": {
-      "SCENE_EXECUTION_STARTED": "Inicio de Escena",
-      "SCENE_EXECUTION_COMPLETED": "Escena Completada",
-      "SCENE_EXECUTION_FAILED": "Escena Fallida",
-      "COMMAND_DISPATCHED": "Comando Enviado",
-      "STATE_CHANGED": "Cambio de Estado",
-      "AUTOMATION_TRIGGERED": "Automatización Activada",
-      "automation_executed": "Ejecución Automática"
-    },
-    "categories": {
-      "resilience": "Resiliencia",
-      "automation": "Automatización",
-      "auth": "Autenticación",
-      "command": "Control"
-    },
     "messages": {
       "healthy": "Todos los procesos funcionan excepcionalmente.",
 
@@ -554,39 +539,24 @@
     "live_update": "ACTUALIZACIÓN EN VIVO",
     "device_label": "Dispositivo:",
     "messages": {
-      "device_sync": "Sincronización de dispositivo desde HA WebSocket",
-      "ws_connected": "Conexión WebSocket establecida",
-      "reconciliation_done": "Reconciliación de estado completada",
-      "auth_failed": "Fallo de autenticación permanente",
-      "scheduling_reconnect": "Programando intento de reconexión #{{attempt}}",
-      "automation_triggered": "Automatización disparada para {{deviceName}}"
-    },
-    "types": {
-      "RECONCILIATION_DONE": "Reconciliación de estado",
-      "DEVICE_COMMAND_SUCCESS": "Comando enviado con éxito",
-      "DEVICE_SYNC": "Sincronización de dispositivo",
+      "RECONCILIATION_DONE": "Reconciliación de estado completada",
+      "DEVICE_SYNC": "Sincronización de dispositivo desde HA WebSocket",
       "WS_CONNECTED": "Conexión WebSocket establecida",
-      "AUTH_FAILED": "Fallo de autenticación",
-      "AUTOMATION_TRIGGERED": "Automatización activada",
-      "DISCOVERY_START": "Búsqueda de dispositivos iniciada",
-      "DISCOVERY_RESULT": "Resultado de búsqueda",
-      "SCENE_EXECUTION_STARTED": "Ejecución de Escena Iniciada",
-      "SCENE_EXECUTION_COMPLETED": "Ejecución de Escena Completada",
-      "COMMAND_DISPATCHED": "Comando Enviado",
-      "STATE_CHANGED": "Cambio de Estado"
-    },
-    "log_messages": {
-      "scene_executed": "Escena \"{{name}}\" ejecutada por {{user}}. ({{success}}/{{total}} éxito)",
-      "scene_dispatched": "Escena persistente \"{{name}}\" lanzada: {{command}}",
-      "user_triggered_scene": "Usuario activó la Escena \"{{name}}\"",
-      "device_state_updated": "Estado del dispositivo actualizado a {{state}}",
-      "command_dispatched": "Comando \"{{command}}\" enviado correctamente",
-      "command_failed": "Comando \"{{command}}\" falló. Razón: {{reason}}",
-      "triggered_by_automation": "Activado por automatización: {{ruleName}}",
-      "automation_failed": "Automatización falló: {{reason}}",
-      "automation_executed_desc": "Automatización \"{{ruleName}}\" ejecutada con éxito"
+      "AUTH_FAILED": "Fallo de autenticación permanente",
+      "SCENE_EXECUTION_STARTED": "Usuario activó la Escena \"{{name}}\"",
+      "SCENE_EXECUTION_COMPLETED": "Escena \"{{name}}\" ejecutada por {{user}}. ({{success}}/{{total}} éxito)",
+      "SCENE_EXECUTION_FAILED": "Fallo al ejecutar la Escena \"{{name}}\"",
+      "COMMAND_DISPATCHED": "Comando \"{{command}}\" enviado correctamente",
+      "COMMAND_FAILED": "Comando \"{{command}}\" falló. Razón: {{reason}}",
+      "STATE_CHANGED": "Estado del dispositivo actualizado a {{state}}",
+      "AUTOMATION_TRIGGERED": "Automatización disparada para {{deviceName}}",
+      "AUTOMATION_EXECUTED": "Automatización \"{{ruleName}}\" ejecutada con éxito",
+      "AUTOMATION_FAILED": "Automatización \"{{ruleName}}\" falló: {{reason}}",
+      "SCENE_DISPATCHED_PERSISTENT": "Escena persistente \"{{name}}\" lanzada: {{command}}",
+      "TRIGGERED_BY_AUTOMATION": "Activado por automatización: {{ruleName}}"
     }
   },
+
   "users": {
     "loading": "Cargando directorio de usuarios...",
     "create_form": {
@@ -898,6 +868,21 @@
       "opening": "Abriendo",
       "closing": "Cerrando",
       "unknown": "Desconocido"
+    },
+    "events": {
+      "RECONCILIATION_DONE": "Reconciliación de Estado",
+      "DEVICE_SYNC": "Sincronización de Dispositivo",
+      "WS_CONNECTED": "Conexión WebSocket",
+      "AUTH_FAILED": "Fallo de Autenticación",
+      "SCENE_EXECUTION_STARTED": "Inicio de Escena",
+      "SCENE_EXECUTION_COMPLETED": "Escena Completada",
+      "SCENE_EXECUTION_FAILED": "Escena Fallida",
+      "COMMAND_DISPATCHED": "Comando Enviado",
+      "COMMAND_FAILED": "Comando Fallido",
+      "STATE_CHANGED": "Cambio de Estado",
+      "AUTOMATION_TRIGGERED": "Automatización Activada",
+      "AUTOMATION_EXECUTED": "Ejecución Automática",
+      "AUTOMATION_FAILED": "Fallo de Automatización"
     }
   },
   "timezones": {
