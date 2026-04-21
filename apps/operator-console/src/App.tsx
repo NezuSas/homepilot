@@ -577,64 +577,70 @@ function App() {
           )}
         </nav>
         
-        <div className="p-4 border-t mt-auto flex flex-col gap-2 bg-background/30">
+        <div className="p-4 border-t mt-auto flex flex-col gap-4 bg-background/40">
           <button
             onClick={() => startDemo(DEMO_STEPS)}
-            className="hidden lg:flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-all border border-primary/10 group"
+            className="hidden lg:flex items-center gap-2 w-full px-3 py-2.5 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 group shadow-sm shadow-primary/5"
           >
-            <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+            <div className="p-1.5 bg-primary rounded-lg text-primary-foreground group-hover:scale-110 transition-transform">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
             <span className="text-[10px] font-black uppercase tracking-widest">{t('demo.start_button')}</span>
           </button>
-          <div className="pt-1 flex flex-col gap-1">
-            <div className="flex items-center justify-between pl-1 pr-2">
-              <button
-                onClick={() => setShowProfileModal(true)}
-                className="flex items-center gap-2.5 min-w-0 flex-1 p-2 rounded-xl hover:bg-muted transition-all"
-                title={t('users.profile.title', 'Mi Perfil')}
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
-                  {localProfile.avatarDataUri
-                    ? <img src={localProfile.avatarDataUri} alt="avatar" className="w-full h-full object-cover" />
-                    : <span className="font-bold text-[10px] uppercase">{(user?.username || '?').substring(0, 2)}</span>
-                  }
-                </div>
-                <div className="flex flex-col min-w-0 text-left">
-                  <span className="text-sm font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
-                  {localProfile.displayName && (
-                    <span className="text-[10px] text-muted-foreground truncate">@{user?.username}</span>
-                  )}
-                </div>
-              </button>
-              <div className="flex items-center gap-1">
-                <button 
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title={theme === 'dark' ? t('shell.tooltips.light_mode', 'Modo Claro') : t('shell.tooltips.dark_mode', 'Modo Oscuro')}
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
-                <button 
-                  onClick={toggleLanguage}
-                  className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title={t('shell.tooltips.switch_language')}
-                >
-                  <Globe className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => setShowPwdModal(true)}
-                  className="text-muted-foreground hover:text-foreground transition-all p-2 rounded-lg hover:bg-muted"
-                  title={t('shell.tooltips.change_password')}
-                >
-                  <KeyRound className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={onLogout}
-                  className="text-muted-foreground hover:text-destructive transition-all p-2 rounded-lg hover:bg-destructive/10"
-                  title={t('nav.logout')}
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+
+          <div className="flex flex-col gap-3">
+            {/* User Profile Card */}
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="flex items-center gap-3 w-full p-2 rounded-2xl bg-muted/30 hover:bg-muted/80 border border-border/40 transition-all group"
+              title={t('users.profile.title', 'Mi Perfil')}
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border-2 border-background shadow-md overflow-hidden group-hover:border-primary/30 transition-all">
+                {localProfile.avatarDataUri
+                  ? <img src={localProfile.avatarDataUri} alt="avatar" className="w-full h-full object-cover shadow-inner" />
+                  : <span className="font-black text-xs uppercase">{(user?.username || '?').substring(0, 2)}</span>
+                }
               </div>
+              <div className="flex flex-col min-w-0 text-left">
+                <span className="text-xs font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
+                <span className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-tighter opacity-70">
+                   {user?.role ? t(`users.roles.${user.role}`) : 'User'}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors" />
+            </button>
+
+            {/* Quick Actions Row */}
+            <div className="flex items-center justify-around px-1 py-1 bg-muted/20 rounded-xl border border-border/30">
+              <button 
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="text-muted-foreground hover:text-foreground hover:bg-background hover:shadow-sm transition-all p-2 rounded-lg"
+                title={theme === 'dark' ? t('shell.tooltips.light_mode', 'Modo Claro') : t('shell.tooltips.dark_mode', 'Modo Oscuro')}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+              <button 
+                onClick={toggleLanguage}
+                className="text-muted-foreground hover:text-foreground hover:bg-background hover:shadow-sm transition-all p-2 rounded-lg"
+                title={t('shell.tooltips.switch_language')}
+              >
+                <Globe className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setShowPwdModal(true)}
+                className="text-muted-foreground hover:text-foreground hover:bg-background hover:shadow-sm transition-all p-2 rounded-lg"
+                title={t('shell.tooltips.change_password')}
+              >
+                <KeyRound className="w-4 h-4" />
+              </button>
+              <div className="w-px h-4 bg-border/40 mx-0.5" />
+              <button 
+                onClick={onLogout}
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all p-2 rounded-lg"
+                title={t('nav.logout')}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
