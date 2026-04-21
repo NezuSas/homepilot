@@ -7,7 +7,7 @@ import {
   defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
 import { DashboardWidgetNode } from './DashboardWidget';
@@ -40,7 +40,7 @@ export function DashboardCanvas({
 
   const sanitizedWidgets = useMemo(() => widgets.map(sanitizeWidget), [widgets]);
   
-  const evaluateVisibility = (widget: DashboardWidget): boolean => {
+  const evaluateVisibility = useCallback((widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
     
     const { rules, defaultState } = widget.config.visibility;
@@ -77,15 +77,18 @@ export function DashboardCanvas({
     }
 
     return defaultState === 'show';
-  };
+  }, [isEditing, devices, findings]);
 
-  const visibleWidgets = sanitizedWidgets.filter(evaluateVisibility);
+  const visibleWidgets = useMemo(() => 
+    sanitizedWidgets.filter(evaluateVisibility),
+    [sanitizedWidgets, evaluateVisibility]
+  );
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
+      activationConstraint: useMemo(() => ({
         distance: 8,
-      },
+      }), []),
     })
   );
 
