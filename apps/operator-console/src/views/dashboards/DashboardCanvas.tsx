@@ -41,7 +41,8 @@ export function DashboardCanvas({
   const evaluateVisibility = (widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
     
-    const { rules, defaultState } = widget.config.visibility;
+    const visibility = widget.config.visibility || { rules: [], defaultState: 'show' };
+    const { rules, defaultState } = visibility;
     if (!rules || rules.length === 0) return defaultState === 'show';
 
     for (const rule of rules) {
