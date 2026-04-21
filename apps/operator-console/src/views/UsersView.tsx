@@ -215,9 +215,13 @@ export function UsersView() {
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden shadow-sm">
                           {u.avatarDataUri
-                            ? <img src={u.avatarDataUri} alt={u.username} className="w-full h-full object-cover" />
+                            ? <img 
+                                src={u.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${u.avatarDataUri}` : u.avatarDataUri} 
+                                alt={u.username} 
+                                className="w-full h-full object-cover" 
+                              />
                             : <span className="font-bold text-xs uppercase">{u.username.substring(0, 2)}</span>
                           }
                         </div>

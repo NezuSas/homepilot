@@ -192,7 +192,6 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
           </div>
           <button onClick={onClose} className="p-2 bg-muted/60 rounded-xl hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
         </div>
-
         {loading ? (
           <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
         ) : (
@@ -200,44 +199,52 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
             <div className="flex flex-col items-center gap-4">
               <div 
                 ref={containerRef}
-                className="relative w-56 h-56 rounded-full bg-muted border-4 border-border shadow-inner overflow-hidden cursor-move touch-none"
+                className="relative w-56 h-56 cursor-move touch-none"
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleMouseDown}
               >
-                {!rawImage && !avatarPreview && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 gap-2">
-                    <UserCircle2 className="w-16 h-16" />
-                  </div>
-                )}
-                
-                {rawImage ? (
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ pointerEvents: 'none' }}
-                  >
+                {/* Visual Image Container (with overflow hidden) */}
+                <div className="absolute inset-0 rounded-full bg-muted border-4 border-border shadow-inner overflow-hidden">
+                  {!rawImage && !avatarPreview && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 gap-2">
+                      <UserCircle2 className="w-16 h-16" />
+                    </div>
+                  )}
+                  
+                  {rawImage ? (
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      <img 
+                        src={rawImage.src} 
+                        alt="Crop target" 
+                        draggable={false}
+                        className="max-w-none transition-transform duration-75 ease-out"
+                        style={{ 
+                          transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                          height: rawImage.width / rawImage.height > 1 ? '100%' : 'auto',
+                          width: rawImage.width / rawImage.height > 1 ? 'auto' : '100%'
+                        }}
+                      />
+                    </div>
+                  ) : avatarPreview ? (
                     <img 
-                      src={rawImage.src} 
-                      alt="Crop target" 
-                      draggable={false}
-                      className="max-w-none transition-transform duration-75 ease-out"
-                      style={{ 
-                        transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                        height: rawImage.width / rawImage.height > 1 ? '100%' : 'auto',
-                        width: rawImage.width / rawImage.height > 1 ? 'auto' : '100%'
-                      }}
+                      src={avatarPreview.startsWith('/') ? `${API_BASE_URL}${avatarPreview}` : avatarPreview} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
                     />
-                  </div>
-                ) : avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                ) : null}
+                  ) : null}
 
-                {/* Circular overlay border */}
-                <div className="absolute inset-0 pointer-events-none border-[12px] border-card/40 rounded-full box-border" />
+                  {/* Circular overlay border */}
+                  <div className="absolute inset-0 pointer-events-none border-[12px] border-card/40 rounded-full box-border" />
+                </div>
                 
+                {/* Camera Button (Outside the overflow:hidden circle) */}
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="absolute bottom-2 right-2 p-3 bg-primary text-primary-foreground rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all z-10"
+                  className="absolute bottom-2 right-2 p-3 bg-primary text-primary-foreground rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all z-20 border-4 border-background"
                 >
                   <Camera className="w-5 h-5" />
                 </button>

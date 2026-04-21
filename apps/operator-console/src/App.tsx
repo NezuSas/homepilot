@@ -597,7 +597,11 @@ function App() {
             >
               <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border-2 border-background shadow-md overflow-hidden group-hover:border-primary/30 transition-all">
                 {localProfile.avatarDataUri
-                  ? <img src={localProfile.avatarDataUri} alt="avatar" className="w-full h-full object-cover shadow-inner" />
+                  ? <img 
+                      src={localProfile.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${localProfile.avatarDataUri}` : localProfile.avatarDataUri} 
+                      alt="avatar" 
+                      className="w-full h-full object-cover shadow-inner" 
+                    />
                   : <span className="font-black text-xs uppercase">{(user?.username || '?').substring(0, 2)}</span>
                 }
               </div>
