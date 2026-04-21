@@ -35,6 +35,9 @@ export function getDevicesInRoom(devices: SnapshotDevice[], roomId: string | nul
  * Ensures a widget config has all required fields with defaults.
  */
 export function sanitizeWidgetConfig(config: Partial<DashboardWidgetConfig> = {}): DashboardWidgetConfig {
+  // If the config is already fully populated and structured, we should avoid changing the reference
+  // if possible. However, for safety and simplicity, we ensure all defaults are present.
+  
   return {
     layout: {
       x: config.layout?.x ?? 0,

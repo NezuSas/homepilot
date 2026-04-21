@@ -28,9 +28,8 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const [scenes, setScenes] = useState<{ id: string; name: string }[]>([]);
   const [loadingScenes, setLoadingScenes] = useState(false);
 
-  const rooms = useDeviceSnapshotStore(state => 
-    Object.values(state.roomsByHome).flat()
-  );
+  const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
+  const rooms = useMemo(() => Object.values(roomsByHome).flat(), [roomsByHome]);
 
   useEffect(() => {
     if (isOpen && widget?.type === 'scene_shortcut') {

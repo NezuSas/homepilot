@@ -106,13 +106,9 @@ export function DashboardsView() {
     finally { setLoading(false); }
   }, [active?.id]);
 
-  const hasFetched = useRef(false);
   useEffect(() => { 
-    if (!hasFetched.current) {
-      fetchDashboards(true);
-      hasFetched.current = true;
-    }
-  }, [fetchDashboards]);
+    fetchDashboards(true);
+  }, []); // Run ONLY once on mount.
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     const res = await apiFetch(`${API}/dashboards/${id}`, {

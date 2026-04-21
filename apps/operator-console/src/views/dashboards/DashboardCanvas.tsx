@@ -84,12 +84,14 @@ export function DashboardCanvas({
     [sanitizedWidgets, evaluateVisibility]
   );
   
+  const sensorOptions = useMemo(() => ({
+    activationConstraint: {
+      distance: 8,
+    },
+  }), []);
+
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: useMemo(() => ({
-        distance: 8,
-      }), []),
-    })
+    useSensor(PointerSensor, sensorOptions)
   );
 
   const handleDragStart = (event: DragStartEvent) => {
