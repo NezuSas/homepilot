@@ -18,6 +18,8 @@ interface UserContext {
   id: string;
   username: string;
   role: string;
+  displayName: string | null;
+  avatarDataUri: string | null;
 }
 
 interface SessionState {

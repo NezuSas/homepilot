@@ -263,6 +263,16 @@ function App() {
     });
   }, [handleLogout]);
 
+  // Sync localProfile with session user when it changes (e.g. after validation)
+  useEffect(() => {
+    if (user) {
+      setLocalProfile({
+        displayName: user.displayName ?? null,
+        avatarDataUri: user.avatarDataUri ?? null
+      });
+    }
+  }, [user]);
+
   const handlePasswordChanged = useCallback(() => {
     clearSession();
     setShowPwdModal(false);
