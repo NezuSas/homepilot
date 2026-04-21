@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus, Trash2, LayoutDashboard, Zap, Sparkles,
-  Home, PlaySquare, Cpu, PenLine, Check, X, ChevronRight
+  Home, PlaySquare, Cpu, PenLine, Check, X, ChevronRight,
+  Power, Lightbulb, ToggleRight, Radio
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -64,6 +65,7 @@ function WidgetCard({ widget, onRemove, onClick, rooms = [] }: { widget: Dashboa
   const meta = WIDGET_META[widget.type];
   const Icon = meta.icon;
   const accentCls = ACCENT_STYLES[meta.accent];
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Logic to calculate room summary data
   const roomData = (() => {
@@ -75,68 +77,151 @@ function WidgetCard({ widget, onRemove, onClick, rooms = [] }: { widget: Dashboa
     if (!room) return null;
 
     const roomDevices = allDevices.filter(d => d.roomId === roomId);
-    const onCount = roomDevices.filter(d => {
+    const activeDevices = roomDevices.filter(d => {
       const s = (d.lastKnownState || {}) as any;
       return s.on === true || s.state === 'on' || (Number(s.brightness) > 0) || (Number(s.power) > 0);
-    }).length;
+    });
+
+    // Extract unique active types for icon display
+    const activeTypes = Array.from(new Set(activeDevices.map(d => d.type)));
 
     return {
+      id: roomId,
       name: room.name,
-      total: roomDevices.length,
-      onCount
+      totalCount: roomDevices.length,
+      onCount: activeDevices.length,
+      activeTypes
     };
   })();
+
+  const handleToggleRoom = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!roomData || roomData.onCount === 0 || isProcessing) return;
+
+    setIsProcessing(true);
+    try {
+      const roomDevices = allDevices.filter(d => d.roomId === roomData.id);
+      const devicesToTurnOff = roomDevices.filter(d => {
+        const s = (d.lastKnownState || {}) as any;
+        return s.on === true || s.state === 'on' || (Number(s.brightness) > 0);
+      });
+
+      await Promise.all(devicesToTurnOff.map(d => 
+        apiFetch(`${API}/devices/${d.id}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'turn_off' })
+        })
+      ));
+    } catch (err) {
+      console.error('Failed to toggle room:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'light': return <Lightbulb className="w-3 h-3 text-amber-400" />;
+      case 'switch': return <ToggleRight className="w-3 h-3 text-primary" />;
+      case 'curtain':
+      case 'cover': return <Radio className="w-3 h-3 text-emerald-400" />;
+      default: return <Cpu className="w-3 h-3 text-muted-foreground/60" />;
+    }
+  };
+
+  if (widget.type === 'room_summary' && roomData) {
+    return (
+      <div 
+        onClick={onClick}
+        className={cn(
+          "group cursor-pointer relative flex flex-col p-6 rounded-[2rem] bg-card border border-border/60 hover:border-primary/20 hover:shadow-2xl transition-all duration-500 active:scale-[0.98] overflow-hidden min-h-[180px]",
+          roomData.onCount > 0 ? "bg-gradient-to-br from-card via-card to-primary/[0.03]" : "grayscale-[0.2]"
+        )}
+      >
+        {/* Glow Effects */}
+        {roomData.onCount > 0 && (
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+        )}
+
+        <div className="flex items-center justify-between mb-4">
+           <div className={cn('p-3 rounded-2xl border shrink-0 relative transition-transform duration-700 group-hover:rotate-[360deg]', accentCls)}>
+              <Icon className={cn("w-5 h-5", roomData.onCount > 0 && "animate-pulse")} />
+              {roomData.onCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-card animate-pulse shadow-lg shadow-primary/40" />
+              )}
+           </div>
+           <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">{t('common.live', 'Live')}</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                className="opacity-0 group-hover:opacity-100 transition-all p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+           </div>
+        </div>
+
+        <div className="flex-1 space-y-4">
+          <div>
+            <h3 className="text-xl font-black tracking-tighter text-foreground group-hover:text-primary transition-colors">{roomData.name}</h3>
+            <div className="mt-1 flex items-center gap-2">
+               <span className={cn(
+                 "text-[10px] font-black uppercase tracking-widest",
+                 roomData.onCount > 0 ? "text-primary" : "text-muted-foreground/40"
+               )}>
+                 {roomData.onCount > 0 ? `${roomData.onCount} ${t('dashboard.active_units', { count: roomData.onCount })}` : t('dashboard.all_off')}
+               </span>
+               <div className="w-1 h-1 bg-border rounded-full" />
+               <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-tight">
+                 {roomData.totalCount} {t('nav.system_devices')}
+               </span>
+            </div>
+          </div>
+
+          {roomData.onCount > 0 && (
+            <div className="flex flex-wrap gap-2 animate-in fade-in duration-700">
+               {roomData.activeTypes.map(type => (
+                 <div key={type} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/40 border border-border/40 backdrop-blur-sm">
+                    {getTypeIcon(type)}
+                    <span className="text-[8px] font-bold uppercase tracking-tight text-muted-foreground/60">{type}</span>
+                 </div>
+               ))}
+            </div>
+          )}
+        </div>
+
+        {roomData.onCount > 0 && (
+          <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between gap-4">
+            <p className="text-[9px] font-bold text-muted-foreground/40 italic uppercase">{t('dashboard.quick_control', 'Control Rápido')}</p>
+            <button
+              onClick={handleToggleRoom}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-4 py-2 bg-destructive/5 hover:bg-destructive text-destructive hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-90"
+            >
+              {isProcessing ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Power className="w-3 h-3" />}
+              {t('common.turn_off_all')}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div 
       onClick={onClick}
       className={cn(
-        "group cursor-pointer relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]",
-        roomData && roomData.onCount > 0 && "bg-gradient-to-br from-card via-card to-primary/[0.02]"
+        "group cursor-pointer relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]"
       )}
     >
       <div className={cn('p-2.5 rounded-xl border shrink-0 relative transition-transform duration-500 group-hover:scale-110', accentCls)}>
-        <Icon className={cn("w-4 h-4", roomData && roomData.onCount > 0 && "animate-pulse")} />
-        {roomData && roomData.onCount > 0 && (
-          <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card animate-pulse shadow-sm shadow-primary/40" />
-        )}
+        <Icon className="w-4 h-4" />
       </div>
-
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-black text-foreground tracking-tight">{t(meta.labelKey)}</p>
-          {roomData && (
-             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">Live</span>
-          )}
-        </div>
-
-        {roomData ? (
-          <div className="mt-2 space-y-2">
-            <div className="flex items-center gap-1.5">
-              <div className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-1.5">
-                <Home className="w-2.5 h-2.5 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-tight text-primary">{roomData.name}</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <div className={cn("w-1 h-1 rounded-full", roomData.onCount > 0 ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
-                <span className={cn("text-[10px] font-bold uppercase tracking-tight", roomData.onCount > 0 ? "text-foreground" : "text-muted-foreground/40")}>
-                  {roomData.onCount} {t('dashboard.active_units', { count: roomData.onCount }).split(' ')[1] || 'Encendidos'}
-                </span>
-              </div>
-              <div className="w-px h-2 bg-border/40" />
-              <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground/40">
-                {roomData.total} {t('nav.system_devices').split(' ')[1] || 'Equipos'}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
-        )}
+        <p className="text-sm font-black text-foreground tracking-tight">{t(meta.labelKey)}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
       </div>
-
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
