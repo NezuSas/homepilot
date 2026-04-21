@@ -57,11 +57,21 @@ const ACCENT_STYLES: Record<string, string> = {
 
 // ─── Widget Card ──────────────────────────────────────────────────────────────
 
-function WidgetCard({ widget, onRemove, onClick }: { widget: DashboardWidget; onRemove: () => void; onClick: () => void }) {
+function WidgetCard({ widget, onRemove, onClick, rooms = [] }: { widget: DashboardWidget; onRemove: () => void; onClick: () => void; rooms?: Room[] }) {
   const { t } = useTranslation();
   const meta = WIDGET_META[widget.type];
   const Icon = meta.icon;
   const accentCls = ACCENT_STYLES[meta.accent];
+
+  // Helper to resolve room name if applicable
+  const getRoomName = () => {
+    if (widget.type !== 'room_summary') return null;
+    const roomId = (widget.config as any)?.roomId;
+    if (!roomId) return null;
+    return rooms.find(r => r.id === roomId)?.name;
+  };
+
+  const roomName = getRoomName();
 
   return (
     <div 
@@ -73,7 +83,16 @@ function WidgetCard({ widget, onRemove, onClick }: { widget: DashboardWidget; on
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-foreground">{t(meta.labelKey)}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
+        {roomName ? (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <div className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-1.5">
+              <Home className="w-2.5 h-2.5 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-tight text-primary">{roomName}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
+        )}
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -351,6 +370,7 @@ export function DashboardsView() {
   const { t } = useTranslation();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const [active, setActive]             = useState<Dashboard | null>(null);
+  const [rooms, setRooms]               = useState<Room[]>([]);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [loading, setLoading]           = useState(true);
   const [creating, setCreating]         = useState(false);
@@ -385,7 +405,20 @@ export function DashboardsView() {
     finally { setLoading(false); }
   }, [active?.id]);
 
-  useEffect(() => { fetchDashboards(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const fetchRooms = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${API}/rooms`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setRooms(data);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { 
+    fetchDashboards(true);
+    fetchRooms();
+  }, [fetchDashboards, fetchRooms]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     const res = await apiFetch(`${API}/dashboards/${id}`, {
@@ -701,7 +734,7 @@ export function DashboardsView() {
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {Array.isArray(activeTab.widgets) && activeTab.widgets.map(w => (
-                              <WidgetCard key={w.id} widget={w} onRemove={() => handleRemoveWidget(w.id)} onClick={() => setEditingWidget(w)} />
+                              <WidgetCard key={w.id} widget={w} onRemove={() => handleRemoveWidget(w.id)} onClick={() => setEditingWidget(w)} rooms={rooms} />
                             ))}
                           </div>
                           <WidgetPicker onAdd={handleAddWidget} />
