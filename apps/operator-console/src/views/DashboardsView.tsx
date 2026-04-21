@@ -1,245 +1,25 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Plus, Trash2, LayoutDashboard, Zap, Sparkles,
-  Home, PlaySquare, Cpu, PenLine, Check, X, ChevronRight,
-  Power, Lightbulb, ToggleRight, Radio
+  Plus, Trash2, LayoutDashboard,
+  PenLine, Check, X, ChevronRight
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from '../components/ui/Button';
 import { cn } from '../lib/utils';
-import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
+import { DashboardCanvas } from './dashboards/DashboardCanvas';
+import { WidgetInspector } from './dashboards/WidgetInspector';
 
 const API = `${API_BASE_URL}/api/v1`;
 
-// ─── Domain Types ──────────────────────────────────────────────────────────────
-
-interface DashboardWidget {
-  id: string;
-  type: 'room_summary' | 'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight';
-  config: Record<string, unknown>;
-}
-
-interface DashboardTab {
-  id: string;
-  title: string;
-  widgets: DashboardWidget[];
-}
-
-interface Dashboard {
-  id: string;
-  ownerId: string;
-  title: string;
-  visibility: { roles: string[]; users: string[]; homes: string[] };
-  tabs: DashboardTab[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Widget Metadata ──────────────────────────────────────────────────────────
-
-const WIDGET_META: Record<DashboardWidget['type'], { labelKey: string; icon: React.FC<{ className?: string }>; accent: string; descriptionKey: string }> = {
-  room_summary:       { labelKey: 'dashboards.widgets.room_summary.label',        icon: Home,             accent: 'blue',    descriptionKey: 'dashboards.widgets.room_summary.description' },
-  selected_device:    { labelKey: 'dashboards.widgets.selected_device.label',     icon: Cpu,              accent: 'violet',  descriptionKey: 'dashboards.widgets.selected_device.description' },
-  scenes_shortcut:    { labelKey: 'dashboards.widgets.scenes_shortcut.label',     icon: PlaySquare,       accent: 'emerald', descriptionKey: 'dashboards.widgets.scenes_shortcut.description' },
-  assistant_insights: { labelKey: 'dashboards.widgets.assistant_insights.label',  icon: Sparkles,         accent: 'amber',   descriptionKey: 'dashboards.widgets.assistant_insights.description' },
-  energy_insight:     { labelKey: 'dashboards.widgets.energy_insight.label',      icon: Zap,              accent: 'orange',  descriptionKey: 'dashboards.widgets.energy_insight.description' },
-};
-
-const SUPPORTED_WIDGETS = Object.keys(WIDGET_META) as DashboardWidget['type'][];
-
-const ACCENT_STYLES: Record<string, string> = {
-  blue:    'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  violet:  'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  amber:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  orange:  'bg-orange-500/10 text-orange-400 border-orange-500/20',
-};
-
-// ─── Widget Card ──────────────────────────────────────────────────────────────
-
-function WidgetCard({ widget, onRemove, onClick, rooms = [] }: { widget: DashboardWidget; onRemove: () => void; onClick: () => void; rooms?: Room[] }) {
-  const { t } = useTranslation();
-  const allDevices = useDeviceSnapshotStore((state) => state.devices);
-  const meta = WIDGET_META[widget.type];
-  const Icon = meta.icon;
-  const accentCls = ACCENT_STYLES[meta.accent];
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Logic to calculate room summary data
-  const roomData = (() => {
-    if (widget.type !== 'room_summary') return null;
-    const roomId = (widget.config as any)?.roomId;
-    if (!roomId) return null;
-    
-    const room = rooms.find(r => r.id === roomId);
-    if (!room) return null;
-
-    const roomDevices = allDevices.filter(d => d.roomId === roomId);
-    const activeDevices = roomDevices.filter(d => {
-      const s = (d.lastKnownState || {}) as any;
-      return s.on === true || s.state === 'on' || (Number(s.brightness) > 0) || (Number(s.power) > 0);
-    });
-
-    // Extract unique active types for icon display
-    const activeTypes = Array.from(new Set(activeDevices.map(d => d.type)));
-
-    return {
-      id: roomId,
-      name: room.name,
-      totalCount: roomDevices.length,
-      onCount: activeDevices.length,
-      activeTypes
-    };
-  })();
-
-  const handleToggleRoom = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!roomData || roomData.onCount === 0 || isProcessing) return;
-
-    setIsProcessing(true);
-    try {
-      const roomDevices = allDevices.filter(d => d.roomId === roomData.id);
-      const devicesToTurnOff = roomDevices.filter(d => {
-        const s = (d.lastKnownState || {}) as any;
-        return s.on === true || s.state === 'on' || (Number(s.brightness) > 0);
-      });
-
-      await Promise.all(devicesToTurnOff.map(d => 
-        apiFetch(`${API}/devices/${d.id}/command`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: 'turn_off' })
-        })
-      ));
-    } catch (err) {
-      console.error('Failed to toggle room:', err);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'light': return <Lightbulb className="w-3 h-3 text-amber-400" />;
-      case 'switch': return <ToggleRight className="w-3 h-3 text-primary" />;
-      case 'curtain':
-      case 'cover': return <Radio className="w-3 h-3 text-emerald-400" />;
-      default: return <Cpu className="w-3 h-3 text-muted-foreground/60" />;
-    }
-  };
-
-  if (widget.type === 'room_summary' && roomData) {
-    return (
-      <div 
-        onClick={onClick}
-        className={cn(
-          "group cursor-pointer relative flex flex-col p-6 rounded-[2rem] bg-card border border-border/60 hover:border-primary/20 hover:shadow-2xl transition-all duration-500 active:scale-[0.98] overflow-hidden min-h-[180px]",
-          roomData.onCount > 0 ? "bg-gradient-to-br from-card via-card to-primary/[0.03]" : "grayscale-[0.2]"
-        )}
-      >
-        {/* Glow Effects */}
-        {roomData.onCount > 0 && (
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-        )}
-
-        <div className="flex items-center justify-between mb-4">
-           <div className={cn('p-3 rounded-2xl border shrink-0 relative transition-transform duration-700 group-hover:rotate-[360deg]', accentCls)}>
-              <Icon className={cn("w-5 h-5", roomData.onCount > 0 && "animate-pulse")} />
-              {roomData.onCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-card animate-pulse shadow-lg shadow-primary/40" />
-              )}
-           </div>
-           <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">{t('common.live', 'Live')}</span>
-              <button
-                onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                className="opacity-0 group-hover:opacity-100 transition-all p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-           </div>
-        </div>
-
-        <div className="flex-1 space-y-4">
-          <div>
-            <h3 className="text-xl font-black tracking-tighter text-foreground group-hover:text-primary transition-colors">{roomData.name}</h3>
-            <div className="mt-1 flex items-center gap-2">
-               <span className={cn(
-                 "text-[10px] font-black uppercase tracking-widest",
-                 roomData.onCount > 0 ? "text-primary" : "text-muted-foreground/40"
-               )}>
-                 {roomData.onCount > 0 ? `${roomData.onCount} ${t('dashboard.active_units', { count: roomData.onCount })}` : t('dashboard.all_off')}
-               </span>
-               <div className="w-1 h-1 bg-border rounded-full" />
-               <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-tight">
-                 {roomData.totalCount} {t('nav.system_devices')}
-               </span>
-            </div>
-          </div>
-
-          {roomData.onCount > 0 && (
-            <div className="flex flex-wrap gap-2 animate-in fade-in duration-700">
-               {roomData.activeTypes.map(type => (
-                 <div key={type} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/40 border border-border/40 backdrop-blur-sm">
-                    {getTypeIcon(type)}
-                    <span className="text-[8px] font-bold uppercase tracking-tight text-muted-foreground/60">{type}</span>
-                 </div>
-               ))}
-            </div>
-          )}
-        </div>
-
-        {roomData.onCount > 0 && (
-          <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between gap-4">
-            <p className="text-[9px] font-bold text-muted-foreground/40 italic uppercase">{t('dashboard.quick_control', 'Control Rápido')}</p>
-            <button
-              onClick={handleToggleRoom}
-              disabled={isProcessing}
-              className="flex items-center gap-2 px-4 py-2 bg-destructive/5 hover:bg-destructive text-destructive hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-90"
-            >
-              {isProcessing ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Power className="w-3 h-3" />}
-              {t('common.turn_off_all')}
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      onClick={onClick}
-      className={cn(
-        "group cursor-pointer relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]"
-      )}
-    >
-      <div className={cn('p-2.5 rounded-xl border shrink-0 relative transition-transform duration-500 group-hover:scale-110', accentCls)}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-black text-foreground tracking-tight">{t(meta.labelKey)}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
-      </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-        title={t('dashboards.remove_widget')}
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  );
-}
-
-// ─── Empty States ─────────────────────────────────────────────────────────────
+// ─── Shared Components ────────────────────────────────────────────────────────
 
 function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[520px] gap-8 text-center select-none animate-in fade-in duration-700">
-      {/* Icon cluster */}
       <div className="relative">
         <div className="w-28 h-28 rounded-[2.5rem] bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 flex items-center justify-center shadow-2xl shadow-primary/10">
           <LayoutDashboard className="w-12 h-12 text-primary/50" />
@@ -247,31 +27,12 @@ function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
         <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/40">
           <Plus className="w-5 h-5 text-primary-foreground" />
         </div>
-        {/* Ambient glow */}
         <div className="absolute inset-0 rounded-[2.5rem] bg-primary/5 blur-2xl -z-10 scale-150" />
       </div>
-
-      {/* Copy */}
       <div className="space-y-3 max-w-sm">
         <h3 className="text-2xl font-black text-foreground tracking-tight">{t('dashboards.empty_title')}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed">{t('dashboards.empty_description')}</p>
-        <p className="text-xs text-muted-foreground/60 leading-relaxed">{t('dashboards.empty_value_hint')}</p>
       </div>
-
-      {/* Value pillars */}
-      <div className="flex items-center gap-6 flex-wrap justify-center">
-          {([
-          { icon: Home,     labelKey: 'topology.rooms' },
-          { icon: Cpu,      labelKey: 'nav.system_devices' },
-          { icon: Sparkles, labelKey: 'nav.assistant' },
-        ] as { icon: React.FC<{ className?: string }>; labelKey: string }[]).map(({ icon: Icon, labelKey }) => (
-          <div key={labelKey} className="flex items-center gap-2 text-muted-foreground/50">
-            <Icon className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-black uppercase tracking-widest">{t(labelKey)}</span>
-          </div>
-        ))}
-      </div>
-
       <Button variant="primary" onClick={onCreate} className="flex items-center gap-2 px-8 py-3 text-sm">
         <Plus className="w-4 h-4" />
         {t('dashboards.action_create')}
@@ -280,84 +41,11 @@ function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-function EmptyTabs({ onAdd }: { onAdd: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[300px] gap-5 text-center border border-dashed border-border/50 rounded-2xl bg-muted/5 p-8">
-      <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center">
-        <PenLine className="w-6 h-6 text-muted-foreground/40" />
-      </div>
-      <div className="space-y-1.5 max-w-xs">
-        <p className="text-sm font-bold text-foreground/70">{t('dashboards.tabs_empty')}</p>
-        <p className="text-xs text-muted-foreground/60 leading-relaxed">{t('dashboards.tabs_hint')}</p>
-      </div>
-      <Button size="sm" variant="secondary" onClick={onAdd} className="flex items-center gap-2">
-        <Plus className="w-3.5 h-3.5" />
-        {t('dashboards.action_add_tab')}
-      </Button>
-    </div>
-  );
-}
-
-function EmptyWidgets({ onAdd }: { onAdd: (type: DashboardWidget['type']) => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 text-center border border-dashed border-border/40 rounded-2xl bg-muted/5 p-6">
-        <Sparkles className="w-7 h-7 text-muted-foreground/25" />
-        <p className="text-xs text-muted-foreground/50">{t('dashboards.widgets_empty')}</p>
-      </div>
-      <WidgetPicker onAdd={onAdd} />
-    </div>
-  );
-}
-
-// ─── Widget Picker ────────────────────────────────────────────────────────────
-
-function WidgetPicker({ onAdd }: { onAdd: (type: DashboardWidget['type']) => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{t('dashboards.action_add_widget')}</p>
-        <div className="h-px flex-1 bg-border/40" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {SUPPORTED_WIDGETS.map(type => {
-          const meta = WIDGET_META[type];
-          const Icon = meta.icon;
-          const accentCls = ACCENT_STYLES[meta.accent];
-          return (
-            <button
-              key={type}
-              onClick={() => onAdd(type)}
-              className="group flex items-center gap-3 p-4 rounded-2xl bg-card border border-border/60 hover:border-primary/30 hover:bg-primary/5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 text-left active:scale-95"
-            >
-              <div className={cn('p-2 rounded-xl border shrink-0 group-hover:scale-110 transition-transform duration-200', accentCls)}>
-                <Icon className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-foreground">{t(meta.labelKey)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{t(meta.descriptionKey)}</p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Inline Tab Creator ───────────────────────────────────────────────────────
-
 function InlineTabCreator({ onConfirm, onCancel, placeholder, initialValue = '' }: { onConfirm: (title: string) => void; onCancel: () => void; placeholder: string, initialValue?: string }) {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => { inputRef.current?.focus(); }, []);
-
   const handleConfirm = () => { if (value.trim()) onConfirm(value.trim()); };
-
   return (
     <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-primary/10 border border-primary/30 animate-in zoom-in-95 duration-150">
       <input
@@ -378,127 +66,12 @@ function InlineTabCreator({ onConfirm, onCancel, placeholder, initialValue = '' 
   );
 }
 
-// ─── Widget Configurator Modal ──────────────────────────────────────────────────
-
-interface Room {
-  id: string;
-  name: string;
-}
-
-function WidgetConfigurator({ widget, onClose, onSave }: { widget: DashboardWidget; onClose: () => void; onSave: (config: any) => void }) {
-  const { t } = useTranslation();
-  const meta = WIDGET_META[widget.type];
-  const Icon = meta.icon;
-
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loadingRooms, setLoadingRooms] = useState(false);
-  const [localConfig, setLocalConfig] = useState(widget.config);
-
-  useEffect(() => {
-    if (widget.type === 'room_summary') {
-      setLoadingRooms(true);
-      apiFetch(`${API}/rooms`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setRooms(data);
-        })
-        .finally(() => setLoadingRooms(false));
-    }
-  }, [widget.type]);
-
-  const handleSave = () => {
-    onSave(localConfig);
-  };
-
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-300" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-card border border-border/60 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 flex items-center justify-between border-b border-border/40 bg-muted/30">
-           <div className="flex items-center gap-4">
-             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                <Icon className="w-5 h-5 text-primary" />
-             </div>
-             <div>
-               <h3 className="font-black tracking-tight">{t(meta.labelKey)}</h3>
-               <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mt-0.5">Configuración de Widget</p>
-             </div>
-           </div>
-           <button onClick={onClose} className="p-2 bg-muted/60 rounded-xl hover:bg-muted text-foreground transition-colors"><X className="w-4 h-4"/></button>
-        </div>
-        
-        <div className="p-8 bg-muted/5">
-          {widget.type === 'room_summary' ? (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Seleccionar Habitación</label>
-                {loadingRooms ? (
-                  <div className="flex items-center gap-3 p-4 bg-background border border-border rounded-2xl animate-pulse">
-                    <div className="w-4 h-4 rounded-full bg-muted animate-bounce" />
-                    <div className="h-4 w-32 bg-muted rounded" />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
-                    {rooms.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4 italic">No hay habitaciones configuradas.</p>
-                    ) : (
-                      rooms.map(room => (
-                        <button
-                          key={room.id}
-                          onClick={() => setLocalConfig({ ...localConfig, roomId: room.id })}
-                          className={cn(
-                            'flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 text-left',
-                            (localConfig as any).roomId === room.id 
-                              ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5' 
-                              : 'bg-background border-border/60 hover:border-primary/30 hover:bg-muted/50'
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Home className={cn('w-4 h-4', (localConfig as any).roomId === room.id ? 'text-primary' : 'text-muted-foreground/50')} />
-                            <span className="text-sm font-bold">{room.name}</span>
-                          </div>
-                          {(localConfig as any).roomId === room.id && <Check className="w-4 h-4" />}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                El widget mostrará un resumen del estado de los dispositivos y sensores dentro de la habitación seleccionada.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center gap-4 min-h-[220px]">
-              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
-                <LayoutDashboard className="w-6 h-6 text-muted-foreground/40" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-foreground">En Construcción</h4>
-                <p className="text-xs text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
-                  El panel de configuración para este widget estará disponible en la próxima actualización de componentes.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="p-5 border-t border-border/40 flex justify-end gap-3 bg-muted/20">
-           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-           <Button variant="primary" onClick={handleSave}>Guardar</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export function DashboardsView() {
   const { t } = useTranslation();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const [active, setActive]             = useState<Dashboard | null>(null);
-  const [rooms, setRooms]               = useState<Room[]>([]);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [loading, setLoading]           = useState(true);
   const [creating, setCreating]         = useState(false);
@@ -506,8 +79,10 @@ export function DashboardsView() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle]     = useState('');
   const [addingTab, setAddingTab]       = useState(false);
-  const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
@@ -525,28 +100,15 @@ export function DashboardsView() {
               if (current) setActive(current);
             }
           }
-        } else {
-          console.error('[DashboardsView] Expected array of dashboards but received:', data);
         }
       }
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, [active?.id]);
 
-  const fetchRooms = useCallback(async () => {
-    try {
-      const res = await apiFetch(`${API}/rooms`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) setRooms(data);
-      }
-    } catch { /* silent */ }
-  }, []);
-
   useEffect(() => { 
     fetchDashboards(true);
-    fetchRooms();
-  }, [fetchDashboards, fetchRooms]);
+  }, [fetchDashboards]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     const res = await apiFetch(`${API}/dashboards/${id}`, {
@@ -599,10 +161,29 @@ export function DashboardsView() {
     setActiveTabIdx(Math.max(0, activeTabIdx - 1));
   };
 
-  const handleAddWidget = async (type: DashboardWidget['type']) => {
+  const handleAddWidget = async (type: WidgetType) => {
     if (!active || active.tabs.length === 0) return;
+    
+    // Find a free spot (naive start at bottom)
+    const currentTab = active.tabs[activeTabIdx];
+    const maxY = currentTab.widgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
+
+    const defaultConfig: DashboardWidgetConfig = {
+      layout: { x: 0, y: maxY, w: 4, h: 4 },
+      binding: { entityId: '', entityType: 'device' },
+      visibility: { rules: [], defaultState: 'show' },
+      appearance: { variant: 'glass', title: '', showTitle: true }
+    };
     const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: crypto.randomUUID(), type, config: {} }] }
+      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: crypto.randomUUID(), type, config: defaultConfig }] }
+    );
+    await patch(active.id, { tabs: updatedTabs });
+  };
+
+  const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
+    if (!active) return;
+    const updatedTabs = active.tabs.map((tab, idx) =>
+      idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets }
     );
     await patch(active.id, { tabs: updatedTabs });
   };
@@ -612,6 +193,35 @@ export function DashboardsView() {
     const updatedTabs = active.tabs.map((tab, idx) =>
       idx !== activeTabIdx ? tab : { ...tab, widgets: tab.widgets.filter(w => w.id !== widgetId) }
     );
+    await patch(active.id, { tabs: updatedTabs });
+    if (selectedWidgetId === widgetId) {
+      setSelectedWidgetId(null);
+      setIsInspectorOpen(false);
+    }
+  };
+
+  const handleUpdateWidgetConfig = async (widgetId: string, newConfig: Partial<DashboardWidgetConfig>) => {
+    if (!active) return;
+    const updatedTabs = active.tabs.map((tab, idx) => {
+      if (idx !== activeTabIdx) return tab;
+      return {
+        ...tab,
+        widgets: tab.widgets.map(w => {
+          if (w.id !== widgetId) return w;
+          return {
+            ...w,
+            config: {
+              ...w.config,
+              ...newConfig,
+              appearance: { ...w.config.appearance, ...(newConfig.appearance || {}) },
+              visibility: { ...w.config.visibility, ...(newConfig.visibility || {}) },
+              binding: { ...w.config.binding, ...(newConfig.binding || {}) },
+              layout: { ...w.config.layout, ...(newConfig.layout || {}) }
+            }
+          };
+        })
+      };
+    });
     await patch(active.id, { tabs: updatedTabs });
   };
 
@@ -626,9 +236,9 @@ export function DashboardsView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-3">
-          <LayoutDashboard className="w-8 h-8 text-primary/40 animate-pulse" />
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest animate-pulse">{t('dashboards.loading')}</p>
+        <div className="flex flex-col items-center gap-3 animate-pulse">
+          <LayoutDashboard className="w-8 h-8 text-primary/40" />
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{t('dashboards.loading')}</p>
         </div>
       </div>
     );
@@ -637,35 +247,41 @@ export function DashboardsView() {
   const activeTab = active?.tabs[activeTabIdx];
 
   return (
-    <div className="flex flex-col gap-0 animate-in fade-in duration-700 min-h-full">
+    <div className="flex flex-col gap-0 animate-in fade-in duration-700 min-h-full pb-20">
 
       {/* ── Page Identity Banner ─────────────────────────────────────── */}
-      <div className="relative rounded-3xl overflow-hidden mb-8 border border-border/60 bg-gradient-to-br from-card via-card to-primary/5">
+      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-8 sm:p-10">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-primary/3 rounded-full blur-2xl translate-y-1/2" />
         </div>
-        <div className="relative z-10 p-5 sm:p-8 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-xl shadow-primary/25 shrink-0">
-              <LayoutDashboard className="w-7 h-7 text-primary-foreground" />
+        <div className="relative z-10 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-6 min-w-0">
+            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/30 shrink-0">
+              <LayoutDashboard className="w-8 h-8 text-primary-foreground" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70 mb-1 truncate">{t('dashboards.category')}</p>
-              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">{t('dashboards.title')}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate sm:whitespace-normal">{t('dashboards.intro_subtitle')}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70 mb-2">{t('dashboards.category')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight truncate mb-1">{t('dashboards.title')}</h2>
+              <p className="text-xs text-muted-foreground/60 max-w-md">{t('dashboards.intro_subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-              <Cpu className="w-3 h-3 text-primary/60" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">{t('dashboards.personal_label')}</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" />
-            </div>
-            {!creating && (
-              <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2">
+            {active && (
+              <Button 
+                variant={isEditing ? "primary" : "secondary"} 
+                size="sm" 
+                onClick={() => { setIsEditing(!isEditing); if (isEditing) { setIsInspectorOpen(false); setSelectedWidgetId(null); } }}
+                className="flex items-center gap-2 px-6 rounded-2xl"
+              >
+                {isEditing ? <Check className="w-4 h-4" /> : <PenLine className="w-4 h-4" />}
+                <span className="hidden xs:inline uppercase font-black text-[10px] tracking-widest">{isEditing ? t('common.done') : t('dashboards.action_edit')}</span>
+              </Button>
+            )}
+            {!creating && !isEditing && (
+              <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2 px-6 rounded-2xl">
                 <Plus className="w-4 h-4" />
-                <span className="hidden xs:inline">{t('dashboards.action_new')}</span>
+                <span className="hidden xs:inline uppercase font-black text-[10px] tracking-widest">{t('dashboards.action_new')}</span>
               </Button>
             )}
           </div>
@@ -674,24 +290,20 @@ export function DashboardsView() {
 
       {/* ── Create Form ──────────────────────────────────────────────── */}
       {creating && (
-        <div className="mb-6 p-5 rounded-2xl bg-card border border-primary/30 shadow-lg shadow-primary/5 animate-in slide-in-from-top-2 duration-300">
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">{t('dashboards.action_new')}</p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="mb-6 p-6 rounded-3xl bg-card border border-primary/30 shadow-2xl shadow-primary/10 animate-in slide-in-from-top-4 duration-500">
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">{t('dashboards.action_new')}</p>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <input
               autoFocus
-              className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:border-primary transition-colors"
+              className="flex-1 bg-background border border-border/80 rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all shadow-inner"
               placeholder={t('dashboards.placeholder_title')}
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setCreating(false); setNewTitle(''); } }}
             />
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="primary" onClick={handleCreate} className="flex-1 flex items-center justify-center gap-2">
-                <Check className="w-4 h-4" /> {t('common.confirm')}
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => { setCreating(false); setNewTitle(''); }} className="flex items-center justify-center">
-                <X className="w-4 h-4" />
-              </Button>
+            <div className="flex items-center gap-3">
+              <Button variant="primary" onClick={handleCreate} className="flex-1 font-black uppercase tracking-widest text-[10px] px-8">{t('common.confirm')}</Button>
+              <Button variant="secondary" onClick={() => { setCreating(false); setNewTitle(''); }} className="p-3"><X className="w-4 h-4" /></Button>
             </div>
           </div>
         </div>
@@ -701,200 +313,139 @@ export function DashboardsView() {
       {dashboards.length === 0 ? (
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
 
-          <nav className="flex flex-col gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 px-1 mb-2">{t('dashboards.personal_label')}</p>
+          {/* Sidebar Nav */}
+          <nav className="flex flex-col gap-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 px-2 mb-2">{t('dashboards.list_header')}</p>
             <div className="flex flex-col gap-2">
-              {Array.isArray(dashboards) && dashboards.map(d => {
+              {dashboards.map(d => {
                 const isActive = active?.id === d.id;
                 return (
                   <button
                     key={d.id}
-                    onClick={() => { setActive(d); setActiveTabIdx(0); setEditingTitle(false); }}
+                    onClick={() => { setActive(d); setActiveTabIdx(0); setEditingTitle(false); setIsEditing(false); }}
                     className={cn(
-                      'group flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all duration-200 border',
+                      'group flex items-center gap-4 p-4 rounded-3xl text-left transition-all duration-300 border',
                       isActive
-                        ? 'bg-primary/10 border-primary/30 shadow-inner shadow-primary/5'
-                        : 'bg-card border-border/50 hover:bg-muted/50 hover:border-border'
+                        ? 'bg-primary/5 border-primary/20 shadow-inner'
+                        : 'bg-card border-border/40 hover:bg-muted/40 hover:border-border'
                     )}
                   >
                     <div className={cn(
-                      'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
-                      isActive ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : 'bg-muted text-muted-foreground/50'
+                      'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300',
+                      isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-muted text-muted-foreground/30 group-hover:scale-110'
                     )}>
-                      <LayoutDashboard className="w-3.5 h-3.5" />
+                      <LayoutDashboard className="w-4 h-4" />
                     </div>
-                    <span className={cn(
-                      'flex-1 text-sm font-bold truncate transition-colors',
-                      isActive ? 'text-primary' : 'text-foreground'
-                    )}>{d.title}</span>
-                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-primary/40 shrink-0" />}
+                    <span className={cn('flex-1 text-sm font-bold truncate', isActive ? 'text-primary' : 'text-foreground')}>{d.title}</span>
+                    {isActive && <ChevronRight className="w-4 h-4 text-primary/30" />}
                   </button>
                 );
               })}
             </div>
           </nav>
 
-          {/* ── Dashboard Editor (main) ── */}
+          {/* Dashboard Area */}
           {active && (
-            <div className="flex flex-col gap-6">
-
-              {/* Dashboard title + delete */}
+            <div className="flex flex-col gap-8">
+              {/* Header: Title + Delete */}
               <div className="flex items-center justify-between gap-4">
                 {editingTitle ? (
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <input
                       autoFocus
-                      className="text-xl sm:text-2xl font-black bg-transparent border-b-2 border-primary outline-none flex-1 text-foreground py-0.5 min-w-0"
+                      className="text-2xl sm:text-3xl font-black bg-transparent border-b-2 border-primary outline-none flex-1 text-foreground py-1"
                       value={draftTitle}
                       onChange={e => setDraftTitle(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') setEditingTitle(false); }}
                     />
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={handleRenameConfirm} className="p-1.5 rounded-lg text-primary hover:bg-primary/10"><Check className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingTitle(false)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted"><X className="w-4 h-4" /></button>
-                    </div>
+                    <button onClick={handleRenameConfirm} className="p-2 text-primary"><Check className="w-5 h-5" /></button>
+                    <button onClick={() => setEditingTitle(false)} className="p-2 text-muted-foreground"><X className="w-5 h-5" /></button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 flex-1 group min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">{active.title}</h3>
-                    <button
-                      onClick={() => { setDraftTitle(active.title); setEditingTitle(true); }}
-                      className="opacity-30 hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-                      title={t('dashboards.rename') || 'Renombrar'}
-                    >
-                      <PenLine className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="flex items-center gap-4 group flex-1">
+                    <h3 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{active.title}</h3>
+                    <button onClick={() => { setDraftTitle(active.title); setEditingTitle(true); }} className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-foreground transition-all"><PenLine className="w-4 h-4" /></button>
                   </div>
                 )}
-                <button
-                  onClick={() => handleDelete(active.id)}
-                  className="p-2 rounded-xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                  title={t('dashboards.delete')}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {!isEditing && (
+                  <button onClick={() => handleDelete(active.id)} className="p-3 bg-destructive/5 text-destructive rounded-2xl hover:bg-destructive hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
+                )}
               </div>
 
-              {/* ── Tabs ── */}
-              {active.tabs.length === 0 && !addingTab ? (
-                <EmptyTabs onAdd={() => setAddingTab(true)} />
-              ) : (
-                <div className="flex flex-col gap-6">
-                  {/* Tab strip container with horizontal scroll */}
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-border/60 pb-0 -mb-px">
-                    {Array.isArray(active.tabs) && active.tabs.map((tab, idx) => (
-                      <div key={tab.id} className="group/tab relative flex items-center">
-                        {editingTabId === tab.id ? (
-                          <div className="mx-2">
-                            <InlineTabCreator
-                              initialValue={tab.title}
-                              placeholder={t('dashboards.rename') || 'Renombrar'}
-                              onConfirm={async (newTitle) => {
-                                const updatedTabs = [...active.tabs];
-                                updatedTabs[idx].title = newTitle;
-                                await patch(active.id, { tabs: updatedTabs });
-                                setEditingTabId(null);
-                              }}
-                              onCancel={() => setEditingTabId(null)}
-                            />
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setActiveTabIdx(idx)}
-                              onDoubleClick={() => setEditingTabId(tab.id)}
-                              className={cn(
-                                'px-5 py-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest rounded-t-xl transition-all duration-200 border-b-2',
-                                activeTabIdx === idx
-                                  ? 'text-primary border-primary bg-primary/5'
-                                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
-                              )}
-                            >
-                              <span className="truncate">{tab.title}</span>
-                              <div 
-                                onClick={(e) => { e.stopPropagation(); setEditingTabId(tab.id); }}
-                                className="opacity-0 group-hover/tab:opacity-50 hover:!opacity-100 p-1 hover:bg-primary/10 rounded"
-                              >
-                                <PenLine className="w-3 h-3" />
-                              </div>
-                            </button>
-                            {/* Tab delete — only visible on hover, only for inactive or if >1 tab */}
-                            {active.tabs.length > 1 && (
-                              <button
-                                onClick={() => handleDeleteTab(idx)}
-                                className="absolute -top-1 -right-1 opacity-0 group-hover/tab:opacity-100 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center transition-opacity hover:bg-destructive"
-                                title={t('dashboards.delete_tab_confirm')}
-                              >
-                                <X className="w-2 h-2" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Inline tab creator or add button */}
-                    {addingTab ? (
-                      <InlineTabCreator
-                        placeholder={t('dashboards.create_tab_placeholder')}
-                        onConfirm={handleAddTab}
-                        onCancel={() => setAddingTab(false)}
-                      />
-                    ) : (
-                      <button
-                        onClick={() => setAddingTab(true)}
-                        className="flex items-center gap-1 px-3 py-3 text-xs font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary transition-colors rounded-t-xl hover:bg-primary/5 border-b-2 border-transparent"
-                      >
-                        <Plus className="w-3 h-3" />
-                        {t('dashboards.action_add_tab')}
-                      </button>
+              {/* Tabs Nav */}
+              <div className="flex items-center gap-4 overflow-x-auto no-scrollbar border-b border-border/40 pb-0">
+                {active.tabs.map((tab, idx) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTabIdx(idx); setSelectedWidgetId(null); setIsInspectorOpen(false); }}
+                    className={cn(
+                      "px-6 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-2 relative",
+                      activeTabIdx === idx ? "text-primary border-primary bg-primary/[0.02]" : "text-muted-foreground/40 border-transparent hover:text-muted-foreground hover:bg-muted/20"
                     )}
-                  </div>
+                  >
+                    {tab.title}
+                    {isEditing && active.tabs.length > 1 && (
+                      <div onClick={(e) => { e.stopPropagation(); handleDeleteTab(idx); }} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform">
+                        <X className="w-2 h-2" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+                <button onClick={() => setAddingTab(true)} className="px-4 text-muted-foreground/30 hover:text-primary transition-colors"><Plus className="w-4 h-4" /></button>
+                {addingTab && (
+                  <InlineTabCreator placeholder={t('dashboards.placeholder_tab_title')} onConfirm={handleAddTab} onCancel={() => setAddingTab(false)} />
+                )}
+              </div>
 
-                  {/* ── Widgets ── */}
-                  {activeTab && (
-                    <div className="flex flex-col gap-6 pt-2">
-                      {activeTab.widgets.length === 0 ? (
-                        <EmptyWidgets onAdd={handleAddWidget} />
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {Array.isArray(activeTab.widgets) && activeTab.widgets.map(w => (
-                              <WidgetCard key={w.id} widget={w} onRemove={() => handleRemoveWidget(w.id)} onClick={() => setEditingWidget(w)} rooms={rooms} />
-                            ))}
-                          </div>
-                          <WidgetPicker onAdd={handleAddWidget} />
-                        </>
-                      )}
-                    </div>
-                  )}
+              {/* Canvas Area */}
+              {activeTab ? (
+                <div className="relative flex flex-col gap-6">
+                   <DashboardCanvas
+                      widgets={activeTab.widgets}
+                      isEditing={isEditing}
+                      selectedWidgetId={selectedWidgetId}
+                      onWidgetClick={(id) => { setSelectedWidgetId(id); if (isEditing) setIsInspectorOpen(true); }}
+                      onLayoutChange={handleLayoutChange}
+                   />
+                   
+                   {/* Editor Tools Footer */}
+                   {isEditing && (
+                     <div className="flex items-center gap-3 p-6 rounded-3xl bg-muted/30 border border-dashed border-border/60 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mr-4">{t('dashboards.editor.widget_management')}:</p>
+                        <div className="flex flex-wrap gap-2">
+                           {(['device_control', 'room_overview', 'scene_shortcut', 'activity_feed', 'assistant_insight', 'system_status'] as WidgetType[]).map(type => (
+                             <button
+                                key={type}
+                                onClick={() => handleAddWidget(type)}
+                                className="px-4 py-2 bg-background border border-border/60 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-primary/40 hover:text-primary transition-all active:scale-95 shadow-sm"
+                             >
+                               + {t(`dashboards.editor.add_${type}`)}
+                             </button>
+                           ))}
+                        </div>
+                     </div>
+                   )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-40 bg-muted/20 rounded-3xl border border-dashed border-border/60">
+                   <p className="text-xs text-muted-foreground italic">{t('common.no_content_yet')}</p>
                 </div>
               )}
             </div>
           )}
         </div>
       )}
-      
-      {/* Modals */}
-      {editingWidget && (
-        <WidgetConfigurator
-          widget={editingWidget}
-          onClose={() => setEditingWidget(null)}
-          onSave={async (newConfig) => {
-            if (!active) return;
-            const updatedTabs = active.tabs.map((tab, idx) =>
-              idx !== activeTabIdx ? tab : {
-                ...tab,
-                widgets: tab.widgets.map(w => w.id === editingWidget.id ? { ...w, config: newConfig } : w)
-              }
-            );
-            await patch(active.id, { tabs: updatedTabs });
-            setEditingWidget(null);
-          }}
-        />
-      )}
+
+      {/* Inspector Sidebar Overlay */}
+      <WidgetInspector
+        widget={activeTab?.widgets.find(w => w.id === selectedWidgetId) || null}
+        isOpen={isInspectorOpen && isEditing}
+        onClose={() => setIsInspectorOpen(false)}
+        onUpdate={handleUpdateWidgetConfig}
+        onRemove={handleRemoveWidget}
+      />
     </div>
   );
 }

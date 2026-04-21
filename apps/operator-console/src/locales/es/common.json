@@ -28,6 +28,21 @@
     "group_personalization": "Personalización",
     "coming_soon": "Próximamente"
   },
+  "device_statuses": {
+    "on": "Encendido",
+    "off": "Apagado"
+  },
+  "device_types": {
+    "light": "Iluminación",
+    "switch": "Interruptor",
+    "sensor": "Sensor",
+    "cover": "Persiana",
+    "media_player": "Multimedia",
+    "climate": "Clima",
+    "camera": "Cámara",
+    "lock": "Cerradura",
+    "none": "Desconocido"
+  },
   "assistant": {
     "title": "Asistente HomePilot",
     "subtitle": "Mejoras y sugerencias del sistema",
@@ -755,6 +770,8 @@
     "tabs_empty": "Sin pestañas aún",
     "tabs_hint": "Las pestañas te permiten organizar tu panel en distintas secciones.",
     "action_add_tab": "Añadir pestaña",
+    "placeholder_tab_title": "Nueva Tab",
+    "list_header": "Tus Paneles",
     "create_tab_placeholder": "Nombre de la pestaña...",
     "delete_tab_confirm": "¿Eliminar esta pestaña y todos sus widgets?",
     "widgets_empty": "Esta pestaña está vacía. Añade tu primer widget abajo.",
@@ -774,26 +791,103 @@
       "hardware_execution": "Ejecución a nivel de hardware activa"
     },
     "widgets": {
+      "bind_now": "Vincular Ahora",
       "room_summary": {
         "label": "Resumen de Habitación",
-        "description": "Vista general del estado de una habitación"
+        "description": "Vista general del estado de una habitación",
+        "active_count_one": "1 Activo",
+        "active_count_other": "{{count}} Activos",
+        "all_off": "Todo Apagado",
+        "units_one": "1 Equipo",
+        "units_other": "{{count}} Equipos",
+        "turn_off_all": "Apagar Todo",
+        "placeholder": "Vincúlalo a una habitación para controlar todo el espacio."
       },
       "selected_device": {
         "label": "Tarjeta de Dispositivo",
-        "description": "Control de un dispositivo individual"
+        "description": "Control de un dispositivo individual",
+        "placeholder": "Vincúlalo a una luz o interruptor para tomar el control."
       },
       "scenes_shortcut": {
         "label": "Acceso Directo a Escena",
-        "description": "Acceso rápido a una escena"
+        "description": "Acceso rápido a una escena",
+        "placeholder": "Vincúlalo a una escena personalizada para lanzarla con un tap."
       },
       "assistant_insights": {
         "label": "Insights del Asistente",
-        "description": "Sugerencias proactivas del sistema"
+        "description": "Sugerencias proactivas del sistema",
+        "no_findings": "Todo bajo control",
+        "no_findings_desc": "No hay hallazgos pendientes en el sistema.",
+        "view_details": "Ver Detalles"
       },
       "energy_insight": {
         "label": "Insight de Energía",
-        "description": "Señales de energía en tiempo real"
+        "description": "Señales de energía en tiempo real",
+        "current_power": "Potencia Actual",
+        "consumption_today": "Consumo Hoy",
+        "sustainable": "Sostenible",
+        "placeholder": "No se detectan entidades de energía (W/kWh) en Home Assistant."
+      },
+      "activity_feed": {
+        "label": "Actividad",
+        "placeholder": "No hay eventos registrados en el sistema en este momento."
+      },
+      "system_status": {
+        "label": "Sistema",
+        "placeholder": "No se pudo obtener el diagnóstico del servidor HomePilot.",
+        "processor": "Procesador",
+        "memory": "Memoria (RAM)",
+        "uptime": "Tiempo Activo",
+        "online": "Online"
       }
+    },
+    "inspector": {
+      "title": "Inspector de Widget",
+      "identity": "Identidad & Título",
+      "dimensions": "Dimensiones",
+      "binding": "Vinculación",
+      "appearance": "Estética & Visibilidad",
+      "delete_widget": "Eliminar Widget",
+      "finish": "Finalizar Configuración",
+      "guided_config": "Configuración Guiada",
+      "step_name": "Nombrar Widget",
+      "step_bind": "Vincular Entidad",
+      "auto_monitor": "Monitor Automático",
+      "auto_monitor_desc": "Este widget detecta automáticamente entidades de energía en tu sistema. No requiere vinculación manual.",
+      "target_device": "Dispositivo Target",
+      "reference_room": "Habitación Reference",
+      "scene_to_trigger": "Escena a Disparar",
+      "condition_label": "Condición de visualización",
+      "select_device": "Seleccionar Sensor/Luz",
+      "time_range": "Rango (HH:mm-HH:mm)",
+      "custom_title_placeholder": "Título personalizado...",
+      "custom_title_hint": "Este nombre se mostrará en la cabecera del widget si el diseño lo permite.",
+      "width_label": "Ancho (Columnas)",
+      "height_label": "Alto (Unidades)",
+      "cols": "Cols",
+      "units": "Unid.",
+      "select_device_placeholder": "Seleccionar dispositivo...",
+      "select_room_placeholder": "Seleccionar habitación...",
+      "select_scene_placeholder": "Seleccionar escena...",
+      "loading_scenes": "Cargando escenas..."
+    },
+    "visibility": {
+      "label": "Reglas de Visibilidad",
+      "always": "Cualquier momento",
+      "device_on": "Si dispositivo está On",
+      "has_alerts": "Si hay alertas",
+      "time_range": "Rango de tiempo",
+      "action_show": "Mostrar",
+      "action_hide": "Ocultar"
+    },
+    "editor": {
+      "widget_management": "Gestión de Widgets",
+      "add_device_control": "Dispositivo",
+      "add_room_overview": "Habitación",
+      "add_scene_shortcut": "Escena",
+      "add_activity_feed": "Actividad",
+      "add_assistant_insight": "Asistente",
+      "add_system_status": "Sistema"
     }
   },
   "demo": {
@@ -915,7 +1009,8 @@
       "USER_ACTIVATED": "Usuario Activado",
       "USER_ROLE_CHANGED": "Rol Cambiado",
       "USER_SESSIONS_REVOKED": "Sesiones Revocadas"
-    }
+    },
+    "no_content_yet": "No hay contenido disponible todavía"
   },
   "timezones": {
     "America/Guayaquil": "Ecuador (Guayaquil)",

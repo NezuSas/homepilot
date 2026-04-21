@@ -28,6 +28,21 @@
     "group_personalization": "Personalization",
     "coming_soon": "Coming soon"
   },
+  "device_statuses": {
+    "on": "On",
+    "off": "Off"
+  },
+  "device_types": {
+    "light": "Lighting",
+    "switch": "Switch",
+    "sensor": "Sensor",
+    "cover": "Cover",
+    "media_player": "Media Player",
+    "climate": "Climate",
+    "camera": "Camera",
+    "lock": "Lock",
+    "none": "Unknown"
+  },
   "assistant": {
     "title": "HomePilot Assistant",
     "subtitle": "System improvements and suggestions",
@@ -755,6 +770,8 @@
     "tabs_empty": "No tabs yet",
     "tabs_hint": "Tabs let you organize your dashboard into distinct sections.",
     "action_add_tab": "Add tab",
+    "placeholder_tab_title": "New Tab",
+    "list_header": "Your Dashboards",
     "create_tab_placeholder": "Tab name...",
     "delete_tab_confirm": "Delete this tab and all its widgets?",
     "widgets_empty": "This tab is empty. Add your first widget below.",
@@ -774,26 +791,103 @@
       "hardware_execution": "Hardware-level execution active"
     },
     "widgets": {
+      "bind_now": "Bind Now",
       "room_summary": {
         "label": "Room Summary",
-        "description": "Status overview of a room"
+        "description": "Status overview of a room",
+        "active_count_one": "1 Active",
+        "active_count_other": "{{count}} Active",
+        "all_off": "All Off",
+        "units_one": "1 Unit",
+        "units_other": "{{count}} Units",
+        "turn_off_all": "Turn Off All",
+        "placeholder": "Link it to a room to control the entire space."
       },
       "selected_device": {
         "label": "Device Card",
-        "description": "Control an individual device"
+        "description": "Control an individual device",
+        "placeholder": "Link it to a light or switch to take control."
       },
       "scenes_shortcut": {
         "label": "Scene Shortcut",
-        "description": "Quick access to a scene"
+        "description": "Quick access to a scene",
+        "placeholder": "Link it to a custom scene to launch it with a tap."
       },
       "assistant_insights": {
         "label": "Assistant Insights",
-        "description": "Proactive system insights"
+        "description": "Proactive system insights",
+        "no_findings": "All under control",
+        "no_findings_desc": "No pending findings in the system.",
+        "view_details": "View Details"
       },
       "energy_insight": {
         "label": "Energy Insight",
-        "description": "Real-time energy signals"
+        "description": "Real-time energy signals",
+        "current_power": "Current Power",
+        "consumption_today": "Today's Consumption",
+        "sustainable": "Sustainable",
+        "placeholder": "No energy entities (W/kWh) detected in Home Assistant."
+      },
+      "activity_feed": {
+        "label": "Activity",
+        "placeholder": "No events recorded in the system at this time."
+      },
+      "system_status": {
+        "label": "System",
+        "placeholder": "Could not fetch HomePilot server diagnostics.",
+        "processor": "Processor",
+        "memory": "Memory (RAM)",
+        "uptime": "Active Time",
+        "online": "Online"
       }
+    },
+    "inspector": {
+      "title": "Widget Inspector",
+      "identity": "Identity & Title",
+      "dimensions": "Dimensions",
+      "binding": "Binding",
+      "appearance": "Aesthetics & Visibility",
+      "delete_widget": "Remove Widget",
+      "finish": "Finish Configuration",
+      "guided_config": "Guided Configuration",
+      "step_name": "Name Widget",
+      "step_bind": "Bind Entity",
+      "auto_monitor": "Auto Monitor",
+      "auto_monitor_desc": "This widget automatically detects energy entities in your system. No manual binding required.",
+      "target_device": "Target Device",
+      "reference_room": "Reference Room",
+      "scene_to_trigger": "Scene to Trigger",
+      "condition_label": "Display Condition",
+      "select_device": "Select Sensor/Light",
+      "time_range": "Range (HH:mm-HH:mm)",
+      "custom_title_placeholder": "Custom title...",
+      "custom_title_hint": "This name will be shown in the widget header if layout allows.",
+      "width_label": "Width (Columns)",
+      "height_label": "Height (Units)",
+      "cols": "Cols",
+      "units": "Units",
+      "select_device_placeholder": "Select device...",
+      "select_room_placeholder": "Select room...",
+      "select_scene_placeholder": "Select scene...",
+      "loading_scenes": "Loading scenes..."
+    },
+    "visibility": {
+      "label": "Visibility Rules",
+      "always": "Always",
+      "device_on": "If device is On",
+      "has_alerts": "If there are alerts",
+      "time_range": "Time range",
+      "action_show": "Show",
+      "action_hide": "Hide"
+    },
+    "editor": {
+      "widget_management": "Widget Management",
+      "add_device_control": "Device",
+      "add_room_overview": "Room",
+      "add_scene_shortcut": "Scene",
+      "add_activity_feed": "Activity",
+      "add_assistant_insight": "Assistant",
+      "add_system_status": "System"
     }
   },
   "demo": {
@@ -915,7 +1009,8 @@
       "USER_ACTIVATED": "User Activated",
       "USER_ROLE_CHANGED": "Role Changed",
       "USER_SESSIONS_REVOKED": "Sessions Revoked"
-    }
+    },
+    "no_content_yet": "No content available yet"
   },
   "timezones": {
     "America/Guayaquil": "Ecuador (Guayaquil)",
