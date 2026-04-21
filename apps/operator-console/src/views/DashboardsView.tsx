@@ -233,10 +233,35 @@ function InlineTabCreator({ onConfirm, onCancel, placeholder, initialValue = '' 
 
 // ─── Widget Configurator Modal ──────────────────────────────────────────────────
 
+interface Room {
+  id: string;
+  name: string;
+}
+
 function WidgetConfigurator({ widget, onClose, onSave }: { widget: DashboardWidget; onClose: () => void; onSave: (config: any) => void }) {
   const { t } = useTranslation();
   const meta = WIDGET_META[widget.type];
   const Icon = meta.icon;
+
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [localConfig, setLocalConfig] = useState(widget.config);
+
+  useEffect(() => {
+    if (widget.type === 'room_summary') {
+      setLoadingRooms(true);
+      apiFetch(`${API}/rooms`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setRooms(data);
+        })
+        .finally(() => setLoadingRooms(false));
+    }
+  }, [widget.type]);
+
+  const handleSave = () => {
+    onSave(localConfig);
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
@@ -254,20 +279,66 @@ function WidgetConfigurator({ widget, onClose, onSave }: { widget: DashboardWidg
            </div>
            <button onClick={onClose} className="p-2 bg-muted/60 rounded-xl hover:bg-muted text-foreground transition-colors"><X className="w-4 h-4"/></button>
         </div>
-        <div className="p-8 flex flex-col items-center justify-center text-center gap-4 min-h-[220px] bg-muted/5">
-           <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
-             <LayoutDashboard className="w-6 h-6 text-muted-foreground/40" />
-           </div>
-           <div>
-             <h4 className="text-sm font-bold text-foreground">En Construcción</h4>
-             <p className="text-xs text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
-               El panel de configuración para este widget estará disponible en la próxima actualización de componentes.
-             </p>
-           </div>
+        
+        <div className="p-8 bg-muted/5">
+          {widget.type === 'room_summary' ? (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Seleccionar Habitación</label>
+                {loadingRooms ? (
+                  <div className="flex items-center gap-3 p-4 bg-background border border-border rounded-2xl animate-pulse">
+                    <div className="w-4 h-4 rounded-full bg-muted animate-bounce" />
+                    <div className="h-4 w-32 bg-muted rounded" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+                    {rooms.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4 italic">No hay habitaciones configuradas.</p>
+                    ) : (
+                      rooms.map(room => (
+                        <button
+                          key={room.id}
+                          onClick={() => setLocalConfig({ ...localConfig, roomId: room.id })}
+                          className={cn(
+                            'flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 text-left',
+                            (localConfig as any).roomId === room.id 
+                              ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5' 
+                              : 'bg-background border-border/60 hover:border-primary/30 hover:bg-muted/50'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Home className={cn('w-4 h-4', (localConfig as any).roomId === room.id ? 'text-primary' : 'text-muted-foreground/50')} />
+                            <span className="text-sm font-bold">{room.name}</span>
+                          </div>
+                          {(localConfig as any).roomId === room.id && <Check className="w-4 h-4" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                El widget mostrará un resumen del estado de los dispositivos y sensores dentro de la habitación seleccionada.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center gap-4 min-h-[220px]">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
+                <LayoutDashboard className="w-6 h-6 text-muted-foreground/40" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">En Construcción</h4>
+                <p className="text-xs text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
+                  El panel de configuración para este widget estará disponible en la próxima actualización de componentes.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
+
         <div className="p-5 border-t border-border/40 flex justify-end gap-3 bg-muted/20">
            <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-           <Button variant="primary" onClick={() => onSave(widget.config)}>Guardar</Button>
+           <Button variant="primary" onClick={handleSave}>Guardar</Button>
         </div>
       </div>
     </div>
@@ -650,8 +721,15 @@ export function DashboardsView() {
         <WidgetConfigurator
           widget={editingWidget}
           onClose={() => setEditingWidget(null)}
-          onSave={async () => {
-            // Save logic to be expanded later
+          onSave={async (newConfig) => {
+            if (!active) return;
+            const updatedTabs = active.tabs.map((tab, idx) =>
+              idx !== activeTabIdx ? tab : {
+                ...tab,
+                widgets: tab.widgets.map(w => w.id === editingWidget.id ? { ...w, config: newConfig } : w)
+              }
+            );
+            await patch(active.id, { tabs: updatedTabs });
             setEditingWidget(null);
           }}
         />
