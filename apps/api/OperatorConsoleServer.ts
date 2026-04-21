@@ -14,6 +14,8 @@ import { AutomationRoutes } from './routes/AutomationRoutes';
 import { DeviceRoutes } from './routes/DeviceRoutes';
 import { DashboardRoutes } from './routes/DashboardRoutes';
 
+import { MediaRoutes } from './routes/MediaRoutes';
+
 /**
  * OperatorConsoleServer — backward-compatible wrapper around ApiGateway.
  *
@@ -28,6 +30,7 @@ export class OperatorConsoleServer {
 
   constructor(container: BootstrapContainer, dbPath: string, port: number = 3000) {
     const handlers: RouteHandler[] = [
+      new MediaRoutes(),
       new SystemRoutes(),
       new AuthRoutes(),
       new AdminRoutes(),

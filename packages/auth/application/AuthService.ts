@@ -117,6 +117,8 @@ export class AuthService {
       passwordHash: passwordHash,
       role: 'admin',
       isActive: true,
+      displayName: null,
+      avatarDataUri: null,
       createdAt: now,
       updatedAt: now
     };

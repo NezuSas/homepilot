@@ -7,7 +7,9 @@ import { UserRole } from '../domain/User';
 export interface PublicUserDto {
   id: string;
   username: string;
-  role: 'admin' | 'operator';
+  displayName: string | null;
+  avatarDataUri: string | null;
+  role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -17,7 +19,7 @@ export interface PublicUserDto {
 export interface CreateUserPayload {
   username: string;
   passwordPlain: string;
-  role: 'admin' | 'operator';
+  role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
 }
 
 export class UserManagementService {
@@ -28,6 +30,8 @@ export class UserManagementService {
     private readonly cryptoService: CryptoService
   ) {}
 
+  private static readonly VALID_ROLES = new Set<string>(['admin', 'parent', 'child', 'guest', 'operator']);
+
   public async listUsers(): Promise<PublicUserDto[]> {
     const users = await this.userRepository.findAll();
     const dtos: PublicUserDto[] = [];
@@ -37,6 +41,8 @@ export class UserManagementService {
       dtos.push({
         id: u.id,
         username: u.username,
+        displayName: u.displayName,
+        avatarDataUri: u.avatarDataUri,
         role: u.role,
         isActive: u.isActive,
         createdAt: u.createdAt,
@@ -55,7 +61,7 @@ export class UserManagementService {
     if (!payload.passwordPlain || payload.passwordPlain.length < 8) {
       throw new Error('INVALID_INPUT: Password must be at least 8 characters long');
     }
-    if (payload.role !== 'admin' && payload.role !== 'operator') {
+    if (!UserManagementService.VALID_ROLES.has(payload.role)) {
       throw new Error('INVALID_ROLE');
     }
 
@@ -75,6 +81,8 @@ export class UserManagementService {
       passwordHash: passwordHash,
       role: payload.role as UserRole,
       isActive: true,
+      displayName: null,
+      avatarDataUri: null,
       createdAt: now,
       updatedAt: now
     };
@@ -97,6 +105,8 @@ export class UserManagementService {
     return {
       id: newUser.id,
       username: newUser.username,
+      displayName: null,
+      avatarDataUri: null,
       role: newUser.role,
       isActive: newUser.isActive,
       createdAt: newUser.createdAt,
@@ -105,10 +115,20 @@ export class UserManagementService {
     };
   }
 
-  public async updateUserRole(adminUserId: string, targetUserId: string, newRole: 'admin' | 'operator'): Promise<void> {
+  public async updateProfile(
+    userId: string,
+    displayName: string | null,
+    avatarDataUri: string | null
+  ): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new Error('USER_NOT_FOUND');
+    await this.userRepository.updateProfile(userId, displayName, avatarDataUri);
+  }
+
+  public async updateUserRole(adminUserId: string, targetUserId: string, newRole: 'admin' | 'parent' | 'child' | 'guest' | 'operator'): Promise<void> {
     const target = await this.userRepository.findById(targetUserId);
     if (!target) throw new Error('USER_NOT_FOUND');
-    if (newRole !== 'admin' && newRole !== 'operator') throw new Error('INVALID_ROLE');
+    if (!UserManagementService.VALID_ROLES.has(newRole)) throw new Error('INVALID_ROLE');
     // Atomic update with Minimum Admin Rule enforcement at DB level
     const success = await this.userRepository.updateRoleAtomic(targetUserId, newRole);
     if (!success) {

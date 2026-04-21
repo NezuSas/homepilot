@@ -55,6 +55,7 @@ import { useAssistantStore } from './stores/useAssistantStore';
 import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
 import { useDemoGuideStore, type DemoStep } from './stores/useDemoGuideStore';
 import { DemoGuideOverlay } from './components/DemoGuideOverlay';
+import { UserProfileModal } from './components/UserProfileModal';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -121,6 +122,17 @@ function App() {
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [localProfile, setLocalProfile] = useState<{ displayName: string | null; avatarDataUri: string | null }>(() => {
+    try {
+      const raw = localStorage.getItem('hp_user_ctx');
+      if (raw) {
+        const ctx = JSON.parse(raw);
+        return { displayName: ctx.displayName ?? null, avatarDataUri: ctx.avatarDataUri ?? null };
+      }
+    } catch { /* ignore */ }
+    return { displayName: null, avatarDataUri: null };
+  });
 
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
   const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
@@ -423,28 +435,34 @@ function App() {
                active={currentView === 'spaces'} 
                onClick={() => navigateTo('spaces')} 
              />
-             <SidebarItem 
-               icon={Monitor} 
-               label={t('nav.scenes')} 
-               active={currentView === 'scenes'} 
-               onClick={() => navigateTo('scenes')} 
-             />
-             <SidebarItem 
-               icon={PlaySquare} 
-               label={t('nav.automations')} 
-               active={currentView === 'automations'} 
-               onClick={() => navigateTo('automations')} 
-               data-demo="nav-automations"
-             />
-             <SidebarItem 
-               icon={Sparkles} 
-               label={t('nav.assistant')} 
-               active={currentView === 'assistant'} 
-               onClick={() => navigateTo('assistant')}
-               badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0 
-                  ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span> 
-                  : undefined}
-             />
+             {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
+               <SidebarItem 
+                 icon={Monitor} 
+                 label={t('nav.scenes')} 
+                 active={currentView === 'scenes'} 
+                 onClick={() => navigateTo('scenes')} 
+               />
+             )}
+             {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent') && (
+               <SidebarItem 
+                 icon={PlaySquare} 
+                 label={t('nav.automations')} 
+                 active={currentView === 'automations'} 
+                 onClick={() => navigateTo('automations')} 
+                 data-demo="nav-automations"
+               />
+             )}
+             {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
+               <SidebarItem 
+                 icon={Sparkles} 
+                 label={t('nav.assistant')} 
+                 active={currentView === 'assistant'} 
+                 onClick={() => navigateTo('assistant')}
+                 badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0 
+                    ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span> 
+                    : undefined}
+               />
+             )}
              <SidebarItem 
                icon={ShieldCheck} 
                label={t('nav.resilience_showcase')} 
@@ -455,98 +473,108 @@ function App() {
           </div>
 
           {/* ── PERSONALIZATION ────────────────────────────────────── */}
-          <div className="mt-3 mb-1 px-2">
-            <span className="text-[8.5px] font-black uppercase tracking-[0.22em] text-muted-foreground/30">{t('nav.group_personalization')}</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-             <SidebarItem 
-               icon={BarChart2} 
-               label={t('nav.dashboards')} 
-               active={currentView === 'dashboards'}
-               onClick={() => navigateTo('dashboards')}
-             />
-             <SidebarItem 
-               icon={Zap} 
-               label={t('nav.energy')} 
-               active={currentView === 'energy'}
-               onClick={() => navigateTo('energy')}
-             />
-          </div>
+          {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
+            <>
+              <div className="mt-3 mb-1 px-2">
+                <span className="text-[8.5px] font-black uppercase tracking-[0.22em] text-muted-foreground/30">{t('nav.group_personalization')}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                 <SidebarItem 
+                   icon={BarChart2} 
+                   label={t('nav.dashboards')} 
+                   active={currentView === 'dashboards'}
+                   onClick={() => navigateTo('dashboards')}
+                 />
+                 {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent') && (
+                   <SidebarItem 
+                     icon={Zap} 
+                     label={t('nav.energy')} 
+                     active={currentView === 'energy'}
+                     onClick={() => navigateTo('energy')}
+                   />
+                 )}
+              </div>
+            </>
+          )}
 
           {/* ── DIVIDER ────────────────────────────────────────────── */}
-          <div className="mx-2 my-3 border-t border-border/30" />
+          {(user?.role === 'admin' || user?.role === 'operator') && (
+            <>
+              <div className="mx-2 my-3 border-t border-border/30" />
 
-          {/* ── SYSTEM ─────────────────────────────────────────────── */}
-          <div className="flex flex-col gap-0.5">
-            <button
-                onClick={() => setIsSystemExpanded(prev => !prev)}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition-all w-full text-left",
-                  activeSystemSection
-                    ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
-                    : 'text-muted-foreground hover:bg-muted/80'
+              {/* ── SYSTEM ─────────────────────────────────────────────── */}
+              <div className="flex flex-col gap-0.5">
+                <button
+                    onClick={() => setIsSystemExpanded(prev => !prev)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition-all w-full text-left",
+                      activeSystemSection
+                        ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
+                        : 'text-muted-foreground hover:bg-muted/80'
+                    )}
+                  >
+                    <div className={cn("p-2 rounded-xl transition-all duration-300", activeSystemSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted group-hover:bg-background group-hover:shadow")}>
+                        <Settings className="w-4 h-4 shrink-0" />
+                    </div>
+                    <span className="flex-1">{t('nav.system')}</span>
+                    {isSystemExpanded
+                      ? <ChevronDown className="w-4 h-4 opacity-60" />
+                      : <ChevronRight className="w-4 h-4 opacity-60" />
+                    }
+                </button>
+
+                {/* System sub-items — inline collapsible */}
+                {isSystemExpanded && (
+                  <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
+                     <SidebarItem
+                        icon={Network}
+                        label={t('nav.system_devices')}
+                        active={currentView === 'system-devices'}
+                        onClick={() => navigateTo('system-devices')}
+                        nested
+                      />
+                      <SidebarItem
+                        icon={Server}
+                        label={t('nav.system_inbox')}
+                        active={currentView === 'system-inbox'}
+                        onClick={() => navigateTo('system-inbox')}
+                        nested
+                      />
+                      <SidebarItem
+                        icon={Activity}
+                        label={t('nav.system_diagnostics')}
+                        active={currentView === 'system-diagnostics'}
+                        onClick={() => navigateTo('system-diagnostics')}
+                        nested
+                      />
+                      <SidebarItem
+                        icon={ShieldAlert}
+                        label={t('nav.system_audit')}
+                        active={currentView === 'system-audit'}
+                        onClick={() => navigateTo('system-audit')}
+                        nested
+                      />
+                      {user?.role === 'admin' && (
+                        <SidebarItem
+                          icon={Users}
+                          label={t('nav.system_users')}
+                          active={currentView === 'system-users'}
+                          onClick={() => navigateTo('system-users')}
+                          nested
+                        />
+                      )}
+                      <SidebarItem
+                        icon={Settings}
+                        label={t('nav.system_ha')}
+                        active={currentView === 'system-ha'}
+                        onClick={() => navigateTo('system-ha')}
+                        nested
+                      />
+                  </div>
                 )}
-              >
-                <div className={cn("p-2 rounded-xl transition-all duration-300", activeSystemSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted group-hover:bg-background group-hover:shadow")}>
-                    <Settings className="w-4 h-4 shrink-0" />
-                </div>
-                <span className="flex-1">{t('nav.system')}</span>
-                {isSystemExpanded
-                  ? <ChevronDown className="w-4 h-4 opacity-60" />
-                  : <ChevronRight className="w-4 h-4 opacity-60" />
-                }
-            </button>
-
-            {/* System sub-items — inline collapsible */}
-            {isSystemExpanded && (
-              <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
-                 <SidebarItem
-                    icon={Network}
-                    label={t('nav.system_devices')}
-                    active={currentView === 'system-devices'}
-                    onClick={() => navigateTo('system-devices')}
-                    nested
-                  />
-                  <SidebarItem
-                    icon={Server}
-                    label={t('nav.system_inbox')}
-                    active={currentView === 'system-inbox'}
-                    onClick={() => navigateTo('system-inbox')}
-                    nested
-                  />
-                  <SidebarItem
-                    icon={Activity}
-                    label={t('nav.system_diagnostics')}
-                    active={currentView === 'system-diagnostics'}
-                    onClick={() => navigateTo('system-diagnostics')}
-                    nested
-                  />
-                  <SidebarItem
-                    icon={ShieldAlert}
-                    label={t('nav.system_audit')}
-                    active={currentView === 'system-audit'}
-                    onClick={() => navigateTo('system-audit')}
-                    nested
-                  />
-                  {user?.role === 'admin' && (
-                    <SidebarItem
-                      icon={Users}
-                      label={t('nav.system_users')}
-                      active={currentView === 'system-users'}
-                      onClick={() => navigateTo('system-users')}
-                      nested
-                    />
-                  )}
-                  <SidebarItem
-                    icon={Settings}
-                    label={t('nav.system_ha')}
-                    active={currentView === 'system-ha'}
-                    onClick={() => navigateTo('system-ha')}
-                    nested
-                  />
               </div>
-            )}
-          </div>
+            </>
+          )}
         </nav>
         
         <div className="p-4 border-t mt-auto flex flex-col gap-2 bg-background/30">
@@ -558,10 +586,25 @@ function App() {
             <span className="text-[10px] font-black uppercase tracking-widest">{t('demo.start_button')}</span>
           </button>
           <div className="pt-1 flex flex-col gap-1">
-            <div className="flex items-center justify-between pl-3 pr-2">
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-black tracking-tight truncate">{user?.username || t('common.unknown')}</span>
-              </div>
+            <div className="flex items-center justify-between pl-1 pr-2">
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="flex items-center gap-2.5 min-w-0 flex-1 p-2 rounded-xl hover:bg-muted transition-all"
+                title={t('users.profile.title', 'Mi Perfil')}
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
+                  {localProfile.avatarDataUri
+                    ? <img src={localProfile.avatarDataUri} alt="avatar" className="w-full h-full object-cover" />
+                    : <span className="font-bold text-[10px] uppercase">{(user?.username || '?').substring(0, 2)}</span>
+                  }
+                </div>
+                <div className="flex flex-col min-w-0 text-left">
+                  <span className="text-sm font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
+                  {localProfile.displayName && (
+                    <span className="text-[10px] text-muted-foreground truncate">@{user?.username}</span>
+                  )}
+                </div>
+              </button>
               <div className="flex items-center gap-1">
                 <button 
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -736,6 +779,13 @@ function App() {
         onSuccess={handlePasswordChanged}
       />
       <DemoGuideOverlay onNavigate={navigateTo} />
+      {showProfileModal && user && (
+        <UserProfileModal
+          user={user}
+          onClose={() => setShowProfileModal(false)}
+          onSaved={(profile) => setLocalProfile(profile)}
+        />
+      )}
     </div>
   );
 }

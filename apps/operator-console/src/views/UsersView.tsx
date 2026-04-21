@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, RefreshCcw, Activity } from 'lucide-react';
+import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 
 interface PublicUserDto {
   id: string;
   username: string;
-  role: 'admin' | 'operator';
+  displayName: string | null;
+  avatarDataUri: string | null;
+  role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,7 +26,7 @@ export function UsersView() {
   const [showCreate, setShowCreate] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'operator' | 'admin'>('operator');
+  const [newRole, setNewRole] = useState<'admin' | 'parent' | 'child' | 'guest' | 'operator'>('operator');
   const [createError, setCreateError] = useState('');
 
   const fetchUsers = async () => {
@@ -154,8 +156,11 @@ export function UsersView() {
                   value={newRole}
                   onChange={e => setNewRole(e.target.value as any)}
                 >
-                  <option value="operator">{t('users.create_form.operator_desc')}</option>
-                  <option value="admin">{t('users.create_form.admin_desc')}</option>
+                  <option value="admin">{t('users.roles.admin')}</option>
+                  <option value="parent">{t('users.roles.parent')}</option>
+                  <option value="child">{t('users.roles.child')}</option>
+                  <option value="guest">{t('users.roles.guest')}</option>
+                  <option value="operator">{t('users.roles.operator')}</option>
                 </select>
               </div>
             </div>
@@ -210,23 +215,28 @@ export function UsersView() {
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
-                          <span className="font-bold text-xs uppercase">{u.username.substring(0, 2)}</span>
+                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
+                          {u.avatarDataUri
+                            ? <img src={u.avatarDataUri} alt={u.username} className="w-full h-full object-cover" />
+                            : <span className="font-bold text-xs uppercase">{u.username.substring(0, 2)}</span>
+                          }
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{u.username}</span>
-                          <span className="text-[10px] text-muted-foreground font-mono opacity-60">ID: {u.id}</span>
+                          <span className="font-semibold text-foreground">{u.displayName || u.username}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono opacity-60">@{u.username}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                        u.role === 'admin'
-                          ? 'bg-warning/10 text-warning border-warning/20'
-                          : 'bg-primary/10 text-primary border-primary/20'
+                        u.role === 'admin' ? 'bg-warning/10 text-warning border-warning/20' :
+                        u.role === 'parent' ? 'bg-primary/10 text-primary border-primary/20' :
+                        u.role === 'child' ? 'bg-foreground/10 text-foreground border-foreground/20' :
+                        u.role === 'guest' ? 'bg-muted text-muted-foreground border-border' :
+                        'bg-foreground/5 text-foreground/70 border-foreground/10'
                       }`}>
                         {u.role === 'admin' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                        {t('common.roles.' + u.role).toUpperCase()}
+                        {t(`users.roles.${u.role}`)}
                       </span>
                     </td>
                     <td className="px-5 py-4">
@@ -243,7 +253,7 @@ export function UsersView() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                      <div className="flex items-center justify-end gap-2 transition-all">
                         {/* TOGGLE ACTIVE */}
                         <button
                           onClick={() => handleAction(
@@ -263,18 +273,27 @@ export function UsersView() {
                         </button>
 
                         {/* CHANGE ROLE */}
-                        <button
-                          onClick={() => handleAction(
-                            () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: u.role === 'admin' ? 'operator' : 'admin' }) 
-                            }),
-                            t('users.actions.confirm_role', { username: u.username })
-                          )}
-                          className="p-2 bg-background border border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-all shadow-sm"
-                          title={t('users.actions.swap_role_title', { role: u.role })}
+                        <select
+                          className="bg-background border border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-all shadow-sm text-[11px] font-bold px-2 py-1.5 outline-none cursor-pointer"
+                          value={u.role}
+                          onChange={(e) => {
+                            const selectedRole = e.target.value;
+                            if (selectedRole === u.role) return;
+                            handleAction(
+                              () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
+                                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: selectedRole }) 
+                              }),
+                              t('users.actions.confirm_role', { username: u.username })
+                            );
+                          }}
+                          title={t('users.actions.swap_role_title', { role: t(`users.roles.${u.role}`) })}
                         >
-                          <RefreshCcw className="w-4 h-4" />
-                        </button>
+                          <option value="admin">{t('users.roles.admin')}</option>
+                          <option value="parent">{t('users.roles.parent')}</option>
+                          <option value="child">{t('users.roles.child')}</option>
+                          <option value="guest">{t('users.roles.guest')}</option>
+                          <option value="operator">{t('users.roles.operator')}</option>
+                        </select>
 
                         {/* REVOKE SESSIONS */}
                         <button

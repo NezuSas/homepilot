@@ -605,6 +605,23 @@
     "errors": {
       "fetch_failed": "Error al cargar el directorio de usuarios",
       "create_failed": "Error al registrar el nuevo usuario"
+    },
+    "roles": {
+      "admin": "Administrador del Sistema",
+      "operator": "Soporte Técnico",
+      "parent": "Padre / Dueño",
+      "child": "Hijo / Miembro",
+      "guest": "Invitado"
+    },
+    "profile": {
+      "title": "Mi Perfil",
+      "change_avatar": "Cambiar Foto",
+      "avatar_hint": "Haz clic en la foto para cambiarla. Se guarda localmente en la MiniPC.",
+      "avatar_error": "No se pudo procesar la imagen. Intenta con otra.",
+      "display_name": "Nombre a Mostrar",
+      "display_name_hint": "Si lo dejas vacío, se mostrará tu nombre de usuario.",
+      "username_label": "Usuario",
+      "role_label": "Rol"
     }
   },
   "login": {
@@ -860,7 +877,10 @@
     "days_min": ["D", "L", "M", "M", "J", "V", "S"],
     "roles": {
       "admin": "Administrador",
-      "operator": "Operador"
+      "operator": "Operador",
+      "parent": "Padre",
+      "child": "Hijo",
+      "guest": "Invitado"
     },
     "errors": {
       "api_failed": "Fallo en la petición API",

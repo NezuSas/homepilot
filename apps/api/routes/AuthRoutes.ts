@@ -2,6 +2,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 
 /**
  * Auth routes: /api/v1/auth/*
@@ -106,6 +107,38 @@ export class AuthRoutes extends ApiRoutes {
         this.sendJson(res, { success: true });
       } catch {
         this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Change Password Error');
+      }
+      return true;
+    }
+
+    // PATCH /api/v1/auth/me — update own profile (displayName + avatar)
+    if (method === 'PATCH' && pathname === '/api/v1/auth/me') {
+      try {
+        const payload = await this.parseBody<{ displayName?: string | null; avatarDataUri?: string | null }>(req);
+        const displayName = typeof payload.displayName === 'string' ? payload.displayName.trim() || null : null;
+        let finalAvatarDataUri = typeof payload.avatarDataUri === 'string' ? payload.avatarDataUri : null;
+
+        // If the payload contains a raw Base64 data URI (new upload), process it physically
+        if (finalAvatarDataUri?.startsWith('data:image/')) {
+          const mediaService = new MediaService();
+          const savedPath = await mediaService.saveUserAvatar(req.user!.username, finalAvatarDataUri);
+          const cacheBuster = Date.now();
+          finalAvatarDataUri = `${savedPath}?v=${cacheBuster}`;
+        }
+
+        await container.services.userManagementService.updateProfile(req.user!.id, displayName, finalAvatarDataUri);
+        const updated = await container.repositories.userRepository.findById(req.user!.id);
+        if (!updated) return this.sendError(res, 404, 'USER_NOT_FOUND', 'User not found'), true;
+        this.sendJson(res, {
+          id: updated.id,
+          username: updated.username,
+          displayName: updated.displayName,
+          avatarDataUri: updated.avatarDataUri,
+          role: updated.role,
+          isActive: updated.isActive,
+        });
+      } catch (e: any) {
+        this.sendError(res, 500, 'INTERNAL_ERROR', e.message);
       }
       return true;
     }

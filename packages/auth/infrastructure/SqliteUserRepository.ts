@@ -24,8 +24,8 @@ export class SqliteUserRepository {
 
   public async seedInitialAdmin(admin: User): Promise<void> {
     const stmt = this.db.prepare(`
-      INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, password_hash, role, is_active, display_name, avatar_data_uri, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       admin.id,
@@ -33,6 +33,8 @@ export class SqliteUserRepository {
       admin.passwordHash,
       admin.role,
       admin.isActive ? 1 : 0,
+      admin.displayName ?? null,
+      admin.avatarDataUri ?? null,
       admin.createdAt,
       admin.updatedAt
     );
@@ -117,6 +119,12 @@ export class SqliteUserRepository {
     return result.changes > 0;
   }
 
+  public async updateProfile(id: string, displayName: string | null, avatarDataUri: string | null): Promise<void> {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare('UPDATE users SET display_name = ?, avatar_data_uri = ?, updated_at = ? WHERE id = ?');
+    stmt.run(displayName, avatarDataUri, now, id);
+  }
+
   private mapToDomain(row: any): User {
     return {
       id: row.id,
@@ -124,6 +132,8 @@ export class SqliteUserRepository {
       passwordHash: row.password_hash,
       role: row.role as UserRole,
       isActive: row.is_active === 1,
+      displayName: row.display_name ?? null,
+      avatarDataUri: row.avatar_data_uri ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };

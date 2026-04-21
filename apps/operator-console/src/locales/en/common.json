@@ -605,6 +605,23 @@
     "errors": {
       "fetch_failed": "Failed to fetch user directory",
       "create_failed": "Failed to register new user"
+    },
+    "roles": {
+      "admin": "System Administrator",
+      "operator": "Technical Support",
+      "parent": "Parent / Owner",
+      "child": "Child / Member",
+      "guest": "Guest"
+    },
+    "profile": {
+      "title": "My Profile",
+      "change_avatar": "Change Photo",
+      "avatar_hint": "Click the photo to change it. It gets saved locally on the MiniPC.",
+      "avatar_error": "Could not process image. Please try another.",
+      "display_name": "Display Name",
+      "display_name_hint": "If left empty, your username will be displayed.",
+      "username_label": "Username",
+      "role_label": "Role"
     }
   },
   "login": {
@@ -860,7 +877,10 @@
     "false": "FALSE",
     "roles": {
       "admin": "Administrator",
-      "operator": "Operator"
+      "operator": "Operator",
+      "parent": "Parent",
+      "child": "Child",
+      "guest": "Guest"
     },
     "errors": {
       "api_failed": "API request failed",

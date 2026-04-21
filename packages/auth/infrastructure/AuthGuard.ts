@@ -6,20 +6,28 @@ import { HomePilotRequest, RequestUser } from '../../shared/domain/http';
 export type RoleCheckerFn = (user: RequestUser, requiredRole: UserRole) => boolean;
 
 export class AuthGuard {
+  /**
+   * Role hierarchy weights — higher value = more privilege.
+   * Any role with weight >= the required role's weight is accepted.
+   *
+   *  admin    5  — Technical superuser (full access)
+   *  operator 4  — Legacy support role (same as admin for compatibility)
+   *  parent   3  — Home owner (all home features, no system config)
+   *  child    2  — Family member (devices + dashboards, no advanced config)
+   *  guest    1  — Visitor (basic control only)
+   */
+  private static readonly ROLE_WEIGHTS: Record<string, number> = {
+    admin:    5,
+    operator: 4,
+    parent:   3,
+    child:    2,
+    guest:    1,
+  };
+
   private roleChecker: RoleCheckerFn = (user, requiredRole) => {
-    // Admin has absolute power
-    if (user.role === 'admin') {
-      return true;
-    }
-
-    // If needed role is operator, then an operator can pass. 
-    // In our system, checking for 'operator' allows anyone (since 'admin' is checked above). 
-    // Checking for 'admin' will reject an 'operator'.
-    if (requiredRole === 'admin') {
-      return false;
-    }
-
-    return true;
+    const userWeight    = AuthGuard.ROLE_WEIGHTS[user.role]    ?? 0;
+    const requiredWeight = AuthGuard.ROLE_WEIGHTS[requiredRole] ?? 0;
+    return userWeight >= requiredWeight;
   };
 
   constructor(private authService: AuthService) {}

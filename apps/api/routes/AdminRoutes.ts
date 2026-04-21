@@ -50,9 +50,13 @@ export class AdminRoutes extends ApiRoutes {
     const patchRoleMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/role$/);
     if (patchRoleMatch) {
       const targetId = patchRoleMatch[1];
+      const VALID_ROLES = new Set(['admin', 'parent', 'child', 'guest', 'operator']);
       try {
         const payload = await this.parseBody<{ role: string }>(req);
-        await container.services.userManagementService.updateUserRole(req.user!.id, targetId, payload.role as any); // Small cast for UserRole union is acceptable if API is generic
+        if (!payload.role || !VALID_ROLES.has(payload.role)) {
+          return this.sendError(res, 400, 'INVALID_ROLE', 'Role must be one of: admin, parent, child, guest, operator'), true;
+        }
+        await container.services.userManagementService.updateUserRole(req.user!.id, targetId, payload.role as any);
         this.sendJson(res, { success: true });
       } catch (e: any) {
         let status = 400;
