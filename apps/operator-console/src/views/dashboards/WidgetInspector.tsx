@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isDeviceActive, sanitizeWidget } from './dashboardUtils';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { 
@@ -44,10 +45,12 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   }, [isOpen, widget?.type]);
 
   if (!widget) return null;
+  const safeWidget = sanitizeWidget(widget);
 
-  const currentLayout = widget.config.layout;
-  const currentBinding = widget.config.binding;
-  const currentAppearance = widget.config.appearance;
+  const currentLayout = safeWidget.config.layout;
+  const currentBinding = safeWidget.config.binding;
+  const currentAppearance = safeWidget.config.appearance;
+  const currentVisibility = safeWidget.config.visibility;
 
   return (
     <div className={cn(
@@ -62,7 +65,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('dashboards.inspector.title')}</span>
            </div>
            <h3 className="text-2xl font-black tracking-tighter text-foreground">
-             {currentAppearance.title || widget.type.replace('_', ' ')}
+             {currentAppearance.title || safeWidget.type.replace('_', ' ')}
            </h3>
         </div>
         <button onClick={onClose} className="p-3 hover:bg-muted/50 rounded-2xl transition-all active:scale-95">
@@ -83,7 +86,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
              <input 
                placeholder={t('dashboards.inspector.custom_title_placeholder')}
                value={currentAppearance.title || ''}
-               onChange={(e) => onUpdate(widget.id, { appearance: { ...currentAppearance, title: e.target.value } })}
+               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, title: e.target.value } })}
                className="w-full bg-muted/20 border border-border/40 rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:border-primary/50 transition-all shadow-inner"
              />
              <p className="text-[9px] text-muted-foreground/40 px-2 leading-relaxed">{t('dashboards.inspector.custom_title_hint')}</p>
@@ -101,7 +104,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.width_label')}</label>
                 <select 
                   value={currentLayout.w}
-                  onChange={(e) => onUpdate(widget.id, { layout: { ...currentLayout, w: parseInt(e.target.value) } })}
+                  onChange={(e) => onUpdate(safeWidget.id, { layout: { ...currentLayout, w: parseInt(e.target.value) } })}
                   className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-primary/50"
                 >
                   {[2, 3, 4, 6, 8, 12].map(val => <option key={val} value={val}>{val} {t('dashboards.inspector.cols')}</option>)}
@@ -111,7 +114,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.height_label')}</label>
                 <select 
                   value={currentLayout.h}
-                  onChange={(e) => onUpdate(widget.id, { layout: { ...currentLayout, h: parseInt(e.target.value) } })}
+                  onChange={(e) => onUpdate(safeWidget.id, { layout: { ...currentLayout, h: parseInt(e.target.value) } })}
                   className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-primary/50"
                 >
                   {[2, 3, 4, 5, 6, 8, 10, 12].map(val => <option key={val} value={val}>{val} {t('dashboards.inspector.units')}</option>)}
@@ -169,7 +172,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.target_device')}</label>
                   <select 
                     value={currentBinding.entityId || ''}
-                    onChange={(e) => onUpdate(widget.id, { 
+                    onChange={(e) => onUpdate(safeWidget.id, { 
                       binding: { ...currentBinding, entityId: e.target.value, entityType: 'device' } 
                     })}
                     className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
@@ -186,7 +189,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.reference_room')}</label>
                   <select 
                     value={currentBinding.entityId || ''}
-                    onChange={(e) => onUpdate(widget.id, { 
+                    onChange={(e) => onUpdate(safeWidget.id, { 
                       binding: { ...currentBinding, entityId: e.target.value, entityType: 'room' } 
                     })}
                     className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
@@ -204,7 +207,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                   <select 
                     value={currentBinding.entityId || ''}
                     disabled={loadingScenes}
-                    onChange={(e) => onUpdate(widget.id, { 
+                    onChange={(e) => onUpdate(safeWidget.id, { 
                       binding: { ...currentBinding, entityId: e.target.value, entityType: 'scene' } 
                     })}
                     className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
@@ -228,12 +231,12 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
              <div className="flex flex-col gap-2">
                 <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.condition_label')}</label>
                 <select 
-                  value={widget.config.visibility.rules[0]?.type || 'always'}
+                  value={currentVisibility.rules[0]?.type || 'always'}
                   onChange={(e) => {
                     const type = e.target.value as any;
-                    onUpdate(widget.id, { 
+                    onUpdate(safeWidget.id, { 
                       visibility: { 
-                        ...widget.config.visibility,
+                        ...currentVisibility,
                         rules: [{ id: 'r1', type, action: 'show', value: '' }] 
                       } 
                     });
@@ -248,16 +251,16 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
              </div>
 
              {/* Rule Contextual Values */}
-             {widget.config.visibility.rules[0]?.type === 'device_on' && (
-               <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Seleccionar Sensor/Luz</label>
-                  <select 
-                    value={widget.config.visibility.rules[0].value || ''}
-                    onChange={(e) => {
-                      const rules = [...widget.config.visibility.rules];
-                      rules[0] = { ...rules[0], value: e.target.value };
-                      onUpdate(widget.id, { visibility: { ...widget.config.visibility, rules } });
-                    }}
+             {currentVisibility.rules[0]?.type === 'device_on' && (
+                <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Seleccionar Sensor/Luz</label>
+                   <select 
+                     value={currentVisibility.rules[0].value || ''}
+                     onChange={(e) => {
+                       const rules = [...currentVisibility.rules];
+                       rules[0] = { ...rules[0], value: e.target.value };
+                       onUpdate(safeWidget.id, { visibility: { ...currentVisibility, rules } });
+                     }}
                     className="w-full bg-background border border-border/40 rounded-xl px-3 py-2 text-[10px] font-bold"
                   >
                     <option value="">Seleccionar...</option>
@@ -266,18 +269,18 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                </div>
              )}
 
-             {widget.config.visibility.rules[0]?.type === 'time_range' && (
-               <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Rango (HH:mm-HH:mm)</label>
-                  <input 
-                    type="text"
-                    placeholder="08:00-22:00"
-                    value={widget.config.visibility.rules[0].value || ''}
-                    onChange={(e) => {
-                      const rules = [...widget.config.visibility.rules];
-                      rules[0] = { ...rules[0], value: e.target.value };
-                      onUpdate(widget.id, { visibility: { ...widget.config.visibility, rules } });
-                    }}
+              {currentVisibility.rules[0]?.type === 'time_range' && (
+                <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Rango (HH:mm-HH:mm)</label>
+                   <input 
+                     type="text"
+                     placeholder="08:00-22:00"
+                     value={currentVisibility.rules[0].value || ''}
+                     onChange={(e) => {
+                       const rules = [...currentVisibility.rules];
+                       rules[0] = { ...rules[0], value: e.target.value };
+                       onUpdate(safeWidget.id, { visibility: { ...currentVisibility, rules } });
+                     }}
                     className="w-full bg-background border border-border/40 rounded-xl px-3 py-2 text-[10px] font-bold"
                   />
                </div>
@@ -296,7 +299,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 {(['glass', 'solid', 'radiant', 'outline', 'flat'] as const).map(v => (
                   <button
                     key={v}
-                    onClick={() => onUpdate(widget.id, { appearance: { ...currentAppearance, variant: v } })}
+                    onClick={() => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, variant: v } })}
                     className={cn(
                       "group flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-300",
                       currentAppearance.variant === v 
@@ -316,17 +319,17 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                       <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Mostrar Título</span>
                    </div>
-                   <button 
-                     onClick={() => onUpdate(widget.id, { appearance: { ...currentAppearance, showTitle: !currentAppearance.showTitle } })}
-                     className={cn(
-                       "w-10 h-5 rounded-full transition-all duration-300 relative border",
-                       currentAppearance.showTitle ? "bg-primary border-primary" : "bg-muted border-border/60"
-                     )}
-                   >
-                      <div className={cn(
-                        "absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all shadow-sm",
-                        currentAppearance?.showTitle ? "left-[22px]" : "left-1"
-                      )} />
+                    <button 
+                      onClick={() => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, showTitle: !currentAppearance.showTitle } })}
+                      className={cn(
+                        "w-10 h-5 rounded-full transition-all duration-300 relative border",
+                        currentAppearance.showTitle ? "bg-primary border-primary" : "bg-muted border-border/60"
+                      )}
+                    >
+                       <div className={cn(
+                         "absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all shadow-sm",
+                         currentAppearance?.showTitle ? "left-[22px]" : "left-1"
+                       )} />
                    </button>
                 </div>
              </div>
@@ -340,7 +343,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
          <Button 
            variant="secondary" 
            className="w-full font-black uppercase tracking-[0.2em] text-[10px] text-destructive hover:bg-destructive/10 border-destructive/20 py-4 rounded-2xl" 
-           onClick={() => { if (window.confirm(t('common.confirm_action'))) { onRemove(widget.id); onClose(); } }}
+           onClick={() => { if (window.confirm(t('common.confirm_action'))) { onRemove(safeWidget.id); onClose(); } }}
          >
             {t('dashboards.inspector.delete_widget')}
          </Button>

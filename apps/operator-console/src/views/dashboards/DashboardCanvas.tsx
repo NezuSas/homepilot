@@ -13,7 +13,7 @@ import type { DashboardWidget } from './types';
 import { DashboardWidgetNode } from './DashboardWidget';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { useAssistantStore } from '../../stores/useAssistantStore';
-import { isDeviceActive } from './dashboardUtils';
+import { isDeviceActive, sanitizeWidget } from './dashboardUtils';
 
 interface DashboardCanvasProps {
   widgets: DashboardWidget[];
@@ -38,11 +38,12 @@ export function DashboardCanvas({
   const { devices } = useDeviceSnapshotStore();
   const { findings } = useAssistantStore();
 
+  const sanitizedWidgets = widgets.map(sanitizeWidget);
+  
   const evaluateVisibility = (widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
     
-    const visibility = widget.config.visibility || { rules: [], defaultState: 'show' };
-    const { rules, defaultState } = visibility;
+    const { rules, defaultState } = widget.config.visibility;
     if (!rules || rules.length === 0) return defaultState === 'show';
 
     for (const rule of rules) {
@@ -78,7 +79,7 @@ export function DashboardCanvas({
     return defaultState === 'show';
   };
 
-  const visibleWidgets = widgets.filter(evaluateVisibility);
+  const visibleWidgets = sanitizedWidgets.filter(evaluateVisibility);
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -90,7 +91,7 @@ export function DashboardCanvas({
 
   const handleDragStart = (event: DragStartEvent) => {
     if (!isEditing) return;
-    const widget = widgets.find((w) => w.id === event.active.id);
+    const widget = sanitizedWidgets.find((w) => w.id === event.active.id);
     if (widget) setActiveWidget(widget);
   };
 
@@ -100,7 +101,7 @@ export function DashboardCanvas({
     
     if (!isEditing || !containerRef.current) return;
 
-    const widget = widgets.find((w) => w.id === active.id);
+    const widget = sanitizedWidgets.find((w) => w.id === active.id);
     if (!widget) return;
 
     // Calculate grid cell dimensions from container
@@ -115,7 +116,7 @@ export function DashboardCanvas({
     let newY = Math.max(0, widget.config.layout.y + dy);
 
     // Collision Detection Logic
-    const hasCollision = widgets.some(w => {
+    const hasCollision = sanitizedWidgets.some(w => {
        if (w.id === widget.id) return false;
        return (
          newX < w.config.layout.x + w.config.layout.w &&
@@ -133,7 +134,7 @@ export function DashboardCanvas({
     }
 
     if (newX !== widget.config.layout.x || newY !== widget.config.layout.y) {
-      const updatedWidgets = widgets.map(w => 
+      const updatedWidgets = sanitizedWidgets.map(w => 
         w.id === widget.id ? { ...w, config: { ...w.config, layout: { ...w.config.layout, x: newX, y: newY } } } : w
       );
       onLayoutChange(updatedWidgets);
@@ -178,7 +179,7 @@ export function DashboardCanvas({
               onClick={() => onWidgetClick(widget.id)}
               onResizeEnd={(id, w, h) => {
                  // Collision Detection for Resize
-                 const hasCollision = widgets.some(other => {
+                 const hasCollision = sanitizedWidgets.some(other => {
                     if (other.id === id) return false;
                     const layout = widget.config.layout;
                     const otherLayout = other.config.layout;
@@ -192,7 +193,7 @@ export function DashboardCanvas({
                  });
 
                  if (!hasCollision) {
-                    const updatedWidgets = widgets.map(wgt => 
+                    const updatedWidgets = sanitizedWidgets.map(wgt => 
                        wgt.id === id ? { ...wgt, config: { ...wgt.config, layout: { ...wgt.config.layout, w, h } } } : wgt
                     );
                     onLayoutChange(updatedWidgets);
