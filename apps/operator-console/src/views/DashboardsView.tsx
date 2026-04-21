@@ -106,8 +106,12 @@ export function DashboardsView() {
     finally { setLoading(false); }
   }, [active?.id]);
 
+  const hasFetched = useRef(false);
   useEffect(() => { 
-    fetchDashboards(true);
+    if (!hasFetched.current) {
+      fetchDashboards(true);
+      hasFetched.current = true;
+    }
   }, [fetchDashboards]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {

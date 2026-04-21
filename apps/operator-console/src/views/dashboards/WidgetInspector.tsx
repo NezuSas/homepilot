@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { sanitizeWidget } from './dashboardUtils';
 import { cn } from '../../lib/utils';
@@ -45,7 +45,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   }, [isOpen, widget?.type]);
 
   if (!widget) return null;
-  const safeWidget = sanitizeWidget(widget);
+  const safeWidget = useMemo(() => sanitizeWidget(widget), [widget]);
 
   const currentLayout = safeWidget.config.layout;
   const currentBinding = safeWidget.config.binding;

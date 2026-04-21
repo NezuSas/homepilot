@@ -7,7 +7,7 @@ import {
   defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { useState, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
 import { DashboardWidgetNode } from './DashboardWidget';
@@ -38,7 +38,7 @@ export function DashboardCanvas({
   const { devices } = useDeviceSnapshotStore();
   const { findings } = useAssistantStore();
 
-  const sanitizedWidgets = widgets.map(sanitizeWidget);
+  const sanitizedWidgets = useMemo(() => widgets.map(sanitizeWidget), [widgets]);
   
   const evaluateVisibility = (widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
