@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from '../components/ui/Button';
 import { cn } from '../lib/utils';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -59,41 +60,83 @@ const ACCENT_STYLES: Record<string, string> = {
 
 function WidgetCard({ widget, onRemove, onClick, rooms = [] }: { widget: DashboardWidget; onRemove: () => void; onClick: () => void; rooms?: Room[] }) {
   const { t } = useTranslation();
+  const allDevices = useDeviceSnapshotStore((state) => state.devices);
   const meta = WIDGET_META[widget.type];
   const Icon = meta.icon;
   const accentCls = ACCENT_STYLES[meta.accent];
 
-  // Helper to resolve room name if applicable
-  const getRoomName = () => {
+  // Logic to calculate room summary data
+  const roomData = (() => {
     if (widget.type !== 'room_summary') return null;
     const roomId = (widget.config as any)?.roomId;
     if (!roomId) return null;
-    return rooms.find(r => r.id === roomId)?.name;
-  };
+    
+    const room = rooms.find(r => r.id === roomId);
+    if (!room) return null;
 
-  const roomName = getRoomName();
+    const roomDevices = allDevices.filter(d => d.roomId === roomId);
+    const onCount = roomDevices.filter(d => {
+      const s = (d.lastKnownState || {}) as any;
+      return s.on === true || s.state === 'on' || (Number(s.brightness) > 0) || (Number(s.power) > 0);
+    }).length;
+
+    return {
+      name: room.name,
+      total: roomDevices.length,
+      onCount
+    };
+  })();
 
   return (
     <div 
       onClick={onClick}
-      className="group cursor-pointer relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]"
+      className={cn(
+        "group cursor-pointer relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]",
+        roomData && roomData.onCount > 0 && "bg-gradient-to-br from-card via-card to-primary/[0.02]"
+      )}
     >
-      <div className={cn('p-2.5 rounded-xl border shrink-0', accentCls)}>
-        <Icon className="w-4 h-4" />
+      <div className={cn('p-2.5 rounded-xl border shrink-0 relative transition-transform duration-500 group-hover:scale-110', accentCls)}>
+        <Icon className={cn("w-4 h-4", roomData && roomData.onCount > 0 && "animate-pulse")} />
+        {roomData && roomData.onCount > 0 && (
+          <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card animate-pulse shadow-sm shadow-primary/40" />
+        )}
       </div>
+
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-foreground">{t(meta.labelKey)}</p>
-        {roomName ? (
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <div className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-1.5">
-              <Home className="w-2.5 h-2.5 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-tight text-primary">{roomName}</span>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-black text-foreground tracking-tight">{t(meta.labelKey)}</p>
+          {roomData && (
+             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">Live</span>
+          )}
+        </div>
+
+        {roomData ? (
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <div className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-1.5">
+                <Home className="w-2.5 h-2.5 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-tight text-primary">{roomData.name}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className={cn("w-1 h-1 rounded-full", roomData.onCount > 0 ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+                <span className={cn("text-[10px] font-bold uppercase tracking-tight", roomData.onCount > 0 ? "text-foreground" : "text-muted-foreground/40")}>
+                  {roomData.onCount} {t('dashboard.active_units', { count: roomData.onCount }).split(' ')[1] || 'Encendidos'}
+                </span>
+              </div>
+              <div className="w-px h-2 bg-border/40" />
+              <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground/40">
+                {roomData.total} {t('nav.system_devices').split(' ')[1] || 'Equipos'}
+              </span>
             </div>
           </div>
         ) : (
           <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(meta.descriptionKey)}</p>
         )}
       </div>
+
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
