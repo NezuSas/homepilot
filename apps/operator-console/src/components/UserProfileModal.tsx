@@ -40,23 +40,24 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
 
   // Load current profile on mount
-  const loadProfile = useCallback(async () => {
-    try {
-      const res = await apiFetch(`${API_BASE_URL}/api/v1/auth/me`);
-      if (!res.ok) return;
-      const data: UserProfile = await res.json();
-      setDisplayName(data.displayName || '');
-      setAvatarPreview(data.avatarDataUri || null);
-    } catch { /* silently fail */ } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const hasLoaded = useRef(false);
-  if (!hasLoaded.current) {
-    hasLoaded.current = true;
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      try {
+        const res = await apiFetch(`${API_BASE_URL}/api/v1/auth/me`);
+        if (!res.ok || !isMounted) return;
+        const data: UserProfile = await res.json();
+        setDisplayName(data.displayName || '');
+        setAvatarPreview(data.avatarDataUri || null);
+      } catch {
+        // silently fail
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
     loadProfile();
-  }
+    return () => { isMounted = false; };
+  }, [t]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -198,16 +199,21 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
           <div className="p-6 flex flex-col gap-6">
             <div className="flex flex-col items-center gap-4">
               <div 
-                ref={containerRef}
-                className="relative w-56 h-56 cursor-move touch-none"
-                onMouseDown={handleMouseDown}
-                onTouchStart={handleMouseDown}
+                className="relative w-56 h-56 touch-none"
               >
                 {/* Visual Image Container (with overflow hidden) */}
-                <div className="absolute inset-0 rounded-full bg-muted border-4 border-border shadow-inner overflow-hidden">
+                <div 
+                  ref={containerRef}
+                  className="absolute inset-0 rounded-full bg-muted border-4 border-border shadow-inner overflow-hidden cursor-move"
+                  onMouseDown={handleMouseDown}
+                  onTouchStart={handleMouseDown}
+                >
                   {!rawImage && !avatarPreview && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 gap-2">
-                      <UserCircle2 className="w-16 h-16" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/30 bg-primary/5">
+                      <span className="font-black text-4xl uppercase tracking-tighter opacity-20">
+                        {(user?.username || '?').substring(0, 2)}
+                      </span>
+                      <UserCircle2 className="w-12 h-12 absolute opacity-10" />
                     </div>
                   )}
                   
@@ -233,20 +239,26 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                       src={avatarPreview.startsWith('/') ? `${API_BASE_URL}${avatarPreview}` : avatarPreview} 
                       alt="Avatar" 
                       className="w-full h-full object-cover" 
+                      onError={(e) => {
+                         // If image fails to load, clear preview to show fallback
+                         (e.target as any).style.display = 'none';
+                         setAvatarPreview(null);
+                      }}
                     />
                   ) : null}
 
-                  {/* Circular overlay border */}
-                  <div className="absolute inset-0 pointer-events-none border-[12px] border-card/40 rounded-full box-border" />
+                  {/* Circular overlay border (Internal) */}
+                  <div className="absolute inset-0 pointer-events-none border-[12px] border-background/20 rounded-full box-border" />
                 </div>
                 
-                {/* Camera Button (Outside the overflow:hidden circle) */}
+                {/* Camera Button (Clearly outside the clipping radius of the square corners) */}
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="absolute bottom-2 right-2 p-3 bg-primary text-primary-foreground rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all z-20 border-4 border-background"
+                  className="absolute bottom-1 right-1 p-3.5 bg-primary text-primary-foreground rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all z-30 border-4 border-card"
+                  title={t('users.profile.change_avatar')}
                 >
-                  <Camera className="w-5 h-5" />
+                  <Camera className="w-5 h-5 shadow-sm" />
                 </button>
               </div>
 
@@ -297,4 +309,3 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
     </div>
   );
 }
-
