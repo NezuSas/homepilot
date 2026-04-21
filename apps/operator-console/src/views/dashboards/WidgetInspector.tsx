@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { isDeviceActive, sanitizeWidget } from './dashboardUtils';
+import { sanitizeWidget } from './dashboardUtils';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { 
