@@ -55,7 +55,9 @@ export class AuthGuard {
       req.user = {
         id: 'u-01',
         username: 'test_admin',
-        role: 'admin'
+        role: 'admin',
+        displayName: 'Test Admin',
+        avatarDataUri: null
       };
       return true;
     }
@@ -91,7 +93,9 @@ export class AuthGuard {
       req.user = {
         id: authResult.user!.id,
         username: authResult.user!.username,
-        role: authResult.user!.role
+        role: authResult.user!.role,
+        displayName: authResult.user!.displayName,
+        avatarDataUri: authResult.user!.avatarDataUri
       };
 
       return true;

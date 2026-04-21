@@ -8,6 +8,8 @@ export interface RequestUser {
   id: string;
   username: string;
   role: UserRole;
+  displayName: string | null;
+  avatarDataUri: string | null;
 }
 
 /**
