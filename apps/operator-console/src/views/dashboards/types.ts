@@ -3,6 +3,7 @@
 export type WidgetType = 
   | 'device_control' 
   | 'room_overview' 
+  | 'room_summary'   // legacy alias — maps to RoomWidget
   | 'scene_shortcut' 
   | 'activity_feed' 
   | 'assistant_insight' 

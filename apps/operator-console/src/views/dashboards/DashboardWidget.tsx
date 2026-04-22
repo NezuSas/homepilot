@@ -56,6 +56,7 @@ export function DashboardWidgetNode({
       case 'device_control':
         return <DeviceWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
       case 'room_overview':
+      case 'room_summary':
         return <RoomWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
       case 'scene_shortcut':
         return <SceneShortcutWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;

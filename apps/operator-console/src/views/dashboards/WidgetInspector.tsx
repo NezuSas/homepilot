@@ -184,7 +184,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
              )}
 
              {/* Room Selector */}
-             {(widget.type === 'room_overview') && (
+             {(widget.type === 'room_overview' || widget.type === 'room_summary') && (
                  <div className="space-y-2">
                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.reference_room')}</label>
                   <select 
