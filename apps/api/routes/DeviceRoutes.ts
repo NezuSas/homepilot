@@ -335,9 +335,11 @@ export class DeviceRoutes extends ApiRoutes {
 
       const entities = allStates
         .filter((s) => {
+          if (existingEntityIds.has(s.entity_id)) return false;
+
           const domain = s.entity_id.split('.')[0];
           if (isModeAll) return true;
-          return supportedDomains.includes(domain) && !existingEntityIds.has(s.entity_id);
+          return supportedDomains.includes(domain);
         })
         .map((s) => ({
           entityId: s.entity_id,

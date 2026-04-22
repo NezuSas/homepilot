@@ -11,6 +11,7 @@ import { apiFetch } from '../lib/apiClient';
 import ConfirmModal from './ConfirmModal';
 import { Button } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { SearchFilterBar } from '../components/ui/SearchFilterBar';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 
@@ -907,7 +908,22 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
   const [error, setError] = useState<string | null>(null);
   const [showDiscovery, setShowDiscovery] = useState(false);
   const [importingId, setImportingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [domainFilter, setDomainFilter] = useState('all');
   const API_URL = `${API_BASE_URL}/api/v1`;
+
+  const uniqueDomains = Array.from(new Set(entities.map(e => e.domain))).sort();
+  const domainOptions = [
+    { value: 'all', label: t('inbox.filters.all', { defaultValue: 'Todos' }) },
+    ...uniqueDomains.map(d => ({ value: d, label: d }))
+  ];
+
+  const filteredEntities = entities.filter(e => {
+    const matchesSearch = e.friendlyName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          e.entityId.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDomain = domainFilter === 'all' || e.domain === domainFilter;
+    return matchesSearch && matchesDomain;
+  });
 
 
   const fetchCandidates = async () => {
@@ -969,35 +985,49 @@ const HomeAssistantDiscoverySection: React.FC<{ onImported: () => void }> = ({ o
       </div>
 
       {showDiscovery && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
-          {Array.isArray(entities) && entities.map((entity: HaEntityCandidate) => (
-            <div key={entity.entityId} className="p-4 bg-card border border-border rounded-xl flex flex-col gap-3 group relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-2 opacity-5">
-                 <RadioTower className="w-8 h-8" />
-               </div>
-               <div className="flex flex-col">
-                 <span className="text-[10px] font-mono opacity-40 uppercase truncate">{entity.entityId}</span>
-                 <span className="text-xs font-black truncate">{entity.friendlyName}</span>
-               </div>
-               <div className="flex items-center justify-between mt-1">
-                 <span className="px-2 py-0.5 bg-muted rounded text-[9px] font-bold uppercase">{entity.domain}</span>
-                 <button 
-                   onClick={() => handleImport(entity)}
-                   disabled={importingId === entity.entityId}
-                   className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
-                 >
-                   {importingId === entity.entityId ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                   {t('common.import')}
-                 </button>
-               </div>
-            </div>
-          ))}
-          {entities.length === 0 && !loading && (
-            <div className="col-span-full py-8 text-center border-2 border-dashed rounded-xl opacity-40">
-              <p className="text-[10px] font-black uppercase tracking-widest">{t('inbox.discovery.no_entities', { defaultValue: 'No new entities found' })}</p>
-            </div>
+        <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
+          {entities.length > 0 && (
+            <SearchFilterBar 
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder={t('inbox.discovery.search_placeholder', 'Buscar entidades...')}
+              activeFilter={domainFilter}
+              onFilterChange={setDomainFilter}
+              options={domainOptions}
+            />
           )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredEntities.map((entity: HaEntityCandidate) => (
+              <div key={entity.entityId} className="p-4 bg-card border border-border rounded-xl flex flex-col gap-3 group relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-5">
+                  <RadioTower className="w-8 h-8" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-mono opacity-40 uppercase truncate" title={entity.entityId}>{entity.entityId}</span>
+                  <span className="text-xs font-black truncate" title={entity.friendlyName}>{entity.friendlyName}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/20">
+                  <span className="px-2 py-0.5 bg-muted rounded text-[9px] font-bold uppercase">{entity.domain}</span>
+                  <button 
+                    onClick={() => handleImport(entity)}
+                    disabled={importingId === entity.entityId}
+                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-1.5 rounded disabled:opacity-50 transition-all hover:bg-primary/20"
+                  >
+                    {importingId === entity.entityId ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
+                    {t('common.import')}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {filteredEntities.length === 0 && !loading && (
+              <div className="col-span-full py-8 text-center border-2 border-dashed rounded-xl opacity-40">
+                <p className="text-[10px] font-black uppercase tracking-widest">{t('inbox.discovery.no_entities', { defaultValue: 'No entities found' })}</p>
+              </div>
+            )}
+          </div>
         </div>
+
       )}
       {error && <p className="text-[10px] text-destructive bg-destructive/5 p-2 rounded-lg border border-destructive/20 text-center uppercase font-bold">{error}</p>}
     </div>
