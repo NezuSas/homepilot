@@ -44,9 +44,12 @@ useEffect(() => {
 
 useEffect(() => {
   if (!initialLoadDone) {
-    refreshFindings();
+    refreshFindings().then(() => {
+      // Auto-scan to resolve stale findings (e.g. fixed duplicate names in Inbox)
+      scanFindings();
+    });
   }
-}, [initialLoadDone, refreshFindings]);
+}, [initialLoadDone, refreshFindings, scanFindings]);
 
   const handleScan = async () => {
     await scanFindings();

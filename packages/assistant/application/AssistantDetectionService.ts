@@ -55,78 +55,12 @@ export class AssistantDetectionService {
   private async detectSuggestions(context: SystemContext): Promise<Partial<AssistantFinding>[]> {
     const suggestions: Partial<AssistantFinding>[] = [];
 
-    // A. Automation Suggections (Motion + Light)
-    for (const pair of context.insights.motionLightPairs) {
-      const fingerprint = generateFindingFingerprint('automation_suggestion', pair.roomId, 'motion_light');
-      
-      // Create Draft with fingerprint
-      const draft = await this.draftService.createAutomationDraft(
-        context.homeId, 
-        `Auto ${pair.roomName}`,
-        { type: 'device_state_changed', deviceId: pair.sensors[0].id, key: 'state', value: 'on' },
-        { type: 'device_command', targetDeviceId: pair.lights[0].id, command: 'turn_on' },
-        fingerprint // Pass fingerprint for deduplication
-      );
-
-      suggestions.push({
-        fingerprint,
-        type: 'automation_suggestion',
-        severity: 'medium',
-        relatedEntityType: 'room',
-        relatedEntityId: pair.roomId,
-        actions: [
-          { type: 'activate_draft', label: 'assistant.actions.activate_now', payload: { draftId: draft.id } },
-          { type: 'configure_automation', label: 'assistant.actions.configure', payload: { type: 'motion_light', roomId: pair.roomId } },
-          { type: 'ignore', label: 'assistant.actions.ignore' }
-        ],
-        metadata: {
-          subtype: 'motion_light',
-          roomName: pair.roomName,
-          sensorCount: pair.sensors.length,
-          lightCount: pair.lights.length,
-          draftId: draft.id,
-          ready: true
-        }
-      });
-    }
-
-    // B. Scene Suggestions (Light + Cover)
-    for (const pair of context.insights.lightCoverPairs) {
-      const fingerprint = generateFindingFingerprint('scene_suggestion', pair.roomId, 'light_cover');
-      
-      // Create Draft with fingerprint
-      const draft = await this.draftService.createSceneDraft(
-        context.homeId,
-        pair.roomId,
-        `Night ${pair.roomName}`,
-        [
-          ...pair.lights.map(l => ({ deviceId: l.id, command: 'turn_off' })),
-          ...pair.covers.map(c => ({ deviceId: c.id, command: 'close' }))
-        ],
-        fingerprint // Pass fingerprint for deduplication
-      );
-
-      suggestions.push({
-        fingerprint,
-        type: 'scene_suggestion',
-        severity: 'low',
-        relatedEntityType: 'room',
-        relatedEntityId: pair.roomId,
-        actions: [
-          { type: 'activate_draft', label: 'assistant.actions.activate_now', payload: { draftId: draft.id } },
-          { type: 'configure_scene', label: 'assistant.actions.configure', payload: { type: 'night_mode', roomId: pair.roomId } },
-          { type: 'ignore', label: 'assistant.actions.ignore' }
-        ],
-        metadata: {
-          subtype: 'light_cover',
-          roomName: pair.roomName,
-          lightCount: pair.lights.length,
-          coverCount: pair.covers.length,
-          draftId: draft.id,
-          ready: true
-        }
-      });
-    }
+    // A. Automation Suggestions (Motion + Light) - DISABLED
+    // The user explicitly requested that automations should only be suggested based on 
+    // long, daily routines (handled by BehaviorAnalysisService) rather than immediate contextual existence.
+    
+    // B. Scene Suggestions (Light + Cover) - DISABLED
+    // Same rationale as above.
 
     // C. Optimization Suggestions (Always-ON)
     for (const opt of context.insights.potentialOptimizations) {
@@ -242,13 +176,14 @@ export class AssistantDetectionService {
       if (group.length > 1) {
         const sortedIds = group.map(d => d.id).sort();
         findings.push({
-          fingerprint: generateFindingFingerprint('device_name_duplicate', name, sortedIds.join(',')),
+          fingerprint: generateFindingFingerprint('device_name_duplicate', name), // Stable per name, ignore group IDs
           type: 'device_name_duplicate',
           severity: 'medium',
           relatedEntityType: 'device_group',
           relatedEntityId: null,
           actions: [
-            { type: 'rename_device', label: 'assistant.actions.resolve_now', payload: { deviceIds: sortedIds } }
+            { type: 'navigate_inbox', label: 'assistant.actions.resolve_now' },
+            { type: 'ignore', label: 'assistant.actions.ignore' }
           ],
           metadata: { 
             deviceName: group[0].name, 
