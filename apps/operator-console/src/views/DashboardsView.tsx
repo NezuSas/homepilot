@@ -406,24 +406,41 @@ export function DashboardsView() {
                       widgets={activeTab.widgets}
                       isEditing={isEditing}
                       selectedWidgetId={selectedWidgetId}
-                      onWidgetClick={(id) => { setSelectedWidgetId(id); if (isEditing) setIsInspectorOpen(true); }}
+                      onWidgetClick={(id) => { 
+                        const widget = activeTab?.widgets.find(w => w.id === id);
+                        const isUnconfigured = !widget?.config.binding.entityId;
+                        if (!isEditing && !isUnconfigured) return;
+                        if (!isEditing) setIsEditing(true);
+                        setSelectedWidgetId(id); 
+                        setIsInspectorOpen(true); 
+                      }}
                       onLayoutChange={handleLayoutChange}
                    />
                    
-                   {/* Editor Tools Footer */}
+                   {/* Editor Tools Footer (Sticky/Floating) */}
                    {isEditing && (
-                     <div className="flex items-center gap-3 p-6 rounded-3xl bg-muted/30 border border-dashed border-border/60 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mr-4">{t('dashboards.editor.widget_management')}:</p>
-                        <div className="flex flex-wrap gap-2">
-                           {(['device_control', 'room_overview', 'scene_shortcut', 'activity_feed', 'assistant_insight', 'system_status'] as WidgetType[]).map(type => (
-                             <button
-                                key={type}
-                                onClick={() => handleAddWidget(type)}
-                                className="px-4 py-2 bg-background border border-border/60 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-primary/40 hover:text-primary transition-all active:scale-95 shadow-sm"
-                             >
-                               + {t(`dashboards.editor.add_${type}`)}
-                             </button>
-                           ))}
+                     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[250] animate-in slide-in-from-bottom-12 duration-500 w-full max-w-4xl px-4 pointer-events-none">
+                        <div className="flex flex-col gap-3 p-4 rounded-[2rem] bg-background/85 backdrop-blur-2xl border border-primary/20 shadow-2xl shadow-primary/10 pointer-events-auto">
+                           <div className="flex items-center justify-between px-2">
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{t('dashboards.editor.widget_management')}</p>
+                              <button 
+                                onClick={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }} 
+                                className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted/50"
+                              >
+                                {t('common.done')} <Check className="w-3 h-3" />
+                              </button>
+                           </div>
+                           <div className="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                              {(['device_control', 'room_overview', 'scene_shortcut', 'activity_feed', 'assistant_insight', 'system_status'] as WidgetType[]).map(type => (
+                                <button
+                                   key={type}
+                                   onClick={() => handleAddWidget(type)}
+                                   className="shrink-0 px-4 py-2 bg-card border border-border/80 hover:bg-primary/5 hover:border-primary/40 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                                >
+                                  + {t(`dashboards.editor.add_${type}`, { defaultValue: type })}
+                                </button>
+                              ))}
+                           </div>
                         </div>
                      </div>
                    )}

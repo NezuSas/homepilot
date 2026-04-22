@@ -147,7 +147,17 @@
     "active_units_one": "1 Activo",
     "active_units_other": "{{count}} Activos",
     "active_units": "{{count}} Activos",
-    "all_off": "Todo Apagado"
+    "all_off": "Todo Apagado",
+    "editor": {
+      "widget_management": "Gestión de Widgets",
+      "add_device_control": "Dispositivo",
+      "add_room_overview": "Habitación",
+      "add_scene_shortcut": "Escena",
+      "add_activity_feed": "Actividad",
+      "add_assistant_insight": "Asistente",
+      "add_system_status": "Sistema",
+      "add_energy_snapshot": "Energía"
+    }
   },
   "scenes": {
     "empty_title": "No se encontraron escenas",
