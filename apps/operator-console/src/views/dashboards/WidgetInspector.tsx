@@ -43,8 +43,9 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
     }
   }, [isOpen, widget?.type]);
 
-  if (!widget) return null;
-  const safeWidget = useMemo(() => sanitizeWidget(widget), [widget]);
+  const safeWidget = useMemo(() => widget ? sanitizeWidget(widget) : null, [widget]);
+
+  if (!widget || !safeWidget) return null;
 
   const currentLayout = safeWidget.config.layout;
   const currentBinding = safeWidget.config.binding;
