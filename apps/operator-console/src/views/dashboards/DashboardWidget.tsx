@@ -84,7 +84,16 @@ export function DashboardWidgetNode({
       style={style}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className={cn(
-        "relative h-full w-full rounded-[2.5rem] bg-card border border-border/60 overflow-hidden transition-all duration-500 group",
+        "relative h-full w-full rounded-[2.5rem] overflow-hidden transition-all duration-500 group",
+        
+        // --- Variant Application ---
+        widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
+        (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
+        widget.config.appearance?.variant === 'radiant' && "bg-gradient-to-br from-card to-primary/5 border border-primary/20 shadow-lg shadow-primary/5",
+        widget.config.appearance?.variant === 'outline' && "bg-transparent border-2 border-border/60",
+        widget.config.appearance?.variant === 'flat' && "bg-muted/30 border-transparent",
+        // ---------------------------
+        
         isEditing && "ring-2 ring-transparent hover:ring-primary/20",
         isEditing && isSelected && "ring-primary shadow-2xl shadow-primary/20 scale-[1.01] z-10",
         isDragging && "opacity-0",

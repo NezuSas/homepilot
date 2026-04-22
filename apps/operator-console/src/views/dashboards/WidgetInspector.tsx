@@ -54,7 +54,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
   return (
     <div className={cn(
-      "fixed top-0 right-0 h-full w-[400px] bg-card/80 backdrop-blur-3xl border-l border-border/40 shadow-2xl z-[300] transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) transform",
+      "fixed top-0 right-0 h-full w-[400px] bg-card/80 backdrop-blur-3xl border-l border-border/40 shadow-2xl z-[300] transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) transform flex flex-col",
       isOpen ? "translate-x-0" : "translate-x-full"
     )}>
       {/* Header */}
@@ -74,7 +74,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
       </div>
 
       {/* Content */}
-      <div className="p-8 space-y-10 overflow-y-auto h-[calc(100%-180px)] no-scrollbar">
+      <div className="flex-1 p-8 space-y-10 overflow-y-auto no-scrollbar">
         
         {/* Section: Identidad */}
         <div className="space-y-4">
@@ -339,7 +339,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
       </div>
 
       {/* Footer Actions */}
-      <div className="absolute bottom-0 left-0 w-full p-8 border-t border-border/10 bg-card/40 flex flex-col gap-3">
+      <div className="w-full shrink-0 p-8 border-t border-border/10 bg-card/40 flex flex-col gap-3">
          <Button 
            variant="secondary" 
            className="w-full font-black uppercase tracking-[0.2em] text-[10px] text-destructive hover:bg-destructive/10 border-destructive/20 py-4 rounded-2xl" 
