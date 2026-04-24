@@ -1,9 +1,10 @@
 import * as crypto from 'crypto';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
-import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { Scene } from '../../../packages/devices/domain/Scene';
+import { SceneExecutionService } from '../../../packages/devices/application/SceneExecutionService';
 
 /**
  * Scene routes: /api/v1/scenes/*
@@ -34,8 +35,8 @@ export class SceneRoutes extends ApiRoutes {
 
         const scenes = await container.repositories.sceneRepository.findScenesByHomeId(homeId);
         this.sendJson(res, scenes);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -44,23 +45,32 @@ export class SceneRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/scenes') {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
-        const payload = await this.parseBody<any>(req);
+        const payload = await this.parseBody<{
+          name?: string;
+          homeId?: string;
+          roomId?: string | null;
+          actions?: unknown[];
+          executionMode?: 'sequential' | 'parallel';
+        }>(req);
+
         if (!payload.name || !payload.homeId || !Array.isArray(payload.actions)) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing name, homeId, or actions array'), true;
         }
-        const newScene = {
+
+        const newScene: Scene = {
           id: crypto.randomUUID(),
           homeId: payload.homeId,
-          roomId: payload.roomId || null,
+          roomId: payload.roomId ?? null,
           name: payload.name,
-          actions: payload.actions,
+          actions: payload.actions as Scene['actions'],
+          ...(payload.executionMode !== undefined ? { executionMode: payload.executionMode } : {}),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
         await container.repositories.sceneRepository.saveScene(newScene);
         this.sendJson(res, newScene, 201);
-      } catch (error: any) {
-        this.sendError(res, 500, 'SCENE_CREATE_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'SCENE_CREATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -74,18 +84,27 @@ export class SceneRoutes extends ApiRoutes {
         const scene = await container.repositories.sceneRepository.findSceneById(sceneId);
         if (!scene) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
 
-        const payload = await this.parseBody<any>(req);
-        const updated = {
+        const payload = await this.parseBody<{
+          name?: string;
+          roomId?: string | null;
+          actions?: Scene['actions'];
+          executionMode?: 'sequential' | 'parallel';
+        }>(req);
+
+        const updated: Scene = {
           ...scene,
           name: payload.name ?? scene.name,
           actions: payload.actions ?? scene.actions,
           roomId: payload.roomId !== undefined ? payload.roomId : scene.roomId,
+          ...(payload.executionMode !== undefined
+            ? { executionMode: payload.executionMode }
+            : {}),
           updatedAt: new Date().toISOString(),
         };
         await container.repositories.sceneRepository.saveScene(updated);
         this.sendJson(res, updated);
-      } catch (error: any) {
-        this.sendError(res, 500, 'SCENE_UPDATE_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'SCENE_UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -97,8 +116,8 @@ export class SceneRoutes extends ApiRoutes {
       try {
         await container.repositories.sceneRepository.deleteScene(deleteSceneMatch[1]);
         res.writeHead(204).end();
-      } catch (error: any) {
-        this.sendError(res, 500, 'SCENE_DELETE_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'SCENE_DELETE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -112,10 +131,13 @@ export class SceneRoutes extends ApiRoutes {
         if (!scene) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
 
         if (scene.actions.length === 0) {
-          return this.sendJson(res, { success: true, executed: 0, failed: 0, failures: [] }), true;
+          return this.sendJson(res, {
+            sceneId: scene.id,
+            status: 'success',
+            actions: [],
+          }), true;
         }
 
-        const compositeDispatcher = container.adapters.commandDispatcher;
         const correlationId = crypto.randomUUID();
 
         await container.repositories.activityLogRepository.saveActivity({
@@ -124,57 +146,26 @@ export class SceneRoutes extends ApiRoutes {
           correlationId,
           type: 'SCENE_EXECUTION_STARTED',
           description: `User triggered Scene "${scene.name}"`,
-          data: { sceneId: scene.id, userId: req.user!.id, name: scene.name, totalActions: scene.actions.length },
+          data: {
+            sceneId: scene.id,
+            userId: req.user!.id,
+            name: scene.name,
+            totalActions: scene.actions.length,
+            executionMode: scene.executionMode ?? 'parallel',
+          },
         });
 
-        const results = await Promise.allSettled(
-          scene.actions.map((action: any) =>
-            executeDeviceCommandUseCase(
-              action.deviceId,
-              action.command,
-              req.user!.id,
-              correlationId,
-              {
-                deviceRepository: container.repositories.deviceRepository,
-                eventPublisher: container.adapters.deviceEventPublisher,
-                topologyPort: {
-                  validateHomeExists: async () => {},
-                  validateHomeOwnership: async () => {},
-                  validateRoomBelongsToHome: async () => {},
-                },
-                dispatcherPort: compositeDispatcher,
-                activityLogRepository: container.repositories.activityLogRepository,
-                idGenerator: { generate: () => crypto.randomUUID() },
-                clock: { now: () => new Date().toISOString() },
-              },
-              { customDescription: `Persistent Scene "${scene.name}" dispatched: ${action.command}`, data: { name: scene.name, command: action.command } }
-            )
-          )
-        );
+        const executionService = new SceneExecutionService(container.adapters.commandDispatcher);
+        const result = await executionService.execute(scene);
 
-        const structuredFailures: { deviceId: string; reason: string }[] = [];
-        results.forEach((r, i) => {
-          if (r.status === 'rejected') {
-            structuredFailures.push({
-              deviceId: scene.actions[i].deviceId,
-              reason: r.reason instanceof Error ? r.reason.message : String(r.reason),
-            });
-          }
-        });
-
-        const failedCount = structuredFailures.length;
+        const failedCount = result.actions.filter(a => a.status === 'failed').length;
+        const successCount = result.actions.filter(a => a.status === 'success').length;
         const totalCount = scene.actions.length;
-        const responseBody = {
-          success: failedCount === 0,
-          total: totalCount,
-          succeeded: totalCount - failedCount,
-          failed: failedCount,
-          failures: structuredFailures,
-        };
 
-        let resultType: any = 'SCENE_EXECUTION_COMPLETED';
-        if (failedCount === totalCount) resultType = 'SCENE_EXECUTION_FAILED';
-        else if (failedCount > 0) resultType = 'SCENE_EXECUTION_FAILED';
+        const resultType =
+          result.status === 'success'
+            ? 'SCENE_EXECUTION_COMPLETED'
+            : 'SCENE_EXECUTION_FAILED';
 
         try {
           await container.repositories.activityLogRepository.saveActivity({
@@ -182,33 +173,38 @@ export class SceneRoutes extends ApiRoutes {
             deviceId: null,
             correlationId,
             type: resultType,
-            description: `Scene "${scene.name}" executed by ${req.user!.username}. (${totalCount - failedCount}/${totalCount} success)`,
-            data: { 
-              sceneName: scene.name, 
-              userName: req.user!.username, 
-              successCount: totalCount - failedCount, 
-              totalCount: totalCount,
+            description: `Scene "${scene.name}" executed by ${req.user!.username}. (${successCount}/${totalCount} success)`,
+            data: {
+              sceneName: scene.name,
+              userName: req.user!.username,
+              successCount,
+              totalCount,
               sceneId: scene.id,
               userId: req.user!.id,
               totalActions: totalCount,
               failedActions: failedCount,
-              failures: structuredFailures,
-              isPartial: failedCount > 0 && failedCount < totalCount,
+              isPartial: result.status === 'partial',
+              executionMode: scene.executionMode ?? 'parallel',
+              actions: result.actions,
             },
           });
-        } catch (logErr: any) {
-          console.error('[SceneRoutes] Failed to log scene execution:', logErr.message);
+        } catch (logErr: unknown) {
+          console.error(
+            '[SceneRoutes] Failed to log scene execution:',
+            logErr instanceof Error ? logErr.message : logErr
+          );
         }
 
-        if (failedCount === totalCount) {
-          this.sendJson(res, responseBody, 500);
-        } else if (failedCount > 0) {
-          this.sendJson(res, responseBody, 207);
+        // HTTP status: 200 success / 207 partial / 500 all failed
+        if (result.status === 'failed') {
+          this.sendJson(res, result, 500);
+        } else if (result.status === 'partial') {
+          this.sendJson(res, result, 207);
         } else {
-          this.sendJson(res, responseBody, 200);
+          this.sendJson(res, result, 200);
         }
-      } catch (error: any) {
-        this.sendError(res, 500, 'SCENE_EXECUTE_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'SCENE_EXECUTE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }

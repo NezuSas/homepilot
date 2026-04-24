@@ -108,7 +108,10 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
           });
 
           const results = await Promise.allSettled(
-            scene.actions.map(action => this.dispatchCommand(homeId, action.deviceId, action.command, correlationId))
+            scene.actions.map(action => {
+              const cmd = typeof action.command === 'string' ? action.command : action.command.name;
+              return this.dispatchCommand(homeId, action.deviceId, cmd, correlationId);
+            })
           );
 
           const failedCount = results.filter(r => r.status === 'rejected').length;
