@@ -11,12 +11,15 @@ interface UseRealtimeEventsResult {
 
 const RECONNECT_DELAY_MS = 3000;
 
-function getRealtimeUrl(): string {
+function getRealtimeUrl(token: string | null): string {
   const apiUrl = new URL(API_BASE_URL);
   apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
   apiUrl.pathname = '/ws';
-  apiUrl.search = '';
-  apiUrl.hash = '';
+  
+  if (token) {
+    apiUrl.searchParams.set('token', token);
+  }
+  
   return apiUrl.toString();
 }
 
@@ -40,9 +43,13 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
   const setRealtimeConnected = useAppShellStore((state) => state.setRealtimeConnected);
   const ingestRealtimeEvent = useAppShellStore((state) => state.ingestRealtimeEvent);
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
+  const sessionToken = useAppShellStore((state) => state.sessionToken);
+
+  // We use the token from the store to ensure the websocket stays in sync with the session.
+  const token = enabled ? sessionToken : null;
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !token) {
       resetAppShellState();
       return;
     }
@@ -55,7 +62,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
       if (disposed) return;
 
       try {
-        socket = new WebSocket(getRealtimeUrl());
+        socket = new WebSocket(getRealtimeUrl(token));
       } catch (error) {
         console.warn('[Realtime] Failed to initialize websocket:', error);
         reconnectTimeoutId = window.setTimeout(connect, RECONNECT_DELAY_MS);
@@ -110,7 +117,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
         socket.close();
       }
     };
-  }, [enabled, ingestRealtimeEvent, resetAppShellState, setRealtimeConnected]);
+  }, [enabled, token, ingestRealtimeEvent, resetAppShellState, setRealtimeConnected]);
 
   return { isConnected, lastEvent, recentEvents };
 }

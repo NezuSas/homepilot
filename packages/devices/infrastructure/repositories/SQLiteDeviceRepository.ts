@@ -113,12 +113,30 @@ export class SQLiteDeviceRepository implements DeviceRepository {
   }
 
   /**
+   * Recupera todos los dispositivos ordenados por status y fecha de creación.
+   */
+  public async findAllOrderedByStatus(): Promise<ReadonlyArray<Device>> {
+    const stmt = this.db.prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC');
+    const rows = stmt.all() as DeviceRow[];
+    return rows.map(row => this.mapToEntity(row));
+  }
+
+  /**
    * Recupera todos los dispositivos de un hogar sin filtros.
    */
   public async findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>> {
     const stmt = this.db.prepare('SELECT * FROM devices WHERE home_id = ?');
     const rows = stmt.all(homeId) as DeviceRow[];
     return rows.map(row => this.mapToEntity(row));
+  }
+
+  /**
+   * Recupera los external_ids que coinciden con un prefijo (e.g. 'ha:').
+   */
+  public async findAllExternalIdsByPrefix(prefix: string): Promise<ReadonlyArray<string>> {
+    const stmt = this.db.prepare('SELECT external_id FROM devices WHERE external_id LIKE ?');
+    const rows = stmt.all(`${prefix}%`) as { external_id: string }[];
+    return rows.map(r => r.external_id);
   }
 
   /**

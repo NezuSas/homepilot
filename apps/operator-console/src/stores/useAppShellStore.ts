@@ -12,6 +12,15 @@ export interface RealtimeEventMessage {
   payload: Record<string, unknown>;
 }
 
+function isAssistantSummary(value: unknown): value is AssistantSummary {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'totalOpen' in value &&
+    typeof (value as any).totalOpen === 'number'
+  );
+}
+
 interface AppShellState {
   theme: 'dark' | 'light';
   setTheme: (theme: 'dark' | 'light') => void;
@@ -20,9 +29,11 @@ interface AppShellState {
   isRealtimeConnected: boolean;
   lastRealtimeEvent: RealtimeEventMessage | null;
   recentRealtimeEvents: RealtimeEventMessage[];
+  sessionToken: string | null;
   setAssistantSummary: (assistantSummary: AssistantSummary | null) => void;
   refreshAssistantSummary: () => Promise<void>;
   setRealtimeConnected: (isRealtimeConnected: boolean) => void;
+  setSessionToken: (token: string | null) => void;
   ingestRealtimeEvent: (event: RealtimeEventMessage) => void;
   pulseSyncStatus: () => void;
   resetAppShellState: () => void;
@@ -48,6 +59,7 @@ const initialState = {
   isRealtimeConnected: false,
   lastRealtimeEvent: null,
   recentRealtimeEvents: [],
+  sessionToken: typeof window !== 'undefined' ? localStorage.getItem('hp_session_token') : null,
 };
 
 export const useAppShellStore = create<AppShellState>((set) => ({
@@ -78,11 +90,10 @@ export const useAppShellStore = create<AppShellState>((set) => ({
         return;
       }
 
-      const rawSummary = await response.json() as any;
+      const rawSummary: unknown = await response.json();
       
-      // Basic shape validation for luxury/premium robustness
-      if (rawSummary && typeof rawSummary === 'object' && 'totalOpen' in rawSummary) {
-        set({ assistantSummary: rawSummary as AssistantSummary });
+      if (isAssistantSummary(rawSummary)) {
+        set({ assistantSummary: rawSummary });
       } else {
         console.warn('[AppShellStore] Received invalid assistant summary shape:', rawSummary);
       }
@@ -93,6 +104,10 @@ export const useAppShellStore = create<AppShellState>((set) => ({
 
   setRealtimeConnected: (isRealtimeConnected) => {
     set({ isRealtimeConnected });
+  },
+
+  setSessionToken: (token) => {
+    set({ sessionToken: token });
   },
 
   ingestRealtimeEvent: (event) => {

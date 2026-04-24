@@ -35,7 +35,17 @@ export interface DeviceRepository {
   findAll(): Promise<ReadonlyArray<Device>>;
 
   /**
+   * Recupera todos los dispositivos ordenados por status y fecha de creación.
+   */
+  findAllOrderedByStatus(): Promise<ReadonlyArray<Device>>;
+
+  /**
    * Recupera todos los dispositivos de un hogar.
    */
   findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>>;
+
+  /**
+   * Recupera los external_ids que coinciden con un prefijo (e.g. 'ha:').
+   */
+  findAllExternalIdsByPrefix(prefix: string): Promise<ReadonlyArray<string>>;
 }

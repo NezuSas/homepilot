@@ -1,6 +1,5 @@
 import * as crypto from 'crypto';
 import * as http from 'http';
-import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { BootstrapContainer } from '../../../bootstrap';
 import { assignDeviceUseCase } from '../../../packages/devices/application/assignDeviceUseCase';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
@@ -9,22 +8,6 @@ import { DeviceCommandV1, isValidCommand } from '../../../packages/devices/domai
 import { HomeAssistantState } from '../../../packages/devices/infrastructure/adapters/HomeAssistantClient';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-
-interface LocalDeviceRow {
-  id: string;
-  home_id: string;
-  room_id: string | null;
-  external_id: string;
-  name: string;
-  type: string;
-  vendor: string;
-  status: string;
-  last_known_state: string | null;
-  invert_state: number;
-  entity_version: number;
-  created_at: string;
-  updated_at: string;
-}
 
 /**
  * Device routes: /api/v1/devices/*, /api/v1/activity-logs, /api/v1/ha/*
@@ -51,8 +34,8 @@ export class DeviceRoutes extends ApiRoutes {
         const deviceId = deviceLogsMatch[1];
         const logs = await container.repositories.activityLogRepository.findRecentByDeviceId(deviceId, 20);
         this.sendJson(res, logs);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -65,8 +48,8 @@ export class DeviceRoutes extends ApiRoutes {
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
         this.sendJson(res, device);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -74,30 +57,10 @@ export class DeviceRoutes extends ApiRoutes {
     // GET /api/v1/devices
     if (method === 'GET' && pathname === '/api/v1/devices') {
       try {
-        const db = SqliteDatabaseManager.getInstance(this.dbPath);
-        const rows = db
-          .prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC')
-          .all() as LocalDeviceRow[];
-        this.sendJson(
-          res,
-          rows.map((r) => ({
-            id: r.id,
-            homeId: r.home_id,
-            roomId: r.room_id,
-            externalId: r.external_id,
-            name: r.name,
-            type: r.type,
-            vendor: r.vendor,
-            status: r.status,
-            invertState: r.invert_state === 1,
-            lastKnownState: r.last_known_state ? JSON.parse(r.last_known_state) : null,
-            entityVersion: r.entity_version,
-            createdAt: r.created_at,
-            updatedAt: r.updated_at,
-          }))
-        );
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+        const devices = await container.repositories.deviceRepository.findAllOrderedByStatus();
+        this.sendJson(res, devices);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -107,8 +70,8 @@ export class DeviceRoutes extends ApiRoutes {
       try {
         const logs = await container.repositories.activityLogRepository.findAllRecent(50);
         this.sendJson(res, logs);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -159,9 +122,9 @@ export class DeviceRoutes extends ApiRoutes {
         });
         const updated = await container.repositories.deviceRepository.findDeviceById(deviceId);
         this.sendJson(res, updated);
-      } catch (error: any) {
+      } catch (error: unknown) {
         container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-        this.sendError(res, 500, 'REFRESH_ERROR', error.message);
+        this.sendError(res, 500, 'REFRESH_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -189,9 +152,9 @@ export class DeviceRoutes extends ApiRoutes {
           clock: { now: () => new Date().toISOString() },
         });
         this.sendJson(res, result);
-      } catch (error: any) {
-        const name = error.constructor.name;
-        const msg = error.message;
+      } catch (error: unknown) {
+        const name = error instanceof Error ? error.constructor.name : 'Error';
+        const msg = error instanceof Error ? error.message : 'Unknown error';
         let code = 'ASSIGN_ERROR';
         let status = 500;
         if (name === 'DeviceNotFoundError' || msg.includes('not found')) { status = 404; code = 'DEVICE_NOT_FOUND'; }
@@ -237,8 +200,9 @@ export class DeviceRoutes extends ApiRoutes {
 
         const upd = await container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
         this.sendJson(res, upd);
-      } catch (error: any) {
-        const name = error.constructor.name;
+      } catch (error: unknown) {
+        const name = error instanceof Error ? error.constructor.name : 'Error';
+        const msg = error instanceof Error ? error.message : 'Unknown error';
         let code = 'COMMAND_ERROR';
         let status = 500;
         if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
@@ -247,11 +211,11 @@ export class DeviceRoutes extends ApiRoutes {
           code = 'INVALID_COMMAND';
         }
 
-        if (error.message.includes('Home Assistant') || error.message.includes('fetch')) {
+        if (msg.includes('Home Assistant') || msg.includes('fetch')) {
           container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
         }
 
-        this.sendError(res, status, code, error.message);
+        this.sendError(res, status, code, msg);
       }
       return true;
     }
@@ -285,8 +249,8 @@ export class DeviceRoutes extends ApiRoutes {
         } else {
           this.sendJson(res, device);
         }
-      } catch (error: any) {
-        this.sendError(res, 500, 'UPDATE_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -299,14 +263,13 @@ export class DeviceRoutes extends ApiRoutes {
     res: http.ServerResponse,
     container: BootstrapContainer
   ): Promise<boolean> {
-    const db = SqliteDatabaseManager.getInstance(this.dbPath);
     let allStates: HomeAssistantState[] = [];
 
     try {
       allStates = await container.adapters.homeAssistantClient.getAllStates();
       container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
-    } catch (error: any) {
-      const errorMsg = error.message || '';
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : '';
       const isAuthError = errorMsg.includes('401') || errorMsg.includes('auth_invalid');
       const isUnreachable =
         errorMsg.includes('timeout') ||
@@ -320,22 +283,20 @@ export class DeviceRoutes extends ApiRoutes {
         container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
       }
 
-      return this.sendError(res, 502, 'HA_DISCOVERY_ERROR', `Error de comunicación con HA: ${error.message}`), true;
+      return this.sendError(res, 502, 'HA_DISCOVERY_ERROR', `Error de comunicación con HA: ${errorMsg}`), true;
     }
 
     try {
       const isModeAll = req.url?.includes('mode=all');
 
-      const existingRows = db
-        .prepare('SELECT external_id FROM devices WHERE external_id LIKE ?')
-        .all('ha:%') as { external_id: string }[];
-      const existingEntityIds = new Set(existingRows.map((r) => r.external_id.replace('ha:', '')));
+      const existingEntityIds = await container.repositories.deviceRepository.findAllExternalIdsByPrefix('ha:');
+      const existingEntityIdsSet = new Set(existingEntityIds.map(id => id.replace('ha:', '')));
 
       const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor', 'cover'];
 
       const entities = allStates
         .filter((s) => {
-          if (existingEntityIds.has(s.entity_id)) return false;
+          if (existingEntityIdsSet.has(s.entity_id)) return false;
 
           const domain = s.entity_id.split('.')[0];
           if (isModeAll) return true;
@@ -351,8 +312,8 @@ export class DeviceRoutes extends ApiRoutes {
         }));
 
       this.sendJson(res, entities);
-    } catch (error: any) {
-      this.sendError(res, 502, 'HA_DISCOVERY_ERROR', `Error local de procesamiento: ${error.message}`);
+    } catch (error: unknown) {
+      this.sendError(res, 502, 'HA_DISCOVERY_ERROR', `Error local de procesamiento: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     return true;
   }
@@ -374,23 +335,24 @@ export class DeviceRoutes extends ApiRoutes {
 
       container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
       this.sendJson(res, device, 201);
-    } catch (error: any) {
+    } catch (error: unknown) {
       let status = 500;
       let code = 'IMPORT_ERROR';
+      const msg = error instanceof Error ? error.message : 'Import Error';
 
-      if (error.message === 'DEVICE_ALREADY_EXISTS') {
+      if (msg === 'DEVICE_ALREADY_EXISTS') {
         status = 409;
         code = 'DEVICE_ALREADY_EXISTS';
-      } else if (error.message === 'HOME_NOT_FOUND') {
+      } else if (msg === 'HOME_NOT_FOUND') {
         status = 404;
         code = 'HOME_NOT_FOUND';
-      } else if (error.message === 'HA_ENTITY_NOT_FOUND') {
+      } else if (msg === 'HA_ENTITY_NOT_FOUND') {
         status = 404;
         code = 'HA_ENTITY_NOT_FOUND';
       }
 
       container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-      this.sendError(res, status, code, error.message || 'Import Error');
+      this.sendError(res, status, code, msg);
     }
     return true;
   }

@@ -127,7 +127,17 @@ export class ApiGateway {
       const rawRes = reply.raw;
 
       // CORS — set before any handler writes to the response.
-      rawRes.setHeader('Access-Control-Allow-Origin', '*');
+      const origin = request.headers.origin;
+      const allowedOriginsEnv = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim()).filter(Boolean);
+      
+      if (origin && allowedOrigins.includes(origin)) {
+        rawRes.setHeader('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length === 0 && process.env.NODE_ENV !== 'production') {
+        // Fallback for dev if no origin configured
+        rawRes.setHeader('Access-Control-Allow-Origin', '*');
+      }
+
       rawRes.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
       rawRes.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -186,14 +196,40 @@ export class ApiGateway {
    * http.Server). Logic is identical to the previous node:http implementation.
    */
   private setupWebSocketServer(): void {
-    this.fastify.server.on('upgrade', (request, socket, head) => {
-      const pathname = new URL(
+    this.fastify.server.on('upgrade', async (request, socket, head) => {
+      const url = new URL(
         request.url || '',
         `http://${request.headers.host || 'localhost'}`
-      ).pathname;
+      );
+      const pathname = url.pathname;
 
       if (pathname !== REALTIME_PATHNAME) {
         socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      // WebSocket Authentication
+      const token = url.searchParams.get('token') || request.headers['authorization']?.toString().replace('Bearer ', '');
+      
+      if (!token) {
+        console.warn('[ApiGateway] WebSocket upgrade rejected: Missing token');
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      try {
+        const authResult = await this.container.services.authService.verifyToken(token);
+        if (!authResult.isValid) {
+          console.warn('[ApiGateway] WebSocket upgrade rejected: Invalid token');
+          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+          socket.destroy();
+          return;
+        }
+      } catch (error) {
+        console.error('[ApiGateway] WebSocket auth error:', error);
+        socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
         socket.destroy();
         return;
       }

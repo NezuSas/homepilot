@@ -31,3 +31,33 @@ export function canDeviceExecuteCommand(deviceType: string, command: DeviceComma
 
   return capabilities.includes(command);
 }
+
+// --- Foundation for Future Device Abstraction ---
+
+export type CapabilityType = 
+  | 'switch' 
+  | 'light' 
+  | 'dimmer' 
+  | 'sensor' 
+  | 'binary_sensor' 
+  | 'cover' 
+  | 'climate' 
+  | 'media_player';
+
+export interface DeviceCommand {
+  readonly command: string;
+  readonly params?: Record<string, unknown>;
+}
+
+export interface DeviceState {
+  readonly value: unknown;
+  readonly attributes?: Record<string, unknown>;
+  readonly updatedAt: string;
+}
+
+export interface DeviceCapability {
+  readonly type: CapabilityType;
+  readonly name: string;
+  readonly state: DeviceState;
+  readonly lastCommand?: DeviceCommand;
+}

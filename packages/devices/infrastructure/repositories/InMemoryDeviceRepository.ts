@@ -65,4 +65,25 @@ export class InMemoryDeviceRepository implements DeviceRepository {
     }
     return Object.freeze(all);
   }
+
+  async findAllOrderedByStatus(): Promise<ReadonlyArray<Device>> {
+    const all = Array.from(this.devices.values()).map(d => Object.freeze({ ...d }));
+    // Sort by status DESC (ASSIGNED > PENDING) then created_at DESC
+    return all.sort((a, b) => {
+      if (a.status !== b.status) {
+        return b.status.localeCompare(a.status);
+      }
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+  }
+
+  async findAllExternalIdsByPrefix(prefix: string): Promise<ReadonlyArray<string>> {
+    const ids: string[] = [];
+    for (const device of this.devices.values()) {
+      if (device.externalId.startsWith(prefix)) {
+        ids.push(device.externalId);
+      }
+    }
+    return Object.freeze(ids);
+  }
 }

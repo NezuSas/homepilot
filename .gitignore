@@ -140,3 +140,13 @@ vite.config.ts.timestamp-*
 
 *.db
 test.*.db
+test.*.db-shm
+test.*.db-wal
+homepilot-env/
+.vite/
+backups/
+ha-config/
+nodeenv/
+scratch/
+build/
+!build/Release

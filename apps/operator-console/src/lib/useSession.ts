@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { API_ENDPOINTS } from '../config';
+import { useAppShellStore } from '../stores/useAppShellStore';
 
 export type SessionStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -32,6 +33,7 @@ interface UseSessionReturn extends SessionState {
   handleLogout: (callApi?: () => Promise<void>) => Promise<void>;
   validateSession: () => Promise<void>;
   clearSession: () => void;
+  isAuthenticated: boolean;
 }
 
 function readUserCtx(): UserContext | null {
@@ -51,13 +53,16 @@ export function useSession(
   );
   const [user, setUser] = useState<UserContext | null>(() => readUserCtx());
 
+  const setSessionToken = useAppShellStore((state) => state.setSessionToken);
+
   const clearSession = useCallback(() => {
     localStorage.removeItem('hp_session_token');
     localStorage.removeItem('hp_user_ctx');
+    setSessionToken(null);
     setStatus('unauthenticated');
     setUser(null);
     onSessionCleared();
-  }, [onSessionCleared]);
+  }, [onSessionCleared, setSessionToken]);
 
   const validateSession = useCallback(async () => {
     const token = localStorage.getItem('hp_session_token');
@@ -76,6 +81,7 @@ export function useSession(
         const userData = await res.json() as UserContext;
         setUser(userData);
         setStatus('authenticated');
+        setSessionToken(token);
       } else {
         // El interceptor de apiClient se encargará del clearSession si es 401
         // Si es otro error (500), por seguridad fail-closed
@@ -86,14 +92,15 @@ export function useSession(
     } catch {
       clearSession();
     }
-  }, [clearSession]);
+  }, [clearSession, setSessionToken]);
 
   const handleLoginSuccess = useCallback((token: string, ctx: UserContext) => {
     localStorage.setItem('hp_session_token', token);
     localStorage.setItem('hp_user_ctx', JSON.stringify(ctx));
+    setSessionToken(token);
     setUser(ctx);
     setStatus('authenticated');
-  }, []);
+  }, [setSessionToken]);
 
   const handleLogout = useCallback(
     async (callApi?: () => Promise<void>) => {
@@ -126,5 +133,5 @@ export function useSession(
     clearSession,
     // Shim para compatibilidad con componentes que aún busquen isAuthenticated
     isAuthenticated: status === 'authenticated'
-  } as any;
+  };
 }

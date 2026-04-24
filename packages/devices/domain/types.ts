@@ -1,3 +1,5 @@
+import { DeviceCapability } from './capabilities';
+
 /**
  * Interfaces y Tipos originados puramente sobre el Dominio de Devices.
  */
@@ -16,6 +18,7 @@ export interface Device {
   readonly integrationSource: string;
   readonly invertState: boolean;
   readonly lastKnownState: Record<string, unknown> | null;
+  readonly capabilities?: ReadonlyArray<DeviceCapability>;
   readonly entityVersion: number;
   readonly createdAt: string;
   readonly updatedAt: string;
