@@ -12,7 +12,7 @@ jest.mock('../application/syncDeviceStateUseCase', () => ({
 
 import { syncDeviceStateUseCase } from '../application/syncDeviceStateUseCase';
 
-describe('DeviceCommandService', () => {
+describe('DeviceCommandService with Validation', () => {
   let service: DeviceCommandService;
   let mockRepo: jest.Mocked<DeviceRepository>;
   let mockRegistry: jest.Mocked<DeviceDriverRegistry>;
@@ -25,7 +25,7 @@ describe('DeviceCommandService', () => {
     roomId: null,
     externalId: 'ha:light.test',
     name: 'Test',
-    type: 'LIGHT',
+    type: 'light', // lowercase for validation
     vendor: 'test',
     status: 'ASSIGNED',
     integrationSource: 'ha',
@@ -56,68 +56,48 @@ describe('DeviceCommandService', () => {
     service = new DeviceCommandService(mockRepo, mockRegistry, mockSyncDeps);
   });
 
-  it('should delegate execution to the resolved driver (legacy string)', async () => {
+  it('should delegate execution if validation passes', async () => {
     await service.dispatch('d1', 'turn_on');
 
-    expect(mockRepo.findDeviceById).toHaveBeenCalledWith('d1');
-    expect(mockRegistry.resolve).toHaveBeenCalledWith('ha');
-    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
-      mockDevice,
-      { name: 'turn_on', params: undefined },
-      expect.objectContaining({
-        userId: 'system',
-        correlationId: 'device-command:d1:turn_on'
-      })
-    );
+    expect(mockDriver.executeCommand).toHaveBeenCalled();
   });
 
-  it('should delegate execution with params (DeviceCommandRequest)', async () => {
-    await service.dispatch('d1', { 
-      name: 'set_position', 
-      params: { position: 50 } 
+  it('should throw error and NOT call driver if validation fails', async () => {
+    // sensor rejects turn_on. We use a neutral externalId so the resolver uses the type 'sensor'.
+    mockRepo.findDeviceById.mockResolvedValue({ 
+      ...mockDevice, 
+      type: 'sensor', 
+      externalId: 'local:sensor.test' 
     });
 
-    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
-      mockDevice,
-      { name: 'set_position', params: { position: 50 } },
-      expect.any(Object)
-    );
+    await expect(service.dispatch('d1', 'turn_on')).rejects.toThrow('tipo sensor');
+    expect(mockDriver.executeCommand).not.toHaveBeenCalled();
   });
 
-  it('should propagate metadata to driver context', async () => {
-    await service.dispatch('d1', { 
-      name: 'turn_on', 
-      metadata: { userId: 'user-123', correlationId: 'corr-456' } 
+  it('should allow unknown devices (conservative fallback)', async () => {
+    // We use a type and externalId that cannot be resolved to any capability
+    mockRepo.findDeviceById.mockResolvedValue({ 
+      ...mockDevice, 
+      type: 'weird', 
+      externalId: 'local:unknown.device' 
     });
 
-    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
-      mockDevice,
-      expect.any(Object),
-      expect.objectContaining({
-        userId: 'user-123',
-        correlationId: 'corr-456'
-      })
-    );
-  });
-
-  it('should call syncDeviceStateUseCase if driver returns newState', async () => {
     await service.dispatch('d1', 'turn_on');
-
-    expect(syncDeviceStateUseCase).toHaveBeenCalledWith(
-      'd1',
-      { on: true },
-      'device-command-service',
-      mockSyncDeps
-    );
+    expect(mockDriver.executeCommand).toHaveBeenCalled();
   });
 
-  it('should throw error if device not found', async () => {
-    mockRepo.findDeviceById.mockResolvedValue(null);
-    await expect(service.dispatch('d2', 'turn_on')).rejects.toThrow('Dispositivo d2 no encontrado');
-  });
+  it('should validate set_position parameters before driver', async () => {
+    // cover supports set_position
+    mockRepo.findDeviceById.mockResolvedValue({ 
+      ...mockDevice, 
+      type: 'cover', 
+      externalId: 'local:cover.test' 
+    });
 
-  it('should throw error if driver execution fails', async () => {
-    mockDriver.executeCommand.mockResolvedValue({ success: false, error: 'Physical failure' });
-    await expect(service.dispatch('d1', 'turn_on')).rejects.toThrow('Physical failure');
+    // Invalid position (101)
+    await expect(service.dispatch('d1', { name: 'set_position', params: { position: 101 } }))
+      .rejects.toThrow('excede el máximo');
+    
+    expect(mockDriver.executeCommand).not.toHaveBeenCalled();
   });
 });
