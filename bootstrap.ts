@@ -118,28 +118,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     systemVariableRepository: repos.systemVariableRepository
   });
 
-  // 3. Motores de Reglas y Lógica de Negocio
-  const { automationEngine } = buildAutomationModule({
-    automationRuleRepository: repos.automationRuleRepository,
-    deviceRepository: repos.deviceRepository,
-    sceneRepository: repos.sceneRepository,
-    activityLogRepository: repos.activityLogRepository,
-    deviceEventPublisher,
-    connectionProvider: haModule.connectionProvider,
-    systemVariableService,
-    syncManager: haModule.syncManager,
-    eventBus
-  });
-
-  const diagnosticsService = new DiagnosticsService(
-    haModule.settingsService,
-    haModule.syncManager,
-    automationEngine,
-    repos.activityLogRepository,
-    systemVariableService
-  );
-
-  // 4. Seguridad, Onboarding y Assistant
+  // 3. Seguridad y Onboarding
   const authModule = await buildAuthModule({
     db,
     dbPath,
@@ -149,6 +128,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     activityLogRepository: repos.activityLogRepository
   });
 
+  // 4. Assistant (necesario por buildCommandRouter)
   const assistantAssembly = buildAssistantModule({
     dbPath,
     deviceRepository: repos.deviceRepository,
@@ -160,7 +140,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     eventBus
   });
 
-  // 5. Enrutamiento de Comandos
+  // 5. Enrutamiento de Comandos (debe construirse antes del motor de automatización)
   const commandRouterAssembly = buildCommandRouter({
     deviceRepository: repos.deviceRepository,
     activityLogRepository: repos.activityLogRepository,
@@ -174,6 +154,26 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantFeedbackRepository: assistantAssembly.assistantFeedbackRepository,
     dashboardRepository: repos.dashboardRepository
   });
+
+  // 6. Motor de Automatización (usa el commandDispatcher ya construido)
+  const { automationEngine } = buildAutomationModule({
+    automationRuleRepository: repos.automationRuleRepository,
+    deviceRepository: repos.deviceRepository,
+    sceneRepository: repos.sceneRepository,
+    activityLogRepository: repos.activityLogRepository,
+    commandDispatcher: commandRouterAssembly.commandDispatcher,
+    systemVariableService,
+    syncManager: haModule.syncManager,
+    eventBus
+  });
+
+  const diagnosticsService = new DiagnosticsService(
+    haModule.settingsService,
+    haModule.syncManager,
+    automationEngine,
+    repos.activityLogRepository,
+    systemVariableService
+  );
 
   const container: BootstrapContainer = {
     repositories: {

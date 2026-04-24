@@ -6,18 +6,16 @@
  */
 import { randomUUID } from 'crypto';
 import { AutomationEngine } from '../../packages/automation/application/AutomationEngine';
-import { executeDeviceCommandUseCase } from '../../packages/devices/application/executeDeviceCommandUseCase';
+import { SceneExecutionService } from '../../packages/devices/application/SceneExecutionService';
 import type { DeviceStateUpdatedPayload } from '../../packages/devices/domain/events/types';
 import type { SQLiteAutomationRuleRepository } from '../../packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import type { SQLiteDeviceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import type { SqliteSceneRepository } from '../../packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
-import type { EventBusDeviceEventPublisher } from '../../packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
-import type { HomeAssistantConnectionProvider } from '../../packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
+import type { DeviceCommandDispatcherPort } from '../../packages/devices/application/ports/DeviceCommandDispatcherPort';
 import type { SystemVariableService } from '../../packages/system-vars/application/SystemVariableService';
 import type { HomeAssistantRealtimeSyncManager } from '../../packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import type { EventBus } from '../../packages/shared/domain/events/EventBus';
-import { DeviceCommandV1, DeviceCommandRequest } from '../../packages/devices/domain/commands';
 
 export interface AutomationModuleAssembly {
   automationEngine: AutomationEngine;
@@ -28,8 +26,7 @@ export interface AutomationModuleDeps {
   deviceRepository: SQLiteDeviceRepository;
   sceneRepository: SqliteSceneRepository;
   activityLogRepository: SQLiteActivityLogRepository;
-  deviceEventPublisher: EventBusDeviceEventPublisher;
-  connectionProvider: HomeAssistantConnectionProvider;
+  commandDispatcher: DeviceCommandDispatcherPort;
   systemVariableService: SystemVariableService;
   syncManager: HomeAssistantRealtimeSyncManager;
   eventBus: EventBus;
@@ -41,59 +38,53 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
     deviceRepository,
     sceneRepository,
     activityLogRepository,
-    deviceEventPublisher,
-    connectionProvider,
+    commandDispatcher,
     systemVariableService,
     syncManager,
     eventBus
   } = deps;
+
+  const sceneExecutionService = new SceneExecutionService(commandDispatcher);
 
   const automationEngine = new AutomationEngine(
     automationRuleRepository,
     deviceRepository,
     sceneRepository,
     {
-      dispatchCommand: async (homeId, deviceId, command, correlationId) => {
-        const executeDeps = {
-          deviceRepository,
-          eventPublisher: deviceEventPublisher,
-          topologyPort: {
-            validateHomeExists: async () => {},
-            validateHomeOwnership: async () => {},
-            validateRoomBelongsToHome: async () => {}
-          },
-          dispatcherPort: {
-            dispatch: async (dId: string, command: DeviceCommandV1 | DeviceCommandRequest) => {
-               const cmd = typeof command === 'string' ? command : command.name;
-               const target = await deviceRepository.findDeviceById(dId);
-               if (!target || target.integrationSource !== 'ha') return;
-               
-               // parse HA externalId (format: "ha:domain.entity_id")
-               const haEntityId = target.externalId.replace('ha:', '');
-               const haDomain = haEntityId.split('.')[0] || 'homeassistant';
+      /**
+       * dispatchCommand — Ejecuta un comando individual sobre un dispositivo.
+       * Crea una escena sintética de una sola acción en modo parallel
+       * y la delega a SceneExecutionService → DeviceCommandService.
+       */
+      dispatchCommand: async (homeId: string, deviceId: string, command: string, correlationId: string) => {
+        const result = await sceneExecutionService.execute({
+          id: `automation:${correlationId}`,
+          homeId,
+          roomId: null,
+          name: `[Auto] ${command}`,
+          actions: [{
+            deviceId,
+            command: {
+              name: command as import('../../packages/devices/domain/commands').DeviceCommandV1,
+              metadata: { source: 'automation', correlationId },
+            },
+          }],
+          executionMode: 'parallel',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
 
-               let service = '';
-               if (cmd === 'turn_on') service = 'turn_on';
-               if (cmd === 'turn_off') service = 'turn_off';
-               if (cmd === 'toggle') service = 'toggle';
-
-               if (service) {
-                  if (connectionProvider.hasClient()) {
-                     await connectionProvider.getClient().callService(haDomain, service, haEntityId);
-                  } else {
-                     console.warn(`[Engine] Skipping HA command for ${target.externalId}: HA not configured.`);
-                  }
-               }
-            }
-          },
-          activityLogRepository,
-          idGenerator: { generate: () => randomUUID() },
-          clock: { now: () => new Date().toISOString() }
-        };
-
-        await executeDeviceCommandUseCase(deviceId, command, 'system', correlationId, executeDeps, { isAutomation: true });
+        if (result.status === 'failed') {
+          const failedAction = result.actions[0];
+          throw new Error(failedAction?.error ?? `Command ${command} failed on device ${deviceId}`);
+        }
       },
-      executeScene: async function(homeId, sceneId, correlationId) {
+
+      /**
+       * executeScene — Ejecuta una escena completa via SceneExecutionService.
+       * Respeta el executionMode configurado en la escena (parallel por defecto).
+       */
+      executeScene: async (homeId: string, sceneId: string, correlationId: string) => {
         const scene = await sceneRepository.findSceneById(sceneId);
         if (!scene) return;
 
@@ -104,43 +95,38 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
             correlationId,
             type: 'SCENE_EXECUTION_STARTED',
             description: `Automation triggered Scene "${scene.name}"`,
-            data: { sceneId: scene.id, name: scene.name }
+            data: { sceneId: scene.id, name: scene.name, executionMode: scene.executionMode ?? 'parallel' },
           });
 
-          const results = await Promise.allSettled(
-            scene.actions.map(action => {
-              const cmd = typeof action.command === 'string' ? action.command : action.command.name;
-              return this.dispatchCommand(homeId, action.deviceId, cmd, correlationId);
-            })
+          const execResult = await sceneExecutionService.execute(scene);
+
+          const failedCount = execResult.actions.filter(a => a.status === 'failed').length;
+          const totalCount = execResult.actions.length;
+
+          console.log(
+            `[Automation] Scene executed — sceneId=${scene.id} status=${execResult.status} ` +
+            `totalActions=${totalCount} failedActions=${failedCount}`
           );
 
-          const failedCount = results.filter(r => r.status === 'rejected').length;
-          const totalCount = scene.actions.length;
-
-          if (failedCount === 0) {
-            await activityLogRepository.saveActivity({
-              timestamp: new Date().toISOString(),
-              deviceId: null,
-              correlationId,
-              type: 'SCENE_EXECUTION_COMPLETED',
-              description: `Scene "${scene.name}" executed successfully`,
-              data: { sceneId: scene.id, totalCount }
-            });
-          } else {
-            const isPartial = failedCount < totalCount;
-            await activityLogRepository.saveActivity({
-              timestamp: new Date().toISOString(),
-              deviceId: null,
-              correlationId,
-              type: 'SCENE_EXECUTION_FAILED',
-              description: `Scene "${scene.name}" ${isPartial ? 'partially' : 'fully'} failed (${failedCount}/${totalCount} errors)`,
-              data: { sceneId: scene.id, failedCount, totalCount, isPartial }
-            });
-          }
-        } catch (sceneErr: any) {
-           console.error('[AutomationEngine] Fatal scene error:', sceneErr);
+          const logType = execResult.status === 'success' ? 'SCENE_EXECUTION_COMPLETED' : 'SCENE_EXECUTION_FAILED';
+          await activityLogRepository.saveActivity({
+            timestamp: new Date().toISOString(),
+            deviceId: null,
+            correlationId,
+            type: logType,
+            description: `Scene "${scene.name}" ${execResult.status} (${totalCount - failedCount}/${totalCount} success)`,
+            data: {
+              sceneId: scene.id,
+              failedCount,
+              totalCount,
+              isPartial: execResult.status === 'partial',
+              executionMode: scene.executionMode ?? 'parallel',
+            },
+          });
+        } catch (sceneErr: unknown) {
+          console.error('[AutomationEngine] Fatal scene error:', sceneErr instanceof Error ? sceneErr.message : sceneErr);
         }
-      }
+      },
     },
     activityLogRepository,
     systemVariableService,
