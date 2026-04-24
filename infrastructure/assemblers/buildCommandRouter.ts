@@ -5,10 +5,11 @@
  * Integra dispatchers para consolas locales, Home Assistant y dispositivos Sonoff.
  */
 import { randomUUID } from 'crypto';
-import { LocalConsoleCommandDispatcher } from '../../apps/api/LocalConsoleCommandDispatcher';
-import { HomeAssistantCommandDispatcher } from '../../apps/api/HomeAssistantCommandDispatcher';
-import { IntegrationCommandRouter } from '../../apps/api/IntegrationCommandRouter';
-import { SonoffCommandDispatcher } from '../../packages/integrations/sonoff/application/SonoffCommandDispatcher';
+import { DeviceCommandService } from '../../packages/devices/application/DeviceCommandService';
+import { DefaultDeviceDriverRegistry } from '../../packages/devices/infrastructure/drivers/DefaultDeviceDriverRegistry';
+import { LocalDeviceDriver } from '../../packages/devices/infrastructure/drivers/LocalDeviceDriver';
+import { HomeAssistantDeviceDriver } from '../../packages/integrations/home-assistant/infrastructure/HomeAssistantDeviceDriver';
+import { SonoffDeviceDriver } from '../../packages/integrations/sonoff/infrastructure/SonoffDeviceDriver';
 import { SonoffLanDiscoveryService } from '../../packages/integrations/sonoff/application/SonoffLanDiscoveryService';
 import { SQLiteTopologyReferenceAdapter } from '../../packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { AssistantActionService } from '../../packages/assistant/application/AssistantActionService';
@@ -27,7 +28,7 @@ import type { AssistantDraftService } from '../../packages/assistant/application
 import type { SQLiteDashboardRepository } from '../../packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
 
 export interface CommandRouterAssembly {
-  commandDispatcher: IntegrationCommandRouter;
+  commandDispatcher: DeviceCommandService;
   sonoffDiscoveryService: SonoffLanDiscoveryService;
   assistantActionService: AssistantActionService;
   dashboardService: DashboardService;
@@ -103,17 +104,23 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
     sonoffDiscoveryService.startDiscovery();
   }
 
-  // -- ROUTER SETUP --
-  const sharedLocalDispatcher = new LocalConsoleCommandDispatcher(deviceRepository, sharedSyncDeps);
-  const sharedHaDispatcher = new HomeAssistantCommandDispatcher(connectionProvider, deviceRepository, sharedSyncDeps);
-  const sharedSonoffDispatcher = new SonoffCommandDispatcher(deviceRepository, sharedSyncDeps);
+  // -- DRIVER LAYER SETUP --
+  const driverRegistry = new DefaultDeviceDriverRegistry();
+  
+  // Registrar drivers
+  driverRegistry.register('ha', new HomeAssistantDeviceDriver(connectionProvider));
+  driverRegistry.register('home_assistant', new HomeAssistantDeviceDriver(connectionProvider));
+  driverRegistry.register('sonoff', new SonoffDeviceDriver());
+  driverRegistry.register('local', new LocalDeviceDriver());
 
-  const sharedCommandDispatcher = new IntegrationCommandRouter(deviceRepository, sharedLocalDispatcher);
-  sharedCommandDispatcher.registerRoute('ha', sharedHaDispatcher);
-  sharedCommandDispatcher.registerRoute('sonoff', sharedSonoffDispatcher);
+  const deviceCommandService = new DeviceCommandService(
+    deviceRepository,
+    driverRegistry,
+    sharedSyncDeps
+  );
 
   return { 
-    commandDispatcher: sharedCommandDispatcher, 
+    commandDispatcher: deviceCommandService, 
     sonoffDiscoveryService,
     assistantActionService,
     dashboardService
