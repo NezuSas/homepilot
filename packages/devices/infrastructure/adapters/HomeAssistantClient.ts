@@ -44,11 +44,9 @@ export class HomeAssistantClient {
 
   /**
    * Ejecuta un servicio en Home Assistant.
+   * Extendido para soportar payloads opcionales (Command Params V1).
    */
-  /**
-   * Ejecuta un servicio en Home Assistant.
-   */
-  public async callService(domain: string, service: string, entityId: string): Promise<void> {
+  public async callService(domain: string, service: string, entityId: string, data?: Record<string, unknown>): Promise<void> {
     const url = `${this.baseUrl}/api/services/${domain}/${service}`;
     try {
       const response = await fetch(url, {
@@ -57,15 +55,19 @@ export class HomeAssistantClient {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ entity_id: entityId })
+        body: JSON.stringify({ 
+          entity_id: entityId,
+          ...data 
+        })
       });
 
       if (!response.ok) {
         throw new Error(`Home Assistant Service Error: ${response.status} ${response.statusText}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Re-lanzar con mensaje limpio sin filtrar parámetros sensibles que pudieran estar en el objeto error
-      throw new Error(`HA_SERVICE_CALL_FAILED: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`HA_SERVICE_CALL_FAILED: ${message}`);
     }
   }
 
@@ -99,13 +101,22 @@ export class HomeAssistantClient {
       }
 
       return await response.json() as HomeAssistantState[];
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (this.isAbortError(err)) {
         throw new Error(`getAllStates() timed out after ${HomeAssistantClient.RECONCILIATION_TIMEOUT_MS}ms`);
       }
       throw err;
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  /**
+   * Helper seguro para identificar errores de aborto de fetch.
+   */
+  private isAbortError(error: unknown): boolean {
+    if (error instanceof Error && error.name === 'AbortError') return true;
+    if (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError') return true;
+    return false;
   }
 }

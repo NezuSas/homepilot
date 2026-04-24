@@ -6,6 +6,22 @@
 export type DeviceCommandV1 = 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop' | 'set_position';
 
 /**
+ * DeviceCommandRequest
+ * 
+ * Estructura de comando normalizada que soporta parámetros y metadatos de ejecución.
+ * Permite comandos complejos como set_position con parámetros específicos.
+ */
+export interface DeviceCommandRequest {
+  name: DeviceCommandV1;
+  params?: Record<string, unknown>;
+  metadata?: {
+    userId?: string;
+    correlationId?: string;
+    source?: string;
+  };
+}
+
+/**
  * Type Guard funcional garantizando que cadenas genéricas inseguras coincidan 
  * estrictamente con el diccionario soportado, previniendo vulnerabilidades de payloads (Zero-Trust).
  */

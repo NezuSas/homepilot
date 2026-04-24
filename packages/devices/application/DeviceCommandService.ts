@@ -1,7 +1,8 @@
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
-import { DeviceCommandV1 } from '../domain/commands';
+import { DeviceCommandV1, DeviceCommandRequest } from '../domain/commands';
 import { DeviceRepository } from '../domain/repositories/DeviceRepository';
 import { DeviceDriverRegistry } from '../domain/drivers/DeviceDriverRegistry';
+import { DeviceDriverContext } from '../domain/drivers/DeviceDriver';
 import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from './syncDeviceStateUseCase';
 
 /**
@@ -19,32 +20,41 @@ export class DeviceCommandService implements DeviceCommandDispatcherPort {
     private readonly syncDeps: SyncDeviceStateDependencies
   ) {}
 
-  public async dispatch(deviceId: string, command: DeviceCommandV1): Promise<void> {
+  public async dispatch(deviceId: string, command: DeviceCommandV1 | DeviceCommandRequest): Promise<void> {
     const device = await this.deviceRepository.findDeviceById(deviceId);
     if (!device) {
       throw new Error(`Dispositivo ${deviceId} no encontrado`);
     }
 
+    // Normalizar comando para soportar llamadas legacy (string) y nuevas (DeviceCommandRequest)
+    const normalizedCommand: DeviceCommandRequest = typeof command === 'string' 
+      ? { name: command } 
+      : command;
+
     // 1. Resolver el driver basado en integrationSource
-    // Si no hay driver, DriverNotFoundError será lanzado (Fallo explícito solicitado)
     const driver = this.driverRegistry.resolve(device.integrationSource);
 
-    // 2. Ejecutar el comando a través del driver
+    // 2. Construir contexto de ejecución con soporte para metadatos
+    const context: DeviceDriverContext = {
+      userId: normalizedCommand.metadata?.userId || 'system',
+      correlationId: normalizedCommand.metadata?.correlationId || `device-command:${deviceId}:${normalizedCommand.name}`
+    };
+
+    // 3. Ejecutar el comando a través del driver
     const result = await driver.executeCommand(
       device,
-      { name: command },
       { 
-        // TODO: Obtener metadatos reales del comando cuando el puerto soporte params/metadata
-        userId: 'system', 
-        correlationId: `device-command:${deviceId}:${command}` 
-      }
+        name: normalizedCommand.name, 
+        params: normalizedCommand.params 
+      },
+      context
     );
 
     if (!result.success) {
-      throw new Error(result.error || `Error desconocido al ejecutar ${command} en ${device.integrationSource}`);
+      throw new Error(result.error || `Error desconocido al ejecutar ${normalizedCommand.name} en ${device.integrationSource}`);
     }
 
-    // 3. Sincronización optimista si el driver devuelve un nuevo estado
+    // 4. Sincronización optimista si el driver devuelve un nuevo estado
     if (result.newState) {
       await syncDeviceStateUseCase(
         deviceId, 

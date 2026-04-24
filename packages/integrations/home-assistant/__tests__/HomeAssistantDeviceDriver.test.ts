@@ -25,6 +25,13 @@ describe('HomeAssistantDeviceDriver', () => {
     entityVersion: 1
   };
 
+  const mockCoverDevice: Device = {
+    ...mockDevice,
+    externalId: 'ha:cover.test',
+    type: 'COVER',
+    lastKnownState: { state: 'closed', current_position: 0 }
+  };
+
   beforeEach(() => {
     mockClient = {
       callService: jest.fn().mockResolvedValue(undefined)
@@ -52,8 +59,56 @@ describe('HomeAssistantDeviceDriver', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(mockClient.callService).toHaveBeenCalledWith('homeassistant', 'turn_on', 'light.test');
+    expect(mockClient.callService).toHaveBeenCalledWith('homeassistant', 'turn_on', 'light.test', undefined);
     expect(result.newState).toMatchObject({ on: true, state: 'on' });
+  });
+
+  it('should execute set_position for cover correctly', async () => {
+    const result = await driver.executeCommand(
+      mockCoverDevice,
+      { name: 'set_position', params: { position: 50 } },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockClient.callService).toHaveBeenCalledWith('cover', 'set_cover_position', 'cover.test', { position: 50 });
+    expect(result.newState).toMatchObject({ 
+      state: 'open', 
+      current_position: 50, 
+      position: 50 
+    });
+  });
+
+  it('should update state to closed when position is 0', async () => {
+    const result = await driver.executeCommand(
+      { ...mockCoverDevice, lastKnownState: { state: 'open', current_position: 100 } },
+      { name: 'set_position', params: { position: 0 } },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.newState?.state).toBe('closed');
+  });
+
+  it('should reject set_position without position param', async () => {
+    const result = await driver.executeCommand(
+      mockCoverDevice,
+      { name: 'set_position' },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Parámetro position es requerido');
+  });
+
+  it('should reject set_position with out of range position', async () => {
+    const result = await driver.executeCommand(
+      mockCoverDevice,
+      { name: 'set_position', params: { position: 101 } },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('número entre 0 y 100');
   });
 
   it('should execute toggle command with optimistic calculation', async () => {

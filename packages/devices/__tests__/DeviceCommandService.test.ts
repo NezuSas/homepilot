@@ -56,15 +56,47 @@ describe('DeviceCommandService', () => {
     service = new DeviceCommandService(mockRepo, mockRegistry, mockSyncDeps);
   });
 
-  it('should delegate execution to the resolved driver', async () => {
+  it('should delegate execution to the resolved driver (legacy string)', async () => {
     await service.dispatch('d1', 'turn_on');
 
     expect(mockRepo.findDeviceById).toHaveBeenCalledWith('d1');
     expect(mockRegistry.resolve).toHaveBeenCalledWith('ha');
     expect(mockDriver.executeCommand).toHaveBeenCalledWith(
       mockDevice,
-      { name: 'turn_on' },
+      { name: 'turn_on', params: undefined },
+      expect.objectContaining({
+        userId: 'system',
+        correlationId: 'device-command:d1:turn_on'
+      })
+    );
+  });
+
+  it('should delegate execution with params (DeviceCommandRequest)', async () => {
+    await service.dispatch('d1', { 
+      name: 'set_position', 
+      params: { position: 50 } 
+    });
+
+    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
+      mockDevice,
+      { name: 'set_position', params: { position: 50 } },
       expect.any(Object)
+    );
+  });
+
+  it('should propagate metadata to driver context', async () => {
+    await service.dispatch('d1', { 
+      name: 'turn_on', 
+      metadata: { userId: 'user-123', correlationId: 'corr-456' } 
+    });
+
+    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
+      mockDevice,
+      expect.any(Object),
+      expect.objectContaining({
+        userId: 'user-123',
+        correlationId: 'corr-456'
+      })
     );
   });
 

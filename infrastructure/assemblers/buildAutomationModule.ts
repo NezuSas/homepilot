@@ -17,6 +17,7 @@ import type { HomeAssistantConnectionProvider } from '../../packages/integration
 import type { SystemVariableService } from '../../packages/system-vars/application/SystemVariableService';
 import type { HomeAssistantRealtimeSyncManager } from '../../packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import type { EventBus } from '../../packages/shared/domain/events/EventBus';
+import { DeviceCommandV1, DeviceCommandRequest } from '../../packages/devices/domain/commands';
 
 export interface AutomationModuleAssembly {
   automationEngine: AutomationEngine;
@@ -62,7 +63,8 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
             validateRoomBelongsToHome: async () => {}
           },
           dispatcherPort: {
-            dispatch: async (dId: string, cmd: string) => {
+            dispatch: async (dId: string, command: DeviceCommandV1 | DeviceCommandRequest) => {
+               const cmd = typeof command === 'string' ? command : command.name;
                const target = await deviceRepository.findDeviceById(dId);
                if (!target || target.integrationSource !== 'ha') return;
                

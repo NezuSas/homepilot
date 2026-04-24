@@ -6,6 +6,7 @@ import { HomeAssistantConnectionProvider } from '../application/HomeAssistantCon
  * HomeAssistantDeviceDriver
  * 
  * Adaptador que permite a HomePilot controlar dispositivos gestionados por Home Assistant.
+ * Implementa Command Params V1 para soportar comandos parametrizados como set_position.
  */
 export class HomeAssistantDeviceDriver implements DeviceDriver {
   constructor(
@@ -38,6 +39,7 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     
     let domain = 'homeassistant';
     let service = '';
+    let data: Record<string, unknown> | undefined = undefined;
 
     const cmdName = command.name;
 
@@ -54,8 +56,19 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       domain = 'cover';
       service = 'stop_cover';
     } else if (cmdName === 'set_position' && haDomain === 'cover') {
-      // TODO: Implementar soporte de parámetros (position) cuando la capa superior lo permita
-      return { success: false, error: 'Comando set_position no soportado todavía por falta de parámetros en el flujo' };
+      const position = command.params?.position;
+      
+      // Validación estricta de parámetros
+      if (position === undefined || position === null) {
+        return { success: false, error: 'Parámetro position es requerido para set_position' };
+      }
+      if (typeof position !== 'number' || position < 0 || position > 100) {
+        return { success: false, error: 'Parámetro position debe ser un número entre 0 y 100' };
+      }
+
+      domain = 'cover';
+      service = 'set_cover_position';
+      data = { position };
     }
 
     if (!service) {
@@ -67,10 +80,10 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
         throw new Error('Integración de Home Assistant no configurada');
       }
 
-      await this.connectionProvider.getClient().callService(domain, service, entityId);
+      await this.connectionProvider.getClient().callService(domain, service, entityId, data);
 
-      // Cálculo de estado optimista (Preservando lógica de HomeAssistantCommandDispatcher)
-      const newState = this.calculateOptimisticState(device, cmdName);
+      // Cálculo de estado optimista
+      const newState = this.calculateOptimisticState(device, cmdName, command.params);
 
       return {
         success: true,
@@ -84,7 +97,7 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     }
   }
 
-  private calculateOptimisticState(device: Device, command: string): Record<string, unknown> {
+  private calculateOptimisticState(device: Device, command: string, params?: Record<string, unknown>): Record<string, unknown> {
     const newState: Record<string, unknown> = { ...device.lastKnownState as Record<string, unknown> };
     const isCurrentlyOn = newState.on === true || newState.state === 'on';
 
@@ -103,6 +116,17 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       if (!turnedOn) {
         if ('brightness' in newState) newState.brightness = 0;
         if ('power' in newState) newState.power = 0;
+      }
+    } else if (command === 'set_position') {
+      const position = params?.position as number;
+      newState.current_position = position;
+      newState.position = position;
+      
+      // Convención aprobada: 0 => closed, resto => open
+      if (position === 0) {
+        newState.state = 'closed';
+      } else {
+        newState.state = 'open';
       }
     }
 
