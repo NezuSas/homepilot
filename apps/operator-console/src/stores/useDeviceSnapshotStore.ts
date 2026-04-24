@@ -4,6 +4,22 @@ import { apiFetch } from '../lib/apiClient';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
+export interface SnapshotDeviceCapability {
+  type: string;
+  name: string;
+  state?: Record<string, unknown> | null;
+  commands?: Array<{
+    name: string;
+    params?: Array<{
+      name: string;
+      type: string;
+      min?: number;
+      max?: number;
+      required?: boolean;
+    }>;
+  }>;
+}
+
 export interface SnapshotDevice {
   id: string;
   homeId: string;
@@ -19,6 +35,7 @@ export interface SnapshotDevice {
   createdAt?: string;
   updatedAt?: string;
   integrationSource?: string;
+  capabilities?: SnapshotDeviceCapability[];
 }
 
 export interface SnapshotRoom {
@@ -52,13 +69,11 @@ const initialState = {
 
 export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => ({
   ...initialState,
-
   refreshSnapshot: async () => {
     const hasData = get().devices.length > 0;
     set({ isLoading: !hasData });
 
     try {
-      // 1. Core hydration: Fetch devices first
       const devicesResponse = await apiFetch(`${API_URL}/devices`);
       if (!devicesResponse.ok) {
         throw new Error('DEVICE_REFRESH_ERROR');
@@ -73,10 +88,8 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
         return;
       }
 
-      // Update devices immediately to unblock the main dashboard UI
       set({ devices, isLoading: false });
 
-      // 2. Background hydration: Fetch homes and rooms in parallel
       const homeIdsFromDevices = Array.from(new Set(devices.map((device) => device.homeId).filter(Boolean)));
       
       const [homesRes] = await Promise.all([
@@ -95,7 +108,6 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
 
       const homeIds = Array.from(new Set([...homeIdsFromDevices, ...homes.map((home) => home.id)]));
       
-      // Fetch rooms for all detected homes in parallel
       const roomsEntries = await Promise.all(
         homeIds.map(async (homeId) => {
           try {

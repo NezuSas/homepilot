@@ -8,6 +8,9 @@ import { DeviceCommandV1, isValidCommand } from '../../../packages/devices/domai
 import { HomeAssistantState } from '../../../packages/devices/infrastructure/adapters/HomeAssistantClient';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { resolveCapabilitiesForDevice } from '../../../packages/devices/domain/CapabilityResolver';
+import { Device } from '../../../packages/devices/domain/types';
+import { CAPABILITY_DEFINITIONS } from '../../../packages/devices/domain/capabilities';
 
 /**
  * Device routes: /api/v1/devices/*, /api/v1/activity-logs, /api/v1/ha/*
@@ -15,6 +18,23 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 export class DeviceRoutes extends ApiRoutes {
   constructor(private readonly dbPath: string) {
     super();
+  }
+
+  /**
+   * Helper para enriquecer el dispositivo con sus capacidades resueltas operacionalmente.
+   * Incluye la definición completa de comandos y esquemas de parámetros.
+   */
+  private enrichDevice(device: Device): any {
+    const resolvedCapabilities = resolveCapabilitiesForDevice(device);
+    const enrichedCapabilities = resolvedCapabilities.map(cap => ({
+      ...cap,
+      commands: CAPABILITY_DEFINITIONS[cap.type] || []
+    }));
+
+    return {
+      ...device,
+      capabilities: enrichedCapabilities
+    };
   }
 
   async handle(
@@ -47,7 +67,7 @@ export class DeviceRoutes extends ApiRoutes {
         const deviceId = deviceDetailMatch[1];
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
-        this.sendJson(res, device);
+        this.sendJson(res, this.enrichDevice(device));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -58,7 +78,7 @@ export class DeviceRoutes extends ApiRoutes {
     if (method === 'GET' && pathname === '/api/v1/devices') {
       try {
         const devices = await container.repositories.deviceRepository.findAllOrderedByStatus();
-        this.sendJson(res, devices);
+        this.sendJson(res, devices.map(d => this.enrichDevice(d)));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -121,7 +141,7 @@ export class DeviceRoutes extends ApiRoutes {
           clock: { now: () => new Date().toISOString() },
         });
         const updated = await container.repositories.deviceRepository.findDeviceById(deviceId);
-        this.sendJson(res, updated);
+        this.sendJson(res, updated ? this.enrichDevice(updated) : null);
       } catch (error: unknown) {
         container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
         this.sendError(res, 500, 'REFRESH_ERROR', error instanceof Error ? error.message : 'Unknown error');
@@ -151,7 +171,7 @@ export class DeviceRoutes extends ApiRoutes {
           idGenerator: { generate: () => crypto.randomUUID() },
           clock: { now: () => new Date().toISOString() },
         });
-        this.sendJson(res, result);
+        this.sendJson(res, this.enrichDevice(result));
       } catch (error: unknown) {
         const name = error instanceof Error ? error.constructor.name : 'Error';
         const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -168,14 +188,18 @@ export class DeviceRoutes extends ApiRoutes {
     const commandMatch = method === 'POST' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/command$/);
     if (commandMatch) {
       try {
-        const payload = await this.parseBody<{ command?: string }>(req);
-        if (!payload.command || !isValidCommand(payload.command))
-          return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid or missing command'), true;
+        const payload = await this.parseBody<{ command?: string | { name: string; params?: Record<string, unknown> } }>(req);
+        if (!payload.command) return this.sendError(res, 400, 'INVALID_COMMAND', 'Missing command'), true;
+
+        const commandName = typeof payload.command === 'string' ? payload.command : payload.command.name;
+        if (!isValidCommand(commandName))
+          return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid command'), true;
+        
         const compositeDispatcher = container.adapters.commandDispatcher;
         const correlationId = crypto.randomUUID();
         await executeDeviceCommandUseCase(
           commandMatch[1],
-          payload.command as DeviceCommandV1,
+          payload.command as DeviceCommandV1, // El use case ya soporta ambos por CommandDispatcher
           req.user!.id,
           correlationId,
           {
@@ -199,7 +223,7 @@ export class DeviceRoutes extends ApiRoutes {
         container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
 
         const upd = await container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
-        this.sendJson(res, upd);
+        this.sendJson(res, upd ? this.enrichDevice(upd) : null);
       } catch (error: unknown) {
         const name = error instanceof Error ? error.constructor.name : 'Error';
         const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -245,9 +269,9 @@ export class DeviceRoutes extends ApiRoutes {
             entityVersion: device.entityVersion + 1,
           };
           await container.repositories.deviceRepository.saveDevice(updatedDevice);
-          this.sendJson(res, updatedDevice);
+          this.sendJson(res, this.enrichDevice(updatedDevice));
         } else {
-          this.sendJson(res, device);
+          this.sendJson(res, this.enrichDevice(device));
         }
       } catch (error: unknown) {
         this.sendError(res, 500, 'UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
@@ -334,7 +358,7 @@ export class DeviceRoutes extends ApiRoutes {
       );
 
       container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
-      this.sendJson(res, device, 201);
+      this.sendJson(res, this.enrichDevice(device), 201);
     } catch (error: unknown) {
       let status = 500;
       let code = 'IMPORT_ERROR';

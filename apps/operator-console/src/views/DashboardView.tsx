@@ -1,23 +1,24 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Cpu, Loader2, Plus, 
-  Lightbulb, ToggleRight, Zap, Sparkles, ShieldCheck
+  Cpu, Loader2, Plus, Zap, Sparkles, ShieldCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
-import { humanize, disambiguate } from '../lib/naming-utils';
+import { humanize } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
 import type { HomeMode, View } from '../types';
 import { HomeModeSelector } from '../components/HomeModeSelector';
 import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
+import { DashDeviceTile } from '../components/DashDeviceTile';
 import { Button } from '../components/ui/Button';
 import { AssistantCard } from '../components/ui/AssistantCard';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { hasCapability } from '../lib/deviceCapabilities';
 import type { AssistantFinding } from '../stores/useAssistantStore';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
@@ -45,133 +46,6 @@ interface Scene {
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
-const DashDeviceTile: React.FC<{ 
-  device: Device; 
-  onUpdate?: (updated: Device) => void;
-  roomName?: string;
-  isDuplicateName?: boolean;
-  onActionExecute?: (label: string) => void;
-}> = ({ device, onUpdate, roomName, isDuplicateName, onActionExecute }) => {
-  const { t } = useTranslation();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [optimisticState, setOptimisticState] = useState<boolean | null>(null);
-
-  const lastState = (device.lastKnownState || {}) as DeviceState;
-  const actualIsOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
-  const isOn = optimisticState !== null ? optimisticState : actualIsOn;
-  const isOffline = device.status === 'PENDING';
-  
-  const isSonoff = device.integrationSource === 'sonoff';
-  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
-
-  const displayName = isDuplicateName 
-    ? disambiguate(humanize(device.id, device.name), roomName)
-    : humanize(device.id, device.name);
-
-  const handleToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isProcessing || isOffline) return;
-    
-    const nextState = !isOn;
-    setOptimisticState(nextState);
-    setIsProcessing(true);
-
-    try {
-      const command = nextState ? 'turn_on' : 'turn_off';
-      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command })
-      });
-      
-      if (res.ok) {
-        const updated = await res.json();
-        setOptimisticState(null);
-        if (onUpdate) onUpdate(updated);
-        if (onActionExecute) onActionExecute(t('common.feedback.action_success', { 
-          name: displayName, 
-          action: t(`common.actions.${command}`) 
-        }));
-      } else {
-        setOptimisticState(null);
-      }
-    } catch {
-      setOptimisticState(null);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const Icon = device.type === 'light' ? Lightbulb : (device.type === 'switch' ? ToggleRight : Cpu);
-
-  const localizedState = isOffline 
-    ? t('device_states.error') 
-    : (isOn ? t('device_states.on') : t('device_states.off'));
-
-  return (
-    <div 
-      onClick={handleToggle}
-      data-demo="device-tile"
-      className={cn(
-        "relative group cursor-pointer transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 active:scale-95 h-full hover:-translate-y-1 hover:shadow-xl overflow-hidden",
-        isOn ? "bg-primary/5 border-primary shadow-lg shadow-primary/10" : "bg-card border-border shadow-md hover:border-primary/20",
-        (!isOn && isSonoff) && "hover:border-success/40",
-        isOffline && "opacity-30 grayscale pointer-events-none hover:translate-y-0"
-      )}
-    >
-      {/* Edge Atmosphere Glow (Background Pulse for Local) */}
-      {isSonoff && isProcessing && (
-        <div className="absolute inset-0 bg-success/5 animate-atmospheric-glow pointer-events-none" />
-      )}
-      <div className={cn(
-        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 z-10",
-        isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40",
-        (isSonoff && isProcessing) && "bg-success text-white scale-110 shadow-success/20 shadow-xl"
-      )}>
-        {isProcessing && isSonoff ? (
-          <Zap className="w-5 h-5 animate-pulse" />
-        ) : (
-          <Icon className={cn("w-4 h-4", isOn && "animate-pulse")} />
-        )}
-      </div>
-
-      <div className="flex flex-col min-w-0">
-        <div className="flex items-center justify-between gap-1 mb-1">
-          <h4 className="text-xs font-bold truncate tracking-tight">{displayName}</h4>
-            <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">{t('dashboards.status.local')}</span>
-        </div>
-        <div className="flex items-center gap-1.5 min-h-[12px]">
-          {isProcessing ? (
-            <>
-              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSonoff ? "bg-success animate-ping" : "status-dot-updating")} />
-              <span className={cn("text-[8px] font-black uppercase tracking-widest truncate", isSonoff ? "text-success" : "opacity-40")}>
-                {isSonoff ? t('dashboards.status.edge_exec') : t('device_states.updating')}
-              </span>
-            </>
-          ) : (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={cn(
-                "text-[9px] font-medium tracking-wide transition-opacity duration-300 truncate",
-                isOn ? "text-primary opacity-90" : "text-muted-foreground/50"
-              )}>
-                {localizedState}
-              </span>
-              {isSonoff && (
-                <>
-                  <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                  <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
-                    {isOnline ? t('common.online') : t('common.offline')}
-                  </span>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const mapSnapshotToDevice = (snapshot: SnapshotDevice): Device => {
   const {
     externalId: _externalId,
@@ -180,7 +54,7 @@ const mapSnapshotToDevice = (snapshot: SnapshotDevice): Device => {
     ...device
   } = snapshot;
 
-  return device;
+  return device as Device;
 };
 
 export const DashboardView: React.FC<{ 
@@ -218,8 +92,6 @@ export const DashboardView: React.FC<{
     return null;
   }, [primaryHomeId, rooms]);
 
-
-
 const fetchData = useCallback(async () => {
   try {
     await Promise.all([refreshSnapshot(), refreshFindings()]);
@@ -233,16 +105,14 @@ const fetchData = useCallback(async () => {
   } catch {
     setScenes([]);
   }
-}, [homeId, refreshFindings, refreshSnapshot]); // Stable dependencies only
+}, [homeId, refreshFindings, refreshSnapshot]);
 
 useEffect(() => {
   fetchData();
 }, [homeId, fetchData]);
 
-
-
   const handleDeviceUpdate = (updated: Device) => {
-    upsertDevice(updated);
+    upsertDevice(updated as SnapshotDevice);
   };
 
   const handleSceneExecute = async (scene: Scene) => {
@@ -293,7 +163,7 @@ useEffect(() => {
   const handleAction = async (finding: any, action: any) => {
     if (action.type === 'ignore' || action.type === 'dismiss') {
       try {
-        await resolveFinding(finding.id); // Or dismissFinding, but Dashboard uses resolveFinding mainly
+        await resolveFinding(finding.id);
         await fetchData();
         if (onActionExecute) onActionExecute(t('common.feedback.action_success', { name: finding.id, action: t('assistant.actions.ignore') }));
       } catch (e) {
@@ -546,21 +416,6 @@ useEffect(() => {
         </div>
       )}
 
-      {scenes.length === 0 && (
-        <div className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5">
-           <Zap className="w-12 h-12 text-primary opacity-20 mb-4" />
-           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">{t('scenes.empty_title')}</p>
-           <Button 
-             variant="ghost" 
-             size="sm"
-             onClick={() => setIsSceneModalOpen(true)}
-             className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary/60"
-           >
-             {t('dashboard.scene_create')}
-           </Button>
-        </div>
-      )}
-
       {/* LEVEL 3: Spatial Context (Rooms) */}
       <div className="space-y-12">
         {activeRooms.length === 0 ? (
@@ -580,13 +435,13 @@ useEffect(() => {
             <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">
               <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-muted-foreground/10 pl-6">
                 <div>
-                  <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
-                  <span className={cn(
-                    "text-[10px] font-black uppercase tracking-widest transition-colors",
-                    onCount > 0 ? "text-warning" : "text-muted-foreground/40"
-                  )}>
-                    {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
-                  </span>
+                   <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
+                   <span className={cn(
+                     "text-[10px] font-black uppercase tracking-widest transition-colors",
+                     onCount > 0 ? "text-warning" : "text-muted-foreground/40"
+                   )}>
+                     {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
+                   </span>
                 </div>
                 {onCount > 0 && (
                   <Button 
@@ -601,11 +456,12 @@ useEffect(() => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[240px]">
+              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[auto]">
                 {roomDevices.map((device) => {
                   const tileDevice = mapSnapshotToDevice(device);
+                  const isCover = hasCapability(tileDevice, 'cover');
 
-                  return device.type === 'cover' ? (
+                  return isCover ? (
                     <CurtainDeviceTile
                       key={device.id}
                       device={tileDevice}
