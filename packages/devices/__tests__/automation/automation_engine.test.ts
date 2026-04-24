@@ -24,7 +24,7 @@ describe('Automation Engine: Reactive Execution', () => {
 
     dispatcherMock = { 
       dispatchCommand: jest.fn().mockResolvedValue(undefined),
-      executeScene: jest.fn().mockResolvedValue({ success: true, results: [] }) 
+      executeScene: jest.fn().mockResolvedValue(undefined) 
     };
 
     sceneRepoMock = {
@@ -90,7 +90,7 @@ describe('Automation Engine: Reactive Execution', () => {
       newState: { state: 'on', attributes: { presence: true } } 
     });
 
-    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
+    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String), 'rule-1');
 
     const logs = await logRepo.findRecentByDeviceId('light-1', 1);
     expect(logs[0].description).toBe('Triggered by Automation: AutoLight');
@@ -114,7 +114,7 @@ describe('Automation Engine: Reactive Execution', () => {
       newState: { state: 'on', attributes: { presence: true } } 
     });
 
-    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
+    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String), 'rule-1');
 
     const failLogs = await logRepo.findRecentByDeviceId('non-existent', 1);
     expect(failLogs).toHaveLength(1);
@@ -174,7 +174,7 @@ describe('Automation Engine: Reactive Execution', () => {
       externalId: 'ext1', 
       newState: { state: 'on', attributes: { presence: true } } 
     });
-    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
+    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String), 'rule-1');
   });
 
   describe('Scheduled Triggers (Timezone Consistency)', () => {
@@ -199,7 +199,7 @@ describe('Automation Engine: Reactive Execution', () => {
       // Pass UTC pulse with deterministic date anchor
       await engine.handleTimeEvent('15:30', mockNow.toJSDate());
 
-      expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
+      expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String), 'rule-time-1');
       
       jest.useRealTimers();
     });
@@ -229,7 +229,7 @@ describe('Automation Engine: Reactive Execution', () => {
       await engine.handleTimeEvent('04:30', mockNow.toJSDate());
 
       // SHOULD fire because it's still Monday in Ecuador
-      expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String));
+      expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String), 'rule-monday');
       
       jest.useRealTimers();
     });

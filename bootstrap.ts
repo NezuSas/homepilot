@@ -16,6 +16,7 @@ import type { SQLiteDeviceRepository } from './packages/devices/infrastructure/r
 import type { SqliteSceneRepository } from './packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import type { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import type { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
+import type { SQLiteExecutionRecordRepository } from './packages/devices/infrastructure/repositories/SQLiteExecutionRecordRepository';
 import type { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import type { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import type { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -49,6 +50,7 @@ export interface BootstrapContainer {
     sceneRepository: SqliteSceneRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
+    executionRecordRepository: SQLiteExecutionRecordRepository;
     settingsRepository: SQLiteSettingsRepository;
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
@@ -161,6 +163,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     deviceRepository: repos.deviceRepository,
     sceneRepository: repos.sceneRepository,
     activityLogRepository: repos.activityLogRepository,
+    executionRecordRepository: repos.executionRecordRepository,
     commandDispatcher: commandRouterAssembly.commandDispatcher,
     systemVariableService,
     syncManager: haModule.syncManager,

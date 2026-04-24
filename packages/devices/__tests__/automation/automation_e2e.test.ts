@@ -30,7 +30,7 @@ describe('Automation E2E: Full Reactive Flow', () => {
     
     dispatcherMock = { 
       dispatchCommand: jest.fn().mockResolvedValue(undefined),
-      executeScene: jest.fn().mockResolvedValue({ success: true, results: [] }) 
+      executeScene: jest.fn().mockResolvedValue(undefined) 
     };
 
     sceneRepoMock = {
@@ -98,7 +98,7 @@ describe('Automation E2E: Full Reactive Flow', () => {
       newState: { state: 'open', attributes: { contact: 'open' } }
     });
 
-    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-e2e', 'light-e2e', 'turn_on', expect.any(String));
+    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-e2e', 'light-e2e', 'turn_on', expect.any(String), 'e2e-rule-id');
 
     const logs = await logRepo.findRecentByDeviceId('light-e2e', 5);
     const automationLog = logs.find(l => l.type === 'COMMAND_DISPATCHED');

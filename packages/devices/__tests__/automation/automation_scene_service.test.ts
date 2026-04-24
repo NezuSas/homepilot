@@ -24,7 +24,7 @@ function buildTestAutomationDispatcher(commandDispatcher: DeviceCommandDispatche
   const sceneExecutionService = new SceneExecutionService(commandDispatcher);
 
   return {
-    dispatchCommand: async (homeId: string, deviceId: string, command: string, correlationId: string) => {
+    dispatchCommand: async (homeId: string, deviceId: string, command: string, correlationId: string, ruleId: string) => {
       const result = await sceneExecutionService.execute({
         id: `automation:${correlationId}`,
         homeId,
@@ -40,6 +40,10 @@ function buildTestAutomationDispatcher(commandDispatcher: DeviceCommandDispatche
         executionMode: 'parallel',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+      }, {
+        sourceType: 'automation',
+        sourceId: ruleId,
+        correlationId,
       });
 
       if (result.status === 'failed') {
@@ -48,7 +52,7 @@ function buildTestAutomationDispatcher(commandDispatcher: DeviceCommandDispatche
       }
     },
 
-    executeScene: async (_homeId: string, _sceneId: string, _correlationId: string) => {
+    executeScene: async (_homeId: string, _sceneId: string, _correlationId: string, _ruleId: string) => {
       // minimal stub — covered by SceneExecutionService unit tests
     },
   };

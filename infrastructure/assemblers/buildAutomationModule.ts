@@ -26,6 +26,7 @@ export interface AutomationModuleDeps {
   deviceRepository: SQLiteDeviceRepository;
   sceneRepository: SqliteSceneRepository;
   activityLogRepository: SQLiteActivityLogRepository;
+  executionRecordRepository: import('../../packages/devices/infrastructure/repositories/SQLiteExecutionRecordRepository').SQLiteExecutionRecordRepository;
   commandDispatcher: DeviceCommandDispatcherPort;
   systemVariableService: SystemVariableService;
   syncManager: HomeAssistantRealtimeSyncManager;
@@ -38,13 +39,14 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
     deviceRepository,
     sceneRepository,
     activityLogRepository,
+    executionRecordRepository,
     commandDispatcher,
     systemVariableService,
     syncManager,
     eventBus
   } = deps;
 
-  const sceneExecutionService = new SceneExecutionService(commandDispatcher);
+  const sceneExecutionService = new SceneExecutionService(commandDispatcher, executionRecordRepository);
 
   const automationEngine = new AutomationEngine(
     automationRuleRepository,
@@ -56,7 +58,7 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
        * Crea una escena sintética de una sola acción en modo parallel
        * y la delega a SceneExecutionService → DeviceCommandService.
        */
-      dispatchCommand: async (homeId: string, deviceId: string, command: string, correlationId: string) => {
+      dispatchCommand: async (homeId: string, deviceId: string, command: string, correlationId: string, ruleId: string) => {
         const result = await sceneExecutionService.execute({
           id: `automation:${correlationId}`,
           homeId,
@@ -72,6 +74,10 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
           executionMode: 'parallel',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+        }, {
+          sourceType: 'automation',
+          sourceId: ruleId,
+          correlationId,
         });
 
         if (result.status === 'failed') {
@@ -84,7 +90,7 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
        * executeScene — Ejecuta una escena completa via SceneExecutionService.
        * Respeta el executionMode configurado en la escena (parallel por defecto).
        */
-      executeScene: async (homeId: string, sceneId: string, correlationId: string) => {
+      executeScene: async (homeId: string, sceneId: string, correlationId: string, ruleId: string) => {
         const scene = await sceneRepository.findSceneById(sceneId);
         if (!scene) return;
 
@@ -98,7 +104,11 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
             data: { sceneId: scene.id, name: scene.name, executionMode: scene.executionMode ?? 'parallel' },
           });
 
-          const execResult = await sceneExecutionService.execute(scene);
+          const execResult = await sceneExecutionService.execute(scene, {
+            sourceType: 'automation',
+            sourceId: ruleId,
+            correlationId,
+          });
 
           const failedCount = execResult.actions.filter(a => a.status === 'failed').length;
           const totalCount = execResult.actions.length;

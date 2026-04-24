@@ -1,26 +1,22 @@
+import { randomUUID } from 'crypto';
 import { Scene, SceneAction } from '../domain/Scene';
 import { DeviceCommandRequest } from '../domain/commands';
+import { 
+  SceneActionResult, 
+  SceneExecutionResult,
+  ExecutionRecord,
+} from '../domain/ExecutionRecord';
+import { ExecutionRecordRepository } from '../domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
 
 /**
- * SceneActionResult
- * Resultado normalizado por cada acción ejecutada en una escena.
+ * SceneExecutionOptions
+ * Opciones para trazar el origen de la ejecución.
  */
-export interface SceneActionResult {
-  deviceId: string;
-  commandName: string;
-  status: 'success' | 'failed' | 'skipped';
-  error?: string;
-}
-
-/**
- * SceneExecutionResult
- * Resultado consolidado de la ejecución completa de una escena.
- */
-export interface SceneExecutionResult {
-  sceneId: string;
-  status: 'success' | 'partial' | 'failed';
-  actions: SceneActionResult[];
+export interface SceneExecutionOptions {
+  sourceType: 'scene' | 'automation' | 'manual';
+  sourceId: string;
+  correlationId?: string;
 }
 
 /**
@@ -73,16 +69,32 @@ function sleep(ms: number): Promise<void> {
  * - "sequential": ejecuta acciones en orden estricto, respetando delayMs y continueOnFailure.
  */
 export class SceneExecutionService {
-  constructor(private readonly commandDispatcher: DeviceCommandDispatcherPort) {}
+  constructor(
+    private readonly commandDispatcher: DeviceCommandDispatcherPort,
+    private readonly executionRecordRepository?: ExecutionRecordRepository
+  ) {}
 
-  public async execute(scene: Scene): Promise<SceneExecutionResult> {
+  public async execute(scene: Scene, options?: SceneExecutionOptions): Promise<SceneExecutionResult> {
+    const startedAt = new Date().toISOString();
+    const startTimestamp = Date.now();
+
     const mode = scene.executionMode ?? 'parallel';
+    let result: SceneExecutionResult;
 
     if (mode === 'sequential') {
-      return this.executeSequential(scene);
+      result = await this.executeSequential(scene);
+    } else {
+      result = await this.executeParallel(scene);
     }
 
-    return this.executeParallel(scene);
+    const completedAt = new Date().toISOString();
+    const durationMs = Date.now() - startTimestamp;
+
+    if (this.executionRecordRepository) {
+      this.saveExecutionRecord(scene, result, startedAt, completedAt, durationMs, options);
+    }
+
+    return result;
   }
 
   /**
@@ -180,5 +192,43 @@ export class SceneExecutionService {
     }
 
     return { sceneId, status, actions };
+  }
+
+  /**
+   * Persiste el registro de ejecución de forma asíncrona (fire-and-forget).
+   */
+  private saveExecutionRecord(
+    scene: Scene,
+    result: SceneExecutionResult,
+    startedAt: string,
+    completedAt: string,
+    durationMs: number,
+    options?: SceneExecutionOptions
+  ): void {
+    const sourceType = options?.sourceType ?? 'scene';
+    const sourceId = options?.sourceId ?? scene.id;
+    // Si no hay correlationId, generamos uno basado en el contexto
+    const correlationId = options?.correlationId ?? `execution:${sourceType}:${sourceId}:${Date.now()}`;
+
+    const record: ExecutionRecord = {
+      id: randomUUID(),
+      sourceType,
+      sourceId,
+      status: result.status,
+      startedAt,
+      completedAt,
+      durationMs,
+      actionCount: result.actions.length,
+      successCount: result.actions.filter(a => a.status === 'success').length,
+      failedCount: result.actions.filter(a => a.status === 'failed').length,
+      skippedCount: result.actions.filter(a => a.status === 'skipped').length,
+      correlationId,
+      summary: `Scene "${scene.name}" executed via ${sourceType}. Status: ${result.status}`,
+      actions: result.actions,
+    };
+
+    this.executionRecordRepository?.save(record).catch((err: any) => {
+      console.warn('[SceneExecutionService] Failed to save execution record:', err.message);
+    });
   }
 }

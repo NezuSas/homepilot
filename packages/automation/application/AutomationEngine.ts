@@ -14,8 +14,8 @@ import {
 import { SystemVariableService } from '../../system-vars/application/SystemVariableService';
 
 export interface AutomationCommandDispatcher {
-  dispatchCommand(homeId: string, deviceId: string, command: string, correlationId: string): Promise<void>;
-  executeScene(homeId: string, sceneId: string, correlationId: string): Promise<void>;
+  dispatchCommand(homeId: string, deviceId: string, command: string, correlationId: string, ruleId: string): Promise<void>;
+  executeScene(homeId: string, sceneId: string, correlationId: string, ruleId: string): Promise<void>;
 }
 
 export interface IdGenerator {
@@ -250,7 +250,8 @@ export class AutomationEngine {
           targetDevice.homeId,
           action.targetDeviceId,
           action.command,
-          correlationId
+          correlationId,
+          rule.id
         );
         await this.activityLogRepository.saveActivity({
           timestamp: new Date().toISOString(),
@@ -267,7 +268,7 @@ export class AutomationEngine {
       }
 
       if (action.type === 'execute_scene') {
-        await this.commandDispatcher.executeScene(rule.homeId, action.sceneId, correlationId);
+        await this.commandDispatcher.executeScene(rule.homeId, action.sceneId, correlationId, rule.id);
         this.totalSuccesses++;
         return;
       }
