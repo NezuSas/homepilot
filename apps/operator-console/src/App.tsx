@@ -45,6 +45,7 @@ import { AssistantView } from './views/AssistantView';
 import { DashboardsView } from './views/DashboardsView';
 import ResilienceShowcaseView from './views/ResilienceShowcaseView';
 import { EnergyView } from './views/EnergyView';
+import { ExecutionLogsView } from './views/ExecutionLogsView';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
@@ -93,6 +94,7 @@ function isSystemView(view: View): boolean {
     || view === 'system-inbox'
     || view === 'system-diagnostics'
     || view === 'system-audit'
+    || view === 'system-executions'
     || view === 'system-users'
     || view === 'system-ha';
 }
@@ -368,6 +370,7 @@ function App() {
       case 'system-inbox':        return t('nav.system_inbox');
       case 'system-diagnostics':  return t('nav.system_diagnostics');
       case 'system-audit':        return t('nav.system_audit');
+      case 'system-executions':   return t('nav.system_executions', 'Historial de Ejecución');
       case 'system-ha':           return t('nav.system_ha');
       case 'system-users':        return t('nav.system_users');
       default:                    return t('nav.dashboard');
@@ -386,6 +389,7 @@ function App() {
       case 'system-inbox':        return t('dashboard.discovery');
       case 'system-diagnostics':  return t('dashboard.observability');
       case 'system-audit':        return t('dashboard.observability');
+      case 'system-executions':   return t('dashboard.observability');
       case 'system-ha':           return t('dashboard.platform');
       default:                    return '';
     }
@@ -562,6 +566,13 @@ function App() {
                         label={t('nav.system_audit')}
                         active={currentView === 'system-audit'}
                         onClick={() => navigateTo('system-audit')}
+                        nested
+                      />
+                      <SidebarItem
+                        icon={Activity}
+                        label={t('nav.system_executions', 'Historial Ejecución')}
+                        active={currentView === 'system-executions'}
+                        onClick={() => navigateTo('system-executions')}
                         nested
                       />
                       {user?.role === 'admin' && (
@@ -782,6 +793,7 @@ function App() {
              {currentView === 'system-inbox' && <InboxView mode="discovery" />}
              {currentView === 'system-diagnostics' && <DiagnosticsView />}
              {currentView === 'system-audit' && <AuditLogsView />}
+             {currentView === 'system-executions' && <ExecutionLogsView />}
              {currentView === 'system-ha' && <HomeAssistantSettingsView />}
              {currentView === 'system-users' && <UsersView />}
            </div>
