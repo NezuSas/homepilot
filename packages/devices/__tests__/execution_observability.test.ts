@@ -2,6 +2,7 @@ import { SceneExecutionService } from '../application/SceneExecutionService';
 import { InMemoryExecutionRecordRepository } from '../infrastructure/repositories/InMemoryExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from '../application/ports/DeviceCommandDispatcherPort';
 import { Scene } from '../domain/Scene';
+import { FailureInsightService } from '../application/FailureInsightService';
 
 describe('Execution Observability V1', () => {
   let executionRepo: InMemoryExecutionRecordRepository;
@@ -136,6 +137,8 @@ describe('Execution Observability V1', () => {
         actions: [{ deviceId: failedAction.deviceId, command: failedAction.command }]
       };
 
+      await new Promise(r => setTimeout(r, 10));
+
       commandDispatcher.dispatch.mockResolvedValueOnce(undefined);
       await service.execute(syntheticScene as any, {
         sourceType: 'manual',
@@ -147,6 +150,58 @@ describe('Execution Observability V1', () => {
       expect(all).toHaveLength(2);
       expect(all[0].sourceId).toBe(`retry:${original.id}:0`);
       expect(all[0].status).toBe('success');
+    });
+  });
+
+  describe('Failure Insights V1', () => {
+    it('mapea HA_SERVICE_CALL_FAILED correctamente', () => {
+      const result = FailureInsightService.interpretExecutionError('Error: HA_SERVICE_CALL_FAILED for light.living_room');
+      expect(result.severity).toBe('critical');
+      expect(result.userMessage).toBe('No se pudo conectar con Home Assistant.');
+    });
+
+    it('mapea timeout y AbortError correctamente', () => {
+      const result1 = FailureInsightService.interpretExecutionError('Driver timeout after 5000ms');
+      expect(result1.severity).toBe('warning');
+      expect(result1.userMessage).toBe('El dispositivo no respondió a tiempo.');
+
+      const result2 = FailureInsightService.interpretExecutionError('AbortError: signal aborted');
+      expect(result2.severity).toBe('warning');
+    });
+
+    it('mapea device not found correctamente', () => {
+      const result = FailureInsightService.interpretExecutionError('Dispositivo no encontrado en la red');
+      expect(result.severity).toBe('critical');
+      expect(result.userMessage).toBe('El dispositivo ya no está disponible.');
+    });
+
+    it('mapea capability validation correctamente', () => {
+      const result = FailureInsightService.interpretExecutionError('Action no soportado por capabilities');
+      expect(result.severity).toBe('warning');
+      expect(result.userMessage).toBe('Este dispositivo no soporta la acción solicitada.');
+    });
+
+    it('aplica fallback para error desconocido', () => {
+      const result = FailureInsightService.interpretExecutionError('Some weird exception');
+      expect(result.severity).toBe('warning');
+      expect(result.userMessage).toBe('La acción falló por un error no reconocido.');
+      expect(result.technicalMessage).toBe('Some weird exception');
+    });
+
+    it('SceneExecutionService persiste insights en acción fallida', async () => {
+      commandDispatcher.dispatch.mockRejectedValueOnce(new Error('Driver timeout'));
+
+      const result = await service.execute(mockScene);
+      expect(result.status).toBe('partial');
+
+      const recent = await executionRepo.findRecent();
+      const failedAction = recent[0].actions.find(a => a.status === 'failed');
+
+      expect(failedAction).toBeDefined();
+      expect(failedAction?.userMessage).toBe('El dispositivo no respondió a tiempo.');
+      expect(failedAction?.severity).toBe('warning');
+      expect(failedAction?.technicalMessage).toBe('Driver timeout');
+      expect(failedAction?.suggestedAction).toBeDefined();
     });
   });
 });

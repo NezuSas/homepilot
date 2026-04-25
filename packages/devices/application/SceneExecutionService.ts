@@ -8,6 +8,7 @@ import {
 } from '../domain/ExecutionRecord';
 import { ExecutionRecordRepository } from '../domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
+import { FailureInsightService } from './FailureInsightService';
 
 /**
  * SceneExecutionOptions
@@ -127,12 +128,22 @@ export class SceneExecutionService {
         };
       }
 
+      const errorMsg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      const insight = FailureInsightService.interpretExecutionError(errorMsg, {
+        deviceId: action.deviceId,
+        commandName: commandName
+      });
+
       return {
         deviceId: action.deviceId,
         commandName,
         status: 'failed' as const,
-        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-        command: normalizedCommand
+        error: errorMsg,
+        command: normalizedCommand,
+        userMessage: insight.userMessage,
+        technicalMessage: insight.technicalMessage,
+        severity: insight.severity,
+        suggestedAction: insight.suggestedAction
       };
     });
 
@@ -166,8 +177,23 @@ export class SceneExecutionService {
         await this.commandDispatcher.dispatch(action.deviceId, command);
         actionResults.push({ deviceId: action.deviceId, commandName, status: 'success', command });
       } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        actionResults.push({ deviceId: action.deviceId, commandName, status: 'failed', error, command });
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        const insight = FailureInsightService.interpretExecutionError(errorMsg, {
+          deviceId: action.deviceId,
+          commandName: commandName
+        });
+        
+        actionResults.push({ 
+          deviceId: action.deviceId, 
+          commandName, 
+          status: 'failed', 
+          error: errorMsg, 
+          command,
+          userMessage: insight.userMessage,
+          technicalMessage: insight.technicalMessage,
+          severity: insight.severity,
+          suggestedAction: insight.suggestedAction
+        });
 
         if (!action.continueOnFailure) {
           aborted = true;

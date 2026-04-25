@@ -21,6 +21,10 @@ export interface SceneActionResult {
   status: 'success' | 'failed' | 'skipped';
   error?: string;
   command?: DeviceCommandV1 | DeviceCommandRequest;
+  userMessage?: string;
+  technicalMessage?: string;
+  severity?: 'info' | 'warning' | 'critical';
+  suggestedAction?: string;
 }
 
 export interface ExecutionRecord {

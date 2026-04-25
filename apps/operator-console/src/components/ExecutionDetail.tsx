@@ -79,10 +79,25 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
                 </span>
               )}
 
-              {action.error && (
-                <span className="text-[10px] font-medium text-destructive/80 italic max-w-[80px] sm:max-w-[200px] truncate" title={action.error}>
-                  {action.error}
-                </span>
+              {action.status === 'failed' && (action.userMessage || action.error) && (
+                <div className="flex flex-col items-end text-right">
+                  <span className={cn(
+                    "text-[11px] font-bold max-w-[150px] sm:max-w-[250px] truncate",
+                    action.severity === 'warning' ? "text-warning" : "text-destructive"
+                  )} title={action.userMessage || action.error}>
+                    {action.userMessage || action.error}
+                  </span>
+                  {action.suggestedAction && (
+                    <span className="text-[9px] font-medium text-muted-foreground max-w-[150px] sm:max-w-[250px] truncate" title={action.suggestedAction}>
+                      {action.suggestedAction}
+                    </span>
+                  )}
+                  {(action.technicalMessage || action.error) && (
+                    <span className="text-[8px] font-mono text-muted-foreground/30 max-w-[100px] truncate hover:text-muted-foreground/70 transition-colors" title={action.technicalMessage || action.error}>
+                      {action.technicalMessage || action.error}
+                    </span>
+                  )}
+                </div>
               )}
 
               {action.status === 'failed' && (
