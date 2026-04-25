@@ -4,18 +4,18 @@ Esta guía describe cómo verificar la correcta integración en tiempo de ejecuc
 
 ## Prerrequisitos
 
-Tener [Ollama](https://ollama.com/) instalado en el host local (Windows/macOS/Linux) o dentro del entorno WSL.
+Ollama ahora corre como un servicio Docker interno (`homepilot-ollama`) junto al resto de la infraestructura de HomePilot Edge.
 
 ### 1. Verificar Ollama
-Asegúrate de que el servicio de Ollama esté ejecutándose y sea accesible:
+Asegúrate de que el servicio de Ollama esté ejecutándose y sea accesible desde la API:
 ```bash
-curl http://localhost:11434/api/tags
+docker exec -it homepilot-api curl http://ollama:11434/api/tags
 ```
 
 ### 2. Descargar el Modelo
-HomePilot usa `phi3` por defecto. Descárgalo en Ollama si no lo tienes:
+HomePilot usa `phi3` por defecto. Descárgalo dentro del contenedor de Ollama si no lo tienes:
 ```bash
-ollama pull phi3
+docker exec -it homepilot-ollama ollama pull phi3
 ```
 
 ## Entorno Docker
@@ -28,7 +28,7 @@ Si usas bash/WSL:
 OLLAMA_ENABLED=true docker compose up --build
 ```
 > **Nota:** Verifica en los logs de inicialización del contenedor `homepilot-api` el mensaje:  
-> `[Assistant] Ollama enabled: model=phi3, baseUrl=http://host.docker.internal:11434`
+> `[Assistant] Ollama enabled: model=phi3, baseUrl=http://ollama:11434`
 
 ## Ejecución de Pruebas
 

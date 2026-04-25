@@ -1,5 +1,3 @@
-
-
 services:
   homepilot-api:
     build:
@@ -20,8 +18,8 @@ services:
       - INTERNAL_HA_URL=http://homeassistant:8123
       - HOMEPILOT_DEV_BOOTSTRAP=${HOMEPILOT_DEV_BOOTSTRAP:-false}
       - CORS_ORIGIN=http://localhost,http://localhost:5173,http://127.0.0.1:5173
-      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-true}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-phi3}
       - OLLAMA_TIMEOUT_MS=${OLLAMA_TIMEOUT_MS:-8000}
     extra_hosts:
@@ -35,6 +33,8 @@ services:
     depends_on:
       homeassistant:
         condition: service_healthy
+      ollama:
+        condition: service_started
 
   homepilot-ui:
     build:
@@ -66,6 +66,16 @@ services:
       retries: 5
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: homepilot-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   data:
   ha-config:
+  ollama-data:
