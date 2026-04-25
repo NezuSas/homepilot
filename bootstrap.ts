@@ -11,6 +11,9 @@ import { DiagnosticsService } from './packages/system-observability/application/
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
 import { IntentInterpreterService } from './packages/assistant/application/IntentInterpreterService';
+import { OllamaClient } from './packages/assistant/infrastructure/OllamaClient';
+import { AssistantContextBuilder } from './packages/assistant/application/AssistantContextBuilder';
+import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -195,7 +198,20 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   );
 
   const databaseBackupService = new DatabaseBackupService();
-  const intentInterpreterService = new IntentInterpreterService(repos.deviceRepository, repos.sceneRepository);
+
+  const ollamaClient = new OllamaClient(
+    process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    process.env.OLLAMA_MODEL || 'phi3',
+    parseInt(process.env.OLLAMA_TIMEOUT_MS || '8000')
+  );
+  const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository);
+  const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
+
+  const intentInterpreterService = new IntentInterpreterService(
+    repos.deviceRepository, 
+    repos.sceneRepository,
+    llmInterpreter
+  );
 
   const container: BootstrapContainer = {
     repositories: {

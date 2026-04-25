@@ -1,5 +1,6 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
+import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 
 export type Intent = 
   | { type: 'scene'; target: string; prompt: string }
@@ -15,10 +16,34 @@ export type Intent =
 export class IntentInterpreterService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
-    private readonly sceneRepository: SceneRepository
+    private readonly sceneRepository: SceneRepository,
+    private readonly llmInterpreter?: LlmIntentInterpreterPort
   ) {}
 
   public async interpret(prompt: string): Promise<Intent> {
+    const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
+
+    if (isLlmEnabled && this.llmInterpreter) {
+      try {
+        const intent = await this.llmInterpreter.interpret(prompt);
+        if (intent && intent.type !== 'unknown') {
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[Assistant] LLM interpreted: ${prompt} -> ${intent.type}`);
+          }
+          return intent;
+        }
+      } catch (error) {
+        // Fallback on any error
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Assistant] LLM interpretation failed, falling back to deterministic.');
+        }
+      }
+    }
+
+    return this.interpretDeterministic(prompt);
+  }
+
+  private async interpretDeterministic(prompt: string): Promise<Intent> {
     const normalized = prompt.toLowerCase().trim();
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
     const onKeywords = ['prende', 'encender', 'encendido', 'activar', 'on'];
