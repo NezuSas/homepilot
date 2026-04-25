@@ -96,7 +96,11 @@ export const ExecutionLogsView: React.FC = () => {
 
       <div className="grid gap-4">
         {records.map((record) => (
-          <ExecutionCard key={record.id} record={record} />
+          <ExecutionCard 
+            key={record.id} 
+            record={record} 
+            onRetrySuccess={fetchRecords}
+          />
         ))}
       </div>
       

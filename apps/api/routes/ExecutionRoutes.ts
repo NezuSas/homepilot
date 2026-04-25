@@ -2,6 +2,7 @@ import * as http from 'http';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { BootstrapContainer } from '../../../bootstrap';
+import { Scene } from '../../../packages/devices/domain/Scene';
 
 /**
  * Execution routes: /api/v1/executions/*
@@ -54,6 +55,63 @@ export class ExecutionRoutes extends ApiRoutes {
         this.sendJson(res, records);
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
+      }
+      return true;
+    }
+
+    // POST /api/v1/executions/:executionId/actions/:actionIndex/retry
+    const retryMatch = method === 'POST' && pathname.match(/^\/api\/v1\/executions\/([^\/]+)\/actions\/(\d+)\/retry$/);
+    if (retryMatch) {
+      try {
+        const executionId = retryMatch[1];
+        const actionIndex = parseInt(retryMatch[2], 10);
+
+        const record = await container.repositories.executionRecordRepository.findById(executionId);
+        if (!record) {
+          return this.sendError(res, 404, 'EXECUTION_NOT_FOUND', 'Execution record not found'), true;
+        }
+
+        const action = record.actions[actionIndex];
+        if (!action) {
+          return this.sendError(res, 404, 'ACTION_NOT_FOUND', `Action at index ${actionIndex} not found`), true;
+        }
+
+        if (action.status !== 'failed') {
+          return this.sendError(res, 400, 'RETRY_NOT_ALLOWED', 'Can only retry failed actions'), true;
+        }
+
+        if (!action.command) {
+          return this.sendError(res, 500, 'MISSING_COMMAND', 'Action command data missing from history'), true;
+        }
+
+        // Reconstruir escena sintética con una sola acción
+        const now = new Date().toISOString();
+        const syntheticScene: Scene = {
+          id: `retry-from-${executionId}`,
+          name: `Retry: ${action.commandName} on ${action.deviceId}`,
+          homeId: "system",
+          roomId: null,
+          actions: [
+            {
+              deviceId: action.deviceId,
+              command: action.command,
+            },
+          ],
+          executionMode: "parallel",
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const timestamp = Date.now();
+        const retryResult = await container.services.sceneExecutionService.execute(syntheticScene, {
+          sourceType: 'manual',
+          sourceId: `retry:${executionId}:${actionIndex}`,
+          correlationId: `retry:${executionId}:${actionIndex}:${timestamp}`
+        });
+
+        this.sendJson(res, retryResult);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'RETRY_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }

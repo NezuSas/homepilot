@@ -40,6 +40,7 @@ import type { EventBusDeviceEventPublisher } from './packages/devices/infrastruc
 import type { EventBusTopologyEventPublisher } from './packages/topology/infrastructure/adapters/EventBusTopologyEventPublisher';
 import type { EventBus } from './packages/shared/domain/events/EventBus';
 import type { AutomationEngine } from './packages/automation/application/AutomationEngine';
+import type { SceneExecutionService } from './packages/devices/application/SceneExecutionService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -69,6 +70,7 @@ export interface BootstrapContainer {
     haImportService: HomeAssistantImportService;
     systemVariableService: SystemVariableService;
     sonoffDiscoveryService: SonoffLanDiscoveryService;
+    sceneExecutionService: SceneExecutionService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -158,7 +160,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   });
 
   // 6. Motor de Automatización (usa el commandDispatcher ya construido)
-  const { automationEngine } = buildAutomationModule({
+  const { automationEngine, sceneExecutionService } = buildAutomationModule({
     automationRuleRepository: repos.automationRuleRepository,
     deviceRepository: repos.deviceRepository,
     sceneRepository: repos.sceneRepository,
@@ -196,7 +198,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       assistantActionService: commandRouterAssembly.assistantActionService,
       haImportService: haModule.haImportService,
       systemVariableService,
-      sonoffDiscoveryService: commandRouterAssembly.sonoffDiscoveryService
+      sonoffDiscoveryService: commandRouterAssembly.sonoffDiscoveryService,
+      sceneExecutionService
     },
     guards: {
       authGuard: authModule.authGuard

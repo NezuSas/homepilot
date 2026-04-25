@@ -96,4 +96,57 @@ describe('Execution Observability V1', () => {
     const time2 = new Date(recent[1].startedAt).getTime();
     expect(time1).toBeGreaterThan(time2);
   });
+
+  describe('Retry V1', () => {
+    it('findById recupera un registro específico', async () => {
+      await service.execute(mockScene);
+      const all = await executionRepo.findRecent();
+      const id = all[0].id;
+
+      const found = await executionRepo.findById(id);
+      expect(found).not.toBeNull();
+      expect(found?.id).toBe(id);
+    });
+
+    it('SceneExecutionService guarda el comando original para permitir reintentos', async () => {
+      await service.execute(mockScene);
+      const record = (await executionRepo.findRecent())[0];
+
+      expect(record.actions[0].command).toBeDefined();
+      expect(record.actions[0].commandName).toBe('turn_on');
+      // @ts-ignore
+      expect(record.actions[0].command.name).toBe('turn_on');
+    });
+
+    it('retry genera una nueva ejecución vinculada al origen', async () => {
+      // 1. Ejecución fallida original
+      commandDispatcher.dispatch.mockRejectedValueOnce(new Error('Fail'));
+      await service.execute({ ...mockScene, actions: [mockScene.actions[0]] });
+      
+      const original = (await executionRepo.findRecent())[0];
+      const failedAction = original.actions[0];
+      expect(failedAction.status).toBe('failed');
+
+      // 2. Simular retry (lógica que iría en el Route)
+      const syntheticScene = {
+        id: `retry-from-${original.id}`,
+        name: `Retry: ${failedAction.commandName}`,
+        homeId: 'system',
+        roomId: null,
+        actions: [{ deviceId: failedAction.deviceId, command: failedAction.command }]
+      };
+
+      commandDispatcher.dispatch.mockResolvedValueOnce(undefined);
+      await service.execute(syntheticScene as any, {
+        sourceType: 'manual',
+        sourceId: `retry:${original.id}:0`
+      });
+
+      // 3. Verificar nuevo registro
+      const all = await executionRepo.findRecent();
+      expect(all).toHaveLength(2);
+      expect(all[0].sourceId).toBe(`retry:${original.id}:0`);
+      expect(all[0].status).toBe('success');
+    });
+  });
 });

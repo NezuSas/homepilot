@@ -8,4 +8,5 @@ export interface ExecutionRecordRepository {
     sourceId: string,
     limit?: number
   ): Promise<ReadonlyArray<ExecutionRecord>>;
+  findById(id: string): Promise<ExecutionRecord | null>;
 }

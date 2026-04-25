@@ -19,6 +19,7 @@ import type { EventBus } from '../../packages/shared/domain/events/EventBus';
 
 export interface AutomationModuleAssembly {
   automationEngine: AutomationEngine;
+  sceneExecutionService: SceneExecutionService;
 }
 
 export interface AutomationModuleDeps {
@@ -189,5 +190,5 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
 
   startHeartbeat();
 
-  return { automationEngine };
+  return { automationEngine, sceneExecutionService };
 }

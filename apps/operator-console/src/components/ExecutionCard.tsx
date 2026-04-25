@@ -6,9 +6,10 @@ import { ExecutionDetail } from './ExecutionDetail';
 
 interface ExecutionCardProps {
   record: ExecutionRecord;
+  onRetrySuccess?: () => void;
 }
 
-export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record }) => {
+export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuccess }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const statusColors = {
@@ -123,7 +124,13 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record }) => {
       </div>
 
       {/* Expandable Action History */}
-      {isExpanded && <ExecutionDetail actions={record.actions} />}
+      {isExpanded && (
+        <ExecutionDetail 
+          executionId={record.id} 
+          actions={record.actions} 
+          onRetrySuccess={onRetrySuccess} 
+        />
+      )}
     </div>
   );
 };

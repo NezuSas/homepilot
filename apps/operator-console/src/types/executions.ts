@@ -3,11 +3,24 @@
  * Mirrors Backend domain for type-safe observability.
  */
 
+export type DeviceCommandV1 = "turn_on" | "turn_off" | "toggle" | "open" | "close" | "stop" | "set_position";
+
+export interface DeviceCommandRequest {
+  name: DeviceCommandV1;
+  params?: Record<string, unknown>;
+  metadata?: {
+    userId?: string;
+    correlationId?: string;
+    source?: string;
+  };
+}
+
 export interface SceneActionResult {
   deviceId: string;
   commandName: string;
   status: 'success' | 'failed' | 'skipped';
   error?: string;
+  command?: DeviceCommandV1 | DeviceCommandRequest;
 }
 
 export interface ExecutionRecord {

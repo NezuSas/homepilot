@@ -1,13 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { SceneActionResult } from '../types/executions';
 import { cn } from '../lib/utils';
-import { CheckCircle2, XCircle, Slash } from 'lucide-react';
+import { CheckCircle2, XCircle, Slash, RefreshCcw, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 
 interface ExecutionDetailProps {
+  executionId: string;
   actions: SceneActionResult[];
+  onRetrySuccess?: () => void;
 }
 
-export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ actions }) => {
+export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, actions, onRetrySuccess }) => {
+  const [retryingIdx, setRetryingIdx] = useState<number | null>(null);
+  const [retryErrorByIndex, setRetryErrorByIndex] = useState<Record<number, string>>({});
+
+  const handleRetry = async (idx: number) => {
+    if (retryingIdx !== null) return;
+    setRetryingIdx(idx);
+    setRetryErrorByIndex(prev => {
+      const next = { ...prev };
+      delete next[idx];
+      return next;
+    });
+
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/executions/${executionId}/actions/${idx}/retry`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        if (onRetrySuccess) onRetrySuccess();
+      } else {
+        const errorData = await res.json().catch(() => ({ message: 'API error' }));
+        setRetryErrorByIndex(prev => ({ ...prev, [idx]: errorData.message || 'Retry failed' }));
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRetryErrorByIndex(prev => ({ ...prev, [idx]: message }));
+    } finally {
+      setRetryingIdx(null);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 mt-4 p-4 bg-background/50 rounded-[1.5rem] border border-border/40 animate-in slide-in-from-top-2 duration-300">
       <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2 px-1">
@@ -39,10 +73,34 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ actions }) => 
             </div>
             
             <div className="flex items-center gap-3 shrink-0">
+              {retryErrorByIndex[idx] && (
+                <span className="text-[9px] font-bold text-destructive animate-pulse truncate max-w-[100px]" title={retryErrorByIndex[idx]}>
+                  {retryErrorByIndex[idx]}
+                </span>
+              )}
+
               {action.error && (
-                <span className="text-[10px] font-medium text-destructive/80 italic max-w-[120px] sm:max-w-[200px] truncate" title={action.error}>
+                <span className="text-[10px] font-medium text-destructive/80 italic max-w-[80px] sm:max-w-[200px] truncate" title={action.error}>
                   {action.error}
                 </span>
+              )}
+
+              {action.status === 'failed' && (
+                <button
+                  onClick={() => handleRetry(idx)}
+                  disabled={retryingIdx !== null}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all text-[9px] font-black uppercase tracking-widest",
+                    retryingIdx === idx && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {retryingIdx === idx ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCcw className="w-3 h-3" />
+                  )}
+                  Retry
+                </button>
               )}
               
               <div className={cn(

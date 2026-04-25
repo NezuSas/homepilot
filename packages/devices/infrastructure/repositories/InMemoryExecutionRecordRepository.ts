@@ -24,4 +24,8 @@ export class InMemoryExecutionRecordRepository implements ExecutionRecordReposit
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
       .slice(0, limit);
   }
+
+  public async findById(id: string): Promise<ExecutionRecord | null> {
+    return this.records.find(r => r.id === id) || null;
+  }
 }

@@ -1,3 +1,5 @@
+import { DeviceCommandV1, DeviceCommandRequest } from './commands';
+
 /**
  * SceneActionResult
  * Resultado normalizado por cada acción ejecutada en una escena.
@@ -7,6 +9,7 @@ export interface SceneActionResult {
   commandName: string;
   status: 'success' | 'failed' | 'skipped';
   error?: string;
+  command?: DeviceCommandV1 | DeviceCommandRequest;
 }
 
 /**

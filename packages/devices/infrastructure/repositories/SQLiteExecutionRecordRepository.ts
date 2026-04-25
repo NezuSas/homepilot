@@ -93,6 +93,18 @@ export class SQLiteExecutionRecordRepository implements ExecutionRecordRepositor
     return rows.map(row => this.mapToEntity(row));
   }
 
+  public async findById(id: string): Promise<ExecutionRecord | null> {
+    const stmt = this.db.prepare(`
+      SELECT * FROM execution_records 
+      WHERE id = ?
+    `);
+
+    const row = stmt.get(id) as ExecutionRecordRow | undefined;
+    if (!row) return null;
+
+    return this.mapToEntity(row);
+  }
+
   private mapToEntity(row: ExecutionRecordRow): ExecutionRecord {
     if (!isExecutionSourceType(row.source_type)) {
       throw new Error(`Invalid execution source_type: ${row.source_type}`);

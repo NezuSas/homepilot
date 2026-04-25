@@ -103,20 +103,28 @@ export class SceneExecutionService {
    * Usa DeviceCommandService.dispatch para cada acción.
    */
   private async executeParallel(scene: Scene): Promise<SceneExecutionResult> {
+    const actionsWithCommands = scene.actions.map((action, idx) => ({
+      action,
+      normalizedCommand: normalizeCommand(action, scene.id, idx)
+    }));
+
     const settled = await Promise.allSettled(
-      scene.actions.map((action, idx) => {
-        const command = normalizeCommand(action, scene.id, idx);
-        return this.commandDispatcher.dispatch(action.deviceId, command);
-      })
+      actionsWithCommands.map(item => 
+        this.commandDispatcher.dispatch(item.action.deviceId, item.normalizedCommand)
+      )
     );
 
     const actionResults: SceneActionResult[] = settled.map((result, idx) => {
-      const action = scene.actions[idx];
-      const commandName =
-        typeof action.command === 'string' ? action.command : action.command.name;
+      const { action, normalizedCommand } = actionsWithCommands[idx];
+      const commandName = normalizedCommand.name;
 
       if (result.status === 'fulfilled') {
-        return { deviceId: action.deviceId, commandName, status: 'success' as const };
+        return { 
+          deviceId: action.deviceId, 
+          commandName, 
+          status: 'success' as const,
+          command: normalizedCommand 
+        };
       }
 
       return {
@@ -124,6 +132,7 @@ export class SceneExecutionService {
         commandName,
         status: 'failed' as const,
         error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        command: normalizedCommand
       };
     });
 
@@ -141,11 +150,11 @@ export class SceneExecutionService {
 
     for (let idx = 0; idx < scene.actions.length; idx++) {
       const action = scene.actions[idx];
-      const commandName =
-        typeof action.command === 'string' ? action.command : action.command.name;
+      const command = normalizeCommand(action, scene.id, idx);
+      const commandName = command.name;
 
       if (aborted) {
-        actionResults.push({ deviceId: action.deviceId, commandName, status: 'skipped' });
+        actionResults.push({ deviceId: action.deviceId, commandName, status: 'skipped', command });
         continue;
       }
 
@@ -154,12 +163,11 @@ export class SceneExecutionService {
       }
 
       try {
-        const command = normalizeCommand(action, scene.id, idx);
         await this.commandDispatcher.dispatch(action.deviceId, command);
-        actionResults.push({ deviceId: action.deviceId, commandName, status: 'success' });
+        actionResults.push({ deviceId: action.deviceId, commandName, status: 'success', command });
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
-        actionResults.push({ deviceId: action.deviceId, commandName, status: 'failed', error });
+        actionResults.push({ deviceId: action.deviceId, commandName, status: 'failed', error, command });
 
         if (!action.continueOnFailure) {
           aborted = true;
