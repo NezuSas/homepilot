@@ -206,6 +206,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     process.env.OLLAMA_MODEL || 'phi3',
     parseInt(process.env.OLLAMA_TIMEOUT_MS || '8000')
   );
+
+  if (process.env.OLLAMA_ENABLED === 'true') {
+    console.log(`[Assistant] Ollama enabled: model=${process.env.OLLAMA_MODEL || 'phi3'}, baseUrl=${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}`);
+  }
   const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
 

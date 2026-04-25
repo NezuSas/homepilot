@@ -61,10 +61,16 @@ describe('IntentInterpreterService Integration', () => {
   it('should fallback to deterministic if LLM fails', async () => {
     process.env.OLLAMA_ENABLED = 'true';
     mockLlmInterpreter.interpret.mockRejectedValue(new Error('LLM Error'));
-    mockSceneRepo.findAll.mockResolvedValue([]);
+    // Setup deterministic parser to succeed
+    mockSceneRepo.findAll.mockResolvedValue([{
+      id: 'scene-all-off', name: 'Apagar todo', homeId: 'h1', roomId: 'r1', actions: [], createdAt: '', updatedAt: ''
+    }]);
 
     const intent = await service.interpret('apaga todo');
 
-    expect(intent.type).toBe('unknown');
+    expect(intent.type).toBe('scene');
+    if (intent.type === 'scene') {
+      expect(intent.target).toBe('scene-all-off');
+    }
   });
 });
