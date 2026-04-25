@@ -128,7 +128,7 @@ export class ApiGateway {
 
       // CORS — set before any handler writes to the response.
       const origin = request.headers.origin;
-      const allowedOriginsEnv = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const allowedOriginsEnv = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173,http://127.0.0.1:5173');
       const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim()).filter(Boolean);
       
       if (origin && allowedOrigins.includes(origin)) {
@@ -138,11 +138,12 @@ export class ApiGateway {
         rawRes.setHeader('Access-Control-Allow-Origin', '*');
       }
 
-      rawRes.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+      rawRes.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       rawRes.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-      if (request.method === 'OPTIONS') {
-        rawRes.writeHead(204).end();
+      if (rawReq.method === 'OPTIONS') {
+        rawRes.writeHead(204);
+        rawRes.end();
         return;
       }
 

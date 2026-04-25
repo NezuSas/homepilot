@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import * as path from 'path';
 import { bootstrap } from './bootstrap';
 import { OperatorConsoleServer } from './apps/api/OperatorConsoleServer';
+import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 
 /**
  * Punto de entrada principal (Entrypoint Edge) 
@@ -17,7 +19,7 @@ async function main(): Promise<void> {
     console.log(`[Main] Container asegurado. Repositorios listos: ${Object.keys(container.repositories).length}`);
     
     // 3. Levantar Endpoint REST Minimalista para Operator Console V1
-    const dbPath = process.env.HOMEPILOT_DB_PATH || path.join(__dirname, 'homepilot.local.db');
+    const dbPath = getDatabasePath();
     const server = new OperatorConsoleServer(container, dbPath, 3000);
     server.start();
 

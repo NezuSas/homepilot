@@ -8,6 +8,8 @@ import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
+import { getDatabasePath } from './packages/shared/config/getDatabasePath';
+import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
 import type { SQLiteHomeRepository } from './packages/topology/infrastructure/repositories/SQLiteHomeRepository';
@@ -99,9 +101,17 @@ export interface BootstrapOptions {
 export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapContainer> {
   const isVerbose = options?.verbose ?? process.env.NODE_ENV !== 'production';
 
+  const resolvedDbPath = options?.dbPath || getDatabasePath();
+
+  if (!fs.existsSync(resolvedDbPath)) {
+    console.warn('[HomePilot] Database file does not exist, it will be created');
+  }
+
+  console.log(`[HomePilot] Using SQLite DB: ${resolvedDbPath}`);
+
   // 1. Persistencia y Eventos (Core Infrastructure)
   const { db, dbPath } = buildDatabase({
-    rawDbPath: options?.dbPath || process.env.HOMEPILOT_DB_PATH || 'homepilot.local.db',
+    rawDbPath: resolvedDbPath,
     migrationsDir: options?.migrationsDir,
     verbose: isVerbose
   });

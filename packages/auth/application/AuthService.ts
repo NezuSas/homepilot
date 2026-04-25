@@ -15,14 +15,28 @@ export class AuthService {
   ) {}
 
   public async login(username: string, passwordPlain: string): Promise<{ token: string; user: User } | null> {
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (isDev) {
+      console.log(`[AuthService:DevLog] Login attempt for username: ${username}`);
+    }
+
     const user = await this.userRepository.findByUsername(username);
     
+    if (isDev) {
+      console.log(`[AuthService:DevLog] User found: ${!!user}`);
+      if (user) console.log(`[AuthService:DevLog] is_active: ${user.isActive}`);
+    }
+
     if (!user || !user.isActive) {
       return null;
     }
 
     const isValid = await this.cryptoService.verifyPassword(passwordPlain, user.passwordHash);
     
+    if (isDev) {
+      console.log(`[AuthService:DevLog] Password match: ${isValid}`);
+    }
+
     if (!isValid) {
       return null;
     }
