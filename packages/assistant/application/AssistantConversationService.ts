@@ -1,15 +1,15 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
+import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
 import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
-import { FailureInsightService } from '../../devices/application/FailureInsightService';
 import { Scene } from '../../devices/domain/Scene';
 import { Device } from '../../devices/domain/types';
-import { IntentInterpreterPort, Intent } from './ports/IntentInterpreterPort';
-import { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
-import { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
+import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
+import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
+import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -48,6 +48,7 @@ export class AssistantConversationService {
     private readonly sceneExecutionService: SceneExecutionService,
     private readonly deviceCommandDispatcher: DeviceCommandDispatcherPort,
     private readonly deviceRepository: DeviceRepository,
+    private readonly roomRepository: RoomRepository,
     private readonly sceneRepository: SceneRepository,
     private readonly smallTalkService: AssistantSmallTalkPort
   ) {}
@@ -346,95 +347,148 @@ export class AssistantConversationService {
   }
 
   private isStateQuery(normalized: string): boolean {
-    const queries = [
-      "que esta encendido", "que esta apagado",
-      "luces encendidas", "luces apagadas",
-      "que luces estan encendidas", "que luces estan apagadas",
-      "luces estan encendidas", "luces estan apagadas",
-      "what is on", "what is off",
-      "which lights are on", "which lights are off",
-      "que tengo prendido", "que tengo apagado",
-      "que hay encendido", "que hay apagado",
-      "que dispositivos estan encendidos", "que dispositivos estan apagados"
+    const stateKeywords = [
+      'encendido', 'encendidos', 'encendida', 'encendidas', 
+      'prendido', 'prendidos', 'on', 'active', 'enabled',
+      'apagado', 'apagados', 'apagada', 'apagadas', 
+      'off', 'inactive', 'disabled'
     ];
-    return queries.some(q => normalized.includes(q));
+    
+    const hasState = stateKeywords.some(kw => normalized.includes(kw));
+    
+    const generalTriggers = [
+      "que esta", "que hay", "que tengo", "luces", "dispositivos", "estado", "cuales", "donde",
+      "what is", "which", "status", "are on", "are off"
+    ];
+    
+    const isGeneral = generalTriggers.some(q => normalized.includes(q));
+    
+    return isGeneral && (hasState || normalized.includes("hay") || normalized.includes("estan"));
   }
 
   private async handleStateQuery(normalized: string, language: string): Promise<AssistantConversationResponse> {
-    const devices = await this.deviceRepository.findAll();
+    const allDevices = await this.deviceRepository.findAll();
+    const rooms = await this.roomRepository.findRoomsByHomeId('system');
     
     const isLightsOnly = normalized.includes('luz') || normalized.includes('luces') || normalized.includes('light');
     
-    // Check if it's an "on" query safely
+    // Detect keywords
     const onKeywords = ['encendido', 'encendidos', 'encendida', 'encendidas', 'prendido', 'prendidos', 'on', 'active', 'enabled'];
-    const isOnQuery = onKeywords.some(kw => {
-      if (kw.length <= 3) {
-        const regex = new RegExp(`\\b${kw}\\b`, 'i');
-        return regex.test(normalized);
-      }
-      return normalized.includes(kw);
-    });
+    const offKeywords = ['apagado', 'apagados', 'apagada', 'apagadas', 'off', 'inactive', 'disabled'];
     
-    const matches = devices.filter(d => {
-      const isOn = d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on');
-      const matchesOn = isOnQuery ? isOn : !isOn;
-      if (!matchesOn) return false;
+    const isOnQuery = onKeywords.some(kw => normalized.includes(kw));
+    const isOffQuery = offKeywords.some(kw => normalized.includes(kw));
+    const isCompound = isOnQuery && isOffQuery;
+    const hasNoExplicitState = !isOnQuery && !isOffQuery;
 
-      if (isLightsOnly) {
+    // Detect target room
+    let targetRoomId: string | null = null;
+    let targetRoomName: string | null = null;
+    
+    for (const room of rooms) {
+      const normRoom = this.normalizePrompt(room.name);
+      if (normalized.includes(normRoom)) {
+        targetRoomId = room.id;
+        targetRoomName = room.name;
+        break;
+      }
+    }
+
+    // Filtering
+    let filteredDevices = allDevices;
+    if (targetRoomId) {
+      filteredDevices = allDevices.filter(d => d.roomId === targetRoomId);
+    } else {
+      const roomTokens = ['sala', 'cocina', 'cuarto', 'master', 'habitacion', 'living', 'kitchen', 'bedroom', 'bano'];
+      const promptHasRoomToken = roomTokens.some(t => normalized.includes(t));
+      if (promptHasRoomToken) {
+        filteredDevices = allDevices.filter(d => {
+          const name = this.normalizePrompt(d.name);
+          return roomTokens.some(t => normalized.includes(t) && name.includes(t));
+        });
+      }
+    }
+
+    // Filter by type if lights only
+    if (isLightsOnly) {
+      filteredDevices = filteredDevices.filter(d => {
         const name = d.name.toLowerCase();
         const hasLightKeyword = name.includes('luz') || name.includes('light');
         const hasLightCapability = d.capabilities?.some(c => c.type === 'light');
-        
         return d.type === 'light' || hasLightKeyword || hasLightCapability;
-      }
-      return true;
-    });
+      });
+    }
 
-    if (matches.length === 0) {
-      const typeLabel = isLightsOnly 
-        ? (language === 'en' ? 'lights' : 'luces')
-        : (language === 'en' ? 'devices' : 'dispositivos');
-      const stateLabel = isOnQuery
-        ? (language === 'en' ? 'on' : 'encendidos')
-        : (language === 'en' ? 'off' : 'apagados');
-
+    // If no devices found in that area
+    if (filteredDevices.length === 0 && (targetRoomName || normalized.includes('bano') || normalized.includes('cocina'))) {
+      const area = targetRoomName || (normalized.includes('bano') ? (language === 'en' ? 'Bathroom' : 'Baño') : (language === 'en' ? 'Kitchen' : 'Cocina'));
       return {
         type: 'answer',
-        message: language === 'en' 
-          ? `I didn't find any ${typeLabel} ${stateLabel} at the moment.`
-          : `No encontré ${typeLabel} ${stateLabel} en este momento.`
+        message: language === 'en'
+          ? `I couldn't find any ${isLightsOnly ? 'lights' : 'devices'} in ${area}.`
+          : `No encontré ${isLightsOnly ? 'luces' : 'dispositivos'} en ${area}.`
       };
     }
 
-    const list = matches.map(d => d.name).join(', ');
-    const count = matches.length;
-    
-    const typeLabel = isLightsOnly 
-      ? (count === 1 ? (language === 'en' ? 'light' : 'luz') : (language === 'en' ? 'lights' : 'luces'))
-      : (count === 1 ? (language === 'en' ? 'device' : 'dispositivo') : (language === 'en' ? 'devices' : 'dispositivos'));
-    
-    const stateLabel = isOnQuery
-      ? (language === 'en' ? 'on' : 'encendido(s)')
-      : (language === 'en' ? 'off' : 'apagado(s)');
+    // Split into On/Off
+    const onDevices = filteredDevices.filter(d => d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on'));
+    const offDevices = filteredDevices.filter(d => !d.lastKnownState || (d.lastKnownState.on === false || d.lastKnownState.state === 'off'));
 
     let message = "";
-    if (language === 'en') {
-      message = count === 1
-        ? `You have 1 ${typeLabel} ${stateLabel}: ${list}.`
-        : `You have ${count} ${typeLabel} ${stateLabel}: ${list}.`;
+    const areaPrefix = targetRoomName 
+      ? (language === 'en' ? `Status in ${targetRoomName}:\n\n` : `Estado en ${targetRoomName}:\n\n`)
+      : (language === 'en' ? `Home status:\n\n` : `Estado de la casa:\n\n`);
+
+    if (isCompound || hasNoExplicitState) {
+      message = areaPrefix;
+      
+      // On section
+      message += language === 'en' ? "On:\n" : "Encendidas:\n";
+      if (onDevices.length > 0) {
+        message += onDevices.map(d => `• ${d.name}`).join('\n');
+      } else {
+        message += language === 'en' ? "• None" : "• Ninguna";
+      }
+      
+      message += "\n\n";
+      
+      // Off section
+      message += language === 'en' ? "Off:\n" : "Apagadas:\n";
+      if (offDevices.length > 0) {
+        message += offDevices.map(d => `• ${d.name}`).join('\n');
+      } else {
+        message += language === 'en' ? "• None" : "• Ninguna";
+      }
+    } else if (isOnQuery) {
+      if (onDevices.length === 0) {
+        message = language === 'en' 
+          ? `No ${isLightsOnly ? 'lights' : 'devices'} are currently on${targetRoomName ? ' in ' + targetRoomName : ''}.`
+          : `No hay ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''} en este momento.`;
+      } else {
+        message = language === 'en'
+          ? `I found ${onDevices.length} ${isLightsOnly ? 'lights' : 'devices'} on${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
+          : `Encontré ${onDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
+        message += onDevices.map(d => `• ${d.name}`).join('\n');
+      }
     } else {
-      message = count === 1
-        ? `Tienes 1 ${typeLabel} ${stateLabel}: ${list}.`
-        : `Tienes ${count} ${typeLabel} ${stateLabel}: ${list}.`;
+      // Off query
+      if (offDevices.length === 0) {
+        message = language === 'en'
+          ? `No ${isLightsOnly ? 'lights' : 'devices'} are currently off${targetRoomName ? ' in ' + targetRoomName : ''}.`
+          : `No hay ${isLightsOnly ? 'luces' : 'dispositivos'} apagadas${targetRoomName ? ' en ' + targetRoomName : ''} en este momento.`;
+      } else {
+        message = language === 'en'
+          ? `I found ${offDevices.length} ${isLightsOnly ? 'lights' : 'devices'} off${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
+          : `Encontré ${offDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} apagadas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
+        message += offDevices.map(d => `• ${d.name}`).join('\n');
+      }
     }
 
     return {
       type: 'answer',
-      message
+      message: message.trim()
     };
   }
-
-
 
   private async findMatchingDevices(prompt: string): Promise<Device[]> {
     const normalized = this.normalizePrompt(prompt);

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { 
   Send, 
   Bot, 
-  User, 
   MessageSquare,
   Zap,
   ChevronRight
@@ -14,6 +13,8 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { converseWithAssistant } from '../lib/assistantApi';
 import type { ChatMessage, AssistantConversationResponse, AssistantConverseRequest } from '../types/assistantConversation';
 import { StatusPill } from '../components/ui/StatusPill';
+import { useSession } from '../lib/useSession';
+import { API_BASE_URL } from '../config';
 
 const HOME_ASCII_ART = `
                          8888  8888888
@@ -180,6 +181,7 @@ const HOME_ASCII_ART = `
 
 export const HomeConversationView: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { user } = useSession(() => {});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -305,10 +307,10 @@ export const HomeConversationView: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full mt-8">
               {[
-                t('assistant.conversation.placeholder').split('ej: ')[1]?.split(',')[0] || "¿Qué luces hay encendidas?",
-                "Apaga todo",
-                "Activa escena cine",
-                "¿Quién eres?"
+                t('assistant.conversation.placeholder').split('ej: ')[1]?.split(',')[0] || t('assistant.conversation.suggestion_1'),
+                t('assistant.conversation.suggestion_1'),
+                t('assistant.conversation.suggestion_2'),
+                t('assistant.conversation.suggestion_3')
               ].map((suggestion, idx) => (
                 <button
                   key={idx}
@@ -336,10 +338,22 @@ export const HomeConversationView: React.FC = () => {
               msg.role === 'user' ? "flex-row-reverse space-x-reverse max-w-[88%] lg:max-w-[64%]" : "flex-row max-w-[88%] lg:max-w-[72%]"
             )}>
               <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg mt-1",
+                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg mt-1 overflow-hidden",
                 msg.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted border border-border text-muted-foreground"
               )}>
-                {msg.role === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5 text-primary" />}
+                {msg.role === 'user' ? (
+                  user?.avatarDataUri ? (
+                    <img 
+                      src={user.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${user.avatarDataUri}` : user.avatarDataUri} 
+                      alt="avatar" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="font-black text-xs uppercase">{(user?.username || 'U').substring(0, 2)}</span>
+                  )
+                ) : (
+                  <Bot className="w-5 h-5 text-primary" />
+                )}
               </div>
               
               <div className="flex flex-col space-y-2">

@@ -238,6 +238,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     sceneExecutionService,
     commandRouterAssembly.commandDispatcher,
     repos.deviceRepository,
+    repos.roomRepository,
     repos.sceneRepository,
     assistantSmallTalkService
   );

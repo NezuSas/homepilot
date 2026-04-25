@@ -163,7 +163,10 @@
       "input_hint": "Shift + Enter para nueva línea",
       "version_label": "Conversación HomePilot V1.0",
       "empty_chat_title": "Habla con tu casa",
-      "empty_chat_description": "Pregunta qué está encendido, controla luces o pide ayuda con tus dispositivos."
+      "empty_chat_description": "Pregunta qué está encendido, controla luces o pide ayuda con tus dispositivos.",
+      "suggestion_1": "Apaga todo",
+      "suggestion_2": "Activa escena cine",
+      "suggestion_3": "¿Quién eres?"
     }
   },
   "dashboard": {

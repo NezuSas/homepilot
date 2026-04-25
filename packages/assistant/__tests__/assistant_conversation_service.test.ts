@@ -1,21 +1,23 @@
 import { AssistantConversationService } from '../application/AssistantConversationService';
-import { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
-import { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
+import type { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
+import type { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
-import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
-import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
-import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
-import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
+import type { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
+import type { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
+import type { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
+import type { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 import { 
   createMockDeviceRepository, 
   createMockSceneRepository, 
+  createMockRoomRepository,
   createMockIntentInterpreterService, 
   createMockAssistantConfirmationPolicy, 
   createMockDeviceCommandDispatcher,
   createMockAssistantSmallTalk,
   createTestDevice
 } from './test_helpers';
-import { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
+import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
+import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 
 describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
@@ -24,6 +26,7 @@ describe('AssistantConversationService', () => {
   let mockSceneExecution: SceneExecutionService;
   let mockDispatcher: jest.Mocked<DeviceCommandDispatcherPort>;
   let mockDeviceRepo: jest.Mocked<DeviceRepository>;
+  let mockRoomRepo: jest.Mocked<RoomRepository>;
   let mockSceneRepo: jest.Mocked<SceneRepository>;
   let mockExecutionRepo: jest.Mocked<ExecutionRecordRepository>;
   let mockSmallTalk: jest.Mocked<AssistantSmallTalkPort>;
@@ -41,6 +44,8 @@ describe('AssistantConversationService', () => {
     mockSceneExecution = new SceneExecutionService(mockDispatcher, mockExecutionRepo);
     
     mockDeviceRepo = createMockDeviceRepository();
+    mockRoomRepo = createMockRoomRepository();
+    mockRoomRepo.findRoomsByHomeId.mockResolvedValue([]);
     mockSceneRepo = createMockSceneRepository();
     mockInterpreter = createMockIntentInterpreterService();
     mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: '', reason: 'default' });
@@ -57,6 +62,7 @@ describe('AssistantConversationService', () => {
       mockSceneExecution,
       mockDispatcher,
       mockDeviceRepo,
+      mockRoomRepo,
       mockSceneRepo,
       mockSmallTalk
     );
@@ -175,7 +181,7 @@ describe('AssistantConversationService', () => {
   });
 
   describe('State Queries', () => {
-    it('should handle "qué está encendido" query with counts and names', async () => {
+    it('should handle "qué está encendido" query with bulleted list', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: '1', name: 'Luz Sala', lastKnownState: { on: true } }),
         createTestDevice({ id: '2', name: 'Luz Cocina', lastKnownState: { on: true } }),
@@ -185,10 +191,12 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'qué está encendido' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Tienes 2 dispositivos encendido(s): Luz Sala, Luz Cocina');
+      expect(response.message).toContain('Encontré 2 dispositivos encendidas');
+      expect(response.message).toContain('• Luz Sala');
+      expect(response.message).toContain('• Luz Cocina');
     });
 
-    it('should handle "Que luces estan encendidas?" correctly without accents', async () => {
+    it('should handle "Que luces estan encendidas?" correctly filtering by type', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: '1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } }),
         createTestDevice({ id: '2', name: 'Enchufe', type: 'switch', lastKnownState: { on: true } })
@@ -196,61 +204,73 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: 'Que luces estan encendidas?' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Tienes 1 luz encendido(s): Luz Sala');
+      expect(response.message).toContain('Encontré 1 luces encendidas');
+      expect(response.message).toContain('• Luz Sala');
+      expect(response.message).not.toContain('• Enchufe');
     });
 
-    it('should handle "Que luces estan encendidas?" correctly using capabilities', async () => {
+    it('should handle compound "on and off" queries', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([
-        createTestDevice({ 
-          id: '1', 
-          name: 'Enchufe Inteligente', 
-          type: 'switch', 
-          lastKnownState: { on: true },
-          capabilities: [{ type: 'light', name: 'Light control' }] 
-        }),
-        createTestDevice({ 
-          id: '2', 
-          name: 'Ventilador', 
-          type: 'switch', 
-          lastKnownState: { on: true },
-          capabilities: [{ type: 'switch', name: 'Power control' }] 
-        })
+        createTestDevice({ id: '1', name: 'Luz Sala', lastKnownState: { on: true } }),
+        createTestDevice({ id: '2', name: 'Luz Cocina', lastKnownState: { on: false } })
       ]);
 
-      const response = await service.converse({ prompt: 'Que luces estan encendidas?' }, 'es');
+      const response = await service.converse({ prompt: 'que luces estan encendidas y cuales apagadas' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Tienes 1 luz encendido(s): Enchufe Inteligente');
+      expect(response.message).toContain('Encendidas:');
+      expect(response.message).toContain('• Luz Sala');
+      expect(response.message).toContain('Apagadas:');
+      expect(response.message).toContain('• Luz Cocina');
     });
 
-    it('should handle "Que luces estan apagadas?" correctly', async () => {
+    it('should filter by room name if found in repository', async () => {
+      const room1Id = 'room-1';
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
+        { id: room1Id, name: 'Cuarto Master', homeId: 'h1', createdAt: '', updatedAt: '', entityVersion: 1 }
+      ]);
       mockDeviceRepo.findAll.mockResolvedValue([
-        createTestDevice({ id: '1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } }),
-        createTestDevice({ id: '2', name: 'Luz Cocina', type: 'light', lastKnownState: { on: false } })
+        createTestDevice({ id: '1', name: 'Luz Master', roomId: room1Id, lastKnownState: { on: true } }),
+        createTestDevice({ id: '2', name: 'Luz Sala', roomId: 'other', lastKnownState: { on: true } })
       ]);
 
-      const response = await service.converse({ prompt: 'Que luces estan apagadas?' }, 'es');
+      const response = await service.converse({ prompt: 'que luces estan encendidas en cuarto master' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Tienes 1 luz apagado(s): Luz Cocina');
+      expect(response.message).toContain('en Cuarto Master');
+      expect(response.message).toContain('• Luz Master');
+      expect(response.message).not.toContain('• Luz Sala');
     });
 
-    it('should handle "que tengo prendido" correctly', async () => {
+    it('should filter by room token as fallback if room not in repo', async () => {
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue([]);
       mockDeviceRepo.findAll.mockResolvedValue([
-        createTestDevice({ id: '1', name: 'Televisor', type: 'switch', lastKnownState: { on: true } })
+        createTestDevice({ id: '1', name: 'Luz Cocina', lastKnownState: { on: true } }),
+        createTestDevice({ id: '2', name: 'Luz Sala', lastKnownState: { on: true } })
       ]);
 
-      const response = await service.converse({ prompt: 'que tengo prendido' }, 'es');
+      const response = await service.converse({ prompt: 'que luces estan encendidas en la cocina' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Tienes 1 dispositivo encendido(s): Televisor');
+      expect(response.message).toContain('• Luz Cocina');
+      expect(response.message).not.toContain('• Luz Sala');
     });
 
-    it('should handle "what is on" in English', async () => {
+    it('should return amigable message if no devices in room', async () => {
+       mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
+        { id: 'r1', name: 'Baño', homeId: 'h1', createdAt: '', updatedAt: '', entityVersion: 1 }
+      ]);
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+
+      const response = await service.converse({ prompt: 'que luces hay en el baño' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('No encontré luces en Baño');
+    });
+
+    it('should not trigger dispatcher or scene execution for status queries', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([
-        createTestDevice({ id: '1', name: 'Living Room Light', lastKnownState: { on: true } })
+        createTestDevice({ id: '1', name: 'Luz Sala', lastKnownState: { on: true } })
       ]);
 
-      const response = await service.converse({ prompt: 'what is on' }, 'en');
-      expect(response.type).toBe('answer');
-      expect(response.message).toContain('You have 1 device on: Living Room Light');
+      await service.converse({ prompt: 'que esta encendido' }, 'es');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
   });
 

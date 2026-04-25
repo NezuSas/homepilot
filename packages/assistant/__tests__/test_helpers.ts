@@ -1,10 +1,16 @@
-import { Device } from '../../devices/domain/types';
-import { Scene } from '../../devices/domain/Scene';
-import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
-import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
-import { OllamaClientPort } from '../application/ports/OllamaClientPort';
-import { AssistantContextBuilderPort } from '../application/ports/AssistantContextBuilderPort';
-import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
+import type { Device } from '../../devices/domain/types';
+import type { Scene } from '../../devices/domain/Scene';
+import type { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
+import type { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
+import type { OllamaClientPort } from '../application/ports/OllamaClientPort';
+import type { AssistantContextBuilderPort } from '../application/ports/AssistantContextBuilderPort';
+import type { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
+import type { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
+import type { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
+import type { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
+import type { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
+import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
+import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 
 /**
  * Shared test helpers for Assistant tests to avoid 'as any' and duplicate definitions.
@@ -106,8 +112,6 @@ export const createMockLlmIntentInterpreter = (
   return mock;
 };
 
-import { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
-
 export const createMockAssistantMemoryService = (
   overrides?: Partial<jest.Mocked<AssistantMemoryPort>>
 ): jest.Mocked<AssistantMemoryPort> => {
@@ -120,9 +124,6 @@ export const createMockAssistantMemoryService = (
   return mock;
 };
 
-import { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
-import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
-
 export const createMockAssistantConfirmationPolicy = (
   overrides?: Partial<jest.Mocked<AssistantConfirmationPolicyPort>>
 ): jest.Mocked<AssistantConfirmationPolicyPort> => {
@@ -132,7 +133,6 @@ export const createMockAssistantConfirmationPolicy = (
   };
   return mock;
 };
-
 
 export const createMockDeviceCommandDispatcher = (
   overrides?: Partial<jest.Mocked<DeviceCommandDispatcherPort>>
@@ -144,8 +144,6 @@ export const createMockDeviceCommandDispatcher = (
   return mock;
 };
 
-import { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
-
 export const createMockIntentInterpreterService = (
   overrides?: Partial<jest.Mocked<IntentInterpreterPort>>
 ): jest.Mocked<IntentInterpreterPort> => {
@@ -155,7 +153,18 @@ export const createMockIntentInterpreterService = (
   };
   return mock;
 };
-import { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
+
+export const createMockRoomRepository = (
+  overrides?: Partial<jest.Mocked<RoomRepository>>
+): jest.Mocked<RoomRepository> => {
+  const mock: jest.Mocked<RoomRepository> = {
+    saveRoom: jest.fn(),
+    findRoomsByHomeId: jest.fn(),
+    findRoomById: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};
 
 export const createMockAssistantSmallTalk = (
   overrides?: Partial<jest.Mocked<AssistantSmallTalkPort>>

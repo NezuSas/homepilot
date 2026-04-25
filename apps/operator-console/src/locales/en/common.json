@@ -163,7 +163,10 @@
       "input_hint": "Shift + Enter for newline",
       "version_label": "HomePilot Conversation V1.0",
       "empty_chat_title": "Talk to your home",
-      "empty_chat_description": "Ask what is on, control lights, or get help with your devices."
+      "empty_chat_description": "Ask what is on, control lights, or get help with your devices.",
+      "suggestion_1": "Turn off everything",
+      "suggestion_2": "Activate cinema scene",
+      "suggestion_3": "Who are you?"
     }
   },
   "dashboard": {

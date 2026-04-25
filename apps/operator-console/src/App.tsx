@@ -746,7 +746,10 @@ function App() {
           </div>
         </header>
         
-        <section className="flex-1 overflow-y-auto min-h-0 relative scroll-smooth p-4 sm:p-8">
+        <section className={cn(
+          "flex-1 min-h-0 relative scroll-smooth",
+          currentView === 'home-conversation' ? "p-0 overflow-hidden" : "overflow-y-auto p-4 sm:p-8"
+        )}>
            {isBackendOffline && (
              <div className="max-w-[1600px] mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
                <div className="bg-destructive/10 border-2 border-destructive/20 rounded-[2rem] p-6 flex items-center justify-between gap-6 backdrop-blur-xl">
@@ -768,7 +771,10 @@ function App() {
                </div>
              </div>
            )}
-           <div className="max-w-[1600px] mx-auto w-full">
+           <div className={cn(
+             "mx-auto w-full h-full",
+             currentView === 'home-conversation' ? "max-w-none" : "max-w-[1600px]"
+           )}>
              {currentView === 'dashboard' && (
                 <DashboardView 
                   onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
