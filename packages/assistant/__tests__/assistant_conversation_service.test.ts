@@ -89,6 +89,19 @@ describe('AssistantConversationService', () => {
       expect(response.type).toBe('answer');
     });
 
+    it('should respond to "quien te creo" mentioning NEZU S.A.S.', async () => {
+      const response = await service.converse({ prompt: 'quien te creo' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('NEZU S.A.S.');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should respond to "who created you" in English mentioning NEZU S.A.S.', async () => {
+      const response = await service.converse({ prompt: 'who created you' }, 'en');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('NEZU S.A.S.');
+    });
+
     it('should not trigger for words containing greetings (e.g. "holas" or "hellooo")', async () => {
       mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'holas', reason: 'not_found' });
       const response = await service.converse({ prompt: 'holas' }, 'es');

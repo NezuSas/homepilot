@@ -71,13 +71,37 @@ export class AssistantConversationService {
       };
     }
 
-    // C) Identity / Name
-    if (this.isNameQuery(normalized)) {
+    // Identity / Name queries
+    if (normalized === 'como te llamas' || 
+        normalized === 'quien eres' || 
+        normalized === 'quién eres' ||
+        this.isNameQuery(normalized)) {
+      return {
+        type: 'answer',
+        message: language === 'en' 
+          ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely." 
+          : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
+      };
+    }
+
+    // Creator queries
+    const creatorKeywordsES = [
+      'quien te creo', 'quién te creó', 
+      'quien te hizo', 'quién te hizo', 
+      'quien te desarrollo', 'quién te desarrolló',
+      'quien creo homepilot', 'quién creó homepilot'
+    ];
+    const creatorKeywordsEN = [
+      'who created you', 'who made you', 
+      'who developed you', 'who created homepilot'
+    ];
+
+    if (creatorKeywordsES.includes(normalized) || (language === 'en' && creatorKeywordsEN.includes(normalized))) {
       return {
         type: 'answer',
         message: language === 'en'
-          ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely."
-          : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
+          ? "I was created by NEZU S.A.S., a company focused on automation, local control, and applied home intelligence. My purpose is to help you talk to your home in a safe, clear, and elegant way."
+          : "Fui creado por NEZU S.A.S., una empresa enfocada en automatización, control local e inteligencia aplicada al hogar. Mi propósito es ayudarte a conversar con tu casa de forma segura, clara y elegante."
       };
     }
 
