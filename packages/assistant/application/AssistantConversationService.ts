@@ -150,6 +150,18 @@ export class AssistantConversationService {
       return this.handleStateQuery(normalized, language, userName);
     }
 
+    // Determine if we should attempt intent interpretation or just fallback to small talk directly
+    if (!this.isLikelyHomeControlPrompt(normalized)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[AssistantConversation] routing=smalltalk');
+      }
+      return this.smallTalkService.handle(prompt, language);
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AssistantConversation] routing=intent');
+    }
+
     // C) Ambiguity & Regular Intent Flow
     const intent = await this.intentInterpreter.interpret(request.prompt);
 
@@ -408,6 +420,22 @@ export class AssistantConversationService {
     const isGeneral = generalTriggers.some(q => normalized.includes(q));
     
     return isGeneral && (hasState || normalized.includes("hay") || normalized.includes("estan"));
+  }
+
+  private isLikelyHomeControlPrompt(normalized: string): boolean {
+    const conversationalPrefixes = [
+      'que opinas', 'dime', 'cuentame', 'como funciona', 'explicame', 'hablame', 'sabes algo'
+    ];
+    if (conversationalPrefixes.some(prefix => normalized.includes(prefix))) {
+      return false;
+    }
+
+    const triggers = [
+      'prende', 'apaga', 'enciende', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'toggle', 'turn on', 'turn off', 'open', 'close',
+      'encendido', 'apagado', 'prendido', 'on', 'off', 'luces', 'dispositivos', 'estado',
+      'escena', 'rutina', 'automatizacion', 'scene', 'routine', 'automation'
+    ];
+    return triggers.some(t => normalized.includes(t));
   }
 
   private async handleStateQuery(normalized: string, language: string, userName: string | null): Promise<AssistantConversationResponse> {

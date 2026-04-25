@@ -286,6 +286,38 @@ describe('AssistantConversationService', () => {
       }
     });
 
+    it('should route non-control questions directly to SmallTalkService without IntentInterpreter', async () => {
+      mockSmallTalk.handle.mockResolvedValue({
+        type: 'answer',
+        message: 'Tu casa es muy interesante.'
+      });
+      
+      const prompts = [
+        "dime algo interesante sobre mi casa",
+        "qué opinas de la automatización",
+        "cuéntame algo divertido"
+      ];
+
+      for (const prompt of prompts) {
+        jest.clearAllMocks();
+        const response = await service.converse({ prompt, userName: 'User' }, 'es');
+        expect(response.type).toBe('answer');
+        expect(mockSmallTalk.handle).toHaveBeenCalledWith(prompt, 'es');
+        expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+      }
+    });
+
+    it('should route likely home control prompts to IntentInterpreter', async () => {
+      mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'enciende luz sala', reason: 'mock' });
+      mockSmallTalk.handle.mockResolvedValue({
+        type: 'answer',
+        message: 'Fallback fallback'
+      });
+      
+      await service.converse({ prompt: 'enciende luz sala' }, 'es');
+      expect(mockInterpreter.interpret).toHaveBeenCalled();
+      expect(mockSmallTalk.handle).toHaveBeenCalled(); // Because intent was unknown
+    });
 
     it('should delegate unknown conversational prompts to SmallTalkService', async () => {
       mockSmallTalk.handle.mockResolvedValue({
