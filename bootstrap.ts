@@ -230,7 +230,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.deviceRepository
   );
 
-  const assistantSmallTalkService = new AssistantSmallTalkService(ollamaClient);
+  const assistantSmallTalkService = new AssistantSmallTalkService(ollamaClient, contextBuilder);
 
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,

@@ -302,7 +302,7 @@ describe('AssistantConversationService', () => {
         jest.clearAllMocks();
         const response = await service.converse({ prompt, userName: 'User' }, 'es');
         expect(response.type).toBe('answer');
-        expect(mockSmallTalk.handle).toHaveBeenCalledWith(prompt, 'es');
+        expect(mockSmallTalk.handle).toHaveBeenCalledWith(prompt, 'es', 'User');
         expect(mockInterpreter.interpret).not.toHaveBeenCalled();
       }
     });
@@ -328,7 +328,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'Tell me a joke' }, 'en');
       expect(response.type).toBe('answer');
       expect(response.message).toBe('Ollama says hello');
-      expect(mockSmallTalk.handle).toHaveBeenCalledWith('Tell me a joke', 'en');
+      expect(mockSmallTalk.handle).toHaveBeenCalledWith('Tell me a joke', 'en', null);
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
       expect(mockExecutionRepo.save).not.toHaveBeenCalled();
     });

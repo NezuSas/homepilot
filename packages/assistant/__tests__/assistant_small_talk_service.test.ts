@@ -1,15 +1,41 @@
 import { AssistantSmallTalkService } from '../application/AssistantSmallTalkService';
-import { createMockOllamaClient } from './test_helpers';
+import { createMockOllamaClient, createMockAssistantContextBuilder } from './test_helpers';
 import type { OllamaClientPort } from '../application/ports/OllamaClientPort';
+import type { AssistantContextBuilderPort } from '../application/ports/AssistantContextBuilderPort';
 
 describe('AssistantSmallTalkService', () => {
   let service: AssistantSmallTalkService;
   let mockOllama: jest.Mocked<OllamaClientPort>;
+  let mockContextBuilder: jest.Mocked<AssistantContextBuilderPort>;
 
   beforeEach(() => {
     process.env.OLLAMA_ENABLED = 'true';
     mockOllama = createMockOllamaClient();
-    service = new AssistantSmallTalkService(mockOllama);
+    mockContextBuilder = createMockAssistantContextBuilder({
+      build: jest.fn().mockResolvedValue('{"devices":[]}')
+    });
+    service = new AssistantSmallTalkService(mockOllama, mockContextBuilder);
+  });
+
+  it('should call contextBuilder and include Context in the prompt', async () => {
+    mockOllama.generateJson.mockResolvedValue({ text: 'Hello from Ollama' });
+    
+    await service.handle('dime algo interesante', 'es');
+    
+    expect(mockContextBuilder.build).toHaveBeenCalled();
+    const callArg = mockOllama.generateJson.mock.calls[0][0];
+    expect(callArg).toContain('Context:');
+    expect(callArg).toContain('{"devices":[]}');
+  });
+
+  it('should include userName in the prompt if provided', async () => {
+    mockOllama.generateJson.mockResolvedValue({ text: 'Hello from Ollama' });
+    
+    await service.handle('hola', 'es', 'Oscar');
+    
+    const callArg = mockOllama.generateJson.mock.calls[0][0];
+    expect(callArg).toContain('You are talking to Oscar.');
+    expect(callArg).toContain('Mention the user by name (Oscar) at most once');
   });
 
   it('should return answer when Ollama returns valid JSON', async () => {

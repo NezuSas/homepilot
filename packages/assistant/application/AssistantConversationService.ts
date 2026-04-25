@@ -155,7 +155,7 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV === 'development') {
         console.log('[AssistantConversation] routing=smalltalk');
       }
-      return this.smallTalkService.handle(prompt, language);
+      return this.smallTalkService.handle(prompt, language, userName);
     }
 
     if (process.env.NODE_ENV === 'development') {
@@ -166,7 +166,7 @@ export class AssistantConversationService {
     const intent = await this.intentInterpreter.interpret(request.prompt);
 
     if (intent.type === 'unknown') {
-      return this.smallTalkService.handle(prompt, language);
+      return this.smallTalkService.handle(prompt, language, userName);
     }
 
     // Check for ambiguity (deterministic V1 only for now)

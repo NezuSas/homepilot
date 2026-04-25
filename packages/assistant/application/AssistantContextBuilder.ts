@@ -35,6 +35,8 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
       id: d.id,
       name: d.name,
       type: d.type,
+      roomId: d.roomId,
+      state: d.lastKnownState,
       capabilities: d.capabilities,
     }));
 

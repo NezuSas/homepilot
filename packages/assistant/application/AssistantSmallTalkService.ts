@@ -1,6 +1,8 @@
-import { AssistantConversationResponse } from './AssistantConversationService';
-import { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
-import { OllamaClientPort } from './ports/OllamaClientPort';
+import type { AssistantConversationResponse } from './AssistantConversationService';
+import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
+import type { OllamaClientPort } from './ports/OllamaClientPort';
+
+import type { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 
 function isSmallTalkResponse(value: unknown): value is { text: string } {
   return !!value &&
@@ -9,22 +11,47 @@ function isSmallTalkResponse(value: unknown): value is { text: string } {
 }
 
 export class AssistantSmallTalkService implements AssistantSmallTalkPort {
-  constructor(private readonly ollamaClient?: OllamaClientPort) {}
+  constructor(
+    private readonly ollamaClient?: OllamaClientPort,
+    private readonly contextBuilder?: AssistantContextBuilderPort
+  ) {}
 
-  public async handle(prompt: string, language: string): Promise<AssistantConversationResponse> {
+  public async handle(prompt: string, language: string, userName?: string | null): Promise<AssistantConversationResponse> {
     const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
     
     if (isLlmEnabled && this.ollamaClient) {
       try {
-        const systemPrompt = `You are HomePilot, a local smart home assistant. 
-You can answer simple conversational questions. 
-Do not claim you executed devices. 
-Do not invent device states. 
-For device control, tell the user to ask clearly (e.g., "turn on the light").
-Keep answers short, professional, and friendly. 
-Answer in ${language === 'en' ? 'English' : 'Spanish'}.`;
+        const homeContext = this.contextBuilder ? await this.contextBuilder.build() : '{}';
+        
+        const systemPrompt = userName 
+          ? `You are HomePilot, a local smart home assistant. You are talking to ${userName}.`
+          : `You are HomePilot, a local smart home assistant.`;
 
-        const response = await this.ollamaClient.generateJson(`System: ${systemPrompt}\nUser: ${prompt}\nResponse JSON format: {"text": "your response"}`);
+        const rulesPrompt = `- Usa SOLO información del contexto si está disponible
+- No inventes dispositivos
+- Si no hay datos, dilo claramente
+- Puedes usar el estado (state) y la ubicación (roomId) de los dispositivos para dar respuestas más precisas
+- Do not claim you executed devices.
+- For device control, tell the user to ask clearly.
+- Keep answers short, professional, and friendly.
+- Answer in ${language === 'en' ? 'English' : 'Spanish'}.
+${userName ? `- Mention the user by name (${userName}) at most once in your response.` : ''}`;
+
+        const fullPrompt = `System:
+${systemPrompt}
+
+Context:
+${homeContext}
+
+Rules:
+${rulesPrompt}
+
+User:
+${prompt}
+
+Response JSON format: {"text": "your response"}`;
+
+        const response = await this.ollamaClient.generateJson(fullPrompt);
         
         if (isSmallTalkResponse(response) && response.text.trim().length > 0) {
           return {
