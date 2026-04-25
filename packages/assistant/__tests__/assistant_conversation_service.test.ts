@@ -191,7 +191,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'qué está encendido' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Encontré 2 dispositivos encendidas');
+      expect(response.message).toContain('Tienes 2 dispositivos encendidas:');
       expect(response.message).toContain('• Luz Sala');
       expect(response.message).toContain('• Luz Cocina');
     });
@@ -204,7 +204,7 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: 'Que luces estan encendidas?' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Encontré 1 luces encendidas');
+      expect(response.message).toContain('Tienes 1 luces encendidas');
       expect(response.message).toContain('• Luz Sala');
       expect(response.message).not.toContain('• Enchufe');
     });
@@ -217,10 +217,9 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: 'que luces estan encendidas y cuales apagadas' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Encendidas:');
-      expect(response.message).toContain('• Luz Sala');
-      expect(response.message).toContain('Apagadas:');
-      expect(response.message).toContain('• Luz Cocina');
+      expect(response.message).toContain('Encendidas:\n• Luz Sala');
+      expect(response.message).toContain('Apagadas:\n• Luz Cocina');
+      expect(response.message).toContain('Estado de la casa:');
     });
 
     it('should filter by room name if found in repository', async () => {
@@ -259,9 +258,9 @@ describe('AssistantConversationService', () => {
       ]);
       mockDeviceRepo.findAll.mockResolvedValue([]);
 
-      const response = await service.converse({ prompt: 'que luces hay en el baño' }, 'es');
+      const response = await service.converse({ prompt: 'que hay encendido en el baño' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('No encontré luces en Baño');
+      expect(response.message).toContain('No encontré dispositivos en Baño');
     });
 
     it('should not trigger dispatcher or scene execution for status queries', async () => {
@@ -281,10 +280,10 @@ describe('AssistantConversationService', () => {
         message: 'Ollama says hello'
       });
       
-      const response = await service.converse({ prompt: 'How are you today?' }, 'en');
+      const response = await service.converse({ prompt: 'Tell me a joke' }, 'en');
       expect(response.type).toBe('answer');
       expect(response.message).toBe('Ollama says hello');
-      expect(mockSmallTalk.handle).toHaveBeenCalledWith('How are you today?', 'en');
+      expect(mockSmallTalk.handle).toHaveBeenCalledWith('Tell me a joke', 'en');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
       expect(mockExecutionRepo.save).not.toHaveBeenCalled();
     });

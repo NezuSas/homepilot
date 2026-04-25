@@ -20,6 +20,7 @@ export interface AssistantConversationResponse {
 
 export interface AssistantConverseRequest {
   prompt: string;
+  userName?: string;
   selectedOptionId?: string;
   pendingAction?: {
     command?: DeviceCommandV1;

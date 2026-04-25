@@ -194,10 +194,15 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         const body = await this.parseBody<{ 
           prompt: string; 
+          userName?: string;
           selectedOptionId?: string; 
           pendingAction?: any;
           confirmed?: boolean;
         }>(req);
+
+        // Backend user name resolution (preferred over frontend payload)
+        const sessionUserName = req.user ? (req.user.displayName || req.user.username) : undefined;
+        body.userName = sessionUserName || body.userName;
         
         if (!body.prompt && !body.selectedOptionId) {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt or selectedOptionId is required'), true;

@@ -211,7 +211,10 @@ export const HomeConversationView: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await converseWithAssistant({ prompt: userText });
+      const response = await converseWithAssistant({ 
+        prompt: userText,
+        userName: user?.displayName || user?.username
+      });
       handleResponse(response);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -248,6 +251,7 @@ export const HomeConversationView: React.FC = () => {
     try {
       const response = await converseWithAssistant({
         prompt: `Selected: ${label}`,
+        userName: user?.displayName || user?.username,
         selectedOptionId: optionId,
         pendingAction,
         confirmed: optionId === 'confirm'

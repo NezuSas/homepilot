@@ -53,12 +53,13 @@ export class AuthRoutes extends ApiRoutes {
         } catch {
           /* ignore */
         }
-
         this.sendJson(res, {
           token: result.token,
           user: {
             id: result.user.id,
             username: result.user.username,
+            displayName: result.user.displayName,
+            avatarDataUri: result.user.avatarDataUri,
             role: result.user.role,
             isActive: result.user.isActive,
           },
