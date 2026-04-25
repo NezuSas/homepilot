@@ -30,6 +30,7 @@ export type View =
   | 'automations'
   | 'assistant'
   | 'resilience-showcase'
+  | 'home-conversation'
   // Personalization (placeholders)
   | 'dashboards'
   | 'energy'

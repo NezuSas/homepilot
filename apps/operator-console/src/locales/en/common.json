@@ -26,7 +26,8 @@
     "system_users": "Users & Access",
     "system_ha": "HA Integration",
     "group_personalization": "Personalization",
-    "coming_soon": "Coming soon"
+    "coming_soon": "Coming soon",
+    "talk_to_home": "Talk to my Home"
   },
   "device_statuses": {
     "on": "On",
@@ -142,6 +143,25 @@
         "view_logs": "View Full History",
         "view_technical_details": "View Technical Details"
       }
+    },
+    "conversation": {
+      "title": "Talk to my Home",
+      "subtitle": "Natural and friendly interaction with HomePilot",
+      "placeholder": "Tell me something, e.g. what lights are on?",
+      "send": "Send",
+      "sending": "Sending...",
+      "empty_title": "Start a conversation",
+      "empty_description": "You can ask about the state of your home or ask me to perform actions for you.",
+      "selected_option": "I selected: {{label}}",
+      "options_question": "Which one do you want to control?",
+      "execution_success": "Action completed successfully.",
+      "execution_partial": "Action partially completed.",
+      "execution_failed": "Could not complete the action.",
+      "unknown_error": "An unexpected error occurred.",
+      "view_execution_history": "View execution history",
+      "ready": "Ready",
+      "input_hint": "Shift + Enter for newline",
+      "version_label": "HomePilot Conversation V1.0"
     }
   },
   "dashboard": {

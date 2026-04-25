@@ -22,7 +22,8 @@ import {
   ChevronRight,
   LogOut,
   Sun,
-  Moon
+  Moon,
+  MessageSquare
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
@@ -46,6 +47,7 @@ import { DashboardsView } from './views/DashboardsView';
 import ResilienceShowcaseView from './views/ResilienceShowcaseView';
 import { EnergyView } from './views/EnergyView';
 import { ExecutionLogsView } from './views/ExecutionLogsView';
+import { HomeConversationView } from './views/HomeConversationView';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { SidebarItem } from './components/ui/SidebarItem';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
@@ -373,6 +375,7 @@ function App() {
       case 'system-executions':   return t('nav.system_executions', 'Historial de Ejecución');
       case 'system-ha':           return t('nav.system_ha');
       case 'system-users':        return t('nav.system_users');
+      case 'home-conversation':   return t('nav.talk_to_home');
       default:                    return t('nav.dashboard');
     }
   };
@@ -391,6 +394,7 @@ function App() {
       case 'system-audit':        return t('dashboard.observability');
       case 'system-executions':   return t('dashboard.observability');
       case 'system-ha':           return t('dashboard.platform');
+      case 'home-conversation':   return t('assistant.conversation.subtitle');
       default:                    return '';
     }
   };
@@ -483,6 +487,12 @@ function App() {
                active={currentView === 'resilience-showcase'} 
                onClick={() => navigateTo('resilience-showcase')} 
                data-demo="nav-resilience"
+             />
+             <SidebarItem 
+               icon={MessageSquare} 
+               label={t('nav.talk_to_home')} 
+               active={currentView === 'home-conversation'} 
+               onClick={() => navigateTo('home-conversation')} 
              />
           </div>
 
@@ -796,6 +806,7 @@ function App() {
              {currentView === 'system-executions' && <ExecutionLogsView />}
              {currentView === 'system-ha' && <HomeAssistantSettingsView />}
              {currentView === 'system-users' && <UsersView />}
+             {currentView === 'home-conversation' && <HomeConversationView />}
            </div>
         </section>
 

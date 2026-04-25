@@ -26,7 +26,8 @@
     "system_users": "Usuarios y Acceso",
     "system_ha": "Integración HA",
     "group_personalization": "Personalización",
-    "coming_soon": "Próximamente"
+    "coming_soon": "Próximamente",
+    "talk_to_home": "Conversar con mi casa"
   },
   "device_statuses": {
     "on": "Encendido",
@@ -142,6 +143,25 @@
         "view_logs": "Ver Historial Completo",
         "view_technical_details": "Ver Detalles Técnicos"
       }
+    },
+    "conversation": {
+      "title": "Conversar con mi casa",
+      "subtitle": "Interacción natural y amigable con HomePilot",
+      "placeholder": "Dime algo, ej: ¿qué luces están encendidas?",
+      "send": "Enviar",
+      "sending": "Enviando...",
+      "empty_title": "Empieza una conversación",
+      "empty_description": "Puedes preguntar por el estado de tu casa o pedirme que ejecute acciones por ti.",
+      "selected_option": "Seleccioné: {{label}}",
+      "options_question": "¿Cuál quieres controlar?",
+      "execution_success": "Acción completada con éxito.",
+      "execution_partial": "Acción completada parcialmente.",
+      "execution_failed": "No se pudo completar la acción.",
+      "unknown_error": "Ocurrió un error inesperado.",
+      "view_execution_history": "Ver historial de ejecución",
+      "ready": "Listo",
+      "input_hint": "Shift + Enter para nueva línea",
+      "version_label": "Conversación HomePilot V1.0"
     }
   },
   "dashboard": {

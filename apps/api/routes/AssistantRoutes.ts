@@ -187,6 +187,30 @@ export class AssistantRoutes extends ApiRoutes {
       return true;
     }
 
+    // POST /api/v1/assistant/converse
+    if (method === 'POST' && pathname === '/api/v1/assistant/converse') {
+      try {
+        const body = await this.parseBody<{ 
+          prompt: string; 
+          selectedOptionId?: string; 
+          pendingAction?: any;
+          confirmed?: boolean;
+        }>(req);
+        
+        if (!body.prompt && !body.selectedOptionId) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt or selectedOptionId is required'), true;
+        }
+
+        const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
+        
+        const response = await container.services.assistantConversationService.converse(body, language);
+        return this.sendJson(res, response), true;
+      } catch (e: any) {
+        this.sendError(res, 500, 'ASSISTANT_CONVERSE_ERROR', e.message);
+      }
+      return true;
+    }
+
     this.sendError(res, 404, 'NOT_FOUND', 'Assistant route not found');
     return true;
   }

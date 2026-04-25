@@ -16,6 +16,7 @@ import { AssistantContextBuilder } from './packages/assistant/application/Assist
 import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
 import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
 import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
+import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -83,6 +84,7 @@ export interface BootstrapContainer {
     databaseBackupService: DatabaseBackupService;
     intentInterpreterService: IntentInterpreterService;
     assistantConfirmationPolicy: AssistantConfirmationPolicy;
+    assistantConversationService: AssistantConversationService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -227,6 +229,15 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.deviceRepository
   );
 
+  const assistantConversationService = new AssistantConversationService(
+    intentInterpreterService,
+    assistantConfirmationPolicy,
+    sceneExecutionService,
+    commandRouterAssembly.commandDispatcher,
+    repos.deviceRepository,
+    repos.sceneRepository
+  );
+
   const container: BootstrapContainer = {
     repositories: {
       ...repos,
@@ -249,7 +260,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       sceneExecutionService,
       databaseBackupService,
       intentInterpreterService,
-      assistantConfirmationPolicy
+      assistantConfirmationPolicy,
+      assistantConversationService
     },
     guards: {
       authGuard: authModule.authGuard
