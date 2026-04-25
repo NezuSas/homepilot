@@ -66,6 +66,11 @@ export class SqliteSceneRepository implements SceneRepository {
     return rows.map(r => this.mapRowToScene(r));
   }
 
+  public async findAll(): Promise<Scene[]> {
+    const rows = this.db.prepare('SELECT * FROM scenes ORDER BY created_at DESC').all() as LocalSceneRow[];
+    return rows.map(r => this.mapRowToScene(r));
+  }
+
   public async saveScene(scene: Scene): Promise<void> {
     const stmt = this.db.prepare(`
       INSERT INTO scenes (id, home_id, room_id, name, actions, created_at, updated_at)

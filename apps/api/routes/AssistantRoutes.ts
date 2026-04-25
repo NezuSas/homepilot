@@ -108,6 +108,61 @@ export class AssistantRoutes extends ApiRoutes {
       return true;
     }
 
+    // POST /api/v1/assistant/execute
+    if (method === 'POST' && pathname === '/api/v1/assistant/execute') {
+      try {
+        const body = await this.parseBody<{ prompt: string }>(req);
+        if (!body.prompt) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt is required'), true;
+        }
+
+        const intent = await container.services.intentInterpreterService.interpret(body.prompt);
+        const correlationId = `assistant:${Date.now()}`;
+
+        if (intent.type === 'scene') {
+          const scene = await container.repositories.sceneRepository.findSceneById(intent.target);
+          if (!scene) {
+            return this.sendError(res, 404, 'SCENE_NOT_FOUND', `Scene ${intent.target} not found`), true;
+          }
+
+          const result = await container.services.sceneExecutionService.execute(scene, {
+            sourceType: 'manual',
+            sourceId: 'assistant',
+            correlationId
+          });
+          return this.sendJson(res, result), true;
+        }
+
+        if (intent.type === 'command') {
+          // Wrap single command in a transient scene to ensure it goes through the execution pipeline (observability)
+          const transientScene = {
+            id: `assistant-transient-${crypto.randomUUID()}`,
+            homeId: 'system',
+            roomId: null,
+            name: `Assistant NL: ${body.prompt}`,
+            actions: [{
+              deviceId: intent.deviceId,
+              command: { name: intent.command, params: intent.params || {} }
+            }],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          const result = await container.services.sceneExecutionService.execute(transientScene as any, {
+            sourceType: 'manual',
+            sourceId: 'assistant',
+            correlationId
+          });
+          return this.sendJson(res, result), true;
+        }
+
+        return this.sendError(res, 422, 'INTENT_NOT_UNDERSTOOD', 'Assistant could not interpret the command'), true;
+      } catch (e: any) {
+        this.sendError(res, 500, 'ASSISTANT_EXECUTION_ERROR', e.message);
+      }
+      return true;
+    }
+
     this.sendError(res, 404, 'NOT_FOUND', 'Assistant route not found');
     return true;
   }

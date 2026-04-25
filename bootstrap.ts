@@ -10,6 +10,7 @@ import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRout
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
+import { IntentInterpreterService } from './packages/assistant/application/IntentInterpreterService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -75,6 +76,7 @@ export interface BootstrapContainer {
     sonoffDiscoveryService: SonoffLanDiscoveryService;
     sceneExecutionService: SceneExecutionService;
     databaseBackupService: DatabaseBackupService;
+    intentInterpreterService: IntentInterpreterService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -193,6 +195,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   );
 
   const databaseBackupService = new DatabaseBackupService();
+  const intentInterpreterService = new IntentInterpreterService(repos.deviceRepository, repos.sceneRepository);
 
   const container: BootstrapContainer = {
     repositories: {
@@ -214,7 +217,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       systemVariableService,
       sonoffDiscoveryService: commandRouterAssembly.sonoffDiscoveryService,
       sceneExecutionService,
-      databaseBackupService
+      databaseBackupService,
+      intentInterpreterService
     },
     guards: {
       authGuard: authModule.authGuard

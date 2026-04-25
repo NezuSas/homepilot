@@ -79,6 +79,7 @@ describe('Automation → SceneExecutionService integration', () => {
     sceneRepoMock = {
       findSceneById: jest.fn().mockResolvedValue(null),
       findScenesByHomeId: jest.fn().mockResolvedValue([]),
+      findAll: jest.fn().mockResolvedValue([]),
       saveScene: jest.fn(),
       deleteScene: jest.fn(),
     };

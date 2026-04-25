@@ -30,6 +30,7 @@ describe('Automation Engine: Reactive Execution', () => {
     sceneRepoMock = {
       findSceneById: jest.fn(),
       findScenesByHomeId: jest.fn(),
+      findAll: jest.fn(),
       saveScene: jest.fn(),
       deleteScene: jest.fn()
     };

@@ -36,6 +36,7 @@ describe('Automation E2E: Full Reactive Flow', () => {
     sceneRepoMock = {
       findSceneById: jest.fn(),
       findScenesByHomeId: jest.fn(),
+      findAll: jest.fn(),
       saveScene: jest.fn(),
       deleteScene: jest.fn()
     };
