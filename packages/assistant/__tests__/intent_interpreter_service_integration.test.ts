@@ -166,6 +166,54 @@ describe('IntentInterpreterService Integration', () => {
     });
   });
 
+  describe('Spanish Command Normalization', () => {
+    beforeEach(() => {
+      mockDeviceRepo.findAll.mockResolvedValue([{
+        id: 'dev-escritorio', name: 'Luz Escritorio', homeId: 'h1', roomId: 'r1', type: 'light', vendor: '', status: 'ASSIGNED', integrationSource: 'ha', externalId: 'ha:light.escritorio', invertState: false, lastKnownState: null, capabilities: [], entityVersion: 1, createdAt: '', updatedAt: ''
+      }]);
+    });
+
+    it('should interpret "enciendeme la luz escritorio" as turn_on', async () => {
+      const intent = await service.interpret('enciendeme la luz escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_on');
+      }
+    });
+
+    it('should interpret "apagame la luz escritorio" as turn_off', async () => {
+      const intent = await service.interpret('apagame la luz escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_off');
+      }
+    });
+
+    it('should interpret "mijin enciendeme la luz" as turn_on', async () => {
+      const intent = await service.interpret('mijin enciendeme la luz');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_on');
+      }
+    });
+
+    it('should interpret "encendeme la luz" as turn_on', async () => {
+      const intent = await service.interpret('encendeme la luz');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_on');
+      }
+    });
+
+    it('should interpret "prendelo la luz escritorio" as turn_on', async () => {
+      const intent = await service.interpret('prendelo la luz escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_on');
+      }
+    });
+  });
+
   describe('LLM Intent Interpreter Prompt Verification', () => {
     it('should include instructions for Spanish/English and typo tolerance in prompt', async () => {
       process.env.OLLAMA_ENABLED = 'true';

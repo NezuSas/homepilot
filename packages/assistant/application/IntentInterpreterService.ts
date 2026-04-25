@@ -60,10 +60,29 @@ export class IntentInterpreterService {
     });
   }
 
+  private normalizeSpanishCommand(prompt: string): string {
+    let normalized = prompt.toLowerCase();
+    
+    // Normalize common variations of "enciende/prende/apaga" with pronouns/suffixes
+    // enciendeme, encendeme -> enciende
+    normalized = normalized.replace(/\b(encend|enciend)eme\b/g, 'enciende');
+    normalized = normalized.replace(/\b(encend|enciend)elo\b/g, 'enciende');
+    
+    // apagame -> apaga
+    normalized = normalized.replace(/\bapagame\b/g, 'apaga');
+    normalized = normalized.replace(/\bapagalo\b/g, 'apaga');
+    
+    // prendeme -> prende
+    normalized = normalized.replace(/\bprendeme\b/g, 'prende');
+    normalized = normalized.replace(/\bprendelo\b/g, 'prende');
+
+    return normalized;
+  }
+
   private async interpretDeterministic(prompt: string): Promise<Intent> {
-    const normalized = prompt.toLowerCase().trim();
+    const normalized = this.normalizeSpanishCommand(prompt).trim();
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
-    const onKeywords = ['prende', 'encender', 'encendido', 'activar', 'on'];
+    const onKeywords = ['prende', 'enciende', 'encender', 'encendido', 'activar', 'on'];
 
     // V1 Pronouns exact matches
     const offPronouns = ['apágala', 'apágalo', 'apágalas', 'apágalos'];
