@@ -274,6 +274,19 @@ describe('AssistantConversationService', () => {
   });
 
   describe('User Friendly Small Talk and Unknowns', () => {
+    it('should correctly handle wellness queries with typos', async () => {
+      const typoPrompts = ["comoe stas", "como stas", "q tal", "how are u"];
+      
+      for (const prompt of typoPrompts) {
+        const response = await service.converse({ prompt, userName: 'User' }, 'es');
+        expect(response.type).toBe('answer');
+        expect(response.message).toContain('Estoy funcionando correctamente');
+        expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+        expect(mockExecutionRepo.save).not.toHaveBeenCalled();
+      }
+    });
+
+
     it('should delegate unknown conversational prompts to SmallTalkService', async () => {
       mockSmallTalk.handle.mockResolvedValue({
         type: 'answer',

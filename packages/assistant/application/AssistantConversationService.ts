@@ -300,6 +300,14 @@ export class AssistantConversationService {
       .replace(/\s+/g, " ")            // Normalize spaces
       .trim();
 
+    // Fix common typos
+    normalized = normalized
+      .replace(/\bcomoe stas\b/g, "como estas")
+      .replace(/\bcomo stas\b/g, "como estas")
+      .replace(/\bcm estas\b/g, "como estas")
+      .replace(/\bq tal\b/g, "que tal")
+      .replace(/\bk tal\b/g, "que tal");
+
     // Strip polite prefixes so intent matching works on the core request
     const politePrefixes = [
       'puedes ', 'podrias ', 'me ayudas a ', 'me ayudas ',
@@ -368,7 +376,7 @@ export class AssistantConversationService {
 
   private isGreeting(normalized: string): boolean {
     const greetings = [
-      "hola", "buenas", "buenos dias", "buenos dias", "buenas tardes", "buenas noches", "que tal",
+      "hola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
       "hello", "hi", "hey", "good morning", "good afternoon", "good evening", "gracias", "thanks", "thank you"
     ];
     return greetings.some(g => normalized === g || normalized.startsWith(g + " "));
@@ -376,8 +384,8 @@ export class AssistantConversationService {
 
   private isWellnessQuery(normalized: string): boolean {
     const triggers = [
-      "como estas", "como te va", "todo bien", "que tal todo",
-      "how are you", "how's it going", "hows it going", "are you ok"
+      "como estas", "como stas", "comoe stas", "como te va", "que tal", "q tal", "todo bien", "que tal todo",
+      "how are you", "how's it going", "hows it going", "are you ok", "how are u"
     ];
     return triggers.some(t => normalized === t || normalized.startsWith(t + " "));
   }

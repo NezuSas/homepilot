@@ -82,6 +82,7 @@ export function useSession(
         setUser(userData);
         setStatus('authenticated');
         setSessionToken(token);
+        localStorage.setItem('hp_user_ctx', JSON.stringify(userData));
       } else {
         // El interceptor de apiClient se encargará del clearSession si es 401
         // Si es otro error (500), por seguridad fail-closed
