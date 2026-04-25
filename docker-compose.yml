@@ -17,6 +17,7 @@ services:
       - HOMEPILOT_DB_PATH=/app/data/homepilot.db
       - INTERNAL_HA_URL=http://homeassistant:8123
       - HOMEPILOT_DEV_BOOTSTRAP=${HOMEPILOT_DEV_BOOTSTRAP:-false}
+      - CORS_ORIGIN=http://localhost,http://localhost:5173,http://127.0.0.1:5173
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
       interval: 30s

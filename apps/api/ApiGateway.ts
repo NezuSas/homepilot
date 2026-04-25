@@ -128,20 +128,25 @@ export class ApiGateway {
 
       // CORS — set before any handler writes to the response.
       const origin = request.headers.origin;
-      const allowedOriginsEnv = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173,http://127.0.0.1:5173');
+      const allowedOriginsEnv = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost,http://localhost:5173,http://127.0.0.1:5173');
       const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim()).filter(Boolean);
       
+      let isAllowed = false;
       if (origin && allowedOrigins.includes(origin)) {
+        isAllowed = true;
         rawRes.setHeader('Access-Control-Allow-Origin', origin);
-      } else if (allowedOrigins.length === 0 && process.env.NODE_ENV !== 'production') {
-        // Fallback for dev if no origin configured
-        rawRes.setHeader('Access-Control-Allow-Origin', '*');
       }
 
-      rawRes.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      rawRes.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      if (process.env.NODE_ENV !== 'production' && origin) {
+        console.log(`[HomePilot:CORS] Origin: ${origin}`);
+        console.log(`[HomePilot:CORS] Allowed: ${isAllowed}`);
+      }
+
+      rawRes.setHeader('Access-Control-Allow-Credentials', 'true');
 
       if (rawReq.method === 'OPTIONS') {
+        rawRes.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+        rawRes.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         rawRes.writeHead(204);
         rawRes.end();
         return;
