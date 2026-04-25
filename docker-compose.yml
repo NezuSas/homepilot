@@ -10,11 +10,13 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+      - ./backups:/app/backups
       - /etc/localtime:/etc/localtime:ro
     environment:
       - NODE_ENV=production
       - PORT=3000
       - HOMEPILOT_DB_PATH=/app/data/homepilot.db
+      - HOMEPILOT_BACKUP_DIR=/app/backups
       - INTERNAL_HA_URL=http://homeassistant:8123
       - HOMEPILOT_DEV_BOOTSTRAP=${HOMEPILOT_DEV_BOOTSTRAP:-false}
       - CORS_ORIGIN=http://localhost,http://localhost:5173,http://127.0.0.1:5173

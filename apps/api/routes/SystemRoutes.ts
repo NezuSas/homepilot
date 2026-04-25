@@ -134,6 +134,42 @@ export class SystemRoutes extends ApiRoutes {
       return true;
     }
 
+    // GET /api/v1/system/backups
+    if (method === 'GET' && pathname === '/api/v1/system/backups') {
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
+      if (!isProtected) return true;
+
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+
+      try {
+        const backups = await container.services.databaseBackupService.listBackups();
+        this.sendJson(res, backups);
+      } catch (e: any) {
+        this.sendError(res, 500, 'BACKUP_LIST_ERROR', e.message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/system/backups
+    if (method === 'POST' && pathname === '/api/v1/system/backups') {
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
+      if (!isProtected) return true;
+
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+
+      try {
+        const result = await container.services.databaseBackupService.createBackup();
+        if (result.success) {
+          this.sendJson(res, result.backup);
+        } else {
+          this.sendError(res, 500, 'BACKUP_CREATE_ERROR', result.error);
+        }
+      } catch (e: any) {
+        this.sendError(res, 500, 'BACKUP_CREATE_ERROR', e.message);
+      }
+      return true;
+    }
+
     return false;
   }
 }

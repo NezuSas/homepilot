@@ -9,6 +9,7 @@ import { buildAssistantModule } from './infrastructure/assemblers/buildAssistant
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
+import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -73,6 +74,7 @@ export interface BootstrapContainer {
     systemVariableService: SystemVariableService;
     sonoffDiscoveryService: SonoffLanDiscoveryService;
     sceneExecutionService: SceneExecutionService;
+    databaseBackupService: DatabaseBackupService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -190,6 +192,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     systemVariableService
   );
 
+  const databaseBackupService = new DatabaseBackupService();
+
   const container: BootstrapContainer = {
     repositories: {
       ...repos,
@@ -209,7 +213,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       haImportService: haModule.haImportService,
       systemVariableService,
       sonoffDiscoveryService: commandRouterAssembly.sonoffDiscoveryService,
-      sceneExecutionService
+      sceneExecutionService,
+      databaseBackupService
     },
     guards: {
       authGuard: authModule.authGuard
