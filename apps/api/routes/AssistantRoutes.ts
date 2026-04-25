@@ -108,8 +108,8 @@ export class AssistantRoutes extends ApiRoutes {
       return true;
     }
 
-    // POST /api/v1/assistant/execute
-    if (method === 'POST' && pathname === '/api/v1/assistant/execute') {
+    // POST /api/v1/assistant/preview
+    if (method === 'POST' && pathname === '/api/v1/assistant/preview') {
       try {
         const body = await this.parseBody<{ prompt: string }>(req);
         if (!body.prompt) {
@@ -117,6 +117,30 @@ export class AssistantRoutes extends ApiRoutes {
         }
 
         const intent = await container.services.intentInterpreterService.interpret(body.prompt);
+        const preview = await container.services.assistantConfirmationPolicy.evaluate(intent);
+
+        return this.sendJson(res, preview), true;
+      } catch (e: any) {
+        this.sendError(res, 500, 'ASSISTANT_EXECUTION_ERROR', e.message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/assistant/execute
+    if (method === 'POST' && pathname === '/api/v1/assistant/execute') {
+      try {
+        const body = await this.parseBody<{ prompt: string; confirmed?: boolean }>(req);
+        if (!body.prompt) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt is required'), true;
+        }
+
+        const intent = await container.services.intentInterpreterService.interpret(body.prompt);
+        const policyResult = await container.services.assistantConfirmationPolicy.evaluate(intent);
+
+        if (policyResult.requiresConfirmation && body.confirmed !== true) {
+          return this.sendJson(res, { error: 'CONFIRMATION_REQUIRED', preview: policyResult }, 409), true;
+        }
+
         const correlationId = `assistant:${Date.now()}`;
 
         if (intent.type === 'scene') {

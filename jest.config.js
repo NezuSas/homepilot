@@ -5,4 +5,14 @@ module.exports = {
   roots: ['<rootDir>/packages/', '<rootDir>/__tests__/', '<rootDir>/apps/'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   clearMocks: true,
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        diagnostics: {
+          ignoreCodes: [1343, 2339]
+        }
+      }
+    ]
+  }
 };

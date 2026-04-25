@@ -18,8 +18,8 @@ import {
   Send,
   AlertCircle
 } from 'lucide-react';
-import { executeAssistantPrompt } from '../lib/assistantApi';
-import type { SceneExecutionResult } from '../types/executions';
+import { previewAssistantPrompt, executeAssistantPrompt } from '../lib/assistantApi';
+import type { SceneExecutionResult, AssistantPreviewResult } from '../types/executions';
 import { cn } from '../lib/utils';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -49,26 +49,52 @@ const [promptHistory, setPromptHistory] = useState<string[]>(() => {
   return saved ? JSON.parse(saved).slice(0, 5) : [];
 });
 
+const [previewToConfirm, setPreviewToConfirm] = useState<AssistantPreviewResult | null>(null);
+
+const executeConfirmed = async (promptText: string, confirmed: boolean) => {
+  setIsExecuting(true);
+  try {
+    const result = await executeAssistantPrompt(promptText, confirmed);
+    setLastResult(result);
+    setPreviewToConfirm(null);
+    
+    // Add to history
+    const newHistory = [promptText, ...promptHistory.filter(h => h !== promptText)].slice(0, 5);
+    setPromptHistory(newHistory);
+    localStorage.setItem('hp_assistant_history', JSON.stringify(newHistory));
+    
+    setPrompt('');
+  } catch (err: any) {
+    if (err.message === 'CONFIRMATION_REQUIRED' && err.preview) {
+      setPreviewToConfirm(err.preview);
+    } else {
+      setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
+    }
+  } finally {
+    setIsExecuting(false);
+  }
+};
+
 const handleExecute = async () => {
   if (!prompt.trim() || isExecuting) return;
   
   setIsExecuting(true);
   setExecError(null);
   setLastResult(null);
+  setPreviewToConfirm(null);
   
   try {
-    const result = await executeAssistantPrompt(prompt);
-    setLastResult(result);
+    const preview = await previewAssistantPrompt(prompt);
     
-    // Add to history
-    const newHistory = [prompt, ...promptHistory.filter(h => h !== prompt)].slice(0, 5);
-    setPromptHistory(newHistory);
-    localStorage.setItem('hp_assistant_history', JSON.stringify(newHistory));
+    if (preview.requiresConfirmation) {
+      setPreviewToConfirm(preview);
+      setIsExecuting(false);
+      return;
+    }
     
-    setPrompt('');
+    await executeConfirmed(prompt, false);
   } catch (err: any) {
     setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
-  } finally {
     setIsExecuting(false);
   }
 };
@@ -338,7 +364,7 @@ useEffect(() => {
           </div>
 
           {/* History chips */}
-          {promptHistory.length > 0 && !isExecuting && !lastResult && !execError && (
+          {promptHistory.length > 0 && !isExecuting && !lastResult && !execError && !previewToConfirm && (
             <div className="mt-6 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
               <div className="flex items-center gap-1.5 px-3 py-1 text-muted-foreground/40">
                 <History className="w-3 h-3" />
@@ -357,16 +383,44 @@ useEffect(() => {
           )}
 
           {/* Result Area */}
-          {(lastResult || execError) && (
+          {(previewToConfirm || lastResult || execError) && (
             <div className="mt-8 p-6 rounded-[2rem] border animate-in zoom-in-95 duration-500 relative overflow-hidden bg-background/40 backdrop-blur-sm">
               <button 
-                onClick={() => { setLastResult(null); setExecError(null); }}
+                onClick={() => { setPreviewToConfirm(null); setLastResult(null); setExecError(null); }}
                 className="absolute top-4 right-4 p-2 text-muted-foreground/40 hover:text-foreground transition-colors"
               >
                 <PlusCircle className="w-5 h-5 rotate-45" />
               </button>
 
-              {execError ? (
+              {previewToConfirm ? (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4 text-warning">
+                    <div className="p-3 rounded-2xl bg-warning/10">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black tracking-tight">{t('assistant.command_center.confirmation.title', 'Confirmación Requerida')}</h3>
+                      <p className="text-xs font-bold opacity-70">{previewToConfirm.reason}</p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-card border border-border/40 rounded-xl space-y-2">
+                    <p className="text-sm font-medium text-foreground">{previewToConfirm.summary}</p>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      <span>Target: {previewToConfirm.targetName || 'N/A'}</span>
+                      <span>•</span>
+                      <span>{previewToConfirm.estimatedActionCount || 0} Actions</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <Button variant="ghost" size="sm" onClick={() => setPreviewToConfirm(null)} className="text-[10px] font-black uppercase tracking-widest">
+                      {t('assistant.command_center.confirmation.cancel', 'Cancelar')}
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={() => executeConfirmed(previewToConfirm.prompt, true)} className="text-[10px] font-black uppercase tracking-widest px-6 shadow-lg shadow-primary/20 bg-warning hover:bg-warning/90 text-warning-foreground">
+                      {t('assistant.command_center.confirmation.confirm', 'Confirmar Ejecución')}
+                    </Button>
+                  </div>
+                </div>
+              ) : execError ? (
                 <div className="flex items-center gap-4 text-danger">
                   <div className="p-3 rounded-2xl bg-danger/10">
                     <AlertCircle className="w-6 h-6" />

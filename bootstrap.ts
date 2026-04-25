@@ -14,6 +14,7 @@ import { IntentInterpreterService } from './packages/assistant/application/Inten
 import { OllamaClient } from './packages/assistant/infrastructure/OllamaClient';
 import { AssistantContextBuilder } from './packages/assistant/application/AssistantContextBuilder';
 import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
+import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -80,6 +81,7 @@ export interface BootstrapContainer {
     sceneExecutionService: SceneExecutionService;
     databaseBackupService: DatabaseBackupService;
     intentInterpreterService: IntentInterpreterService;
+    assistantConfirmationPolicy: AssistantConfirmationPolicy;
   };
   guards: {
     authGuard: AuthGuard;
@@ -213,6 +215,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     llmInterpreter
   );
 
+  const assistantConfirmationPolicy = new AssistantConfirmationPolicy(
+    repos.sceneRepository,
+    repos.deviceRepository
+  );
+
   const container: BootstrapContainer = {
     repositories: {
       ...repos,
@@ -234,7 +241,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       sonoffDiscoveryService: commandRouterAssembly.sonoffDiscoveryService,
       sceneExecutionService,
       databaseBackupService,
-      intentInterpreterService
+      intentInterpreterService,
+      assistantConfirmationPolicy
     },
     guards: {
       authGuard: authModule.authGuard
