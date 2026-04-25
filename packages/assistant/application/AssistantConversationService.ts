@@ -7,6 +7,9 @@ import { DeviceCommandDispatcherPort } from '../../devices/application/ports/Dev
 import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
 import { FailureInsightService } from '../../devices/application/FailureInsightService';
+import { Scene } from '../../devices/domain/Scene';
+import { IntentInterpreterPort, Intent } from './ports/IntentInterpreterPort';
+import { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -38,8 +41,8 @@ export interface AssistantConverseRequest {
 
 export class AssistantConversationService {
   constructor(
-    private readonly intentInterpreter: IntentInterpreterService,
-    private readonly confirmationPolicy: AssistantConfirmationPolicy,
+    private readonly intentInterpreter: IntentInterpreterPort,
+    private readonly confirmationPolicy: AssistantConfirmationPolicyPort,
     private readonly sceneExecutionService: SceneExecutionService,
     private readonly deviceCommandDispatcher: DeviceCommandDispatcherPort,
     private readonly deviceRepository: DeviceRepository,
@@ -48,13 +51,38 @@ export class AssistantConversationService {
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
     // A) Selected Option Flow
-    if (request.selectedOptionId && request.pendingAction) {
-      return this.handleSelection(request);
+    if (request.selectedOptionId) {
+      return this.handleSelection(request, language);
     }
 
     const prompt = request.prompt.toLowerCase().trim();
 
-    // B) State Queries
+    // B) Greetings
+    if (this.isGreeting(prompt)) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "Hi, I’m ready to help with your home. You can ask what is on or ask me to control a light, scene, or device."
+          : "Hola, estoy listo para ayudarte con tu casa. Puedes preguntarme qué está encendido o pedirme que controle alguna luz, escena o dispositivo."
+      };
+    }
+
+    // C) Presentation / Capabilities
+    if (this.isPresentation(prompt)) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "I’m HomePilot, your local home assistant. I can help you check what devices are on or off, control lights, run scenes, and guide you when an action needs confirmation."
+          : "Soy HomePilot, el asistente local de tu casa. Puedo ayudarte a consultar qué dispositivos están encendidos o apagados, controlar luces, ejecutar escenas y guiarte cuando una acción necesite confirmación."
+      };
+    }
+
+    // D) Date/Time Queries
+    if (this.isDateTimeQuery(prompt)) {
+      return this.handleDateTimeQuery(prompt, language);
+    }
+
+    // E) State Queries
     if (this.isStateQuery(prompt)) {
       return this.handleStateQuery(prompt, language);
     }
@@ -95,13 +123,11 @@ export class AssistantConversationService {
     }
 
     // D) Confirmation Policy
-    const preview = await this.confirmationPolicy.evaluate(intent);
+    const preview = await this.confirmationPolicy.evaluate(intent, language);
     if (preview.requiresConfirmation && request.confirmed !== true) {
       return {
         type: 'error',
-        message: language === 'en'
-          ? "I need confirmation to perform that action."
-          : "Necesito confirmación para realizar esa acción."
+        message: `${preview.reason} ${preview.summary}`.trim()
       };
     }
 
@@ -109,7 +135,7 @@ export class AssistantConversationService {
     const correlationId = `assistant:chat:${Date.now()}`;
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
-      if (!scene) return { type: 'error', message: "Scene not found." };
+      if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found." : "Escena no encontrada." };
       
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
@@ -129,7 +155,7 @@ export class AssistantConversationService {
         if (result.status === 'failed') {
           return {
             type: 'error',
-            message: result.actions[0]?.userMessage || result.actions[0]?.error || "Execution failed.",
+            message: result.actions[0]?.userMessage || result.actions[0]?.error || (language === 'en' ? "Execution failed." : "La ejecución falló."),
             execution: result
           };
         }
@@ -138,18 +164,22 @@ export class AssistantConversationService {
           message: language === 'en' ? "Action completed." : "Acción completada.",
           execution: result
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           type: 'error',
-          message: error.message || "Unknown error during execution."
+          message: errorMessage || (language === 'en' ? "Unknown error during execution." : "Error desconocido durante la ejecución.")
         };
       }
     }
 
-    return { type: 'error', message: "Unknown intent type." };
+    return { 
+      type: 'error', 
+      message: language === 'en' ? "Unknown intent type." : "Tipo de intención desconocido." 
+    };
   }
 
-  private async handleSelection(request: AssistantConverseRequest): Promise<AssistantConversationResponse> {
+  private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
     const correlationId = `assistant:chat:selection:${Date.now()}`;
     
     // Check if it's a scene or device
@@ -162,7 +192,7 @@ export class AssistantConversationService {
       });
       return {
         type: 'execution',
-        message: "Escena ejecutada.",
+        message: language === 'en' ? "Scene executed." : "Escena ejecutada.",
         execution: result
       };
     }
@@ -171,12 +201,64 @@ export class AssistantConversationService {
       const result = await this.executeSingleCommand(request.selectedOptionId!, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
       return {
         type: 'execution',
-        message: result.status === 'success' ? "Acción completada." : "La ejecución falló.",
+        message: result.status === 'success' 
+          ? (language === 'en' ? "Action completed." : "Acción completada.") 
+          : (language === 'en' ? "Execution failed." : "La ejecución falló."),
         execution: result
       };
     }
 
-    return { type: 'error', message: "Invalid selection or pending action." };
+    return { 
+      type: 'error', 
+      message: language === 'en' ? "Invalid selection or pending action." : "Selección o acción pendiente inválida." 
+    };
+  }
+
+  private isPresentation(prompt: string): boolean {
+    const triggers = [
+      "qué puedes hacer", "que puedes hacer", "preséntate", "presentate", "quién eres", "quien eres",
+      "what can you do", "introduce yourself", "who are you"
+    ];
+    return triggers.some(t => prompt.includes(t));
+  }
+
+  private isDateTimeQuery(prompt: string): boolean {
+    const triggers = [
+      "qué fecha es hoy", "que fecha es hoy", "qué hora es", "que hora es",
+      "what date is today", "what time is it"
+    ];
+    return triggers.some(t => prompt.includes(t));
+  }
+
+  private handleDateTimeQuery(prompt: string, language: string): AssistantConversationResponse {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString(language === 'en' ? 'en-US' : 'es-ES', { 
+      hour: '2-digit', minute: '2-digit' 
+    });
+
+    let message = "";
+    if (prompt.includes('fecha') || prompt.includes('date')) {
+      message = language === 'en' ? `Today is ${dateStr}.` : `Hoy es ${dateStr}.`;
+    } else {
+      message = language === 'en' ? `It is ${timeStr}.` : `Son las ${timeStr}.`;
+    }
+
+    return {
+      type: 'answer',
+      message
+    };
+  }
+
+  private isGreeting(prompt: string): boolean {
+    const greetings = [
+      "hola", "buenas", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "qué tal", "que tal",
+      "hello", "hi", "hey", "good morning", "good afternoon", "good evening"
+    ];
+    // Exact match or starts with greeting followed by space/punctuation
+    return greetings.some(g => prompt === g || prompt.startsWith(g + " ") || prompt.startsWith(g + ","));
   }
 
   private isStateQuery(prompt: string): boolean {
@@ -192,7 +274,17 @@ export class AssistantConversationService {
 
   private async handleStateQuery(prompt: string, language: string): Promise<AssistantConversationResponse> {
     const devices = await this.deviceRepository.findAll();
-    const isOnQuery = prompt.includes('encendido') || prompt.includes('encendidas') || prompt.includes(' on');
+    const normalized = prompt.toLowerCase();
+    
+    // Check if it's an "on" query safely
+    const onKeywords = language === 'en' ? ['on', 'active', 'enabled'] : ['encendido', 'encendidos', 'encendida', 'encendidas', 'prendido', 'prendidos'];
+    const isOnQuery = onKeywords.some(kw => {
+      if (kw.length <= 3) {
+        const regex = new RegExp(`\\b${kw}\\b`, 'i');
+        return regex.test(normalized);
+      }
+      return normalized.includes(kw);
+    });
     
     const matches = devices.filter(d => {
       const isOn = d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on');
@@ -235,7 +327,7 @@ export class AssistantConversationService {
   }
 
   private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string): Promise<SceneExecutionResult> {
-    const transientScene = {
+    const transientScene: Scene = {
       id: `assistant-chat-transient-${Date.now()}`,
       homeId: 'system',
       roomId: null,
@@ -244,11 +336,12 @@ export class AssistantConversationService {
         deviceId: deviceId,
         command: { name: command, params: {} }
       }],
+      executionMode: 'parallel',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    return await this.sceneExecutionService.execute(transientScene as any, {
+    return await this.sceneExecutionService.execute(transientScene, {
       sourceType: 'manual',
       sourceId: 'assistant',
       correlationId

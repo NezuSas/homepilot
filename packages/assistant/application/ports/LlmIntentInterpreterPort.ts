@@ -1,4 +1,4 @@
-import { Intent } from '../IntentInterpreterService';
+import { Intent } from './IntentInterpreterPort';
 
 /**
  * LlmIntentInterpreterPort

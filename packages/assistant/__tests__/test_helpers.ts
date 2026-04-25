@@ -119,3 +119,40 @@ export const createMockAssistantMemoryService = (
   };
   return mock;
 };
+
+import { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
+import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
+
+export const createMockAssistantConfirmationPolicy = (
+  overrides?: Partial<jest.Mocked<AssistantConfirmationPolicyPort>>
+): jest.Mocked<AssistantConfirmationPolicyPort> => {
+  const mock: jest.Mocked<AssistantConfirmationPolicyPort> = {
+    evaluate: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};
+
+
+export const createMockDeviceCommandDispatcher = (
+  overrides?: Partial<jest.Mocked<DeviceCommandDispatcherPort>>
+): jest.Mocked<DeviceCommandDispatcherPort> => {
+  const mock: jest.Mocked<DeviceCommandDispatcherPort> = {
+    dispatch: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};
+
+import { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
+
+export const createMockIntentInterpreterService = (
+  overrides?: Partial<jest.Mocked<IntentInterpreterPort>>
+): jest.Mocked<IntentInterpreterPort> => {
+  const mock: jest.Mocked<IntentInterpreterPort> = {
+    interpret: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};
+

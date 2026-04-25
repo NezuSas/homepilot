@@ -1,5 +1,5 @@
 import { AssistantConfirmationPolicy } from '../application/AssistantConfirmationPolicy';
-import { Intent } from '../application/IntentInterpreterService';
+import { Intent } from '../application/ports/IntentInterpreterPort';
 import { createMockDeviceRepository, createMockSceneRepository, createTestDevice, createTestScene } from './test_helpers';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
@@ -13,6 +13,42 @@ describe('AssistantConfirmationPolicy', () => {
     mockSceneRepo = createMockSceneRepository();
     mockDeviceRepo = createMockDeviceRepository();
     policy = new AssistantConfirmationPolicy(mockSceneRepo, mockDeviceRepo);
+  });
+
+  describe('Localization', () => {
+    it('should return ES message for unknown intent by default', async () => {
+      const intent: Intent = { type: 'unknown', prompt: 'haz magia', reason: 'Not understood' };
+      const result = await policy.evaluate(intent);
+      expect(result.summary).toBe('No pude interpretar esa instrucción.');
+    });
+
+    it('should return EN message for unknown intent when lang is en', async () => {
+      const intent: Intent = { type: 'unknown', prompt: 'do magic', reason: 'Not understood' };
+      const result = await policy.evaluate(intent, 'en');
+      expect(result.summary).toBe('I could not interpret that instruction.');
+    });
+
+    it('should return EN reason for scene when lang is en', async () => {
+      const scene = createTestScene({ name: 'Night', actions: [{ deviceId: '1', command: 'turn_on' }] });
+      mockSceneRepo.findSceneById.mockResolvedValue(scene);
+      
+      const intent: Intent = { type: 'scene', target: 'scene_1', prompt: 'activate night mode' };
+      const result = await policy.evaluate(intent, 'en');
+
+      expect(result.requiresConfirmation).toBe(true);
+      expect(result.reason).toBe('Scenes always require confirmation.');
+    });
+
+    it('should return EN reason for global command when lang is en', async () => {
+      const device = createTestDevice({ name: 'Home Group' });
+      mockDeviceRepo.findDeviceById.mockResolvedValue(device);
+
+      const intent: Intent = { type: 'command', deviceId: 'dev_1', command: 'turn_off', prompt: 'turn off every light' };
+      const result = await policy.evaluate(intent, 'en');
+
+      expect(result.requiresConfirmation).toBe(true);
+      expect(result.reason).toBe('Global commands require confirmation.');
+    });
   });
 
   it('preview de unknown no requiere confirmación', async () => {
@@ -81,3 +117,4 @@ describe('AssistantConfirmationPolicy', () => {
     expect(result.reason).toContain('movimiento');
   });
 });
+

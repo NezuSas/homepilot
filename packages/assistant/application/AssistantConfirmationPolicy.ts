@@ -1,40 +1,44 @@
-import { Intent } from './IntentInterpreterService';
+import { Intent } from './ports/IntentInterpreterPort';
 import { AssistantPreviewResult } from '../domain/AssistantPreviewResult';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
+import { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 
-export class AssistantConfirmationPolicy {
+export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyPort {
   constructor(
     private readonly sceneRepository: SceneRepository,
     private readonly deviceRepository: DeviceRepository
   ) {}
 
-  public async evaluate(intent: Intent): Promise<AssistantPreviewResult> {
+  public async evaluate(intent: Intent, lang: string = 'es'): Promise<AssistantPreviewResult> {
     const normalizedPrompt = intent.prompt.toLowerCase();
-    const globalKeywords = ['todo', 'todas', 'casa', 'global'];
+    const globalKeywords = lang === 'en' ? ['all', 'every', 'home', 'global'] : ['todo', 'todas', 'casa', 'global'];
     const hasGlobalKeyword = globalKeywords.some(kw => normalizedPrompt.includes(kw));
+    const isEn = lang === 'en';
 
     if (intent.type === 'unknown') {
       return {
         prompt: intent.prompt,
         intentType: 'unknown',
         requiresConfirmation: false,
-        summary: 'No pude interpretar esa instrucción.',
+        summary: isEn ? 'I could not interpret that instruction.' : 'No pude interpretar esa instrucción.',
         reason: intent.reason
       };
     }
 
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
-      const targetName = scene ? scene.name : 'Desconocido';
+      const targetName = scene ? scene.name : (isEn ? 'Unknown' : 'Desconocido');
       const estimatedActionCount = scene ? scene.actions.length : 0;
 
       return {
         prompt: intent.prompt,
         intentType: 'scene',
         requiresConfirmation: true,
-        summary: `Se ejecutará la escena "${targetName}" con ${estimatedActionCount} acciones.`,
-        reason: 'Las escenas siempre requieren confirmación.',
+        summary: isEn 
+          ? `Scene "${targetName}" will be executed with ${estimatedActionCount} actions.`
+          : `Se ejecutará la escena "${targetName}" con ${estimatedActionCount} acciones.`,
+        reason: isEn ? 'Scenes always require confirmation.' : 'Las escenas siempre requieren confirmación.',
         estimatedActionCount,
         targetName
       };
@@ -42,7 +46,7 @@ export class AssistantConfirmationPolicy {
 
     if (intent.type === 'command') {
       const device = await this.deviceRepository.findDeviceById(intent.deviceId);
-      const targetName = device ? device.name : 'Desconocido';
+      const targetName = device ? device.name : (isEn ? 'Unknown' : 'Desconocido');
       
       const isTurnOff = intent.command === 'turn_off';
       const isTurnOn = intent.command === 'turn_on';
@@ -53,19 +57,21 @@ export class AssistantConfirmationPolicy {
 
       if ((isTurnOff || isTurnOn) && hasGlobalKeyword) {
         requiresConfirmation = true;
-        reason = 'Comandos globales requieren confirmación.';
+        reason = isEn ? 'Global commands require confirmation.' : 'Comandos globales requieren confirmación.';
       } else if (isPositionOrStateCommand) {
         requiresConfirmation = true;
-        reason = 'Comandos de movimiento o posición requieren confirmación.';
+        reason = isEn ? 'Movement or position commands require confirmation.' : 'Comandos de movimiento o posición requieren confirmación.';
       }
+
+      const summaryText = isEn
+        ? (requiresConfirmation ? `Command "${intent.command}" will be sent to "${targetName}".` : `Executing command "${intent.command}" on "${targetName}".`)
+        : (requiresConfirmation ? `Se enviará el comando "${intent.command}" a "${targetName}".` : `Ejecutando comando "${intent.command}" en "${targetName}".`);
 
       return {
         prompt: intent.prompt,
         intentType: 'command',
         requiresConfirmation,
-        summary: requiresConfirmation 
-          ? `Se enviará el comando "${intent.command}" a "${targetName}".`
-          : `Ejecutando comando "${intent.command}" en "${targetName}".`,
+        summary: summaryText,
         reason,
         estimatedActionCount: 1,
         targetName

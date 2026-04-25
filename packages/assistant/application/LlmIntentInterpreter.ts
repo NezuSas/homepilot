@@ -4,7 +4,7 @@ import { isValidCommand, DeviceCommandV1 } from '../../devices/domain/commands';
 import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 import { OllamaClientPort } from './ports/OllamaClientPort';
 import { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
-import { Intent } from './IntentInterpreterService';
+import { Intent } from './ports/IntentInterpreterPort';
 
 interface LlmOutput {
   type: 'scene' | 'command' | 'unknown';

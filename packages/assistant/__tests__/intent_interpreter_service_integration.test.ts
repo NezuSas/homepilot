@@ -1,4 +1,5 @@
-import { IntentInterpreterService, Intent } from '../application/IntentInterpreterService';
+import { IntentInterpreterService } from '../application/IntentInterpreterService';
+import { Intent } from '../application/ports/IntentInterpreterPort';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';

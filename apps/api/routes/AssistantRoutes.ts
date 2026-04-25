@@ -116,8 +116,9 @@ export class AssistantRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt is required'), true;
         }
 
+        const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
         const intent = await container.services.intentInterpreterService.interpret(body.prompt);
-        const preview = await container.services.assistantConfirmationPolicy.evaluate(intent);
+        const preview = await container.services.assistantConfirmationPolicy.evaluate(intent, language);
 
         return this.sendJson(res, preview), true;
       } catch (e: any) {
@@ -134,8 +135,9 @@ export class AssistantRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt is required'), true;
         }
 
+        const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
         const intent = await container.services.intentInterpreterService.interpret(body.prompt);
-        const policyResult = await container.services.assistantConfirmationPolicy.evaluate(intent);
+        const policyResult = await container.services.assistantConfirmationPolicy.evaluate(intent, language);
 
         if (policyResult.requiresConfirmation && body.confirmed !== true) {
           return this.sendJson(res, { error: 'CONFIRMATION_REQUIRED', preview: policyResult }, 409), true;

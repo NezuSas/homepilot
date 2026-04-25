@@ -2,11 +2,7 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
-
-export type Intent = 
-  | { type: 'scene'; target: string; prompt: string }
-  | { type: 'command'; deviceId: string; command: string; params?: Record<string, unknown>; prompt: string }
-  | { type: 'unknown'; prompt: string; reason: string };
+import { IntentInterpreterPort, Intent } from './ports/IntentInterpreterPort';
 
 /**
  * IntentInterpreterService
@@ -14,7 +10,7 @@ export type Intent =
  * V1: Simple deterministic parsing of natural language prompts.
  * Uses repositories to resolve entities by keywords/name.
  */
-export class IntentInterpreterService {
+export class IntentInterpreterService implements IntentInterpreterPort {
   constructor(
     private readonly deviceRepository: DeviceRepository,
     private readonly sceneRepository: SceneRepository,

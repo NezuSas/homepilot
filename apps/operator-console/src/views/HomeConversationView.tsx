@@ -17,7 +17,7 @@ import type { ChatMessage, AssistantConversationResponse } from '../types/assist
 import { StatusPill } from '../components/ui/StatusPill';
 
 export const HomeConversationView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,10 +49,11 @@ export const HomeConversationView: React.FC = () => {
     try {
       const response = await converseWithAssistant({ prompt: userText });
       handleResponse(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       addMessage({
         role: 'assistant',
-        content: error.message || t('assistant.conversation.unknown_error'),
+        content: errorMessage || t('assistant.conversation.unknown_error'),
         responseType: 'error'
       });
     } finally {
@@ -87,10 +88,11 @@ export const HomeConversationView: React.FC = () => {
         pendingAction
       });
       handleResponse(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       addMessage({
         role: 'assistant',
-        content: error.message || t('assistant.conversation.unknown_error'),
+        content: errorMessage || t('assistant.conversation.unknown_error'),
         responseType: 'error'
       });
     } finally {
@@ -113,7 +115,7 @@ export const HomeConversationView: React.FC = () => {
         icon={MessageSquare}
       />
 
-      <div className="flex flex-col flex-1 min-h-0 bg-background/40 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 bg-card/40 backdrop-blur-md border border-border rounded-2xl shadow-2xl overflow-hidden">
         {/* Chat Area */}
         <div 
           ref={scrollRef}
@@ -125,7 +127,7 @@ export const HomeConversationView: React.FC = () => {
                 <Sparkles className="w-12 h-12 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-medium text-white">{t('assistant.conversation.empty_title')}</h3>
+                <h3 className="text-xl font-medium text-foreground">{t('assistant.conversation.empty_title')}</h3>
                 <p className="text-muted-foreground max-w-sm">{t('assistant.conversation.empty_description')}</p>
               </div>
             </div>
@@ -145,7 +147,7 @@ export const HomeConversationView: React.FC = () => {
               )}>
                 <div className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
-                  msg.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted border border-white/5 text-muted-foreground"
+                  msg.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted border border-border text-muted-foreground"
                 )}>
                   {msg.role === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5 text-primary" />}
                 </div>
@@ -154,21 +156,21 @@ export const HomeConversationView: React.FC = () => {
                   <div className={cn(
                     "p-4 rounded-2xl shadow-xl border",
                     msg.role === 'user' 
-                      ? "bg-primary/20 border-primary/20 text-white rounded-tr-none" 
-                      : "bg-muted/50 border-white/5 text-slate-200 rounded-tl-none"
+                      ? "bg-primary text-primary-foreground rounded-tr-none border-primary" 
+                      : "bg-muted/80 border-border text-foreground rounded-tl-none"
                   )}>
                     <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
 
                     {/* Clarification Options */}
                     {msg.options && msg.options.length > 0 && (
-                      <div className="mt-4 space-y-2 pt-4 border-t border-white/5">
+                      <div className="mt-4 space-y-2 pt-4 border-t border-border/50">
                         <p className="text-sm text-muted-foreground mb-3">{t('assistant.conversation.options_question')}</p>
                         <div className="flex flex-wrap gap-2">
                           {msg.options.map(opt => (
                             <button
                               key={opt.id}
                               onClick={() => handleOptionClick(opt.id, opt.label, msg.pendingAction)}
-                              className="px-4 py-2 bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/40 rounded-xl text-sm font-medium transition-all duration-200 flex items-center group"
+                              className="px-4 py-2 bg-background/50 hover:bg-primary/10 border border-border hover:border-primary/50 rounded-xl text-sm font-medium transition-all duration-200 flex items-center group text-foreground"
                             >
                               <span>{opt.label}</span>
                               <ChevronRight className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
@@ -180,7 +182,7 @@ export const HomeConversationView: React.FC = () => {
 
                     {/* Execution Status */}
                     {msg.execution && (
-                      <div className="mt-4 pt-4 border-t border-white/5 flex items-center space-x-2">
+                      <div className="mt-4 pt-4 border-t border-border/50 flex items-center space-x-2">
                         {msg.execution.status === 'success' ? (
                           <StatusPill variant="success">{t('assistant.conversation.execution_success')}</StatusPill>
                         ) : msg.execution.status === 'partial' ? (
@@ -193,7 +195,7 @@ export const HomeConversationView: React.FC = () => {
                   </div>
                   
                   <span className="text-[10px] text-muted-foreground px-1 opacity-40">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msg.timestamp).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
@@ -203,10 +205,10 @@ export const HomeConversationView: React.FC = () => {
           {isLoading && (
             <div className="flex mr-auto justify-start w-full max-w-[85%] animate-in fade-in duration-300">
               <div className="flex space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-muted border border-white/5 flex items-center justify-center shrink-0 shadow-lg">
+                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center shrink-0 shadow-lg">
                   <Bot className="w-5 h-5 text-primary animate-pulse" />
                 </div>
-                <div className="bg-muted/30 border border-white/5 p-4 rounded-2xl rounded-tl-none flex space-x-1.5 items-center shadow-lg">
+                <div className="bg-muted/30 border border-border p-4 rounded-2xl rounded-tl-none flex space-x-1.5 items-center shadow-lg">
                   <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                   <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                   <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"></div>
@@ -217,15 +219,15 @@ export const HomeConversationView: React.FC = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-muted/20 border-t border-white/5 backdrop-blur-sm">
-          <div className="relative flex items-center bg-muted/40 border border-white/10 rounded-2xl focus-within:border-primary/50 transition-all duration-200 shadow-inner group">
+        <div className="p-4 bg-muted/20 border-t border-border backdrop-blur-sm">
+          <div className="relative flex items-center bg-card/40 border border-border rounded-2xl focus-within:border-primary/50 transition-all duration-200 shadow-inner group">
             <textarea
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t('assistant.conversation.placeholder')}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-white p-4 py-4 pr-16 resize-none custom-scrollbar min-h-[56px] max-h-32"
+              className="flex-1 bg-transparent border-none focus:ring-0 text-foreground p-4 py-4 pr-16 resize-none custom-scrollbar min-h-[56px] max-h-32 placeholder:text-muted-foreground"
               disabled={isLoading}
             />
             <div className="absolute right-2 flex items-center space-x-1">
