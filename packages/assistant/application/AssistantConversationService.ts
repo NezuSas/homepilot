@@ -1,5 +1,3 @@
-import { IntentInterpreterService } from './IntentInterpreterService';
-import { AssistantConfirmationPolicy } from './AssistantConfirmationPolicy';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
@@ -8,8 +6,10 @@ import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
 import { FailureInsightService } from '../../devices/application/FailureInsightService';
 import { Scene } from '../../devices/domain/Scene';
+import { Device } from '../../devices/domain/types';
 import { IntentInterpreterPort, Intent } from './ports/IntentInterpreterPort';
 import { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
+import { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -24,6 +24,7 @@ export interface AssistantConversationResponse {
     }>;
     pendingAction?: {
       command?: DeviceCommandV1;
+      targetId?: string;
       originalPrompt: string;
     };
   };
@@ -34,6 +35,7 @@ export interface AssistantConverseRequest {
   selectedOptionId?: string;
   pendingAction?: {
     command?: DeviceCommandV1;
+    targetId?: string;
     originalPrompt: string;
   };
   confirmed?: boolean;
@@ -46,7 +48,8 @@ export class AssistantConversationService {
     private readonly sceneExecutionService: SceneExecutionService,
     private readonly deviceCommandDispatcher: DeviceCommandDispatcherPort,
     private readonly deviceRepository: DeviceRepository,
-    private readonly sceneRepository: SceneRepository
+    private readonly sceneRepository: SceneRepository,
+    private readonly smallTalkService: AssistantSmallTalkPort
   ) {}
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
@@ -55,10 +58,11 @@ export class AssistantConversationService {
       return this.handleSelection(request, language);
     }
 
-    const prompt = request.prompt.toLowerCase().trim();
+    const prompt = request.prompt.trim();
+    const normalized = this.normalizePrompt(prompt);
 
     // B) Greetings
-    if (this.isGreeting(prompt)) {
+    if (this.isGreeting(normalized)) {
       return {
         type: 'answer',
         message: language === 'en'
@@ -67,36 +71,51 @@ export class AssistantConversationService {
       };
     }
 
-    // C) Presentation / Capabilities
-    if (this.isPresentation(prompt)) {
+    // C) Identity / Name
+    if (this.isNameQuery(normalized)) {
       return {
         type: 'answer',
         message: language === 'en'
-          ? "I’m HomePilot, your local home assistant. I can help you check what devices are on or off, control lights, run scenes, and guide you when an action needs confirmation."
-          : "Soy HomePilot, el asistente local de tu casa. Puedo ayudarte a consultar qué dispositivos están encendidos o apagados, controlar luces, ejecutar escenas y guiarte cuando una acción necesite confirmación."
+          ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely."
+          : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
       };
     }
 
-    // D) Date/Time Queries
-    if (this.isDateTimeQuery(prompt)) {
-      return this.handleDateTimeQuery(prompt, language);
+    // D) Presentation / Capabilities
+    if (this.isPresentation(normalized)) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "I can help you see what is on or off, control lights and devices, run scenes, ask for confirmation when an action is sensitive, and explain what happened if something fails."
+          : "Puedo ayudarte a saber qué está encendido o apagado, controlar luces y dispositivos, ejecutar escenas, pedir confirmación cuando una acción sea delicada y explicarte si algo falla."
+      };
     }
 
-    // E) State Queries
-    if (this.isStateQuery(prompt)) {
-      return this.handleStateQuery(prompt, language);
+    // E) Help
+    if (this.isHelpQuery(normalized)) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "You can ask me things like: \"which lights are on?\", \"turn off the kitchen light\", or \"activate movie scene\". I'm here to help you manage your home locally."
+          : "Puedes preguntarme cosas como: \"qué luces están encendidas?\", \"apaga la luz de la cocina\", o \"activa la escena cine\". Estoy aquí para ayudarte a gestionar tu casa de forma local."
+      };
+    }
+
+    // F) Date/Time Queries
+    if (this.isDateTimeQuery(normalized)) {
+      return this.handleDateTimeQuery(normalized, language);
+    }
+
+    // G) State Queries
+    if (this.isStateQuery(normalized)) {
+      return this.handleStateQuery(normalized, language);
     }
 
     // C) Ambiguity & Regular Intent Flow
     const intent = await this.intentInterpreter.interpret(request.prompt);
 
     if (intent.type === 'unknown') {
-      return {
-        type: 'error',
-        message: language === 'en' 
-          ? "I could not understand exactly what you want to do. Try something like: \"turn on the living room light\"."
-          : "No pude entender exactamente qué quieres hacer. Intenta con algo como: \"enciende la luz de la sala\"."
-      };
+      return this.smallTalkService.handle(prompt, language);
     }
 
     // Check for ambiguity (deterministic V1 only for now)
@@ -115,6 +134,7 @@ export class AssistantConversationService {
             })),
             pendingAction: {
               command: intent.command as DeviceCommandV1,
+              targetId: undefined, // Will be set by the option selection
               originalPrompt: request.prompt
             }
           }
@@ -126,8 +146,19 @@ export class AssistantConversationService {
     const preview = await this.confirmationPolicy.evaluate(intent, language);
     if (preview.requiresConfirmation && request.confirmed !== true) {
       return {
-        type: 'error',
-        message: `${preview.reason} ${preview.summary}`.trim()
+        type: 'clarification',
+        message: `${preview.reason} ${preview.summary}`.trim(),
+        clarification: {
+          question: language === 'en' ? "Are you sure?" : "¿Estás seguro?",
+          options: [
+            { id: 'confirm', label: language === 'en' ? "Yes, proceed" : "Sí, adelante", kind: 'device' }
+          ],
+          pendingAction: {
+            command: intent.type === 'command' ? intent.command as DeviceCommandV1 : undefined,
+            targetId: intent.type === 'command' ? intent.deviceId : intent.target,
+            originalPrompt: request.prompt
+          }
+        }
       };
     }
 
@@ -181,9 +212,14 @@ export class AssistantConversationService {
 
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
     const correlationId = `assistant:chat:selection:${Date.now()}`;
+    const targetId = request.selectedOptionId === 'confirm' ? request.pendingAction?.targetId : request.selectedOptionId;
+
+    if (!targetId) {
+      return { type: 'error', message: language === 'en' ? "Missing target for selection." : "Falta el objetivo para la selección." };
+    }
     
     // Check if it's a scene or device
-    const scene = await this.sceneRepository.findSceneById(request.selectedOptionId!);
+    const scene = await this.sceneRepository.findSceneById(targetId);
     if (scene) {
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
@@ -198,7 +234,7 @@ export class AssistantConversationService {
     }
 
     if (request.pendingAction?.command) {
-      const result = await this.executeSingleCommand(request.selectedOptionId!, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
+      const result = await this.executeSingleCommand(targetId, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
       return {
         type: 'execution',
         message: result.status === 'success' 
@@ -214,20 +250,44 @@ export class AssistantConversationService {
     };
   }
 
-  private isPresentation(prompt: string): boolean {
-    const triggers = [
-      "qué puedes hacer", "que puedes hacer", "preséntate", "presentate", "quién eres", "quien eres",
-      "what can you do", "introduce yourself", "who are you"
-    ];
-    return triggers.some(t => prompt.includes(t));
+  private normalizePrompt(prompt: string): string {
+    return prompt
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/[¿?¡!.,]/g, "")        // Remove punctuation
+      .replace(/\s+/g, " ")            // Normalize spaces
+      .trim();
   }
 
-  private isDateTimeQuery(prompt: string): boolean {
+  private isNameQuery(normalized: string): boolean {
+    const triggers = [
+      "como te llamas", "cómo te llamas", "cuál es tu nombre", "cual es tu nombre",
+      "quién eres", "quien eres",
+      "what is your name", "whats your name", "who are you"
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private isHelpQuery(normalized: string): boolean {
+    const triggers = ["ayuda", "help"];
+    return triggers.some(t => normalized === t || normalized.startsWith(t + " "));
+  }
+
+  private isPresentation(normalized: string): boolean {
+    const triggers = [
+      "qué puedes hacer", "que puedes hacer", "preséntate", "presentate",
+      "what can you do", "introduce yourself"
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private isDateTimeQuery(normalized: string): boolean {
     const triggers = [
       "qué fecha es hoy", "que fecha es hoy", "qué hora es", "que hora es",
       "what date is today", "what time is it"
     ];
-    return triggers.some(t => prompt.includes(t));
+    return triggers.some(t => normalized.includes(t));
   }
 
   private handleDateTimeQuery(prompt: string, language: string): AssistantConversationResponse {
@@ -252,32 +312,37 @@ export class AssistantConversationService {
     };
   }
 
-  private isGreeting(prompt: string): boolean {
+  private isGreeting(normalized: string): boolean {
     const greetings = [
       "hola", "buenas", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "qué tal", "que tal",
-      "hello", "hi", "hey", "good morning", "good afternoon", "good evening"
+      "hello", "hi", "hey", "good morning", "good afternoon", "good evening", "gracias", "thanks", "thank you"
     ];
     // Exact match or starts with greeting followed by space/punctuation
-    return greetings.some(g => prompt === g || prompt.startsWith(g + " ") || prompt.startsWith(g + ","));
+    return greetings.some(g => normalized === g || normalized.startsWith(g + " "));
   }
 
-  private isStateQuery(prompt: string): boolean {
+  private isStateQuery(normalized: string): boolean {
     const queries = [
-      "qué está encendido", "que esta encendido",
-      "qué está apagado", "que esta apagado",
+      "que esta encendido", "que esta apagado",
       "luces encendidas", "luces apagadas",
+      "que luces estan encendidas", "que luces estan apagadas",
+      "luces estan encendidas", "luces estan apagadas",
       "what is on", "what is off",
-      "which lights are on", "which lights are off"
+      "which lights are on", "which lights are off",
+      "que tengo prendido", "que tengo apagado",
+      "que hay encendido", "que hay apagado",
+      "que dispositivos estan encendidos", "que dispositivos estan apagados"
     ];
-    return queries.some(q => prompt.includes(q));
+    return queries.some(q => normalized.includes(q));
   }
 
-  private async handleStateQuery(prompt: string, language: string): Promise<AssistantConversationResponse> {
+  private async handleStateQuery(normalized: string, language: string): Promise<AssistantConversationResponse> {
     const devices = await this.deviceRepository.findAll();
-    const normalized = prompt.toLowerCase();
+    
+    const isLightsOnly = normalized.includes('luz') || normalized.includes('luces') || normalized.includes('light');
     
     // Check if it's an "on" query safely
-    const onKeywords = language === 'en' ? ['on', 'active', 'enabled'] : ['encendido', 'encendidos', 'encendida', 'encendidas', 'prendido', 'prendidos'];
+    const onKeywords = ['encendido', 'encendidos', 'encendida', 'encendidas', 'prendido', 'prendidos', 'on', 'active', 'enabled'];
     const isOnQuery = onKeywords.some(kw => {
       if (kw.length <= 3) {
         const regex = new RegExp(`\\b${kw}\\b`, 'i');
@@ -288,22 +353,56 @@ export class AssistantConversationService {
     
     const matches = devices.filter(d => {
       const isOn = d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on');
-      return isOnQuery ? isOn : !isOn;
+      const matchesOn = isOnQuery ? isOn : !isOn;
+      if (!matchesOn) return false;
+
+      if (isLightsOnly) {
+        const name = d.name.toLowerCase();
+        const hasLightKeyword = name.includes('luz') || name.includes('light');
+        const hasLightCapability = d.capabilities?.some(c => c.type === 'light');
+        
+        return d.type === 'light' || hasLightKeyword || hasLightCapability;
+      }
+      return true;
     });
 
     if (matches.length === 0) {
+      const typeLabel = isLightsOnly 
+        ? (language === 'en' ? 'lights' : 'luces')
+        : (language === 'en' ? 'devices' : 'dispositivos');
+      const stateLabel = isOnQuery
+        ? (language === 'en' ? 'on' : 'encendidos')
+        : (language === 'en' ? 'off' : 'apagados');
+
       return {
         type: 'answer',
         message: language === 'en' 
-          ? `No devices are currently ${isOnQuery ? 'on' : 'off'}.`
-          : `No hay dispositivos ${isOnQuery ? 'encendidos' : 'apagados'} en este momento.`
+          ? `I didn't find any ${typeLabel} ${stateLabel} at the moment.`
+          : `No encontré ${typeLabel} ${stateLabel} en este momento.`
       };
     }
 
     const list = matches.map(d => d.name).join(', ');
-    const message = language === 'en'
-      ? `The following devices are ${isOnQuery ? 'on' : 'off'}: ${list}.`
-      : `Los siguientes dispositivos están ${isOnQuery ? 'encendidos' : 'apagados'}: ${list}.`;
+    const count = matches.length;
+    
+    const typeLabel = isLightsOnly 
+      ? (count === 1 ? (language === 'en' ? 'light' : 'luz') : (language === 'en' ? 'lights' : 'luces'))
+      : (count === 1 ? (language === 'en' ? 'device' : 'dispositivo') : (language === 'en' ? 'devices' : 'dispositivos'));
+    
+    const stateLabel = isOnQuery
+      ? (language === 'en' ? 'on' : 'encendido(s)')
+      : (language === 'en' ? 'off' : 'apagado(s)');
+
+    let message = "";
+    if (language === 'en') {
+      message = count === 1
+        ? `You have 1 ${typeLabel} ${stateLabel}: ${list}.`
+        : `You have ${count} ${typeLabel} ${stateLabel}: ${list}.`;
+    } else {
+      message = count === 1
+        ? `Tienes 1 ${typeLabel} ${stateLabel}: ${list}.`
+        : `Tienes ${count} ${typeLabel} ${stateLabel}: ${list}.`;
+    }
 
     return {
       type: 'answer',
@@ -311,18 +410,20 @@ export class AssistantConversationService {
     };
   }
 
-  private async findMatchingDevices(prompt: string): Promise<any[]> {
-    const normalized = prompt.toLowerCase();
+
+
+  private async findMatchingDevices(prompt: string): Promise<Device[]> {
+    const normalized = this.normalizePrompt(prompt);
     const devices = await this.deviceRepository.findAll();
     return devices.filter(d => {
-      const name = d.name.toLowerCase();
+      const name = this.normalizePrompt(d.name);
       // Basic match logic mirrored from IntentInterpreterService
       if (normalized.includes('sala') && !name.includes('sala')) return false;
       if (normalized.includes('cocina') && !name.includes('cocina')) return false;
       if (normalized.includes('cuarto') && !name.includes('cuarto')) return false;
       if (normalized.includes('escritorio') && !name.includes('escritorio')) return false;
       
-      return name.includes('luz') || name.includes('lámpara') || name.includes('foco');
+      return name.includes('luz') || name.includes('lampara') || name.includes('foco');
     });
   }
 

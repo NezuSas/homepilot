@@ -161,7 +161,9 @@
       "view_execution_history": "View execution history",
       "ready": "Ready",
       "input_hint": "Shift + Enter for newline",
-      "version_label": "HomePilot Conversation V1.0"
+      "version_label": "HomePilot Conversation V1.0",
+      "empty_chat_title": "Talk to your home",
+      "empty_chat_description": "Ask what is on, control lights, or get help with your devices."
     }
   },
   "dashboard": {

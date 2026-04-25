@@ -12,8 +12,10 @@ import {
   createMockIntentInterpreterService, 
   createMockAssistantConfirmationPolicy, 
   createMockDeviceCommandDispatcher,
+  createMockAssistantSmallTalk,
   createTestDevice
 } from './test_helpers';
+import { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 
 describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
@@ -24,6 +26,7 @@ describe('AssistantConversationService', () => {
   let mockDeviceRepo: jest.Mocked<DeviceRepository>;
   let mockSceneRepo: jest.Mocked<SceneRepository>;
   let mockExecutionRepo: jest.Mocked<ExecutionRecordRepository>;
+  let mockSmallTalk: jest.Mocked<AssistantSmallTalkPort>;
 
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
@@ -40,7 +43,13 @@ describe('AssistantConversationService', () => {
     mockDeviceRepo = createMockDeviceRepository();
     mockSceneRepo = createMockSceneRepository();
     mockInterpreter = createMockIntentInterpreterService();
+    mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: '', reason: 'default' });
     mockConfirmationPolicy = createMockAssistantConfirmationPolicy();
+    mockSmallTalk = createMockAssistantSmallTalk();
+    mockSmallTalk.handle.mockResolvedValue({
+      type: 'answer',
+      message: 'Friendly fallback'
+    });
 
     service = new AssistantConversationService(
       mockInterpreter,
@@ -48,7 +57,8 @@ describe('AssistantConversationService', () => {
       mockSceneExecution,
       mockDispatcher,
       mockDeviceRepo,
-      mockSceneRepo
+      mockSceneRepo,
+      mockSmallTalk
     );
   });
 
@@ -82,30 +92,48 @@ describe('AssistantConversationService', () => {
     it('should not trigger for words containing greetings (e.g. "holas" or "hellooo")', async () => {
       mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'holas', reason: 'not_found' });
       const response = await service.converse({ prompt: 'holas' }, 'es');
-      expect(response.type).toBe('error');
+      expect(response.type).toBe('answer'); // Now returns user-friendly fallback instead of error
+      expect(response.message).toContain('Friendly fallback');
+    });
+
+    it('should respond to "gracias" correctly', async () => {
+      const response = await service.converse({ prompt: 'gracias' }, 'es');
+      expect(response.type).toBe('answer');
     });
   });
 
-  describe('Presentation', () => {
+  describe('Presentation and Name', () => {
     it('should respond to "quién eres" with a professional introduction', async () => {
       const response = await service.converse({ prompt: 'quién eres' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Soy HomePilot');
+      expect(response.message).toContain('Soy el asistente local');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should respond to "Cómo te llamas?" correctly', async () => {
+      const response = await service.converse({ prompt: 'Cómo te llamas?' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Me llamo HomePilot');
+    });
+
+    it('should respond to "what is your name" in English', async () => {
+      const response = await service.converse({ prompt: 'what is your name' }, 'en');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('My name is HomePilot');
     });
 
     it('should respond to "qué puedes hacer" correctly', async () => {
       const response = await service.converse({ prompt: 'qué puedes hacer' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('asistente local');
+      expect(response.message).toContain('Puedo ayudarte a saber qué está encendido');
     });
 
     it('should respond to "what can you do" in English', async () => {
       const response = await service.converse({ prompt: 'what can you do' }, 'en');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('I’m HomePilot');
+      expect(response.message).toContain('I can help you see what is on');
     });
   });
 
@@ -134,17 +162,109 @@ describe('AssistantConversationService', () => {
   });
 
   describe('State Queries', () => {
-    it('should handle "qué está encendido" query', async () => {
+    it('should handle "qué está encendido" query with counts and names', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: '1', name: 'Luz Sala', lastKnownState: { on: true } }),
-        createTestDevice({ id: '2', name: 'Luz Cocina', lastKnownState: { on: false } })
+        createTestDevice({ id: '2', name: 'Luz Cocina', lastKnownState: { on: true } }),
+        createTestDevice({ id: '3', name: 'Ventilador', lastKnownState: { on: false } })
       ]);
 
       const response = await service.converse({ prompt: 'qué está encendido' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Luz Sala');
-      expect(response.message).not.toContain('Luz Cocina');
+      expect(response.message).toContain('Tienes 2 dispositivos encendido(s): Luz Sala, Luz Cocina');
+    });
+
+    it('should handle "Que luces estan encendidas?" correctly without accents', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: '1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } }),
+        createTestDevice({ id: '2', name: 'Enchufe', type: 'switch', lastKnownState: { on: true } })
+      ]);
+
+      const response = await service.converse({ prompt: 'Que luces estan encendidas?' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Tienes 1 luz encendido(s): Luz Sala');
+    });
+
+    it('should handle "Que luces estan encendidas?" correctly using capabilities', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ 
+          id: '1', 
+          name: 'Enchufe Inteligente', 
+          type: 'switch', 
+          lastKnownState: { on: true },
+          capabilities: [{ type: 'light', name: 'Light control' }] 
+        }),
+        createTestDevice({ 
+          id: '2', 
+          name: 'Ventilador', 
+          type: 'switch', 
+          lastKnownState: { on: true },
+          capabilities: [{ type: 'switch', name: 'Power control' }] 
+        })
+      ]);
+
+      const response = await service.converse({ prompt: 'Que luces estan encendidas?' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Tienes 1 luz encendido(s): Enchufe Inteligente');
+    });
+
+    it('should handle "Que luces estan apagadas?" correctly', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: '1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } }),
+        createTestDevice({ id: '2', name: 'Luz Cocina', type: 'light', lastKnownState: { on: false } })
+      ]);
+
+      const response = await service.converse({ prompt: 'Que luces estan apagadas?' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Tienes 1 luz apagado(s): Luz Cocina');
+    });
+
+    it('should handle "que tengo prendido" correctly', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: '1', name: 'Televisor', type: 'switch', lastKnownState: { on: true } })
+      ]);
+
+      const response = await service.converse({ prompt: 'que tengo prendido' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Tienes 1 dispositivo encendido(s): Televisor');
+    });
+
+    it('should handle "what is on" in English', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: '1', name: 'Living Room Light', lastKnownState: { on: true } })
+      ]);
+
+      const response = await service.converse({ prompt: 'what is on' }, 'en');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('You have 1 device on: Living Room Light');
+    });
+  });
+
+  describe('User Friendly Small Talk and Unknowns', () => {
+    it('should delegate unknown conversational prompts to SmallTalkService', async () => {
+      mockSmallTalk.handle.mockResolvedValue({
+        type: 'answer',
+        message: 'Ollama says hello'
+      });
+      
+      const response = await service.converse({ prompt: 'How are you today?' }, 'en');
+      expect(response.type).toBe('answer');
+      expect(response.message).toBe('Ollama says hello');
+      expect(mockSmallTalk.handle).toHaveBeenCalledWith('How are you today?', 'en');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockExecutionRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should respond with a friendly fallback when SmallTalkService returns it', async () => {
+      mockSmallTalk.handle.mockResolvedValue({
+        type: 'answer',
+        message: 'No estoy seguro de lo que quieres hacer'
+      });
+      
+      const response = await service.converse({ prompt: 'blah blah' }, 'es');
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('No estoy seguro');
     });
   });
 });

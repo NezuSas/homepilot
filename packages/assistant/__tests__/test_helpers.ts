@@ -155,4 +155,14 @@ export const createMockIntentInterpreterService = (
   };
   return mock;
 };
+import { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 
+export const createMockAssistantSmallTalk = (
+  overrides?: Partial<jest.Mocked<AssistantSmallTalkPort>>
+): jest.Mocked<AssistantSmallTalkPort> => {
+  const mock: jest.Mocked<AssistantSmallTalkPort> = {
+    handle: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};

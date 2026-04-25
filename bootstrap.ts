@@ -17,6 +17,7 @@ import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntent
 import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
 import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
 import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
+import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -229,13 +230,16 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.deviceRepository
   );
 
+  const assistantSmallTalkService = new AssistantSmallTalkService(ollamaClient);
+
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
     assistantConfirmationPolicy,
     sceneExecutionService,
     commandRouterAssembly.commandDispatcher,
     repos.deviceRepository,
-    repos.sceneRepository
+    repos.sceneRepository,
+    assistantSmallTalkService
   );
 
   const container: BootstrapContainer = {

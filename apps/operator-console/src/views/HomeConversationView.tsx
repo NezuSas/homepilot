@@ -85,7 +85,8 @@ export const HomeConversationView: React.FC = () => {
       const response = await converseWithAssistant({
         prompt: `Selected: ${label}`,
         selectedOptionId: optionId,
-        pendingAction
+        pendingAction,
+        confirmed: optionId === 'confirm'
       });
       handleResponse(response);
     } catch (error: unknown) {
@@ -108,30 +109,52 @@ export const HomeConversationView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <SectionHeader 
-        title={t('assistant.conversation.title')} 
-        subtitle={t('assistant.conversation.subtitle')}
-        icon={MessageSquare}
-      />
+    <div className="flex flex-col h-[calc(100vh-120px)] lg:h-[calc(100vh-80px)] w-full max-w-5xl mx-auto animate-in fade-in duration-500 relative bg-background">
+      <div className="px-6 py-4 border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-10">
+        <SectionHeader 
+          title={t('assistant.conversation.title')} 
+          subtitle={t('assistant.conversation.subtitle')}
+          icon={MessageSquare}
+          className="m-0"
+        />
+      </div>
 
-      <div className="flex flex-col flex-1 min-h-0 bg-card/40 backdrop-blur-md border border-border rounded-2xl shadow-2xl overflow-hidden">
-        {/* Chat Area */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth custom-scrollbar"
-        >
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-60">
-              <div className="p-4 bg-primary/10 rounded-full">
-                <Sparkles className="w-12 h-12 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-xl font-medium text-foreground">{t('assistant.conversation.empty_title')}</h3>
-                <p className="text-muted-foreground max-w-sm">{t('assistant.conversation.empty_description')}</p>
-              </div>
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth custom-scrollbar pb-32"
+      >
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 animate-in fade-in zoom-in duration-700">
+            <div className="p-6 bg-primary/10 rounded-3xl shadow-inner border border-primary/20 rotate-3 hover:rotate-0 transition-transform duration-500">
+              <Sparkles className="w-16 h-16 text-primary drop-shadow-glow" />
             </div>
-          )}
+            <div className="space-y-2">
+              <h3 className="text-3xl font-bold tracking-tight text-foreground bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text">
+                {t('assistant.conversation.empty_chat_title')}
+              </h3>
+              <p className="text-muted-foreground max-w-md mx-auto text-lg leading-relaxed">
+                {t('assistant.conversation.empty_chat_description')}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full mt-8">
+              {[
+                t('assistant.conversation.placeholder').split('ej: ')[1]?.split(',')[0] || "¿Qué luces hay encendidas?",
+                "Apaga todo",
+                "Activa escena cine",
+                "¿Quién eres?"
+              ].map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSend(suggestion)}
+                  className="p-4 bg-card/40 hover:bg-card border border-border hover:border-primary/50 rounded-2xl text-sm text-left transition-all duration-200 hover:shadow-md group flex items-center justify-between"
+                >
+                  <span className="text-muted-foreground group-hover:text-foreground transition-colors">{suggestion}</span>
+                  <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0 text-primary" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
           {messages.map((msg) => (
             <div 
@@ -216,38 +239,42 @@ export const HomeConversationView: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+      </div>
 
-        {/* Input Area */}
-        <div className="p-4 bg-muted/20 border-t border-border backdrop-blur-sm">
-          <div className="relative flex items-center bg-card/40 border border-border rounded-2xl focus-within:border-primary/50 transition-all duration-200 shadow-inner group">
+      {/* Input Area Fixed Bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-xl border-t border-border z-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative flex items-center bg-card border border-border rounded-2xl focus-within:border-primary/50 transition-all duration-200 shadow-lg group">
             <textarea
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t('assistant.conversation.placeholder')}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-foreground p-4 py-4 pr-16 resize-none custom-scrollbar min-h-[56px] max-h-32 placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent border-none focus:ring-0 text-foreground p-4 py-4 pr-16 resize-none custom-scrollbar min-h-[56px] max-h-48 placeholder:text-muted-foreground text-base"
               disabled={isLoading}
             />
-            <div className="absolute right-2 flex items-center space-x-1">
+            <div className="absolute right-2 bottom-2 flex items-center space-x-1">
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => handleSend()}
                 disabled={!input.trim() || isLoading}
-                className="h-10 w-10 p-0 rounded-xl shadow-lg"
+                className="h-10 w-10 p-0 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
               >
                 <Send className="w-5 h-5" />
               </Button>
             </div>
           </div>
           <div className="flex justify-between items-center px-1 mt-2">
-            <p className="text-[10px] text-muted-foreground opacity-40 uppercase tracking-widest font-medium">
-              {t('assistant.conversation.version_label')} • {isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
+            <p className="text-[10px] text-muted-foreground opacity-60 uppercase tracking-widest font-semibold flex items-center">
+              <StatusPill variant={isLoading ? "warning" : "success"} className="mr-2 scale-75 origin-left" />
+              {t('assistant.conversation.version_label')}
             </p>
-            <div className="flex items-center space-x-4 opacity-30 hover:opacity-100 transition-opacity duration-300">
-               <span className="text-[10px] text-muted-foreground flex items-center"><Zap className="w-3 h-3 mr-1" /> {t('assistant.conversation.input_hint')}</span>
+            <div className="flex items-center space-x-4 opacity-40 hover:opacity-100 transition-opacity duration-300">
+               <span className="text-[10px] text-muted-foreground flex items-center font-medium">
+                 <Zap className="w-3 h-3 mr-1 text-primary" /> {t('assistant.conversation.input_hint')}
+               </span>
             </div>
           </div>
         </div>
