@@ -107,4 +107,78 @@ describe('IntentInterpreterService Integration', () => {
       expect(intent.reason).toBe('Missing recent device context to resolve pronoun.');
     }
   });
+
+  describe('Bug Fix: "seccion" containing "on"', () => {
+    beforeEach(() => {
+      mockDeviceRepo.findAll.mockResolvedValue([{
+        id: 'dev-escritorio', name: 'Luz Escritorio', homeId: 'h1', roomId: 'r1', type: 'light', vendor: '', status: 'ASSIGNED', integrationSource: 'ha', externalId: 'ha:light.escritorio', invertState: false, lastKnownState: null, capabilities: [], entityVersion: 1, createdAt: '', updatedAt: ''
+      }]);
+    });
+
+    it('should correctly interpret "apagar luz seccion escritorio" as turn_off', async () => {
+      const intent = await service.interpret('apagar luz seccion escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_off');
+        expect(intent.deviceId).toBe('dev-escritorio');
+      }
+    });
+
+    it('should correctly interpret "apaga luz seccion escritorio" as turn_off', async () => {
+      const intent = await service.interpret('apaga luz seccion escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_off');
+        expect(intent.deviceId).toBe('dev-escritorio');
+      }
+    });
+
+    it('should correctly interpret "prende luz seccion escritorio" as turn_on', async () => {
+      const intent = await service.interpret('prende luz seccion escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_on');
+        expect(intent.deviceId).toBe('dev-escritorio');
+      }
+    });
+
+    it('should correctly interpret "turn on luz seccion escritorio" as turn_on', async () => {
+      const intent = await service.interpret('turn on luz seccion escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_on');
+        expect(intent.deviceId).toBe('dev-escritorio');
+      }
+    });
+
+    it('should correctly interpret "turn off luz seccion escritorio" as turn_off', async () => {
+      const intent = await service.interpret('turn off luz seccion escritorio');
+      expect(intent.type).toBe('command');
+      if (intent.type === 'command') {
+        expect(intent.command).toBe('turn_off');
+        expect(intent.deviceId).toBe('dev-escritorio');
+      }
+    });
+
+    it('should not trigger "on" for "seccion" alone', async () => {
+      const intent = await service.interpret('seccion');
+      expect(intent.type).toBe('unknown');
+    });
+  });
+
+  describe('LLM Intent Interpreter Prompt Verification', () => {
+    it('should include instructions for Spanish/English and typo tolerance in prompt', async () => {
+      process.env.OLLAMA_ENABLED = 'true';
+      const mockOllama = { generateJson: jest.fn().mockResolvedValue({ type: 'unknown' }) };
+      const mockContext = { build: jest.fn().mockResolvedValue('{}') };
+      const interpreter = new (require('../application/LlmIntentInterpreter').LlmIntentInterpreter)(mockOllama, mockContext, mockDeviceRepo, mockSceneRepo);
+      
+      await interpreter.interpret('test prompt');
+      
+      const sentPrompt = mockOllama.generateJson.mock.calls[0][0];
+      expect(sentPrompt).toContain('Spanish, English, or mixed');
+      expect(sentPrompt).toContain('Tolerate minor typos');
+      expect(sentPrompt).toContain('NEVER invent or hallucinate IDs');
+    });
+  });
 });

@@ -45,6 +45,21 @@ export class IntentInterpreterService {
     return this.interpretDeterministic(prompt);
   }
 
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private containsKeyword(text: string, keywords: string[]): boolean {
+    return keywords.some(kw => {
+      if (kw.length <= 3) {
+        // Short keywords like 'on', 'off' require word boundaries to avoid false positives (e.g., 'seccion')
+        const regex = new RegExp(`\\b${this.escapeRegExp(kw)}\\b`, 'i');
+        return regex.test(text);
+      }
+      return text.includes(kw);
+    });
+  }
+
   private async interpretDeterministic(prompt: string): Promise<Intent> {
     const normalized = prompt.toLowerCase().trim();
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
@@ -75,16 +90,25 @@ export class IntentInterpreterService {
 
     // 1. Scene mapping
     if (normalized.includes('todo')) {
-      const isTurnOff = offKeywords.some(kw => normalized.includes(kw));
-      const isTurnOn = onKeywords.some(kw => normalized.includes(kw));
+      const isTurnOff = this.containsKeyword(normalized, offKeywords);
+      const isTurnOn = this.containsKeyword(normalized, onKeywords);
       
       if (isTurnOff || isTurnOn) {
-        const keywords = isTurnOff ? offKeywords : onKeywords;
+        // Resolve ambiguity
+        let finalKeywords = isTurnOff ? offKeywords : onKeywords;
+        if (isTurnOff && isTurnOn) {
+          const hasExplicitOff = offKeywords.some(kw => normalized.includes(kw) && kw.length > 3) || offPronouns.includes(normalized);
+          const hasExplicitOn = onKeywords.some(kw => normalized.includes(kw) && kw.length > 3) || onPronouns.includes(normalized);
+          
+          if (hasExplicitOff && !hasExplicitOn) finalKeywords = offKeywords;
+          else if (hasExplicitOn && !hasExplicitOff) finalKeywords = onKeywords;
+          else return { type: 'unknown', prompt, reason: 'Ambiguous command intent.' };
+        }
+
         const scenes = await this.sceneRepository.findAll();
-        
         const found = scenes.find(s => {
           const name = s.name.toLowerCase();
-          return name.includes('todo') && keywords.some(kw => name.includes(kw));
+          return name.includes('todo') && finalKeywords.some(kw => name.includes(kw));
         });
 
         if (found) {
@@ -96,11 +120,22 @@ export class IntentInterpreterService {
 
     // 2. Command mapping (V1: Simple keyword matcher)
     if (normalized.includes('luz') || normalized.includes('lámpara') || normalized.includes('foco')) {
-      const isTurnOn = onKeywords.some(kw => normalized.includes(kw));
-      const isTurnOff = offKeywords.some(kw => normalized.includes(kw));
+      let isTurnOn = this.containsKeyword(normalized, onKeywords);
+      let isTurnOff = this.containsKeyword(normalized, offKeywords);
 
       if (isTurnOn || isTurnOff) {
-        const command = isTurnOn ? 'turn_on' : 'turn_off';
+        // Resolve ambiguity
+        let command: 'turn_on' | 'turn_off' = isTurnOn ? 'turn_on' : 'turn_off';
+        
+        if (isTurnOn && isTurnOff) {
+          const hasExplicitOff = offKeywords.some(kw => normalized.includes(kw) && kw.length > 3) || offPronouns.includes(normalized);
+          const hasExplicitOn = onKeywords.some(kw => normalized.includes(kw) && kw.length > 3) || onPronouns.includes(normalized);
+          
+          if (hasExplicitOff && !hasExplicitOn) command = 'turn_off';
+          else if (hasExplicitOn && !hasExplicitOff) command = 'turn_on';
+          else return { type: 'unknown', prompt, reason: 'Ambiguous command intent.' };
+        }
+
         const devices = await this.deviceRepository.findAll();
         
         // V1 Matcher: find by name containing keywords
@@ -110,6 +145,7 @@ export class IntentInterpreterService {
           if (normalized.includes('sala') && !name.includes('sala')) return false;
           if (normalized.includes('cocina') && !name.includes('cocina')) return false;
           if (normalized.includes('cuarto') && !name.includes('cuarto')) return false;
+          if (normalized.includes('escritorio') && !name.includes('escritorio')) return false;
           
           return name.includes('luz') || name.includes('lámpara') || name.includes('foco');
         });

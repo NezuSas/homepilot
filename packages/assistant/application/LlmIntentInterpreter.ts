@@ -37,7 +37,7 @@ export class LlmIntentInterpreter implements LlmIntentInterpreterPort {
   public async interpret(prompt: string): Promise<Intent | null> {
     const context = await this.contextBuilder.build();
     
-    const systemPrompt = `You are HomePilot AI Assistant.
+    const systemPrompt = `You are HomePilot AI Assistant, a flexible and smart controller for a smart home.
 Interpret the user's natural language command into a structured JSON intent.
 ONLY return a JSON object. NO conversation, NO markdown blocks, NO explanations.
 
@@ -45,7 +45,16 @@ Context of available entities:
 ${context}
 
 Instructions:
+- Understand commands in Spanish, English, or mixed (Spanglish).
+- Tolerate minor typos and variations in natural language.
+- Compare the user's text against the names of devices and scenes using semantic similarity.
 - If the user uses pronouns like 'it', 'that', 'them', infer the target device or scene from recentActions.
+- Map the intent based on keywords:
+  - "apagar", "turn off", "off", "quitar" -> turn_off
+  - "prende", "enciende", "turn on", "on", "activar" -> turn_on
+- If a device is mentioned by an approximate name, pick the most likely existing deviceId from the context.
+- NEVER invent or hallucinate IDs. Only use IDs provided in the context.
+- If the intent is ambiguous or no reasonable match is found, use type "unknown".
 
 Required Output Format:
 {
@@ -57,7 +66,6 @@ Required Output Format:
   "reason": "string (if type is unknown)"
 }
 
-If the command is ambiguous or entities are missing, use type "unknown".
 User command: "${prompt.replace(/"/g, '\"')}"`;
 
     try {
