@@ -2,6 +2,8 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 
+import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
+
 /**
  * AssistantContextBuilder
  * 
@@ -11,10 +13,12 @@ import { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort
 export class AssistantContextBuilder implements AssistantContextBuilderPort {
   private readonly MAX_DEVICES = 50;
   private readonly MAX_SCENES = 50;
+  private readonly MAX_RECENT_ACTIONS = 5;
 
   constructor(
     private readonly deviceRepository: DeviceRepository,
-    private readonly sceneRepository: SceneRepository
+    private readonly sceneRepository: SceneRepository,
+    private readonly memoryService?: AssistantMemoryPort
   ) {}
 
   /**
@@ -39,9 +43,23 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
       name: s.name,
     }));
 
+    let recentActions: { deviceId: string; commandName: string; status: string }[] = [];
+    
+    if (this.memoryService) {
+      const records = await this.memoryService.getRecentActions(this.MAX_RECENT_ACTIONS);
+      recentActions = records.flatMap(record => 
+        record.actions.map(action => ({
+          deviceId: action.deviceId,
+          commandName: action.commandName,
+          status: action.status
+        }))
+      ).slice(0, this.MAX_RECENT_ACTIONS);
+    }
+
     return JSON.stringify({
       devices,
       scenes,
+      recentActions
     });
   }
 }

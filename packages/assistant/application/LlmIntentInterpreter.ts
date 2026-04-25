@@ -44,6 +44,9 @@ ONLY return a JSON object. NO conversation, NO markdown blocks, NO explanations.
 Context of available entities:
 ${context}
 
+Instructions:
+- If the user uses pronouns like 'it', 'that', 'them', infer the target device or scene from recentActions.
+
 Required Output Format:
 {
   "type": "scene" | "command" | "unknown",

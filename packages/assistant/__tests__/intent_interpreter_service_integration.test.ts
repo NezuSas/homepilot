@@ -2,7 +2,7 @@ import { IntentInterpreterService, Intent } from '../application/IntentInterpret
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
-import { createMockDeviceRepository, createMockSceneRepository, createMockLlmIntentInterpreter } from './test_helpers';
+import { createMockDeviceRepository, createMockSceneRepository, createMockLlmIntentInterpreter, createMockAssistantMemoryService } from './test_helpers';
 
 describe('IntentInterpreterService Integration', () => {
   let mockDeviceRepo: jest.Mocked<DeviceRepository>;
@@ -71,6 +71,40 @@ describe('IntentInterpreterService Integration', () => {
     expect(intent.type).toBe('scene');
     if (intent.type === 'scene') {
       expect(intent.target).toBe('scene-all-off');
+    }
+  });
+
+  it('should resolve pronoun command if there is a valid recent device context', async () => {
+    process.env.OLLAMA_ENABLED = 'false';
+    const mockMemoryService = createMockAssistantMemoryService({
+      getLastDeviceUsed: jest.fn().mockResolvedValue('device-123')
+    });
+    
+    // Inject mock memory service for this specific test
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockLlmInterpreter, mockMemoryService);
+
+    const intent = await localService.interpret('apágala');
+
+    expect(intent.type).toBe('command');
+    if (intent.type === 'command') {
+      expect(intent.deviceId).toBe('device-123');
+      expect(intent.command).toBe('turn_off');
+    }
+  });
+
+  it('should return unknown for pronoun command if there is no recent device context', async () => {
+    process.env.OLLAMA_ENABLED = 'false';
+    const mockMemoryService = createMockAssistantMemoryService({
+      getLastDeviceUsed: jest.fn().mockResolvedValue(null)
+    });
+    
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockLlmInterpreter, mockMemoryService);
+
+    const intent = await localService.interpret('préndelo');
+
+    expect(intent.type).toBe('unknown');
+    if (intent.type === 'unknown') {
+      expect(intent.reason).toBe('Missing recent device context to resolve pronoun.');
     }
   });
 });

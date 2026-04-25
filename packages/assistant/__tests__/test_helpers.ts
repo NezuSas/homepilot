@@ -105,3 +105,17 @@ export const createMockLlmIntentInterpreter = (
   };
   return mock;
 };
+
+import { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
+
+export const createMockAssistantMemoryService = (
+  overrides?: Partial<jest.Mocked<AssistantMemoryPort>>
+): jest.Mocked<AssistantMemoryPort> => {
+  const mock: jest.Mocked<AssistantMemoryPort> = {
+    getRecentActions: jest.fn(),
+    getLastDeviceUsed: jest.fn(),
+    getLastSceneUsed: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};

@@ -1,6 +1,7 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
+import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
 
 export type Intent = 
   | { type: 'scene'; target: string; prompt: string }
@@ -17,7 +18,8 @@ export class IntentInterpreterService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
     private readonly sceneRepository: SceneRepository,
-    private readonly llmInterpreter?: LlmIntentInterpreterPort
+    private readonly llmInterpreter?: LlmIntentInterpreterPort,
+    private readonly memoryService?: AssistantMemoryPort
   ) {}
 
   public async interpret(prompt: string): Promise<Intent> {
@@ -47,6 +49,29 @@ export class IntentInterpreterService {
     const normalized = prompt.toLowerCase().trim();
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
     const onKeywords = ['prende', 'encender', 'encendido', 'activar', 'on'];
+
+    // V1 Pronouns exact matches
+    const offPronouns = ['apágala', 'apágalo', 'apágalas', 'apágalos'];
+    const onPronouns = ['préndela', 'préndelo', 'préndelas', 'préndelos', 'enciéndela', 'enciéndelo', 'enciéndelas', 'enciéndelos'];
+
+    if (offPronouns.includes(normalized) || onPronouns.includes(normalized)) {
+      if (this.memoryService) {
+        const lastDeviceId = await this.memoryService.getLastDeviceUsed();
+        if (lastDeviceId) {
+          return {
+            type: 'command',
+            deviceId: lastDeviceId,
+            command: offPronouns.includes(normalized) ? 'turn_off' : 'turn_on',
+            prompt
+          };
+        }
+      }
+      return {
+        type: 'unknown',
+        prompt,
+        reason: 'Missing recent device context to resolve pronoun.'
+      };
+    }
 
     // 1. Scene mapping
     if (normalized.includes('todo')) {

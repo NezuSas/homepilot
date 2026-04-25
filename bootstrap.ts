@@ -15,6 +15,7 @@ import { OllamaClient } from './packages/assistant/infrastructure/OllamaClient';
 import { AssistantContextBuilder } from './packages/assistant/application/AssistantContextBuilder';
 import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
 import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
+import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -210,13 +211,15 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   if (process.env.OLLAMA_ENABLED === 'true') {
     console.log(`[Assistant] Ollama enabled: model=${process.env.OLLAMA_MODEL || 'phi3'}, baseUrl=${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}`);
   }
-  const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository);
+  const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository);
+  const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
 
   const intentInterpreterService = new IntentInterpreterService(
     repos.deviceRepository, 
     repos.sceneRepository,
-    llmInterpreter
+    llmInterpreter,
+    assistantMemoryService
   );
 
   const assistantConfirmationPolicy = new AssistantConfirmationPolicy(
