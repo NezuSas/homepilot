@@ -43,3 +43,9 @@ export interface ExecutionRecord {
   summary?: string;
   actions: SceneActionResult[];
 }
+
+export interface SceneExecutionResult {
+  sceneId: string;
+  status: 'success' | 'partial' | 'failed';
+  actions: SceneActionResult[];
+}

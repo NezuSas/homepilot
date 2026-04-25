@@ -12,8 +12,14 @@ import {
   CheckCircle2,
   ChevronDown,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Terminal,
+  History,
+  Send,
+  AlertCircle
 } from 'lucide-react';
+import { executeAssistantPrompt } from '../lib/assistantApi';
+import type { SceneExecutionResult } from '../types/executions';
 import { cn } from '../lib/utils';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -33,6 +39,39 @@ const scanning = useAssistantStore((state) => state.isScanning);
 const refreshFindings = useAssistantStore((state) => state.refreshFindings);
 const scanFindings = useAssistantStore((state) => state.scanFindings);
 const dismissFinding = useAssistantStore((state) => state.dismissFinding);
+
+const [prompt, setPrompt] = useState('');
+const [isExecuting, setIsExecuting] = useState(false);
+const [lastResult, setLastResult] = useState<SceneExecutionResult | null>(null);
+const [execError, setExecError] = useState<string | null>(null);
+const [promptHistory, setPromptHistory] = useState<string[]>(() => {
+  const saved = localStorage.getItem('hp_assistant_history');
+  return saved ? JSON.parse(saved).slice(0, 5) : [];
+});
+
+const handleExecute = async () => {
+  if (!prompt.trim() || isExecuting) return;
+  
+  setIsExecuting(true);
+  setExecError(null);
+  setLastResult(null);
+  
+  try {
+    const result = await executeAssistantPrompt(prompt);
+    setLastResult(result);
+    
+    // Add to history
+    const newHistory = [prompt, ...promptHistory.filter(h => h !== prompt)].slice(0, 5);
+    setPromptHistory(newHistory);
+    localStorage.setItem('hp_assistant_history', JSON.stringify(newHistory));
+    
+    setPrompt('');
+  } catch (err: any) {
+    setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
+  } finally {
+    setIsExecuting(false);
+  }
+};
 
 const [initialLoadDone, setInitialLoadDone] = useState(false);
 
@@ -254,6 +293,164 @@ useEffect(() => {
           </Button>
         }
       />
+
+      {/* Command Center Card */}
+      <div className="bg-card border border-border/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 group/terminal relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+        
+        <div className="p-8 relative">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover/terminal:scale-110 transition-transform duration-500">
+              <Terminal className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black tracking-tight uppercase">{t('assistant.command_center.title')}</h2>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-50">{t('assistant.command_center.subtitle')}</p>
+            </div>
+          </div>
+
+          <div className="relative">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleExecute();
+                }
+              }}
+              placeholder={t('assistant.command_center.placeholder')}
+              className="w-full bg-muted/30 border-2 border-border/40 focus:border-primary/40 focus:bg-muted/50 rounded-3xl p-6 pr-24 text-sm font-medium transition-all min-h-[120px] resize-none outline-none placeholder:text-muted-foreground/30"
+              disabled={isExecuting}
+            />
+            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+              <Button
+                onClick={handleExecute}
+                disabled={!prompt.trim() || isExecuting}
+                isLoading={isExecuting}
+                size="sm"
+                className="rounded-2xl px-6 h-12 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+              >
+                {!isExecuting && <Send className="w-4 h-4 mr-2" />}
+                {isExecuting ? t('assistant.command_center.executing') : t('assistant.command_center.execute')}
+              </Button>
+            </div>
+          </div>
+
+          {/* History chips */}
+          {promptHistory.length > 0 && !isExecuting && !lastResult && !execError && (
+            <div className="mt-6 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
+              <div className="flex items-center gap-1.5 px-3 py-1 text-muted-foreground/40">
+                <History className="w-3 h-3" />
+                <span className="text-[9px] font-black uppercase tracking-widest">{t('assistant.command_center.history')}</span>
+              </div>
+              {promptHistory.map((h, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPrompt(h)}
+                  className="px-4 py-1.5 rounded-full bg-muted/40 border border-border/40 hover:border-primary/30 hover:bg-primary/5 text-[10px] font-bold text-muted-foreground hover:text-primary transition-all"
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Result Area */}
+          {(lastResult || execError) && (
+            <div className="mt-8 p-6 rounded-[2rem] border animate-in zoom-in-95 duration-500 relative overflow-hidden bg-background/40 backdrop-blur-sm">
+              <button 
+                onClick={() => { setLastResult(null); setExecError(null); }}
+                className="absolute top-4 right-4 p-2 text-muted-foreground/40 hover:text-foreground transition-colors"
+              >
+                <PlusCircle className="w-5 h-5 rotate-45" />
+              </button>
+
+              {execError ? (
+                <div className="flex items-center gap-4 text-danger">
+                  <div className="p-3 rounded-2xl bg-danger/10">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black tracking-tight">{t('assistant.command_center.errors.unknown_intent')}</h3>
+                    <p className="text-xs font-bold opacity-70">{execError}</p>
+                  </div>
+                </div>
+              ) : lastResult && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "p-3 rounded-2xl",
+                      lastResult.status === 'success' ? "bg-success/10 text-success" : 
+                      lastResult.status === 'partial' ? "bg-warning/10 text-warning" : "bg-danger/10 text-danger"
+                    )}>
+                      {lastResult.status === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black tracking-tight">
+                        {t(`assistant.command_center.results.${lastResult.status}`)}
+                      </h3>
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                        {lastResult.actions.length} {t('assistant.command_center.results.actions_performed')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {lastResult.actions.map((action, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/40 group/action hover:border-primary/20 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            action.status === 'success' ? "bg-success" : 
+                            action.status === 'failed' ? "bg-danger" : "bg-muted"
+                          )} />
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black tracking-tight leading-none mb-0.5">
+                              {action.commandName}
+                            </span>
+                            <span className="text-[9px] font-bold text-muted-foreground tracking-tight">
+                              ID: {action.deviceId}
+                            </span>
+                          </div>
+                        </div>
+                        {action.status === 'failed' && action.userMessage && (
+                          <span className="text-[9px] font-bold text-danger italic">
+                            {action.userMessage}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <StatusPill variant={action.status === 'success' ? 'success' : action.status === 'failed' ? 'danger' : 'neutral'}>
+                            {action.status}
+                          </StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-4 border-t border-border/40 flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => onNavigate('system-executions')}
+                      className="text-[9px] font-black uppercase tracking-widest"
+                    >
+                      {t('assistant.command_center.results.view_logs')} <ArrowRight className="w-3 h-3 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 px-2">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">
+          {t('assistant.top_recommendations')}
+        </h2>
+        <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
+      </div>
 
 
       {findings.length === 0 ? (
