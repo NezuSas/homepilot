@@ -26,6 +26,8 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
 import { StatusPill } from '../components/ui/StatusPill';
 import { useAssistantStore } from '../stores/useAssistantStore';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import { useAppShellStore } from '../stores/useAppShellStore';
 import type { AssistantFinding as Finding } from '../stores/useAssistantStore';
 
 export const AssistantView: React.FC<{
@@ -33,88 +35,102 @@ export const AssistantView: React.FC<{
 }> = ({ onNavigate }) => {
   const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: any; deviceName?: string } | null>(null);
-const findings = useAssistantStore((state) => state.findings);
-const loading = useAssistantStore((state) => state.isLoading);
-const scanning = useAssistantStore((state) => state.isScanning);
-const refreshFindings = useAssistantStore((state) => state.refreshFindings);
-const scanFindings = useAssistantStore((state) => state.scanFindings);
-const dismissFinding = useAssistantStore((state) => state.dismissFinding);
+  const findings = useAssistantStore((state) => state.findings);
+  const loading = useAssistantStore((state) => state.isLoading);
+  const scanning = useAssistantStore((state) => state.isScanning);
+  const refreshFindings = useAssistantStore((state) => state.refreshFindings);
+  const scanFindings = useAssistantStore((state) => state.scanFindings);
+  const dismissFinding = useAssistantStore((state) => state.dismissFinding);
+  
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
 
-const [prompt, setPrompt] = useState('');
-const [isExecuting, setIsExecuting] = useState(false);
-const [lastResult, setLastResult] = useState<SceneExecutionResult | null>(null);
-const [execError, setExecError] = useState<string | null>(null);
-const [promptHistory, setPromptHistory] = useState<string[]>(() => {
-  const saved = localStorage.getItem('hp_assistant_history');
-  return saved ? JSON.parse(saved).slice(0, 5) : [];
-});
+  const [prompt, setPrompt] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [lastResult, setLastResult] = useState<SceneExecutionResult | null>(null);
+  const [execError, setExecError] = useState<string | null>(null);
+  const [promptHistory, setPromptHistory] = useState<string[]>(() => {
+    const saved = localStorage.getItem('hp_assistant_history');
+    return saved ? JSON.parse(saved).slice(0, 10) : [];
+  });
 
-const [previewToConfirm, setPreviewToConfirm] = useState<AssistantPreviewResult | null>(null);
+  const [previewToConfirm, setPreviewToConfirm] = useState<AssistantPreviewResult | null>(null);
 
-const executeConfirmed = async (promptText: string, confirmed: boolean) => {
-  setIsExecuting(true);
-  try {
-    const result = await executeAssistantPrompt(promptText, confirmed);
-    setLastResult(result);
+  const executeConfirmed = async (promptText: string, confirmed: boolean) => {
+    setIsExecuting(true);
+    try {
+      const result = await executeAssistantPrompt(promptText, confirmed);
+      setLastResult(result);
+      setPreviewToConfirm(null);
+      
+      // Refresh state asynchronously in background
+      Promise.all([
+        refreshSnapshot(),
+        refreshAssistantSummary()
+      ]).catch(err => console.error('[Assistant] Failed to refresh state after execution:', err));
+      
+      // Add to history if it's not the same as the last prompt
+      setPromptHistory(prevHistory => {
+        let newHistory = prevHistory;
+        if (prevHistory.length === 0 || prevHistory[0] !== promptText) {
+          newHistory = [promptText, ...prevHistory.filter(h => h !== promptText)].slice(0, 10);
+          localStorage.setItem('hp_assistant_history', JSON.stringify(newHistory));
+        }
+        return newHistory;
+      });
+      
+      setPrompt('');
+    } catch (err: any) {
+      if (err.message === 'CONFIRMATION_REQUIRED' && err.preview) {
+        setPreviewToConfirm(err.preview);
+      } else {
+        setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
+      }
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!prompt.trim() || isExecuting) return;
+    
+    setIsExecuting(true);
+    setExecError(null);
+    setLastResult(null);
     setPreviewToConfirm(null);
     
-    // Add to history
-    const newHistory = [promptText, ...promptHistory.filter(h => h !== promptText)].slice(0, 5);
-    setPromptHistory(newHistory);
-    localStorage.setItem('hp_assistant_history', JSON.stringify(newHistory));
-    
-    setPrompt('');
-  } catch (err: any) {
-    if (err.message === 'CONFIRMATION_REQUIRED' && err.preview) {
-      setPreviewToConfirm(err.preview);
-    } else {
+    try {
+      const preview = await previewAssistantPrompt(prompt);
+      
+      if (preview.requiresConfirmation) {
+        setPreviewToConfirm(preview);
+        setIsExecuting(false);
+        return;
+      }
+      
+      await executeConfirmed(prompt, false);
+    } catch (err: any) {
       setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
-    }
-  } finally {
-    setIsExecuting(false);
-  }
-};
-
-const handleExecute = async () => {
-  if (!prompt.trim() || isExecuting) return;
-  
-  setIsExecuting(true);
-  setExecError(null);
-  setLastResult(null);
-  setPreviewToConfirm(null);
-  
-  try {
-    const preview = await previewAssistantPrompt(prompt);
-    
-    if (preview.requiresConfirmation) {
-      setPreviewToConfirm(preview);
       setIsExecuting(false);
-      return;
     }
-    
-    await executeConfirmed(prompt, false);
-  } catch (err: any) {
-    setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
-    setIsExecuting(false);
-  }
-};
+  };
 
-const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-useEffect(() => {
-  if (!initialLoadDone && !loading) {
-    setInitialLoadDone(true);
-  }
-}, [loading, initialLoadDone]);
+  useEffect(() => {
+    if (!initialLoadDone && !loading) {
+      setInitialLoadDone(true);
+    }
+  }, [loading, initialLoadDone]);
 
-useEffect(() => {
-  if (!initialLoadDone) {
-    refreshFindings().then(() => {
-      // Auto-scan to resolve stale findings (e.g. fixed duplicate names in Inbox)
-      scanFindings();
-    });
-  }
-}, [initialLoadDone, refreshFindings, scanFindings]);
+  useEffect(() => {
+    if (!initialLoadDone) {
+      refreshFindings().then(() => {
+        // Auto-scan to resolve stale findings (e.g. fixed duplicate names in Inbox)
+        scanFindings();
+      });
+    }
+  }, [initialLoadDone, refreshFindings, scanFindings]);
 
   const handleScan = async () => {
     await scanFindings();
@@ -446,38 +462,68 @@ useEffect(() => {
                       </h3>
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
                         {lastResult.actions.length} {t('assistant.command_center.results.actions_performed')}
+                        {lastResult.actions.length > 0 && (
+                          <span className="ml-1">
+                            • {lastResult.actions.filter(a => a.status === 'success').length} OK
+                            {lastResult.actions.some(a => a.status === 'failed') && ` • ${lastResult.actions.filter(a => a.status === 'failed').length} FAIL`}
+                            {lastResult.actions.some(a => a.status === 'skipped') && ` • ${lastResult.actions.filter(a => a.status === 'skipped').length} SKIP`}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     {lastResult.actions.map((action, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/40 group/action hover:border-primary/20 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-1.5 h-1.5 rounded-full",
-                            action.status === 'success' ? "bg-success" : 
-                            action.status === 'failed' ? "bg-danger" : "bg-muted"
-                          )} />
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black tracking-tight leading-none mb-0.5">
-                              {action.commandName}
-                            </span>
-                            <span className="text-[9px] font-bold text-muted-foreground tracking-tight">
-                              ID: {action.deviceId}
-                            </span>
+                      <div key={i} className="flex flex-col p-3 rounded-xl bg-card border border-border/40 group/action hover:border-primary/20 transition-all">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              action.status === 'success' ? "bg-success" : 
+                              action.status === 'failed' ? "bg-danger" : "bg-muted"
+                            )} />
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-black tracking-tight leading-none mb-0.5">
+                                {action.commandName}
+                              </span>
+                              <span className="text-[9px] font-bold text-muted-foreground tracking-tight">
+                                ID: {action.deviceId}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <StatusPill variant={action.status === 'success' ? 'success' : action.status === 'failed' ? 'danger' : 'neutral'}>
+                              {action.status}
+                            </StatusPill>
                           </div>
                         </div>
-                        {action.status === 'failed' && action.userMessage && (
-                          <span className="text-[9px] font-bold text-danger italic">
-                            {action.userMessage}
-                          </span>
+                        
+                        {(action.status === 'failed' || action.userMessage || action.suggestedAction) && (
+                          <div className="mt-2 pl-4.5 space-y-1">
+                            {action.userMessage && (
+                              <p className="text-[9px] font-bold text-danger italic">
+                                {action.userMessage}
+                              </p>
+                            )}
+                            {action.suggestedAction && (
+                              <p className="text-[9px] font-bold text-primary flex items-center gap-1">
+                                <Sparkles className="w-3 h-3" />
+                                {action.suggestedAction}
+                              </p>
+                            )}
+                            {action.technicalMessage && (
+                              <details className="mt-1">
+                                <summary className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-muted-foreground cursor-pointer outline-none">
+                                  {t('assistant.command_center.results.view_technical_details', 'Detalles Técnicos')}
+                                </summary>
+                                <pre className="mt-1 p-2 rounded bg-muted/30 text-[8px] font-mono text-muted-foreground break-all whitespace-pre-wrap border border-border/20">
+                                  {action.technicalMessage}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
                         )}
-                        <div className="flex items-center gap-2">
-                          <StatusPill variant={action.status === 'success' ? 'success' : action.status === 'failed' ? 'danger' : 'neutral'}>
-                            {action.status}
-                          </StatusPill>
-                        </div>
                       </div>
                     ))}
                   </div>

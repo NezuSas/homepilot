@@ -139,7 +139,8 @@
         "partial": "Ejecución parcial: algunas acciones fallaron",
         "failed": "Fallo total en la ejecución",
         "actions_performed": "Acciones realizadas",
-        "view_logs": "Ver Historial Completo"
+        "view_logs": "Ver Historial Completo",
+        "view_technical_details": "Ver Detalles Técnicos"
       }
     }
   },

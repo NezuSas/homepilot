@@ -139,7 +139,8 @@
         "partial": "Partial execution: some actions failed",
         "failed": "Total execution failure",
         "actions_performed": "Actions performed",
-        "view_logs": "View Full History"
+        "view_logs": "View Full History",
+        "view_technical_details": "View Technical Details"
       }
     }
   },
