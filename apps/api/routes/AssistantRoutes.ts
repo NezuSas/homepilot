@@ -118,7 +118,17 @@ export class AssistantRoutes extends ApiRoutes {
         }
 
         const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
-        const intent = await container.services.intentInterpreterService.interpret(body.prompt);
+        const intentResult = await container.services.intentInterpreterService.interpret(body.prompt);
+        
+        let intent;
+        if ('type' in intentResult && (intentResult.type === 'failure' || intentResult.type === 'clarificationRequired')) {
+          return this.sendError(res, 400, 'UNRESOLVED_INTENT', 'El comando requiere aclaración o no pudo ser interpretado directamente en la API.'), true;
+        } else if ('type' in intentResult && intentResult.type === 'success') {
+          intent = intentResult.intent;
+        } else {
+          intent = intentResult as any;
+        }
+
         const preview = await container.services.assistantConfirmationPolicy.evaluate(intent, language);
 
         return this.sendJson(res, preview), true;
@@ -137,7 +147,17 @@ export class AssistantRoutes extends ApiRoutes {
         }
 
         const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
-        const intent = await container.services.intentInterpreterService.interpret(body.prompt);
+        const intentResult = await container.services.intentInterpreterService.interpret(body.prompt);
+        
+        let intent;
+        if ('type' in intentResult && (intentResult.type === 'failure' || intentResult.type === 'clarificationRequired')) {
+          return this.sendError(res, 400, 'UNRESOLVED_INTENT', 'El comando requiere aclaración o no pudo ser interpretado directamente en la API.'), true;
+        } else if ('type' in intentResult && intentResult.type === 'success') {
+          intent = intentResult.intent;
+        } else {
+          intent = intentResult as any;
+        }
+
         const policyResult = await container.services.assistantConfirmationPolicy.evaluate(intent, language);
 
         if (policyResult.requiresConfirmation && body.confirmed !== true) {

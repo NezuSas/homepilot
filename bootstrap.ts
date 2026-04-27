@@ -225,6 +225,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const intentInterpreterService = new IntentInterpreterService(
     repos.deviceRepository, 
     repos.sceneRepository,
+    repos.roomRepository,
     llmInterpreter,
     assistantMemoryService
   );

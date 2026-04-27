@@ -17,9 +17,17 @@ describe('IntentInterpreterService Integration', () => {
     mockSceneRepo = createMockSceneRepository();
     mockLlmInterpreter = createMockLlmIntentInterpreter();
 
+    const mockRoomRepo = {
+      saveRoom: jest.fn(),
+      findRoomsByHomeId: jest.fn(),
+      findRoomById: jest.fn(),
+      findAll: jest.fn().mockResolvedValue([])
+    } as any;
+
     service = new IntentInterpreterService(
       mockDeviceRepo,
       mockSceneRepo,
+      mockRoomRepo,
       mockLlmInterpreter
     );
   });
@@ -82,7 +90,8 @@ describe('IntentInterpreterService Integration', () => {
     });
     
     // Inject mock memory service for this specific test
-    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockLlmInterpreter, mockMemoryService);
+    const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, mockLlmInterpreter, mockMemoryService);
 
     const intent = await localService.interpret('apágala');
 
@@ -99,7 +108,8 @@ describe('IntentInterpreterService Integration', () => {
       getLastDeviceUsed: jest.fn().mockResolvedValue(null)
     });
     
-    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockLlmInterpreter, mockMemoryService);
+    const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, mockLlmInterpreter, mockMemoryService);
 
     const intent = await localService.interpret('préndelo');
 

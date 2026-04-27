@@ -8,11 +8,11 @@ import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
 import { Scene } from '../../devices/domain/Scene';
 import { Device } from '../../devices/domain/types';
-import { DeviceCapability } from '../../devices/domain/capabilities';
 import { resolveCapabilitiesForDevice } from '../../devices/domain/CapabilityResolver';
 import { validateDeviceCommand } from '../../devices/domain/CommandCapabilityValidator';
 import { Room } from '../../topology/domain/types';
 import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
+import type { Intent } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 import { AssistantMemoryPort, AssistantMemoryEntity } from './ports/AssistantMemoryPort';
@@ -115,6 +115,20 @@ export class AssistantConversationService {
 
     // A) Selected Option Flow
     if (request.selectedOptionId) {
+      if (memory?.pendingIntent && (request.selectedOptionId === 'confirm' || request.selectedOptionId === 'cancel')) {
+        if (request.selectedOptionId === 'confirm') {
+          request.confirmed = true;
+          const intent = memory.pendingIntent;
+          return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt);
+        } else {
+          await this.clearPendingAction(userId);
+          return {
+            type: 'answer',
+            message: language === 'en' ? "Action cancelled." : "Acción cancelada."
+          };
+        }
+      }
+
       const result = await this.handleSelection(request, language);
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] converse() selection path: ${Date.now() - t0}ms`);
@@ -346,7 +360,36 @@ export class AssistantConversationService {
     }
 
     // C) Intent Interpretation
-    const intent = await this.intentInterpreter.interpret(activePrompt);
+    const intentResult = await this.intentInterpreter.interpret(activePrompt);
+
+    // Handle structured multi-command results
+    if (intentResult && 'type' in intentResult) {
+      if (intentResult.type === 'failure') {
+        return { type: 'error', message: intentResult.message };
+      }
+      if (intentResult.type === 'clarificationRequired') {
+        // Save pending query state so they can say "la primera"
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'clarification',
+          entities: [],
+          timestamp: new Date().toISOString(),
+          clarificationOptions: intentResult.options,
+          originalPrompt: activePrompt
+        });
+        return {
+          type: 'clarification',
+          message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`,
+          clarification: {
+            question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?",
+            options: intentResult.options.map(opt => ({ ...opt, kind: opt.kind as 'device' | 'scene' }))
+          }
+        };
+      }
+    }
+
+    const intent: Intent = (intentResult && 'type' in intentResult && intentResult.type === 'success')
+      ? intentResult.intent
+      : (intentResult as Intent);
 
     // V2: If we interpreted a NEW intent, and there was a pending action, clear it to avoid context mixing
     if (intent && intent.type !== 'unknown' && (memory?.pendingIntent || memory?.pendingDraft)) {
@@ -354,14 +397,14 @@ export class AssistantConversationService {
     }
 
     if (!intent) {
-      return await this.executeIntent({ type: 'unknown' }, request, language, userId, userName, activePrompt);
+      return await this.executeIntent({ type: 'unknown', prompt: activePrompt, reason: 'unknown' }, request, language, userId, userName, activePrompt);
     }
 
     return await this.executeIntent(intent, request, language, userId, userName, activePrompt);
   }
 
   private async executeIntent(
-    intent: any, 
+    intent: Intent, 
     request: AssistantConverseRequest, 
     language: string, 
     userId: string, 
@@ -402,7 +445,7 @@ export class AssistantConversationService {
             question: language === 'en' ? "Which one do you want to control?" : "¿Cuál quieres controlar?",
             options,
             pendingAction: {
-              command: intent.command as DeviceCommandV1,
+              command: intent.type === 'command' ? intent.command : undefined,
               targetId: undefined,
               originalPrompt: prompt
             }
@@ -446,8 +489,8 @@ export class AssistantConversationService {
             { id: 'cancel', label: language === 'en' ? "No, cancel" : "No, cancelar", kind: 'device' }
           ],
           pendingAction: {
-            command: intent.type === 'command' ? intent.command as DeviceCommandV1 : undefined,
-            targetId: intent.type === 'command' ? intent.deviceId : intent.target,
+            command: intent.type === 'command' ? intent.command : undefined,
+            targetId: intent.type === 'command' ? intent.deviceId : (intent.type === 'scene' ? intent.target : undefined),
             originalPrompt: prompt
           }
         }
@@ -480,7 +523,7 @@ export class AssistantConversationService {
       try {
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
-        const result = await this.executeSingleCommand(intent.deviceId, intent.command as DeviceCommandV1, intent.prompt, correlationId);
+        const result = await this.executeSingleCommand(intent.deviceId, intent.command, intent.prompt, correlationId);
         
         if (result.status === 'failed') {
           return {
@@ -502,9 +545,69 @@ export class AssistantConversationService {
 
         return {
           type: 'execution',
-          message: this.buildCommandSuccessMessage(intent.command as DeviceCommandV1, deviceName, userName, language),
+          message: this.buildCommandSuccessMessage(intent.command, deviceName, userName, language),
           execution: result
         };
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return {
+          type: 'error',
+          message: errorMessage || (language === 'en' ? "Unknown error during execution." : "Error desconocido durante la ejecución.")
+        };
+      }
+    }
+
+    if (intent.type === 'multi_command') {
+      try {
+        const results = [];
+        const entities = [];
+        
+        for (const action of intent.actions) {
+          const device = await this.deviceRepository.findDeviceById(action.deviceId);
+          const deviceName = device?.name ?? action.targetName ?? action.deviceId;
+          const result = await this.executeSingleCommand(action.deviceId, action.command, intent.prompt, correlationId);
+          results.push({ action, deviceName, result });
+          if (device) {
+            entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
+          }
+        }
+
+        const successes = results.filter(r => r.result.status === 'success');
+        const failures = results.filter(r => r.result.status === 'failed');
+
+        let message = '';
+        if (failures.length === 0) {
+          message = language === 'en' 
+            ? `${namePrefix}I executed all ${results.length} actions successfully.`
+            : `${namePrefix}Ejecuté las ${results.length} acciones correctamente.`;
+        } else if (successes.length === 0) {
+          message = language === 'en'
+            ? `${namePrefix}I couldn't execute any of the ${results.length} actions.`
+            : `${namePrefix}No pude ejecutar ninguna de las ${results.length} acciones.`;
+        } else {
+          message = language === 'en'
+            ? `${namePrefix}I executed ${successes.length} out of ${results.length} actions.\n`
+            : `${namePrefix}Ejecuté ${successes.length} de ${results.length} acciones.\n`;
+          message += failures.map(f => `• ${f.deviceName} — ${f.result.actions[0]?.error || 'failed'}`).join('\n');
+        }
+
+        this.clearPendingAction(userId).catch(() => {});
+        this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'execution',
+          entities,
+          timestamp: new Date().toISOString()
+        }).catch(() => {});
+
+        return {
+          type: 'execution',
+          message,
+          execution: {
+            sceneId: 'multi_command',
+            status: failures.length === 0 ? 'success' : 'failed',
+            actions: results.flatMap(r => r.result.actions)
+          }
+        };
+
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
@@ -879,7 +982,7 @@ export class AssistantConversationService {
    * Uses a type-based check as primary filter, then validates via domain capabilities.
    * The type-based check runs first to handle HA devices or devices without explicit capabilities.
    */
-  private isControllableDevice(device: Device, command: string): boolean {
+  private isControllableDevice(device: Device, command: DeviceCommandV1): boolean {
     // 1. Skip unavailable devices
     const rawState = device.lastKnownState;
     if (rawState && typeof rawState['state'] === 'string' && rawState['state'] === 'unavailable') return false;
@@ -903,7 +1006,7 @@ export class AssistantConversationService {
     if (controllableNames.some(kw => name.includes(kw))) return true;
 
     // 5. Domain validator as final fallback (handles explicit capabilities)
-    const validation = validateDeviceCommand(device, { name: command as any, params: {} });
+    const validation = validateDeviceCommand(device, { name: command, params: {} });
     return validation.valid;
   }
 

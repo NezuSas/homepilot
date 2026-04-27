@@ -2,7 +2,9 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
-import { IntentInterpreterPort, Intent } from './ports/IntentInterpreterPort';
+import { IntentInterpreterPort, Intent, AssistantMultiCommandResult } from './ports/IntentInterpreterPort';
+import { AssistantMultiCommandParser } from './AssistantMultiCommandParser';
+import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 
 /**
  * IntentInterpreterService
@@ -11,16 +13,30 @@ import { IntentInterpreterPort, Intent } from './ports/IntentInterpreterPort';
  * Uses repositories to resolve entities by keywords/name.
  */
 export class IntentInterpreterService implements IntentInterpreterPort {
+  private multiCommandParser: AssistantMultiCommandParser;
+
   constructor(
     private readonly deviceRepository: DeviceRepository,
     private readonly sceneRepository: SceneRepository,
+    private readonly roomRepository: RoomRepository,
     private readonly llmInterpreter?: LlmIntentInterpreterPort,
     private readonly memoryService?: AssistantMemoryPort
-  ) {}
+  ) {
+    this.multiCommandParser = new AssistantMultiCommandParser(this.deviceRepository, this.roomRepository);
+  }
 
-  public async interpret(prompt: string): Promise<Intent> {
+  public async interpret(prompt: string): Promise<Intent | AssistantMultiCommandResult> {
     const t0 = Date.now();
     
+    // 0. Check Multi-Command First
+    const multiCommandResult = await this.multiCommandParser.parse(prompt);
+    if (multiCommandResult) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[IntentInterpreter] multi_command path: ${Date.now() - t0}ms`);
+      }
+      return multiCommandResult;
+    }
+
     // 1. Always try deterministic first (fast path)
     const t_det = Date.now();
     const deterministicResult = await this.interpretDeterministic(prompt);
@@ -93,7 +109,6 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
     const onKeywords = ['prende', 'enciende', 'encender', 'encendido', 'activar', 'on'];
 
-    // V1 Pronouns exact matches
     const offPronouns = ['apágala', 'apágalo', 'apágalas', 'apágalos'];
     const onPronouns = ['préndela', 'préndelo', 'préndelas', 'préndelos', 'enciéndela', 'enciéndelo', 'enciéndelas', 'enciéndelos'];
 

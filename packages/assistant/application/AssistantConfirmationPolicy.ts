@@ -86,6 +86,22 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       });
     }
 
+    if (intent.type === 'multi_command') {
+      const estimatedActionCount = intent.actions.length;
+      return finalize({
+        prompt: intent.prompt,
+        intentType: 'multi_command',
+        requiresConfirmation: true, // Always require confirmation for multi-commands
+        summary: isEn
+          ? `I will execute ${estimatedActionCount} actions.`
+          : `Voy a ejecutar ${estimatedActionCount} acciones.`,
+        reason: isEn 
+          ? 'Multiple actions always require confirmation.' 
+          : 'Comandos múltiples siempre requieren confirmación.',
+        estimatedActionCount
+      });
+    }
+
     const _exhaustive: never = intent;
     return _exhaustive;
   }

@@ -64,7 +64,8 @@ describe('Assistant Execution Integration', () => {
       deleteScene: jest.fn()
     };
 
-    interpreter = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo);
+    const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
+    interpreter = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo);
     sceneService = new SceneExecutionService(mockDispatcher, mockExecutionRepo);
   });
 
