@@ -26,7 +26,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
         const intent = await this.llmInterpreter.interpret(prompt);
         if (intent && intent.type !== 'unknown') {
           if (process.env.NODE_ENV !== 'production') {
-            console.log(`[Assistant] LLM interpreted: ${prompt} -> ${intent.type}`);
+            console.debug(`[Assistant] LLM interpreted: ${prompt} -> ${intent.type}`);
           }
           return intent;
         }

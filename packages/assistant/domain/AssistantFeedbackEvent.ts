@@ -18,5 +18,5 @@ export interface AssistantFeedbackEvent {
   actionType: string | null;
   feedbackType: FeedbackType;
   createdAt: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }

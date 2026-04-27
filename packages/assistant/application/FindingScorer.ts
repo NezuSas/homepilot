@@ -14,7 +14,7 @@ export class FindingScorer {
   static calculateScore(
     type: FindingType, 
     severity: FindingSeverity, 
-    metadata: Record<string, any> = {},
+    metadata: Record<string, unknown> = {},
     learning?: LearningModifiers
   ): ScoredFinding {
     let baseScore = 0;
@@ -66,12 +66,12 @@ export class FindingScorer {
     let score = baseScore * severityMultiplier[severity];
 
     // 3. Metadata Boosts
-    if (type === 'device_name_duplicate' && metadata.count > 2) {
+    if (type === 'device_name_duplicate' && (metadata['count'] as number || 0) > 2) {
       score += 15;
     }
 
     if (type === 'automation_suggestion' || type === 'scene_suggestion') {
-      const entities = (metadata.sensorCount || 0) + (metadata.lightCount || 0) + (metadata.coverCount || 0);
+      const entities = (metadata['sensorCount'] as number || 0) + (metadata['lightCount'] as number || 0) + (metadata['coverCount'] as number || 0);
       if (entities > 3) score += 10;
     }
 

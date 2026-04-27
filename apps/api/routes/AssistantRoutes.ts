@@ -3,6 +3,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { AssistantConverseRequest } from '../../../packages/assistant/application/AssistantConversationService';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -25,8 +26,8 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         const findings = await container.services.assistantService.listOpen();
         this.sendJson(res, findings);
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -36,8 +37,8 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         const summary = await container.services.assistantService.getSummary();
         this.sendJson(res, summary);
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -62,8 +63,8 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         await container.services.assistantService.dismiss(dismissMatch[1]);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -74,8 +75,8 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         await container.services.assistantService.resolve(resolveMatch[1]);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -96,14 +97,14 @@ export class AssistantRoutes extends ApiRoutes {
         await container.services.assistantActionService.handleAction(
           body.findingId,
           body.actionType,
-          body.payload || {},
+          (body.payload as Record<string, unknown>) || {},
           req.user!.id,
           correlationId
         );
 
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_ACTION_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ACTION_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -121,8 +122,8 @@ export class AssistantRoutes extends ApiRoutes {
         const preview = await container.services.assistantConfirmationPolicy.evaluate(intent, language);
 
         return this.sendJson(res, preview), true;
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_EXECUTION_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_EXECUTION_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -183,8 +184,8 @@ export class AssistantRoutes extends ApiRoutes {
         }
 
         return this.sendError(res, 422, 'INTENT_NOT_UNDERSTOOD', 'Assistant could not interpret the command'), true;
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_EXECUTION_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_EXECUTION_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }
@@ -192,13 +193,7 @@ export class AssistantRoutes extends ApiRoutes {
     // POST /api/v1/assistant/converse
     if (method === 'POST' && pathname === '/api/v1/assistant/converse') {
       try {
-        const body = await this.parseBody<{ 
-          prompt: string; 
-          userName?: string;
-          selectedOptionId?: string; 
-          pendingAction?: any;
-          confirmed?: boolean;
-        }>(req);
+        const body = await this.parseBody<AssistantConverseRequest>(req);
 
         // Backend user name resolution (preferred over frontend payload)
         const sessionUserName = req.user ? (req.user.displayName || req.user.username) : undefined;
@@ -212,8 +207,8 @@ export class AssistantRoutes extends ApiRoutes {
         
         const response = await container.services.assistantConversationService.converse(body, language);
         return this.sendJson(res, response), true;
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_CONVERSE_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_CONVERSE_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }

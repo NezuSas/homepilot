@@ -1,6 +1,7 @@
 import { Database as SqliteDatabase } from 'better-sqlite3';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 import { AssistantFeedbackEvent, FeedbackType } from '../../domain/AssistantFeedbackEvent';
+import { FindingType } from '../../domain/AssistantFinding';
 import { AssistantFeedbackRepository } from '../../domain/repositories/AssistantFeedbackRepository';
 
 interface FeedbackRow {
@@ -74,7 +75,7 @@ export class SQLiteAssistantFeedbackRepository implements AssistantFeedbackRepos
   private mapToEntity(row: FeedbackRow): AssistantFeedbackEvent {
     return {
       id: row.id,
-      findingType: row.finding_type as any,
+      findingType: row.finding_type as FindingType,
       relatedEntityType: row.related_entity_type,
       relatedEntityId: row.related_entity_id,
       roomId: row.room_id,

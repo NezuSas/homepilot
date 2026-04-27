@@ -1,8 +1,9 @@
-import { randomUUID } from 'crypto';
-import { AssistantDraft, AssistantDraftType } from '../domain/AssistantDraft';
+import { AssistantDraft } from '../domain/AssistantDraft';
 import { AssistantDraftRepository } from '../domain/repositories/AssistantDraftRepository';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
+import { Scene, SceneAction } from '../../devices/domain/Scene';
+import { AutomationRule, AutomationTrigger, AutomationAction } from '../../devices/domain/automation/types';
 import { IdGenerator } from '../../shared/domain/types';
 
 export class AssistantDraftService {
@@ -13,7 +14,7 @@ export class AssistantDraftService {
     private readonly idGenerator: IdGenerator
   ) {}
 
-  public async createAutomationDraft(homeId: string, name: string, trigger: any, action: any, fingerprint: string): Promise<AssistantDraft> {
+  public async createAutomationDraft(homeId: string, name: string, trigger: unknown, action: unknown, fingerprint: string): Promise<AssistantDraft> {
     const existing = await this.draftRepository.findByFingerprint(fingerprint);
     if (existing) return existing;
 
@@ -34,7 +35,7 @@ export class AssistantDraftService {
     return draft;
   }
 
-  public async createSceneDraft(homeId: string, roomId: string | null, name: string, actions: any[], fingerprint: string): Promise<AssistantDraft> {
+  public async createSceneDraft(homeId: string, roomId: string | null, name: string, actions: unknown[], fingerprint: string): Promise<AssistantDraft> {
     const existing = await this.draftRepository.findByFingerprint(fingerprint);
     if (existing) return existing;
 
@@ -61,21 +62,28 @@ export class AssistantDraftService {
     if (draft.status === 'active') return;
 
     if (draft.type === 'automation') {
-      const rule = {
-        ...draft.payload,
+      const p = draft.payload;
+      const rule: AutomationRule = {
         id: this.idGenerator.generate(),
+        homeId: p['homeId'] as string,
         userId,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        name: p['name'] as string,
+        enabled: true,
+        trigger: p['trigger'] as AutomationTrigger,
+        action: p['action'] as AutomationAction
       };
       await this.automationRepository.save(rule);
     } else if (draft.type === 'scene') {
-      const scene = {
-        ...draft.payload,
+      const p = draft.payload;
+      const now = new Date().toISOString();
+      const scene: Scene = {
         id: this.idGenerator.generate(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        homeId: p['homeId'] as string,
+        roomId: (p['roomId'] as string | undefined) || null,
+        name: p['name'] as string,
+        actions: p['actions'] as SceneAction[],
+        createdAt: now,
+        updatedAt: now
       };
       await this.sceneRepository.saveScene(scene);
     }

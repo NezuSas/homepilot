@@ -211,7 +211,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const ollamaClient = new OllamaClient(
     process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
     process.env.OLLAMA_MODEL || 'phi3',
-    parseInt(process.env.OLLAMA_TIMEOUT_MS || '8000')
+    parseInt(process.env.OLLAMA_TIMEOUT_MS || '15000')
   );
 
   if (process.env.OLLAMA_ENABLED === 'true') {

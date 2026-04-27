@@ -9,7 +9,7 @@ export interface EnergyFinding {
   roomId: string | null;
   reasonKey: string;
   confidence: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class EnergyAnalysisService {
@@ -45,7 +45,7 @@ export class EnergyAnalysisService {
     for (const device of devices) {
       if (device.type !== 'light' && device.type !== 'switch') continue;
       
-      const state = device.lastKnownState as any;
+      const state = device.lastKnownState as { on?: boolean; power?: number } | null;
       // Also look for power reading if available, else fallback to state
       const powerUsage = state?.power ? Number(state.power) : (state?.on ? 10 : 0); // fallback est W
       if (state?.on !== true && powerUsage <= 0) continue;
@@ -88,7 +88,7 @@ export class EnergyAnalysisService {
         const device = await this.deviceRepository.findDeviceById(insight.deviceId);
         if (!device) continue;
         
-        const state = device.lastKnownState as any;
+        const state = device.lastKnownState as { power?: number } | null;
         const powerUsage = state?.power ? Number(state.power) : 10;
         const diffHours = (now.getTime() - new Date(device.updatedAt).getTime()) / 3600000;
         
@@ -116,7 +116,7 @@ export class EnergyAnalysisService {
     const findings: EnergyFinding[] = [];
 
     for (const device of devices) {
-      const state = device.lastKnownState as any;
+      const state = device.lastKnownState as { power?: number } | null;
       const powerUsage = state?.power ? Number(state.power) : 0;
       
       // Spike detection: e.g. > 1500W

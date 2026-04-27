@@ -1,13 +1,15 @@
 import { ExecutionRecord } from '../../../devices/domain/ExecutionRecord';
 
+export interface AssistantMemoryEntity {
+  id: string;
+  name: string;
+  type: string;
+  roomId: string | null;
+}
+
 export interface AssistantMemoryState {
   lastQueryType: string;
-  entities: Array<{
-    id: string;
-    name: string;
-    type: string;
-    roomId: string | null;
-  }>;
+  entities: AssistantMemoryEntity[];
   timestamp: string;
 }
 

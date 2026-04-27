@@ -6,6 +6,6 @@ export interface AssistantDraft {
   fingerprint: string;
   type: AssistantDraftType;
   status: AssistantDraftStatus;
-  payload: any;
+  payload: Record<string, unknown>;
   createdAt: string;
 }

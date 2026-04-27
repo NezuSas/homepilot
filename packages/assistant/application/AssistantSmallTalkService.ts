@@ -53,6 +53,9 @@ ${prompt}
 
 Response JSON format: {"text": "your response"}`;
 
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[Assistant] SmallTalk → LLM call (lang=${language})`);
+        }
         const response = await this.ollamaClient.generateJson(fullPrompt);
         
         if (isSmallTalkResponse(response) && response.text.trim().length > 0) {
@@ -62,9 +65,8 @@ Response JSON format: {"text": "your response"}`;
           };
         }
       } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Assistant] Ollama small talk failed:', error);
-        }
+        const isTimeout = error instanceof Error && error.message.toLowerCase().includes('timeout');
+        console.warn(`[Assistant] Ollama small talk failed ${isTimeout ? '(TIMEOUT)' : ''}:`, error);
       }
     }
 

@@ -10,8 +10,8 @@ import { Device } from '../../devices/domain/types';
 import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
-import type { AssistantMemoryPort } from './ports/AssistantMemoryPort';
-import type { FollowUpResolverPort } from './ports/FollowUpResolverPort';
+import { AssistantMemoryPort, AssistantMemoryEntity } from './ports/AssistantMemoryPort';
+import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -76,8 +76,10 @@ export class AssistantConversationService {
     
     // V2: Follow-up Resolution
     let activePrompt = prompt;
+    let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
+    
     if (!request.selectedOptionId) {
-      const followUp = this.followUpResolver.resolve(prompt, memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }, language, aliases);
+      followUp = this.followUpResolver.resolve(prompt, memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }, language, aliases);
       if (followUp.handled && followUp.response) {
         return { type: 'answer', message: followUp.response };
       }
@@ -170,19 +172,19 @@ export class AssistantConversationService {
 
     // G) State Queries
     if (this.isStateQuery(normalized)) {
-      return this.handleStateQuery(normalized, language, userName, userId);
+      return this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined);
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
     if (!this.isLikelyHomeControlPrompt(normalized)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[AssistantConversation] routing=smalltalk');
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[AssistantConversation] routing=smalltalk');
       }
       return this.smallTalkService.handle(activePrompt, language, userName, userId);
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[AssistantConversation] routing=intent');
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[AssistantConversation] routing=intent');
     }
 
     // C) Ambiguity & Regular Intent Flow
@@ -481,10 +483,31 @@ export class AssistantConversationService {
     return triggers.some(t => normalized.includes(t));
   }
 
-  private async handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<AssistantConversationResponse> {
-    const allDevices = await this.deviceRepository.findAll();
+  private async handleStateQuery(
+    normalized: string, 
+    language: string, 
+    userName: string | null, 
+    userId: string,
+    entitiesFromMemory?: AssistantMemoryEntity[]
+  ): Promise<AssistantConversationResponse> {
     const rooms = await this.roomRepository.findRoomsByHomeId('system');
+    let allDevices: readonly Device[];
+
+    if (entitiesFromMemory && entitiesFromMemory.length > 0) {
+      const ids = entitiesFromMemory.map(e => e.id);
+      const devices = await this.deviceRepository.findAll();
+      allDevices = devices.filter(d => ids.includes(d.id));
+    } else {
+      allDevices = await this.deviceRepository.findAll();
+    }
     
+    if (!allDevices) {
+      return { 
+        type: 'answer', 
+        message: language === 'en' ? 'No devices found.' : 'No se encontraron dispositivos.' 
+      };
+    }
+
     const isLightsOnly = normalized.includes('luz') || normalized.includes('luces') || normalized.includes('light');
     
     // Detect keywords
@@ -511,27 +534,29 @@ export class AssistantConversationService {
 
     // Filtering
     let filteredDevices = allDevices;
-    if (targetRoomId) {
-      filteredDevices = allDevices.filter(d => d.roomId === targetRoomId);
-    } else {
-      const roomTokens = ['sala', 'cocina', 'cuarto', 'master', 'habitacion', 'living', 'kitchen', 'bedroom', 'bano'];
-      const promptHasRoomToken = roomTokens.some(t => normalized.includes(t));
-      if (promptHasRoomToken) {
-        filteredDevices = allDevices.filter(d => {
-          const name = this.normalizePrompt(d.name);
-          return roomTokens.some(t => normalized.includes(t) && name.includes(t));
+    if (!entitiesFromMemory || entitiesFromMemory.length === 0) {
+      if (targetRoomId) {
+        filteredDevices = allDevices.filter(d => d.roomId === targetRoomId);
+      } else {
+        const roomTokens = ['sala', 'cocina', 'cuarto', 'master', 'habitacion', 'living', 'kitchen', 'bedroom', 'bano'];
+        const promptHasRoomToken = roomTokens.some(t => normalized.includes(t));
+        if (promptHasRoomToken) {
+          filteredDevices = allDevices.filter(d => {
+            const name = this.normalizePrompt(d.name);
+            return roomTokens.some(t => normalized.includes(t) && name.includes(t));
+          });
+        }
+      }
+
+      // Filter by type if lights only
+      if (isLightsOnly) {
+        filteredDevices = filteredDevices.filter(d => {
+          const name = d.name.toLowerCase();
+          const hasLightKeyword = name.includes('luz') || name.includes('light');
+          const hasLightCapability = d.capabilities?.some(c => c.type === 'light');
+          return d.type === 'light' || hasLightKeyword || hasLightCapability;
         });
       }
-    }
-
-    // Filter by type if lights only
-    if (isLightsOnly) {
-      filteredDevices = filteredDevices.filter(d => {
-        const name = d.name.toLowerCase();
-        const hasLightKeyword = name.includes('luz') || name.includes('light');
-        const hasLightCapability = d.capabilities?.some(c => c.type === 'light');
-        return d.type === 'light' || hasLightKeyword || hasLightCapability;
-      });
     }
 
     // If no devices match the query at all
@@ -636,18 +661,29 @@ export class AssistantConversationService {
       }
     }
 
-    // V2: Save state result to memory
+    // V2: Save state result to memory (ONLY if we found something, to avoid overwriting with empty context)
     if (filteredDevices && filteredDevices.length > 0) {
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'state_devices',
         entities: filteredDevices.map(d => ({
           id: d.id,
           name: d.name,
-          type: d.type,
+          type: d.type as 'device' | 'scene',
           roomId: d.roomId
         })),
         timestamp: new Date().toISOString()
       });
+    }
+
+    // V2: Room resolution fix - if user asked about rooms, make response more direct
+    const isRoomQuery = normalized.includes('cuarto') || normalized.includes('habitacion') || normalized.includes('donde');
+    if (isRoomQuery && entitiesFromMemory && entitiesFromMemory.length > 0) {
+      let roomMessage = '';
+      for (const d of filteredDevices) {
+        const room = rooms.find(r => r.id === d.roomId);
+        roomMessage += `${d.name} (${room ? room.name : (language === 'en' ? 'Unknown room' : 'Cuarto desconocido')})\n`;
+      }
+      return { type: 'answer', message: roomMessage.trim() };
     }
 
     return {

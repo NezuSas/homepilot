@@ -90,7 +90,8 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
     // Setup follow-up resolver to simulate "esas" -> "cuéntame sobre Luz Sala, Luz Cocina"
     mockFollowUp.resolve.mockReturnValue({
       resolvedPrompt: 'qué son Luz Sala, Luz Cocina',
-      handled: false
+      handled: false,
+      referencesMemory: true
     });
 
     mockDeviceRepo.findAll.mockResolvedValue([

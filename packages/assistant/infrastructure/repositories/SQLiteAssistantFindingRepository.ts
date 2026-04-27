@@ -1,6 +1,6 @@
 import { Database as SqliteDatabase } from 'better-sqlite3';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
-import { AssistantFinding, FindingStatus, FindingType } from '../../domain/AssistantFinding';
+import { AssistantFinding, FindingStatus, FindingType, FindingSeverity } from '../../domain/AssistantFinding';
 import { AssistantFindingRepository } from '../../domain/repositories/AssistantFindingRepository';
 
 interface FindingRow {
@@ -98,7 +98,7 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
   public async updateStatus(id: string, status: FindingStatus, dismissedUntil?: string | null): Promise<void> {
     const now = new Date().toISOString();
     let query = "UPDATE assistant_findings SET status = ?, updated_at = ?";
-    const params: any[] = [status, now];
+    const params: (string | null)[] = [status, now];
 
     if (status === 'dismissed') {
       query += ", dismissed_at = ?, dismissed_until = ?";
@@ -154,7 +154,7 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
       fingerprint: row.fingerprint,
       source: row.source,
       type: row.type as FindingType,
-      severity: row.severity as any,
+      severity: row.severity as FindingSeverity,
       title: row.title,
       description: row.description,
       relatedEntityType: row.related_entity_type,

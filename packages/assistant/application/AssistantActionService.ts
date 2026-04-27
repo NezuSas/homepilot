@@ -6,6 +6,7 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { assignDeviceUseCase, AssignDeviceUseCaseDependencies } from '../../devices/application/assignDeviceUseCase';
 import { HomeAssistantImportService } from '../../devices/application/HomeAssistantImportService';
 import { AssistantDraftService } from './AssistantDraftService';
+import { AssistantFinding } from '../domain/AssistantFinding';
 
 export interface AssistantActionServiceDependencies {
   assistantFindingRepository: AssistantFindingRepository;
@@ -22,7 +23,7 @@ export class AssistantActionService {
   public async handleAction(
     findingId: string,
     actionType: string,
-    payload: any,
+    payload: Record<string, unknown>,
     userId: string,
     correlationId: string
   ): Promise<void> {
@@ -34,19 +35,19 @@ export class AssistantActionService {
 
     switch (actionType) {
       case 'assign_room':
-        await this.handleAssignRoom(finding.relatedEntityId!, payload.roomId, userId, correlationId);
+        await this.handleAssignRoom(finding.relatedEntityId!, payload['roomId'] as string, userId, correlationId);
         success = true;
         break;
       case 'rename_device':
-        await this.handleRenameDevice(finding.relatedEntityId!, payload.newName);
+        await this.handleRenameDevice(finding.relatedEntityId!, payload['newName'] as string);
         success = true;
         break;
       case 'import_device':
-        await this.deps.haImportService.importDevice(finding.relatedEntityId!, userId, payload.newName);
+        await this.deps.haImportService.importDevice(finding.relatedEntityId!, userId, payload['newName'] as string);
         success = true;
         break;
       case 'activate_draft':
-        await this.deps.assistantDraftService.activateDraft(payload.draftId, userId);
+        await this.deps.assistantDraftService.activateDraft(payload['draftId'] as string, userId);
         success = true;
         break;
       default:
@@ -75,14 +76,14 @@ export class AssistantActionService {
     });
   }
 
-  private async recordFeedback(finding: any, feedbackType: FeedbackType, actionType: string): Promise<void> {
+  private async recordFeedback(finding: AssistantFinding, feedbackType: FeedbackType, actionType: string): Promise<void> {
     await this.deps.assistantFeedbackRepository.save({
       id: randomUUID(),
       findingType: finding.type,
       relatedEntityType: finding.relatedEntityType,
       relatedEntityId: finding.relatedEntityId,
-      roomId: finding.metadata?.roomId || null,
-      domain: finding.metadata?.domain || null,
+      roomId: (finding.metadata['roomId'] as string | undefined) || null,
+      domain: (finding.metadata['domain'] as string | undefined) || null,
       actionType,
       feedbackType,
       createdAt: new Date().toISOString(),

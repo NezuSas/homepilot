@@ -76,9 +76,9 @@ export class AssistantMemoryService implements AssistantMemoryPort {
 
     try {
       return JSON.parse(record.value);
-    } catch (e) {
+    } catch (e: unknown) {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('[AssistantMemory] Failed to parse short term memory:', e);
+        console.warn('[AssistantMemory] Failed to parse short term memory:', e instanceof Error ? e.message : String(e));
       }
       return null;
     }

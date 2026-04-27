@@ -139,7 +139,8 @@ export const createMockFollowUpResolver = (
   const mock: jest.Mocked<FollowUpResolverPort> = {
     resolve: jest.fn().mockImplementation((prompt) => ({
       resolvedPrompt: prompt,
-      handled: false
+      handled: false,
+      referencesMemory: false
     })),
     ...overrides
   };

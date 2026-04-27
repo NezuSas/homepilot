@@ -9,7 +9,7 @@ export interface BehaviorFinding {
   roomId: string | null;
   reasonKey: string;
   confidence: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class BehaviorAnalysisService {
@@ -102,7 +102,7 @@ export class BehaviorAnalysisService {
     for (const device of devices) {
       if (device.type !== 'light' && device.type !== 'switch') continue;
       
-      const state = device.lastKnownState as any;
+      const state = device.lastKnownState as { on?: boolean } | null;
       if (state?.on !== true) continue;
 
       const updated = new Date(device.updatedAt);

@@ -3,6 +3,7 @@ import { AssistantMemoryState } from './AssistantMemoryPort';
 export interface ResolvedFollowUp {
   resolvedPrompt: string;
   handled: boolean;
+  referencesMemory: boolean;
   response?: string;
 }
 

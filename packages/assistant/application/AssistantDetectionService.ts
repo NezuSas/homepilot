@@ -1,6 +1,7 @@
+import { Device } from '../../devices/domain/types';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { HomeAssistantClient } from '../../devices/infrastructure/adapters/HomeAssistantClient';
-import { AssistantFinding, generateFindingFingerprint } from '../domain/AssistantFinding';
+import { AssistantFinding, generateFindingFingerprint, FindingSeverity, FindingType, AssistantAction } from '../domain/AssistantFinding';
 import { ContextAnalysisService, SystemContext } from './ContextAnalysisService';
 import { FindingScorer } from './FindingScorer';
 import { LearningModifiers } from './AssistantLearningService';
@@ -34,7 +35,7 @@ export class AssistantDetectionService {
 
     // 2. Apply Scoring & Noise Control
     findings = findings.map(f => {
-      const result = FindingScorer.calculateScore(f.type!, f.severity as any, f.metadata || {}, learning);
+      const result = FindingScorer.calculateScore(f.type!, f.severity as FindingSeverity, f.metadata || {}, learning);
       return {
         ...f,
         score: result.score,
@@ -147,8 +148,8 @@ export class AssistantDetectionService {
     const technicalRegex = /(_[a-z0-9]|light\.|switch\.|cover\.|[a-z]+[0-9]{2,})/;
 
     return devices
-      .filter((d: any) => technicalRegex.test(d.name))
-      .map((d: any) => ({
+      .filter((d: Device) => technicalRegex.test(d.name))
+      .map((d: Device) => ({
         fingerprint: generateFindingFingerprint('device_name_technical', d.id, homeId),
         type: 'device_name_technical',
         severity: 'medium',
@@ -163,7 +164,7 @@ export class AssistantDetectionService {
 
   private async detectDuplicateNames(homeId: string): Promise<Partial<AssistantFinding>[]> {
     const devices = await this.deviceRepository.findAllByHomeId(homeId);
-    const nameMap = new Map<string, any[]>();
+    const nameMap = new Map<string, Device[]>();
 
     for (const d of devices) {
       const normalized = d.name.trim().toLowerCase();
@@ -199,8 +200,8 @@ export class AssistantDetectionService {
   private async detectProactiveFindings(homeId: string): Promise<Partial<AssistantFinding>[]> {
     const proactive = await this.behaviorService.analyzeProactively(homeId);
     const mappedProactive = proactive.map(p => {
-      let type: any = 'proactive_automation_opportunity';
-      let severity: any = 'medium';
+      let type: FindingType = 'proactive_automation_opportunity';
+      let severity: FindingSeverity = 'medium';
       let relatedEntityType = 'device';
 
       if (p.type === 'waste') {
@@ -217,7 +218,7 @@ export class AssistantDetectionService {
       return {
         fingerprint: generateFindingFingerprint(type, p.deviceId, p.type),
         type,
-        severity,
+        severity: severity as FindingSeverity,
         relatedEntityType: 'device',
         relatedEntityId: p.deviceId,
         actions: this.getProactiveActions(type, p),
@@ -229,8 +230,8 @@ export class AssistantDetectionService {
     const mappedEnergyFindings = energyFindings.map(e => {
        return {
         fingerprint: generateFindingFingerprint(e.type, e.deviceId, e.type),
-        type: e.type,
-        severity: e.type === 'high_consumption_pattern' ? 'high' : 'medium',
+        type: e.type as FindingType,
+        severity: (e.type === 'high_consumption_pattern' ? 'high' : 'medium') as FindingSeverity,
         relatedEntityType: 'device',
         relatedEntityId: e.deviceId,
         actions: this.getProactiveActions(e.type, e),
@@ -241,7 +242,7 @@ export class AssistantDetectionService {
     return [...mappedProactive, ...mappedEnergyFindings];
   }
 
-  private getProactiveActions(type: string, data: any): any[] {
+  private getProactiveActions(type: string, data: { deviceId: string; metadata?: Record<string, unknown> }): AssistantAction[] {
     switch (type) {
       case 'energy_waste_detected':
       case 'long_running_device':

@@ -35,7 +35,8 @@ export class FollowUpResolver implements FollowUpResolverPort {
         
         return {
           resolvedPrompt,
-          handled: false
+          handled: false,
+          referencesMemory: true
         };
       }
     }
@@ -54,19 +55,21 @@ export class FollowUpResolver implements FollowUpResolverPort {
       if (match.triggers.some(t => normalized.includes(t))) {
         const entity = memory.entities[match.index];
         if (entity) {
-          // Replace trigger with entity name
-          let newPrompt = normalized;
+          // Replace trigger with entity name in the CURRENT prompt to preserve rest of context
+          let resolvedPrompt = currentPrompt;
           const sortedTriggers = [...match.triggers].sort((a, b) => b.length - a.length);
+          
           for (const t of sortedTriggers) {
-            if (newPrompt.includes(t)) {
-              newPrompt = newPrompt.replace(t, entity.name.toLowerCase());
-              break;
+            const regex = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            if (regex.test(resolvedPrompt)) {
+              resolvedPrompt = resolvedPrompt.replace(regex, entity.name);
+              return {
+                resolvedPrompt,
+                handled: false,
+                referencesMemory: true
+              };
             }
           }
-          return {
-            resolvedPrompt: newPrompt,
-            handled: false
-          };
         }
       }
     }
@@ -88,7 +91,8 @@ export class FollowUpResolver implements FollowUpResolverPort {
         
         return {
           resolvedPrompt,
-          handled: false
+          handled: false,
+          referencesMemory: true
         };
       }
     }
@@ -104,7 +108,8 @@ export class FollowUpResolver implements FollowUpResolverPort {
         if (memory.entities.length === 1) {
           return {
             resolvedPrompt: `${cmd.action} ${memory.entities[0].name}`,
-            handled: false
+            handled: false,
+            referencesMemory: true
           };
         }
       }
@@ -112,7 +117,8 @@ export class FollowUpResolver implements FollowUpResolverPort {
 
     return {
       resolvedPrompt: currentPrompt,
-      handled: false
+      handled: false,
+      referencesMemory: false
     };
   }
 
