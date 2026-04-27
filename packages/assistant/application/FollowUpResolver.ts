@@ -61,6 +61,26 @@ export class FollowUpResolver implements FollowUpResolverPort {
 
     for (const match of indexMatches) {
       if (match.triggers.some(t => normalized.includes(t))) {
+        // V2: Check clarification options first (higher priority for follow-up selection)
+        if (memory.clarificationOptions && memory.clarificationOptions[match.index]) {
+          const option = memory.clarificationOptions[match.index];
+          let resolvedPrompt = currentPrompt;
+          const sortedTriggers = [...match.triggers].sort((a, b) => b.length - a.length);
+          
+          for (const t of sortedTriggers) {
+            const regex = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            if (regex.test(resolvedPrompt)) {
+              resolvedPrompt = resolvedPrompt.replace(regex, option.label);
+              return finalize({
+                resolvedPrompt,
+                handled: false,
+                referencesMemory: true
+              });
+            }
+          }
+        }
+
+        // Fallback to entities from previous queries
         const entity = memory.entities[match.index];
         if (entity) {
           // Replace trigger with entity name in the CURRENT prompt to preserve rest of context

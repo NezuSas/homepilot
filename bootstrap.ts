@@ -246,7 +246,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.sceneRepository,
     assistantSmallTalkService,
     assistantMemoryService,
-    followUpResolver
+    followUpResolver,
+    assistantAssembly.assistantDraftService
   );
 
   const container: BootstrapContainer = {

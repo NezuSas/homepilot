@@ -74,7 +74,8 @@ describe('AssistantConversationService', () => {
       mockSceneRepo,
       mockSmallTalk,
       mockMemory,
-      mockFollowUp
+      mockFollowUp,
+      { createSceneDraft: jest.fn(), createAutomationDraft: jest.fn(), activateDraft: jest.fn() } as any
     );
   });
 

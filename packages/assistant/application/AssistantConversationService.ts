@@ -2,6 +2,7 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
+import { AssistantDraftService } from './AssistantDraftService';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
 import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
@@ -56,7 +57,8 @@ export class AssistantConversationService {
     private readonly sceneRepository: SceneRepository,
     private readonly smallTalkService: AssistantSmallTalkPort,
     private readonly memoryService: AssistantMemoryPort,
-    private readonly followUpResolver: FollowUpResolverPort
+    private readonly followUpResolver: FollowUpResolverPort,
+    private readonly draftService: AssistantDraftService
   ) {}
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
@@ -73,6 +75,8 @@ export class AssistantConversationService {
 
     const prompt = request.prompt.trim();
     const userId = request.userId || 'system';
+    const userName = request.userName?.trim() || null;
+    const namePrefix = userName ? `${userName}, ` : '';
 
     // V2: Load Contextual Memory & Aliases
     const t_mem = Date.now();
@@ -86,10 +90,81 @@ export class AssistantConversationService {
 
     // V2: Follow-up Resolution
     let activePrompt = prompt;
+    const normalized = this.normalizePrompt(activePrompt);
     let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
 
     if (!request.selectedOptionId) {
       const t_followup = Date.now();
+      
+      // V2: Handle simple "yes/no" or "confirm/cancel" if there is a pending action
+      if (this.isConfirmation(normalized)) {
+        // A1: Check Pending Intent
+        if (memory?.pendingIntent) {
+          const now = Date.now();
+          const pendingTime = new Date(memory.pendingIntent.timestamp).getTime();
+          const isExpired = now - pendingTime > 300000; // 5 minutes
+
+          if (!isExpired) {
+            if (this.isPositiveConfirmation(normalized)) {
+              request.confirmed = true;
+              const intent = memory.pendingIntent;
+              return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt);
+            } else if (this.isNegativeConfirmation(normalized)) {
+              await this.clearPendingAction(userId);
+              return {
+                type: 'answer',
+                message: language === 'en' ? "Action cancelled." : "Acción cancelada."
+              };
+            }
+          } else {
+            // Auto-clear if expired
+            await this.clearPendingAction(userId);
+          }
+        }
+
+        // A2: Check Pending Draft
+        if (memory?.pendingDraft) {
+          if (this.isPositiveConfirmation(normalized)) {
+            try {
+              await this.draftService.activateDraft(memory.pendingDraft.id, userId);
+              await this.clearPendingAction(userId);
+              return {
+                type: 'answer',
+                message: language === 'en' ? "Draft activated and saved." : "Borrador activado y guardado correctamente."
+              };
+            } catch (err: unknown) {
+              return {
+                type: 'error',
+                message: language === 'en' ? "Failed to activate draft." : "No se pudo activar el borrador."
+              };
+            }
+          } else if (this.isNegativeConfirmation(normalized)) {
+            await this.clearPendingAction(userId);
+            return {
+              type: 'answer',
+              message: language === 'en' ? "Draft discarded." : "Borrador descartado."
+            };
+          }
+        }
+
+        // If user says "yes" but nothing is pending
+        if (this.isPositiveConfirmation(normalized)) {
+          return {
+            type: 'answer',
+            message: language === 'en' ? "Confirm what? I don't have any pending actions." : "¿Confirmar qué? No tengo ninguna acción pendiente."
+          };
+        }
+      }
+
+      // V2: Handle clarification selection via natural language (e.g. "la primera", "la de la cocina")
+      if (memory?.clarificationOptions && memory.clarificationOptions.length > 0) {
+        const selectedId = this.resolveSelectionFromMemory(normalized, memory.clarificationOptions, language);
+        if (selectedId) {
+          request.selectedOptionId = selectedId;
+          return await this.handleSelection(request, language);
+        }
+      }
+
       followUp = this.followUpResolver.resolve(
         prompt,
         memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() },
@@ -105,10 +180,7 @@ export class AssistantConversationService {
       activePrompt = followUp.resolvedPrompt;
     }
 
-    const normalized = this.normalizePrompt(activePrompt);
-    const userName = request.userName?.trim() || null;
-    const namePrefix = userName ? `${userName}, ` : '';
-    const namePrefixEN = userName ? `${userName}, ` : '';
+    // V2: Follow-up Resolution
 
     // B) Greetings
     if (this.isGreeting(normalized)) {
@@ -199,6 +271,16 @@ export class AssistantConversationService {
       return result;
     }
 
+    // G2) Alias Creation Commands
+    if (this.isAliasCreation(normalized)) {
+      return await this.handleAliasCreation(normalized, userId, language);
+    }
+
+    // G3) Draft Creation (Scenes/Automations)
+    if (this.isDraftCreation(normalized)) {
+      return await this.handleDraftCreation(normalized, language, userId);
+    }
+
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
     if (!this.isLikelyHomeControlPrompt(normalized)) {
       if (process.env.NODE_ENV !== 'production') {
@@ -211,31 +293,66 @@ export class AssistantConversationService {
       console.debug('[AssistantConversation] routing=intent');
     }
 
-    // C) Ambiguity & Regular Intent Flow
+    // C) Intent Interpretation
     const intent = await this.intentInterpreter.interpret(activePrompt);
 
+    // V2: If we interpreted a NEW intent, and there was a pending action, clear it to avoid context mixing
+    if (intent && intent.type !== 'unknown' && (memory?.pendingIntent || memory?.pendingDraft)) {
+      await this.clearPendingAction(userId);
+    }
+
+    if (!intent) {
+      return await this.executeIntent({ type: 'unknown' }, request, language, userId, userName, activePrompt);
+    }
+
+    return await this.executeIntent(intent, request, language, userId, userName, activePrompt);
+  }
+
+  private async executeIntent(
+    intent: any, 
+    request: AssistantConverseRequest, 
+    language: string, 
+    userId: string, 
+    userName: string | null,
+    prompt: string
+  ): Promise<AssistantConversationResponse> {
+    const t0 = Date.now();
+    const namePrefix = userName ? `${userName}, ` : '';
+
     if (intent.type === 'unknown') {
-      return this.smallTalkService.handle(activePrompt, language, userName, userId);
+      return this.smallTalkService.handle(prompt, language, userName, userId);
     }
 
     // Check for ambiguity (deterministic V1 only for now)
     if (intent.type === 'command') {
-      const allMatches = await this.findMatchingDevices(request.prompt);
+      const allMatches = await this.findMatchingDevices(prompt);
       if (allMatches.length > 1) {
+        // Save to memory for future resolution (e.g. "la primera")
+        const options = allMatches.map(d => ({
+          id: d.id,
+          label: d.name,
+          kind: 'device' as const
+        }));
+
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'clarification',
+          entities: allMatches.map(d => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
+          timestamp: new Date().toISOString(),
+          clarificationOptions: options,
+          pendingIntent: { ...intent, timestamp: new Date().toISOString() },
+          originalPrompt: prompt
+        });
+
         return {
           type: 'clarification',
           message: language === 'en' ? "I found several devices that match." : "Encontré varios dispositivos que coinciden.",
           clarification: {
             question: language === 'en' ? "Which one do you want to control?" : "¿Cuál quieres controlar?",
-            options: allMatches.map(d => ({
-              id: d.id,
-              label: d.name,
-              kind: 'device'
-            })),
+            options,
             pendingAction: {
               command: intent.command as DeviceCommandV1,
-              targetId: undefined, // Will be set by the option selection
-              originalPrompt: request.prompt
+              targetId: undefined,
+              originalPrompt: prompt
             }
           }
         };
@@ -250,36 +367,36 @@ export class AssistantConversationService {
             roomId: d.roomId
           })),
           timestamp: new Date().toISOString()
-        }).catch((err: unknown) => {
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug('[AssistantConversation] saveShortTermMemory (intent_match) failed:', err instanceof Error ? err.message : String(err));
-          }
-        });
+        }).catch(() => {});
       }
     }
 
     // D) Confirmation Policy
     const t_policy = Date.now();
     const preview = await this.confirmationPolicy.evaluate(intent, language);
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug(`[AssistantConversation] ConfirmationPolicy took ${Date.now() - t_policy}ms`);
-    }
     if (preview.requiresConfirmation && request.confirmed !== true) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] ConfirmationPolicy eval took ${Date.now() - t_policy}ms`);
-      }
+      // Save pending intent to memory
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'confirmation',
+        entities: intent.type === 'command' ? [{ id: intent.deviceId, name: 'Target', type: 'device', roomId: null }] : [],
+        timestamp: new Date().toISOString(),
+        pendingIntent: { ...intent, timestamp: new Date().toISOString() },
+        originalPrompt: prompt
+      });
+
       return {
         type: 'clarification',
-        message: `${preview.reason} ${preview.summary}`.trim(),
+        message: `${namePrefix}${preview.reason} ${preview.summary}`.trim(),
         clarification: {
-          question: language === 'en' ? "Are you sure?" : "¿Estás seguro?",
+          question: language === 'en' ? "Are you sure you want to proceed?" : "¿Estás seguro de que quieres continuar?",
           options: [
-            { id: 'confirm', label: language === 'en' ? "Yes, proceed" : "Sí, adelante", kind: 'device' }
+            { id: 'confirm', label: language === 'en' ? "Yes, proceed" : "Sí, adelante", kind: 'device' },
+            { id: 'cancel', label: language === 'en' ? "No, cancel" : "No, cancelar", kind: 'device' }
           ],
           pendingAction: {
             command: intent.type === 'command' ? intent.command as DeviceCommandV1 : undefined,
             targetId: intent.type === 'command' ? intent.deviceId : intent.target,
-            originalPrompt: request.prompt
+            originalPrompt: prompt
           }
         }
       };
@@ -296,9 +413,10 @@ export class AssistantConversationService {
         sourceId: 'assistant',
         correlationId
       });
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] converse() scene path total: ${Date.now() - t0}ms`);
-      }
+
+      // Clear pending confirmation if successful
+      this.clearPendingAction(userId).catch(() => {});
+
       return {
         type: 'execution',
         message: language === 'en' ? "Executing scene..." : "Ejecutando escena...",
@@ -308,14 +426,10 @@ export class AssistantConversationService {
 
     if (intent.type === 'command') {
       try {
-        const tCmd = Date.now();
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
         const result = await this.executeSingleCommand(intent.deviceId, intent.command as DeviceCommandV1, intent.prompt, correlationId);
-        if (process.env.NODE_ENV !== 'production') {
-          console.debug(`[AssistantConversation] executeSingleCommand took ${Date.now() - tCmd}ms`);
-          console.debug(`[AssistantConversation] converse() total: ${Date.now() - t0}ms`);
-        }
+        
         if (result.status === 'failed') {
           return {
             type: 'error',
@@ -323,16 +437,16 @@ export class AssistantConversationService {
             execution: result
           };
         }
-        // V2: Save to memory — fire-and-forget so it never blocks the response
+
+        // Clear pending confirmation
+        this.clearPendingAction(userId).catch(() => {});
+
+        // V2: Save to memory
         this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'execution',
           entities: [{ id: intent.deviceId, name: deviceName, type: 'device', roomId: device?.roomId || null }],
           timestamp: new Date().toISOString()
-        }).catch((err: unknown) => {
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug('[AssistantConversation] saveShortTermMemory (post-cmd) failed:', err instanceof Error ? err.message : String(err));
-          }
-        });
+        }).catch(() => {});
 
         return {
           type: 'execution',
@@ -351,6 +465,202 @@ export class AssistantConversationService {
     return {
       type: 'error',
       message: language === 'en' ? "Unknown intent type." : "Tipo de intención desconocido."
+    };
+  }
+
+  private async clearPendingAction(userId: string): Promise<void> {
+    const memory = await this.memoryService.getShortTermMemory(userId);
+    if (memory) {
+      await this.memoryService.saveShortTermMemory(userId, {
+        ...memory,
+        pendingIntent: undefined,
+        clarificationOptions: undefined,
+        pendingDraft: undefined,
+        originalPrompt: undefined
+      });
+    }
+  }
+
+  private isConfirmation(normalized: string): boolean {
+    const triggers = [
+      'si', 'dale', 'confirmo', 'adelante', 'procede', 'ok', 'vale', 'confirmar', 'ejecutar',
+      'yes', 'go ahead', 'confirm', 'proceed', 'execute', 'do it', 'sure',
+      'no', 'cancela', 'cancelar', 'abortar', 'noup', 'negativo',
+      'cancel', 'abort', 'nope', 'negative'
+    ];
+    return triggers.some(t => normalized === t || normalized.startsWith(t + ' '));
+  }
+
+  private isPositiveConfirmation(normalized: string): boolean {
+    const positives = [
+      'si', 'dale', 'confirmo', 'adelante', 'procede', 'ok', 'vale', 'confirmar', 'ejecutar',
+      'yes', 'go ahead', 'confirm', 'proceed', 'execute', 'do it', 'sure'
+    ];
+    return positives.some(t => normalized === t || normalized.startsWith(t + ' '));
+  }
+
+  private isNegativeConfirmation(normalized: string): boolean {
+    const negatives = [
+      'no', 'cancela', 'cancelar', 'abortar', 'noup', 'negativo',
+      'cancel', 'abort', 'nope', 'negative'
+    ];
+    return negatives.some(t => normalized === t || normalized.startsWith(t + ' '));
+  }
+
+  private resolveSelectionFromMemory(normalized: string, options: { id: string; label: string }[], language: string): string | null {
+    // Check indices
+    const indexTriggers = [
+      { triggers: ['la primera', 'el primero', 'primera', 'primero', 'the first', 'first one'], index: 0 },
+      { triggers: ['la segunda', 'el segundo', 'segunda', 'segundo', 'the second', 'second one'], index: 1 },
+      { triggers: ['la tercera', 'el tercero', 'tercera', 'tercero', 'the third', 'third one'], index: 2 },
+    ];
+
+    for (const match of indexTriggers) {
+      if (match.triggers.some(t => normalized.includes(t))) {
+        return options[match.index]?.id || null;
+      }
+    }
+
+    // Check by name similarity in options
+    for (const opt of options) {
+      const label = opt.label.toLowerCase();
+      if (normalized.includes(label)) return opt.id;
+    }
+
+    return null;
+  }
+
+  private isAliasCreation(normalized: string): boolean {
+    const triggers = [
+      'cuando diga', 'me refiero a', 'llama a', 'es mi',
+      'when i say', 'i mean', 'call this', 'is my'
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private async handleAliasCreation(normalized: string, userId: string, language: string): Promise<AssistantConversationResponse> {
+    // Simple pattern matching for aliases: "llama a [device/room] [alias]"
+    // Or "cuando diga [alias] me refiero a [target]"
+    
+    // Pattern 1: "cuando diga X me refiero a Y"
+    const match1 = normalized.match(/(?:cuando diga|when i say) (.+) (?:me refiero a|i mean) (.+)/);
+    if (match1) {
+      const alias = match1[1].trim();
+      const targetName = match1[2].trim();
+      return await this.tryCreateAlias(userId, alias, targetName, language);
+    }
+
+    // Pattern 2: "llama a X Y" (e.g. "llama a esta luz escritorio")
+    const match2 = normalized.match(/(?:llama a|call) (.+) (.+)/);
+    if (match2) {
+      const targetName = match2[1].trim();
+      const alias = match2[2].trim();
+      return await this.tryCreateAlias(userId, alias, targetName, language);
+    }
+
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? "I couldn't understand the alias you want to create. Try: 'when I say [alias] I mean [device name]'."
+        : "No pude entender el alias que quieres crear. Prueba con: 'cuando diga [alias] me refiero a [nombre del dispositivo]'."
+    };
+  }
+
+  private async tryCreateAlias(userId: string, alias: string, targetName: string, language: string): Promise<AssistantConversationResponse> {
+    const devices = await this.deviceRepository.findAll();
+    
+    // Safety: check if alias conflicts with an existing device name
+    const conflict = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(alias));
+    if (conflict) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `I cannot use '${alias}' as an alias because it is already the name of an existing device.`
+          : `No puedo usar '${alias}' como alias porque ya es el nombre de un dispositivo existente.`
+      };
+    }
+
+    const targetDevice = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(targetName));
+    if (targetDevice) {
+      await this.memoryService.setAlias(userId, alias, targetDevice.name);
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `Got it. From now on, when you say '${alias}', I'll know you mean ${targetDevice.name}.`
+          : `Entendido. De ahora en adelante, cuando digas '${alias}', sabré que te refieres a ${targetDevice.name}.`
+      };
+    }
+
+    // Try rooms
+    const homeIds = [...new Set(devices.map(d => d.homeId).filter((hid): hid is string => Boolean(hid)))];
+    const roomLists = await Promise.all(homeIds.map(hid => this.roomRepository.findRoomsByHomeId(hid)));
+    const allRooms = roomLists.flat();
+    const targetRoom = allRooms.find(r => this.normalizePrompt(r.name) === this.normalizePrompt(targetName));
+    
+    if (targetRoom) {
+      await this.memoryService.setAlias(userId, alias, targetRoom.name);
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `Got it. When you say '${alias}', I'll understand you mean the room ${targetRoom.name}.`
+          : `Entendido. Cuando digas '${alias}', entenderé que te refieres a la estancia ${targetRoom.name}.`
+      };
+    }
+
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? `I couldn't find a device or room named '${targetName}' to create the alias.`
+        : `No pude encontrar un dispositivo o estancia llamado '${targetName}' para crear el alias.`
+    };
+  }
+
+  private isDraftCreation(normalized: string): boolean {
+    const triggers = [
+      'crea una escena', 'crea un modo', 'haz una rutina', 'crea una rutina',
+      'create a scene', 'create a mode', 'make a routine'
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private async handleDraftCreation(normalized: string, language: string, userId: string = 'system'): Promise<AssistantConversationResponse> {
+    // Determine type and basic info (mock/heuristic for now, could use LLM)
+    const isScene = normalized.includes('escena') || normalized.includes('scene');
+    const name = language === 'en' ? 'New Routine' : 'Nueva Rutina';
+    const fingerprint = `draft:${userId}:${Date.now()}`;
+    
+    let draftId = '';
+    if (isScene) {
+      const draft = await this.draftService.createSceneDraft('system', null, name, [], fingerprint);
+      draftId = draft.id;
+    } else {
+      const draft = await this.draftService.createAutomationDraft('system', name, {}, {}, fingerprint);
+      draftId = draft.id;
+    }
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'draft_creation',
+      entities: [],
+      timestamp: new Date().toISOString(),
+      pendingDraft: {
+        id: draftId,
+        type: isScene ? 'scene' : 'automation',
+        originalPrompt: normalized
+      }
+    });
+
+    return {
+      type: 'clarification',
+      message: language === 'en'
+        ? `I've prepared a draft for that ${isScene ? 'scene' : 'routine'}.`
+        : `He preparado un borrador para esa ${isScene ? 'escena' : 'rutina'}.`,
+      clarification: {
+        question: language === 'en' ? "Would you like to activate it now?" : "¿Quieres activarlo ahora?",
+        options: [
+          { id: 'confirm', label: language === 'en' ? "Yes, activate" : "Sí, activar", kind: isScene ? 'scene' : 'device' },
+          { id: 'cancel', label: language === 'en' ? "No, discard" : "No, descartar", kind: isScene ? 'scene' : 'device' }
+        ]
+      }
     };
   }
 
@@ -501,25 +811,41 @@ export class AssistantConversationService {
       'off', 'inactive', 'disabled'
     ];
     
-    const hasState = stateKeywords.some(kw => normalized.includes(kw));
+    const hasState = stateKeywords.some(kw => this.containsWord(normalized, kw));
     
     const generalTriggers = [
-      "que esta", "que hay", "que tengo", "luces", "dispositivos", "estado", "cuales", "donde", "quien", "cuanto", "son", "cuarto", "habitacion",
+      "que", "hay", "tengo", "luces", "dispositivos", "estado", "cuales", "donde", "quien", "cuanto", "son", "cuarto", "habitacion",
       "esas", "esos", "esa", "eso",
-      "what is", "which", "status", "are on", "are off", "where", "those", "them"
+      "what", "whats", "which", "status", "on", "off", "where", "those", "them"
     ];
     
-    const isGeneral = generalTriggers.some(q => normalized.includes(q));
+    const isGeneral = generalTriggers.some(q => this.containsWord(normalized, q));
     
-    return isGeneral && (
+    const isGeneralState = isGeneral && (
       hasState ||
-      normalized.includes("hay") ||
-      normalized.includes("estan") ||
-      normalized.includes("son") ||
-      normalized.includes("donde") ||
-      normalized.includes("cuarto") ||
-      normalized.includes("habitacion")
+      this.containsWord(normalized, "hay") ||
+      this.containsWord(normalized, "estan") ||
+      this.containsWord(normalized, "son") ||
+      this.containsWord(normalized, "donde") ||
+      this.containsWord(normalized, "cuarto") ||
+      this.containsWord(normalized, "habitacion") ||
+      this.containsWord(normalized, "estado") ||
+      this.containsWord(normalized, "status") ||
+      this.containsWord(normalized, "esas") ||
+      this.containsWord(normalized, "esos") ||
+      this.containsWord(normalized, "esa") ||
+      this.containsWord(normalized, "eso") ||
+      this.containsWord(normalized, "those") ||
+      this.containsWord(normalized, "them")
     );
+    
+    if (!isGeneralState) return false;
+
+    // Safety: if it contains an action verb, it's probably NOT a state query (e.g. "enciende esa")
+    const actionVerbs = ['prende', 'apaga', 'enciende', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'turn on', 'turn off', 'open', 'close'];
+    const hasAction = actionVerbs.some(v => this.containsWord(normalized, v));
+    
+    return !hasAction;
   }
 
   private isLikelyHomeControlPrompt(normalized: string): boolean {
@@ -533,7 +859,10 @@ export class AssistantConversationService {
     const triggers = [
       'prende', 'apaga', 'enciende', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'toggle', 'turn on', 'turn off', 'open', 'close',
       'encendido', 'apagado', 'prendido', 'on', 'off', 'luces', 'dispositivos', 'estado',
-      'escena', 'rutina', 'automatizacion', 'scene', 'routine', 'automation'
+      'esa', 'eso', 'esas', 'esos', 'that', 'those', 'them',
+      'escena', 'rutina', 'automatizacion', 'scene', 'routine', 'automation',
+      'cuando diga', 'me refiero a', 'llama a', 'es mi', 'when i say', 'i mean', 'call this',
+      'crea', 'haz', 'create', 'make'
     ];
     return triggers.some(t => normalized.includes(t));
   }
@@ -670,11 +999,10 @@ export class AssistantConversationService {
 
     let message = "";
     const namePrefix = userName ? `${userName}, ` : '';
-    const namePrefixEN = userName ? `${userName}, ` : '';
 
     const areaPrefix = targetRoomName 
-      ? (language === 'en' ? `${namePrefixEN}status in ${targetRoomName}:\n\n` : `${namePrefix}estado en ${targetRoomName}:\n\n`)
-      : (language === 'en' ? `${namePrefixEN}home status:\n\n` : `${namePrefix}estado de la casa:\n\n`);
+      ? (language === 'en' ? `${namePrefix}status in ${targetRoomName}:\n\n` : `${namePrefix}estado en ${targetRoomName}:\n\n`)
+      : (language === 'en' ? `${namePrefix}home status:\n\n` : `${namePrefix}estado de la casa:\n\n`);
 
     message = areaPrefix;
 
@@ -721,7 +1049,7 @@ export class AssistantConversationService {
           : `No hay ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''} en este momento.`;
       } else {
         message = language === 'en'
-          ? `${namePrefixEN}you have ${onDevices.length} ${isLightsOnly ? 'lights' : 'devices'} on${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
+          ? `${namePrefix}you have ${onDevices.length} ${isLightsOnly ? 'lights' : 'devices'} on${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
           : `${namePrefix}tienes ${onDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
         message = message.charAt(0).toUpperCase() + message.slice(1);
         for (const d of onDevices) {
@@ -737,7 +1065,7 @@ export class AssistantConversationService {
           : `No hay ${isLightsOnly ? 'luces' : 'dispositivos'} apagadas${targetRoomName ? ' en ' + targetRoomName : ''} en este momento.`;
       } else {
         message = language === 'en'
-          ? `${namePrefixEN}you have ${offDevices.length} ${isLightsOnly ? 'lights' : 'devices'} off${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
+          ? `${namePrefix}you have ${offDevices.length} ${isLightsOnly ? 'lights' : 'devices'} off${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
           : `${namePrefix}tienes ${offDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} apagadas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
         message = message.charAt(0).toUpperCase() + message.slice(1);
         for (const d of offDevices) {
@@ -815,7 +1143,6 @@ export class AssistantConversationService {
 
   private buildCommandSuccessMessage(command: DeviceCommandV1, deviceName: string, userName: string | null, language: string): string {
     const namePrefix = userName ? `${userName}. ` : '';
-    const namePrefixEN = userName ? `${userName}. ` : '';
     
     let actionES = 'controlé';
     let actionEN = 'controlled';
@@ -829,7 +1156,7 @@ export class AssistantConversationService {
     }
 
     if (language === 'en') {
-      return `Done, ${namePrefixEN}I ${actionEN} ${deviceName}.`;
+      return `Done, ${namePrefix}I ${actionEN} ${deviceName}.`;
     } else {
       return `Listo, ${namePrefix}${actionES.charAt(0).toUpperCase() + actionES.slice(1)} la luz ${deviceName} correctamente.`;
     }
@@ -855,5 +1182,10 @@ export class AssistantConversationService {
       sourceId: 'assistant',
       correlationId
     });
+  }
+
+  private containsWord(source: string, word: string): boolean {
+    const regex = new RegExp(`(^|\\s)${word}(\\s|$)`, 'i');
+    return regex.test(source);
   }
 }
