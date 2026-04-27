@@ -28,6 +28,14 @@ describe('AssistantSmallTalkService', () => {
     expect(callArg).toContain('{"devices":[]}');
   });
 
+  it('should pass userId to contextBuilder if provided', async () => {
+    mockOllama.generateJson.mockResolvedValue({ text: 'Hello' });
+    
+    await service.handle('hola', 'es', 'Oscar', 'user-123');
+    
+    expect(mockContextBuilder.build).toHaveBeenCalledWith('user-123');
+  });
+
   it('should include userName in the prompt if provided', async () => {
     mockOllama.generateJson.mockResolvedValue({ text: 'Hello from Ollama' });
     

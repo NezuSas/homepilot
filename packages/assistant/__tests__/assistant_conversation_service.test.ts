@@ -14,10 +14,14 @@ import {
   createMockAssistantConfirmationPolicy, 
   createMockDeviceCommandDispatcher,
   createMockAssistantSmallTalk,
+  createMockAssistantMemory,
+  createMockFollowUpResolver,
   createTestDevice
 } from './test_helpers';
 import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+import type { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
+import { FollowUpResolverPort } from '../application/ports/FollowUpResolverPort';
 
 describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
@@ -30,6 +34,8 @@ describe('AssistantConversationService', () => {
   let mockSceneRepo: jest.Mocked<SceneRepository>;
   let mockExecutionRepo: jest.Mocked<ExecutionRecordRepository>;
   let mockSmallTalk: jest.Mocked<AssistantSmallTalkPort>;
+  let mockMemory: jest.Mocked<AssistantMemoryPort>;
+  let mockFollowUp: jest.Mocked<FollowUpResolverPort>;
 
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
@@ -55,6 +61,8 @@ describe('AssistantConversationService', () => {
       type: 'answer',
       message: 'Friendly fallback'
     });
+    mockMemory = createMockAssistantMemory();
+    mockFollowUp = createMockFollowUpResolver();
 
     service = new AssistantConversationService(
       mockInterpreter,
@@ -64,7 +72,9 @@ describe('AssistantConversationService', () => {
       mockDeviceRepo,
       mockRoomRepo,
       mockSceneRepo,
-      mockSmallTalk
+      mockSmallTalk,
+      mockMemory,
+      mockFollowUp
     );
   });
 
@@ -219,7 +229,7 @@ describe('AssistantConversationService', () => {
       expect(response.type).toBe('answer');
       expect(response.message).toContain('Encendidas:\n• Luz Sala');
       expect(response.message).toContain('Apagadas:\n• Luz Cocina');
-      expect(response.message).toContain('Estado de la casa:');
+      expect(response.message).toContain('estado de la casa:');
     });
 
     it('should filter by room name if found in repository', async () => {
@@ -302,7 +312,7 @@ describe('AssistantConversationService', () => {
         jest.clearAllMocks();
         const response = await service.converse({ prompt, userName: 'User' }, 'es');
         expect(response.type).toBe('answer');
-        expect(mockSmallTalk.handle).toHaveBeenCalledWith(prompt, 'es', 'User');
+        expect(mockSmallTalk.handle).toHaveBeenCalledWith(prompt, 'es', 'User', 'system');
         expect(mockInterpreter.interpret).not.toHaveBeenCalled();
       }
     });
@@ -328,7 +338,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'Tell me a joke' }, 'en');
       expect(response.type).toBe('answer');
       expect(response.message).toBe('Ollama says hello');
-      expect(mockSmallTalk.handle).toHaveBeenCalledWith('Tell me a joke', 'en', null);
+      expect(mockSmallTalk.handle).toHaveBeenCalledWith('Tell me a joke', 'en', null, 'system');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
       expect(mockExecutionRepo.save).not.toHaveBeenCalled();
     });

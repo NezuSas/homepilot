@@ -1,9 +1,11 @@
 import { AssistantMemoryService } from '../application/AssistantMemoryService';
 import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 import { ExecutionRecord } from '../../devices/domain/ExecutionRecord';
+import { AssistantMemoryRepository } from '../domain/repositories/AssistantMemoryRepository';
 
 describe('AssistantMemoryService', () => {
   let mockRepo: jest.Mocked<ExecutionRecordRepository>;
+  let mockMemoryRepo: jest.Mocked<AssistantMemoryRepository>;
   let service: AssistantMemoryService;
 
   beforeEach(() => {
@@ -13,7 +15,14 @@ describe('AssistantMemoryService', () => {
       findBySource: jest.fn(),
       findById: jest.fn(),
     };
-    service = new AssistantMemoryService(mockRepo);
+    mockMemoryRepo = {
+      upsert: jest.fn(),
+      findByKey: jest.fn(),
+      listByPrefix: jest.fn(),
+      delete: jest.fn(),
+      deleteExpired: jest.fn(),
+    };
+    service = new AssistantMemoryService(mockRepo, mockMemoryRepo);
   });
 
   it('should return null when there are no recent actions', async () => {

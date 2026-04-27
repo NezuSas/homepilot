@@ -3,7 +3,7 @@ import { Intent } from '../application/ports/IntentInterpreterPort';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
-import { createMockDeviceRepository, createMockSceneRepository, createMockLlmIntentInterpreter, createMockAssistantMemoryService } from './test_helpers';
+import { createMockDeviceRepository, createMockSceneRepository, createMockLlmIntentInterpreter, createMockAssistantMemory } from './test_helpers';
 
 describe('IntentInterpreterService Integration', () => {
   let mockDeviceRepo: jest.Mocked<DeviceRepository>;
@@ -77,7 +77,7 @@ describe('IntentInterpreterService Integration', () => {
 
   it('should resolve pronoun command if there is a valid recent device context', async () => {
     process.env.OLLAMA_ENABLED = 'false';
-    const mockMemoryService = createMockAssistantMemoryService({
+    const mockMemoryService = createMockAssistantMemory({
       getLastDeviceUsed: jest.fn().mockResolvedValue('device-123')
     });
     
@@ -95,7 +95,7 @@ describe('IntentInterpreterService Integration', () => {
 
   it('should return unknown for pronoun command if there is no recent device context', async () => {
     process.env.OLLAMA_ENABLED = 'false';
-    const mockMemoryService = createMockAssistantMemoryService({
+    const mockMemoryService = createMockAssistantMemory({
       getLastDeviceUsed: jest.fn().mockResolvedValue(null)
     });
     

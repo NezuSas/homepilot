@@ -25,7 +25,7 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
    * Generates a JSON string containing the minimal home setup context.
    * Excludes sensitive data like IPs, tokens, or internal states.
    */
-  public async build(): Promise<string> {
+  public async build(userId: string | null = 'system'): Promise<string> {
     const [allDevices, allScenes] = await Promise.all([
       this.deviceRepository.findAll(),
       this.sceneRepository.findAll(),
@@ -46,6 +46,7 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
     }));
 
     let recentActions: { deviceId: string; commandName: string; status: string }[] = [];
+    let lastConversationEntities: { id: string; name: string; type: string; roomId: string | null }[] = [];
     
     if (this.memoryService) {
       const records = await this.memoryService.getRecentActions(this.MAX_RECENT_ACTIONS);
@@ -56,12 +57,20 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
           status: action.status
         }))
       ).slice(0, this.MAX_RECENT_ACTIONS);
+
+      if (userId) {
+        const memory = await this.memoryService.getShortTermMemory(userId);
+        if (memory) {
+          lastConversationEntities = memory.entities;
+        }
+      }
     }
 
     return JSON.stringify({
       devices,
       scenes,
-      recentActions
+      recentActions,
+      lastConversationEntities
     });
   }
 }

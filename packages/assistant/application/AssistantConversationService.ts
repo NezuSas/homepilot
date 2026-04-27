@@ -10,6 +10,8 @@ import { Device } from '../../devices/domain/types';
 import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
+import type { AssistantMemoryPort } from './ports/AssistantMemoryPort';
+import type { FollowUpResolverPort } from './ports/FollowUpResolverPort';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -33,6 +35,7 @@ export interface AssistantConversationResponse {
 export interface AssistantConverseRequest {
   prompt: string;
   userName?: string;
+  userId?: string;
   selectedOptionId?: string;
   pendingAction?: {
     command?: DeviceCommandV1;
@@ -51,7 +54,9 @@ export class AssistantConversationService {
     private readonly deviceRepository: DeviceRepository,
     private readonly roomRepository: RoomRepository,
     private readonly sceneRepository: SceneRepository,
-    private readonly smallTalkService: AssistantSmallTalkPort
+    private readonly smallTalkService: AssistantSmallTalkPort,
+    private readonly memoryService: AssistantMemoryPort,
+    private readonly followUpResolver: FollowUpResolverPort
   ) {}
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
@@ -61,7 +66,25 @@ export class AssistantConversationService {
     }
 
     const prompt = request.prompt.trim();
-    const normalized = this.normalizePrompt(prompt);
+    const userId = request.userId || 'system';
+    
+    // V2: Load Contextual Memory & Aliases
+    const [memory, aliases] = await Promise.all([
+      this.memoryService.getShortTermMemory(userId),
+      this.memoryService.getAliases(userId)
+    ]);
+    
+    // V2: Follow-up Resolution
+    let activePrompt = prompt;
+    if (!request.selectedOptionId) {
+      const followUp = this.followUpResolver.resolve(prompt, memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }, language, aliases);
+      if (followUp.handled && followUp.response) {
+        return { type: 'answer', message: followUp.response };
+      }
+      activePrompt = followUp.resolvedPrompt;
+    }
+
+    const normalized = this.normalizePrompt(activePrompt);
     const userName = request.userName?.trim() || null;
     const namePrefix = userName ? `${userName}, ` : '';
     const namePrefixEN = userName ? `${userName}, ` : '';
@@ -147,7 +170,7 @@ export class AssistantConversationService {
 
     // G) State Queries
     if (this.isStateQuery(normalized)) {
-      return this.handleStateQuery(normalized, language, userName);
+      return this.handleStateQuery(normalized, language, userName, userId);
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
@@ -155,7 +178,7 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV === 'development') {
         console.log('[AssistantConversation] routing=smalltalk');
       }
-      return this.smallTalkService.handle(prompt, language, userName);
+      return this.smallTalkService.handle(activePrompt, language, userName, userId);
     }
 
     if (process.env.NODE_ENV === 'development') {
@@ -163,10 +186,10 @@ export class AssistantConversationService {
     }
 
     // C) Ambiguity & Regular Intent Flow
-    const intent = await this.intentInterpreter.interpret(request.prompt);
+    const intent = await this.intentInterpreter.interpret(activePrompt);
 
     if (intent.type === 'unknown') {
-      return this.smallTalkService.handle(prompt, language, userName);
+      return this.smallTalkService.handle(activePrompt, language, userName, userId);
     }
 
     // Check for ambiguity (deterministic V1 only for now)
@@ -190,6 +213,18 @@ export class AssistantConversationService {
             }
           }
         };
+      } else if (allMatches.length === 1) {
+        // V2: Save single match to memory for follow-ups even if not executed yet
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'intent_match',
+          entities: allMatches.map(d => ({
+            id: d.id,
+            name: d.name,
+            type: d.type,
+            roomId: d.roomId
+          })),
+          timestamp: new Date().toISOString()
+        });
       }
     }
 
@@ -243,6 +278,13 @@ export class AssistantConversationService {
             execution: result
           };
         }
+        // V2: Save to memory
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'execution',
+          entities: [{ id: intent.deviceId, name: deviceName, type: 'device', roomId: device?.roomId || null }],
+          timestamp: new Date().toISOString()
+        });
+
         return {
           type: 'execution',
           message: this.buildCommandSuccessMessage(intent.command as DeviceCommandV1, deviceName, userName, language),
@@ -413,13 +455,14 @@ export class AssistantConversationService {
     const hasState = stateKeywords.some(kw => normalized.includes(kw));
     
     const generalTriggers = [
-      "que esta", "que hay", "que tengo", "luces", "dispositivos", "estado", "cuales", "donde",
-      "what is", "which", "status", "are on", "are off"
+      "que esta", "que hay", "que tengo", "luces", "dispositivos", "estado", "cuales", "donde", "quien", "cuanto", "son", "cuarto", "habitacion",
+      "esas", "esos", "esa", "eso",
+      "what is", "which", "status", "are on", "are off", "where", "those", "them"
     ];
     
     const isGeneral = generalTriggers.some(q => normalized.includes(q));
     
-    return isGeneral && (hasState || normalized.includes("hay") || normalized.includes("estan"));
+    return isGeneral && (hasState || normalized.includes("hay") || normalized.includes("estan") || normalized.includes("son") || normalized.includes("donde"));
   }
 
   private isLikelyHomeControlPrompt(normalized: string): boolean {
@@ -438,7 +481,7 @@ export class AssistantConversationService {
     return triggers.some(t => normalized.includes(t));
   }
 
-  private async handleStateQuery(normalized: string, language: string, userName: string | null): Promise<AssistantConversationResponse> {
+  private async handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<AssistantConversationResponse> {
     const allDevices = await this.deviceRepository.findAll();
     const rooms = await this.roomRepository.findRoomsByHomeId('system');
     
@@ -522,8 +565,7 @@ export class AssistantConversationService {
       ? (language === 'en' ? `${namePrefixEN}status in ${targetRoomName}:\n\n` : `${namePrefix}estado en ${targetRoomName}:\n\n`)
       : (language === 'en' ? `${namePrefixEN}home status:\n\n` : `${namePrefix}estado de la casa:\n\n`);
 
-    // Capitalize first letter of areaPrefix
-    const formattedAreaPrefix = areaPrefix.charAt(0).toUpperCase() + areaPrefix.slice(1);
+    message = areaPrefix;
 
     if (isCompound || hasNoExplicitState) {
       // If devices exist but we have NO known states for any of them, fallback gracefully
@@ -536,22 +578,28 @@ export class AssistantConversationService {
         };
       }
 
-      message = formattedAreaPrefix;
+      message = areaPrefix;
       
       // On section
       message += language === 'en' ? "On:\n" : "Encendidas:\n";
       if (onDevices.length > 0) {
-        message += onDevices.map(d => `• ${d.name}`).join('\n');
+        for (const d of onDevices) {
+          const room = rooms.find(r => r.id === d.roomId);
+          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+        }
       } else {
         message += language === 'en' ? "• None" : "• Ninguna";
       }
       
-      message += "\n\n";
+      message += "\n";
       
       // Off section
       message += language === 'en' ? "Off:\n" : "Apagadas:\n";
       if (offDevices.length > 0) {
-        message += offDevices.map(d => `• ${d.name}`).join('\n');
+        for (const d of offDevices) {
+          const room = rooms.find(r => r.id === d.roomId);
+          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+        }
       } else {
         message += language === 'en' ? "• None" : "• Ninguna";
       }
@@ -565,7 +613,10 @@ export class AssistantConversationService {
           ? `${namePrefixEN}you have ${onDevices.length} ${isLightsOnly ? 'lights' : 'devices'} on${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
           : `${namePrefix}tienes ${onDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
         message = message.charAt(0).toUpperCase() + message.slice(1);
-        message += onDevices.map(d => `• ${d.name}`).join('\n');
+        for (const d of onDevices) {
+          const room = rooms.find(r => r.id === d.roomId);
+          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+        }
       }
     } else {
       // Off query
@@ -578,8 +629,25 @@ export class AssistantConversationService {
           ? `${namePrefixEN}you have ${offDevices.length} ${isLightsOnly ? 'lights' : 'devices'} off${targetRoomName ? ' in ' + targetRoomName : ''}:\n`
           : `${namePrefix}tienes ${offDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} apagadas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
         message = message.charAt(0).toUpperCase() + message.slice(1);
-        message += offDevices.map(d => `• ${d.name}`).join('\n');
+        for (const d of offDevices) {
+          const room = rooms.find(r => r.id === d.roomId);
+          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+        }
       }
+    }
+
+    // V2: Save state result to memory
+    if (filteredDevices && filteredDevices.length > 0) {
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'state_devices',
+        entities: filteredDevices.map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          roomId: d.roomId
+        })),
+        timestamp: new Date().toISOString()
+      });
     }
 
     return {

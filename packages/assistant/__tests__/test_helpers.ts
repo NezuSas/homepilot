@@ -11,6 +11,8 @@ import type { DeviceCommandDispatcherPort } from '../../devices/application/port
 import type { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
 import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+import { FollowUpResolverPort } from '../application/ports/FollowUpResolverPort';
+import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 
 /**
  * Shared test helpers for Assistant tests to avoid 'as any' and duplicate definitions.
@@ -112,13 +114,33 @@ export const createMockLlmIntentInterpreter = (
   return mock;
 };
 
-export const createMockAssistantMemoryService = (
+export const createMockAssistantMemory = (
   overrides?: Partial<jest.Mocked<AssistantMemoryPort>>
 ): jest.Mocked<AssistantMemoryPort> => {
   const mock: jest.Mocked<AssistantMemoryPort> = {
     getRecentActions: jest.fn(),
     getLastDeviceUsed: jest.fn(),
     getLastSceneUsed: jest.fn(),
+    saveShortTermMemory: jest.fn().mockResolvedValue(undefined),
+    getShortTermMemory: jest.fn().mockResolvedValue(null),
+    getUserPreference: jest.fn().mockResolvedValue(null),
+    setUserPreference: jest.fn().mockResolvedValue(undefined),
+    getAlias: jest.fn().mockResolvedValue(null),
+    getAliases: jest.fn().mockResolvedValue({}),
+    setAlias: jest.fn().mockResolvedValue(undefined),
+    ...overrides
+  };
+  return mock;
+};
+
+export const createMockFollowUpResolver = (
+  overrides?: Partial<jest.Mocked<FollowUpResolverPort>>
+): jest.Mocked<FollowUpResolverPort> => {
+  const mock: jest.Mocked<FollowUpResolverPort> = {
+    resolve: jest.fn().mockImplementation((prompt) => ({
+      resolvedPrompt: prompt,
+      handled: false
+    })),
     ...overrides
   };
   return mock;
@@ -161,6 +183,19 @@ export const createMockRoomRepository = (
     saveRoom: jest.fn(),
     findRoomsByHomeId: jest.fn(),
     findRoomById: jest.fn(),
+    ...overrides
+  };
+  return mock;
+};
+
+export const createMockExecutionRecordRepository = (
+  overrides?: Partial<jest.Mocked<ExecutionRecordRepository>>
+): jest.Mocked<ExecutionRecordRepository> => {
+  const mock: jest.Mocked<ExecutionRecordRepository> = {
+    save: jest.fn(),
+    findRecent: jest.fn(),
+    findBySource: jest.fn(),
+    findById: jest.fn(),
     ...overrides
   };
   return mock;

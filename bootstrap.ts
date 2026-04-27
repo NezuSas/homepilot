@@ -18,6 +18,7 @@ import { AssistantConfirmationPolicy } from './packages/assistant/application/As
 import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
 import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
 import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
+import { FollowUpResolver } from './packages/assistant/application/FollowUpResolver';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -28,6 +29,7 @@ import type { SqliteSceneRepository } from './packages/devices/infrastructure/re
 import type { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import type { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import type { SQLiteExecutionRecordRepository } from './packages/devices/infrastructure/repositories/SQLiteExecutionRecordRepository';
+import type { SQLiteAssistantMemoryRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantMemoryRepository';
 import type { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import type { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import type { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -63,6 +65,7 @@ export interface BootstrapContainer {
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
     executionRecordRepository: SQLiteExecutionRecordRepository;
+    assistantMemoryRepository: SQLiteAssistantMemoryRepository;
     settingsRepository: SQLiteSettingsRepository;
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
@@ -214,7 +217,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   if (process.env.OLLAMA_ENABLED === 'true') {
     console.log(`[Assistant] Ollama enabled: model=${process.env.OLLAMA_MODEL || 'phi3'}, baseUrl=${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}`);
   }
-  const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository);
+  const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository, repos.assistantMemoryRepository);
+  const followUpResolver = new FollowUpResolver();
   const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
 
@@ -240,7 +244,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.deviceRepository,
     repos.roomRepository,
     repos.sceneRepository,
-    assistantSmallTalkService
+    assistantSmallTalkService,
+    assistantMemoryService,
+    followUpResolver
   );
 
   const container: BootstrapContainer = {

@@ -14,6 +14,7 @@ import { SQLiteActivityLogRepository } from '../../packages/devices/infrastructu
 import { SQLiteExecutionRecordRepository } from '../../packages/devices/infrastructure/repositories/SQLiteExecutionRecordRepository';
 import { SQLiteSettingsRepository } from '../../packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import { SqliteSystemVariableRepository } from '../../packages/system-vars/infrastructure/SqliteSystemVariableRepository';
+import { SQLiteAssistantMemoryRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantMemoryRepository';
 import type { SqliteDatabaseManager } from '../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 
 export interface RepositoriesAssembly {
@@ -27,6 +28,7 @@ export interface RepositoriesAssembly {
   executionRecordRepository: SQLiteExecutionRecordRepository;
   settingsRepository: SQLiteSettingsRepository;
   systemVariableRepository: SqliteSystemVariableRepository;
+  assistantMemoryRepository: SQLiteAssistantMemoryRepository;
 }
 
 export function buildRepositories(
@@ -44,5 +46,6 @@ export function buildRepositories(
     executionRecordRepository: new SQLiteExecutionRecordRepository(db),
     settingsRepository: new SQLiteSettingsRepository(dbPath),
     systemVariableRepository: new SqliteSystemVariableRepository(dbPath),
+    assistantMemoryRepository: new SQLiteAssistantMemoryRepository(dbPath),
   };
 }
