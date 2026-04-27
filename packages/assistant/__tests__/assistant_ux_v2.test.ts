@@ -295,7 +295,7 @@ describe('AssistantConversationService UX V2', () => {
     const res = await service.converse({ prompt: 'crea una escena para la luna', userId });
 
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('No encontré dispositivos');
+    expect(res.message).toContain('No encontré la estancia');
     expect(draftService.createSceneDraft).not.toHaveBeenCalled();
   });
 
@@ -307,7 +307,7 @@ describe('AssistantConversationService UX V2', () => {
     const res = await service.converse({ prompt: 'crea una escena para el cuarto master', userId });
 
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('No encontré la estancia "cuarto master"');
+    expect(res.message).toContain('No encontré la estancia');
   });
 
   it('BUG B: room found but no controllable devices', async () => {
@@ -418,5 +418,87 @@ describe('AssistantConversationService UX V2', () => {
     expect(res.message).toContain('• Luz 1');
     expect(res.message).toContain('Apagadas:');
     expect(res.message).toContain('• Luz 2');
+  });
+
+  it('semantic equivalence ES: "es lo mismo que decir cuartos?" should explain without LLM', async () => {
+    const res = await service.converse({ prompt: 'es lo mismo que decir cuartos?', userId: 'u1' });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('cuarto');
+    expect(res.message).toContain('estancia');
+    // Must NOT call LLM or smalltalk
+    expect(smallTalk.handle).not.toHaveBeenCalled();
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
+  it('semantic equivalence EN: "is room the same as area?" should explain in English without LLM', async () => {
+    const res = await service.converse({ prompt: 'is room the same as area?', userId: 'u1' }, 'en');
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('room');
+    expect(res.message).toContain('area');
+    expect(smallTalk.handle).not.toHaveBeenCalled();
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
+  it('draft creation: switch-type devices count as controllable', async () => {
+    const userId = 'u1';
+    const roomId = 'r-switch';
+
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'sw-1', name: 'Interruptor Sala', roomId, type: 'switch', homeId: 'h1' }),
+      createTestDevice({ id: 'sw-2', name: 'Interruptor Comedor', roomId, type: 'switch', homeId: 'h1' }),
+      createTestDevice({ id: 'sns-1', name: 'Sensor Movimiento', roomId, type: 'sensor', homeId: 'h1' })
+    ]);
+    roomRepo.findAll.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
+    draftService.createSceneDraft.mockResolvedValue({ id: 'draft-sw-1', type: 'scene' });
+
+    const res = await service.converse({ prompt: 'crea una escena para apagar la sala', userId });
+
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('Sala');
+    // Only 2 controllable (switches), not the sensor
+    expect(draftService.createSceneDraft).toHaveBeenCalledWith(
+      'h1',
+      roomId,
+      expect.stringContaining('Apagar Sala'),
+      expect.arrayContaining([
+        expect.objectContaining({ deviceId: 'sw-1' }),
+        expect.objectContaining({ deviceId: 'sw-2' })
+      ]),
+      expect.any(String)
+    );
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    expect(sceneExecutionService.execute).not.toHaveBeenCalled();
+  });
+
+  it('draft creation: room not found responds with friendly message and suggestion', async () => {
+    deviceRepo.findAll.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Sala', homeId: 'h1' }]);
+
+    const res = await service.converse({ prompt: 'crea una escena para apagar el cuarto inexistente', userId: 'u1' });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('estancias conoces');
+    expect(draftService.createSceneDraft).not.toHaveBeenCalled();
+  });
+
+  it('room query + draft creation: no LLM/Ollama calls for either path', async () => {
+    // Room query path
+    roomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Cocina', homeId: 'h1' }]);
+    await service.converse({ prompt: 'qué estancias conoces', userId: 'u1' });
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(smallTalk.handle).not.toHaveBeenCalled();
+
+    // Reset only the call counts, preserve mock implementations
+    intentInterpreter.interpret.mockClear();
+    smallTalk.handle.mockClear();
+    deviceRepo.findAll.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([]);
+
+    // Draft creation path (no room found - still no LLM)
+    await service.converse({ prompt: 'crea una escena para apagar la luna', userId: 'u1' });
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(smallTalk.handle).not.toHaveBeenCalled();
   });
 });

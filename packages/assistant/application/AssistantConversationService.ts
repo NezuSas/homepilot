@@ -9,6 +9,8 @@ import { DeviceCommandV1 } from '../../devices/domain/commands';
 import { Scene } from '../../devices/domain/Scene';
 import { Device } from '../../devices/domain/types';
 import { DeviceCapability } from '../../devices/domain/capabilities';
+import { resolveCapabilitiesForDevice } from '../../devices/domain/CapabilityResolver';
+import { validateDeviceCommand } from '../../devices/domain/CommandCapabilityValidator';
 import { Room } from '../../topology/domain/types';
 import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
@@ -217,6 +219,11 @@ export class AssistantConversationService {
     }
 
     // V2: Follow-up Resolution
+    
+    // A2) Semantic Equivalence
+    if (this.isEquivalenceQuery(normalized)) {
+      return this.handleEquivalenceQuery(language);
+    }
 
     // B) Greetings
     if (this.isGreeting(normalized)) {
@@ -664,6 +671,34 @@ export class AssistantConversationService {
     };
   }
 
+  private isEquivalenceQuery(normalized: string): boolean {
+    const triggersES = [
+      'es lo mismo que decir', 'es igual a decir', 'es lo mismo que', 'es igual a',
+      'quiere decir lo mismo', 'significa lo mismo', 'igual que', 'lo mismo que'
+    ];
+    const wordsES = ['cuarto', 'estancia', 'habitacion', 'zona', 'room', 'area', 'espacio'];
+    
+    const triggersEN = [
+      'is the same as', 'is equal to', 'means the same as', 'is it the same',
+      'the same as', 'same as', 'equivalent to'
+    ];
+    const wordsEN = ['room', 'area', 'space', 'zone', 'chamber', 'quarter'];
+
+    const hasTrigger = triggersES.some(t => normalized.includes(t)) || triggersEN.some(t => normalized.includes(t));
+    const hasWord = wordsES.some(w => normalized.includes(w)) || wordsEN.some(w => normalized.includes(w));
+    
+    return hasTrigger && hasWord;
+  }
+
+  private handleEquivalenceQuery(language: string): AssistantConversationResponse {
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? 'Yes. In HomePilot, you can say "room", "area", or "space". I’ll treat them as references to where your devices are located.'
+        : 'Sí, en HomePilot puedes decir "cuarto", "habitación", "estancia" o "zona". Los usaré como referencias al espacio donde están tus dispositivos.'
+    };
+  }
+
   private isDraftCreation(normalized: string): boolean {
     const triggers = [
       'crea una escena', 'crear escena', 'crea un modo', 'crear modo', 'haz una escena', 'prepara una escena',
@@ -681,11 +716,6 @@ export class AssistantConversationService {
         this.roomRepository.findAll()
       ]);
 
-      const roomMap = new Map<string, string>();
-      for (const r of allRooms) {
-        roomMap.set(r.id, r.name);
-      }
-
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] handleDraftCreation normalized prompt: "${normalized}"`);
         console.debug(`[AssistantConversation] Available rooms: ${allRooms.map((r: Room) => r.name).join(', ')}`);
@@ -694,23 +724,22 @@ export class AssistantConversationService {
       let targetRoomId: string | null = null;
       let targetRoomName: string | null = null;
 
-      // Better room matching: check for exact match or synonyms
+      // Improved room matching with synonym support
       for (const room of allRooms) {
         const normRoom = this.normalizePrompt(room.name);
-        const roomWords = normRoom.split(' ');
         
-        // Match exact room name or its components
+        // Exact match of room name in prompt
         if (normalized.includes(normRoom)) {
           targetRoomId = room.id;
           targetRoomName = room.name;
           break;
         }
 
-        // Handle synonyms (cuarto master matches habitacion master, etc)
-        const synonyms = ['cuarto', 'habitacion', 'estancia', 'zona', 'room', 'dormitorio'];
-        for (const syn of synonyms) {
-          const synMatch = normRoom.replace(/\b(cuarto|habitacion|estancia|zona|room|dormitorio)\b/g, syn);
-          if (normalized.includes(synMatch)) {
+        // Try replacing room type keywords to find matches (habitacion master -> cuarto master)
+        const roomKeywords = ['cuarto', 'habitacion', 'estancia', 'zona', 'room', 'dormitorio'];
+        for (const keyword of roomKeywords) {
+          const replacedRoom = normRoom.replace(/\b(cuarto|habitacion|estancia|zona|room|dormitorio)\b/g, keyword);
+          if (normalized.includes(replacedRoom)) {
             targetRoomId = room.id;
             targetRoomName = room.name;
             break;
@@ -719,51 +748,40 @@ export class AssistantConversationService {
         if (targetRoomId) break;
       }
 
-      // Infer command
+      // Infer command (turn_off by default for scenes/routines if not specified)
       const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
 
-      // 4. Validate Room mentioned vs found
       if (!targetRoomId) {
         const mentionedRoom = this.extractMentionedRoomName(normalized);
-        if (mentionedRoom) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug(`[AssistantConversation] Room mentioned "${mentionedRoom}" but not found in DB`);
-          }
-          return {
-            type: 'answer',
-            message: language === 'en'
-              ? `I couldn't find the room "${mentionedRoom}".`
-              : `No encontré la estancia "${mentionedRoom}".`
-          };
+        return {
+          type: 'answer',
+          message: language === 'en'
+            ? `I couldn't find the room "${mentionedRoom || 'specified'}". You can ask me "what rooms do you know".`
+            : `No encontré la estancia "${mentionedRoom || 'especificada'}". Puedes preguntarme "qué estancias conoces".`
+        };
+      }
+
+      // Filter devices for that specific room
+      const roomDevices = devices.filter((d: Device) => d.roomId === targetRoomId);
+      
+      // Filter for controllable devices for the desired command
+      const targetDevices = roomDevices.filter((d: Device) => this.isControllableDevice(d, command));
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] Room: ${targetRoomName} (${targetRoomId})`);
+        console.debug(`[AssistantConversation] Devices in room: ${roomDevices.length}`);
+        console.debug(`[AssistantConversation] Controllable devices found: ${targetDevices.map((d: Device) => d.name).join(', ')}`);
+        
+        if (targetDevices.length === 0 && roomDevices.length > 0) {
+          console.debug(`[AssistantConversation] Diagnostics for room ${targetRoomName}:`);
+          roomDevices.forEach((d: Device) => {
+            const caps = resolveCapabilitiesForDevice(d);
+            console.debug(` - ${d.name}: type=${d.type}, caps=${caps.map(c => c.type).join(',')}, status=${d.status}`);
+          });
         }
       }
 
-      // Filter devices in that room
-      let targetDevices = targetRoomId ? devices.filter((d: Device) => d.roomId === targetRoomId) : [];
-      
-      // Filter for controllable devices
-      targetDevices = targetDevices.filter((d: Device) => {
-        const type = d.type.toLowerCase();
-        const name = d.name.toLowerCase();
-        
-        // Exclude sensors and binary sensors
-        if (type === 'sensor' || type === 'binary_sensor' || name.includes('sensor')) return false;
-        
-        // Include lights, switches, outlets
-        if (type === 'light' || type === 'switch' || type === 'outlet' || name.includes('luz') || name.includes('enchufe')) return true;
-        
-        // Check capabilities if available
-        if (d.capabilities) {
-          return d.capabilities.some((cap: DeviceCapability) => 
-            cap.type === 'light' || cap.type === 'switch' || cap.type === 'dimmer'
-          );
-        }
-
-        return false;
-      });
-
-      // 5. Room found but no devices
-      if (targetRoomId && targetDevices.length === 0) {
+      if (targetDevices.length === 0) {
         return {
           type: 'answer',
           message: language === 'en'
@@ -772,27 +790,17 @@ export class AssistantConversationService {
         };
       }
 
-      if (targetDevices.length === 0) {
-        return {
-          type: 'answer',
-          message: language === 'en'
-            ? "I couldn't find any suitable devices to create that draft. Please specify the room or device."
-            : "No encontré dispositivos adecuados para crear ese borrador. Por favor, especifica la estancia o el dispositivo."
-        };
-      }
-
-      const name = targetRoomName 
-        ? (language === 'en' ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetRoomName}` : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${targetRoomName}`)
-        : (language === 'en' ? 'New Scene' : 'Nueva Escena');
+      // Create Draft using actual SceneAction shape
+      const name = language === 'en'
+        ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetRoomName}`
+        : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${targetRoomName}`;
       
-      const fingerprint = `draft:${userId}:${normalized}:${targetRoomId || 'global'}`;
-      
-      // Get real homeId from room or first device
-      const targetRoom = targetRoomId ? allRooms.find((r: Room) => r.id === targetRoomId) : null;
-      const homeId = targetRoom?.homeId || targetDevices[0]?.homeId || 'system';
+      const fingerprint = `draft:${userId}:${normalized}:${targetRoomId}`;
+      const homeId = targetRoomId ? allRooms.find((r: Room) => r.id === targetRoomId)?.homeId || 'system' : 'system';
 
       let draftId = '';
       if (isScene) {
+        // Correct SceneAction shape: { deviceId, command: { name, params } }
         const actions = targetDevices.map((d: Device) => ({
           deviceId: d.id,
           command: { name: command, params: {} }
@@ -818,28 +826,56 @@ export class AssistantConversationService {
       return {
         type: 'clarification',
         message: language === 'en'
-          ? `I've prepared a draft of a ${isScene ? 'scene' : 'routine'} to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${targetDevices.length} devices in ${targetRoomName || 'your home'}.`
-          : `He preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${command === 'turn_on' ? 'encender' : 'apagar'} ${targetDevices.length} dispositivos en ${targetRoomName || 'tu casa'}.`,
+          ? `Oscar, I've prepared a draft of a ${isScene ? 'scene' : 'routine'} to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${targetDevices.length} devices in ${targetRoomName}. Do you want to activate it now?`
+          : `Oscar, he preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${command === 'turn_on' ? 'encender' : 'apagar'} ${targetDevices.length} dispositivos en ${targetRoomName}. ¿Quieres activarlo ahora?`,
         clarification: {
-          question: language === 'en' ? "Would you like to activate it now?" : "¿Quieres activarlo ahora?",
+          question: language === 'en' ? 'Do you want to activate it?' : '¿Quieres activarlo?',
           options: [
-            { id: 'confirm', label: language === 'en' ? "Yes, activate" : "Sí, activar", kind: 'device' },
-            { id: 'cancel', label: language === 'en' ? "No, discard" : "No, descartar", kind: 'device' }
+            { id: 'confirm', label: language === 'en' ? 'Yes, activate' : 'Sí, activar', kind: 'scene' },
+            { id: 'cancel', label: language === 'en' ? 'No, cancel' : 'No, cancelar', kind: 'scene' }
           ]
         }
       };
-    } catch (error: unknown) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[Assistant] Error in handleDraftCreation:', error);
-      }
+    } catch (error) {
+      console.error('[AssistantConversation] Error in handleDraftCreation:', error);
       return {
         type: 'answer',
         message: language === 'en'
-          ? "I couldn't prepare the scene draft. Please ensure there are devices in that room."
-          : "No pude preparar el borrador de escena. Revisa que existan dispositivos en esa estancia."
+          ? 'I couldn\'t prepare the scene draft. Make sure there are controllable devices in that room.'
+          : 'No pude preparar el borrador de escena. Revisa que existan dispositivos en esa estancia.'
       };
     }
   }
+
+  private isControllableDevice(device: Device, command: string): boolean {
+    // 1. Exclude devices with unavailable state
+    const state = device.lastKnownState;
+    if (state && typeof state['state'] === 'string' && state['state'] === 'unavailable') return false;
+
+    // 2. Use domain validator for accurate check (resolves HA externalId, capabilities, type fallback)
+    const validation = validateDeviceCommand(device, { name: command as any, params: {} });
+    if (validation.valid) return true;
+
+    // 3. Fallback heuristic for legacy or missing capabilities
+    const type = device.type.toLowerCase();
+    const name = device.name.toLowerCase();
+    const controllableTypes = ['light', 'switch', 'outlet', 'dimmer', 'cover'];
+
+    // Explicitly exclude sensors
+    if (type.includes('sensor')) return false;
+    if (name.includes('sensor')) return false;
+
+    if (controllableTypes.includes(type)) return true;
+
+    // Last resort: names that suggest controllable hardware
+    if (name.includes('luz') || name.includes('foco') || name.includes('lampara') || name.includes('interruptor')) {
+      return true;
+    }
+
+    return false;
+  }
+
+
 
   private isRoomQuery(normalized: string): boolean {
     const triggers = [
