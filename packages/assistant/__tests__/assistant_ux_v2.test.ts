@@ -165,7 +165,7 @@ describe('AssistantConversationService UX V2', () => {
     }));
   });
 
-  it('draft: should create draft and then activate on "yes"', async () => {
+  it('draft: should create draft and then activate on "yes" (natural language)', async () => {
     const userId = 'u1';
     const prompt = 'crea una escena para cine en la sala';
     
@@ -190,8 +190,57 @@ describe('AssistantConversationService UX V2', () => {
     const res2 = await service.converse({ prompt: 'sí', userId });
     
     expect(res2.type).toBe('answer');
-    expect(res2.message).toContain('activado');
+    expect(res2.message).toContain('activada correctamente'); // Match the updated message
     expect(draftService.activateDraft).toHaveBeenCalledWith('d-1', userId);
+    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({ pendingDraft: undefined }));
+  });
+
+  it('draft: should activate draft on UI button click (selectedOptionId="confirm")', async () => {
+    const userId = 'u1';
+    memory.getShortTermMemory.mockResolvedValue({
+      pendingDraft: { id: 'd-1', type: 'scene', originalPrompt: 'crea una escena...' },
+      timestamp: new Date().toISOString(),
+      entities: []
+    });
+
+    const res = await service.converse({ prompt: 'Sí, activar', userId, selectedOptionId: 'confirm' });
+    
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('activada correctamente');
+    expect(draftService.activateDraft).toHaveBeenCalledWith('d-1', userId);
+    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({ pendingDraft: undefined }));
+  });
+
+  it('draft: should cancel draft on UI button click (selectedOptionId="cancel")', async () => {
+    const userId = 'u1';
+    memory.getShortTermMemory.mockResolvedValue({
+      pendingDraft: { id: 'd-1', type: 'scene', originalPrompt: 'crea una escena...' },
+      timestamp: new Date().toISOString(),
+      entities: []
+    });
+
+    const res = await service.converse({ prompt: 'No, cancelar', userId, selectedOptionId: 'cancel' });
+    
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('no activé la escena');
+    expect(draftService.activateDraft).not.toHaveBeenCalled();
+    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({ pendingDraft: undefined }));
+  });
+
+  it('draft: should cancel draft on "no" (natural language)', async () => {
+    const userId = 'u1';
+    memory.getShortTermMemory.mockResolvedValue({
+      pendingDraft: { id: 'd-1', type: 'scene', originalPrompt: 'crea una escena...' },
+      timestamp: new Date().toISOString(),
+      entities: []
+    });
+
+    const res = await service.converse({ prompt: 'no', userId });
+    
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('no activé la escena');
+    expect(draftService.activateDraft).not.toHaveBeenCalled();
+    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({ pendingDraft: undefined }));
   });
 
   it('BUG A: "la primera" should resolve selection using clarificationOptions and pendingIntent', async () => {

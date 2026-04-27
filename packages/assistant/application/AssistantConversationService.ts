@@ -67,6 +67,51 @@ export class AssistantConversationService {
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
+    const prompt = request.prompt.trim();
+    const userId = request.userId || 'system';
+    const userName = request.userName?.trim() || null;
+    const namePrefix = userName ? `${userName}, ` : '';
+    const normalized = this.normalizePrompt(prompt);
+
+    // V2: Load Contextual Memory & Aliases FIRST
+    const t_mem = Date.now();
+    const [memory, aliases] = await Promise.all([
+      this.memoryService.getShortTermMemory(userId),
+      this.memoryService.getAliases(userId)
+    ]);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[AssistantConversation] Memory load took ${Date.now() - t_mem}ms`);
+    }
+
+    // --- TOP PRIORITY: DRAFT CONFIRMATION ---
+    // Handle both UI button clicks (selectedOptionId='confirm'/'cancel') and natural language ("sí", "no")
+    if (memory?.pendingDraft) {
+      const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
+      const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
+
+      if (isAffirmative) {
+        try {
+          await this.draftService.activateDraft(memory.pendingDraft.id, userId);
+          await this.clearPendingAction(userId);
+          return {
+            type: 'answer',
+            message: language === 'en' ? "Ready. Scene activated successfully." : "Listo. Escena activada correctamente."
+          };
+        } catch (err: unknown) {
+          console.error('[AssistantConversation] Error activating draft:', err);
+          return {
+            type: 'error',
+            message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena."
+          };
+        }
+      } else if (isNegative) {
+        await this.clearPendingAction(userId);
+        return {
+          type: 'answer',
+          message: language === 'en' ? "Understood, I didn't activate the scene." : "Entendido, no activé la escena."
+        };
+      }
+    }
 
     // A) Selected Option Flow
     if (request.selectedOptionId) {
@@ -77,24 +122,8 @@ export class AssistantConversationService {
       return result;
     }
 
-    const prompt = request.prompt.trim();
-    const userId = request.userId || 'system';
-    const userName = request.userName?.trim() || null;
-    const namePrefix = userName ? `${userName}, ` : '';
-
-    // V2: Load Contextual Memory & Aliases
-    const t_mem = Date.now();
-    const [memory, aliases] = await Promise.all([
-      this.memoryService.getShortTermMemory(userId),
-      this.memoryService.getAliases(userId)
-    ]);
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug(`[AssistantConversation] Memory load took ${Date.now() - t_mem}ms`);
-    }
-
     // V2: Follow-up Resolution
     let activePrompt = prompt;
-    const normalized = this.normalizePrompt(activePrompt);
     let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
 
     if (!request.selectedOptionId) {
@@ -123,31 +152,6 @@ export class AssistantConversationService {
           } else {
             // Auto-clear if expired
             await this.clearPendingAction(userId);
-          }
-        }
-
-        // A2: Check Pending Draft
-        if (memory?.pendingDraft) {
-          if (this.isPositiveConfirmation(normalized)) {
-            try {
-              await this.draftService.activateDraft(memory.pendingDraft.id, userId);
-              await this.clearPendingAction(userId);
-              return {
-                type: 'answer',
-                message: language === 'en' ? "Draft activated and saved." : "Borrador activado y guardado correctamente."
-              };
-            } catch (err: unknown) {
-              return {
-                type: 'error',
-                message: language === 'en' ? "Failed to activate draft." : "No se pudo activar el borrador."
-              };
-            }
-          } else if (this.isNegativeConfirmation(normalized)) {
-            await this.clearPendingAction(userId);
-            return {
-              type: 'answer',
-              message: language === 'en' ? "Draft discarded." : "Borrador descartado."
-            };
           }
         }
 
