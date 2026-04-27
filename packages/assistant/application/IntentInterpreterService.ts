@@ -20,29 +20,38 @@ export class IntentInterpreterService implements IntentInterpreterPort {
 
   public async interpret(prompt: string): Promise<Intent> {
     const t0 = Date.now();
-    const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
+    
+    // 1. Always try deterministic first (fast path)
+    const t_det = Date.now();
+    const deterministicResult = await this.interpretDeterministic(prompt);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[IntentInterpreter] deterministic path: ${Date.now() - t_det}ms → ${deterministicResult.type}`);
+    }
 
+    if (deterministicResult.type !== 'unknown') {
+      return deterministicResult;
+    }
+
+    // 2. Fallback to LLM if enabled and deterministic failed
+    const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
     if (isLlmEnabled && this.llmInterpreter) {
+      const t_llm = Date.now();
       try {
         const intent = await this.llmInterpreter.interpret(prompt);
         if (intent && intent.type !== 'unknown') {
           if (process.env.NODE_ENV !== 'production') {
-            console.debug(`[IntentInterpreter] LLM path: ${Date.now() - t0}ms → ${intent.type}`);
+            console.debug(`[IntentInterpreter] LLM path: ${Date.now() - t_llm}ms → ${intent.type}`);
           }
           return intent;
         }
       } catch (error) {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Assistant] LLM interpretation failed, falling back to deterministic.');
+          console.warn('[Assistant] LLM interpretation failed:', error instanceof Error ? error.message : String(error));
         }
       }
     }
 
-    const result = await this.interpretDeterministic(prompt);
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug(`[IntentInterpreter] deterministic path: ${Date.now() - t0}ms → ${result.type}`);
-    }
-    return result;
+    return deterministicResult;
   }
 
   private escapeRegExp(value: string): string {

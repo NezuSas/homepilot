@@ -49,7 +49,11 @@ export async function syncDeviceStateUseCase(
   };
 
   // 4. Persistencia Source of Truth
+  const t_save = Date.now();
   await deps.deviceRepository.saveDevice(updatedDevice);
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug(`[syncDeviceStateUseCase] deviceRepository.saveDevice took ${Date.now() - t_save}ms`);
+  }
 
   // 5. Difusión de Cambio de Estado (Best-effort Domain Event)
   try {
@@ -62,13 +66,18 @@ export async function syncDeviceStateUseCase(
       correlationId,
       { idGenerator: deps.idGenerator, clock: deps.clock }
     );
+    const t_pub = Date.now();
     await deps.eventPublisher.publish(stateUpdatedEvent);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[syncDeviceStateUseCase] eventPublisher.publish took ${Date.now() - t_pub}ms`);
+    }
   } catch (_error) {
     // Silencio: El fallo del publicador no debe opacar el éxito de la persistencia del snapshot
   }
 
   // 6. Registro en Read Model (Best-effort activity log)
   try {
+    const t_log = Date.now();
     await deps.activityLogRepository.saveActivity({
       timestamp: now,
       deviceId: device.id,
@@ -76,6 +85,9 @@ export async function syncDeviceStateUseCase(
       description: `Device state updated to ${JSON.stringify(newState)}`,
       data: { ...newState, state: JSON.stringify(newState) }
     });
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[syncDeviceStateUseCase] activityLogRepository.saveActivity took ${Date.now() - t_log}ms`);
+    }
   } catch (_error) {
     // El fallo en el log de actividad no debe revertir la sincronización del estado principal
   }

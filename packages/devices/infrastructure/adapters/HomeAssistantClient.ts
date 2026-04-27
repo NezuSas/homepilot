@@ -27,19 +27,33 @@ export class HomeAssistantClient {
    */
   public async getEntityState(entityId: string): Promise<HomeAssistantState | null> {
     const url = `${this.baseUrl}/api/states/${entityId}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json'
+    const timeout = parseInt(process.env.HA_STATE_TIMEOUT_MS || process.env.HA_COMMAND_TIMEOUT_MS || '8000', 10);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`Home Assistant API Error: ${response.status} ${response.statusText}`);
       }
-    });
 
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      throw new Error(`Home Assistant API Error: ${response.status} ${response.statusText}`);
+      return await response.json() as HomeAssistantState;
+    } catch (err: unknown) {
+      if (this.isAbortError(err)) {
+        throw new Error(`getEntityState(${entityId}) timed out after ${timeout}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    return await response.json() as HomeAssistantState;
   }
 
   /**
@@ -48,9 +62,14 @@ export class HomeAssistantClient {
    */
   public async callService(domain: string, service: string, entityId: string, data?: Record<string, unknown>): Promise<void> {
     const url = `${this.baseUrl}/api/services/${domain}/${service}`;
+    const timeout = parseInt(process.env.HA_COMMAND_TIMEOUT_MS || '8000', 10);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout); 
+    const t0 = Date.now();
     try {
       const response = await fetch(url, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json'
@@ -61,13 +80,21 @@ export class HomeAssistantClient {
         })
       });
 
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[HomeAssistantClient] callService took ${Date.now() - t0}ms`);
+      }
+
       if (!response.ok) {
         throw new Error(`Home Assistant Service Error: ${response.status} ${response.statusText}`);
       }
     } catch (error: unknown) {
-      // Re-lanzar con mensaje limpio sin filtrar parámetros sensibles que pudieran estar en el objeto error
+      if (this.isAbortError(error)) {
+        throw new Error(`HA_SERVICE_CALL_TIMEOUT: ${domain}/${service} timed out after ${timeout}ms`);
+      }
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`HA_SERVICE_CALL_FAILED: ${message}`);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -77,14 +104,17 @@ export class HomeAssistantClient {
   /**
    * Timeout configurable en ms para la reconciliación. Por defecto: 8 segundos.
    */
-  private static readonly RECONCILIATION_TIMEOUT_MS = 8000;
+  private getReconciliationTimeout(): number {
+    return parseInt(process.env.HA_RECONCILIATION_TIMEOUT_MS || '8000', 10);
+  }
 
   public async getAllStates(): Promise<HomeAssistantState[]> {
     const url = `${this.baseUrl}/api/states`;
+    const timeout = this.getReconciliationTimeout();
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
-      HomeAssistantClient.RECONCILIATION_TIMEOUT_MS
+      timeout
     );
 
     try {
@@ -103,7 +133,7 @@ export class HomeAssistantClient {
       return await response.json() as HomeAssistantState[];
     } catch (err: unknown) {
       if (this.isAbortError(err)) {
-        throw new Error(`getAllStates() timed out after ${HomeAssistantClient.RECONCILIATION_TIMEOUT_MS}ms`);
+        throw new Error(`getAllStates() timed out after ${timeout}ms`);
       }
       throw err;
     } finally {

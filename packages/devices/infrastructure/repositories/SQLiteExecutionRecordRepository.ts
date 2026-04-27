@@ -40,6 +40,7 @@ export class SQLiteExecutionRecordRepository implements ExecutionRecordRepositor
   }
 
   public async save(record: ExecutionRecord): Promise<void> {
+    const t_save = Date.now();
     const stmt = this.db.prepare(`
       INSERT INTO execution_records (
         id, source_type, source_id, status, started_at, completed_at, 
@@ -64,6 +65,10 @@ export class SQLiteExecutionRecordRepository implements ExecutionRecordRepositor
       record.summary || null,
       JSON.stringify(record.actions)
     );
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[SQLiteExecutionRecordRepository] save took ${Date.now() - t_save}ms`);
+    }
   }
 
   public async findRecent(limit: number = 50): Promise<ReadonlyArray<ExecutionRecord>> {

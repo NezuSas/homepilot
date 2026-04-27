@@ -75,22 +75,30 @@ export class AssistantConversationService {
     const userId = request.userId || 'system';
 
     // V2: Load Contextual Memory & Aliases
+    const t_mem = Date.now();
     const [memory, aliases] = await Promise.all([
       this.memoryService.getShortTermMemory(userId),
       this.memoryService.getAliases(userId)
     ]);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[AssistantConversation] Memory load took ${Date.now() - t_mem}ms`);
+    }
 
     // V2: Follow-up Resolution
     let activePrompt = prompt;
     let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
 
     if (!request.selectedOptionId) {
+      const t_followup = Date.now();
       followUp = this.followUpResolver.resolve(
         prompt,
         memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() },
         language,
         aliases
       );
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] FollowUpResolver took ${Date.now() - t_followup}ms`);
+      }
       if (followUp.handled && followUp.response) {
         return { type: 'answer', message: followUp.response };
       }
@@ -183,7 +191,12 @@ export class AssistantConversationService {
 
     // G) State Queries
     if (this.isStateQuery(normalized)) {
-      return this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined);
+      const t_state = Date.now();
+      const result = await this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined);
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
+      }
+      return result;
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
@@ -246,8 +259,15 @@ export class AssistantConversationService {
     }
 
     // D) Confirmation Policy
+    const t_policy = Date.now();
     const preview = await this.confirmationPolicy.evaluate(intent, language);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[AssistantConversation] ConfirmationPolicy took ${Date.now() - t_policy}ms`);
+    }
     if (preview.requiresConfirmation && request.confirmed !== true) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] ConfirmationPolicy eval took ${Date.now() - t_policy}ms`);
+      }
       return {
         type: 'clarification',
         message: `${preview.reason} ${preview.summary}`.trim(),

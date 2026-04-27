@@ -80,7 +80,11 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
         throw new Error('Integración de Home Assistant no configurada');
       }
 
+      const t_ha = Date.now();
       await this.connectionProvider.getClient().callService(domain, service, entityId, data);
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[HomeAssistantDeviceDriver] callService ${domain}.${service} took ${Date.now() - t_ha}ms`);
+      }
 
       // Cálculo de estado optimista
       const newState = this.calculateOptimisticState(device, cmdName, command.params);

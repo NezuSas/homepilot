@@ -48,6 +48,7 @@ export class DeviceCommandService implements DeviceCommandDispatcherPort {
     };
 
     // 5. Ejecutar el comando a través del driver
+    const t_driver = Date.now();
     const result = await driver.executeCommand(
       device,
       { 
@@ -56,19 +57,31 @@ export class DeviceCommandService implements DeviceCommandDispatcherPort {
       },
       context
     );
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[DeviceCommandService] driver.executeCommand took ${Date.now() - t_driver}ms`);
+    }
 
     if (!result.success) {
       throw new Error(result.error || `Error desconocido al ejecutar ${normalizedCommand.name} en ${device.integrationSource}`);
     }
 
-    // 6. Sincronización optimista si el driver devuelve un nuevo estado
+    // 6. Sincronización optimista si el driver devuelve un nuevo estado (Fire-and-forget)
     if (result.newState) {
-      await syncDeviceStateUseCase(
+      const t_sync = Date.now();
+      syncDeviceStateUseCase(
         deviceId, 
         result.newState, 
         'device-command-service', 
         this.syncDeps
-      );
+      ).then(() => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[DeviceCommandService] syncDeviceStateUseCase took ${Date.now() - t_sync}ms`);
+        }
+      }).catch(err => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[DeviceCommandService] syncDeviceStateUseCase failed:', err instanceof Error ? err.message : String(err));
+        }
+      });
     }
   }
 }

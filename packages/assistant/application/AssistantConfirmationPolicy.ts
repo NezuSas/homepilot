@@ -11,19 +11,27 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
   ) {}
 
   public async evaluate(intent: Intent, lang: string = 'es'): Promise<AssistantPreviewResult> {
+    const t_eval = Date.now();
     const normalizedPrompt = intent.prompt.toLowerCase();
     const globalKeywords = lang === 'en' ? ['all', 'every', 'home', 'global'] : ['todo', 'todas', 'casa', 'global'];
     const hasGlobalKeyword = globalKeywords.some(kw => normalizedPrompt.includes(kw));
     const isEn = lang === 'en';
 
+    const finalize = (res: AssistantPreviewResult) => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConfirmationPolicy] evaluate took ${Date.now() - t_eval}ms`);
+      }
+      return res;
+    };
+
     if (intent.type === 'unknown') {
-      return {
+      return finalize({
         prompt: intent.prompt,
         intentType: 'unknown',
         requiresConfirmation: false,
         summary: isEn ? 'I could not interpret that instruction.' : 'No pude interpretar esa instrucción.',
         reason: intent.reason
-      };
+      });
     }
 
     if (intent.type === 'scene') {
@@ -31,7 +39,7 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       const targetName = scene ? scene.name : (isEn ? 'Unknown' : 'Desconocido');
       const estimatedActionCount = scene ? scene.actions.length : 0;
 
-      return {
+      return finalize({
         prompt: intent.prompt,
         intentType: 'scene',
         requiresConfirmation: true,
@@ -41,7 +49,7 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
         reason: isEn ? 'Scenes always require confirmation.' : 'Las escenas siempre requieren confirmación.',
         estimatedActionCount,
         targetName
-      };
+      });
     }
 
     if (intent.type === 'command') {
@@ -67,7 +75,7 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
         ? (requiresConfirmation ? `Command "${intent.command}" will be sent to "${targetName}".` : `Executing command "${intent.command}" on "${targetName}".`)
         : (requiresConfirmation ? `Se enviará el comando "${intent.command}" a "${targetName}".` : `Ejecutando comando "${intent.command}" en "${targetName}".`);
 
-      return {
+      return finalize({
         prompt: intent.prompt,
         intentType: 'command',
         requiresConfirmation,
@@ -75,7 +83,7 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
         reason,
         estimatedActionCount: 1,
         targetName
-      };
+      });
     }
 
     const _exhaustive: never = intent;

@@ -6,8 +6,16 @@ export class FollowUpResolver implements FollowUpResolverPort {
    * Resolves contextual references and aliases in the prompt.
    */
   public resolve(prompt: string, memory: AssistantMemoryState, language: string = 'es', aliases: Record<string, string> = {}): ResolvedFollowUp {
+    const t_res = Date.now();
     let currentPrompt = prompt;
     let normalized = this.normalize(prompt);
+
+    const finalize = (res: ResolvedFollowUp) => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[FollowUpResolver] resolve took ${Date.now() - t_res}ms`);
+      }
+      return res;
+    };
 
     // 0. Resolve Aliases (e.g. "mi cuarto" -> "sala")
     for (const [alias, target] of Object.entries(aliases)) {
@@ -33,11 +41,11 @@ export class FollowUpResolver implements FollowUpResolverPort {
           ? `tell me about ${entityNames}` 
           : `cuéntame sobre ${entityNames}`;
         
-        return {
+        return finalize({
           resolvedPrompt,
           handled: false,
           referencesMemory: true
-        };
+        });
       }
     }
 
@@ -63,11 +71,11 @@ export class FollowUpResolver implements FollowUpResolverPort {
             const regex = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
             if (regex.test(resolvedPrompt)) {
               resolvedPrompt = resolvedPrompt.replace(regex, entity.name);
-              return {
+              return finalize({
                 resolvedPrompt,
                 handled: false,
                 referencesMemory: true
-              };
+              });
             }
           }
         }
@@ -89,11 +97,11 @@ export class FollowUpResolver implements FollowUpResolverPort {
           ? `room of ${entityNames}`
           : `cuarto de ${entityNames}`;
         
-        return {
+        return finalize({
           resolvedPrompt,
           handled: false,
           referencesMemory: true
-        };
+        });
       }
     }
 
@@ -106,20 +114,20 @@ export class FollowUpResolver implements FollowUpResolverPort {
     for (const cmd of commandTriggers) {
       if (cmd.triggers.some(t => normalized.includes(t))) {
         if (memory.entities.length === 1) {
-          return {
+          return finalize({
             resolvedPrompt: `${cmd.action} ${memory.entities[0].name}`,
             handled: false,
             referencesMemory: true
-          };
+          });
         }
       }
     }
 
-    return {
+    return finalize({
       resolvedPrompt: currentPrompt,
       handled: false,
       referencesMemory: false
-    };
+    });
   }
 
   private normalize(text: string): string {

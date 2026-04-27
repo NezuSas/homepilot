@@ -113,11 +113,15 @@ export class SceneExecutionService {
       normalizedCommand: normalizeCommand(action, scene.id, idx)
     }));
 
+    const t_dispatch = Date.now();
     const settled = await Promise.allSettled(
       actionsWithCommands.map(item => 
         this.commandDispatcher.dispatch(item.action.deviceId, item.normalizedCommand)
       )
     );
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[SceneExecution] Parallel dispatch of ${actionsWithCommands.length} actions took ${Date.now() - t_dispatch}ms`);
+    }
 
     const actionResults: SceneActionResult[] = settled.map((result, idx) => {
       const { action, normalizedCommand } = actionsWithCommands[idx];
@@ -178,7 +182,11 @@ export class SceneExecutionService {
       }
 
       try {
+        const t_seq_dispatch = Date.now();
         await this.commandDispatcher.dispatch(action.deviceId, command);
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[SceneExecution] Sequential dispatch of action ${idx} took ${Date.now() - t_seq_dispatch}ms`);
+        }
         actionResults.push({ deviceId: action.deviceId, commandName, status: 'success', command });
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : String(err);

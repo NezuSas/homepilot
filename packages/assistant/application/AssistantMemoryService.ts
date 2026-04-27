@@ -58,6 +58,7 @@ export class AssistantMemoryService implements AssistantMemoryPort {
   // V2 Conversational Memory
   
   public async saveShortTermMemory(userId: string, state: AssistantMemoryState): Promise<void> {
+    const t_mem_save = Date.now();
     const expiresAt = new Date();
     expiresAt.setSeconds(expiresAt.getSeconds() + this.SHORT_TERM_TTL_SECONDS);
 
@@ -68,6 +69,10 @@ export class AssistantMemoryService implements AssistantMemoryPort {
       valueType: 'json',
       expiresAt: expiresAt.toISOString()
     });
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[AssistantMemory] saveShortTermMemory took ${Date.now() - t_mem_save}ms`);
+    }
   }
 
   public async getShortTermMemory(userId: string): Promise<AssistantMemoryState | null> {
