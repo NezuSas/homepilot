@@ -321,7 +321,26 @@ describe('AssistantConversationService UX V2', () => {
     const res = await service.converse({ prompt: 'crea una escena para el baño', userId });
 
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('No encontré luces, interruptores o dispositivos controlables en Baño para crear esa escena.');
+    // New differentiated message: found devices but none controllable
+    expect(res.message).toContain('ninguno es controlable');
+    expect(res.message).toContain('Baño');
+  });
+
+  it('BUG B: room found but no devices assigned → specific message', async () => {
+    const userId = 'u1';
+    const roomId = 'r-empty';
+    // Devices exist but in a different room
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'light-1', name: 'Luz Sala', roomId: 'other-room', type: 'light', homeId: 'h1' })
+    ]);
+    roomRepo.findAll.mockResolvedValue([{ id: roomId, name: 'Garage', homeId: 'h1' }]);
+
+    const res = await service.converse({ prompt: 'crea una escena para el garage', userId });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('ningún dispositivo está asignado');
+    expect(res.message).toContain('Garage');
+    expect(draftService.createSceneDraft).not.toHaveBeenCalled();
   });
 
   it('BUG B: draft service failure should not throw 500', async () => {
@@ -500,5 +519,34 @@ describe('AssistantConversationService UX V2', () => {
     await service.converse({ prompt: 'crea una escena para apagar la luna', userId: 'u1' });
     expect(intentInterpreter.interpret).not.toHaveBeenCalled();
     expect(smallTalk.handle).not.toHaveBeenCalled();
+  });
+
+  it('draft creation: devices with roomId null are NOT included', async () => {
+    const userId = 'u1';
+    const roomId = 'r-sala';
+    deviceRepo.findAll.mockResolvedValue([
+      // Unassigned device (roomId null) — must NOT be included
+      createTestDevice({ id: 'unassigned', name: 'Luz Sin Asignar', roomId: null, type: 'light', homeId: 'h1' }),
+      // Assigned to the correct room
+      createTestDevice({ id: 'assigned', name: 'Luz Sala', roomId, type: 'light', homeId: 'h1' })
+    ]);
+    roomRepo.findAll.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
+    draftService.createSceneDraft.mockResolvedValue({ id: 'draft-null-test', type: 'scene' });
+
+    const res = await service.converse({ prompt: 'crea una escena para apagar la sala', userId });
+
+    expect(res.type).toBe('clarification');
+    // Only 1 device (the assigned one), not 2
+    expect(draftService.createSceneDraft).toHaveBeenCalledWith(
+      'h1',
+      roomId,
+      expect.any(String),
+      expect.arrayContaining([expect.objectContaining({ deviceId: 'assigned' })]),
+      expect.any(String)
+    );
+    // Unassigned device must NOT appear in actions
+    const callArgs = draftService.createSceneDraft.mock.calls[0];
+    const actions = callArgs[3] as Array<{ deviceId: string }>;
+    expect(actions.some((a) => a.deviceId === 'unassigned')).toBe(false);
   });
 });

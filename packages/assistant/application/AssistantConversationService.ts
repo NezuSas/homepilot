@@ -716,43 +716,37 @@ export class AssistantConversationService {
         this.roomRepository.findAll()
       ]);
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] handleDraftCreation normalized prompt: "${normalized}"`);
-        console.debug(`[AssistantConversation] Available rooms: ${allRooms.map((r: Room) => r.name).join(', ')}`);
-      }
-      
-      let targetRoomId: string | null = null;
-      let targetRoomName: string | null = null;
+      // --- Room matching ---
+      let selectedRoom: Room | null = null;
 
-      // Improved room matching with synonym support
       for (const room of allRooms) {
         const normRoom = this.normalizePrompt(room.name);
-        
-        // Exact match of room name in prompt
         if (normalized.includes(normRoom)) {
-          targetRoomId = room.id;
-          targetRoomName = room.name;
+          selectedRoom = room;
           break;
         }
-
-        // Try replacing room type keywords to find matches (habitacion master -> cuarto master)
+        // Synonym substitution: try replacing room-type keywords
         const roomKeywords = ['cuarto', 'habitacion', 'estancia', 'zona', 'room', 'dormitorio'];
         for (const keyword of roomKeywords) {
-          const replacedRoom = normRoom.replace(/\b(cuarto|habitacion|estancia|zona|room|dormitorio)\b/g, keyword);
-          if (normalized.includes(replacedRoom)) {
-            targetRoomId = room.id;
-            targetRoomName = room.name;
+          const replaced = normRoom.replace(/\b(cuarto|habitacion|estancia|zona|room|dormitorio)\b/g, keyword);
+          if (normalized.includes(replaced)) {
+            selectedRoom = room;
             break;
           }
         }
-        if (targetRoomId) break;
+        if (selectedRoom) break;
       }
 
-      // Infer command (turn_off by default for scenes/routines if not specified)
+      // --- Infer command ---
       const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
 
-      if (!targetRoomId) {
+      // --- Room not found ---
+      if (!selectedRoom) {
         const mentionedRoom = this.extractMentionedRoomName(normalized);
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[DRAFT DEBUG] Room not found. Prompt: "${normalized}"`);
+          console.debug(`[DRAFT DEBUG] Available rooms:`, allRooms.map((r: Room) => ({ id: r.id, name: r.name })));
+        }
         return {
           type: 'answer',
           message: language === 'en'
@@ -761,60 +755,89 @@ export class AssistantConversationService {
         };
       }
 
-      // Filter devices for that specific room
-      const roomDevices = devices.filter((d: Device) => d.roomId === targetRoomId);
-      
-      // Filter for controllable devices for the desired command
-      const targetDevices = roomDevices.filter((d: Device) => this.isControllableDevice(d, command));
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[DRAFT DEBUG] room selected:', { id: selectedRoom.id, name: selectedRoom.name });
+        console.debug('[DRAFT DEBUG] all devices:', devices.map((d: Device) => ({
+          id: d.id, name: d.name, type: d.type, roomId: d.roomId,
+          integrationSource: d.integrationSource,
+          capsCount: d.capabilities?.length ?? 'none',
+          state: d.lastKnownState
+        })));
+      }
+
+      // --- Filter: devices in this room (strict roomId equality, null-safe) ---
+      const roomDevices = devices.filter((d: Device) => d.roomId != null && d.roomId === selectedRoom!.id);
 
       if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] Room: ${targetRoomName} (${targetRoomId})`);
-        console.debug(`[AssistantConversation] Devices in room: ${roomDevices.length}`);
-        console.debug(`[AssistantConversation] Controllable devices found: ${targetDevices.map((d: Device) => d.name).join(', ')}`);
-        
-        if (targetDevices.length === 0 && roomDevices.length > 0) {
-          console.debug(`[AssistantConversation] Diagnostics for room ${targetRoomName}:`);
-          roomDevices.forEach((d: Device) => {
-            const caps = resolveCapabilitiesForDevice(d);
-            console.debug(` - ${d.name}: type=${d.type}, caps=${caps.map(c => c.type).join(',')}, status=${d.status}`);
-          });
+        console.debug('[DRAFT DEBUG] roomDevices count:', roomDevices.length);
+        if (roomDevices.length === 0) {
+          const deviceRoomIds = [...new Set(devices.map((d: Device) => d.roomId))];
+          console.debug('[DRAFT DEBUG] all device roomIds in DB:', deviceRoomIds);
         }
       }
 
-      if (targetDevices.length === 0) {
+      if (roomDevices.length === 0) {
         return {
           type: 'answer',
           message: language === 'en'
-            ? `I couldn't find any lights, switches or controllable devices in ${targetRoomName} to create that ${isScene ? 'scene' : 'routine'}.`
-            : `No encontré luces, interruptores o dispositivos controlables en ${targetRoomName} para crear esa ${isScene ? 'escena' : 'rutina'}.`
+            ? `I found the room "${selectedRoom.name}", but no devices are assigned to it.`
+            : `Encontré la estancia "${selectedRoom.name}", pero ningún dispositivo está asignado a ella.`
         };
       }
 
-      // Create Draft using actual SceneAction shape
-      const name = language === 'en'
-        ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetRoomName}`
-        : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${targetRoomName}`;
-      
-      const fingerprint = `draft:${userId}:${normalized}:${targetRoomId}`;
-      const homeId = targetRoomId ? allRooms.find((r: Room) => r.id === targetRoomId)?.homeId || 'system' : 'system';
+      // --- Filter: controllable devices ---
+      const controllableDevices = roomDevices.filter((d: Device) => this.isControllableDevice(d, command));
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[DRAFT DEBUG] controllableDevices count:', controllableDevices.length);
+        if (controllableDevices.length === 0) {
+          console.debug('[DRAFT DEBUG] non-controllable device details:',
+            roomDevices.map((d: Device) => {
+              const caps = resolveCapabilitiesForDevice(d);
+              return { name: d.name, type: d.type, caps: caps.map(c => c.type), state: d.lastKnownState?.['state'] };
+            })
+          );
+        }
+      }
+
+      if (controllableDevices.length === 0) {
+        return {
+          type: 'answer',
+          message: language === 'en'
+            ? `I found devices in "${selectedRoom.name}", but none of them are controllable (lights, switches, or outlets).`
+            : `Encontré dispositivos en "${selectedRoom.name}", pero ninguno es controlable (luces, interruptores o enchufes).`
+        };
+      }
+
+      // --- Build draft ---
+      const draftName = language === 'en'
+        ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${selectedRoom.name}`
+        : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${selectedRoom.name}`;
+
+      const fingerprint = `draft:${userId}:${normalized}:${selectedRoom.id}`;
+      const homeId = selectedRoom.homeId || controllableDevices[0]?.homeId || 'system';
 
       let draftId = '';
       if (isScene) {
-        // Correct SceneAction shape: { deviceId, command: { name, params } }
-        const actions = targetDevices.map((d: Device) => ({
+        const actions = controllableDevices.map((d: Device) => ({
           deviceId: d.id,
           command: { name: command, params: {} }
         }));
-        const draft = await this.draftService.createSceneDraft(homeId, targetRoomId, name, actions, fingerprint);
+        const draft = await this.draftService.createSceneDraft(homeId, selectedRoom.id, draftName, actions, fingerprint);
         draftId = draft.id;
       } else {
-        const draft = await this.draftService.createAutomationDraft(homeId, name, { type: 'time', value: '22:00' }, { devices: targetDevices.map((d: Device) => d.id), command }, fingerprint);
+        const draft = await this.draftService.createAutomationDraft(
+          homeId, draftName,
+          { type: 'time', value: '22:00' },
+          { devices: controllableDevices.map((d: Device) => d.id), command },
+          fingerprint
+        );
         draftId = draft.id;
       }
 
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'draft_creation',
-        entities: targetDevices.map((d: Device) => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
+        entities: controllableDevices.map((d: Device) => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
         timestamp: new Date().toISOString(),
         pendingDraft: {
           id: draftId,
@@ -826,8 +849,8 @@ export class AssistantConversationService {
       return {
         type: 'clarification',
         message: language === 'en'
-          ? `Oscar, I've prepared a draft of a ${isScene ? 'scene' : 'routine'} to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${targetDevices.length} devices in ${targetRoomName}. Do you want to activate it now?`
-          : `Oscar, he preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${command === 'turn_on' ? 'encender' : 'apagar'} ${targetDevices.length} dispositivos en ${targetRoomName}. ¿Quieres activarlo ahora?`,
+          ? `Oscar, I've prepared a draft ${isScene ? 'scene' : 'routine'} to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${controllableDevices.length} devices in ${selectedRoom.name}. Do you want to activate it now?`
+          : `Oscar, he preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${command === 'turn_on' ? 'encender' : 'apagar'} ${controllableDevices.length} dispositivos en ${selectedRoom.name}. ¿Quieres activarlo ahora?`,
         clarification: {
           question: language === 'en' ? 'Do you want to activate it?' : '¿Quieres activarlo?',
           options: [
@@ -847,34 +870,38 @@ export class AssistantConversationService {
     }
   }
 
+  /**
+   * Determines if a device supports the given command.
+   * Uses a type-based check as primary filter, then validates via domain capabilities.
+   * The type-based check runs first to handle HA devices or devices without explicit capabilities.
+   */
   private isControllableDevice(device: Device, command: string): boolean {
-    // 1. Exclude devices with unavailable state
-    const state = device.lastKnownState;
-    if (state && typeof state['state'] === 'string' && state['state'] === 'unavailable') return false;
+    // 1. Skip unavailable devices
+    const rawState = device.lastKnownState;
+    if (rawState && typeof rawState['state'] === 'string' && rawState['state'] === 'unavailable') return false;
 
-    // 2. Use domain validator for accurate check (resolves HA externalId, capabilities, type fallback)
-    const validation = validateDeviceCommand(device, { name: command as any, params: {} });
-    if (validation.valid) return true;
-
-    // 3. Fallback heuristic for legacy or missing capabilities
     const type = device.type.toLowerCase();
     const name = device.name.toLowerCase();
-    const controllableTypes = ['light', 'switch', 'outlet', 'dimmer', 'cover'];
 
-    // Explicitly exclude sensors
-    if (type.includes('sensor')) return false;
-    if (name.includes('sensor')) return false;
+    // 2. Always exclude pure sensors — these are never controllable
+    if (type === 'sensor' || type === 'binary_sensor') return false;
+    if (name.includes('sensor') && !name.includes('luz') && !name.includes('foco')) return false;
 
-    if (controllableTypes.includes(type)) return true;
+    // 3. Type-based check — reliable for both HA and local integrations
+    const TURN_TYPES = ['light', 'switch', 'outlet', 'dimmer'];
+    const COVER_COMMANDS = ['open', 'close', 'stop', 'set_position'];
 
-    // Last resort: names that suggest controllable hardware
-    if (name.includes('luz') || name.includes('foco') || name.includes('lampara') || name.includes('interruptor')) {
-      return true;
-    }
+    if (TURN_TYPES.includes(type) && ['turn_on', 'turn_off', 'toggle'].includes(command)) return true;
+    if (type === 'cover' && COVER_COMMANDS.includes(command)) return true;
 
-    return false;
+    // 4. Name-based heuristic for unlabeled controllable devices
+    const controllableNames = ['luz', 'foco', 'lampara', 'interruptor', 'enchufe', 'tomacorriente', 'apagador'];
+    if (controllableNames.some(kw => name.includes(kw))) return true;
+
+    // 5. Domain validator as final fallback (handles explicit capabilities)
+    const validation = validateDeviceCommand(device, { name: command as any, params: {} });
+    return validation.valid;
   }
-
 
 
   private isRoomQuery(normalized: string): boolean {
