@@ -275,7 +275,7 @@ describe('AssistantConversationService UX V2', () => {
 
     expect(res.type).toBe('clarification');
     expect(draftService.createSceneDraft).toHaveBeenCalledWith(
-      'system',
+      'h1',
       roomMasterId,
       expect.stringContaining('Apagar Cuarto Master'),
       expect.arrayContaining([
@@ -296,6 +296,62 @@ describe('AssistantConversationService UX V2', () => {
     expect(res.type).toBe('answer');
     expect(res.message).toContain('No encontré dispositivos');
     expect(draftService.createSceneDraft).not.toHaveBeenCalled();
+  });
+
+  it('BUG B: room mentioned but not found in DB', async () => {
+    const userId = 'u1';
+    deviceRepo.findAll.mockResolvedValue([]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
+
+    const res = await service.converse({ prompt: 'crea una escena para el cuarto master', userId });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('No encontré la estancia "cuarto master"');
+  });
+
+  it('BUG B: room found but no controllable devices', async () => {
+    const userId = 'u1';
+    const roomId = 'r1';
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'sensor-1', name: 'Sensor Movimiento', roomId, type: 'sensor' })
+    ]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: roomId, name: 'Baño', homeId: 'h1' }]);
+
+    const res = await service.converse({ prompt: 'crea una escena para el baño', userId });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('No encontré dispositivos controlables en Baño');
+  });
+
+  it('BUG B: draft service failure should not throw 500', async () => {
+    const userId = 'u1';
+    const roomId = 'r1';
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'light-1', name: 'Luz', roomId, type: 'light', homeId: 'h1' })
+    ]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
+    
+    draftService.createSceneDraft.mockRejectedValue(new Error('DB_FAIL'));
+
+    const res = await service.converse({ prompt: 'crea una escena para la sala', userId });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('No pude preparar el borrador');
+  });
+
+  it('BUG B: draft creation should NOT execute any command', async () => {
+    const userId = 'u1';
+    const roomId = 'r1';
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'light-1', name: 'Luz', roomId, type: 'light', homeId: 'h1' })
+    ]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
+    draftService.createSceneDraft.mockResolvedValue({ id: 'd1', type: 'scene' });
+
+    await service.converse({ prompt: 'crea una escena para la sala', userId });
+
+    expect(sceneExecutionService.execute).not.toHaveBeenCalled();
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
   });
 
   it('yes without pending: should respond politely without executing anything', async () => {

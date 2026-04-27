@@ -667,89 +667,138 @@ export class AssistantConversationService {
   }
 
   private async handleDraftCreation(normalized: string, language: string, userId: string = 'system'): Promise<AssistantConversationResponse> {
-    const isScene = normalized.includes('escena') || normalized.includes('scene');
-    const devices = await this.deviceRepository.findAll();
-    const roomMap = await this.buildRoomNameMap(devices);
-    
-    let targetRoomId: string | null = null;
-    let targetRoomName: string | null = null;
+    try {
+      const isScene = normalized.includes('escena') || normalized.includes('scene');
+      const devices = await this.deviceRepository.findAll();
+      const roomMap = await this.buildRoomNameMap(devices);
+      
+      let targetRoomId: string | null = null;
+      let targetRoomName: string | null = null;
 
-    for (const [roomId, roomName] of roomMap.entries()) {
-      const normRoom = this.normalizePrompt(roomName);
-      if (normalized.includes(normRoom)) {
-        targetRoomId = roomId;
-        targetRoomName = roomName;
-        break;
+      for (const [roomId, roomName] of roomMap.entries()) {
+        const normRoom = this.normalizePrompt(roomName);
+        if (normalized.includes(normRoom)) {
+          targetRoomId = roomId;
+          targetRoomName = roomName;
+          break;
+        }
       }
-    }
 
-    // Infer command
-    const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
-    
-    // Filter devices in that room
-    let targetDevices = targetRoomId ? devices.filter(d => d.roomId === targetRoomId) : [];
-    
-    // Heuristic: if it's a scene for "apagar el cuarto", filter for lights/switches
-    if (command === 'turn_off') {
+      // 4. Validate Room mentioned vs found
+      if (!targetRoomId) {
+        const mentionedRoom = this.extractMentionedRoomName(normalized);
+        if (mentionedRoom) {
+          return {
+            type: 'answer',
+            message: language === 'en'
+              ? `I couldn't find the room "${mentionedRoom}".`
+              : `No encontré la estancia "${mentionedRoom}".`
+          };
+        }
+      }
+
+      // Infer command
+      const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
+      
+      // Filter devices in that room
+      let targetDevices = targetRoomId ? devices.filter(d => d.roomId === targetRoomId) : [];
+      
+      // Heuristic: filter for controllable devices
       targetDevices = targetDevices.filter(d => {
         const type = d.type.toLowerCase();
-        return type === 'light' || type === 'switch' || d.name.toLowerCase().includes('luz');
+        return type === 'light' || type === 'switch' || type === 'outlet' || d.name.toLowerCase().includes('luz');
       });
-    }
 
-    if (targetDevices.length === 0) {
+      // 5. Room found but no devices
+      if (targetRoomId && targetDevices.length === 0) {
+        return {
+          type: 'answer',
+          message: language === 'en'
+            ? `I couldn't find any controllable devices in ${targetRoomName} to create that ${isScene ? 'scene' : 'routine'}.`
+            : `No encontré dispositivos controlables en ${targetRoomName} para crear esa ${isScene ? 'escena' : 'rutina'}.`
+        };
+      }
+
+      if (targetDevices.length === 0) {
+        return {
+          type: 'answer',
+          message: language === 'en'
+            ? "I couldn't find any suitable devices to create that draft. Please specify the room or device."
+            : "No encontré dispositivos adecuados para crear ese borrador. Por favor, especifica la estancia o el dispositivo."
+        };
+      }
+
+      const name = targetRoomName 
+        ? (language === 'en' ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetRoomName}` : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${targetRoomName}`)
+        : (language === 'en' ? 'New Scene' : 'Nueva Escena');
+      
+      const fingerprint = `draft:${userId}:${normalized}:${targetRoomId || 'global'}`;
+      
+      // Get real homeId
+      const homeId = targetDevices[0]?.homeId || 'system';
+
+      let draftId = '';
+      if (isScene) {
+        const actions = targetDevices.map(d => ({
+          deviceId: d.id,
+          command: { name: command, params: {} }
+        }));
+        const draft = await this.draftService.createSceneDraft(homeId, targetRoomId, name, actions, fingerprint);
+        draftId = draft.id;
+      } else {
+        const draft = await this.draftService.createAutomationDraft(homeId, name, { type: 'time', value: '22:00' }, { devices: targetDevices.map(d => d.id), command }, fingerprint);
+        draftId = draft.id;
+      }
+
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'draft_creation',
+        entities: targetDevices.map(d => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
+        timestamp: new Date().toISOString(),
+        pendingDraft: {
+          id: draftId,
+          type: isScene ? 'scene' : 'automation',
+          originalPrompt: normalized
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I've prepared a draft of a ${isScene ? 'scene' : 'routine'} for ${targetDevices.length} devices in ${targetRoomName || 'your home'}.`
+          : `He preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${targetDevices.length} dispositivos en ${targetRoomName || 'tu casa'}.`,
+        clarification: {
+          question: language === 'en' ? "Would you like to activate it now?" : "¿Quieres activarlo ahora?",
+          options: [
+            { id: 'confirm', label: language === 'en' ? "Yes, activate" : "Sí, activar", kind: 'device' },
+            { id: 'cancel', label: language === 'en' ? "No, discard" : "No, descartar", kind: 'device' }
+          ]
+        }
+      };
+    } catch (error: unknown) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Assistant] Error in handleDraftCreation:', error);
+      }
       return {
         type: 'answer',
         message: language === 'en'
-          ? "I couldn't find any suitable devices to create that draft. Please specify the room or device."
-          : "No encontré dispositivos adecuados para crear ese borrador. Por favor, especifica la estancia o el dispositivo."
+          ? "I couldn't prepare the scene draft. Please ensure there are devices in that room."
+          : "No pude preparar el borrador de escena. Revisa que existan dispositivos en esa estancia."
       };
     }
+  }
 
-    const name = targetRoomName 
-      ? (language === 'en' ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetRoomName}` : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${targetRoomName}`)
-      : (language === 'en' ? 'New Scene' : 'Nueva Escena');
-    
-    const fingerprint = `draft:${userId}:${normalized}:${targetRoomId || 'global'}`;
-    
-    let draftId = '';
-    if (isScene) {
-      const actions = targetDevices.map(d => ({
-        deviceId: d.id,
-        command: { name: command, params: {} }
-      }));
-      const draft = await this.draftService.createSceneDraft('system', targetRoomId, name, actions, fingerprint);
-      draftId = draft.id;
-    } else {
-      // Basic automation draft (placeholder structure)
-      const draft = await this.draftService.createAutomationDraft('system', name, { type: 'time', value: '22:00' }, { devices: targetDevices.map(d => d.id), command }, fingerprint);
-      draftId = draft.id;
+  private extractMentionedRoomName(normalized: string): string | null {
+    const keywords = ['cuarto', 'estancia', 'habitacion', 'sala', 'cocina', 'baño', 'patio', 'comedor', 'dormitorio'];
+    for (const kw of keywords) {
+      if (normalized.includes(kw)) {
+        const parts = normalized.split(kw);
+        if (parts.length > 1) {
+          const rest = parts[1].trim().split(' ')[0];
+          return rest ? `${kw} ${rest}` : kw;
+        }
+      }
     }
-
-    await this.memoryService.saveShortTermMemory(userId, {
-      lastQueryType: 'draft_creation',
-      entities: targetDevices.map(d => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
-      timestamp: new Date().toISOString(),
-      pendingDraft: {
-        id: draftId,
-        type: isScene ? 'scene' : 'automation',
-        originalPrompt: normalized
-      }
-    });
-
-    return {
-      type: 'clarification',
-      message: language === 'en'
-        ? `I've prepared a draft of a ${isScene ? 'scene' : 'routine'} for ${targetDevices.length} devices in ${targetRoomName || 'your home'}.`
-        : `He preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${targetDevices.length} dispositivos en ${targetRoomName || 'tu casa'}.`,
-      clarification: {
-        question: language === 'en' ? "Would you like to activate it now?" : "¿Quieres activarlo ahora?",
-        options: [
-          { id: 'confirm', label: language === 'en' ? "Yes, activate" : "Sí, activar", kind: 'device' },
-          { id: 'cancel', label: language === 'en' ? "No, discard" : "No, descartar", kind: 'device' }
-        ]
-      }
-    };
+    return null;
   }
 
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
