@@ -160,7 +160,41 @@ export class AssistantConversationService {
       if (memory?.clarificationOptions && memory.clarificationOptions.length > 0) {
         const selectedId = this.resolveSelectionFromMemory(normalized, memory.clarificationOptions, language);
         if (selectedId) {
+          const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
+          
+          // Reconstruct pending action from memory
+          const command = memory.pendingIntent?.type === 'command' 
+            ? (memory.pendingIntent.command as DeviceCommandV1)
+            : this.inferCommandFromPrompt(memory.originalPrompt || prompt);
+
           request.selectedOptionId = selectedId;
+          request.pendingAction = {
+            command,
+            targetId: selectedId,
+            originalPrompt: memory.originalPrompt || prompt
+          };
+
+          if (!command) {
+            // Fallback: Selected but no command inferred
+            await this.memoryService.saveShortTermMemory(userId, {
+              ...memory,
+              entities: [{ 
+                id: selectedId, 
+                name: selectedOption?.label || 'Selected', 
+                type: 'device',
+                roomId: null 
+              }],
+              timestamp: new Date().toISOString()
+            });
+
+            return {
+              type: 'answer',
+              message: language === 'en'
+                ? `I've selected ${selectedOption?.label}. What would you like to do with it?`
+                : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?`
+            };
+          }
+
           return await this.handleSelection(request, language);
         }
       }
@@ -261,6 +295,16 @@ export class AssistantConversationService {
       return this.handleDateTimeQuery(normalized, language);
     }
 
+    // G3) Draft Creation (Scenes/Automations) - High priority before state query
+    if (this.isDraftCreation(normalized)) {
+      return await this.handleDraftCreation(normalized, language, userId);
+    }
+
+    // G2) Alias Creation Commands
+    if (this.isAliasCreation(normalized)) {
+      return await this.handleAliasCreation(normalized, userId, language);
+    }
+
     // G) State Queries
     if (this.isStateQuery(normalized)) {
       const t_state = Date.now();
@@ -269,16 +313,6 @@ export class AssistantConversationService {
         console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
       }
       return result;
-    }
-
-    // G2) Alias Creation Commands
-    if (this.isAliasCreation(normalized)) {
-      return await this.handleAliasCreation(normalized, userId, language);
-    }
-
-    // G3) Draft Creation (Scenes/Automations)
-    if (this.isDraftCreation(normalized)) {
-      return await this.handleDraftCreation(normalized, language, userId);
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
@@ -524,10 +558,18 @@ export class AssistantConversationService {
     // Check by name similarity in options
     for (const opt of options) {
       const label = opt.label.toLowerCase();
-      if (normalized.includes(label)) return opt.id;
+      const normLabel = this.normalizePrompt(label);
+      if (normalized.includes(normLabel) || normalized.includes(label)) return opt.id;
     }
 
     return null;
+  }
+
+  private inferCommandFromPrompt(prompt: string): DeviceCommandV1 | undefined {
+    const normalized = this.normalizePrompt(prompt);
+    if (normalized.includes('apaga') || normalized.includes('off') || normalized.includes('cierra')) return 'turn_off';
+    if (normalized.includes('enciende') || normalized.includes('prende') || normalized.includes('on') || normalized.includes('abre')) return 'turn_on';
+    return undefined;
   }
 
   private isAliasCreation(normalized: string): boolean {
@@ -617,30 +659,76 @@ export class AssistantConversationService {
 
   private isDraftCreation(normalized: string): boolean {
     const triggers = [
-      'crea una escena', 'crea un modo', 'haz una rutina', 'crea una rutina',
-      'create a scene', 'create a mode', 'make a routine'
+      'crea una escena', 'crear escena', 'crea un modo', 'crear modo', 'haz una escena', 'prepara una escena',
+      'crea una rutina', 'crear rutina', 'haz una rutina',
+      'create scene', 'create routine', 'make a scene', 'make a routine', 'prepare a scene'
     ];
     return triggers.some(t => normalized.includes(t));
   }
 
   private async handleDraftCreation(normalized: string, language: string, userId: string = 'system'): Promise<AssistantConversationResponse> {
-    // Determine type and basic info (mock/heuristic for now, could use LLM)
     const isScene = normalized.includes('escena') || normalized.includes('scene');
-    const name = language === 'en' ? 'New Routine' : 'Nueva Rutina';
-    const fingerprint = `draft:${userId}:${Date.now()}`;
+    const devices = await this.deviceRepository.findAll();
+    const roomMap = await this.buildRoomNameMap(devices);
+    
+    let targetRoomId: string | null = null;
+    let targetRoomName: string | null = null;
+
+    for (const [roomId, roomName] of roomMap.entries()) {
+      const normRoom = this.normalizePrompt(roomName);
+      if (normalized.includes(normRoom)) {
+        targetRoomId = roomId;
+        targetRoomName = roomName;
+        break;
+      }
+    }
+
+    // Infer command
+    const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
+    
+    // Filter devices in that room
+    let targetDevices = targetRoomId ? devices.filter(d => d.roomId === targetRoomId) : [];
+    
+    // Heuristic: if it's a scene for "apagar el cuarto", filter for lights/switches
+    if (command === 'turn_off') {
+      targetDevices = targetDevices.filter(d => {
+        const type = d.type.toLowerCase();
+        return type === 'light' || type === 'switch' || d.name.toLowerCase().includes('luz');
+      });
+    }
+
+    if (targetDevices.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "I couldn't find any suitable devices to create that draft. Please specify the room or device."
+          : "No encontré dispositivos adecuados para crear ese borrador. Por favor, especifica la estancia o el dispositivo."
+      };
+    }
+
+    const name = targetRoomName 
+      ? (language === 'en' ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetRoomName}` : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${targetRoomName}`)
+      : (language === 'en' ? 'New Scene' : 'Nueva Escena');
+    
+    const fingerprint = `draft:${userId}:${normalized}:${targetRoomId || 'global'}`;
     
     let draftId = '';
     if (isScene) {
-      const draft = await this.draftService.createSceneDraft('system', null, name, [], fingerprint);
+      const actions = targetDevices.map(d => ({
+        deviceId: d.id,
+        command: { name: command, params: {} }
+      }));
+      const draft = await this.draftService.createSceneDraft('system', targetRoomId, name, actions, fingerprint);
       draftId = draft.id;
     } else {
-      const draft = await this.draftService.createAutomationDraft('system', name, {}, {}, fingerprint);
+      // Basic automation draft (placeholder structure)
+      const draft = await this.draftService.createAutomationDraft('system', name, { type: 'time', value: '22:00' }, { devices: targetDevices.map(d => d.id), command }, fingerprint);
       draftId = draft.id;
     }
 
     await this.memoryService.saveShortTermMemory(userId, {
       lastQueryType: 'draft_creation',
-      entities: [],
+      entities: targetDevices.map(d => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
       timestamp: new Date().toISOString(),
       pendingDraft: {
         id: draftId,
@@ -652,13 +740,13 @@ export class AssistantConversationService {
     return {
       type: 'clarification',
       message: language === 'en'
-        ? `I've prepared a draft for that ${isScene ? 'scene' : 'routine'}.`
-        : `He preparado un borrador para esa ${isScene ? 'escena' : 'rutina'}.`,
+        ? `I've prepared a draft of a ${isScene ? 'scene' : 'routine'} for ${targetDevices.length} devices in ${targetRoomName || 'your home'}.`
+        : `He preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${targetDevices.length} dispositivos en ${targetRoomName || 'tu casa'}.`,
       clarification: {
         question: language === 'en' ? "Would you like to activate it now?" : "¿Quieres activarlo ahora?",
         options: [
-          { id: 'confirm', label: language === 'en' ? "Yes, activate" : "Sí, activar", kind: isScene ? 'scene' : 'device' },
-          { id: 'cancel', label: language === 'en' ? "No, discard" : "No, descartar", kind: isScene ? 'scene' : 'device' }
+          { id: 'confirm', label: language === 'en' ? "Yes, activate" : "Sí, activar", kind: 'device' },
+          { id: 'cancel', label: language === 'en' ? "No, discard" : "No, descartar", kind: 'device' }
         ]
       }
     };

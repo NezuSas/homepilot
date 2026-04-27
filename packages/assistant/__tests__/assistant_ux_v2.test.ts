@@ -42,6 +42,8 @@ describe('AssistantConversationService UX V2', () => {
       createAutomationDraft: jest.fn(), 
       activateDraft: jest.fn() 
     };
+    deviceRepo.findAll.mockResolvedValue([]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
 
     service = new AssistantConversationService(
       intentInterpreter,
@@ -164,8 +166,10 @@ describe('AssistantConversationService UX V2', () => {
 
   it('draft: should create draft and then activate on "yes"', async () => {
     const userId = 'u1';
-    const prompt = 'crea una escena para cine';
+    const prompt = 'crea una escena para cine en la sala';
     
+    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: 'sala-id', name: 'Sala', homeId: 'h1' }]);
+    deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', name: 'Luz', roomId: 'sala-id', homeId: 'h1', type: 'light' })]);
     draftService.createSceneDraft.mockResolvedValue({ id: 'd-1', type: 'scene' });
 
     const res1 = await service.converse({ prompt, userId });
@@ -189,6 +193,111 @@ describe('AssistantConversationService UX V2', () => {
     expect(draftService.activateDraft).toHaveBeenCalledWith('d-1', userId);
   });
 
+  it('BUG A: "la primera" should resolve selection using clarificationOptions and pendingIntent', async () => {
+    const userId = 'u1';
+    const options = [
+      { id: 'dev-1', label: 'Luz Escritorio', kind: 'device' as const },
+      { id: 'dev-2', label: 'Luz Techo', kind: 'device' as const }
+    ];
+    
+    memory.getShortTermMemory.mockResolvedValue({
+      clarificationOptions: options,
+      pendingIntent: { type: 'command', command: 'turn_off', deviceId: undefined, timestamp: new Date().toISOString() },
+      originalPrompt: 'apaga la luz',
+      entities: [],
+      timestamp: new Date().toISOString()
+    });
+
+    deviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-1', name: 'Luz Escritorio' }));
+    
+    const res = await service.converse({ prompt: 'la primera', userId });
+
+    expect(res.type).toBe('execution');
+    expect(sceneExecutionService.execute).toHaveBeenCalledWith(expect.objectContaining({
+      actions: expect.arrayContaining([
+        expect.objectContaining({ deviceId: 'dev-1', command: expect.objectContaining({ name: 'turn_off' }) })
+      ])
+    }), expect.anything());
+  });
+
+  it('BUG A: selection without command should save to entities and ask what to do', async () => {
+    const userId = 'u1';
+    const options = [{ id: 'dev-1', label: 'Luz Escritorio', kind: 'device' as const }];
+    
+    memory.getShortTermMemory.mockResolvedValue({
+      clarificationOptions: options,
+      entities: [],
+      timestamp: new Date().toISOString()
+    });
+
+    const res = await service.converse({ prompt: 'Luz Escritorio', userId });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('Seleccioné Luz Escritorio');
+    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
+      entities: [expect.objectContaining({ id: 'dev-1' })]
+    }));
+  });
+
+  it('BUG B: draft creation should have priority over state query', async () => {
+    const userId = 'u1';
+    // This prompt contains "estado" and "habitacion" which are state query triggers,
+    // but also "crea una escena" which is a draft creation trigger.
+    const prompt = 'crea una escena para el estado de la habitacion sala';
+    
+    deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', name: 'Luz Sala', roomId: 'r1' })]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: 'r1', name: 'Sala', homeId: 'h1' }]);
+    draftService.createSceneDraft.mockResolvedValue({ id: 'd-1', type: 'scene' });
+
+    const res = await service.converse({ prompt, userId });
+
+    expect(res.type).toBe('clarification');
+    expect(draftService.createSceneDraft).toHaveBeenCalled();
+  });
+
+  it('BUG B: draft creation should resolve room and devices', async () => {
+    const userId = 'u1';
+    const roomMasterId = 'room-master';
+    
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'light-1', name: 'Luz Master 1', roomId: roomMasterId, type: 'light', homeId: 'h1' }),
+      createTestDevice({ id: 'light-2', name: 'Luz Master 2', roomId: roomMasterId, type: 'light', homeId: 'h1' }),
+      createTestDevice({ id: 'other', name: 'Other', roomId: 'other-room', homeId: 'h1' })
+    ]);
+    
+    roomRepo.findRoomsByHomeId.mockResolvedValue([
+      { id: roomMasterId, name: 'Cuarto Master', homeId: 'h1' }
+    ]);
+
+    draftService.createSceneDraft.mockResolvedValue({ id: 'draft-123', type: 'scene' });
+
+    const res = await service.converse({ prompt: 'crea una escena para apagar el cuarto master', userId });
+
+    expect(res.type).toBe('clarification');
+    expect(draftService.createSceneDraft).toHaveBeenCalledWith(
+      'system',
+      roomMasterId,
+      expect.stringContaining('Apagar Cuarto Master'),
+      expect.arrayContaining([
+        expect.objectContaining({ deviceId: 'light-1', command: expect.objectContaining({ name: 'turn_off' }) }),
+        expect.objectContaining({ deviceId: 'light-2', command: expect.objectContaining({ name: 'turn_off' }) })
+      ]),
+      expect.any(String)
+    );
+  });
+
+  it('BUG B: should not create empty draft', async () => {
+    const userId = 'u1';
+    deviceRepo.findAll.mockResolvedValue([]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
+
+    const res = await service.converse({ prompt: 'crea una escena para la luna', userId });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('No encontré dispositivos');
+    expect(draftService.createSceneDraft).not.toHaveBeenCalled();
+  });
+
   it('yes without pending: should respond politely without executing anything', async () => {
     memory.getShortTermMemory.mockResolvedValue(null);
     const res = await service.converse({ prompt: 'sí', userId: 'u1' });
@@ -205,7 +314,7 @@ describe('AssistantConversationService UX V2', () => {
     ]);
     roomRepo.findRoomsByHomeId.mockResolvedValue([]);
 
-    intentInterpreter.interpret.mockResolvedValue({ type: 'unknown' }); // Fallback to handleStateQuery if not matched specifically
+    intentInterpreter.interpret.mockResolvedValue({ type: 'unknown' });
     const res = await service.converse({ prompt: 'estado de las luces', userId: 'u1' });
     
     expect(res.message).toContain('Encendidas:');
