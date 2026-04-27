@@ -28,6 +28,11 @@ export class InMemoryRoomRepository implements RoomRepository {
     return Promise.resolve(room ? Object.freeze({ ...room }) : null);
   }
 
+  async findAll(): Promise<ReadonlyArray<Room>> {
+    const results = Array.from(this.store.values()).map(room => Object.freeze({ ...room }));
+    return Promise.resolve(results);
+  }
+
   /**
    * Limpia el estado interno de la memoria temporal.
    */

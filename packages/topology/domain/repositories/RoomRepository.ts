@@ -21,4 +21,9 @@ export interface RoomRepository {
    * Retorna null si no existe.
    */
   findRoomById(roomId: string): Promise<Room | null>;
+
+  /**
+   * Retorna todas las habitaciones registradas en el sistema.
+   */
+  findAll(): Promise<ReadonlyArray<Room>>;
 }

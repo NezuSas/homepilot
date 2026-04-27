@@ -43,6 +43,7 @@ describe('AssistantConversationService UX V2', () => {
       activateDraft: jest.fn() 
     };
     deviceRepo.findAll.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([]);
     roomRepo.findRoomsByHomeId.mockResolvedValue([]);
 
     service = new AssistantConversationService(
@@ -168,7 +169,7 @@ describe('AssistantConversationService UX V2', () => {
     const userId = 'u1';
     const prompt = 'crea una escena para cine en la sala';
     
-    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: 'sala-id', name: 'Sala', homeId: 'h1' }]);
+    roomRepo.findAll.mockResolvedValue([{ id: 'sala-id', name: 'Sala', homeId: 'h1' }]);
     deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', name: 'Luz', roomId: 'sala-id', homeId: 'h1', type: 'light' })]);
     draftService.createSceneDraft.mockResolvedValue({ id: 'd-1', type: 'scene' });
 
@@ -246,7 +247,7 @@ describe('AssistantConversationService UX V2', () => {
     const prompt = 'crea una escena para el estado de la habitacion sala';
     
     deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', name: 'Luz Sala', roomId: 'r1' })]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: 'r1', name: 'Sala', homeId: 'h1' }]);
+    roomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Sala', homeId: 'h1' }]);
     draftService.createSceneDraft.mockResolvedValue({ id: 'd-1', type: 'scene' });
 
     const res = await service.converse({ prompt, userId });
@@ -265,7 +266,7 @@ describe('AssistantConversationService UX V2', () => {
       createTestDevice({ id: 'other', name: 'Other', roomId: 'other-room', homeId: 'h1' })
     ]);
     
-    roomRepo.findRoomsByHomeId.mockResolvedValue([
+    roomRepo.findAll.mockResolvedValue([
       { id: roomMasterId, name: 'Cuarto Master', homeId: 'h1' }
     ]);
 
@@ -289,7 +290,7 @@ describe('AssistantConversationService UX V2', () => {
   it('BUG B: should not create empty draft', async () => {
     const userId = 'u1';
     deviceRepo.findAll.mockResolvedValue([]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([]);
 
     const res = await service.converse({ prompt: 'crea una escena para la luna', userId });
 
@@ -301,7 +302,7 @@ describe('AssistantConversationService UX V2', () => {
   it('BUG B: room mentioned but not found in DB', async () => {
     const userId = 'u1';
     deviceRepo.findAll.mockResolvedValue([]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([]);
 
     const res = await service.converse({ prompt: 'crea una escena para el cuarto master', userId });
 
@@ -315,12 +316,12 @@ describe('AssistantConversationService UX V2', () => {
     deviceRepo.findAll.mockResolvedValue([
       createTestDevice({ id: 'sensor-1', name: 'Sensor Movimiento', roomId, type: 'sensor' })
     ]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: roomId, name: 'Baño', homeId: 'h1' }]);
+    roomRepo.findAll.mockResolvedValue([{ id: roomId, name: 'Baño', homeId: 'h1' }]);
 
     const res = await service.converse({ prompt: 'crea una escena para el baño', userId });
 
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('No encontré dispositivos controlables en Baño');
+    expect(res.message).toContain('No encontré luces, interruptores o dispositivos controlables en Baño para crear esa escena.');
   });
 
   it('BUG B: draft service failure should not throw 500', async () => {
@@ -329,7 +330,7 @@ describe('AssistantConversationService UX V2', () => {
     deviceRepo.findAll.mockResolvedValue([
       createTestDevice({ id: 'light-1', name: 'Luz', roomId, type: 'light', homeId: 'h1' })
     ]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
+    roomRepo.findAll.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
     
     draftService.createSceneDraft.mockRejectedValue(new Error('DB_FAIL'));
 
@@ -345,7 +346,7 @@ describe('AssistantConversationService UX V2', () => {
     deviceRepo.findAll.mockResolvedValue([
       createTestDevice({ id: 'light-1', name: 'Luz', roomId, type: 'light', homeId: 'h1' })
     ]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
+    roomRepo.findAll.mockResolvedValue([{ id: roomId, name: 'Sala', homeId: 'h1' }]);
     draftService.createSceneDraft.mockResolvedValue({ id: 'd1', type: 'scene' });
 
     await service.converse({ prompt: 'crea una escena para la sala', userId });
@@ -363,12 +364,52 @@ describe('AssistantConversationService UX V2', () => {
     expect(sceneExecutionService.execute).not.toHaveBeenCalled();
   });
 
+  it('room query: should list all rooms from DB', async () => {
+    const rooms = [
+      { id: 'r1', name: 'Sala', homeId: 'h1' },
+      { id: 'r2', name: 'Cocina', homeId: 'h1' }
+    ];
+    roomRepo.findAll.mockResolvedValue(rooms);
+
+    const res = await service.converse({ prompt: 'qué estancias conoces', userId: 'u1' });
+
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('Conozco estas estancias:');
+    expect(res.message).toContain('• Sala');
+    expect(res.message).toContain('• Cocina');
+  });
+
+  it('BUG B: matching "cuarto master" with "Cuarto Master" room name', async () => {
+    const userId = 'u1';
+    const roomId = 'room-master';
+    
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'light-1', name: 'Luz', roomId, type: 'light', homeId: 'h1' })
+    ]);
+    roomRepo.findAll.mockResolvedValue([
+      { id: roomId, name: 'Cuarto Master', homeId: 'h1' }
+    ]);
+    draftService.createSceneDraft.mockResolvedValue({ id: 'draft-1', type: 'scene' });
+
+    const res = await service.converse({ prompt: 'crea una escena para apagar el cuarto master', userId });
+
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('Cuarto Master');
+    expect(draftService.createSceneDraft).toHaveBeenCalledWith(
+      'h1',
+      roomId,
+      expect.stringContaining('Apagar Cuarto Master'),
+      expect.any(Array),
+      expect.any(String)
+    );
+  });
+
   it('state query: should group by On/Off professionally', async () => {
     deviceRepo.findAll.mockResolvedValue([
       createTestDevice({ name: 'Luz 1', lastKnownState: { on: true } as any }),
       createTestDevice({ name: 'Luz 2', lastKnownState: { on: false } as any })
     ]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([]);
 
     intentInterpreter.interpret.mockResolvedValue({ type: 'unknown' });
     const res = await service.converse({ prompt: 'estado de las luces', userId: 'u1' });

@@ -184,6 +184,7 @@ export const createMockRoomRepository = (
     saveRoom: jest.fn(),
     findRoomsByHomeId: jest.fn(),
     findRoomById: jest.fn(),
+    findAll: jest.fn(),
     ...overrides
   };
   return mock;

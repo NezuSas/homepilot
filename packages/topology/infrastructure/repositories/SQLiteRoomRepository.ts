@@ -67,6 +67,13 @@ export class SQLiteRoomRepository implements RoomRepository {
     return this.mapToEntity(row);
   }
 
+  public async findAll(): Promise<ReadonlyArray<Room>> {
+    const stmt = this.db.prepare('SELECT * FROM rooms');
+    const rows = stmt.all() as RoomRow[];
+
+    return rows.map(row => this.mapToEntity(row));
+  }
+
   /**
    * Realiza la transformación de fila de base de datos a entidad de dominio.
    */

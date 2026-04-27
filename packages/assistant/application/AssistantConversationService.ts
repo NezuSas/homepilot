@@ -8,6 +8,8 @@ import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
 import { Scene } from '../../devices/domain/Scene';
 import { Device } from '../../devices/domain/types';
+import { DeviceCapability } from '../../devices/domain/capabilities';
+import { Room } from '../../topology/domain/types';
 import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
@@ -293,6 +295,11 @@ export class AssistantConversationService {
     // F) Date/Time Queries
     if (this.isDateTimeQuery(normalized)) {
       return this.handleDateTimeQuery(normalized, language);
+    }
+
+    // F2) Room Queries (Deterministic)
+    if (this.isRoomQuery(normalized)) {
+      return await this.handleRoomQuery(language);
     }
 
     // G3) Draft Creation (Scenes/Automations) - High priority before state query
@@ -669,25 +676,59 @@ export class AssistantConversationService {
   private async handleDraftCreation(normalized: string, language: string, userId: string = 'system'): Promise<AssistantConversationResponse> {
     try {
       const isScene = normalized.includes('escena') || normalized.includes('scene');
-      const devices = await this.deviceRepository.findAll();
-      const roomMap = await this.buildRoomNameMap(devices);
+      const [devices, allRooms] = await Promise.all([
+        this.deviceRepository.findAll(),
+        this.roomRepository.findAll()
+      ]);
+
+      const roomMap = new Map<string, string>();
+      for (const r of allRooms) {
+        roomMap.set(r.id, r.name);
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] handleDraftCreation normalized prompt: "${normalized}"`);
+        console.debug(`[AssistantConversation] Available rooms: ${allRooms.map((r: Room) => r.name).join(', ')}`);
+      }
       
       let targetRoomId: string | null = null;
       let targetRoomName: string | null = null;
 
-      for (const [roomId, roomName] of roomMap.entries()) {
-        const normRoom = this.normalizePrompt(roomName);
+      // Better room matching: check for exact match or synonyms
+      for (const room of allRooms) {
+        const normRoom = this.normalizePrompt(room.name);
+        const roomWords = normRoom.split(' ');
+        
+        // Match exact room name or its components
         if (normalized.includes(normRoom)) {
-          targetRoomId = roomId;
-          targetRoomName = roomName;
+          targetRoomId = room.id;
+          targetRoomName = room.name;
           break;
         }
+
+        // Handle synonyms (cuarto master matches habitacion master, etc)
+        const synonyms = ['cuarto', 'habitacion', 'estancia', 'zona', 'room', 'dormitorio'];
+        for (const syn of synonyms) {
+          const synMatch = normRoom.replace(/\b(cuarto|habitacion|estancia|zona|room|dormitorio)\b/g, syn);
+          if (normalized.includes(synMatch)) {
+            targetRoomId = room.id;
+            targetRoomName = room.name;
+            break;
+          }
+        }
+        if (targetRoomId) break;
       }
+
+      // Infer command
+      const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
 
       // 4. Validate Room mentioned vs found
       if (!targetRoomId) {
         const mentionedRoom = this.extractMentionedRoomName(normalized);
         if (mentionedRoom) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.debug(`[AssistantConversation] Room mentioned "${mentionedRoom}" but not found in DB`);
+          }
           return {
             type: 'answer',
             message: language === 'en'
@@ -697,16 +738,28 @@ export class AssistantConversationService {
         }
       }
 
-      // Infer command
-      const command = this.inferCommandFromPrompt(normalized) || 'turn_off';
-      
       // Filter devices in that room
-      let targetDevices = targetRoomId ? devices.filter(d => d.roomId === targetRoomId) : [];
+      let targetDevices = targetRoomId ? devices.filter((d: Device) => d.roomId === targetRoomId) : [];
       
-      // Heuristic: filter for controllable devices
-      targetDevices = targetDevices.filter(d => {
+      // Filter for controllable devices
+      targetDevices = targetDevices.filter((d: Device) => {
         const type = d.type.toLowerCase();
-        return type === 'light' || type === 'switch' || type === 'outlet' || d.name.toLowerCase().includes('luz');
+        const name = d.name.toLowerCase();
+        
+        // Exclude sensors and binary sensors
+        if (type === 'sensor' || type === 'binary_sensor' || name.includes('sensor')) return false;
+        
+        // Include lights, switches, outlets
+        if (type === 'light' || type === 'switch' || type === 'outlet' || name.includes('luz') || name.includes('enchufe')) return true;
+        
+        // Check capabilities if available
+        if (d.capabilities) {
+          return d.capabilities.some((cap: DeviceCapability) => 
+            cap.type === 'light' || cap.type === 'switch' || cap.type === 'dimmer'
+          );
+        }
+
+        return false;
       });
 
       // 5. Room found but no devices
@@ -714,8 +767,8 @@ export class AssistantConversationService {
         return {
           type: 'answer',
           message: language === 'en'
-            ? `I couldn't find any controllable devices in ${targetRoomName} to create that ${isScene ? 'scene' : 'routine'}.`
-            : `No encontré dispositivos controlables en ${targetRoomName} para crear esa ${isScene ? 'escena' : 'rutina'}.`
+            ? `I couldn't find any lights, switches or controllable devices in ${targetRoomName} to create that ${isScene ? 'scene' : 'routine'}.`
+            : `No encontré luces, interruptores o dispositivos controlables en ${targetRoomName} para crear esa ${isScene ? 'escena' : 'rutina'}.`
         };
       }
 
@@ -734,25 +787,26 @@ export class AssistantConversationService {
       
       const fingerprint = `draft:${userId}:${normalized}:${targetRoomId || 'global'}`;
       
-      // Get real homeId
-      const homeId = targetDevices[0]?.homeId || 'system';
+      // Get real homeId from room or first device
+      const targetRoom = targetRoomId ? allRooms.find((r: Room) => r.id === targetRoomId) : null;
+      const homeId = targetRoom?.homeId || targetDevices[0]?.homeId || 'system';
 
       let draftId = '';
       if (isScene) {
-        const actions = targetDevices.map(d => ({
+        const actions = targetDevices.map((d: Device) => ({
           deviceId: d.id,
           command: { name: command, params: {} }
         }));
         const draft = await this.draftService.createSceneDraft(homeId, targetRoomId, name, actions, fingerprint);
         draftId = draft.id;
       } else {
-        const draft = await this.draftService.createAutomationDraft(homeId, name, { type: 'time', value: '22:00' }, { devices: targetDevices.map(d => d.id), command }, fingerprint);
+        const draft = await this.draftService.createAutomationDraft(homeId, name, { type: 'time', value: '22:00' }, { devices: targetDevices.map((d: Device) => d.id), command }, fingerprint);
         draftId = draft.id;
       }
 
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'draft_creation',
-        entities: targetDevices.map(d => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
+        entities: targetDevices.map((d: Device) => ({ id: d.id, name: d.name, type: d.type, roomId: d.roomId })),
         timestamp: new Date().toISOString(),
         pendingDraft: {
           id: draftId,
@@ -764,8 +818,8 @@ export class AssistantConversationService {
       return {
         type: 'clarification',
         message: language === 'en'
-          ? `I've prepared a draft of a ${isScene ? 'scene' : 'routine'} for ${targetDevices.length} devices in ${targetRoomName || 'your home'}.`
-          : `He preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${targetDevices.length} dispositivos en ${targetRoomName || 'tu casa'}.`,
+          ? `I've prepared a draft of a ${isScene ? 'scene' : 'routine'} to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${targetDevices.length} devices in ${targetRoomName || 'your home'}.`
+          : `He preparado un borrador de ${isScene ? 'escena' : 'rutina'} para ${command === 'turn_on' ? 'encender' : 'apagar'} ${targetDevices.length} dispositivos en ${targetRoomName || 'tu casa'}.`,
         clarification: {
           question: language === 'en' ? "Would you like to activate it now?" : "¿Quieres activarlo ahora?",
           options: [
@@ -785,6 +839,33 @@ export class AssistantConversationService {
           : "No pude preparar el borrador de escena. Revisa que existan dispositivos en esa estancia."
       };
     }
+  }
+
+  private isRoomQuery(normalized: string): boolean {
+    const triggers = [
+      "que estancias conoces", "que estancia conoces", "que estancia nomas conoces",
+      "que cuartos conoces", "que habitaciones tienes", "que zonas conoces",
+      "what rooms do you know", "what areas do you know", "list rooms"
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private async handleRoomQuery(language: string): Promise<AssistantConversationResponse> {
+    const rooms = await this.roomRepository.findAll();
+    if (rooms.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en' ? "I don't know any rooms yet." : "Aún no conozco ninguna estancia."
+      };
+    }
+
+    const roomList = rooms.map((r: Room) => `• ${r.name}`).join('\n');
+    return {
+      type: 'answer',
+      message: language === 'en' 
+        ? `I know these rooms:\n${roomList}`
+        : `Conozco estas estancias:\n${roomList}`
+    };
   }
 
   private extractMentionedRoomName(normalized: string): string | null {
