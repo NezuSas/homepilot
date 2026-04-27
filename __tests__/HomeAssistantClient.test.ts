@@ -31,12 +31,13 @@ describe('HomeAssistantClient', () => {
 
     const state = await client.getEntityState('light.test');
     
-    expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/api/states/light.test`, {
+    expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/api/states/light.test`, expect.objectContaining({
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
-    });
+      },
+      signal: expect.any(AbortSignal)
+    }));
     expect(state).toEqual(mockState);
   });
 
@@ -47,14 +48,15 @@ describe('HomeAssistantClient', () => {
 
     await client.callService('light', 'turn_on', 'light.test');
 
-    expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/api/services/light/turn_on`, {
+    expect(global.fetch).toHaveBeenCalledWith(`${baseUrl}/api/services/light/turn_on`, expect.objectContaining({
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ entity_id: 'light.test' })
-    });
+      body: JSON.stringify({ entity_id: 'light.test' }),
+      signal: expect.any(AbortSignal)
+    }));
   });
 
   it('getEntityState: should return null on 404', async () => {
@@ -65,5 +67,25 @@ describe('HomeAssistantClient', () => {
 
     const state = await client.getEntityState('non_existent');
     expect(state).toBeNull();
+  });
+
+  it('should throw timeout error when request hangs', async () => {
+    process.env.HA_COMMAND_TIMEOUT_MS = '100';
+    
+    // Mock fetch that never resolves until we abort
+    (global.fetch as jest.Mock).mockImplementation((_url, options) => {
+      return new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+          const error = new Error('The operation was aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      });
+    });
+
+    await expect(client.callService('light', 'turn_on', 'light.test'))
+      .rejects.toThrow(/HA_SERVICE_CALL_TIMEOUT/);
+    
+    delete process.env.HA_COMMAND_TIMEOUT_MS;
   });
 });
