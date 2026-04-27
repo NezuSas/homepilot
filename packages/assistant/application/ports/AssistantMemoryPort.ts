@@ -5,6 +5,8 @@ export interface AssistantMemoryEntity {
   name: string;
   type: string;
   roomId: string | null;
+  /** Resolved display name for the room. Cached so follow-ups don't need a DB round-trip. */
+  roomName?: string;
 }
 
 export interface AssistantMemoryState {

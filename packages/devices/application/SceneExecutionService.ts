@@ -91,6 +91,10 @@ export class SceneExecutionService {
     const completedAt = new Date().toISOString();
     const durationMs = Date.now() - startTimestamp;
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[SceneExecution] execute "${scene.name}" took ${durationMs}ms (mode=${mode})`);
+    }
+
     if (this.executionRecordRepository) {
       this.saveExecutionRecord(scene, result, startedAt, completedAt, durationMs, options);
     }

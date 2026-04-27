@@ -19,6 +19,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
   ) {}
 
   public async interpret(prompt: string): Promise<Intent> {
+    const t0 = Date.now();
     const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
 
     if (isLlmEnabled && this.llmInterpreter) {
@@ -26,19 +27,22 @@ export class IntentInterpreterService implements IntentInterpreterPort {
         const intent = await this.llmInterpreter.interpret(prompt);
         if (intent && intent.type !== 'unknown') {
           if (process.env.NODE_ENV !== 'production') {
-            console.debug(`[Assistant] LLM interpreted: ${prompt} -> ${intent.type}`);
+            console.debug(`[IntentInterpreter] LLM path: ${Date.now() - t0}ms → ${intent.type}`);
           }
           return intent;
         }
       } catch (error) {
-        // Fallback on any error
         if (process.env.NODE_ENV !== 'production') {
           console.warn('[Assistant] LLM interpretation failed, falling back to deterministic.');
         }
       }
     }
 
-    return this.interpretDeterministic(prompt);
+    const result = await this.interpretDeterministic(prompt);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[IntentInterpreter] deterministic path: ${Date.now() - t0}ms → ${result.type}`);
+    }
+    return result;
   }
 
   private escapeRegExp(value: string): string {

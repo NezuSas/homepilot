@@ -60,26 +60,37 @@ export class AssistantConversationService {
   ) {}
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
+    const t0 = Date.now();
+
     // A) Selected Option Flow
     if (request.selectedOptionId) {
-      return this.handleSelection(request, language);
+      const result = await this.handleSelection(request, language);
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] converse() selection path: ${Date.now() - t0}ms`);
+      }
+      return result;
     }
 
     const prompt = request.prompt.trim();
     const userId = request.userId || 'system';
-    
+
     // V2: Load Contextual Memory & Aliases
     const [memory, aliases] = await Promise.all([
       this.memoryService.getShortTermMemory(userId),
       this.memoryService.getAliases(userId)
     ]);
-    
+
     // V2: Follow-up Resolution
     let activePrompt = prompt;
     let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
-    
+
     if (!request.selectedOptionId) {
-      followUp = this.followUpResolver.resolve(prompt, memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }, language, aliases);
+      followUp = this.followUpResolver.resolve(
+        prompt,
+        memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() },
+        language,
+        aliases
+      );
       if (followUp.handled && followUp.response) {
         return { type: 'answer', message: followUp.response };
       }
@@ -216,8 +227,8 @@ export class AssistantConversationService {
           }
         };
       } else if (allMatches.length === 1) {
-        // V2: Save single match to memory for follow-ups even if not executed yet
-        await this.memoryService.saveShortTermMemory(userId, {
+        // V2: Save single match to memory for follow-ups — fire-and-forget
+        this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'intent_match',
           entities: allMatches.map(d => ({
             id: d.id,
@@ -226,6 +237,10 @@ export class AssistantConversationService {
             roomId: d.roomId
           })),
           timestamp: new Date().toISOString()
+        }).catch((err: unknown) => {
+          if (process.env.NODE_ENV !== 'production') {
+            console.debug('[AssistantConversation] saveShortTermMemory (intent_match) failed:', err instanceof Error ? err.message : String(err));
+          }
         });
       }
     }
@@ -255,12 +270,15 @@ export class AssistantConversationService {
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
       if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found." : "Escena no encontrada." };
-      
+
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
         sourceId: 'assistant',
         correlationId
       });
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] converse() scene path total: ${Date.now() - t0}ms`);
+      }
       return {
         type: 'execution',
         message: language === 'en' ? "Executing scene..." : "Ejecutando escena...",
@@ -270,9 +288,14 @@ export class AssistantConversationService {
 
     if (intent.type === 'command') {
       try {
+        const tCmd = Date.now();
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
         const result = await this.executeSingleCommand(intent.deviceId, intent.command as DeviceCommandV1, intent.prompt, correlationId);
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[AssistantConversation] executeSingleCommand took ${Date.now() - tCmd}ms`);
+          console.debug(`[AssistantConversation] converse() total: ${Date.now() - t0}ms`);
+        }
         if (result.status === 'failed') {
           return {
             type: 'error',
@@ -280,11 +303,15 @@ export class AssistantConversationService {
             execution: result
           };
         }
-        // V2: Save to memory
-        await this.memoryService.saveShortTermMemory(userId, {
+        // V2: Save to memory — fire-and-forget so it never blocks the response
+        this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'execution',
           entities: [{ id: intent.deviceId, name: deviceName, type: 'device', roomId: device?.roomId || null }],
           timestamp: new Date().toISOString()
+        }).catch((err: unknown) => {
+          if (process.env.NODE_ENV !== 'production') {
+            console.debug('[AssistantConversation] saveShortTermMemory (post-cmd) failed:', err instanceof Error ? err.message : String(err));
+          }
         });
 
         return {
@@ -301,9 +328,9 @@ export class AssistantConversationService {
       }
     }
 
-    return { 
-      type: 'error', 
-      message: language === 'en' ? "Unknown intent type." : "Tipo de intención desconocido." 
+    return {
+      type: 'error',
+      message: language === 'en' ? "Unknown intent type." : "Tipo de intención desconocido."
     };
   }
 
@@ -464,7 +491,15 @@ export class AssistantConversationService {
     
     const isGeneral = generalTriggers.some(q => normalized.includes(q));
     
-    return isGeneral && (hasState || normalized.includes("hay") || normalized.includes("estan") || normalized.includes("son") || normalized.includes("donde"));
+    return isGeneral && (
+      hasState ||
+      normalized.includes("hay") ||
+      normalized.includes("estan") ||
+      normalized.includes("son") ||
+      normalized.includes("donde") ||
+      normalized.includes("cuarto") ||
+      normalized.includes("habitacion")
+    );
   }
 
   private isLikelyHomeControlPrompt(normalized: string): boolean {
@@ -483,14 +518,42 @@ export class AssistantConversationService {
     return triggers.some(t => normalized.includes(t));
   }
 
+  /**
+   * Builds a Map<roomId, roomName> by querying rooms for each unique homeId
+   * found in the provided devices. This avoids the 'system' hardcode bug.
+   */
+  private async buildRoomNameMap(devices: readonly Device[]): Promise<Map<string, string>> {
+    const homeIds = [...new Set(devices.map(d => d.homeId).filter((hid): hid is string => Boolean(hid)))];
+    const roomLists = await Promise.all(homeIds.map(hid => this.roomRepository.findRoomsByHomeId(hid)));
+    const map = new Map<string, string>();
+    for (const roomList of roomLists) {
+      for (const r of roomList) {
+        map.set(r.id, r.name);
+      }
+    }
+    return map;
+  }
+
+  /** Returns the display name for a roomId using the provided map. */
+  private resolveRoomName(roomId: string | null, roomMap: Map<string, string>, language: string): string | null {
+    if (roomId === null) return language === 'en' ? 'No room' : 'Sin estancia';
+    const name = roomMap.get(roomId);
+    if (!name) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[AssistantConversation] roomId "${roomId}" not found in room map`);
+      }
+      return language === 'en' ? 'Room not found' : 'Estancia no encontrada';
+    }
+    return name;
+  }
+
   private async handleStateQuery(
-    normalized: string, 
-    language: string, 
-    userName: string | null, 
+    normalized: string,
+    language: string,
+    userName: string | null,
     userId: string,
     entitiesFromMemory?: AssistantMemoryEntity[]
   ): Promise<AssistantConversationResponse> {
-    const rooms = await this.roomRepository.findRoomsByHomeId('system');
     let allDevices: readonly Device[];
 
     if (entitiesFromMemory && entitiesFromMemory.length > 0) {
@@ -500,34 +563,37 @@ export class AssistantConversationService {
     } else {
       allDevices = await this.deviceRepository.findAll();
     }
-    
+
     if (!allDevices) {
-      return { 
-        type: 'answer', 
-        message: language === 'en' ? 'No devices found.' : 'No se encontraron dispositivos.' 
+      return {
+        type: 'answer',
+        message: language === 'en' ? 'No devices found.' : 'No se encontraron dispositivos.'
       };
     }
 
+    // Build room name map from actual device homeIds — fixes 'system' hardcode bug
+    const roomMap = await this.buildRoomNameMap(allDevices);
+
     const isLightsOnly = normalized.includes('luz') || normalized.includes('luces') || normalized.includes('light');
-    
+
     // Detect keywords
     const onKeywords = ['encendido', 'encendidos', 'encendida', 'encendidas', 'prendido', 'prendidos', 'on', 'active', 'enabled'];
     const offKeywords = ['apagado', 'apagados', 'apagada', 'apagadas', 'off', 'inactive', 'disabled'];
-    
+
     const isOnQuery = onKeywords.some(kw => normalized.includes(kw));
     const isOffQuery = offKeywords.some(kw => normalized.includes(kw));
     const isCompound = isOnQuery && isOffQuery;
     const hasNoExplicitState = !isOnQuery && !isOffQuery;
 
-    // Detect target room
+    // Detect target room from the resolved map
     let targetRoomId: string | null = null;
     let targetRoomName: string | null = null;
-    
-    for (const room of rooms) {
-      const normRoom = this.normalizePrompt(room.name);
+
+    for (const [roomId, roomName] of roomMap.entries()) {
+      const normRoom = this.normalizePrompt(roomName);
       if (normalized.includes(normRoom)) {
-        targetRoomId = room.id;
-        targetRoomName = room.name;
+        targetRoomId = roomId;
+        targetRoomName = roomName;
         break;
       }
     }
@@ -604,33 +670,33 @@ export class AssistantConversationService {
       }
 
       message = areaPrefix;
-      
+
       // On section
       message += language === 'en' ? "On:\n" : "Encendidas:\n";
       if (onDevices.length > 0) {
         for (const d of onDevices) {
-          const room = rooms.find(r => r.id === d.roomId);
-          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+          const rName = this.resolveRoomName(d.roomId, roomMap, language);
+          message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
         }
       } else {
         message += language === 'en' ? "• None" : "• Ninguna";
       }
-      
+
       message += "\n";
-      
+
       // Off section
       message += language === 'en' ? "Off:\n" : "Apagadas:\n";
       if (offDevices.length > 0) {
         for (const d of offDevices) {
-          const room = rooms.find(r => r.id === d.roomId);
-          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+          const rName = this.resolveRoomName(d.roomId, roomMap, language);
+          message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
         }
       } else {
         message += language === 'en' ? "• None" : "• Ninguna";
       }
     } else if (isOnQuery) {
       if (onDevices.length === 0) {
-        message = language === 'en' 
+        message = language === 'en'
           ? `No ${isLightsOnly ? 'lights' : 'devices'} are currently on${targetRoomName ? ' in ' + targetRoomName : ''}.`
           : `No hay ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''} en este momento.`;
       } else {
@@ -639,8 +705,8 @@ export class AssistantConversationService {
           : `${namePrefix}tienes ${onDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} encendidas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
         message = message.charAt(0).toUpperCase() + message.slice(1);
         for (const d of onDevices) {
-          const room = rooms.find(r => r.id === d.roomId);
-          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+          const rName = this.resolveRoomName(d.roomId, roomMap, language);
+          message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
         }
       }
     } else {
@@ -655,33 +721,40 @@ export class AssistantConversationService {
           : `${namePrefix}tienes ${offDevices.length} ${isLightsOnly ? 'luces' : 'dispositivos'} apagadas${targetRoomName ? ' en ' + targetRoomName : ''}:\n`;
         message = message.charAt(0).toUpperCase() + message.slice(1);
         for (const d of offDevices) {
-          const room = rooms.find(r => r.id === d.roomId);
-          message += `• ${d.name}${room ? ` (${room.name})` : ''}\n`;
+          const rName = this.resolveRoomName(d.roomId, roomMap, language);
+          message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
         }
       }
     }
 
-    // V2: Save state result to memory (ONLY if we found something, to avoid overwriting with empty context)
+    // V2: Save state result to memory with roomName cached — avoids re-fetching on follow-ups
     if (filteredDevices && filteredDevices.length > 0) {
-      await this.memoryService.saveShortTermMemory(userId, {
+      this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'state_devices',
         entities: filteredDevices.map(d => ({
           id: d.id,
           name: d.name,
-          type: d.type as 'device' | 'scene',
-          roomId: d.roomId
+          type: d.type,
+          roomId: d.roomId,
+          roomName: this.resolveRoomName(d.roomId, roomMap, language) ?? undefined
         })),
         timestamp: new Date().toISOString()
+      }).catch((err: unknown) => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('[AssistantConversation] saveShortTermMemory (state) failed:', err instanceof Error ? err.message : String(err));
+        }
       });
     }
 
-    // V2: Room resolution fix - if user asked about rooms, make response more direct
+    // V2: Room resolution — use cached roomName from memory or roomMap
     const isRoomQuery = normalized.includes('cuarto') || normalized.includes('habitacion') || normalized.includes('donde');
     if (isRoomQuery && entitiesFromMemory && entitiesFromMemory.length > 0) {
       let roomMessage = '';
       for (const d of filteredDevices) {
-        const room = rooms.find(r => r.id === d.roomId);
-        roomMessage += `${d.name} (${room ? room.name : (language === 'en' ? 'Unknown room' : 'Cuarto desconocido')})\n`;
+        // Prefer cached roomName from memory entity, fall back to map lookup
+        const memEntity = entitiesFromMemory.find(e => e.id === d.id);
+        const rName = memEntity?.roomName ?? this.resolveRoomName(d.roomId, roomMap, language);
+        roomMessage += `${d.name} (${rName ?? (language === 'en' ? 'No room' : 'Sin estancia')})\n`;
       }
       return { type: 'answer', message: roomMessage.trim() };
     }
