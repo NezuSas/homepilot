@@ -6,7 +6,10 @@ export type LearningEventType =
   | 'clarification_selected'
   | 'correction_received'
   | 'command_failed'
-  | 'command_succeeded';
+  | 'command_succeeded'
+  | 'suggestion_accepted'
+  | 'suggestion_rejected'
+  | 'suggestion_postponed';
 
 export interface LearningModifiers {
   typeModifiers: Record<string, number>;

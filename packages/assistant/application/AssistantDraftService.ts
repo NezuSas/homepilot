@@ -5,13 +5,30 @@ import { SceneRepository } from '../../devices/domain/repositories/SceneReposito
 import { Scene, SceneAction } from '../../devices/domain/Scene';
 import { AutomationRule, AutomationTrigger, AutomationAction } from '../../devices/domain/automation/types';
 import { IdGenerator } from '../../shared/domain/types';
+import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
+import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+
+export type SceneSuggestionMetadata = {
+  homeId: string;
+  roomId?: string;
+  deviceIds: string[];
+};
+
+export type AutomationSuggestionMetadata = {
+  homeId: string;
+  deviceId: string;
+  trigger: unknown;
+  hour?: string;
+};
 
 export class AssistantDraftService {
   constructor(
     private readonly draftRepository: AssistantDraftRepository,
     private readonly automationRepository: AutomationRuleRepository,
     private readonly sceneRepository: SceneRepository,
-    private readonly idGenerator: IdGenerator
+    private readonly idGenerator: IdGenerator,
+    private readonly deviceRepository: DeviceRepository,
+    private readonly roomRepository: RoomRepository
   ) {}
 
   public async createAutomationDraft(homeId: string, name: string, trigger: unknown, action: unknown, fingerprint: string): Promise<AssistantDraft> {
@@ -89,5 +106,85 @@ export class AssistantDraftService {
     }
 
     await this.draftRepository.updateStatus(draftId, 'active');
+  }
+
+  public async createDraft(
+    userId: string,
+    type: 'scene' | 'automation',
+    metadata: SceneSuggestionMetadata | AutomationSuggestionMetadata
+  ): Promise<void> {
+    if (!metadata.homeId || typeof metadata.homeId !== 'string') {
+      throw new Error('MISSING_HOME_ID_FOR_SUGGESTION_DRAFT');
+    }
+
+    const homeId = metadata.homeId;
+    let fingerprint = '';
+
+    if (type === 'scene') {
+      const m = metadata as SceneSuggestionMetadata;
+      if (!Array.isArray(m.deviceIds) || m.deviceIds.some(id => typeof id !== 'string')) {
+        throw new Error('INVALID_SUGGESTION_METADATA: deviceIds must be string[]');
+      }
+
+      // Validate entity existence
+      const devices = await Promise.all(m.deviceIds.map(id => this.deviceRepository.findDeviceById(id)));
+      if (devices.some(d => !d)) {
+        throw new Error('INVALID_SUGGESTION_METADATA: One or more devices do not exist');
+      }
+
+      if (m.roomId) {
+        const room = await this.roomRepository.findRoomById(m.roomId);
+        if (!room || room.homeId !== homeId) {
+          throw new Error('INVALID_SUGGESTION_METADATA: Room does not exist or belongs to different home');
+        }
+      }
+
+      const sortedDeviceIds = [...m.deviceIds].sort();
+      fingerprint = [
+        'suggestion',
+        type,
+        userId,
+        homeId,
+        m.roomId || '',
+        sortedDeviceIds.join(','),
+        ''
+      ].join(':');
+
+      const actions = m.deviceIds.map(id => ({
+        deviceId: id,
+        command: 'turn_on' as const,
+        params: {}
+      }));
+      await this.createSceneDraft(homeId, m.roomId || null, 'Suggested Scene', actions, fingerprint);
+    } else if (type === 'automation') {
+      const m = metadata as AutomationSuggestionMetadata;
+      if (!m.deviceId || typeof m.deviceId !== 'string') {
+        throw new Error('INVALID_SUGGESTION_METADATA: deviceId must be string');
+      }
+
+      // Validate entity existence
+      const device = await this.deviceRepository.findDeviceById(m.deviceId);
+      if (!device) {
+        throw new Error('INVALID_SUGGESTION_METADATA: Device does not exist');
+      }
+
+      fingerprint = [
+        'suggestion',
+        type,
+        userId,
+        homeId,
+        '',
+        m.deviceId,
+        m.hour || ''
+      ].join(':');
+
+      const action = {
+        type: 'device_command' as const,
+        deviceId: m.deviceId,
+        command: 'turn_on' as const,
+        params: {}
+      };
+      await this.createAutomationDraft(homeId, 'Suggested Automation', m.trigger, action, fingerprint);
+    }
   }
 }

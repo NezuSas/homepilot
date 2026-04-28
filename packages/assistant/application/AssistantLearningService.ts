@@ -79,8 +79,26 @@ export class AssistantLearningService {
     return this.repository.getMostUsedRooms(userId, limit);
   }
 
-  public async getRecentCorrections(userId: string, limit: number = 5): Promise<AssistantLearningEvent[]> {
+  public async getRecentCorrections(userId: string, limit: number = 10): Promise<AssistantLearningEvent[]> {
     return this.repository.getRecentCorrections(userId, limit);
+  }
+
+  public async getEventsInTimeRange(userId: string, startTime: string, endTime: string): Promise<AssistantLearningEvent[]> {
+    return this.repository.getEventsInTimeRange(userId, startTime, endTime);
+  }
+
+  public async recordSuggestionResponse(userId: string, suggestionId: string, type: string, action: 'accepted' | 'rejected' | 'postponed'): Promise<void> {
+    const eventTypeMap: Record<string, LearningEventType> = {
+      'accepted': 'suggestion_accepted',
+      'rejected': 'suggestion_rejected',
+      'postponed': 'suggestion_postponed'
+    };
+    
+    await this.recordEvent({
+      userId,
+      eventType: eventTypeMap[action],
+      metadata: { suggestionId, type }
+    });
   }
 
   public async computeModifiers(userId: string = 'system'): Promise<LearningModifiers> {

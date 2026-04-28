@@ -45,6 +45,15 @@ export interface AssistantMemoryState {
     payload: Record<string, unknown>;
     timestamp: string;
   };
+  
+  /** Proactive suggestion waiting for user feedback */
+  pendingSuggestion?: {
+    id: string;
+    type: 'scene_suggestion' | 'automation_suggestion' | 'alias_suggestion' | 'room_cleanup_suggestion';
+    message: string;
+    metadata: Record<string, unknown>;
+    createdAt: string;
+  };
 }
 
 export interface AssistantMemoryPort {

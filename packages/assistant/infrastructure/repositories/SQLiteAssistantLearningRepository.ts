@@ -26,7 +26,10 @@ function isLearningEventType(value: string): value is LearningEventType {
     'clarification_selected',
     'correction_received',
     'command_failed',
-    'command_succeeded'
+    'command_succeeded',
+    'suggestion_accepted',
+    'suggestion_rejected',
+    'suggestion_postponed'
   ].includes(value);
 }
 
@@ -109,6 +112,16 @@ export class SQLiteAssistantLearningRepository implements AssistantLearningRepos
       ORDER BY created_at DESC 
       LIMIT ?
     `).all(userId, limit) as LearningRow[];
+
+    return rows.map(row => this.mapToEvent(row));
+  }
+
+  public async getEventsInTimeRange(userId: string, startTime: string, endTime: string): Promise<AssistantLearningEvent[]> {
+    const rows = this.db.prepare(`
+      SELECT * FROM assistant_learning_events 
+      WHERE user_id = ? AND created_at >= ? AND created_at <= ?
+      ORDER BY created_at ASC
+    `).all(userId, startTime, endTime) as LearningRow[];
 
     return rows.map(row => this.mapToEvent(row));
   }

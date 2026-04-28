@@ -239,6 +239,7 @@ describe('Assistant Explainability + Recovery', () => {
 
       mockExecutionRepo.findRecent.mockResolvedValue([failedRecord]);
       mockInterpreter.interpret.mockResolvedValue({ type: 'retry', prompt: 'reintenta' });
+      mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev1', homeId: 'h1' }));
       
       // Dispatch fails with a mapped error
       mockDispatcher.dispatch.mockRejectedValue(new Error('ha_service_call_failed'));

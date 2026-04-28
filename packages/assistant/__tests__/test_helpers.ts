@@ -151,10 +151,12 @@ export const createMockAssistantLearningService = (overrides?: Partial<jest.Mock
   recordAliasCreated: jest.fn().mockResolvedValue(undefined),
   recordCorrection: jest.fn().mockResolvedValue(undefined),
   recordCommandResult: jest.fn().mockResolvedValue(undefined),
+  recordSuggestionResponse: jest.fn().mockResolvedValue(undefined),
   computeModifiers: jest.fn().mockResolvedValue({ typeModifiers: {}, explanations: {} }),
   getMostUsedDevices: jest.fn().mockResolvedValue([]),
   getMostUsedRooms: jest.fn().mockResolvedValue([]),
   getRecentCorrections: jest.fn().mockResolvedValue([]),
+  getEventsInTimeRange: jest.fn().mockResolvedValue([]),
   ...overrides
 } as unknown as jest.Mocked<AssistantLearningService>);
 
@@ -179,6 +181,7 @@ export const createMockAssistantDraftRepository = (overrides?: Partial<jest.Mock
 export const createMockAssistantDraftService = (overrides?: Partial<jest.Mocked<AssistantDraftService>>): jest.Mocked<AssistantDraftService> => ({
   createAutomationDraft: jest.fn().mockResolvedValue({ id: 'd1', status: 'draft' }),
   createSceneDraft: jest.fn().mockResolvedValue({ id: 'd1', status: 'draft' }),
+  createDraft: jest.fn().mockResolvedValue(undefined),
   activateDraft: jest.fn().mockResolvedValue(undefined),
   ...overrides
 } as unknown as jest.Mocked<AssistantDraftService>);

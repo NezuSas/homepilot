@@ -69,7 +69,9 @@ export function buildAssistantModule(deps: AssistantModuleDeps): AssistantAssemb
     assistantDraftRepository,
     automationRuleRepository,
     sceneRepository,
-    { generate: () => randomUUID() }
+    { generate: () => randomUUID() },
+    deviceRepository,
+    roomRepository
   );
 
   const behaviorService = new BehaviorAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);

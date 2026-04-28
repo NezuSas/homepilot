@@ -60,6 +60,38 @@ export interface AssistantConverseRequest {
   confirmed?: boolean;
 }
 
+type SuggestionContext =
+  | 'command'
+  | 'multi_command'
+  | 'scene'
+  | 'state_query'
+  | 'room_query'
+  | 'list_query';
+
+type PendingSuggestion = NonNullable<AssistantMemoryState['pendingSuggestion']>;
+
+// --- TYPE GUARDS ---
+function isPendingSuggestion(value: unknown): value is PendingSuggestion {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.id === 'string' && typeof v.type === 'string';
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string');
+}
+
+function isIntent(value: unknown): value is Intent {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  const validTypes = ['scene', 'command', 'multi_command', 'explain', 'retry', 'unknown'];
+  return typeof v.type === 'string' && validTypes.includes(v.type) && typeof v.prompt === 'string';
+}
+
+function isClarificationKind(value: unknown): value is 'device' | 'scene' {
+  return value === 'device' || value === 'scene';
+}
+
 export class AssistantConversationService {
   constructor(
     private readonly intentInterpreter: IntentInterpreterPort,
@@ -83,6 +115,8 @@ export class AssistantConversationService {
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
     const prompt = request.prompt.trim();
+    // FALLBACK: 'system' is used for anonymous requests or background automated actions.
+    // In a multi-home production environment, userId should be mandatory for state-changing intents.
     const userId = request.userId || 'system';
     const userName = request.userName?.trim() || null;
     const namePrefix = userName ? `${userName}, ` : '';
@@ -123,11 +157,16 @@ export class AssistantConversationService {
           message: language === 'en' ? "I found several options for that. Which one do you mean?" : "Encontré varias opciones para eso. ¿A cuál te refieres?",
           clarification: {
             question: language === 'en' ? "Which one?" : "¿Cuál?",
-            options: pronounIntent.options.map(opt => ({ ...opt, kind: 'device' }))
+            options: pronounIntent.options.map(opt => ({ 
+              ...opt, 
+              kind: isClarificationKind(opt.kind) ? opt.kind : 'device' 
+            }))
           }
         };
       }
-      return await this.executeIntent(pronounIntent as Intent, request, language, userId, userName, prompt);
+      if (isIntent(pronounIntent)) {
+        return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
+      }
     }
 
     // --- SECOND PRIORITY: DRAFT CONFIRMATION ---
@@ -168,7 +207,7 @@ export class AssistantConversationService {
         if (request.selectedOptionId === 'confirm') {
           request.confirmed = true;
           const intent = memory.pendingIntent;
-          return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt);
+          return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory);
         } else {
           await this.clearPendingAction(userId);
           return {
@@ -195,6 +234,7 @@ export class AssistantConversationService {
       // V2: Handle simple "yes/no" or "confirm/cancel" if there is a pending action
       if (this.isConfirmation(normalized)) {
         // A1: Check Pending Intent
+        // A1: Check Pending Intent
         if (memory?.pendingIntent) {
           const now = Date.now();
           const pendingTime = new Date(memory.pendingIntent.timestamp).getTime();
@@ -204,7 +244,7 @@ export class AssistantConversationService {
             if (this.isPositiveConfirmation(normalized)) {
               request.confirmed = true;
               const intent = memory.pendingIntent;
-              return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt);
+              return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory);
             } else if (this.isNegativeConfirmation(normalized)) {
               await this.clearPendingAction(userId);
               return {
@@ -215,6 +255,24 @@ export class AssistantConversationService {
           } else {
             // Auto-clear if expired
             await this.clearPendingAction(userId);
+            return {
+              type: 'answer',
+              message: language === 'en' ? "Action expired, please try again." : "Acción expirada, intenta de nuevo."
+            };
+          }
+        }
+
+        // --- V2: Suggestion Response Flow (Low priority but above confirmation fallback) ---
+        const pendingSuggestion = memory?.pendingSuggestion;
+        if (isPendingSuggestion(pendingSuggestion)) {
+          if (this.isSuggestionAccept(normalized)) {
+            return await this.handleSuggestionAccept(userId, language, pendingSuggestion);
+          }
+          if (this.isSuggestionReject(normalized)) {
+            return await this.handleSuggestionReject(userId, language, pendingSuggestion);
+          }
+          if (this.isSuggestionPostpone(normalized)) {
+            return await this.handleSuggestionPostpone(userId, language, pendingSuggestion);
           }
         }
 
@@ -235,7 +293,7 @@ export class AssistantConversationService {
           
           // Reconstruct pending action from memory
           const command = memory.pendingIntent?.type === 'command' 
-            ? (memory.pendingIntent.command as DeviceCommandV1)
+            ? memory.pendingIntent.command
             : this.inferCommandFromPrompt(memory.originalPrompt || prompt);
 
           request.selectedOptionId = selectedId;
@@ -373,7 +431,7 @@ export class AssistantConversationService {
 
     // F2) Room Queries (Deterministic)
     if (this.isRoomQuery(normalized)) {
-      return await this.handleRoomQuery(language);
+      return await this.attachSuggestionIfNeeded(await this.handleRoomQuery(language), userId, language, memory, 'room_query');
     }
 
     // G3) Draft Creation (Scenes/Automations) - High priority before state query
@@ -388,7 +446,7 @@ export class AssistantConversationService {
 
     // G) Point State Queries (is X on/off?) - PRIORITY OVER GENERAL STATE
     if (this.isPointStateQuery(normalized)) {
-      return await this.handlePointStateQuery(normalized, language, userId);
+      return await this.attachSuggestionIfNeeded(await this.handlePointStateQuery(normalized, language, userId), userId, language, memory, 'state_query');
     }
 
     // H) State Queries
@@ -398,7 +456,7 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
       }
-      return result;
+      return await this.attachSuggestionIfNeeded(result, userId, language, memory, 'state_query');
     }
 
     // I) Management Intents (Rename, Toggle, Edit)
@@ -408,10 +466,10 @@ export class AssistantConversationService {
 
     // J) Listing Intents (Scenes, Automations)
     if (this.isListScenesIntent(normalized)) {
-      return await this.handleListScenes(language);
+      return await this.attachSuggestionIfNeeded(await this.handleListScenes(language), userId, language, memory, 'list_query');
     }
     if (this.isListAutomationsIntent(normalized)) {
-      return await this.handleListAutomations(language);
+      return await this.attachSuggestionIfNeeded(await this.handleListAutomations(language), userId, language, memory, 'list_query');
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
@@ -448,15 +506,23 @@ export class AssistantConversationService {
           message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`,
           clarification: {
             question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?",
-            options: intentResult.options.map(opt => ({ ...opt, kind: opt.kind as 'device' | 'scene' }))
+            options: intentResult.options.map(opt => ({ 
+              ...opt, 
+              kind: isClarificationKind(opt.kind) ? opt.kind : 'device' 
+            }))
           }
         };
       }
     }
 
-    const intent: Intent = (intentResult && 'type' in intentResult && intentResult.type === 'success')
-      ? intentResult.intent
-      : (intentResult as Intent);
+    let intent: Intent;
+    if (intentResult && 'type' in intentResult && intentResult.type === 'success') {
+      intent = intentResult.intent;
+    } else if (isIntent(intentResult)) {
+      intent = intentResult;
+    } else {
+      intent = { type: 'unknown', prompt: activePrompt, reason: 'Invalid interpretation result' };
+    }
 
     // V2: If we interpreted a NEW intent, and there was a pending action, clear it to avoid context mixing
     if (intent && intent.type !== 'unknown' && (memory?.pendingIntent || memory?.pendingDraft)) {
@@ -464,19 +530,20 @@ export class AssistantConversationService {
     }
 
     if (!intent) {
-      return await this.executeIntent({ type: 'unknown', prompt: activePrompt, reason: 'unknown' }, request, language, userId, userName, activePrompt);
+      return await this.executeIntent({ type: 'unknown', prompt: activePrompt, reason: 'unknown' }, request, language, userId, userName, activePrompt, memory);
     }
 
-    return await this.executeIntent(intent, request, language, userId, userName, activePrompt);
+    return await this.executeIntent(intent, request, language, userId, userName, activePrompt, memory);
   }
 
   private async executeIntent(
     intent: Intent, 
     request: AssistantConverseRequest, 
-    language: string, 
+    language: string,
     userId: string, 
     userName: string | null,
-    prompt: string
+    prompt: string,
+    memory: AssistantMemoryState | null
   ): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
     const namePrefix = userName ? `${userName}, ` : '';
@@ -582,11 +649,11 @@ export class AssistantConversationService {
       // Record learning event
       this.learningService.recordSceneUsed(userId, scene, prompt).catch(() => {});
 
-      return {
+      return await this.attachSuggestionIfNeeded({
         type: 'execution',
         message: language === 'en' ? "Executing scene..." : "Ejecutando escena...",
         execution: result
-      };
+      }, userId, language, memory, 'scene');
     }
 
     if (intent.type === 'command') {
@@ -620,11 +687,11 @@ export class AssistantConversationService {
           timestamp: new Date().toISOString()
         }).catch(() => {});
 
-        return {
+        return await this.attachSuggestionIfNeeded({
           type: 'execution',
           message: this.buildCommandSuccessMessage(intent.command, deviceName, userName, language),
           execution: result
-        };
+        }, userId, language, memory, 'command');
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
@@ -661,7 +728,7 @@ export class AssistantConversationService {
           timestamp: new Date().toISOString()
         }).catch(() => {});
 
-        return {
+        return await this.attachSuggestionIfNeeded({
           type: 'execution',
           message,
           execution: {
@@ -669,7 +736,7 @@ export class AssistantConversationService {
             status: failures.length === 0 ? 'success' : 'failed',
             actions: results.flatMap(r => r.result.actions)
           }
-        };
+        }, userId, language, memory, 'multi_command');
 
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -703,6 +770,7 @@ export class AssistantConversationService {
         clarificationOptions: undefined,
         pendingDraft: undefined,
         pendingManagementAction: undefined,
+        pendingSuggestion: undefined,
         originalPrompt: undefined
       });
     }
@@ -1013,7 +1081,16 @@ export class AssistantConversationService {
         : `${command === 'turn_on' ? 'Encender' : 'Apagar'} ${selectedRoom.name}`;
 
       const fingerprint = `draft:${userId}:${normalized}:${selectedRoom.id}`;
-      const homeId = selectedRoom.homeId || controllableDevices[0]?.homeId || 'system';
+      const homeId = selectedRoom.homeId || controllableDevices[0]?.homeId;
+
+      if (!homeId) {
+        return {
+          type: 'answer',
+          message: language === 'en'
+            ? "I couldn't determine the home to create the draft."
+            : "No pude determinar el hogar para crear el borrador."
+        };
+      }
 
       let draftId = '';
       if (isScene) {
@@ -1399,14 +1476,163 @@ export class AssistantConversationService {
    */
   private async buildRoomNameMap(devices: readonly Device[]): Promise<Map<string, string>> {
     const homeIds = [...new Set(devices.map(d => d.homeId).filter((hid): hid is string => Boolean(hid)))];
-    const roomLists = await Promise.all(homeIds.map(hid => this.roomRepository.findRoomsByHomeId(hid)));
-    const map = new Map<string, string>();
-    for (const roomList of roomLists) {
-      for (const r of roomList) {
-        map.set(r.id, r.name);
+    const roomMap = new Map<string, string>();
+    
+    for (const homeId of homeIds) {
+      const rooms = await this.roomRepository.findRoomsByHomeId(homeId);
+      for (const room of rooms) {
+        roomMap.set(room.id, room.name);
       }
     }
-    return map;
+    
+    return roomMap;
+  }
+
+  private isSuggestionAccept(normalized: string): boolean {
+    const acceptTriggers = ['si', 'sí', 'si creala', 'sí, créala', 'dale', 'crear', 'hazlo', 'yes', 'create it', 'do it'];
+    return acceptTriggers.includes(normalized) || acceptTriggers.some(t => normalized.startsWith(t + ' '));
+  }
+
+  private isSuggestionReject(normalized: string): boolean {
+    const rejectTriggers = ['no', 'no gracias', 'descartar', 'no thanks', 'dismiss'];
+    return rejectTriggers.includes(normalized) || rejectTriggers.some(t => normalized.startsWith(t + ' '));
+  }
+
+  private isSuggestionPostpone(normalized: string): boolean {
+    const postponeTriggers = ['despues', 'después', 'recuerdamelo despues', 'recuérdamelo después', 'mas tarde', 'más tarde', 'later', 'remind me later'];
+    return postponeTriggers.includes(normalized) || postponeTriggers.some(t => normalized.startsWith(t + ' '));
+  }
+
+  private async handleSuggestionAccept(userId: string, language: string, suggestion: PendingSuggestion): Promise<AssistantConversationResponse> {
+    const isEn = language === 'en';
+    
+    await this.learningService.recordSuggestionResponse(userId, suggestion.id, suggestion.type, 'accepted');
+    
+    let message = isEn ? "Done! I've created a draft for you." : "¡Listo! He creado un borrador para ti.";
+    
+    if (suggestion.type === 'alias_suggestion') {
+      const metadata = suggestion.metadata;
+      const alias = typeof metadata['alias'] === 'string' ? metadata['alias'] : undefined;
+      const target = typeof metadata['target'] === 'string' ? metadata['target'] : undefined;
+      const confidence = typeof metadata['confidence'] === 'string' ? metadata['confidence'] : undefined;
+      
+      if (confidence === 'high' && alias && target) {
+        // Validate target exists
+        const devices = await this.deviceRepository.findAll();
+        const rooms = await this.roomRepository.findAll();
+        
+        const targetExists = devices.some(d => this.normalizePrompt(d.name) === this.normalizePrompt(target)) ||
+                           rooms.some(r => this.normalizePrompt(r.name) === this.normalizePrompt(target));
+        
+        // Safety: check alias does not already exist
+        const existingAlias = await this.memoryService.getAlias(userId, alias);
+        
+        // Safety: check alias does not match existing device name
+        const nameCollision = devices.some(d => this.normalizePrompt(d.name) === this.normalizePrompt(alias));
+
+        if (targetExists && !nameCollision && !existingAlias) {
+          await this.memoryService.setAlias(userId, alias, target);
+          message = isEn 
+            ? `Alias created: from now on I'll understand "${alias}" as "${target}".`
+            : `Alias creado: a partir de ahora entenderé "${alias}" como "${target}".`;
+        } else {
+          if (existingAlias) {
+            message = isEn 
+              ? `I already have an alias for "${alias}".` 
+              : `Ya tengo un alias para "${alias}".`;
+          } else if (nameCollision) {
+            message = isEn
+              ? `I cannot use "${alias}" as an alias because a device already has that name.`
+              : `No puedo usar "${alias}" como alias porque un dispositivo ya tiene ese nombre.`;
+          } else {
+            message = isEn
+              ? `I found the suggestion, but I need to confirm which device or room "${target}" refers to.`
+              : `Encontré la sugerencia, pero necesito confirmar a qué dispositivo o estancia se refiere "${target}".`;
+          }
+        }
+      }
+    } else if (suggestion.type === 'scene_suggestion' || suggestion.type === 'automation_suggestion') {
+      const metadata = suggestion.metadata;
+      const roomId = typeof metadata['roomId'] === 'string' ? metadata['roomId'] : undefined;
+      const deviceIds = isStringArray(metadata['deviceIds']) ? metadata['deviceIds'] : undefined;
+      const deviceId = typeof metadata['deviceId'] === 'string' ? metadata['deviceId'] : undefined;
+      const hour = typeof metadata['hour'] === 'number' ? String(metadata['hour']) : undefined;
+      const homeId = typeof metadata['homeId'] === 'string' ? metadata['homeId'] : undefined;
+
+      if (homeId) {
+        if (suggestion.type === 'scene_suggestion' && deviceIds) {
+          await this.draftService.createDraft(userId, 'scene', { 
+            roomId, deviceIds, homeId
+          });
+          message = isEn 
+            ? "I've created a scene draft with those devices. You can find it in your drafts."
+            : "He creado un borrador de escena con esos dispositivos. Puedes encontrarlo en tus borradores.";
+        } else if (suggestion.type === 'automation_suggestion' && deviceId) {
+          await this.draftService.createDraft(userId, 'automation', { 
+            deviceId, hour, homeId, trigger: { type: 'time', hour: Number(hour) }
+          });
+          message = isEn 
+            ? "I've created an automation draft for you. You can review it in your drafts."
+            : "He creado un borrador de automatización para ti. Puedes revisarlo en tus borradores.";
+        }
+      }
+    } else if (suggestion.type === 'room_cleanup_suggestion') {
+      message = isEn
+        ? "To organize your devices, go to Settings > Devices and assign a room to those marked as 'Unassigned'."
+        : "Para organizar tus dispositivos, ve a Ajustes > Dispositivos y asigna una estancia a los que aparecen como 'Sin asignar'.";
+    }
+
+    await this.clearPendingAction(userId);
+    return { type: 'answer', message };
+  }
+
+  private async handleSuggestionReject(userId: string, language: string, suggestion: PendingSuggestion): Promise<AssistantConversationResponse> {
+    await this.learningService.recordSuggestionResponse(userId, suggestion.id, suggestion.type, 'rejected');
+    await this.clearPendingAction(userId);
+    return {
+      type: 'answer',
+      message: language === 'en' ? "Understood, I won't suggest this again for now." : "Entendido, no volveré a sugerirte esto por ahora."
+    };
+  }
+
+  private async handleSuggestionPostpone(userId: string, language: string, suggestion: PendingSuggestion): Promise<AssistantConversationResponse> {
+    await this.learningService.recordSuggestionResponse(userId, suggestion.id, suggestion.type, 'postponed');
+    await this.clearPendingAction(userId);
+    return {
+      type: 'answer',
+      message: language === 'en' ? "Okay, I'll remind you later." : "Está bien, te lo recordaré más tarde."
+    };
+  }
+
+  private async attachSuggestionIfNeeded(response: AssistantConversationResponse, userId: string, language: string, memory: AssistantMemoryState | null, context?: SuggestionContext): Promise<AssistantConversationResponse> {
+    if (response.type !== 'answer' && response.type !== 'execution') return response;
+    
+    // Safety guards
+    if (memory?.pendingSuggestion) return response; // No stacking
+    if (memory?.pendingIntent || memory?.clarificationOptions || memory?.pendingDraft || memory?.pendingManagementAction) return response;
+
+    const allowedContexts: SuggestionContext[] = ['command', 'multi_command', 'scene', 'state_query', 'room_query', 'list_query'];
+    if (!context || !allowedContexts.includes(context)) return response;
+
+    const suggestion = await this.suggestionService.getSuggestion(userId, language);
+    if (suggestion) {
+      const memoryUpdate: AssistantMemoryState = {
+        ...(memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }),
+        pendingSuggestion: {
+          ...suggestion,
+          createdAt: new Date().toISOString()
+        }
+      };
+      await this.memoryService.saveShortTermMemory(userId, memoryUpdate);
+
+      const hint = language === 'en'
+        ? '\nYou can reply: "yes, create it", "no thanks", or "later".'
+        : '\nPuedes responder: "sí, créala", "no, gracias" o "después".';
+
+      response.message += `\n\n💡 ${suggestion.message}${hint}`;
+    }
+
+    return response;
   }
 
   /** Returns the display name for a roomId using the provided map. */
@@ -2025,9 +2251,12 @@ export class AssistantConversationService {
     
     try {
       if (type === 'rename_scene') {
+        const newName = typeof payload['newName'] === 'string' ? payload['newName'] : undefined;
+        if (!newName) throw new Error('INVALID_PAYLOAD: newName is required');
+
         const scene = await this.sceneRepository.findSceneById(targetId);
         if (scene) {
-          scene.name = payload.newName as string;
+          scene.name = newName;
           scene.updatedAt = new Date().toISOString();
           await this.sceneRepository.saveScene(scene);
           await this.clearPendingAction(userId);
@@ -2036,30 +2265,48 @@ export class AssistantConversationService {
       }
 
       if (type === 'toggle_automation') {
+        const enabled = typeof payload['enabled'] === 'boolean' ? payload['enabled'] : undefined;
+        if (enabled === undefined) throw new Error('INVALID_PAYLOAD: enabled is required');
+
         const auto = await this.automationRepository.findById(targetId);
         if (auto) {
-          const updatedAuto = { ...auto, enabled: payload.enabled as boolean, updatedAt: new Date().toISOString() };
+          const updatedAuto = { ...auto, enabled, updatedAt: new Date().toISOString() };
           await this.automationRepository.save(updatedAuto);
           await this.clearPendingAction(userId);
-          return { type: 'answer', message: language === 'en' ? `Ready, automation "${auto.name}" ${payload.enabled ? 'enabled' : 'disabled'}.` : `Listo, ${payload.enabled ? 'activé' : 'desactivé'} la automatización "${auto.name}".` };
+          return { type: 'answer', message: language === 'en' ? `Ready, automation "${auto.name}" ${enabled ? 'enabled' : 'disabled'}.` : `Listo, ${enabled ? 'activé' : 'desactivé'} la automatización "${auto.name}".` };
         }
       }
 
       if (type === 'edit_scene') {
-        const scene = await this.sceneRepository.findSceneById(targetId);
-        if (scene) {
-          if (payload.mode === 'add') {
-            scene.actions.push({
-              deviceId: payload.deviceId as string,
-              command: { name: payload.command as DeviceCommandV1, params: {} }
-            });
-          } else if (payload.mode === 'remove') {
-            scene.actions = scene.actions.filter(a => a.deviceId !== payload.deviceId);
+        const mode = payload['mode'];
+        const deviceId = typeof payload['deviceId'] === 'string' ? payload['deviceId'] : undefined;
+        
+        if (mode === 'add') {
+          const command = payload['command'];
+          if (!deviceId || typeof command !== 'string' || !isValidCommand(command)) {
+            throw new Error('INVALID_PAYLOAD: deviceId and valid command are required for add mode');
           }
-          scene.updatedAt = new Date().toISOString();
-          await this.sceneRepository.saveScene(scene);
-          await this.clearPendingAction(userId);
-          return { type: 'answer', message: language === 'en' ? `Ready, updated scene "${scene.name}".` : `Listo, actualicé la escena "${scene.name}".` };
+          const scene = await this.sceneRepository.findSceneById(targetId);
+          if (scene) {
+            scene.actions.push({
+              deviceId,
+              command: { name: command, params: {} }
+            });
+            scene.updatedAt = new Date().toISOString();
+            await this.sceneRepository.saveScene(scene);
+            await this.clearPendingAction(userId);
+            return { type: 'answer', message: language === 'en' ? `Ready, updated scene "${scene.name}".` : `Listo, actualicé la escena "${scene.name}".` };
+          }
+        } else if (mode === 'remove') {
+          if (!deviceId) throw new Error('INVALID_PAYLOAD: deviceId is required for remove mode');
+          const scene = await this.sceneRepository.findSceneById(targetId);
+          if (scene) {
+            scene.actions = scene.actions.filter(a => a.deviceId !== deviceId);
+            scene.updatedAt = new Date().toISOString();
+            await this.sceneRepository.saveScene(scene);
+            await this.clearPendingAction(userId);
+            return { type: 'answer', message: language === 'en' ? `Ready, updated scene "${scene.name}".` : `Listo, actualicé la escena "${scene.name}".` };
+          }
         }
       }
 
@@ -2108,10 +2355,24 @@ export class AssistantConversationService {
   }
 
   private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string): Promise<SceneExecutionResult> {
+    let homeId: string | undefined;
+    let roomId: string | null = null;
+
+    if (deviceId === 'all') {
+      const allDevices = await this.deviceRepository.findAll();
+      homeId = allDevices[0]?.homeId;
+    } else {
+      const device = await this.deviceRepository.findDeviceById(deviceId);
+      homeId = device?.homeId;
+      roomId = device?.roomId ?? null;
+    }
+
+    if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
+
     const transientScene: Scene = {
       id: `assistant-chat-transient-${Date.now()}`,
-      homeId: 'system',
-      roomId: null,
+      homeId,
+      roomId,
       name: `Assistant Chat: ${prompt}`,
       actions: [{
         deviceId: deviceId,
@@ -2134,7 +2395,7 @@ export class AssistantConversationService {
     return regex.test(source);
   }
 
-  private async resolvePronounIntent(normalized: string, memory: AssistantMemoryState | null, language: string): Promise<Intent | { type: 'clarificationRequired'; options: Array<{ id: string; label: string }> } | null> {
+  private async resolvePronounIntent(normalized: string, memory: AssistantMemoryState | null, language: string): Promise<Intent | { type: 'clarificationRequired'; options: Array<{ id: string; label: string; kind: 'device' | 'scene' }> } | null> {
     const patterns = [
       { regex: /(^|\s)(apagal[ao]s?|apaga esa|apaga la misma)(\s|$)/, command: 'turn_off' as const },
       { regex: /(^|\s)(enciendel[ao]s?|enciende esa|enciende la misma|prendel[ao]s?|prende esa|prende la misma)(\s|$)/, command: 'turn_on' as const },
@@ -2152,7 +2413,11 @@ export class AssistantConversationService {
       // Return clarification ONLY with the entities from the last command context (Requirement A.2)
       return {
         type: 'clarificationRequired',
-        options: memory.entities.map(e => ({ id: e.id, label: e.name }))
+        options: memory.entities.map(e => ({ 
+          id: e.id, 
+          label: e.name,
+          kind: 'device' // Pronoun resolution always refers to devices/scenes from last command
+        }))
       };
     }
 

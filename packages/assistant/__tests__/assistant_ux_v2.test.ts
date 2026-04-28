@@ -89,7 +89,8 @@ describe('AssistantConversationService UX V2', () => {
       reason: 'Global command',
       summary: 'Turning off everything'
     });
-    deviceRepo.findAll.mockResolvedValue([]); // For findMatchingDevices
+    deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', homeId: 'h1' })]);
+    sceneExecutionService.execute.mockResolvedValue({ status: 'success', sceneId: 'global', actions: [] });
 
     const res1 = await service.converse({ prompt, userId });
     

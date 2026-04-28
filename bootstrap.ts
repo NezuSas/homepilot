@@ -232,7 +232,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantMemoryService,
     assistantLearningService
   );
-  const assistantSuggestionService = new AssistantSuggestionService(assistantLearningService);
+  const assistantSuggestionService = new AssistantSuggestionService(assistantLearningService, repos.deviceRepository);
 
   const followUpResolver = new FollowUpResolver();
   const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService);
