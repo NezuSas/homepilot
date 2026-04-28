@@ -92,6 +92,64 @@ function isClarificationKind(value: unknown): value is 'device' | 'scene' {
   return value === 'device' || value === 'scene';
 }
 
+// --- LANGUAGE INTELLIGENCE V1 ---
+
+/**
+ * Deterministic language detection. No external dependencies.
+ * Returns null when the prompt is ambiguous (no clear language signal).
+ * Caller uses stored preference or API hint to resolve.
+ */
+function detectLanguage(prompt: string): 'es' | 'en' | null {
+  const lower = prompt.toLowerCase();
+
+  // B. Spanish signals (checked first — accents are unambiguous)
+  const hasAccent = /[áéíóúñÁÉÍÓÚÑ]/i.test(prompt);
+  const spanishWords = [
+    'qué', 'quién', 'por qué', 'enciende', 'apaga', 'hola', 'por favor', 'cómo', 'dónde', 'cuándo',
+    'que', 'quien', 'como', 'donde', 'cuando', 'gracias', 'buenos dias', 'buenas tardes', 'buenas noches', 'buenas', 'si', 'no'
+  ];
+  const spanishPhrases = [
+    'que es', 'quien es', 'como estas', 'que puedes hacer', 'que servicios', 'quien creo'
+  ];
+
+  const hasSpanishWord = spanishWords.some(w => {
+    const re = new RegExp(`(^|\\s)${w}(\\s|$|[?!.,])`, 'i');
+    return re.test(lower);
+  });
+  const hasSpanishPhrase = spanishPhrases.some(p => lower.includes(p));
+
+  if (hasAccent || hasSpanishWord || hasSpanishPhrase) return 'es';
+
+  // A. English signals
+  const englishWords = ['the', 'turn', 'on', 'off', 'what', 'who', 'why', 'hello', 'hi', 'please', 'switch', 'answer', 'speak', 'created', 'company'];
+  const isAsciiOnly = /^[a-z0-9\s.,?!'-]+$/i.test(prompt);
+  const hasEnglishWord = englishWords.some(w => {
+    const re = new RegExp(`(^|\\s)${w}(\\s|$|[?!.,])`, 'i');
+    return re.test(lower);
+  });
+  if (hasEnglishWord && isAsciiOnly) return 'en';
+
+  // C. Ambiguous — caller resolves from stored preference or API hint
+  return null;
+}
+
+/**
+ * Detects explicit language override commands.
+ * Returns 'en', 'es', or null if no override.
+ */
+function isLanguageOverrideCommand(normalized: string): 'es' | 'en' | null {
+  const toEnglish = [
+    'habla en ingles', 'responde en ingles', 'cambia a ingles',
+    'habla en inglés', 'responde en inglés', 'cambia a inglés'
+  ];
+  const toSpanish = [
+    'speak spanish', 'answer in spanish', 'switch to spanish', 'speak in spanish'
+  ];
+  if (toEnglish.some(k => normalized.includes(k))) return 'en';
+  if (toSpanish.some(k => normalized.includes(k))) return 'es';
+  return null;
+}
+
 export class AssistantConversationService {
   constructor(
     private readonly intentInterpreter: IntentInterpreterPort,
@@ -112,7 +170,7 @@ export class AssistantConversationService {
     private readonly executionRecordRepository: ExecutionRecordRepository
   ) {}
 
-  public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
+  public async converse(request: AssistantConverseRequest, _langHint: string = 'es'): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
     const prompt = request.prompt.trim();
     // FALLBACK: 'system' is used for anonymous requests or background automated actions.
@@ -122,15 +180,35 @@ export class AssistantConversationService {
     const namePrefix = userName ? `${userName}, ` : '';
     const normalized = this.normalizePrompt(prompt);
 
-    // V2: Load Contextual Memory & Aliases FIRST
+    // V2: Load Contextual Memory & Aliases FIRST (includes stored language preference)
     const t_mem = Date.now();
-    const [memory, aliases] = await Promise.all([
+    const [memory, aliases, storedLangPref] = await Promise.all([
       this.memoryService.getShortTermMemory(userId),
-      this.memoryService.getAliases(userId)
+      this.memoryService.getAliases(userId),
+      this.memoryService.getUserPreference(userId, 'preferred_language')
     ]);
     if (process.env.NODE_ENV !== 'production') {
       console.debug(`[AssistantConversation] Memory load took ${Date.now() - t_mem}ms`);
     }
+
+    // --- LANGUAGE INTELLIGENCE V1 ---
+    // 1. Check explicit override command (highest priority — early return)
+    const langOverride = isLanguageOverrideCommand(normalized);
+    if (langOverride !== null) {
+      await this.memoryService.setUserPreference(userId, 'preferred_language', langOverride);
+      return {
+        type: 'answer',
+        message: langOverride === 'en'
+          ? "Got it. I'll speak in English from now on."
+          : "Perfecto. A partir de ahora hablaré en español."
+      };
+    }
+    // 2. Resolve language: auto-detect > stored preference > API hint > default
+    const detectedLang = detectLanguage(prompt);
+    const storedValidLang: 'es' | 'en' = storedLangPref === 'en' ? 'en' : (_langHint === 'en' ? 'en' : 'es');
+    const language: 'es' | 'en' = detectedLang ?? storedValidLang;
+    // 3. Persist resolved language asynchronously (fire-and-forget)
+    this.memoryService.setUserPreference(userId, 'preferred_language', language).catch(() => {});
 
     // --- TOP PRIORITY: MANAGEMENT CONFIRMATION ---
     if (memory?.pendingManagementAction) {
