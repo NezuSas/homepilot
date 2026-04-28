@@ -12,6 +12,8 @@ export type Intent =
   | { type: 'scene'; target: string; prompt: string }
   | { type: 'command'; deviceId: string; command: DeviceCommandV1; params?: Record<string, unknown>; prompt: string }
   | { type: 'multi_command'; prompt: string; actions: MultiCommandAction[]; requiresConfirmation?: boolean; reason?: string }
+  | { type: 'explain'; prompt: string; targetId?: string }
+  | { type: 'retry'; prompt: string }
   | { type: 'unknown'; prompt: string; reason: string };
 
 export type AssistantClarificationOption = {

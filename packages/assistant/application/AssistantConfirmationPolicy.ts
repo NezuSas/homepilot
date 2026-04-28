@@ -102,6 +102,24 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       });
     }
 
+    if (intent.type === 'explain') {
+      return finalize({
+        prompt: intent.prompt,
+        intentType: 'unknown', // Explain doesn't have its own type in AssistantPreviewResult yet, using unknown as it's informative
+        requiresConfirmation: false,
+        summary: isEn ? 'Providing explanation for the last action.' : 'Proporcionando explicación de la última acción.'
+      });
+    }
+
+    if (intent.type === 'retry') {
+      return finalize({
+        prompt: intent.prompt,
+        intentType: 'unknown',
+        requiresConfirmation: false, // We will handle confirmation logic in AssistantConversationService
+        summary: isEn ? 'Retrying the last failed action.' : 'Reintentando la última acción fallida.'
+      });
+    }
+
     const _exhaustive: never = intent;
     return _exhaustive;
   }

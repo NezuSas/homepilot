@@ -196,8 +196,20 @@ export class IntentInterpreterService implements IntentInterpreterPort {
         if (found) {
           return { type: 'command', deviceId: found.id, command, prompt };
         }
-        return { type: 'unknown', prompt, reason: 'Device not found matching the description' };
+        return { type: 'unknown', prompt, reason: 'Device not found' };
       }
+    }
+
+    // 3. Explainability mapping
+    const explainKeywords = ['por qué', 'qué pasó', 'que paso', 'falló', 'fallo', 'revisa', 'why', 'what happened', 'failed', 'check'];
+    if (explainKeywords.some(kw => normalized.includes(kw))) {
+      return { type: 'explain', prompt };
+    }
+
+    // 4. Retry mapping
+    const retryKeywords = ['reintenta', 'prueba otra vez', 'intenta de nuevo', 'retry', 'try again'];
+    if (retryKeywords.some(kw => normalized.includes(kw))) {
+      return { type: 'retry', prompt };
     }
 
     return { type: 'unknown', prompt, reason: 'Command not understood' };
