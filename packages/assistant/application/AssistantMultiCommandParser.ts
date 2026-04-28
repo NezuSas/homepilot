@@ -238,8 +238,21 @@ export class AssistantMultiCommandParser {
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
     const onKeywords = ['prende', 'enciende', 'encender', 'encendido', 'activar', 'on'];
     
-    const isOff = offKeywords.some(kw => segment.includes(kw));
-    const isOn = onKeywords.some(kw => segment.includes(kw));
+    const isOff = offKeywords.some(kw => {
+      if (kw.length <= 3) {
+        const regex = new RegExp(`\\b${kw}\\b`, 'i');
+        return regex.test(segment);
+      }
+      return segment.includes(kw);
+    });
+
+    const isOn = onKeywords.some(kw => {
+      if (kw.length <= 3) {
+        const regex = new RegExp(`\\b${kw}\\b`, 'i');
+        return regex.test(segment);
+      }
+      return segment.includes(kw);
+    });
 
     if (isOff && !isOn) return 'turn_off';
     if (isOn && !isOff) return 'turn_on';

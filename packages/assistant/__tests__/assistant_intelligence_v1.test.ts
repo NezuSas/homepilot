@@ -63,6 +63,7 @@ describe('Assistant Intelligence Layer V1', () => {
       const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
       deviceRepo.findDeviceById.mockResolvedValue(device);
       memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
         entities: [{ id: 'd1', name: 'Luz Escritorio', type: 'light', roomId: 'r1' }],
         timestamp: new Date().toISOString()
       });
@@ -82,6 +83,7 @@ describe('Assistant Intelligence Layer V1', () => {
       const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
       deviceRepo.findDeviceById.mockResolvedValue(device);
       memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
         entities: [{ id: 'd1', name: 'Luz Escritorio', type: 'light', roomId: 'r1' }],
         timestamp: new Date().toISOString()
       });
@@ -92,11 +94,24 @@ describe('Assistant Intelligence Layer V1', () => {
       expect(res.message).toBe('Apagué Luz Escritorio.');
     });
 
+    it('should NOT resolve pronouns if lastQueryType is not command', async () => {
+      const userId = 'u1';
+      memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'status_query',
+        entities: [{ id: 'd1', name: 'Luz Escritorio', type: 'light', roomId: 'r1' }],
+        timestamp: new Date().toISOString()
+      });
+
+      const res = await service.converse({ prompt: 'apágala', userId });
+      expect(res.type).not.toBe('execution');
+    });
+
     it('should resolve "apaga esa" (complex phrase)', async () => {
       const userId = 'u1';
       const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
       deviceRepo.findDeviceById.mockResolvedValue(device);
       memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
         entities: [{ id: 'd1', name: 'Luz Escritorio', type: 'light', roomId: 'r1' }],
         timestamp: new Date().toISOString()
       });
@@ -110,6 +125,7 @@ describe('Assistant Intelligence Layer V1', () => {
     it('should request clarification for "apágala" when multiple entities are in memory', async () => {
       const userId = 'u1';
       memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
         entities: [
           { id: 'd1', name: 'Luz 1', type: 'light', roomId: 'r1' },
           { id: 'd2', name: 'Luz 2', type: 'light', roomId: 'r1' }
@@ -129,6 +145,7 @@ describe('Assistant Intelligence Layer V1', () => {
       const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
       deviceRepo.findDeviceById.mockResolvedValue(device);
       memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
         entities: [{ id: 'd1', name: 'Luz Escritorio', type: 'light', roomId: 'r1' }],
         timestamp: new Date().toISOString()
       });
@@ -139,6 +156,67 @@ describe('Assistant Intelligence Layer V1', () => {
         expect.objectContaining({ actions: [expect.objectContaining({ deviceId: 'd1', command: expect.objectContaining({ name: 'turn_on' }) })] }),
         expect.any(Object)
       );
+    });
+  });
+
+  describe('Handle Selection', () => {
+    it('should accept selection by exact label', async () => {
+      const userId = 'u1';
+      const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
+      deviceRepo.findDeviceById.mockResolvedValue(device);
+      memory.getShortTermMemory.mockResolvedValue({
+        clarificationOptions: [{ id: 'd1', label: 'Luz Escritorio' }]
+      });
+
+      const res = await service.converse({ 
+        prompt: '',
+        selectedOptionId: 'Luz Escritorio', 
+        userId,
+        pendingAction: { command: 'turn_on', targetId: '', originalPrompt: 'prende luz' }
+      });
+
+      expect(res.type).toBe('execution');
+      expect(res.message).toBe('Encendí Luz Escritorio.');
+    });
+
+    it('should accept selection with "Seleccioné:" prefix', async () => {
+      const userId = 'u1';
+      const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
+      deviceRepo.findDeviceById.mockResolvedValue(device);
+      memory.getShortTermMemory.mockResolvedValue({
+        clarificationOptions: [{ id: 'd1', label: 'Luz Escritorio' }]
+      });
+
+      const res = await service.converse({ 
+        prompt: '',
+        selectedOptionId: 'Seleccioné: Luz Escritorio', 
+        userId,
+        pendingAction: { command: 'turn_on', targetId: '', originalPrompt: 'prende luz' }
+      });
+
+      expect(res.type).toBe('execution');
+      expect(res.message).toBe('Encendí Luz Escritorio.');
+    });
+
+    it('should update memory with lastQueryType: command after selection', async () => {
+      const userId = 'u1';
+      const device = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
+      deviceRepo.findDeviceById.mockResolvedValue(device);
+      memory.getShortTermMemory.mockResolvedValue({
+        clarificationOptions: [{ id: 'd1', label: 'Luz Escritorio' }]
+      });
+
+      await service.converse({ 
+        prompt: '',
+        selectedOptionId: 'd1', 
+        userId,
+        pendingAction: { command: 'turn_on', targetId: '', originalPrompt: 'prende luz' }
+      });
+
+      expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
+        lastQueryType: 'command',
+        entities: expect.arrayContaining([expect.objectContaining({ id: 'd1' })])
+      }));
     });
   });
 
@@ -269,6 +347,51 @@ describe('Assistant Intelligence Layer V1', () => {
       expect(res.clarification?.options[0].id).toBe('d5');
       expect(res.clarification?.options[1].id).toBe('d3');
       expect(res.clarification?.options[2].id).toBe('d1');
+    });
+  });
+
+  describe('Device Matching Logic (Phrase vs Token)', () => {
+    it('should match a specific device by phrase containment when other devices share tokens', async () => {
+      const userId = 'u1';
+      const d1 = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
+      const d2 = createTestDevice({ id: 'd2', name: 'Luz Cocina' });
+      const d3 = createTestDevice({ id: 'd3', name: 'Luz Comedor' });
+      deviceRepo.findAll.mockResolvedValue([d1, d2, d3]);
+      deviceRepo.findDeviceById.mockResolvedValue(d1);
+
+      // Mock intent to be a command so it triggers matching logic
+      intentInterpreter.interpret.mockResolvedValue({
+        type: 'command',
+        command: 'turn_on',
+        prompt: 'prende luz escritorio'
+      });
+
+      const res = await service.converse({ prompt: 'prende luz escritorio', userId });
+
+      expect(res.type).toBe('execution');
+      expect(res.message).toBe('Encendí Luz Escritorio.');
+      expect(sceneExecutionService.execute).toHaveBeenCalled();
+    });
+
+    it('should open clarification with max 3 options if no unique phrase match exists', async () => {
+      const userId = 'u1';
+      const d1 = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
+      const d2 = createTestDevice({ id: 'd2', name: 'Luz Cocina' });
+      const d3 = createTestDevice({ id: 'd3', name: 'Luz Comedor' });
+      const d4 = createTestDevice({ id: 'd4', name: 'Luz Patio' });
+      deviceRepo.findAll.mockResolvedValue([d1, d2, d3, d4]);
+
+      // Mock intent to be a command so it triggers matching logic
+      intentInterpreter.interpret.mockResolvedValue({
+        type: 'command',
+        command: 'turn_on',
+        prompt: 'prende la luz'
+      });
+
+      const res = await service.converse({ prompt: 'prende la luz', userId });
+
+      expect(res.type).toBe('clarification');
+      expect(res.clarification?.options).toHaveLength(3);
     });
   });
 });

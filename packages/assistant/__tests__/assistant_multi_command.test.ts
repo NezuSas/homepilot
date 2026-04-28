@@ -67,6 +67,29 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     );
   });
 
+  it('should respect different commands per segment even if substrings match (e.g. "on" in "seccion")', async () => {
+    const userId = 'u1';
+    const prompt = 'prende luz repisero y apaga luz seccion escritorio';
+    
+    deviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'd1', name: 'Luz Repisero', type: 'light' }),
+      createTestDevice({ id: 'd2', name: 'Luz Seccion Escritorio', type: 'light' })
+    ]);
+    roomRepo.findAll.mockResolvedValue([]);
+
+    const res = await service.converse({ prompt, userId });
+    
+    expect(res.type).toBe('clarification');
+    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
+      pendingIntent: expect.objectContaining({
+        actions: [
+          { deviceId: 'd1', command: 'turn_on', targetName: 'Luz Repisero' },
+          { deviceId: 'd2', command: 'turn_off', targetName: 'Luz Seccion Escritorio' }
+        ]
+      })
+    }));
+  });
+
   it('1. "apaga luz sala y prende luz cocina" should require confirmation and execute both', async () => {
     const userId = 'u1';
     const prompt = 'apaga luz sala y prende luz cocina';

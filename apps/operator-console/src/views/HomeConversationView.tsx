@@ -3,13 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { 
   Send, 
   Bot, 
-  MessageSquare,
   Zap,
   ChevronRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
-import { SectionHeader } from '../components/ui/SectionHeader';
 import { converseWithAssistant } from '../lib/assistantApi';
 import type { ChatMessage, AssistantConversationResponse, AssistantConverseRequest } from '../types/assistantConversation';
 import { StatusPill } from '../components/ui/StatusPill';
@@ -278,16 +276,6 @@ export const HomeConversationView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full animate-in fade-in duration-500 bg-background overflow-hidden">
-      {/* Sticky Header */}
-      <div className="px-6 lg:px-10 py-4 border-b border-border bg-background/50 backdrop-blur-md shrink-0">
-        <SectionHeader 
-          title={t('assistant.conversation.title')} 
-          subtitle={t('assistant.conversation.subtitle')}
-          icon={MessageSquare}
-          className="m-0"
-        />
-      </div>
-
       {/* Scrollable Messages Area */}
       <div 
         ref={scrollRef}

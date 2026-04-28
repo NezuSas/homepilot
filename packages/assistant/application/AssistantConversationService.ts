@@ -726,7 +726,16 @@ export class AssistantConversationService {
     return negatives.some(t => normalized === t || normalized.startsWith(t + ' '));
   }
 
-  private resolveSelectionFromMemory(normalized: string, options: { id: string; label: string }[], language: string): string | null {
+  private resolveSelectionFromMemory(text: string, options: { id: string; label: string }[], language: string): string | null {
+    // Requirement B: strip prefixes
+    let normalized = text.toLowerCase().trim();
+    if (normalized.startsWith('seleccione:')) normalized = normalized.replace('seleccione:', '').trim();
+    if (normalized.startsWith('selected:')) normalized = normalized.replace('selected:', '').trim();
+    
+    // Check exact ID match first
+    const exactId = options.find(opt => opt.id === text);
+    if (exactId) return exactId.id;
+
     // Check indices
     const indexTriggers = [
       { triggers: ['la primera', 'el primero', 'primera', 'primero', 'the first', 'first one'], index: 0 },
@@ -744,7 +753,7 @@ export class AssistantConversationService {
     for (const opt of options) {
       const label = opt.label.toLowerCase();
       const normLabel = this.normalizePrompt(label);
-      if (normalized.includes(normLabel) || normalized.includes(label)) return opt.id;
+      if (normalized === label || normalized === normLabel || normalized.includes(normLabel) || normalized.includes(label)) return opt.id;
     }
 
     return null;
@@ -1131,10 +1140,21 @@ export class AssistantConversationService {
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
     const correlationId = `assistant:chat:selection:${Date.now()}`;
     const userId = request.userId || 'system';
-    const targetId = request.selectedOptionId === 'confirm' ? request.pendingAction?.targetId : request.selectedOptionId;
+    const rawTargetId = request.selectedOptionId === 'confirm' ? request.pendingAction?.targetId : request.selectedOptionId;
 
-    if (!targetId) {
+    if (!rawTargetId) {
       return { type: 'error', message: language === 'en' ? "Missing target for selection." : "Falta el objetivo para la selección." };
+    }
+
+    // Load memory to resolve from label if it looks like a label (Requirement B)
+    const memory = await this.memoryService.getShortTermMemory(userId);
+    let targetId = rawTargetId;
+
+    if (memory?.clarificationOptions) {
+      const resolvedId = this.resolveSelectionFromMemory(rawTargetId, memory.clarificationOptions, language);
+      if (resolvedId) {
+        targetId = resolvedId;
+      }
     }
     
     // Check if it's a scene or device
@@ -1616,33 +1636,58 @@ export class AssistantConversationService {
     const exactMatch = devices.find(d => this.normalizePrompt(d.name) === normalized);
     if (exactMatch) return [exactMatch];
 
-    // 2. Score-based matching for fuzzy/partial matches
+    // 2. Phrase Matching (Requirement: normalized prompt contains device name)
+    // "prende luz escritorio" -> matchea "luz escritorio" pero no "luz cocina"
+    const phraseMatches = devices.filter(d => {
+      const deviceName = this.normalizePrompt(d.name);
+      return normalized.includes(deviceName);
+    });
+
+    // Si hay un único match por frase contenida, lo devolvemos directamente (Requirement A)
+    if (phraseMatches.length === 1) {
+      return [phraseMatches[0]];
+    }
+
+    if (phraseMatches.length > 1) {
+      // Si hay varios, ordenamos por nombre más largo (más específico) y luego por uso (Requirement B)
+      const mostUsed = await this.learningService.getMostUsedDevices(userId);
+      const usageMap = new Map(mostUsed.map(u => [u.entityId, u.count]));
+
+      phraseMatches.sort((a, b) => {
+        if (b.name.length !== a.name.length) return b.name.length - a.name.length;
+        const usageA = usageMap.get(a.id) || 0;
+        const usageB = usageMap.get(b.id) || 0;
+        return usageB - usageA;
+      });
+
+      return phraseMatches.slice(0, 3);
+    }
+
+    // 3. Fallback: Token-based matching (Requirement C: "Solo si no hay phraseMatches usar token/fuzzy ranking")
+    // "prende luz" -> no matchea ninguna frase completa, buscamos tokens
     const scored = devices.map(d => {
       const name = this.normalizePrompt(d.name);
+      const tokens = name.split(' ');
       let score = 0;
 
-      if (normalized.includes(name)) score = 50;
-      else if (name.split(' ').some(token => normalized.includes(token))) score = 10;
+      if (tokens.some(token => normalized.includes(token))) {
+        score = 10;
+      }
 
       return { device: d, score };
     }).filter(item => item.score > 0);
 
     if (scored.length === 0) return [];
 
-    // 3.usage-based ranking for remaining candidates
-    const mostUsed = await this.learningService.getMostUsedDevices(userId);
-    const usageMap = new Map(mostUsed.map(u => [u.entityId, u.count]));
+    const mostUsedFallback = await this.learningService.getMostUsedDevices(userId);
+    const usageMapFallback = new Map(mostUsedFallback.map(u => [u.entityId, u.count]));
 
     scored.sort((a, b) => {
-      // First by match score
-      if (b.score !== a.score) return b.score - a.score;
-      // Then by usage count
-      const usageA = usageMap.get(a.device.id) || 0;
-      const usageB = usageMap.get(b.device.id) || 0;
+      const usageA = usageMapFallback.get(a.device.id) || 0;
+      const usageB = usageMapFallback.get(b.device.id) || 0;
       return usageB - usageA;
     });
 
-    // 4. Return Top 3
     return scored.slice(0, 3).map(item => item.device);
   }
 
@@ -2087,9 +2132,13 @@ export class AssistantConversationService {
     const match = patterns.find(p => p.regex.test(normalized));
     if (!match) return null;
 
-    if (!memory || !memory.entities || memory.entities.length === 0) return null;
+    // Only resolve pronouns if the last interaction was a command (Requirement A)
+    if (!memory || memory.lastQueryType !== 'command' || !memory.entities || memory.entities.length === 0) {
+      return null;
+    }
 
     if (memory.entities.length > 1) {
+      // Return clarification ONLY with the entities from the last command context (Requirement A.2)
       return {
         type: 'clarificationRequired',
         options: memory.entities.map(e => ({ id: e.id, label: e.name }))
