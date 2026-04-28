@@ -16,6 +16,7 @@ import { SmartEntityResolver } from '../application/SmartEntityResolver';
 import { AssistantSuggestionService } from '../application/AssistantSuggestionService';
 import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
+import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { OllamaClientPort } from '../application/ports/OllamaClientPort';
 import { AssistantContextBuilderPort } from '../application/ports/AssistantContextBuilderPort';
 import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
@@ -234,3 +235,8 @@ export const createMockLlmIntentInterpreter = (overrides?: Partial<jest.Mocked<L
   interpret: jest.fn().mockResolvedValue({ type: 'unknown' }),
   ...overrides
 } as jest.Mocked<LlmIntentInterpreterPort>);
+
+export const createMockSceneExecutionService = (overrides?: Partial<jest.Mocked<SceneExecutionService>>): jest.Mocked<SceneExecutionService> => ({
+  execute: jest.fn().mockResolvedValue({ sceneId: 's1', status: 'success', actions: [] }),
+  ...overrides
+} as unknown as jest.Mocked<SceneExecutionService>);

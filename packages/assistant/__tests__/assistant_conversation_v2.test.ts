@@ -147,7 +147,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
     await new Promise(r => setTimeout(r, 20));
 
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('user-1', expect.objectContaining({
-      lastQueryType: 'execution',
+      lastQueryType: 'command',
       entities: [expect.objectContaining({ id: '1', name: 'Luz Sala' })]
     }));
   });

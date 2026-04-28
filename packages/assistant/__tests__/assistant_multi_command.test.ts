@@ -119,7 +119,9 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     const res2 = await service.converse({ prompt: 'sí', userId });
     
     expect(res2.type).toBe('execution');
-    expect(res2.message).toContain('Ejecuté las 2 acciones correctamente');
+    expect(res2.message).toContain('Ejecuté 2 acciones');
+    expect(res2.message).toContain('apagué Luz Sala');
+    expect(res2.message).toContain('encendí Luz Cocina');
     expect(service['executeSingleCommand']).toHaveBeenCalledTimes(2);
     expect(service['executeSingleCommand']).toHaveBeenCalledWith('d1', 'turn_off', expect.any(String), expect.any(String));
     expect(service['executeSingleCommand']).toHaveBeenCalledWith('d2', 'turn_on', expect.any(String), expect.any(String));

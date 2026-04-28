@@ -16,8 +16,7 @@ import { Device } from '../../devices/domain/types';
 import { resolveCapabilitiesForDevice } from '../../devices/domain/CapabilityResolver';
 import { validateDeviceCommand } from '../../devices/domain/CommandCapabilityValidator';
 import { Room } from '../../topology/domain/types';
-import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
-import type { Intent } from './ports/IntentInterpreterPort';
+import type { Intent, MultiCommandAction, IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from './ports/AssistantMemoryPort';
@@ -40,6 +39,12 @@ export interface AssistantConversationResponse {
       originalPrompt: string;
     };
   };
+}
+
+export interface ExecutedCommandResult {
+  action: MultiCommandAction;
+  deviceName: string;
+  result: SceneExecutionResult;
 }
 
 export interface AssistantConverseRequest {
@@ -107,6 +112,22 @@ export class AssistantConversationService {
           message: language === 'en' ? "Action cancelled." : "Acción cancelada."
         };
       }
+    }
+
+    // --- PRE-INTENT: PRONOUN RESOLUTION ("apágala", etc.) ---
+    const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
+    if (pronounIntent) {
+      if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') {
+        return {
+          type: 'clarification',
+          message: language === 'en' ? "I found several options for that. Which one do you mean?" : "Encontré varias opciones para eso. ¿A cuál te refieres?",
+          clarification: {
+            question: language === 'en' ? "Which one?" : "¿Cuál?",
+            options: pronounIntent.options.map(opt => ({ ...opt, kind: 'device' }))
+          }
+        };
+      }
+      return await this.executeIntent(pronounIntent as Intent, request, language, userId, userName, prompt);
     }
 
     // --- SECOND PRIORITY: DRAFT CONFIRMATION ---
@@ -466,7 +487,7 @@ export class AssistantConversationService {
 
     // Check for ambiguity (deterministic V1 only for now)
     if (intent.type === 'command') {
-      const allMatches = await this.findMatchingDevices(prompt);
+      const allMatches = await this.findMatchingDevices(prompt, userId);
       if (allMatches.length > 1) {
         // Save to memory for future resolution (e.g. "la primera")
         const options = allMatches.map(d => ({
@@ -594,7 +615,7 @@ export class AssistantConversationService {
 
         // V2: Save to memory
         this.memoryService.saveShortTermMemory(userId, {
-          lastQueryType: 'execution',
+          lastQueryType: 'command',
           entities: [{ id: intent.deviceId, name: deviceName, type: 'device', roomId: device?.roomId || null }],
           timestamp: new Date().toISOString()
         }).catch(() => {});
@@ -631,25 +652,11 @@ export class AssistantConversationService {
         const successes = results.filter(r => r.result.status === 'success');
         const failures = results.filter(r => r.result.status === 'failed');
 
-        let message = '';
-        if (failures.length === 0) {
-          message = language === 'en' 
-            ? `${namePrefix}I executed all ${results.length} actions successfully.`
-            : `${namePrefix}Ejecuté las ${results.length} acciones correctamente.`;
-        } else if (successes.length === 0) {
-          message = language === 'en'
-            ? `${namePrefix}I couldn't execute any of the ${results.length} actions.`
-            : `${namePrefix}No pude ejecutar ninguna de las ${results.length} acciones.`;
-        } else {
-          message = language === 'en'
-            ? `${namePrefix}I executed ${successes.length} out of ${results.length} actions.\n`
-            : `${namePrefix}Ejecuté ${successes.length} de ${results.length} acciones.\n`;
-          message += failures.map(f => `• ${f.deviceName} — ${f.result.actions[0]?.error || 'failed'}`).join('\n');
-        }
+        const message = this.formatMultiCommandSummary(results, language);
 
         this.clearPendingAction(userId).catch(() => {});
         this.memoryService.saveShortTermMemory(userId, {
-          lastQueryType: 'execution',
+          lastQueryType: 'command',
           entities,
           timestamp: new Date().toISOString()
         }).catch(() => {});
@@ -1139,23 +1146,48 @@ export class AssistantConversationService {
         sourceId: 'assistant',
         correlationId
       });
+
+      if (result.status === 'success') {
+        this.clearPendingAction(userId).catch(() => {});
+        this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'command',
+          entities: scene.actions.map(a => ({ id: a.deviceId, name: 'device', type: 'device', roomId: null })),
+          timestamp: new Date().toISOString()
+        }).catch(() => {});
+      }
+
       return {
         type: 'execution',
-        message: language === 'en' ? "Scene executed." : "Escena ejecutada.",
+        message: result.status === 'success'
+          ? (language === 'en' ? `Executed scene ${scene.name}.` : `Ejecuté la escena ${scene.name}.`)
+          : (language === 'en' ? "Execution failed." : "La ejecución falló."),
         execution: result
       };
     }
 
     if (request.pendingAction?.command) {
       const device = await this.deviceRepository.findDeviceById(targetId);
+      const deviceName = device?.name ?? targetId;
+      
       if (device) {
         this.learningService.recordClarificationSelected(userId, device.id, device.name, 'device', request.pendingAction.originalPrompt).catch(() => {});
       }
+      
       const result = await this.executeSingleCommand(targetId, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
+      
+      if (result.status === 'success') {
+        this.clearPendingAction(userId).catch(() => {});
+        this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'command',
+          entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
+          timestamp: new Date().toISOString()
+        }).catch(() => {});
+      }
+
       return {
         type: 'execution',
         message: result.status === 'success' 
-          ? (language === 'en' ? "Action completed." : "Acción completada.") 
+          ? this.buildCommandSuccessMessage(request.pendingAction.command, deviceName, request.userName || null, language)
           : (language === 'en' ? "Execution failed." : "La ejecución falló."),
         execution: result
       };
@@ -1321,7 +1353,7 @@ export class AssistantConversationService {
 
     const triggers = [
       'prende', 'apaga', 'enciende', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'toggle', 'turn on', 'turn off', 'open', 'close',
-      'encendido', 'apagado', 'prendido', 'on', 'off', 'luces', 'dispositivos', 'estado',
+      'encendido', 'apagado', 'prendido', 'on', 'off', 'luz', 'luces', 'light', 'lights', 'dispositivos', 'estado',
       'esa', 'eso', 'esas', 'esos', 'that', 'those', 'them',
       'escena', 'rutina', 'automatizacion', 'scene', 'routine', 'automation',
       'cuando diga', 'llama a', 'when i say',
@@ -1576,32 +1608,42 @@ export class AssistantConversationService {
     };
   }
 
-  private async findMatchingDevices(prompt: string): Promise<Device[]> {
+  private async findMatchingDevices(prompt: string, userId: string = 'system'): Promise<Device[]> {
     const normalized = this.normalizePrompt(prompt);
     const devices = await this.deviceRepository.findAll();
     
-    // Score-based matching
+    // 1. Check for Exact Match first (highest priority)
+    const exactMatch = devices.find(d => this.normalizePrompt(d.name) === normalized);
+    if (exactMatch) return [exactMatch];
+
+    // 2. Score-based matching for fuzzy/partial matches
     const scored = devices.map(d => {
       const name = this.normalizePrompt(d.name);
       let score = 0;
 
-      if (name === normalized) score = 100;
-      else if (normalized.includes(name)) score = 50;
+      if (normalized.includes(name)) score = 50;
       else if (name.split(' ').some(token => normalized.includes(token))) score = 10;
 
       return { device: d, score };
     }).filter(item => item.score > 0);
 
-    // Sort by score descending
-    scored.sort((a, b) => b.score - a.score);
+    if (scored.length === 0) return [];
 
-    // If we have a clear top match (or multiple top matches with same score)
-    if (scored.length > 0) {
-      const topScore = scored[0].score;
-      return scored.filter(item => item.score === topScore).map(item => item.device);
-    }
+    // 3.usage-based ranking for remaining candidates
+    const mostUsed = await this.learningService.getMostUsedDevices(userId);
+    const usageMap = new Map(mostUsed.map(u => [u.entityId, u.count]));
 
-    return [];
+    scored.sort((a, b) => {
+      // First by match score
+      if (b.score !== a.score) return b.score - a.score;
+      // Then by usage count
+      const usageA = usageMap.get(a.device.id) || 0;
+      const usageB = usageMap.get(b.device.id) || 0;
+      return usageB - usageA;
+    });
+
+    // 4. Return Top 3
+    return scored.slice(0, 3).map(item => item.device);
   }
 
   // --- POINT STATE QUERIES ---
@@ -1971,24 +2013,41 @@ export class AssistantConversationService {
     }
   }
 
-  private buildCommandSuccessMessage(command: DeviceCommandV1, deviceName: string, userName: string | null, language: string): string {
-    const namePrefix = userName ? `${userName}. ` : '';
-    
-    let actionES = 'controlé';
-    let actionEN = 'controlled';
-    
-    if (command === 'turn_on') {
-      actionES = 'encendí';
-      actionEN = 'turned on';
-    } else if (command === 'turn_off') {
-      actionES = 'apagué';
-      actionEN = 'turned off';
+  private buildCommandSuccessMessage(command: DeviceCommandV1, deviceName: string, _userName: string | null, language: string): string {
+    if (language === 'en') {
+      const verb = command === 'turn_on' ? 'Turned on' : (command === 'turn_off' ? 'Turned off' : 'Controlled');
+      return `${verb} ${deviceName}.`;
+    } else {
+      const verb = command === 'turn_on' ? 'Encendí' : (command === 'turn_off' ? 'Apagué' : 'Controlé');
+      return `${verb} ${deviceName}.`;
+    }
+  }
+
+  private formatMultiCommandSummary(results: ExecutedCommandResult[], language: string): string {
+    const successes = results.filter(r => r.result.status === 'success');
+    const failures = results.filter(r => r.result.status === 'failed');
+
+    if (failures.length === 0) {
+      if (language === 'en') {
+        const details = results.map(r => `${r.action.command === 'turn_on' ? 'turned on' : 'turned off'} ${r.deviceName}`).join(' and ');
+        return `I executed ${results.length} actions: ${details}.`;
+      } else {
+        const details = results.map(r => `${r.action.command === 'turn_on' ? 'encendí' : 'apagué'} ${r.deviceName}`).join(' y ');
+        return `Ejecuté ${results.length} acciones: ${details}.`;
+      }
     }
 
+    if (successes.length === 0) {
+      return language === 'en' 
+        ? `Failed to execute any actions. Errors: ${failures.map(f => `${f.deviceName}: ${f.result.actions[0]?.error}`).join(', ')}`
+        : `No pude ejecutar ninguna acción. Errores: ${failures.map(f => `${f.deviceName}: ${f.result.actions[0]?.error}`).join(', ')}`;
+    }
+
+    // Partial failure
     if (language === 'en') {
-      return `Done, ${namePrefix}I ${actionEN} ${deviceName}.`;
+      return `Executed ${successes.length} of ${results.length} actions. Failed ${failures[0].deviceName}: ${failures[0].result.actions[0]?.error}.`;
     } else {
-      return `Listo, ${namePrefix}${actionES.charAt(0).toUpperCase() + actionES.slice(1)} la luz ${deviceName} correctamente.`;
+      return `Ejecuté ${successes.length} de ${results.length} acciones. Falló ${failures[0].deviceName}: ${failures[0].result.actions[0]?.error}.`;
     }
   }
 
@@ -2017,5 +2076,33 @@ export class AssistantConversationService {
   private containsWord(source: string, word: string): boolean {
     const regex = new RegExp(`(^|\\s)${word}(\\s|$)`, 'i');
     return regex.test(source);
+  }
+
+  private async resolvePronounIntent(normalized: string, memory: AssistantMemoryState | null, language: string): Promise<Intent | { type: 'clarificationRequired'; options: Array<{ id: string; label: string }> } | null> {
+    const patterns = [
+      { regex: /(^|\s)(apagal[ao]s?|apaga esa|apaga la misma)(\s|$)/, command: 'turn_off' as const },
+      { regex: /(^|\s)(enciendel[ao]s?|enciende esa|enciende la misma|prendel[ao]s?|prende esa|prende la misma)(\s|$)/, command: 'turn_on' as const },
+    ];
+
+    const match = patterns.find(p => p.regex.test(normalized));
+    if (!match) return null;
+
+    if (!memory || !memory.entities || memory.entities.length === 0) return null;
+
+    if (memory.entities.length > 1) {
+      return {
+        type: 'clarificationRequired',
+        options: memory.entities.map(e => ({ id: e.id, label: e.name }))
+      };
+    }
+
+    const entity = memory.entities[0];
+    return {
+      type: 'command',
+      deviceId: entity.id,
+      command: match.command,
+      params: {},
+      prompt: normalized
+    };
   }
 }
