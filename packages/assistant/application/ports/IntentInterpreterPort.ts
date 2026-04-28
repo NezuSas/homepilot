@@ -1,4 +1,5 @@
 import { DeviceCommandV1 } from '../../../devices/domain/commands';
+export { DeviceCommandV1 };
 
 export type MultiCommandAction = {
   deviceId: string;

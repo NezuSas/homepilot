@@ -9,7 +9,14 @@ import {
   createMockIntentInterpreterService,
   createMockRoomRepository,
   createMockAssistantSmallTalk,
-  createTestDevice
+  createMockAssistantLearningService,
+  createMockAssistantDraftService,
+  createMockAutomationRuleRepository,
+  createRealSmartEntityResolver,
+  createMockAssistantSuggestionService,
+  createMockExecutionRecordRepository,
+  createTestDevice,
+  createTestRoom
 } from './test_helpers';
 
 describe('AssistantConversationService UX V2', () => {
@@ -43,8 +50,8 @@ describe('AssistantConversationService UX V2', () => {
       activateDraft: jest.fn() 
     };
     deviceRepo.findAll.mockResolvedValue([]);
-    roomRepo.findAll.mockResolvedValue([]);
-    roomRepo.findRoomsByHomeId.mockResolvedValue([]);
+    roomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
+    roomRepo.findRoomsByHomeId.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
 
     service = new AssistantConversationService(
       intentInterpreter,
@@ -57,8 +64,12 @@ describe('AssistantConversationService UX V2', () => {
       smallTalk,
       memory,
       followUp,
-      draftService as any,
-      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
+      draftService,
+      createMockAutomationRuleRepository(),
+      createMockAssistantLearningService(),
+      createRealSmartEntityResolver(deviceRepo, roomRepo, sceneRepo, createMockAutomationRuleRepository(), memory, createMockAssistantLearningService()),
+      createMockAssistantSuggestionService(),
+      createMockExecutionRecordRepository()
     );
   });
 

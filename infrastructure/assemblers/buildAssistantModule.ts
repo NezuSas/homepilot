@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { SQLiteAssistantFindingRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantFindingRepository';
 import { SQLiteAssistantFeedbackRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantFeedbackRepository';
 import { SQLiteAssistantDraftRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantDraftRepository';
+import { SQLiteAssistantLearningRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantLearningRepository';
 import { AssistantLearningService } from '../../packages/assistant/application/AssistantLearningService';
 import { ContextAnalysisService } from '../../packages/assistant/application/ContextAnalysisService';
 import { AssistantDraftService } from '../../packages/assistant/application/AssistantDraftService';
@@ -59,8 +60,9 @@ export function buildAssistantModule(deps: AssistantModuleDeps): AssistantAssemb
   const assistantRepository = new SQLiteAssistantFindingRepository(dbPath);
   const assistantFeedbackRepository = new SQLiteAssistantFeedbackRepository(dbPath);
   const assistantDraftRepository = new SQLiteAssistantDraftRepository(dbPath);
+  const assistantLearningRepository = new SQLiteAssistantLearningRepository(dbPath);
   
-  const assistantLearningService = new AssistantLearningService(assistantFeedbackRepository);
+  const assistantLearningService = new AssistantLearningService(assistantLearningRepository);
   const contextAnalysisService = new ContextAnalysisService(deviceRepository, roomRepository);
   
   const assistantDraftService = new AssistantDraftService(

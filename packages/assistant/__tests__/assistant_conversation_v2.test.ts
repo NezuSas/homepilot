@@ -10,7 +10,14 @@ import {
   createMockAssistantMemory,
   createMockFollowUpResolver,
   createMockExecutionRecordRepository,
-  createTestDevice
+  createMockAssistantLearningService,
+  createMockAssistantDraftService,
+  createMockAutomationRuleRepository,
+  createMockSmartEntityResolver,
+  createRealSmartEntityResolver,
+  createMockAssistantSuggestionService,
+  createTestDevice,
+  createTestRoom
 } from './test_helpers';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
@@ -25,16 +32,7 @@ import { AssistantMemoryPort, AssistantMemoryState } from '../application/ports/
 import { FollowUpResolverPort } from '../application/ports/FollowUpResolverPort';
 import { Room } from '../../topology/domain/types';
 
-/** Creates a minimal Room object for testing. */
-const createTestRoom = (overrides?: Partial<Room>): Room => ({
-  id: 'room-1',
-  homeId: 'h1',
-  name: 'Room',
-  entityVersion: 1,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  ...overrides
-});
+
 
 describe('AssistantConversationService V2 (Memory & Context)', () => {
   let service: AssistantConversationService;
@@ -88,8 +86,12 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
       mockSmallTalk,
       mockMemory,
       mockFollowUp,
-      { createSceneDraft: jest.fn(), createAutomationDraft: jest.fn(), activateDraft: jest.fn() } as any,
-      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
+      createMockAssistantDraftService(),
+      createMockAutomationRuleRepository(),
+      createMockAssistantLearningService(),
+      createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
+      createMockAssistantSuggestionService(),
+      mockExecutionRepo
     );
   });
 

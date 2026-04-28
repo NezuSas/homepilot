@@ -16,7 +16,15 @@ import {
   createMockAssistantSmallTalk,
   createMockAssistantMemory,
   createMockFollowUpResolver,
-  createTestDevice
+  createMockAssistantLearningService,
+  createMockAssistantDraftService,
+  createMockAutomationRuleRepository,
+  createMockExecutionRecordRepository,
+  createMockSmartEntityResolver,
+  createRealSmartEntityResolver,
+  createMockAssistantSuggestionService,
+  createTestDevice,
+  createTestRoom
 } from './test_helpers';
 import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
@@ -39,12 +47,7 @@ describe('AssistantConversationService', () => {
 
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
-    mockExecutionRepo = {
-      save: jest.fn().mockResolvedValue(undefined),
-      findRecent: jest.fn(),
-      findBySource: jest.fn(),
-      findById: jest.fn()
-    };
+    mockExecutionRepo = createMockExecutionRecordRepository();
     
     // We use the real SceneExecutionService with a mock dispatcher and repo
     mockSceneExecution = new SceneExecutionService(mockDispatcher, mockExecutionRepo);
@@ -64,6 +67,13 @@ describe('AssistantConversationService', () => {
     mockMemory = createMockAssistantMemory();
     mockFollowUp = createMockFollowUpResolver();
 
+    mockRoomRepo.findAll.mockResolvedValue([
+      createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })
+    ]);
+    mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
+      createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })
+    ]);
+
     service = new AssistantConversationService(
       mockInterpreter,
       mockConfirmationPolicy,
@@ -75,8 +85,12 @@ describe('AssistantConversationService', () => {
       mockSmallTalk,
       mockMemory,
       mockFollowUp,
-      { createSceneDraft: jest.fn(), createAutomationDraft: jest.fn(), activateDraft: jest.fn() } as any,
-      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
+      createMockAssistantDraftService(),
+      createMockAutomationRuleRepository(),
+      createMockAssistantLearningService(),
+      createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
+      createMockAssistantSuggestionService(),
+      mockExecutionRepo
     );
   });
 
@@ -235,9 +249,12 @@ describe('AssistantConversationService', () => {
     });
 
     it('should filter by room name if found in repository', async () => {
-      const room1Id = 'room-1';
+      const room1Id = 'r1';
+      mockRoomRepo.findAll.mockResolvedValue([
+        createTestRoom({ id: room1Id, name: 'Cuarto Master', homeId: 'h1' })
+      ]);
       mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
-        { id: room1Id, name: 'Cuarto Master', homeId: 'h1', createdAt: '', updatedAt: '', entityVersion: 1 }
+        createTestRoom({ id: room1Id, name: 'Cuarto Master', homeId: 'h1' })
       ]);
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: '1', name: 'Luz Master', roomId: room1Id, lastKnownState: { on: true } }),
@@ -246,7 +263,7 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: 'que luces estan encendidas en cuarto master' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('en Cuarto Master');
+      expect(response.message).toContain('Cuarto Master');
       expect(response.message).toContain('• Luz Master');
       expect(response.message).not.toContain('• Luz Sala');
     });

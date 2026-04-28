@@ -30,6 +30,10 @@ import type { SQLiteAutomationRuleRepository } from './packages/devices/infrastr
 import type { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import type { SQLiteExecutionRecordRepository } from './packages/devices/infrastructure/repositories/SQLiteExecutionRecordRepository';
 import type { SQLiteAssistantMemoryRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantMemoryRepository';
+import type { SQLiteAssistantLearningRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantLearningRepository';
+import { AssistantLearningService } from './packages/assistant/application/AssistantLearningService';
+import { SmartEntityResolver } from './packages/assistant/application/SmartEntityResolver';
+import { AssistantSuggestionService } from './packages/assistant/application/AssistantSuggestionService';
 import type { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import type { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import type { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
@@ -66,6 +70,7 @@ export interface BootstrapContainer {
     activityLogRepository: SQLiteActivityLogRepository;
     executionRecordRepository: SQLiteExecutionRecordRepository;
     assistantMemoryRepository: SQLiteAssistantMemoryRepository;
+    assistantLearningRepository: SQLiteAssistantLearningRepository;
     settingsRepository: SQLiteSettingsRepository;
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
@@ -218,6 +223,17 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     console.log(`[Assistant] Ollama enabled: model=${process.env.OLLAMA_MODEL || 'phi3'}, baseUrl=${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}`);
   }
   const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository, repos.assistantMemoryRepository);
+  const assistantLearningService = new AssistantLearningService(repos.assistantLearningRepository);
+  const smartEntityResolver = new SmartEntityResolver(
+    repos.deviceRepository,
+    repos.roomRepository,
+    repos.sceneRepository,
+    repos.automationRuleRepository,
+    assistantMemoryService,
+    assistantLearningService
+  );
+  const assistantSuggestionService = new AssistantSuggestionService(assistantLearningService);
+
   const followUpResolver = new FollowUpResolver();
   const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
@@ -249,7 +265,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantMemoryService,
     followUpResolver,
     assistantAssembly.assistantDraftService,
-    repos.automationRuleRepository
+    repos.automationRuleRepository,
+    assistantLearningService,
+    smartEntityResolver,
+    assistantSuggestionService,
+    repos.executionRecordRepository
   );
 
   const container: BootstrapContainer = {

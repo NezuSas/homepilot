@@ -7,6 +7,10 @@ import {
   createMockDeviceCommandDispatcher,
   createMockRoomRepository,
   createMockAssistantSmallTalk,
+  createMockAssistantLearningService,
+  createMockSmartEntityResolver,
+  createMockAssistantSuggestionService,
+  createMockExecutionRecordRepository,
   createTestDevice
 } from './test_helpers';
 import { IntentInterpreterService } from '../application/IntentInterpreterService';
@@ -55,7 +59,11 @@ describe('AssistantConversationService - Multi-Command V1', () => {
       memory,
       followUp,
       draftService as any,
-      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
+      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any,
+      createMockAssistantLearningService(),
+      createMockSmartEntityResolver(),
+      createMockAssistantSuggestionService(),
+      createMockExecutionRecordRepository()
     );
   });
 

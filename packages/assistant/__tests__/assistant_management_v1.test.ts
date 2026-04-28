@@ -7,7 +7,12 @@ import {
   createMockAssistantConfirmationPolicy, 
   createMockAssistantSmallTalk, 
   createMockAssistantMemory, 
-  createMockFollowUpResolver 
+  createMockFollowUpResolver,
+  createMockAssistantLearningService,
+  createMockSmartEntityResolver,
+  createMockAssistantSuggestionService,
+  createMockExecutionRecordRepository,
+  createRealSmartEntityResolver
 } from './test_helpers';
 import { createTestDevice } from './test_helpers';
 
@@ -61,7 +66,11 @@ describe('Assistant Management V1', () => {
       memory,
       followUp,
       draftService,
-      automationRepo
+      automationRepo,
+      createMockAssistantLearningService(),
+      createRealSmartEntityResolver(deviceRepo, roomRepo, sceneRepo, automationRepo, memory, createMockAssistantLearningService()),
+      createMockAssistantSuggestionService(),
+      createMockExecutionRecordRepository()
     );
 
     // Default mocks

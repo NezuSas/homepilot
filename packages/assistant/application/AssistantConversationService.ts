@@ -4,6 +4,10 @@ import { SceneRepository } from '../../devices/domain/repositories/SceneReposito
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { AssistantDraftService } from './AssistantDraftService';
+import { AssistantLearningService } from './AssistantLearningService';
+import { SmartEntityResolver } from './SmartEntityResolver';
+import { AssistantSuggestionService } from './AssistantSuggestionService';
+import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
 import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
@@ -64,7 +68,11 @@ export class AssistantConversationService {
     private readonly memoryService: AssistantMemoryPort,
     private readonly followUpResolver: FollowUpResolverPort,
     private readonly draftService: AssistantDraftService,
-    private readonly automationRepository: AutomationRuleRepository
+    private readonly automationRepository: AutomationRuleRepository,
+    private readonly learningService: AssistantLearningService,
+    private readonly entityResolver: SmartEntityResolver,
+    private readonly suggestionService: AssistantSuggestionService,
+    private readonly executionRecordRepository: ExecutionRecordRepository
   ) {}
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
@@ -550,6 +558,9 @@ export class AssistantConversationService {
       // Clear pending confirmation if successful
       this.clearPendingAction(userId).catch(() => {});
 
+      // Record learning event
+      this.learningService.recordSceneUsed(userId, scene, prompt).catch(() => {});
+
       return {
         type: 'execution',
         message: language === 'en' ? "Executing scene..." : "Ejecutando escena...",
@@ -564,6 +575,7 @@ export class AssistantConversationService {
         const result = await this.executeSingleCommand(intent.deviceId, intent.command, intent.prompt, correlationId);
         
         if (result.status === 'failed') {
+          this.learningService.recordCommandResult(userId, intent.deviceId, false, result.actions[0]?.error || 'Unknown error').catch(() => {});
           return {
             type: 'error',
             message: result.actions[0]?.userMessage || result.actions[0]?.error || (language === 'en' ? "Execution failed." : "La ejecución falló."),
@@ -573,6 +585,12 @@ export class AssistantConversationService {
 
         // Clear pending confirmation
         this.clearPendingAction(userId).catch(() => {});
+
+        // Record learning event
+        if (device) {
+          this.learningService.recordDeviceUsed(userId, device, prompt).catch(() => {});
+        }
+        this.learningService.recordCommandResult(userId, intent.deviceId, true).catch(() => {});
 
         // V2: Save to memory
         this.memoryService.saveShortTermMemory(userId, {
@@ -793,6 +811,7 @@ export class AssistantConversationService {
     const targetDevice = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(targetName));
     if (targetDevice) {
       await this.memoryService.setAlias(userId, alias, targetDevice.name);
+      this.learningService.recordAliasCreated(userId, alias, targetDevice.name).catch(() => {});
       return {
         type: 'answer',
         message: language === 'en'
@@ -809,6 +828,7 @@ export class AssistantConversationService {
     
     if (targetRoom) {
       await this.memoryService.setAlias(userId, alias, targetRoom.name);
+      this.learningService.recordAliasCreated(userId, alias, targetRoom.name).catch(() => {});
       return {
         type: 'answer',
         message: language === 'en'
@@ -1103,6 +1123,7 @@ export class AssistantConversationService {
 
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
     const correlationId = `assistant:chat:selection:${Date.now()}`;
+    const userId = request.userId || 'system';
     const targetId = request.selectedOptionId === 'confirm' ? request.pendingAction?.targetId : request.selectedOptionId;
 
     if (!targetId) {
@@ -1112,6 +1133,7 @@ export class AssistantConversationService {
     // Check if it's a scene or device
     const scene = await this.sceneRepository.findSceneById(targetId);
     if (scene) {
+      this.learningService.recordClarificationSelected(userId, scene.id, scene.name, 'scene', request.pendingAction?.originalPrompt || '').catch(() => {});
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
         sourceId: 'assistant',
@@ -1125,6 +1147,10 @@ export class AssistantConversationService {
     }
 
     if (request.pendingAction?.command) {
+      const device = await this.deviceRepository.findDeviceById(targetId);
+      if (device) {
+        this.learningService.recordClarificationSelected(userId, device.id, device.name, 'device', request.pendingAction.originalPrompt).catch(() => {});
+      }
       const result = await this.executeSingleCommand(targetId, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
       return {
         type: 'execution',

@@ -3,7 +3,8 @@ import { RoomRepository } from '../../topology/domain/repositories/RoomRepositor
 import { Intent, AssistantMultiCommandResult, MultiCommandAction } from './ports/IntentInterpreterPort';
 import { Device } from '../../devices/domain/types';
 import { validateDeviceCommand } from '../../devices/domain/CommandCapabilityValidator';
-import { DeviceCommandV1 } from '../../devices/domain/commands';
+import { DeviceCommandV1, isValidCommand } from '../../devices/domain/commands';
+import { Room } from '../../topology/domain/types';
 
 export class AssistantMultiCommandParser {
   constructor(
@@ -193,7 +194,7 @@ export class AssistantMultiCommandParser {
     };
   }
 
-  private async resolveTargets(segment: string, allDevices: readonly Device[], allRooms: readonly any[]): Promise<{ type: 'match', devices: Device[] } | AssistantMultiCommandResult> {
+  private async resolveTargets(segment: string, allDevices: readonly Device[], allRooms: readonly Room[]): Promise<{ type: 'match', devices: Device[] } | AssistantMultiCommandResult> {
     // 1. Try Room Match
     const roomMatch = allRooms.find(r => segment.includes(this.normalizePrompt(r.name)));
     if (roomMatch) {
@@ -272,7 +273,9 @@ export class AssistantMultiCommandParser {
     const controllableNames = ['luz', 'foco', 'lampara', 'interruptor', 'enchufe', 'tomacorriente', 'apagador'];
     if (controllableNames.some(kw => name.includes(kw))) return true;
 
-    const validation = validateDeviceCommand(device, { name: command as any, params: {} });
+    if (!isValidCommand(command)) return false;
+
+    const validation = validateDeviceCommand(device, { name: command, params: {} });
     return validation.valid;
   }
 }
