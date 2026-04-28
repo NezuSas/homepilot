@@ -84,7 +84,7 @@ function isStringArray(value: unknown): value is string[] {
 function isIntent(value: unknown): value is Intent {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
-  const validTypes = ['scene', 'command', 'multi_command', 'explain', 'retry', 'unknown'];
+  const validTypes = ['scene', 'command', 'multi_command', 'explain', 'retry', 'company_info', 'unknown'];
   return typeof v.type === 'string' && validTypes.includes(v.type) && typeof v.prompt === 'string';
 }
 
@@ -383,25 +383,9 @@ export class AssistantConversationService {
       };
     }
 
-    // Creator queries
-    const creatorKeywordsES = [
-      'quien te creo', 'quién te creó', 
-      'quien te hizo', 'quién te hizo', 
-      'quien te desarrollo', 'quién te desarrolló',
-      'quien creo homepilot', 'quién creó homepilot'
-    ];
-    const creatorKeywordsEN = [
-      'who created you', 'who made you', 
-      'who developed you', 'who created homepilot'
-    ];
-
-    if (creatorKeywordsES.includes(normalized) || (language === 'en' && creatorKeywordsEN.includes(normalized))) {
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? "I was created by NEZU S.A.S., a company focused on automation, local control, and applied home intelligence. My purpose is to help you talk to your home in a safe, clear, and elegant way."
-          : "Fui creado por NEZU S.A.S., una empresa enfocada en automatización, control local e inteligencia aplicada al hogar. Mi propósito es ayudarte a conversar con tu casa de forma segura, clara y elegante."
-      };
+    // C.2) Company Knowledge (NEZU S.A.S.)
+    if (this.isCompanyQuery(normalized)) {
+      return this.handleCompanyInfoQuery(language);
     }
 
     // D) Presentation / Capabilities
@@ -2611,5 +2595,31 @@ export class AssistantConversationService {
         }
       };
     }
+  }
+
+  private isCompanyQuery(normalized: string): boolean {
+    const keywords = [
+      'nezu', 'nezu sas', 'nezu s.a.s.', 'nezu ecuador', 
+      'que es nezu', 'quien es nezu', 'qué es nezu', 'quién es nezu',
+      'quien creo homepilot', 'quién creó homepilot', 'quien hizo homepilot', 'quién hizo homepilot', 'quien desarrollo homepilot', 'quién desarrolló homepilot',
+      'que hace nezu', 'qué hace nezu', 'que servicios ofrece nezu', 'qué servicios ofrece nezu', 'empresa nezu',
+      'what is nezu', 'who is nezu', 'who created homepilot', 'what does nezu do', 'nezu company',
+      // Legacy compatibility for "Creator" queries
+      'quien te creo', 'quién te creó', 'quien te hizo', 'quién te hizo', 'quien te desarrollo', 'quién te desarrolló',
+      'who created you', 'who made you', 'who developed you'
+    ];
+    return keywords.some(k => normalized.includes(k));
+  }
+
+  private handleCompanyInfoQuery(language: string): AssistantConversationResponse {
+    const isEn = language === 'en';
+    const message = isEn
+      ? "NEZU S.A.S. is an Ecuadorian technology company based in Cuenca, focused on transforming homes, buildings, businesses, and industrial spaces into connected, secure, efficient, and personalized environments. NEZU creates integrated systems to improve how people live and work through ecosystems like NEZU Living, NEZU Elevate, and NEZU Core. For more information about our services in automation, security, and infrastructure, visit: https://www.nezuecuador.com/"
+      : "NEZU S.A.S. es una empresa ecuatoriana de tecnología con base en Cuenca, enfocada en transformar hogares, edificios, comercios e industrias en espacios conectados, seguros, eficientes y personalizados. NEZU crea sistemas integrados para mejorar la vida y el trabajo a través de ecosistemas como NEZU Living, NEZU Elevate y NEZU Core. Para más información sobre nuestros servicios de automatización, seguridad e infraestructura, visita: https://www.nezuecuador.com/";
+
+    return {
+      type: 'answer',
+      message
+    };
   }
 }

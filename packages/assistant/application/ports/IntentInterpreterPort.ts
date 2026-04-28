@@ -14,6 +14,7 @@ export type Intent =
   | { type: 'multi_command'; prompt: string; actions: MultiCommandAction[]; requiresConfirmation?: boolean; reason?: string }
   | { type: 'explain'; prompt: string; targetId?: string }
   | { type: 'retry'; prompt: string }
+  | { type: 'company_info'; topic: 'nezu'; prompt: string }
   | { type: 'unknown'; prompt: string; reason: string };
 
 export type AssistantClarificationOption = {

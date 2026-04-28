@@ -115,8 +115,17 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       return finalize({
         prompt: intent.prompt,
         intentType: 'unknown',
-        requiresConfirmation: false, // We will handle confirmation logic in AssistantConversationService
+        requiresConfirmation: false,
         summary: isEn ? 'Retrying the last failed action.' : 'Reintentando la última acción fallida.'
+      });
+    }
+
+    if (intent.type === 'company_info') {
+      return finalize({
+        prompt: intent.prompt,
+        intentType: 'unknown',
+        requiresConfirmation: false,
+        summary: isEn ? 'Providing official company information about NEZU S.A.S.' : 'Proporcionando información oficial sobre NEZU S.A.S.'
       });
     }
 
