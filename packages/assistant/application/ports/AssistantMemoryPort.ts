@@ -36,6 +36,15 @@ export interface AssistantMemoryState {
     type: 'scene' | 'automation';
     originalPrompt: string;
   };
+
+  /** Management action waiting for confirmation (rename, toggle, etc) */
+  pendingManagementAction?: {
+    type: 'rename_scene' | 'rename_automation' | 'toggle_automation' | 'edit_scene';
+    targetId: string;
+    targetName: string;
+    payload: Record<string, unknown>;
+    timestamp: string;
+  };
 }
 
 export interface AssistantMemoryPort {

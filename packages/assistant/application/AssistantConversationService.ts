@@ -1,6 +1,7 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
+import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { AssistantDraftService } from './AssistantDraftService';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
@@ -15,7 +16,7 @@ import type { IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { Intent } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
-import { AssistantMemoryPort, AssistantMemoryEntity } from './ports/AssistantMemoryPort';
+import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
 
 export interface AssistantConversationResponse {
@@ -62,7 +63,8 @@ export class AssistantConversationService {
     private readonly smallTalkService: AssistantSmallTalkPort,
     private readonly memoryService: AssistantMemoryPort,
     private readonly followUpResolver: FollowUpResolverPort,
-    private readonly draftService: AssistantDraftService
+    private readonly draftService: AssistantDraftService,
+    private readonly automationRepository: AutomationRuleRepository
   ) {}
 
   public async converse(request: AssistantConverseRequest, language: string = 'es'): Promise<AssistantConversationResponse> {
@@ -83,7 +85,23 @@ export class AssistantConversationService {
       console.debug(`[AssistantConversation] Memory load took ${Date.now() - t_mem}ms`);
     }
 
-    // --- TOP PRIORITY: DRAFT CONFIRMATION ---
+    // --- TOP PRIORITY: MANAGEMENT CONFIRMATION ---
+    if (memory?.pendingManagementAction) {
+      const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
+      const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
+
+      if (isAffirmative) {
+        return await this.executeManagementAction(memory.pendingManagementAction, userId, language);
+      } else if (isNegative) {
+        await this.clearPendingAction(userId);
+        return {
+          type: 'answer',
+          message: language === 'en' ? "Action cancelled." : "Acción cancelada."
+        };
+      }
+    }
+
+    // --- SECOND PRIORITY: DRAFT CONFIRMATION ---
     // Handle both UI button clicks (selectedOptionId='confirm'/'cancel') and natural language ("sí", "no")
     if (memory?.pendingDraft) {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
@@ -98,7 +116,9 @@ export class AssistantConversationService {
             message: language === 'en' ? "Ready. Scene activated successfully." : "Listo. Escena activada correctamente."
           };
         } catch (err: unknown) {
-          console.error('[AssistantConversation] Error activating draft:', err);
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[AssistantConversation] Error activating draft:', err);
+          }
           return {
             type: 'error',
             message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena."
@@ -337,7 +357,12 @@ export class AssistantConversationService {
       return await this.handleAliasCreation(normalized, userId, language);
     }
 
-    // G) State Queries
+    // G) Point State Queries (is X on/off?) - PRIORITY OVER GENERAL STATE
+    if (this.isPointStateQuery(normalized)) {
+      return await this.handlePointStateQuery(normalized, language, userId);
+    }
+
+    // H) State Queries
     if (this.isStateQuery(normalized)) {
       const t_state = Date.now();
       const result = await this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined);
@@ -345,6 +370,19 @@ export class AssistantConversationService {
         console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
       }
       return result;
+    }
+
+    // I) Management Intents (Rename, Toggle, Edit)
+    if (this.isManagementIntent(normalized)) {
+      return await this.handleManagementIntent(normalized, userId, language);
+    }
+
+    // J) Listing Intents (Scenes, Automations)
+    if (this.isListScenesIntent(normalized)) {
+      return await this.handleListScenes(language);
+    }
+    if (this.isListAutomationsIntent(normalized)) {
+      return await this.handleListAutomations(language);
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
@@ -631,6 +669,7 @@ export class AssistantConversationService {
         pendingIntent: undefined,
         clarificationOptions: undefined,
         pendingDraft: undefined,
+        pendingManagementAction: undefined,
         originalPrompt: undefined
       });
     }
@@ -694,11 +733,19 @@ export class AssistantConversationService {
   }
 
   private isAliasCreation(normalized: string): boolean {
-    const triggers = [
-      'cuando diga', 'me refiero a', 'llama a', 'es mi',
-      'when i say', 'i mean', 'call this', 'is my'
-    ];
-    return triggers.some(t => normalized.includes(t));
+    // Patrones explícitos ES
+    if (normalized.includes('cuando diga') && (normalized.includes('me refiero a') || normalized.includes('entiende'))) return true;
+    if (normalized.includes('guarda') && normalized.includes('como alias')) return true;
+    if (normalized.includes('crea alias')) return true;
+    if (normalized.includes('llama') && normalized.includes(' a ')) return true;
+
+    // Patrones explícitos EN
+    if (normalized.includes('when i say') && normalized.includes('i mean')) return true;
+    if (normalized.includes('save') && normalized.includes('as alias')) return true;
+    if (normalized.includes('create alias')) return true;
+    if (normalized.includes('call ') && !normalized.includes('call me')) return true;
+
+    return false;
   }
 
   private async handleAliasCreation(normalized: string, userId: string, language: string): Promise<AssistantConversationResponse> {
@@ -967,7 +1014,9 @@ export class AssistantConversationService {
         }
       };
     } catch (error) {
-      console.error('[AssistantConversation] Error in handleDraftCreation:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[AssistantConversation] Error in handleDraftCreation:', error);
+      }
       return {
         type: 'answer',
         message: language === 'en'
@@ -1249,7 +1298,7 @@ export class AssistantConversationService {
       'encendido', 'apagado', 'prendido', 'on', 'off', 'luces', 'dispositivos', 'estado',
       'esa', 'eso', 'esas', 'esos', 'that', 'those', 'them',
       'escena', 'rutina', 'automatizacion', 'scene', 'routine', 'automation',
-      'cuando diga', 'me refiero a', 'llama a', 'es mi', 'when i say', 'i mean', 'call this',
+      'cuando diga', 'llama a', 'when i say',
       'crea', 'haz', 'create', 'make'
     ];
     return triggers.some(t => normalized.includes(t));
@@ -1527,6 +1576,373 @@ export class AssistantConversationService {
     }
 
     return [];
+  }
+
+  // --- POINT STATE QUERIES ---
+
+  private isPointStateQuery(normalized: string): boolean {
+    // Si empieza por palabras interrogativas generales, delegar a State Query
+    if (normalized.startsWith('que ') || normalized.startsWith('quien ') || normalized.startsWith('cuales ') || normalized.startsWith('cuáles ') || normalized.startsWith('what ') || normalized.startsWith('which ')) {
+      return false;
+    }
+
+    const triggers = [
+      'esta encendida', 'esta encendido', 'esta prendida', 'esta prendido', 'is on',
+      'esta apagada', 'esta apagado', 'is off'
+    ];
+    return triggers.some(t => normalized.includes(t)) || 
+           (normalized.startsWith('esta ') && (normalized.includes('prendid') || normalized.includes('encendid') || normalized.includes('apagad')));
+  }
+
+  private async handlePointStateQuery(normalized: string, language: string, userId: string): Promise<AssistantConversationResponse> {
+    const devices = await this.deviceRepository.findAll();
+    
+    // Buscar dispositivo en el prompt
+    const matches = devices.filter(d => normalized.includes(this.normalizePrompt(d.name)));
+    
+    if (matches.length === 0) {
+      // Intentar buscar habitación
+      const rooms = (await this.roomRepository.findAll()) || [];
+      const roomMatch = rooms.find(r => normalized.includes(this.normalizePrompt(r.name)));
+      
+      if (roomMatch) {
+        const roomDevices = devices.filter(d => d.roomId === roomMatch.id && this.isControllableDevice(d, 'turn_on'));
+        if (roomDevices.length === 0) {
+          return {
+            type: 'answer',
+            message: language === 'en' ? `I don't see controllable devices in ${roomMatch.name}.` : `No veo dispositivos controlables en ${roomMatch.name}.`
+          };
+        }
+        
+        const onDevices = roomDevices.filter(d => d.lastKnownState?.state === 'on');
+        const total = roomDevices.length;
+        
+        if (onDevices.length === 0) {
+          return {
+            type: 'answer',
+            message: language === 'en' ? `Everything is off in ${roomMatch.name}.` : `Todo está apagado en ${roomMatch.name}.`
+          };
+        } else if (onDevices.length === total) {
+          return {
+            type: 'answer',
+            message: language === 'en' ? `Everything is on in ${roomMatch.name}.` : `Todo está encendido en ${roomMatch.name}.`
+          };
+        } else {
+          return {
+            type: 'answer',
+            message: language === 'en' 
+              ? `There are ${onDevices.length} out of ${total} devices on in ${roomMatch.name}.` 
+              : `Hay ${onDevices.length} de ${total} dispositivos encendidos en ${roomMatch.name}.`
+          };
+        }
+      }
+
+      return {
+        type: 'answer',
+        message: language === 'en' ? "I couldn't find the device you're asking about." : "No pude encontrar el dispositivo por el que preguntas."
+      };
+    }
+
+    if (matches.length > 1) {
+      const options = matches.map(d => ({ id: d.id, label: d.name, kind: 'device' as const }));
+      return {
+        type: 'clarification',
+        message: language === 'en' ? "I found several devices with that name. Which one do you mean?" : "Encontré varios dispositivos con ese nombre. ¿A cuál te refieres?",
+        clarification: { question: language === 'en' ? "Which one?" : "¿Cuál?", options, pendingAction: { originalPrompt: normalized } }
+      };
+    }
+
+    const device = matches[0];
+    const state = device.lastKnownState?.state;
+    const isAskingOn = normalized.includes('encendid') || normalized.includes('prendid') || normalized.includes('on');
+    const isAskingOff = normalized.includes('apagad') || normalized.includes('off');
+
+    const isOn = state === 'on' || (typeof state === 'number' && state > 0);
+    
+    let answer = '';
+    if (isAskingOn) {
+      answer = isOn 
+        ? (language === 'en' ? `Yes, ${device.name} is on.` : `Sí, ${device.name} está encendido.`)
+        : (language === 'en' ? `No, ${device.name} is off.` : `No, ${device.name} está apagado.`);
+    } else if (isAskingOff) {
+      answer = !isOn
+        ? (language === 'en' ? `Yes, ${device.name} is off.` : `Sí, ${device.name} está apagado.`)
+        : (language === 'en' ? `No, ${device.name} is on.` : `No, ${device.name} está encendido.`);
+    } else {
+      answer = isOn
+        ? (language === 'en' ? `${device.name} is on.` : `${device.name} está encendido.`)
+        : (language === 'en' ? `${device.name} is off.` : `${device.name} está apagado.`);
+    }
+
+    return { type: 'answer', message: answer };
+  }
+
+  // --- LISTING ---
+
+  private isListScenesIntent(normalized: string): boolean {
+    return normalized.includes('escenas') && (normalized.includes('que') || normalized.includes('lista') || normalized.includes('muestra') || normalized.includes('what') || normalized.includes('list') || normalized.includes('show'));
+  }
+
+  private async handleListScenes(language: string): Promise<AssistantConversationResponse> {
+    const scenes = await this.sceneRepository.findAll();
+    if (scenes.length === 0) {
+      return { type: 'answer', message: language === 'en' ? "You don't have any scenes created yet." : "Aún no tienes escenas creadas." };
+    }
+    const list = scenes.map(s => `• ${s.name}`).join('\n');
+    return {
+      type: 'answer',
+      message: (language === 'en' ? "These are your scenes:\n" : "Estas son tus escenas:\n") + list
+    };
+  }
+
+  private isListAutomationsIntent(normalized: string): boolean {
+    return (normalized.includes('automatizaciones') || normalized.includes('rutinas') || normalized.includes('automations')) && (normalized.includes('que') || normalized.includes('lista') || normalized.includes('muestra') || normalized.includes('what') || normalized.includes('list'));
+  }
+
+  private async handleListAutomations(language: string): Promise<AssistantConversationResponse> {
+    const automations = await this.automationRepository.findAll();
+    if (automations.length === 0) {
+      return { type: 'answer', message: language === 'en' ? "You don't have any automations yet." : "Aún no tienes automatizaciones." };
+    }
+    const list = automations.map(a => `• ${a.name} — ${a.enabled ? (language === 'en' ? 'active' : 'activa') : (language === 'en' ? 'inactive' : 'inactiva')}`).join('\n');
+    return {
+      type: 'answer',
+      message: (language === 'en' ? "These are your automations:\n" : "Estas son tus automatizaciones:\n") + list
+    };
+  }
+
+  // --- MANAGEMENT ---
+
+  private isManagementIntent(normalized: string): boolean {
+    const managementKeywords = ['renombra', 'cambia el nombre', 'rename', 'change name', 'activa', 'desactiva', 'pausa', 'resume', 'enable', 'disable', 'agrega', 'add', 'quita', 'remove'];
+    return managementKeywords.some(kw => normalized.includes(kw)) && 
+           (normalized.includes('escena') || normalized.includes('automatizacion') || normalized.includes('rutina') || normalized.includes('scene') || normalized.includes('automation') || normalized.includes('routine'));
+  }
+
+  private async handleManagementIntent(normalized: string, userId: string, language: string): Promise<AssistantConversationResponse> {
+    // 1. Rename Scene
+    const renameSceneMatch = normalized.match(/(?:renombra|rename|cambia el nombre de|change name of) (?:la escena|the scene)? (.+) (?:a|to) (.+)/i);
+    if (renameSceneMatch) {
+      const oldName = renameSceneMatch[1].trim();
+      const newName = renameSceneMatch[2].trim();
+      const scenes = await this.sceneRepository.findAll();
+      const scene = scenes.find(s => this.normalizePrompt(s.name) === this.normalizePrompt(oldName));
+      
+      if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${oldName}" not found.` : `No encontré la escena "${oldName}".` };
+      
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'rename_scene',
+          targetId: scene.id,
+          targetName: scene.name,
+          payload: { newName },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en' 
+          ? `I'm going to rename the scene "${scene.name}" to "${newName}". Confirm?` 
+          : `Voy a renombrar la escena "${scene.name}" a "${newName}". ¿Confirmo?`,
+        clarification: { 
+          question: language === 'en' ? "Confirm?" : "¿Confirmo?", 
+          options: [
+            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
+            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
+
+    // 2. Toggle Automation
+    const toggleAutoMatch = normalized.match(/(activa|desactiva|enable|disable|activate|deactivate|pausa|resume) (?:la automatizacion|the automation|la rutina|the routine)? (.+)/i);
+    if (toggleAutoMatch) {
+      const actionStr = toggleAutoMatch[1].trim();
+      const autoName = toggleAutoMatch[2].trim();
+      const enabled = ['activa', 'enable', 'activate', 'resume'].includes(actionStr);
+      
+      const automations = await this.automationRepository.findAll();
+      const auto = automations.find(a => this.normalizePrompt(a.name) === this.normalizePrompt(autoName));
+      
+      if (!auto) return { type: 'answer', message: language === 'en' ? `Automation "${autoName}" not found.` : `No encontré la automatización "${autoName}".` };
+      
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'toggle_automation',
+          targetId: auto.id,
+          targetName: auto.name,
+          payload: { enabled },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I'm going to ${enabled ? 'enable' : 'disable'} the automation "${auto.name}". Confirm?`
+          : `Voy a ${enabled ? 'activar' : 'desactivar'} la automatización "${auto.name}". ¿Confirmo?`,
+        clarification: { 
+          question: language === 'en' ? "Confirm?" : "¿Confirmo?", 
+          options: [
+            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
+            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
+
+    // 3. Edit Scene (Add/Remove)
+    // Agrega [device] a la escena [X]
+    const addActionMatch = normalized.match(/(?:agrega|add) (.+) (?:a la escena|to the scene) (.+)/i);
+    if (addActionMatch) {
+      const deviceName = addActionMatch[1].trim();
+      const sceneName = addActionMatch[2].trim();
+      
+      const scenes = await this.sceneRepository.findAll();
+      const scene = scenes.find(s => this.normalizePrompt(s.name) === this.normalizePrompt(sceneName));
+      if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
+      
+      const devices = await this.deviceRepository.findAll();
+      const device = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(deviceName));
+      if (!device) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" not found.` : `No encontré el dispositivo "${deviceName}".` };
+
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'edit_scene',
+          targetId: scene.id,
+          targetName: scene.name,
+          payload: { mode: 'add', deviceId: device.id, deviceName: device.name, command: 'turn_off' }, 
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I'm going to add "${device.name}" (off) to the scene "${scene.name}". Confirm?`
+          : `Voy a agregar "${device.name}" (apagado) a la escena "${scene.name}". ¿Confirmo?`,
+        clarification: { 
+          question: language === 'en' ? "Confirm?" : "¿Confirmo?", 
+          options: [
+            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
+            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
+
+    // Quita [device] de la escena [X]
+    const removeActionMatch = normalized.match(/(?:quita|remove) (.+) (?:de la escena|from the scene) (.+)/i);
+    if (removeActionMatch) {
+      const deviceName = removeActionMatch[1].trim();
+      const sceneName = removeActionMatch[2].trim();
+      
+      const scenes = await this.sceneRepository.findAll();
+      const scene = scenes.find(s => this.normalizePrompt(s.name) === this.normalizePrompt(sceneName));
+      if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
+      
+      const devices = await this.deviceRepository.findAll();
+      const device = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(deviceName));
+      const action = scene.actions.find(a => a.deviceId === device?.id || a.deviceId === deviceName);
+      
+      if (!action) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" is not in the scene.` : `El dispositivo "${deviceName}" no está en la escena.` };
+
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'edit_scene',
+          targetId: scene.id,
+          targetName: scene.name,
+          payload: { mode: 'remove', deviceId: action.deviceId, deviceName: device?.name || deviceName },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I'm going to remove "${device?.name || deviceName}" from the scene "${scene.name}". Confirm?`
+          : `Voy a quitar "${device?.name || deviceName}" de la escena "${scene.name}". ¿Confirmo?`,
+        clarification: { 
+          question: language === 'en' ? "Confirm?" : "¿Confirmo?", 
+          options: [
+            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
+            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
+
+    return { type: 'answer', message: language === 'en' ? "I'm not sure how to manage that." : "No estoy seguro de cómo gestionar eso." };
+  }
+
+  private async executeManagementAction(
+    action: NonNullable<AssistantMemoryState['pendingManagementAction']>, 
+    userId: string, 
+    language: string
+  ): Promise<AssistantConversationResponse> {
+    const { type, targetId, payload } = action;
+    
+    try {
+      if (type === 'rename_scene') {
+        const scene = await this.sceneRepository.findSceneById(targetId);
+        if (scene) {
+          scene.name = payload.newName as string;
+          scene.updatedAt = new Date().toISOString();
+          await this.sceneRepository.saveScene(scene);
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: language === 'en' ? `Ready, scene renamed to "${scene.name}".` : `Listo, renombré la escena a "${scene.name}".` };
+        }
+      }
+
+      if (type === 'toggle_automation') {
+        const auto = await this.automationRepository.findById(targetId);
+        if (auto) {
+          const updatedAuto = { ...auto, enabled: payload.enabled as boolean, updatedAt: new Date().toISOString() };
+          await this.automationRepository.save(updatedAuto);
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: language === 'en' ? `Ready, automation "${auto.name}" ${payload.enabled ? 'enabled' : 'disabled'}.` : `Listo, ${payload.enabled ? 'activé' : 'desactivé'} la automatización "${auto.name}".` };
+        }
+      }
+
+      if (type === 'edit_scene') {
+        const scene = await this.sceneRepository.findSceneById(targetId);
+        if (scene) {
+          if (payload.mode === 'add') {
+            scene.actions.push({
+              deviceId: payload.deviceId as string,
+              command: { name: payload.command as DeviceCommandV1, params: {} }
+            });
+          } else if (payload.mode === 'remove') {
+            scene.actions = scene.actions.filter(a => a.deviceId !== payload.deviceId);
+          }
+          scene.updatedAt = new Date().toISOString();
+          await this.sceneRepository.saveScene(scene);
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: language === 'en' ? `Ready, updated scene "${scene.name}".` : `Listo, actualicé la escena "${scene.name}".` };
+        }
+      }
+
+      return { type: 'error', message: language === 'en' ? "Failed to execute management action." : "No se pudo ejecutar la acción de gestión." };
+    } catch (err: unknown) {
+      return { type: 'error', message: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   private buildCommandSuccessMessage(command: DeviceCommandV1, deviceName: string, userName: string | null, language: string): string {

@@ -88,7 +88,8 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
       mockSmallTalk,
       mockMemory,
       mockFollowUp,
-      { createSceneDraft: jest.fn(), createAutomationDraft: jest.fn(), activateDraft: jest.fn() } as any
+      { createSceneDraft: jest.fn(), createAutomationDraft: jest.fn(), activateDraft: jest.fn() } as any,
+      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
     );
   });
 

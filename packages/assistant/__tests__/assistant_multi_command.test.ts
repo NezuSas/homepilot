@@ -4,12 +4,10 @@ import {
   createMockSceneRepository, 
   createMockAssistantMemory, 
   createMockFollowUpResolver,
-  createMockAssistantConfirmationPolicy,
   createMockDeviceCommandDispatcher,
   createMockRoomRepository,
   createMockAssistantSmallTalk,
-  createTestDevice,
-  createTestScene
+  createTestDevice
 } from './test_helpers';
 import { IntentInterpreterService } from '../application/IntentInterpreterService';
 import { AssistantConfirmationPolicy } from '../application/AssistantConfirmationPolicy';
@@ -56,7 +54,8 @@ describe('AssistantConversationService - Multi-Command V1', () => {
       smallTalk,
       memory,
       followUp,
-      draftService
+      draftService as any,
+      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
     );
   });
 

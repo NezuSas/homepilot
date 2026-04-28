@@ -57,7 +57,8 @@ describe('AssistantConversationService UX V2', () => {
       smallTalk,
       memory,
       followUp,
-      draftService
+      draftService as any,
+      { findAll: jest.fn(), findById: jest.fn(), save: jest.fn(), delete: jest.fn() } as any
     );
   });
 
