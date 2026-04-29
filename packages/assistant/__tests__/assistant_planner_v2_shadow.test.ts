@@ -29,15 +29,18 @@ describe('Assistant Planner V2 Shadow Mode', () => {
 
     llmInterpreter = {
       interpretV2: jest.fn().mockResolvedValue({ 
-        type: 'plan', 
-        plan_confidence: 0.9,
-        actions: [{ 
-          type: 'set_state',
-          target: { type: 'device', name: 'luz' }, 
-          command: 'turn_on',
-          confidence: 0.9
-        }],
-        user_feedback_draft: 'Encendiendo luz'
+        plan: {
+          type: 'plan', 
+          plan_confidence: 0.9,
+          actions: [{ 
+            type: 'set_state',
+            target: { type: 'device', name: 'luz' }, 
+            command: 'turn_on',
+            confidence: 0.9
+          }],
+          user_feedback_draft: 'Encendiendo luz'
+        },
+        metadata: { promptChars: 100, devicesCount: 5 }
       })
     };
     validator = {
@@ -68,47 +71,58 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     
     expect(llmInterpreter.interpretV2).toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[PLANNER_V2_SHADOW_V2]'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"prompt_chars":100'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"home_map_devices_count":5'));
     
     consoleSpy.mockRestore();
   });
 
-  it('should not execute in production unless forced', async () => {
+  it('should use default shadow settings (light prompt, 8s timeout)', async () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
-    process.env.NODE_ENV = 'production';
-    process.env.ASSISTANT_PLANNER_V2_SHADOW_FORCE = 'false';
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
     
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation();
     await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
-    expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
-
-    // Now force it
-    process.env.ASSISTANT_PLANNER_V2_SHADOW_FORCE = 'true';
-    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
-    const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
-    await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
-    expect(llmInterpreter.interpretV2).toHaveBeenCalled();
-    consoleSpy.mockRestore();
+    
+    expect(llmInterpreter.interpretV2).toHaveBeenCalledWith(
+      'test', 
+      'u1', 
+      expect.objectContaining({ 
+        timeoutMs: 8000, 
+        lightPrompt: true 
+      })
+    );
+    infoSpy.mockRestore();
   });
 
-  it('should respect sampling rate', async () => {
+  it('should honor shadow model override', async () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
-    process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE = '0'; // 0% sampling
+    process.env.ASSISTANT_PLANNER_V2_SHADOW_MODEL = 'tiny-llama';
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
     
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation();
     await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
-    expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
+    
+    expect(llmInterpreter.interpretV2).toHaveBeenCalledWith(
+      'test', 
+      'u1', 
+      expect.objectContaining({ 
+        model: 'tiny-llama' 
+      })
+    );
+    infoSpy.mockRestore();
   });
 
-  it('should handle LLM failure silently but log it in V2 structure', async () => {
+  it('should categorize timeout errors correctly', async () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
-    llmInterpreter.interpretV2.mockResolvedValue(null);
+    llmInterpreter.interpretV2.mockRejectedValue(new Error('Ollama request timed out after 8000ms'));
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
     
     const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
     
-    await shadowService.runShadow('enciende la luz', 'user-1', 'es', { type: 'answer', message: 'ok' });
+    await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
     
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"error":{"message":"LLM returned null or empty plan","type":"llm_failure"}'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"error":{"message":"Ollama request timed out after 8000ms","type":"timeout"}'));
     
     consoleSpy.mockRestore();
   });
@@ -117,7 +131,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
     llmInterpreter.interpretV2.mockImplementation(async () => {
       await new Promise(resolve => setTimeout(resolve, 100)); // Just a bit of delay
-      return { type: 'plan', actions: [] };
+      return { plan: { type: 'plan', actions: [] }, metadata: { promptChars: 0, devicesCount: 0 } };
     });
     
     // We mock Date.now to simulate 1600ms

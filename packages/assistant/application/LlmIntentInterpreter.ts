@@ -134,25 +134,40 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
    * [EXPERIMENTAL] Interprets the prompt using Planner V2 schema.
    * Returns a structured plan for shadow mode diagnostics.
    */
-  public async interpretV2(prompt: string, userId: string): Promise<AssistantPlanV2 | null> {
+  public async interpretV2(
+    prompt: string, 
+    userId: string, 
+    options?: { timeoutMs?: number; model?: string; lightPrompt?: boolean }
+  ): Promise<{ plan: AssistantPlanV2 | null; metadata: { promptChars: number; devicesCount: number } }> {
     try {
-      const systemPrompt = await this.buildPlannerV2Prompt(prompt, userId);
-      const response = await this.ollamaClient.generateJson(systemPrompt);
-      return response as AssistantPlanV2;
+      const homeMap = options?.lightPrompt 
+        ? await this.contextBuilder.buildLightLlmHomeMap(userId)
+        : await this.contextBuilder.buildLlmHomeMap(userId);
+        
+      // Extract device count from homeMap string (rough estimate from JSON structure)
+      const parsedHomeMap = JSON.parse(homeMap);
+      const devicesCount = Array.isArray(parsedHomeMap.devices) ? parsedHomeMap.devices.length : 0;
+
+      const systemPrompt = await this.buildPlannerV2PromptFromMap(prompt, homeMap, options?.lightPrompt);
+      const promptChars = systemPrompt.length;
+
+      const response = await this.ollamaClient.generateJson(systemPrompt, {
+        timeoutMs: options?.timeoutMs,
+        model: options?.model
+      });
+      
+      if (!response || typeof response !== 'object') {
+        throw new Error('LLM returned empty or invalid object');
+      }
+
+      return { plan: response as AssistantPlanV2, metadata: { promptChars, devicesCount } };
     } catch (error: unknown) {
-      console.warn('[LlmIntentInterpreter] Planner V2 Shadow call failed:', error instanceof Error ? error.message : String(error));
-      return null;
+      throw error;
     }
   }
 
-  /**
-   * [EXPERIMENTAL] Builds a Planner V2 prompt for the LLM.
-   * This is currently isolated and not used in the active conversation flow.
-   */
-  public async buildPlannerV2Prompt(prompt: string, userId: string): Promise<string> {
-    const homeMap = await this.contextBuilder.buildLlmHomeMap(userId);
-    
-    return `You are HomePilot AI Assistant, a semantic planner for a smart home.
+  private async buildPlannerV2PromptFromMap(prompt: string, homeMap: string, light: boolean = false): Promise<string> {
+    const basePrompt = `You are HomePilot AI Assistant, a semantic planner for a smart home.
 Interpret the user's natural language command into a structured JSON plan.
 ONLY return a JSON object following the schema provided. NO conversation, NO markdown.
 
@@ -160,15 +175,31 @@ Context of home map:
 ${homeMap}
 
 Strict Schema:
-${JSON.stringify(PLANNER_V2_SCHEMA, null, 2)}
+${JSON.stringify(PLANNER_V2_SCHEMA, null, 2)}`;
 
-Instructions:
+    const instructions = light 
+      ? `\nInstructions:
+- Use natural names. No IDs.
+- Ambiguity? Use "clarification_needed".`
+      : `\nInstructions:
 - Use natural names from the context to identify targets.
 - Never output real IDs or UUIDs.
 - If the user uses pronouns or references context, use the context_hint field with values like: 
   'turn_it_on', 'turn_it_off', 'first_option', 'above_area', 'it', 'them'.
-- If ambiguity exists, use type "clarification_needed".
+- If ambiguity exists, use type "clarification_needed".`;
 
-User command: "${prompt.replace(/"/g, '\"')}"`;
+    return `${basePrompt}${instructions}\n\nUser command: "${prompt.replace(/"/g, '\"')}"`;
+  }
+
+  /**
+   * [EXPERIMENTAL] Builds a Planner V2 prompt for the LLM.
+   * This is currently isolated and not used in the active conversation flow.
+   */
+  public async buildPlannerV2Prompt(prompt: string, userId: string, light: boolean = false): Promise<string> {
+    const homeMap = light 
+      ? await this.contextBuilder.buildLightLlmHomeMap(userId)
+      : await this.contextBuilder.buildLlmHomeMap(userId);
+    
+    return this.buildPlannerV2PromptFromMap(prompt, homeMap, light);
   }
 }

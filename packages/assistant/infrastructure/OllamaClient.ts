@@ -14,9 +14,12 @@ export class OllamaClient implements OllamaClientPort {
    * Generates a structured JSON response from Ollama.
    * Uses 'format: json' to enforce structured output if supported by the model.
    */
-  public async generateJson(prompt: string): Promise<unknown> {
+  public async generateJson(prompt: string, options?: { model?: string; timeoutMs?: number }): Promise<unknown> {
+    const targetModel = options?.model || this.model;
+    const targetTimeout = options?.timeoutMs || this.timeoutMs;
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeoutId = setTimeout(() => controller.abort(), targetTimeout);
 
     try {
       const url = `${this.baseUrl.replace(/\/$/, '')}/api/generate`;
@@ -27,7 +30,7 @@ export class OllamaClient implements OllamaClientPort {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: this.model,
+          model: targetModel,
           prompt,
           stream: false,
           format: 'json',
@@ -54,7 +57,7 @@ export class OllamaClient implements OllamaClientPort {
     } catch (error: unknown) {
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          throw new Error(`Ollama request timed out after ${this.timeoutMs}ms`);
+          throw new Error(`Ollama request timed out after ${targetTimeout}ms`);
         }
       }
       throw error;

@@ -10,17 +10,20 @@ export interface ShadowResolutionResult {
   resolvedIds: string[];
 }
 
-export type ShadowErrorType = 'llm_failure' | 'validation_failure' | 'resolution_failure' | 'unknown';
+export type ShadowErrorType = 'llm_failure' | 'timeout' | 'invalid_json' | 'empty_plan' | 'validation_failure' | 'resolution_failure' | 'unknown';
 
 /**
  * AssistantPlannerV2ShadowService
  * 
  * Orchestrates the "Shadow Mode" execution for Planner V2.
- * Enhanced for runtime observability, controlled activation, and performance monitoring.
+ * Optimized for low-power hardware with light prompts and custom timeouts.
  */
 export class AssistantPlannerV2ShadowService {
   private readonly isShadowEnabled: boolean;
   private readonly sampleRate: number;
+  private readonly lightPromptEnabled: boolean;
+  private readonly shadowTimeoutMs: number;
+  private readonly shadowModel?: string;
 
   constructor(
     private readonly llmInterpreter: LlmIntentInterpreter,
@@ -33,12 +36,18 @@ export class AssistantPlannerV2ShadowService {
     
     this.isShadowEnabled = flag && (isDev || force);
     this.sampleRate = parseFloat(process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE || '1.0');
+    this.lightPromptEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT !== 'false'; // Default true
+    this.shadowTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS || '8000', 10);
+    this.shadowModel = process.env.ASSISTANT_PLANNER_V2_SHADOW_MODEL;
 
     console.info(`[PLANNER_V2_SHADOW_INIT] ${JSON.stringify({
       enabled: this.isShadowEnabled,
       nodeEnv: process.env.NODE_ENV,
       force,
-      sampleRate: this.sampleRate
+      sampleRate: this.sampleRate,
+      lightPrompt: this.lightPromptEnabled,
+      timeout: this.shadowTimeoutMs,
+      model: this.shadowModel || 'default'
     })}`);
   }
 
@@ -68,18 +77,29 @@ export class AssistantPlannerV2ShadowService {
       let plan: AssistantPlanV2 | null = null;
       let validationError: string | null = null;
       let resolutionResults: ShadowResolutionResult[] = [];
+      let metrics = {
+        promptChars: 0,
+        devicesCount: 0
+      };
 
       // 1. Semantic Interpretation (LLM Call)
       try {
-        plan = await this.llmInterpreter.interpretV2(prompt, userId);
-        if (!plan) {
-          errorInfo = { message: 'LLM returned null or empty plan', type: 'llm_failure' };
-        }
+        const result = await this.llmInterpreter.interpretV2(prompt, userId, {
+          timeoutMs: this.shadowTimeoutMs,
+          model: this.shadowModel,
+          lightPrompt: this.lightPromptEnabled
+        });
+        plan = result.plan;
+        metrics = result.metadata;
       } catch (err: unknown) {
-        errorInfo = { 
-          message: err instanceof Error ? err.message : String(err), 
-          type: 'llm_failure' 
-        };
+        const msg = err instanceof Error ? err.message : String(err);
+        let type: ShadowErrorType = 'llm_failure';
+        
+        if (msg.includes('timed out')) type = 'timeout';
+        else if (msg.includes('JSON')) type = 'invalid_json';
+        else if (msg.includes('empty or invalid object')) type = 'empty_plan';
+
+        errorInfo = { message: msg, type };
       }
 
       // 2. Validation (only if plan exists)
@@ -101,7 +121,7 @@ export class AssistantPlannerV2ShadowService {
               target: action.target,
               resolvedType: resolved.type,
               resolvedIds: resolved.deviceId ? [resolved.deviceId] : 
-                           resolved.deviceIds ? resolved.deviceIds.slice(0, 5) : // Limit resolved IDs per target
+                           resolved.deviceIds ? resolved.deviceIds.slice(0, 5) : 
                            resolved.sceneId ? [resolved.sceneId] : 
                            resolved.roomIds ? resolved.roomIds.slice(0, 5) : []
             });
@@ -122,7 +142,6 @@ export class AssistantPlannerV2ShadowService {
       }
 
       // 4. Structured Diagnostic Logging
-      // Truncate plan string if too large for safe logging
       const planStr = plan ? JSON.stringify(plan) : 'null';
       const safePlan = planStr.length > 2000 ? { truncated: true, originalLength: planStr.length } : plan;
 
@@ -142,7 +161,12 @@ export class AssistantPlannerV2ShadowService {
           resolution: resolutionResults
         },
         metrics: {
-          latency_ms: latencyMs
+          latency_ms: latencyMs,
+          prompt_chars: metrics.promptChars,
+          home_map_devices_count: metrics.devicesCount,
+          model: this.shadowModel || 'default',
+          timeout_ms: this.shadowTimeoutMs,
+          light_prompt_enabled: this.lightPromptEnabled
         },
         error: errorInfo
       })}`);
@@ -156,7 +180,10 @@ export class AssistantPlannerV2ShadowService {
     return {
       enabled: this.isShadowEnabled,
       sampleRate: this.sampleRate,
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
+      lightPrompt: this.lightPromptEnabled,
+      timeout: this.shadowTimeoutMs,
+      model: this.shadowModel || 'default'
     };
   }
 }

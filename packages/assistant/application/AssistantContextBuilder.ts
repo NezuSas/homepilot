@@ -140,4 +140,38 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
       lastConversationEntities
     });
   }
+
+  /**
+   * Generates an extremely lightweight JSON map of the home.
+   * Optimized for low-power hardware and rapid inference.
+   */
+  public async buildLightLlmHomeMap(userId: string | null = 'system'): Promise<string> {
+    const [allDevices, allScenes, allRooms, allAliases] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.sceneRepository.findAll(),
+      this.roomRepository ? this.roomRepository.findAll() : Promise.resolve([]),
+      this.memoryService && userId ? this.memoryService.getAliases(userId) : Promise.resolve([])
+    ]);
+
+    const roomMap = new Map<string, string>(allRooms.map(r => [r.id, r.name]));
+    const aliases = (allAliases || {}) as Record<string, string>;
+    const aliasEntries = Object.entries(aliases);
+
+    const devices = allDevices.slice(0, 30).map((d: Device) => {
+      const aliasMatch = aliasEntries.find(([_, targetId]) => targetId === d.id);
+      return {
+        name: d.name,
+        alias: aliasMatch ? aliasMatch[0] : undefined,
+        type: d.type,
+        room: d.roomId ? roomMap.get(d.roomId) || 'Unknown' : undefined,
+        on: d.lastKnownState?.power === 'on' || d.lastKnownState?.on === true
+      };
+    });
+
+    const scenes = allScenes.slice(0, 10).map((s: Scene) => ({
+      name: s.name
+    }));
+
+    return JSON.stringify({ devices, scenes });
+  }
 }
