@@ -28,6 +28,10 @@ export class AssistantPlannerV2ShadowService {
   /** Resolved model for logging: shadow override → OLLAMA_MODEL env → 'phi3' fallback */
   private readonly resolvedModelName: string;
 
+  // In-memory diagnostic counters
+  private totalRuns = 0;
+  private v2BetterCount = 0;
+
   constructor(
     private readonly llmInterpreter: LlmIntentInterpreter,
     private readonly validator: PlannerV2Validator,
@@ -196,6 +200,12 @@ export class AssistantPlannerV2ShadowService {
         }
       }
 
+      // 6. Update in-memory stats
+      this.totalRuns++;
+      if (likelyV2BetterCandidate) {
+        this.v2BetterCount++;
+      }
+
       console.info(`[PLANNER_V2_SHADOW_V2] ${JSON.stringify({
         version: 'v2',
         timestamp: new Date().toISOString(),
@@ -219,6 +229,7 @@ export class AssistantPlannerV2ShadowService {
           likely_v2_better_candidate: likelyV2BetterCandidate,
           reason: comparisonReason
         },
+        stats: this.getMetrics(),
         metrics: {
           latency_ms: latencyMs,
           prompt_chars: metadata.promptChars,
@@ -245,6 +256,14 @@ export class AssistantPlannerV2ShadowService {
       promptMode: this.promptMode,
       timeout: this.shadowTimeoutMs,
       model: this.resolvedModelName
+    };
+  }
+
+  public getMetrics() {
+    return {
+      total_runs: this.totalRuns,
+      v2_better: this.v2BetterCount,
+      v2_better_ratio: this.totalRuns > 0 ? parseFloat((this.v2BetterCount / this.totalRuns).toFixed(2)) : 0
     };
   }
 }

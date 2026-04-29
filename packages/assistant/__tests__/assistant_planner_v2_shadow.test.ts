@@ -353,6 +353,37 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     spy.mockRestore();
   });
 
+  // ─── Metrics and Counters ─────────────────────────────────────────────────
+
+  it('should increment total_runs and v2_better counters and compute ratio correctly', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    
+    resolver.resolve.mockResolvedValue({ type: 'single', deviceId: 'dev-1' });
+
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    
+    // First run: V2 better candidate
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'clarification', message: 'Cual luz?', clarification: { question: '?', options: [] } });
+    
+    // Second run: V1 execution (V2 not better)
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'execution', message: 'Encendiendo' });
+
+    // Third run: V2 better candidate
+    await shadowService.runShadow('apaga luz', 'u1', 'es', { type: 'clarification', message: 'Cual luz?', clarification: { question: '?', options: [] } });
+
+    // Fourth run: V1 execution (V2 not better)
+    await shadowService.runShadow('apaga luz', 'u1', 'es', { type: 'execution', message: 'Apagando' });
+
+    const metrics = shadowService.getMetrics();
+    expect(metrics.total_runs).toBe(4);
+    expect(metrics.v2_better).toBe(2);
+    expect(metrics.v2_better_ratio).toBe(0.5); // 2/4 = 0.5
+
+    spy.mockRestore();
+  });
+
   // ─── Prompt mode default ──────────────────────────────────────────────────
 
   it('should use ultra_light prompt and 8s timeout by default', async () => {

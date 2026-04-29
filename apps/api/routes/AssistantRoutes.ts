@@ -32,6 +32,17 @@ export class AssistantRoutes extends ApiRoutes {
       return true;
     }
 
+    // GET /api/v1/assistant/shadow/metrics
+    if (method === 'GET' && pathname === '/api/v1/assistant/shadow/metrics') {
+      try {
+        const metrics = container.services.assistantPlannerV2ShadowService.getMetrics();
+        this.sendJson(res, metrics);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ERROR', e instanceof Error ? e.message : String(e));
+      }
+      return true;
+    }
+
     // GET /api/v1/assistant/findings
     if (method === 'GET' && pathname === '/api/v1/assistant/findings') {
       try {
