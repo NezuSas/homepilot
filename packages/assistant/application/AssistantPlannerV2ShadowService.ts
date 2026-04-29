@@ -33,6 +33,13 @@ export class AssistantPlannerV2ShadowService {
     
     this.isShadowEnabled = flag && (isDev || force);
     this.sampleRate = parseFloat(process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE || '1.0');
+
+    console.info(`[PLANNER_V2_SHADOW_INIT] ${JSON.stringify({
+      enabled: this.isShadowEnabled,
+      nodeEnv: process.env.NODE_ENV,
+      force,
+      sampleRate: this.sampleRate
+    })}`);
   }
 
   /**
@@ -46,6 +53,8 @@ export class AssistantPlannerV2ShadowService {
     v1Response: AssistantConversationResponse
   ): Promise<void> {
     if (!this.isShadowEnabled) return;
+
+    console.info(`[PLANNER_V2_SHADOW_TRIGGER] ${JSON.stringify({ prompt, userId, language })}`);
 
     // Apply sampling
     if (this.sampleRate < 1.0 && Math.random() > this.sampleRate) {
