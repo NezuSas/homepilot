@@ -91,15 +91,29 @@ export class PlannerV2Resolver {
 
   private async resolveCategory(name: string): Promise<ResolvedTarget> {
     const all = await this.deviceRepo.findAll();
-    let typeFilter = '';
+    const normalizedQuery = this.normalize(name);
     
-    if (name.includes('luz') || name.includes('light') || name.includes('luces')) typeFilter = 'light';
-    else if (name.includes('interruptor') || name.includes('switch')) typeFilter = 'switch';
-    else if (name.includes('persiana') || name.includes('cover') || name.includes('cortina')) typeFilter = 'cover';
+    const isLightCat = /^(luz|luces|foco|focos|lampara|lamparas|light|lights)$/.test(normalizedQuery);
+    const isCoverCat = /^(cortina|cortinas|persiana|persianas|cover|covers)$/.test(normalizedQuery);
+    const isSwitchCat = /^(interruptor|interruptores|switch|switches)$/.test(normalizedQuery);
 
     const matches = all.filter(d => {
-      if (typeFilter && d.type === typeFilter) return true;
-      return this.normalize(d.name).includes(name);
+      const normName = this.normalize(d.name);
+      
+      if (isLightCat) {
+        if (d.type === 'light') return true;
+        if (d.type === 'switch' && /(luz|luces|foco|focos|lampara|lamparas)/.test(normName)) return true;
+      }
+      
+      if (isCoverCat && d.type === 'cover') return true;
+      if (isSwitchCat && d.type === 'switch') return true;
+
+      // Fallback matching logic if it's an unrecognized category
+      if (!isLightCat && !isCoverCat && !isSwitchCat) {
+        return normName.includes(normalizedQuery);
+      }
+
+      return false;
     });
 
     if (matches.length > 0) {

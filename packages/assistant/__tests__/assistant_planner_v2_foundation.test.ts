@@ -209,11 +209,72 @@ describe('Assistant Planner V2 Foundation', () => {
       expect(result.deviceId).toBe('dev-2');
     });
 
-    it('should resolve category "luces"', async () => {
+    it('should resolve category "luces" matching light devices and light-named switches', async () => {
+      // Mock deviceRepo to return a mix of types
+      deviceRepo.findAll.mockResolvedValueOnce([
+        createTestDevice({ id: 'dev-1', name: 'Luz Techo', type: 'light' }),
+        createTestDevice({ id: 'dev-2', name: 'Switch Pasillo', type: 'switch' }),
+        createTestDevice({ id: 'dev-3', name: 'Foco Patio', type: 'switch' }),
+        createTestDevice({ id: 'dev-4', name: 'Ventilador', type: 'fan' })
+      ]);
       const result = await resolver.resolve({ type: 'category', name: 'luces' }, 'user-1');
       expect(result.type).toBe('category');
+      expect(result.deviceIds).toContain('dev-1'); // light
+      expect(result.deviceIds).toContain('dev-3'); // switch named 'Foco...'
+      expect(result.deviceIds).not.toContain('dev-2'); // switch not named light
+      expect(result.deviceIds).not.toContain('dev-4'); // fan
+    });
+
+    it('should resolve category "luz" same as luces', async () => {
+      deviceRepo.findAll.mockResolvedValueOnce([
+        createTestDevice({ id: 'dev-1', name: 'Luz Techo', type: 'light' }),
+        createTestDevice({ id: 'dev-3', name: 'Foco Patio', type: 'switch' }),
+      ]);
+      const result = await resolver.resolve({ type: 'category', name: 'luz' }, 'user-1');
+      expect(result.type).toBe('category');
       expect(result.deviceIds).toContain('dev-1');
-      expect(result.deviceIds).toContain('dev-2');
+      expect(result.deviceIds).toContain('dev-3');
+    });
+
+    it('should resolve category "focos"', async () => {
+      deviceRepo.findAll.mockResolvedValueOnce([
+        createTestDevice({ id: 'dev-1', name: 'Luz Techo', type: 'light' }),
+        createTestDevice({ id: 'dev-3', name: 'Foco Patio', type: 'switch' }),
+      ]);
+      const result = await resolver.resolve({ type: 'category', name: 'focos' }, 'user-1');
+      expect(result.type).toBe('category');
+      expect(result.deviceIds).toContain('dev-1');
+      expect(result.deviceIds).toContain('dev-3');
+    });
+
+    it('should resolve category "lamparas"', async () => {
+      deviceRepo.findAll.mockResolvedValueOnce([
+        createTestDevice({ id: 'dev-1', name: 'Luz Techo', type: 'light' }),
+        createTestDevice({ id: 'dev-3', name: 'Lámpara de pie', type: 'switch' }),
+      ]);
+      const result = await resolver.resolve({ type: 'category', name: 'lamparas' }, 'user-1');
+      expect(result.type).toBe('category');
+      expect(result.deviceIds).toContain('dev-1');
+      expect(result.deviceIds).toContain('dev-3');
+    });
+
+    it('should resolve category "cortinas" to cover devices', async () => {
+      deviceRepo.findAll.mockResolvedValueOnce([
+        createTestDevice({ id: 'dev-1', name: 'Cortina', type: 'cover' }),
+        createTestDevice({ id: 'dev-2', name: 'Luz', type: 'light' }),
+      ]);
+      const result = await resolver.resolve({ type: 'category', name: 'cortinas' }, 'user-1');
+      expect(result.type).toBe('category');
+      expect(result.deviceIds).toContain('dev-1');
+      expect(result.deviceIds).not.toContain('dev-2');
+    });
+
+    it('should return none for unknown category', async () => {
+      deviceRepo.findAll.mockResolvedValueOnce([
+        createTestDevice({ id: 'dev-1', name: 'Luz', type: 'light' })
+      ]);
+      const result = await resolver.resolve({ type: 'category', name: 'patos' }, 'user-1');
+      expect(result.type).toBe('none');
     });
 
     describe('NLP Matching logic', () => {
