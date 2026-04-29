@@ -5,4 +5,5 @@
  */
 export interface AssistantContextBuilderPort {
   build(userId?: string | null): Promise<string>;
+  buildLlmHomeMap(userId?: string | null): Promise<string>;
 }

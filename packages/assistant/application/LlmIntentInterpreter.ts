@@ -5,6 +5,7 @@ import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 import { OllamaClientPort } from './ports/OllamaClientPort';
 import { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 import { Intent } from './ports/IntentInterpreterPort';
+import { PLANNER_V2_SCHEMA } from './ports/AssistantPlannerV2';
 
 interface LlmOutput {
   type: 'scene' | 'command' | 'unknown';
@@ -127,5 +128,32 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
     }
 
     return null;
+  }
+
+  /**
+   * [EXPERIMENTAL] Builds a Planner V2 prompt for the LLM.
+   * This is currently isolated and not used in the active conversation flow.
+   */
+  public async buildPlannerV2Prompt(prompt: string, userId: string): Promise<string> {
+    const homeMap = await this.contextBuilder.buildLlmHomeMap(userId);
+    
+    return `You are HomePilot AI Assistant, a semantic planner for a smart home.
+Interpret the user's natural language command into a structured JSON plan.
+ONLY return a JSON object following the schema provided. NO conversation, NO markdown.
+
+Context of home map:
+${homeMap}
+
+Strict Schema:
+${JSON.stringify(PLANNER_V2_SCHEMA, null, 2)}
+
+Instructions:
+- Use natural names from the context to identify targets.
+- Never output real IDs or UUIDs.
+- If the user uses pronouns or references context, use the context_hint field with values like: 
+  'turn_it_on', 'turn_it_off', 'first_option', 'above_area', 'it', 'them'.
+- If ambiguity exists, use type "clarification_needed".
+
+User command: "${prompt.replace(/"/g, '\"')}"`;
   }
 }
