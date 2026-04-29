@@ -16,6 +16,12 @@ interface LlmOutput {
   reason?: string;
 }
 
+export interface PlannerV2InterpretResult {
+  plan: AssistantPlanV2 | null;
+  metadata: { promptChars: number; devicesCount: number };
+  error?: Error;
+}
+
 /**
  * LlmIntentInterpreter
  * 
@@ -132,37 +138,57 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
 
   /**
    * [EXPERIMENTAL] Interprets the prompt using Planner V2 schema.
-   * Returns a structured plan for shadow mode diagnostics.
+   * Never throws. Always returns metadata even if the LLM fails or times out.
+   * Metadata (promptChars, devicesCount) is captured before the Ollama call so it
+   * survives timeouts and other LLM failures.
    */
   public async interpretV2(
-    prompt: string, 
-    userId: string, 
+    prompt: string,
+    userId: string,
     options?: { timeoutMs?: number; model?: string; lightPrompt?: boolean }
-  ): Promise<{ plan: AssistantPlanV2 | null; metadata: { promptChars: number; devicesCount: number } }> {
+  ): Promise<PlannerV2InterpretResult> {
+    // Step 1: Build home map and prompt BEFORE the LLM call.
+    let homeMap = '{}';
+    let devicesCount = 0;
+    let systemPrompt = '';
+
     try {
-      const homeMap = options?.lightPrompt 
+      homeMap = options?.lightPrompt
         ? await this.contextBuilder.buildLightLlmHomeMap(userId)
         : await this.contextBuilder.buildLlmHomeMap(userId);
-        
-      // Extract device count from homeMap string (rough estimate from JSON structure)
-      const parsedHomeMap = JSON.parse(homeMap);
-      const devicesCount = Array.isArray(parsedHomeMap.devices) ? parsedHomeMap.devices.length : 0;
 
-      const systemPrompt = await this.buildPlannerV2PromptFromMap(prompt, homeMap, options?.lightPrompt);
-      const promptChars = systemPrompt.length;
+      const parsedHomeMap = JSON.parse(homeMap) as { devices?: unknown[] };
+      devicesCount = Array.isArray(parsedHomeMap.devices) ? parsedHomeMap.devices.length : 0;
 
+      systemPrompt = await this.buildPlannerV2PromptFromMap(prompt, homeMap, options?.lightPrompt);
+    } catch (buildError: unknown) {
+      return {
+        plan: null,
+        metadata: { promptChars: 0, devicesCount: 0 },
+        error: buildError instanceof Error ? buildError : new Error(String(buildError))
+      };
+    }
+
+    const metadata = { promptChars: systemPrompt.length, devicesCount };
+
+    // Step 2: Call LLM with pre-built prompt. Metadata is already captured above.
+    try {
       const response = await this.ollamaClient.generateJson(systemPrompt, {
         timeoutMs: options?.timeoutMs,
         model: options?.model
       });
-      
+
       if (!response || typeof response !== 'object') {
-        throw new Error('LLM returned empty or invalid object');
+        return { plan: null, metadata, error: new Error('LLM returned empty or invalid object') };
       }
 
-      return { plan: response as AssistantPlanV2, metadata: { promptChars, devicesCount } };
-    } catch (error: unknown) {
-      throw error;
+      return { plan: response as AssistantPlanV2, metadata };
+    } catch (llmError: unknown) {
+      return {
+        plan: null,
+        metadata,
+        error: llmError instanceof Error ? llmError : new Error(String(llmError))
+      };
     }
   }
 
