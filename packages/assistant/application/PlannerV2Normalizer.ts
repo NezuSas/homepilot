@@ -1,0 +1,77 @@
+import { AssistantPlanV2, PlannerAction } from './ports/AssistantPlannerV2';
+
+export interface NormalizationResult {
+  plan: AssistantPlanV2 | null;
+  normalized: boolean;
+  changes: string[];
+}
+
+type MutablePlannerDraft = Partial<AssistantPlanV2> & {
+  actions?: Array<Partial<PlannerAction>>;
+};
+
+export class PlannerV2Normalizer {
+  /**
+   * Attempts to safely repair missing boilerplate fields in the LLM's output.
+   * Does NOT repair missing critical data like target names or invalid commands.
+   */
+  public normalize(data: unknown): NormalizationResult {
+    if (!data || typeof data !== 'object') {
+      return { plan: null, normalized: false, changes: [] };
+    }
+
+    const plan = data as MutablePlannerDraft;
+    const changes: string[] = [];
+    let normalized = false;
+
+    // We only attempt repair if it looks vaguely like a plan (has an actions array)
+    if (Array.isArray(plan.actions)) {
+      if (!plan.type) {
+        plan.type = 'plan';
+        changes.push('Set missing root type to "plan"');
+        normalized = true;
+      }
+
+      // Action confidences
+      let minActionConfidence = 1.0;
+      let hasActionConfidences = false;
+
+      for (const action of plan.actions) {
+        if (typeof action === 'object' && action !== null) {
+          if (typeof action.confidence !== 'number') {
+            const fallbackConf = typeof plan.plan_confidence === 'number' ? plan.plan_confidence : 0.85;
+            action.confidence = fallbackConf;
+            changes.push(`Set missing action.confidence to ${fallbackConf}`);
+            normalized = true;
+          } else {
+            hasActionConfidences = true;
+            if (action.confidence < minActionConfidence) {
+              minActionConfidence = action.confidence;
+            }
+          }
+        }
+      }
+
+      // Plan confidence
+      if (typeof plan.plan_confidence !== 'number') {
+        const fallbackPlanConf = hasActionConfidences ? minActionConfidence : 0.85;
+        plan.plan_confidence = fallbackPlanConf;
+        changes.push(`Set missing plan_confidence to ${fallbackPlanConf}`);
+        normalized = true;
+      }
+
+      // User feedback draft
+      if (typeof plan.user_feedback_draft !== 'string') {
+        plan.user_feedback_draft = '';
+        changes.push('Set missing user_feedback_draft to ""');
+        normalized = true;
+      }
+    }
+
+    return {
+      plan: plan as AssistantPlanV2,
+      normalized,
+      changes
+    };
+  }
+}

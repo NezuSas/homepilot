@@ -1,6 +1,7 @@
 import { LlmIntentInterpreter } from './LlmIntentInterpreter';
 import { PlannerV2Validator } from './PlannerV2Validator';
 import { PlannerV2Resolver } from './PlannerV2Resolver';
+import { PlannerV2Normalizer } from './PlannerV2Normalizer';
 import { AssistantConversationResponse } from './AssistantConversationService';
 import { TargetReference, AssistantPlanV2 } from './ports/AssistantPlannerV2';
 
@@ -31,6 +32,8 @@ export class AssistantPlannerV2ShadowService {
   // In-memory diagnostic counters
   private totalRuns = 0;
   private v2BetterCount = 0;
+
+  private readonly normalizer = new PlannerV2Normalizer();
 
   constructor(
     private readonly llmInterpreter: LlmIntentInterpreter,
@@ -135,6 +138,18 @@ export class AssistantPlannerV2ShadowService {
         plan = result.plan;
       }
 
+      // 1.5. Normalization
+      let wasNormalized = false;
+      let normalizationChanges: string[] = [];
+      if (plan && !errorInfo) {
+        const normResult = this.normalizer.normalize(plan);
+        if (normResult.plan) {
+          plan = normResult.plan;
+          wasNormalized = normResult.normalized;
+          normalizationChanges = normResult.changes;
+        }
+      }
+
       // 2. Validation (only if plan exists and no prior error)
       if (plan && !errorInfo) {
         validationError = this.validator.validate(plan);
@@ -219,6 +234,8 @@ export class AssistantPlannerV2ShadowService {
         },
         v2: {
           plan: safePlan,
+          normalized: wasNormalized,
+          normalization_changes: normalizationChanges,
           validation: validationError || 'valid',
           resolution: resolutionResults
         },
