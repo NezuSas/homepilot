@@ -11,6 +11,7 @@ export interface ResolvedTarget {
   roomIds?: string[];
   deviceIds?: string[];
   type: 'single' | 'multiple' | 'room' | 'category' | 'none';
+  contextSource?: 'short_term_memory' | 'semantic_match' | 'none';
 }
 
 export class PlannerV2Resolver {
@@ -28,6 +29,12 @@ export class PlannerV2Resolver {
   public async resolve(target: TargetReference, userId: string): Promise<ResolvedTarget> {
     const normalizedName = this.normalize(target.name);
 
+    const isPronoun = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma|el mismo|los mismos|las mismas|it|them)$/.test(normalizedName);
+
+    if (isPronoun || target.type === 'context_reference') {
+      return await this.resolveContext(target.context_hint, userId);
+    }
+
     switch (target.type) {
       case 'device':
         return await this.resolveDevice(normalizedName);
@@ -42,8 +49,6 @@ export class PlannerV2Resolver {
       case 'zone':
         // Zone support is reserved for Phase 2. Currently returning none to avoid silent failure.
         return { type: 'none' };
-      case 'context_reference':
-        return await this.resolveContext(target.context_hint, userId);
       default:
         return { type: 'none' };
     }
@@ -137,24 +142,24 @@ export class PlannerV2Resolver {
 
   private async resolveContext(hint: ContextHint | undefined, userId: string): Promise<ResolvedTarget> {
     const memory = await this.memoryService.getShortTermMemory(userId);
-    if (!memory) return { type: 'none' };
+    if (!memory) return { type: 'none', contextSource: 'none' };
 
-    if (hint === 'it' || hint === 'them' || hint === 'turn_it_off' || hint === 'turn_it_on') {
+    if (memory.entities && memory.entities.length > 0) {
       if (memory.entities.length === 1) {
-        return { type: 'single', deviceId: memory.entities[0].id };
-      } else if (memory.entities.length > 1) {
-        return { type: 'multiple', deviceIds: memory.entities.map(e => e.id) };
+        return { type: 'single', deviceId: memory.entities[0].id, contextSource: 'short_term_memory' };
+      } else {
+        return { type: 'multiple', deviceIds: memory.entities.map(e => e.id), contextSource: 'short_term_memory' };
       }
     }
 
     if (hint === 'first_option') {
-      const option = memory.entities[0] || (memory.clarificationOptions && memory.clarificationOptions[0]);
+      const option = memory.clarificationOptions && memory.clarificationOptions[0];
       if (option) {
-        return { type: 'single', deviceId: option.id };
+        return { type: 'single', deviceId: option.id, contextSource: 'short_term_memory' };
       }
     }
 
-    return { type: 'none' };
+    return { type: 'none', contextSource: 'none' };
   }
 
   private normalize(text: string): string {

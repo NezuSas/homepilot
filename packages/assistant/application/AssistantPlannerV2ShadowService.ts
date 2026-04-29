@@ -279,7 +279,7 @@ export class AssistantPlannerV2ShadowService {
   public async attemptHybridExecution(
     prompt: string,
     userId: string
-  ): Promise<{ deviceId: string; command: string; confidence: number } | null> {
+  ): Promise<{ deviceId: string; command: string; confidence: number; contextSource?: string } | null> {
     if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
 
     const skip = (reason: string) => {
@@ -326,18 +326,31 @@ export class AssistantPlannerV2ShadowService {
       const resolved = await this.resolver.resolve(action.target, userId);
       if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
 
+      const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma|el mismo|los mismos|las mismas|it|them)$/.test(lowerPrompt);
+      const isContextReference = action.target.type === 'context_reference';
+
+      if (isPronounPrompt || isContextReference) {
+        if (resolved.contextSource !== 'short_term_memory') {
+          return skip('unsafe_context_resolution');
+        }
+      }
+
+      const finalContextSource = resolved.contextSource || 'semantic_match';
+
       // 3. SUCCESSFUL GATE PASS
       console.info(`[PLANNER_V2_EXECUTION_APPROVED] ${JSON.stringify({
         prompt,
         deviceId: resolved.deviceId,
         command: action.command,
-        confidence: action.confidence
+        confidence: action.confidence,
+        context_source: finalContextSource
       })}`);
 
       return {
         deviceId: resolved.deviceId,
         command: action.command,
-        confidence: action.confidence
+        confidence: action.confidence,
+        contextSource: finalContextSource
       };
 
     } catch (e) {

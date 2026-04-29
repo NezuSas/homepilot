@@ -473,7 +473,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     it('should allow V2 execution for valid single control actions', async () => {
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
       const result = await shadowService.attemptHybridExecution('prende la luz de cocina', 'u1');
-      expect(result).toEqual({ deviceId: 'dev-1', command: 'turn_on', confidence: 0.9 });
+      expect(result).toEqual({ deviceId: 'dev-1', command: 'turn_on', confidence: 0.9, contextSource: 'semantic_match' });
     });
 
     it('should NOT execute if feature flag is false, avoiding zero LLM call', async () => {
@@ -519,6 +519,21 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
       const result = await shadowService.attemptHybridExecution('prende las luces', 'u1');
       expect(result).toBeNull();
+    });
+    it('should NOT execute pronoun if context is semantic_match', async () => {
+      resolver.resolve.mockResolvedValue({ type: 'single', deviceId: 'dev-2', contextSource: 'semantic_match' });
+      
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1');
+      expect(result).toBeNull();
+    });
+
+    it('should execute pronoun if context is short_term_memory', async () => {
+      resolver.resolve.mockResolvedValue({ type: 'single', deviceId: 'dev-1', contextSource: 'short_term_memory' });
+      
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1');
+      expect(result).toEqual({ deviceId: 'dev-1', command: 'turn_on', confidence: 0.9, contextSource: 'short_term_memory' });
     });
   });
 });
