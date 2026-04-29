@@ -215,5 +215,54 @@ describe('Assistant Planner V2 Foundation', () => {
       expect(result.deviceIds).toContain('dev-1');
       expect(result.deviceIds).toContain('dev-2');
     });
+
+    describe('NLP Matching logic', () => {
+      beforeEach(() => {
+        deviceRepo = createMockDeviceRepository({
+          findAll: jest.fn().mockResolvedValue([
+            createTestDevice({ id: 'dev-1', name: 'Luz Sala', roomId: 'room-1', type: 'light' }),
+            createTestDevice({ id: 'dev-2', name: 'Luz Escritorio', roomId: 'room-2', type: 'light' }),
+            createTestDevice({ id: 'dev-3', name: 'Luz Cocina', roomId: 'room-3', type: 'light' }),
+            createTestDevice({ id: 'dev-4', name: 'Cortina Sala Curtain', roomId: 'room-1', type: 'cover' })
+          ])
+        });
+        resolver = new PlannerV2Resolver(deviceRepo, roomRepo, sceneRepo, memory);
+      });
+
+      it('should resolve "luz de la sala" to "Luz Sala" ignoring stopwords', async () => {
+        const result = await resolver.resolve({ type: 'device', name: 'luz de la sala' }, 'user-1');
+        expect(result.type).toBe('single');
+        expect(result.deviceId).toBe('dev-1');
+      });
+
+      it('should resolve "la luz del escritorio" to "Luz Escritorio"', async () => {
+        const result = await resolver.resolve({ type: 'device', name: 'la luz del escritorio' }, 'user-1');
+        expect(result.type).toBe('single');
+        expect(result.deviceId).toBe('dev-2');
+      });
+
+      it('should resolve "luz de cocina" to "Luz Cocina"', async () => {
+        const result = await resolver.resolve({ type: 'device', name: 'luz de cocina' }, 'user-1');
+        expect(result.type).toBe('single');
+        expect(result.deviceId).toBe('dev-3');
+      });
+
+      it('should resolve "cortina de la sala" to "Cortina Sala Curtain" via token overlap', async () => {
+        const result = await resolver.resolve({ type: 'device', name: 'cortina de la sala' }, 'user-1');
+        expect(result.type).toBe('single');
+        expect(result.deviceId).toBe('dev-4');
+      });
+
+      it('should return multiple if ambiguous (e.g. just "luz")', async () => {
+        const result = await resolver.resolve({ type: 'device', name: 'luz' }, 'user-1');
+        expect(result.type).toBe('multiple');
+        expect(result.deviceIds?.length).toBe(3); // Sala, Escritorio, Cocina
+      });
+
+      it('should return none if no match found', async () => {
+        const result = await resolver.resolve({ type: 'device', name: 'ventilador del baño' }, 'user-1');
+        expect(result.type).toBe('none');
+      });
+    });
   });
 });

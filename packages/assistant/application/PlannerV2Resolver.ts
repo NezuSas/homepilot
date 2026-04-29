@@ -62,7 +62,7 @@ export class PlannerV2Resolver {
 
   private async resolveDevice(name: string): Promise<ResolvedTarget> {
     const all = await this.deviceRepo.findAll();
-    const matches = all.filter(d => this.normalize(d.name).includes(name));
+    const matches = this.findBestMatches(name, all);
 
     if (matches.length === 1) {
       return { type: 'single', deviceId: matches[0].id };
@@ -74,9 +74,10 @@ export class PlannerV2Resolver {
 
   private async resolveRoom(name: string): Promise<ResolvedTarget> {
     const allRooms = await this.roomRepo.findAll();
-    const room = allRooms.find(r => this.normalize(r.name).includes(name));
+    const matches = this.findBestMatches(name, allRooms);
 
-    if (room) {
+    if (matches.length > 0) {
+      const room = matches[0]; // Take best match
       const allDevices = await this.deviceRepo.findAll();
       const devicesInRoom = allDevices.filter(d => d.roomId === room.id);
       return { 
@@ -109,10 +110,13 @@ export class PlannerV2Resolver {
 
   private async resolveScene(name: string): Promise<ResolvedTarget> {
     const all = await this.sceneRepo.findAll();
-    const scene = all.find(s => this.normalize(s.name).includes(name));
+    const matches = this.findBestMatches(name, all);
 
-    if (scene) {
-      return { type: 'single', sceneId: scene.id };
+    if (matches.length === 1) {
+      return { type: 'single', sceneId: matches[0].id };
+    } else if (matches.length > 1) {
+      // For scenes, we usually just want one, but we'll return multiple if ambiguous
+      return { type: 'multiple', deviceIds: [] }; // No sceneIds array in ResolvedTarget yet, so this indicates failure to resolve single
     }
     return { type: 'none' };
   }
@@ -144,5 +148,50 @@ export class PlannerV2Resolver {
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9 ]/g, '')
       .trim();
+  }
+
+  private tokenize(text: string): string[] {
+    const stopwords = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'en', 'al', 'a']);
+    return text.split(/\s+/).filter(t => t.length > 0 && !stopwords.has(t));
+  }
+
+  private findBestMatches<T extends { name: string }>(query: string, items: readonly T[]): T[] {
+    const normalizedQuery = this.normalize(query);
+    const queryTokens = this.tokenize(normalizedQuery);
+    
+    let bestScore = 0;
+    let bestMatches: T[] = [];
+
+    for (const item of items) {
+      const normalizedCandidate = this.normalize(item.name);
+      const candidateTokens = this.tokenize(normalizedCandidate);
+      
+      let score = 0;
+      if (normalizedCandidate === normalizedQuery) {
+        score = 100;
+      } else if (normalizedCandidate.includes(normalizedQuery)) {
+        score = 90;
+      } else {
+        const matchingTokens = queryTokens.filter(qt => candidateTokens.includes(qt));
+        if (matchingTokens.length === queryTokens.length && queryTokens.length > 0) {
+          score = 80;
+        } else if (matchingTokens.length > 0) {
+          score = (matchingTokens.length / queryTokens.length) * 50;
+          // Small penalty for candidate having extra tokens
+          score -= (candidateTokens.length - matchingTokens.length) * 0.1;
+        }
+      }
+
+      if (score > 0) {
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatches = [item];
+        } else if (score === bestScore) {
+          bestMatches.push(item);
+        }
+      }
+    }
+    
+    return bestMatches;
   }
 }
