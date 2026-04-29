@@ -21,6 +21,7 @@ import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmat
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
+import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -167,12 +168,14 @@ export class AssistantConversationService {
     private readonly learningService: AssistantLearningService,
     private readonly entityResolver: SmartEntityResolver,
     private readonly suggestionService: AssistantSuggestionService,
-    private readonly executionRecordRepository: ExecutionRecordRepository
+    private readonly executionRecordRepository: ExecutionRecordRepository,
+    private readonly shadowService?: AssistantPlannerV2ShadowService
   ) {}
 
   public async converse(request: AssistantConverseRequest, _langHint: string = 'es'): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
     const prompt = request.prompt.trim();
+    let activePrompt = prompt;
     // FALLBACK: 'system' is used for anonymous requests or background automated actions.
     // In a multi-home production environment, userId should be mandatory for state-changing intents.
     const userId = request.userId || 'system';
@@ -216,13 +219,13 @@ export class AssistantConversationService {
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
 
       if (isAffirmative) {
-        return await this.executeManagementAction(memory.pendingManagementAction, userId, language);
+        return this.returnWithShadow(activePrompt, userId, language, await this.executeManagementAction(memory.pendingManagementAction, userId, language));
       } else if (isNegative) {
         await this.clearPendingAction(userId);
-        return {
+        return this.returnWithShadow(activePrompt, userId, language, {
           type: 'answer',
           message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-        };
+        });
       }
     }
 
@@ -230,7 +233,7 @@ export class AssistantConversationService {
     const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
     if (pronounIntent) {
       if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') {
-        return {
+        return this.returnWithShadow(activePrompt, userId, language, {
           type: 'clarification',
           message: language === 'en' ? "I found several options for that. Which one do you mean?" : "Encontré varias opciones para eso. ¿A cuál te refieres?",
           clarification: {
@@ -240,10 +243,10 @@ export class AssistantConversationService {
               kind: isClarificationKind(opt.kind) ? opt.kind : 'device' 
             }))
           }
-        };
+        });
       }
       if (isIntent(pronounIntent)) {
-        return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
+        return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory));
       }
     }
 
@@ -257,25 +260,25 @@ export class AssistantConversationService {
         try {
           await this.draftService.activateDraft(memory.pendingDraft.id, userId);
           await this.clearPendingAction(userId);
-          return {
+          return this.returnWithShadow(activePrompt, userId, language, {
             type: 'answer',
             message: language === 'en' ? "Ready. Scene activated successfully." : "Listo. Escena activada correctamente."
-          };
+          });
         } catch (err: unknown) {
           if (process.env.NODE_ENV !== 'production') {
             console.warn('[AssistantConversation] Error activating draft:', err);
           }
-          return {
+          return this.returnWithShadow(activePrompt, userId, language, {
             type: 'error',
             message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena."
-          };
+          });
         }
       } else if (isNegative) {
         await this.clearPendingAction(userId);
-        return {
+        return this.returnWithShadow(activePrompt, userId, language, {
           type: 'answer',
           message: language === 'en' ? "Understood, I didn't activate the scene." : "Entendido, no activé la escena."
-        };
+        });
       }
     }
 
@@ -285,13 +288,13 @@ export class AssistantConversationService {
         if (request.selectedOptionId === 'confirm') {
           request.confirmed = true;
           const intent = memory.pendingIntent;
-          return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory);
+          return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory));
         } else {
           await this.clearPendingAction(userId);
-          return {
+          return this.returnWithShadow(activePrompt, userId, language, {
             type: 'answer',
             message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-          };
+          });
         }
       }
 
@@ -299,11 +302,11 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] converse() selection path: ${Date.now() - t0}ms`);
       }
-      return result;
+      return this.returnWithShadow(activePrompt, userId, language, result);
     }
 
     // V2: Follow-up Resolution
-    let activePrompt = prompt;
+    activePrompt = prompt;
     let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
 
     if (!request.selectedOptionId) {
@@ -322,21 +325,21 @@ export class AssistantConversationService {
             if (this.isPositiveConfirmation(normalized)) {
               request.confirmed = true;
               const intent = memory.pendingIntent;
-              return await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory);
+              return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory));
             } else if (this.isNegativeConfirmation(normalized)) {
               await this.clearPendingAction(userId);
-              return {
+              return this.returnWithShadow(activePrompt, userId, language, {
                 type: 'answer',
                 message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-              };
+              });
             }
           } else {
             // Auto-clear if expired
             await this.clearPendingAction(userId);
-            return {
+            return this.returnWithShadow(activePrompt, userId, language, {
               type: 'answer',
               message: language === 'en' ? "Action expired, please try again." : "Acción expirada, intenta de nuevo."
-            };
+            });
           }
         }
 
@@ -344,22 +347,22 @@ export class AssistantConversationService {
         const pendingSuggestion = memory?.pendingSuggestion;
         if (isPendingSuggestion(pendingSuggestion)) {
           if (this.isSuggestionAccept(normalized)) {
-            return await this.handleSuggestionAccept(userId, language, pendingSuggestion);
+            return this.returnWithShadow(activePrompt, userId, language, await this.handleSuggestionAccept(userId, language, pendingSuggestion));
           }
           if (this.isSuggestionReject(normalized)) {
-            return await this.handleSuggestionReject(userId, language, pendingSuggestion);
+            return this.returnWithShadow(activePrompt, userId, language, await this.handleSuggestionReject(userId, language, pendingSuggestion));
           }
           if (this.isSuggestionPostpone(normalized)) {
-            return await this.handleSuggestionPostpone(userId, language, pendingSuggestion);
+            return this.returnWithShadow(activePrompt, userId, language, await this.handleSuggestionPostpone(userId, language, pendingSuggestion));
           }
         }
 
         // If user says "yes" but nothing is pending
         if (this.isPositiveConfirmation(normalized)) {
-          return {
+          return this.returnWithShadow(activePrompt, userId, language, {
             type: 'answer',
             message: language === 'en' ? "Confirm what? I don't have any pending actions." : "¿Confirmar qué? No tengo ninguna acción pendiente."
-          };
+          });
         }
       }
 
@@ -394,15 +397,15 @@ export class AssistantConversationService {
               timestamp: new Date().toISOString()
             });
 
-            return {
+            return this.returnWithShadow(activePrompt, userId, language, {
               type: 'answer',
               message: language === 'en'
                 ? `I've selected ${selectedOption?.label}. What would you like to do with it?`
                 : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?`
-            };
+            });
           }
 
-          return await this.handleSelection(request, language);
+          return this.returnWithShadow(activePrompt, userId, language, await this.handleSelection(request, language));
         }
       }
 
@@ -416,7 +419,7 @@ export class AssistantConversationService {
         console.debug(`[AssistantConversation] FollowUpResolver took ${Date.now() - t_followup}ms`);
       }
       if (followUp.handled && followUp.response) {
-        return { type: 'answer', message: followUp.response };
+        return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: followUp.response });
       }
       activePrompt = followUp.resolvedPrompt;
     }
@@ -425,27 +428,27 @@ export class AssistantConversationService {
     
     // A2) Semantic Equivalence
     if (this.isEquivalenceQuery(normalized)) {
-      return this.handleEquivalenceQuery(language);
+      return this.returnWithShadow(activePrompt, userId, language, this.handleEquivalenceQuery(language));
     }
 
     // B) Greetings
     if (this.isGreeting(normalized)) {
-      return {
+      return this.returnWithShadow(activePrompt, userId, language, {
         type: 'answer',
         message: language === 'en'
           ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. You can ask what is on or ask me to control a light, scene, or device.`
           : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Puedes preguntarme qué está encendido o pedirme que controle alguna luz, escena o dispositivo.`
-      };
+      });
     }
 
     // B2) Wellness queries — deterministic, never routed to LLM
     if (this.isWellnessQuery(normalized)) {
-      return {
+      return this.returnWithShadow(activePrompt, userId, language, {
         type: 'answer',
         message: language === 'en'
           ? `I'm operating normally${userName ? ', ' + userName : ''}. The system is stable. Would you like me to check something in your home?`
           : `Estoy funcionando correctamente${userName ? ', ' + userName : ''}. Todo el sistema está estable. ¿Quieres que revise algo en tu casa?`
-      };
+      });
     }
 
     // Identity / Name queries
@@ -453,62 +456,62 @@ export class AssistantConversationService {
         normalized === 'quien eres' || 
         normalized === 'quién eres' ||
         this.isNameQuery(normalized)) {
-      return {
+      return this.returnWithShadow(activePrompt, userId, language, {
         type: 'answer',
         message: language === 'en' 
           ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely." 
           : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
-      };
+      });
     }
 
     // C.2) Company Knowledge (NEZU S.A.S.)
     if (this.isCompanyQuery(normalized)) {
-      return this.handleCompanyInfoQuery(language);
+      return this.returnWithShadow(activePrompt, userId, language, this.handleCompanyInfoQuery(language));
     }
 
     // D) Presentation / Capabilities
     if (this.isPresentation(normalized)) {
-      return {
+      return this.returnWithShadow(activePrompt, userId, language, {
         type: 'answer',
         message: language === 'en'
           ? "I can help you see what is on or off, control lights and devices, run scenes, ask for confirmation when an action is sensitive, and explain what happened if something fails."
           : "Puedo ayudarte a saber qué está encendido o apagado, controlar luces y dispositivos, ejecutar escenas, pedir confirmación cuando una acción sea delicada y explicarte si algo falla."
-      };
+      });
     }
 
     // E) Help
     if (this.isHelpQuery(normalized)) {
-      return {
+      return this.returnWithShadow(activePrompt, userId, language, {
         type: 'answer',
         message: language === 'en'
           ? "You can ask me things like: \"which lights are on?\", \"turn off the kitchen light\", or \"activate movie scene\". I'm here to help you manage your home locally."
           : "Puedes preguntarme cosas como: \"qué luces están encendidas?\", \"apaga la luz de la cocina\", o \"activa la escena cine\". Estoy aquí para ayudarte a gestionar tu casa de forma local."
-      };
+      });
     }
 
     // F) Date/Time Queries
     if (this.isDateTimeQuery(normalized)) {
-      return this.handleDateTimeQuery(normalized, language);
+      return this.returnWithShadow(activePrompt, userId, language, this.handleDateTimeQuery(normalized, language));
     }
 
     // F2) Room Queries (Deterministic)
     if (this.isRoomQuery(normalized)) {
-      return await this.attachSuggestionIfNeeded(await this.handleRoomQuery(language), userId, language, memory, 'room_query');
+      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleRoomQuery(language), userId, language, memory, 'room_query'));
     }
 
     // G3) Draft Creation (Scenes/Automations) - High priority before state query
     if (this.isDraftCreation(normalized)) {
-      return await this.handleDraftCreation(normalized, language, userId);
+      return this.returnWithShadow(activePrompt, userId, language, await this.handleDraftCreation(normalized, language, userId));
     }
 
     // G2) Alias Creation Commands
     if (this.isAliasCreation(normalized)) {
-      return await this.handleAliasCreation(normalized, userId, language);
+      return this.returnWithShadow(activePrompt, userId, language, await this.handleAliasCreation(normalized, userId, language));
     }
 
     // G) Point State Queries (is X on/off?) - PRIORITY OVER GENERAL STATE
     if (this.isPointStateQuery(normalized)) {
-      return await this.attachSuggestionIfNeeded(await this.handlePointStateQuery(normalized, language, userId), userId, language, memory, 'state_query');
+      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handlePointStateQuery(normalized, language, userId), userId, language, memory, 'state_query'));
     }
 
     // H) State Queries
@@ -518,20 +521,20 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
       }
-      return await this.attachSuggestionIfNeeded(result, userId, language, memory, 'state_query');
+      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(result, userId, language, memory, 'state_query'));
     }
 
     // I) Management Intents (Rename, Toggle, Edit)
     if (this.isManagementIntent(normalized)) {
-      return await this.handleManagementIntent(normalized, userId, language);
+      return this.returnWithShadow(activePrompt, userId, language, await this.handleManagementIntent(normalized, userId, language));
     }
 
     // J) Listing Intents (Scenes, Automations)
     if (this.isListScenesIntent(normalized)) {
-      return await this.attachSuggestionIfNeeded(await this.handleListScenes(language), userId, language, memory, 'list_query');
+      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleListScenes(language), userId, language, memory, 'list_query'));
     }
     if (this.isListAutomationsIntent(normalized)) {
-      return await this.attachSuggestionIfNeeded(await this.handleListAutomations(language), userId, language, memory, 'list_query');
+      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleListAutomations(language), userId, language, memory, 'list_query'));
     }
 
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
@@ -539,7 +542,7 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV !== 'production') {
         console.debug('[AssistantConversation] routing=smalltalk');
       }
-      return this.smallTalkService.handle(activePrompt, language, userName, userId);
+      return this.returnWithShadow(activePrompt, userId, language, await this.smallTalkService.handle(activePrompt, language, userName, userId));
     }
 
     if (process.env.NODE_ENV !== 'production') {
@@ -563,7 +566,7 @@ export class AssistantConversationService {
           clarificationOptions: intentResult.options,
           originalPrompt: activePrompt
         });
-        return {
+        return this.returnWithShadow(activePrompt, userId, language, {
           type: 'clarification',
           message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`,
           clarification: {
@@ -573,7 +576,7 @@ export class AssistantConversationService {
               kind: isClarificationKind(opt.kind) ? opt.kind : 'device' 
             }))
           }
-        };
+        });
       }
     }
 
@@ -592,10 +595,10 @@ export class AssistantConversationService {
     }
 
     if (!intent) {
-      return await this.executeIntent({ type: 'unknown', prompt: activePrompt, reason: 'unknown' }, request, language, userId, userName, activePrompt, memory);
+      return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent({ type: 'unknown', prompt: activePrompt, reason: 'unknown' }, request, language, userId, userName, activePrompt, memory));
     }
 
-    return await this.executeIntent(intent, request, language, userId, userName, activePrompt, memory);
+    return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent, request, language, userId, userName, activePrompt, memory));
   }
 
   private async executeIntent(
@@ -2699,5 +2702,12 @@ export class AssistantConversationService {
       type: 'answer',
       message
     };
+  }
+
+  private returnWithShadow(prompt: string, userId: string, language: string, response: AssistantConversationResponse): AssistantConversationResponse {
+    if (this.shadowService) {
+      this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
+    }
+    return response;
   }
 }

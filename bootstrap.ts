@@ -19,6 +19,9 @@ import { AssistantMemoryService } from './packages/assistant/application/Assista
 import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
 import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
 import { FollowUpResolver } from './packages/assistant/application/FollowUpResolver';
+import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Validator';
+import { PlannerV2Resolver } from './packages/assistant/application/PlannerV2Resolver';
+import { AssistantPlannerV2ShadowService } from './packages/assistant/application/AssistantPlannerV2ShadowService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -253,6 +256,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const assistantSmallTalkService = new AssistantSmallTalkService(ollamaClient, contextBuilder);
 
+  const plannerV2Validator = new PlannerV2Validator();
+  const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService);
+  const shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, plannerV2Validator, plannerV2Resolver);
+
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
     assistantConfirmationPolicy,
@@ -269,7 +276,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantLearningService,
     smartEntityResolver,
     assistantSuggestionService,
-    repos.executionRecordRepository
+    repos.executionRecordRepository,
+    shadowService
   );
 
   const container: BootstrapContainer = {

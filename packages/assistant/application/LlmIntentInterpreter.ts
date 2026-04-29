@@ -5,7 +5,7 @@ import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 import { OllamaClientPort } from './ports/OllamaClientPort';
 import { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 import { Intent } from './ports/IntentInterpreterPort';
-import { PLANNER_V2_SCHEMA } from './ports/AssistantPlannerV2';
+import { PLANNER_V2_SCHEMA, AssistantPlanV2 } from './ports/AssistantPlannerV2';
 
 interface LlmOutput {
   type: 'scene' | 'command' | 'unknown';
@@ -128,6 +128,21 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
     }
 
     return null;
+  }
+
+  /**
+   * [EXPERIMENTAL] Interprets the prompt using Planner V2 schema.
+   * Returns a structured plan for shadow mode diagnostics.
+   */
+  public async interpretV2(prompt: string, userId: string): Promise<AssistantPlanV2 | null> {
+    try {
+      const systemPrompt = await this.buildPlannerV2Prompt(prompt, userId);
+      const response = await this.ollamaClient.generateJson(systemPrompt);
+      return response as AssistantPlanV2;
+    } catch (error: unknown) {
+      console.warn('[LlmIntentInterpreter] Planner V2 Shadow call failed:', error instanceof Error ? error.message : String(error));
+      return null;
+    }
   }
 
   /**
