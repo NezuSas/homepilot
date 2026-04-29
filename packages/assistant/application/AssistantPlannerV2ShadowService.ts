@@ -74,6 +74,19 @@ export class AssistantPlannerV2ShadowService {
   ): Promise<void> {
     if (!this.isShadowEnabled) return;
 
+    const lowerPrompt = prompt.trim().toLowerCase();
+    
+    let skipReason: string | null = null;
+    if (!lowerPrompt) skipReason = 'empty_prompt';
+    else if (lowerPrompt.startsWith('selected:')) skipReason = 'internal_selection';
+    else if (lowerPrompt.startsWith('selection:')) skipReason = 'internal_selection';
+    else if (['habla en español', 'habla en ingles', 'habla en inglés', 'speak in english', 'speak in spanish', 'english', 'spanish', 'español', 'ingles', 'inglés'].includes(lowerPrompt)) skipReason = 'language_override';
+    
+    if (skipReason) {
+      console.info(`[PLANNER_V2_SHADOW_SKIPPED] ${JSON.stringify({ reason: skipReason, prompt })}`);
+      return;
+    }
+
     console.info(`[PLANNER_V2_SHADOW_TRIGGER] ${JSON.stringify({ prompt, userId, language })}`);
 
     // Apply sampling
@@ -160,6 +173,29 @@ export class AssistantPlannerV2ShadowService {
       const planStr = plan ? JSON.stringify(plan) : 'null';
       const safePlan = planStr.length > 2000 ? { truncated: true, originalLength: planStr.length } : plan;
 
+      // 5. V1/V2 Comparison
+      let likelyV2BetterCandidate = false;
+      let comparisonReason = 'v1_not_clarification';
+
+      if (v1Response.type === 'clarification') {
+        if (!plan || errorInfo || validationError) {
+          comparisonReason = 'v2_invalid_or_error';
+        } else if (plan.plan_confidence < 0.8) {
+          comparisonReason = 'v2_low_plan_confidence';
+        } else if (!plan.actions || plan.actions.length === 0) {
+          comparisonReason = 'v2_no_actions';
+        } else if (plan.actions.some(a => (a.confidence || 0) < 0.8)) {
+          comparisonReason = 'v2_low_action_confidence';
+        } else if (resolutionResults.length !== plan.actions.length) {
+          comparisonReason = 'v2_resolution_mismatch';
+        } else if (resolutionResults.some(r => r.resolvedIds.length !== 1)) {
+          comparisonReason = 'v2_resolution_not_single';
+        } else {
+          likelyV2BetterCandidate = true;
+          comparisonReason = 'v2_single_high_confidence_match';
+        }
+      }
+
       console.info(`[PLANNER_V2_SHADOW_V2] ${JSON.stringify({
         version: 'v2',
         timestamp: new Date().toISOString(),
@@ -174,6 +210,14 @@ export class AssistantPlannerV2ShadowService {
           plan: safePlan,
           validation: validationError || 'valid',
           resolution: resolutionResults
+        },
+        comparison: {
+          v1_type: v1Response.type,
+          v2_type: plan ? plan.type : 'none',
+          v2_resolved_type: resolutionResults.length > 0 ? resolutionResults[0].resolvedType : 'none',
+          v2_action_count: plan?.actions?.length || 0,
+          likely_v2_better_candidate: likelyV2BetterCandidate,
+          reason: comparisonReason
         },
         metrics: {
           latency_ms: latencyMs,

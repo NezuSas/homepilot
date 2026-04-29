@@ -94,6 +94,32 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
   });
 
+  it('should skip execution for internal selection prompts', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    
+    await shadowService.runShadow('Selected: dev-1', 'u1', 'es', { type: 'answer', message: 'ok' });
+    await shadowService.runShadow('Selection: room', 'u1', 'es', { type: 'answer', message: 'ok' });
+    await shadowService.runShadow('', 'u1', 'es', { type: 'answer', message: 'ok' });
+    await shadowService.runShadow('habla en ingles', 'u1', 'es', { type: 'answer', message: 'ok' });
+
+    expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
+    
+    // Check skipped logs
+    const skipLogs = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .filter(s => s.includes('[PLANNER_V2_SHADOW_SKIPPED]'));
+      
+    expect(skipLogs).toHaveLength(4);
+    expect(skipLogs[0]).toContain('"reason":"internal_selection"');
+    expect(skipLogs[2]).toContain('"reason":"empty_prompt"');
+    expect(skipLogs[3]).toContain('"reason":"language_override"');
+
+    spy.mockRestore();
+  });
+
   // ─── Metadata always populated ────────────────────────────────────────────
 
   it('should populate metadata in log when LLM succeeds', async () => {
@@ -258,6 +284,73 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     dateSpy.mockRestore();
     warnSpy.mockRestore();
     infoSpy.mockRestore();
+  });
+
+  // ─── V1/V2 Comparison ─────────────────────────────────────────────────────
+
+  it('should mark V2 as better candidate when V1 clarifies and V2 succeeds with high confidence', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    
+    // Resolver mock must return a single target
+    resolver.resolve.mockResolvedValue({ type: 'single', deviceId: 'dev-1' });
+
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    // V1 response is 'clarification'
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'clarification', message: 'Cual luz?', clarification: { question: '?', options: [] } });
+
+    const shadowLog = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .find(s => s.includes('[PLANNER_V2_SHADOW_V2]'));
+      
+    const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
+    expect(parsed.comparison.likely_v2_better_candidate).toBe(true);
+    expect(parsed.comparison.reason).toBe('v2_single_high_confidence_match');
+
+    spy.mockRestore();
+  });
+
+  it('should NOT mark V2 as better candidate if V1 is not clarification', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    // V1 response is 'execution'
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'execution', message: 'Encendiendo' });
+
+    const shadowLog = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .find(s => s.includes('[PLANNER_V2_SHADOW_V2]'));
+      
+    const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
+    expect(parsed.comparison.likely_v2_better_candidate).toBe(false);
+    expect(parsed.comparison.reason).toBe('v1_not_clarification');
+
+    spy.mockRestore();
+  });
+
+  it('should NOT mark V2 as better candidate if V2 plan confidence is low', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    
+    const lowConfPlan = makePlan();
+    lowConfPlan.plan.plan_confidence = 0.5; // low confidence
+    llmInterpreter.interpretV2.mockResolvedValue(lowConfPlan);
+
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'clarification', message: 'Cual luz?', clarification: { question: '?', options: [] } });
+
+    const shadowLog = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .find(s => s.includes('[PLANNER_V2_SHADOW_V2]'));
+      
+    const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
+    expect(parsed.comparison.likely_v2_better_candidate).toBe(false);
+    expect(parsed.comparison.reason).toBe('v2_low_plan_confidence');
+
+    spy.mockRestore();
   });
 
   // ─── Prompt mode default ──────────────────────────────────────────────────
