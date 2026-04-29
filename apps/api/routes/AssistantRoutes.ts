@@ -21,6 +21,17 @@ export class AssistantRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
+    // GET /api/v1/assistant/shadow/status
+    if (method === 'GET' && pathname === '/api/v1/assistant/shadow/status') {
+      try {
+        const status = container.services.assistantPlannerV2ShadowService.getStatus();
+        this.sendJson(res, status);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_ERROR', e instanceof Error ? e.message : String(e));
+      }
+      return true;
+    }
+
     // GET /api/v1/assistant/findings
     if (method === 'GET' && pathname === '/api/v1/assistant/findings') {
       try {

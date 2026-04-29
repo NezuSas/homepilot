@@ -97,6 +97,7 @@ export interface BootstrapContainer {
     intentInterpreterService: IntentInterpreterService;
     assistantConfirmationPolicy: AssistantConfirmationPolicy;
     assistantConversationService: AssistantConversationService;
+    assistantPlannerV2ShadowService: AssistantPlannerV2ShadowService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -303,7 +304,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       databaseBackupService,
       intentInterpreterService,
       assistantConfirmationPolicy,
-      assistantConversationService
+      assistantConversationService,
+      assistantPlannerV2ShadowService: shadowService
     },
     guards: {
       authGuard: authModule.authGuard
