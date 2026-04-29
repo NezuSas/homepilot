@@ -67,6 +67,13 @@ export class AssistantPlannerV2ShadowService {
       timeout: this.shadowTimeoutMs,
       model: this.resolvedModelName
     })}`);
+
+    const execEnabled = process.env.ASSISTANT_PLANNER_V2_EXECUTION === 'true';
+    console.info(`[PLANNER_V2_EXECUTION_INIT] ${JSON.stringify({
+      enabled: execEnabled,
+      threshold: 0.85,
+      allowedActionTypes: ['set_state']
+    })}`);
   }
 
   /**
@@ -260,9 +267,81 @@ export class AssistantPlannerV2ShadowService {
         error: errorInfo
       })}`);
 
-    } catch (unexpectedError: unknown) {
-      // Outer catch: should never be reached given interpretV2 never throws.
-      console.warn(`[PLANNER_V2_SHADOW_V2] Unexpected error: ${unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError)}`);
+    } catch (err: unknown) {
+      console.warn(`[PLANNER_V2_SHADOW_ERROR] ${err}`);
+    }
+  }
+
+  /**
+   * Attempts to securely execute a prompt using V2 directly.
+   * Returns null if any condition fails, allowing V1 fallback.
+   */
+  public async attemptHybridExecution(
+    prompt: string,
+    userId: string
+  ): Promise<{ deviceId: string; command: string; confidence: number } | null> {
+    if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
+
+    const skip = (reason: string) => {
+      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason, prompt })}`);
+      return null;
+    };
+
+    const lowerPrompt = prompt.trim().toLowerCase();
+    let skipReason: string | null = null;
+    if (!lowerPrompt) skipReason = 'empty_prompt';
+    else if (lowerPrompt.startsWith('selected:')) skipReason = 'internal_selection';
+    else if (lowerPrompt.startsWith('selection:')) skipReason = 'internal_selection';
+    else if (['habla en español', 'habla en ingles', 'habla en inglés', 'speak in english', 'speak in spanish', 'english', 'spanish', 'español', 'ingles', 'inglés'].includes(lowerPrompt)) skipReason = 'language_override';
+
+    if (skipReason) return skip(skipReason);
+
+    try {
+      const result = await this.llmInterpreter.interpretV2(prompt, userId, { promptMode: this.promptMode });
+      if (result.error) return skip('llm_error');
+      if (!result.plan) return skip('empty_plan');
+
+      let plan = result.plan;
+      const normResult = this.normalizer.normalize(plan);
+      if (normResult.plan) {
+        plan = normResult.plan;
+      }
+
+      const validationError = this.validator.validate(plan);
+      if (validationError) return skip('validation_failed');
+
+      // 1. STRICT GATE CHECKS
+      if (plan.type !== 'plan') return skip('invalid_root_type');
+      if (!plan.actions || plan.actions.length !== 1) return skip('multiple_actions');
+      
+      const action = plan.actions[0];
+      if (action.type !== 'set_state') return skip('invalid_action_type');
+      
+      const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
+      if (!action.command || !allowedCommands.includes(action.command)) return skip('invalid_command');
+
+      if (typeof action.confidence !== 'number' || action.confidence < 0.85) return skip('low_confidence');
+
+      // 2. RESOLUTION
+      const resolved = await this.resolver.resolve(action.target, userId);
+      if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
+
+      // 3. SUCCESSFUL GATE PASS
+      console.info(`[PLANNER_V2_EXECUTION_APPROVED] ${JSON.stringify({
+        prompt,
+        deviceId: resolved.deviceId,
+        command: action.command,
+        confidence: action.confidence
+      })}`);
+
+      return {
+        deviceId: resolved.deviceId,
+        command: action.command,
+        confidence: action.confidence
+      };
+
+    } catch (e) {
+      return skip('unexpected_error');
     }
   }
 

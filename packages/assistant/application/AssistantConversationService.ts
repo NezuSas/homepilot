@@ -549,7 +549,36 @@ export class AssistantConversationService {
       console.debug('[AssistantConversation] routing=intent');
     }
 
-    // C) Intent Interpretation
+    // C.0) V2 Hybrid Execution Attempt (Strict Gate)
+    if (this.shadowService) {
+      const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId);
+      if (v2Result) {
+        // Bypass V1 execution completely
+        const device = await this.deviceRepository.findDeviceById(v2Result.deviceId);
+        const deviceName = device?.name ?? v2Result.deviceId;
+        
+        const execResult = await this.executeSingleCommand(v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
+        
+        if (execResult.status === 'success') {
+          this.clearPendingAction(userId).catch(() => {});
+          this.memoryService.saveShortTermMemory(userId, {
+            lastQueryType: 'command',
+            entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
+            timestamp: new Date().toISOString()
+          }).catch(() => {});
+        }
+
+        return {
+          type: 'execution',
+          message: execResult.status === 'success' 
+            ? this.buildCommandSuccessMessage(v2Result.command as DeviceCommandV1, deviceName, userName, language)
+            : (language === 'en' ? "Execution failed." : "La ejecución falló."),
+          execution: execResult
+        };
+      }
+    }
+
+    // C) Intent Interpretation (V1 Fallback)
     const intentResult = await this.intentInterpreter.interpret(activePrompt);
 
     // Handle structured multi-command results

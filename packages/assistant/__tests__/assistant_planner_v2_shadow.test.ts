@@ -463,4 +463,62 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     );
     spy.mockRestore();
   });
+  // ─── Hybrid Execution Gate ────────────────────────────────────────────────
+
+  describe('Hybrid Execution Gate', () => {
+    beforeEach(() => {
+      process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
+    });
+
+    it('should allow V2 execution for valid single control actions', async () => {
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la luz de cocina', 'u1');
+      expect(result).toEqual({ deviceId: 'dev-1', command: 'turn_on', confidence: 0.9 });
+    });
+
+    it('should NOT execute if feature flag is false, avoiding zero LLM call', async () => {
+      process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'false';
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la luz de cocina', 'u1');
+      expect(result).toBeNull();
+      expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
+    });
+
+    it('should NOT execute for query_status', async () => {
+      const queryPlan = makePlan();
+      queryPlan.plan.actions[0].type = 'query_status';
+      queryPlan.plan.actions[0].command = 'query';
+      llmInterpreter.interpretV2.mockResolvedValue(queryPlan);
+      
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('qué luces están encendidas', 'u1');
+      expect(result).toBeNull();
+    });
+
+    it('should NOT execute for multiple target resolution', async () => {
+      resolver.resolve.mockResolvedValue({ type: 'multiple', deviceIds: ['dev-1', 'dev-2'] });
+      
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      expect(result).toBeNull();
+    });
+
+    it('should NOT execute for low confidence', async () => {
+      const lowConf = makePlan();
+      lowConf.plan.actions[0].confidence = 0.8; // < 0.85
+      llmInterpreter.interpretV2.mockResolvedValue(lowConf);
+      
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la luz de cocina', 'u1');
+      expect(result).toBeNull();
+    });
+
+    it('should NOT execute for category actions', async () => {
+      resolver.resolve.mockResolvedValue({ type: 'category', deviceIds: ['dev-1', 'dev-2'] });
+      
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende las luces', 'u1');
+      expect(result).toBeNull();
+    });
+  });
 });
