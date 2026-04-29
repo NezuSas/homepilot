@@ -227,8 +227,13 @@ ${JSON.stringify(PLANNER_V2_SCHEMA, null, 2)}`;
   private buildUltraLightPlannerV2Prompt(prompt: string, homeMapText: string): string {
     return `You are HomePilot AI Assistant.
 Output ONLY JSON matching this exact structure:
-{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"natural name"},"command":"turn_on|turn_off|toggle|open|close|stop|set_position|set_brightness|query","params":{},"confidence":0.9}],"user_feedback_draft":"short text"}
-NO markdown. NO explanations.
+{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state|query_status","target":{"type":"device|room|category|scene|alias|context_reference","name":"natural name"},"command":"turn_on|turn_off|toggle|open|close|stop|set_position|set_brightness|query","params":{},"confidence":0.9}],"user_feedback_draft":"short text"}
+
+CRITICAL: NEVER omit target.type.
+
+Examples:
+- "enciende luz sala" -> {"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Sala"},"command":"turn_on"}]}
+- "qué luces están encendidas" -> {"actions":[{"type":"query_status","target":{"type":"category","name":"luces"},"command":"query"}]}
 
 Home:
 ${homeMapText}

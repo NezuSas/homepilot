@@ -10,7 +10,7 @@ export interface ShadowResolutionResult {
   resolvedIds: string[];
 }
 
-export type ShadowErrorType = 'llm_failure' | 'timeout' | 'invalid_json' | 'empty_plan' | 'validation_failure' | 'resolution_failure' | 'build_failure' | 'unknown';
+export type ShadowErrorType = 'llm_failure' | 'timeout' | 'invalid_json' | 'invalid_json_contract' | 'empty_plan' | 'validation_failure' | 'resolution_failure' | 'build_failure' | 'unknown';
 
 /**
  * AssistantPlannerV2ShadowService
@@ -139,7 +139,8 @@ export class AssistantPlannerV2ShadowService {
       if (plan && !errorInfo) {
         validationError = this.validator.validate(plan);
         if (validationError) {
-          errorInfo = { message: validationError, type: 'validation_failure' };
+          const isContractError = validationError.includes('Invalid target type') || validationError.includes('target.type');
+          errorInfo = { message: validationError, type: isContractError ? 'invalid_json_contract' : 'validation_failure' as ShadowErrorType };
         }
       }
 
@@ -183,7 +184,7 @@ export class AssistantPlannerV2ShadowService {
 
       if (v1Response.type === 'clarification') {
         if (!plan || errorInfo || validationError) {
-          comparisonReason = 'v2_invalid_or_error';
+          comparisonReason = validationError ? 'v2_validation_failed' : 'v2_invalid_or_error';
         } else if (plan.plan_confidence < 0.8) {
           comparisonReason = 'v2_low_plan_confidence';
         } else if (!plan.actions || plan.actions.length === 0) {

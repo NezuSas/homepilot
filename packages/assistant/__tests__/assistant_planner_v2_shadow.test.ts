@@ -286,6 +286,30 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     infoSpy.mockRestore();
   });
 
+  it('should categorize missing target.type as invalid_json_contract', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    
+    const badPlan: any = makePlan();
+    delete badPlan.plan.actions[0].target.type; // Missing target type
+    llmInterpreter.interpretV2.mockResolvedValue(badPlan);
+    validator.validate.mockReturnValue('Invalid target type');
+
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'answer', message: 'ok' });
+
+    const shadowLog = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .find(s => s.includes('[PLANNER_V2_SHADOW_V2]'));
+      
+    const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
+    expect(parsed.error.type).toBe('invalid_json_contract');
+    expect(parsed.error.message).toContain('Invalid target type');
+
+    spy.mockRestore();
+  });
+
   // ─── V1/V2 Comparison ─────────────────────────────────────────────────────
 
   it('should mark V2 as better candidate when V1 clarifies and V2 succeeds with high confidence', async () => {
@@ -307,6 +331,30 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
     expect(parsed.comparison.likely_v2_better_candidate).toBe(true);
     expect(parsed.comparison.reason).toBe('v2_single_high_confidence_match');
+
+    spy.mockRestore();
+  });
+
+  it('should mark reason as v2_validation_failed if validation fails during clarification', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    
+    const badPlan: any = makePlan();
+    delete badPlan.plan.actions[0].target.type; // Invalidates plan
+    llmInterpreter.interpretV2.mockResolvedValue(badPlan);
+    validator.validate.mockReturnValue('Invalid target type');
+
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    await shadowService.runShadow('enciende luz', 'u1', 'es', { type: 'clarification', message: 'Cual luz?', clarification: { question: '?', options: [] } });
+
+    const shadowLog = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .find(s => s.includes('[PLANNER_V2_SHADOW_V2]'));
+      
+    const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
+    expect(parsed.comparison.likely_v2_better_candidate).toBe(false);
+    expect(parsed.comparison.reason).toBe('v2_validation_failed');
 
     spy.mockRestore();
   });
