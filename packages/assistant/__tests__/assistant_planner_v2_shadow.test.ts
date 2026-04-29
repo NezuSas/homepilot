@@ -43,6 +43,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     process.env.NODE_ENV = 'development';
     process.env.OLLAMA_MODEL = 'phi3';
     delete process.env.ASSISTANT_PLANNER_V2_SHADOW_MODEL;
+    delete process.env.ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT;
 
     llmInterpreter = {
       interpretV2: jest.fn().mockResolvedValue(makePlan())
@@ -223,7 +224,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     expect(parsed.home_map_devices_count).toBe(8);
     expect(parsed.model).toBe('phi3');
     expect(parsed.timeout_ms).toBe(8000);
-    expect(parsed.lightPrompt).toBe(true);
+    expect(parsed.promptMode).toBe('ultra_light');
 
     // No IDs or HA entity IDs in the log
     expect(promptLog).not.toMatch(/light\.\w+/);
@@ -259,9 +260,9 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     infoSpy.mockRestore();
   });
 
-  // ─── Light prompt default ─────────────────────────────────────────────────
+  // ─── Prompt mode default ──────────────────────────────────────────────────
 
-  it('should use light prompt and 8s timeout by default', async () => {
+  it('should use ultra_light prompt and 8s timeout by default', async () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
 
@@ -270,7 +271,23 @@ describe('Assistant Planner V2 Shadow Mode', () => {
 
     expect(llmInterpreter.interpretV2).toHaveBeenCalledWith(
       'test', 'u1',
-      expect.objectContaining({ lightPrompt: true, timeoutMs: 8000 })
+      expect.objectContaining({ promptMode: 'ultra_light', timeoutMs: 8000 })
+    );
+    spy.mockRestore();
+  });
+  
+  it('should fall back to light prompt if ultra_light is disabled', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    process.env.ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT = 'false';
+    process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT = 'true';
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
+
+    expect(llmInterpreter.interpretV2).toHaveBeenCalledWith(
+      'test', 'u1',
+      expect.objectContaining({ promptMode: 'light', timeoutMs: 8000 })
     );
     spy.mockRestore();
   });

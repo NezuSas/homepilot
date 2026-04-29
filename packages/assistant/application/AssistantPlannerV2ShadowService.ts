@@ -22,7 +22,7 @@ export type ShadowErrorType = 'llm_failure' | 'timeout' | 'invalid_json' | 'empt
 export class AssistantPlannerV2ShadowService {
   private readonly isShadowEnabled: boolean;
   private readonly sampleRate: number;
-  private readonly lightPromptEnabled: boolean;
+  private readonly promptMode: 'full' | 'light' | 'ultra_light';
   private readonly shadowTimeoutMs: number;
   private readonly shadowModel: string | undefined;
   /** Resolved model for logging: shadow override → OLLAMA_MODEL env → 'phi3' fallback */
@@ -39,7 +39,10 @@ export class AssistantPlannerV2ShadowService {
 
     this.isShadowEnabled = flag && (isDev || force);
     this.sampleRate = parseFloat(process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE || '1.0');
-    this.lightPromptEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT !== 'false'; // Default: true
+    const ultraLightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT !== 'false'; // Default: true
+    const lightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT === 'true'; // Fallback
+    
+    this.promptMode = ultraLightEnabled ? 'ultra_light' : (lightEnabled ? 'light' : 'full');
     this.shadowTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS || '8000', 10);
 
     // Resolve model name: specific override → OLLAMA_MODEL env → hardcoded fallback
@@ -52,7 +55,8 @@ export class AssistantPlannerV2ShadowService {
       nodeEnv: process.env.NODE_ENV,
       force,
       sampleRate: this.sampleRate,
-      lightPrompt: this.lightPromptEnabled,
+      promptMode: this.promptMode,
+      ultraLightPrompt: this.promptMode === 'ultra_light',
       timeout: this.shadowTimeoutMs,
       model: this.resolvedModelName
     })}`);
@@ -88,7 +92,7 @@ export class AssistantPlannerV2ShadowService {
       const result = await this.llmInterpreter.interpretV2(prompt, userId, {
         timeoutMs: this.shadowTimeoutMs,
         model: this.shadowModel,
-        lightPrompt: this.lightPromptEnabled
+        promptMode: this.promptMode
       });
 
       const { metadata } = result;
@@ -99,7 +103,7 @@ export class AssistantPlannerV2ShadowService {
         home_map_devices_count: metadata.devicesCount,
         model: this.resolvedModelName,
         timeout_ms: this.shadowTimeoutMs,
-        lightPrompt: this.lightPromptEnabled
+        promptMode: this.promptMode
       })}`);
 
       if (result.error) {
@@ -177,7 +181,8 @@ export class AssistantPlannerV2ShadowService {
           home_map_devices_count: metadata.devicesCount,
           model: this.resolvedModelName,
           timeout_ms: this.shadowTimeoutMs,
-          light_prompt_enabled: this.lightPromptEnabled
+          ultra_light_prompt_enabled: this.promptMode === 'ultra_light',
+          prompt_mode: this.promptMode
         },
         error: errorInfo
       })}`);
@@ -193,7 +198,7 @@ export class AssistantPlannerV2ShadowService {
       enabled: this.isShadowEnabled,
       sampleRate: this.sampleRate,
       environment: process.env.NODE_ENV || 'development',
-      lightPrompt: this.lightPromptEnabled,
+      promptMode: this.promptMode,
       timeout: this.shadowTimeoutMs,
       model: this.resolvedModelName
     };

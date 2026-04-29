@@ -174,4 +174,55 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
 
     return JSON.stringify({ devices, scenes });
   }
+
+  /**
+   * Generates an ultra-lightweight string map of the home.
+   * Format: name|room|type|state
+   */
+  public async buildUltraLightLlmHomeMap(prompt: string, userId: string | null = 'system'): Promise<{ text: string, devicesCount: number }> {
+    const [allDevices, allScenes, allRooms, allAliases] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.sceneRepository.findAll(),
+      this.roomRepository ? this.roomRepository.findAll() : Promise.resolve([]),
+      this.memoryService && userId ? this.memoryService.getAliases(userId) : Promise.resolve([])
+    ]);
+
+    const roomMap = new Map<string, string>(allRooms.map(r => [r.id, r.name]));
+    const aliases = (allAliases || {}) as Record<string, string>;
+    const aliasEntries = Object.entries(aliases);
+
+    // Context detection
+    const lowerPrompt = prompt.toLowerCase();
+    const needsScenes = lowerPrompt.includes('escena') || lowerPrompt.includes('scene') || lowerPrompt.includes('modo') || lowerPrompt.includes('mode');
+    const needsMemory = lowerPrompt.match(/\b(it|them|esa|ese|eso|la primera|lo primero|enciéndela|apágala|enciendelo|apagalo)\b/i) !== null;
+
+    let text = "Rooms: " + allRooms.map(r => r.name).join(', ') + "\nDevices:\n";
+    
+    let devicesCount = 0;
+    for (const d of allDevices.slice(0, 30)) {
+      devicesCount++;
+      const aliasMatch = aliasEntries.find(([_, targetId]) => targetId === d.id);
+      const room = d.roomId ? roomMap.get(d.roomId) || 'Unknown' : 'No Room';
+      const on = d.lastKnownState?.power === 'on' || d.lastKnownState?.on === true ? 'on' : 'off';
+      let line = `${d.name}|${room}|${d.type}|${on}`;
+      if (aliasMatch && aliasMatch[0].length < 15) {
+        line += `|alias:${aliasMatch[0]}`;
+      }
+      text += line + "\n";
+    }
+
+    if (needsScenes && allScenes.length > 0) {
+      text += "Scenes: " + allScenes.slice(0, 10).map(s => s.name).join(', ') + "\n";
+    }
+
+    if (needsMemory && this.memoryService && userId) {
+      const memory = await this.memoryService.getShortTermMemory(userId);
+      if (memory && memory.entities.length > 0) {
+        const lastEntities = memory.entities.map(e => e.name).join(', ');
+        text += `Memory: ${lastEntities}\n`;
+      }
+    }
+
+    return { text, devicesCount };
+  }
 }

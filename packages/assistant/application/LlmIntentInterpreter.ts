@@ -145,22 +145,29 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
   public async interpretV2(
     prompt: string,
     userId: string,
-    options?: { timeoutMs?: number; model?: string; lightPrompt?: boolean }
+    options?: { timeoutMs?: number; model?: string; promptMode?: 'full' | 'light' | 'ultra_light' }
   ): Promise<PlannerV2InterpretResult> {
     // Step 1: Build home map and prompt BEFORE the LLM call.
-    let homeMap = '{}';
+    let homeMap = '';
     let devicesCount = 0;
     let systemPrompt = '';
 
     try {
-      homeMap = options?.lightPrompt
-        ? await this.contextBuilder.buildLightLlmHomeMap(userId)
-        : await this.contextBuilder.buildLlmHomeMap(userId);
+      if (options?.promptMode === 'ultra_light') {
+        const result = await this.contextBuilder.buildUltraLightLlmHomeMap(prompt, userId);
+        homeMap = result.text;
+        devicesCount = result.devicesCount;
+        systemPrompt = this.buildUltraLightPlannerV2Prompt(prompt, homeMap);
+      } else {
+        const isLight = options?.promptMode === 'light';
+        homeMap = isLight
+          ? await this.contextBuilder.buildLightLlmHomeMap(userId)
+          : await this.contextBuilder.buildLlmHomeMap(userId);
 
-      const parsedHomeMap = JSON.parse(homeMap) as { devices?: unknown[] };
-      devicesCount = Array.isArray(parsedHomeMap.devices) ? parsedHomeMap.devices.length : 0;
-
-      systemPrompt = await this.buildPlannerV2PromptFromMap(prompt, homeMap, options?.lightPrompt);
+        const parsedHomeMap = JSON.parse(homeMap) as { devices?: unknown[] };
+        devicesCount = Array.isArray(parsedHomeMap.devices) ? parsedHomeMap.devices.length : 0;
+        systemPrompt = await this.buildPlannerV2PromptFromMap(prompt, homeMap, isLight);
+      }
     } catch (buildError: unknown) {
       return {
         plan: null,
@@ -217,15 +224,33 @@ ${JSON.stringify(PLANNER_V2_SCHEMA, null, 2)}`;
     return `${basePrompt}${instructions}\n\nUser command: "${prompt.replace(/"/g, '\"')}"`;
   }
 
+  private buildUltraLightPlannerV2Prompt(prompt: string, homeMapText: string): string {
+    return `You are HomePilot AI Assistant.
+Output ONLY JSON matching this exact structure:
+{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"natural name"},"command":"turn_on|turn_off|toggle|open|close|stop|set_position|set_brightness|query","params":{},"confidence":0.9}],"user_feedback_draft":"short text"}
+NO markdown. NO explanations.
+
+Home:
+${homeMapText}
+
+User command: "${prompt.replace(/"/g, '\"')}"`;
+  }
+
   /**
    * [EXPERIMENTAL] Builds a Planner V2 prompt for the LLM.
    * This is currently isolated and not used in the active conversation flow.
    */
-  public async buildPlannerV2Prompt(prompt: string, userId: string, light: boolean = false): Promise<string> {
-    const homeMap = light 
+  public async buildPlannerV2Prompt(prompt: string, userId: string, promptMode: 'full' | 'light' | 'ultra_light' = 'full'): Promise<string> {
+    if (promptMode === 'ultra_light') {
+      const result = await this.contextBuilder.buildUltraLightLlmHomeMap(prompt, userId);
+      return this.buildUltraLightPlannerV2Prompt(prompt, result.text);
+    }
+    
+    const isLight = promptMode === 'light';
+    const homeMap = isLight 
       ? await this.contextBuilder.buildLightLlmHomeMap(userId)
       : await this.contextBuilder.buildLlmHomeMap(userId);
     
-    return this.buildPlannerV2PromptFromMap(prompt, homeMap, light);
+    return this.buildPlannerV2PromptFromMap(prompt, homeMap, isLight);
   }
 }
