@@ -6,7 +6,7 @@ export interface NormalizationResult {
   changes: string[];
 }
 
-type MutablePlannerDraft = Partial<AssistantPlanV2> & {
+type MutablePlannerDraft = Omit<Partial<AssistantPlanV2>, 'actions'> & {
   actions?: Array<Partial<PlannerAction>>;
 };
 
@@ -20,9 +20,30 @@ export class PlannerV2Normalizer {
       return { plan: null, normalized: false, changes: [] };
     }
 
-    const plan = data as MutablePlannerDraft;
+    let plan = data as MutablePlannerDraft;
     const changes: string[] = [];
     let normalized = false;
+
+    const validActionTypes = ['set_state', 'toggle', 'query_status', 'activate_scene'];
+    const asRecord = plan as Record<string, unknown>;
+    
+    // Detect if root object is a PlannerAction and wrap it
+    if (
+      typeof plan.type === 'string' && validActionTypes.includes(plan.type) &&
+      asRecord.target && typeof asRecord.target === 'object' &&
+      typeof asRecord.command === 'string' &&
+      !Array.isArray(plan.actions)
+    ) {
+      const action = plan as unknown as Partial<PlannerAction>;
+      plan = {
+        type: 'plan',
+        plan_confidence: typeof action.confidence === 'number' ? action.confidence : 0.85,
+        actions: [action],
+        user_feedback_draft: ''
+      };
+      changes.push('Wrapped root PlannerAction into AssistantPlanV2');
+      normalized = true;
+    }
 
     // We only attempt repair if it looks vaguely like a plan (has an actions array)
     if (Array.isArray(plan.actions)) {
