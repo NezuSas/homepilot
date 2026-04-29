@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
 import { WidgetInspector } from './dashboards/WidgetInspector';
+import { generateId } from '../utils/generateId';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -149,7 +150,8 @@ export function DashboardsView() {
   const handleAddTab = async (title: string) => {
     if (!active || !title.trim()) return;
     setAddingTab(false);
-    await patch(active.id, { tabs: [...active.tabs, { id: crypto.randomUUID(), title: title.trim(), widgets: [] }] });
+    const newTabId = generateId();
+    await patch(active.id, { tabs: [...active.tabs, { id: newTabId, title: title.trim(), widgets: [] }] });
     setActiveTabIdx(active.tabs.length);
   };
 
@@ -175,7 +177,7 @@ export function DashboardsView() {
       appearance: { variant: 'glass', title: '', showTitle: true }
     };
     const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: crypto.randomUUID(), type, config: defaultConfig }] }
+      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: generateId(), type, config: defaultConfig }] }
     );
     await patch(active.id, { tabs: updatedTabs });
   };

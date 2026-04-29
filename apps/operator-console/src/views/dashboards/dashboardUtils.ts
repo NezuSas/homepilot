@@ -1,8 +1,9 @@
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
+import { generateId } from '../../utils/generateId';
 
 /**
- * Determinates if a device is "Active" (ON, OPEN, or has BRIGHTNESS/VALUE)
+ * Determines if a device is "Active" (ON, OPEN, or has BRIGHTNESS/VALUE)
  * based on the core system logic.
  */
 export function isDeviceActive(device: SnapshotDevice): boolean {
@@ -70,7 +71,7 @@ export function sanitizeWidgetConfig(config: Partial<DashboardWidgetConfig> = {}
  */
 export function sanitizeWidget(widget: Partial<DashboardWidget>): DashboardWidget {
   return {
-    id: widget.id || crypto.randomUUID(),
+    id: widget.id || generateId(),
     type: widget.type || 'device_control',
     config: sanitizeWidgetConfig(widget.config)
   };

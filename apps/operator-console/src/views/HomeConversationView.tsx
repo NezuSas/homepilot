@@ -13,6 +13,7 @@ import type { ChatMessage, AssistantConversationResponse, AssistantConverseReque
 import { StatusPill } from '../components/ui/StatusPill';
 import { useSession } from '../lib/useSession';
 import { API_BASE_URL } from '../config';
+import { generateId } from '../utils/generateId';
 
 const HOME_ASCII_ART = `
                          8888  8888888
@@ -194,7 +195,7 @@ export const HomeConversationView: React.FC = () => {
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
       ...message,
-      id: crypto.randomUUID(),
+      id: generateId(),
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMessage]);
