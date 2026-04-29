@@ -303,4 +303,145 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
     expect(response.type).toBe('execution');
     expect(mockSmallTalk.handle).not.toHaveBeenCalled();
   });
+
+  // ─── V2 Pronoun Pre-Check Routing ─────────────────────────────────────────
+
+  describe('V2 Pronoun Pre-Check Routing', () => {
+    let mockShadowService: { attemptHybridExecution: jest.Mock; runShadow: jest.Mock };
+    let serviceWithV2: AssistantConversationService;
+    let originalEnv: NodeJS.ProcessEnv;
+
+    beforeAll(() => {
+      originalEnv = { ...process.env };
+    });
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+      process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
+
+      mockShadowService = {
+        attemptHybridExecution: jest.fn(),
+        runShadow: jest.fn().mockResolvedValue(undefined)
+      };
+
+      serviceWithV2 = new AssistantConversationService(
+        mockInterpreter,
+        mockConfirmationPolicy,
+        mockSceneExecution,
+        mockDispatcher,
+        mockDeviceRepo,
+        mockRoomRepo,
+        mockSceneRepo,
+        mockSmallTalk,
+        mockMemory,
+        mockFollowUp,
+        createMockAssistantDraftService(),
+        createMockAutomationRuleRepository(),
+        createMockAssistantLearningService(),
+        createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
+        createMockAssistantSuggestionService(),
+        mockExecutionRepo,
+        mockShadowService as any
+      );
+    });
+
+    it('pronoun prompt tries V2 before V1 when execution flag is true', async () => {
+      mockShadowService.attemptHybridExecution.mockResolvedValue({
+        deviceId: 'dev-sala',
+        command: 'turn_on',
+        confidence: 0.92,
+        contextSource: 'short_term_memory'
+      });
+      mockDeviceRepo.findDeviceById.mockResolvedValue(
+        createTestDevice({ id: 'dev-sala', name: 'Luz Sala', roomId: 'r1' })
+      );
+      mockDispatcher.dispatch.mockResolvedValue(undefined);
+      mockMemory.saveShortTermMemory.mockResolvedValue(undefined);
+
+      const response = await serviceWithV2.converse({ prompt: 'enciéndela', userId: 'u1' }, 'es');
+
+      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalledWith('enciéndela', 'u1');
+      expect(response.type).toBe('execution');
+    });
+
+    it('if V2 approves pronoun, V1 pronoun resolver is NOT used', async () => {
+      mockShadowService.attemptHybridExecution.mockResolvedValue({
+        deviceId: 'dev-sala',
+        command: 'turn_on',
+        confidence: 0.92,
+        contextSource: 'short_term_memory'
+      });
+      mockDeviceRepo.findDeviceById.mockResolvedValue(
+        createTestDevice({ id: 'dev-sala', name: 'Luz Sala', roomId: 'r1' })
+      );
+      mockDispatcher.dispatch.mockResolvedValue(undefined);
+      mockMemory.saveShortTermMemory.mockResolvedValue(undefined);
+
+      await serviceWithV2.converse({ prompt: 'enciéndela', userId: 'u1' }, 'es');
+
+      // V1 pronoun resolver calls getShortTermMemory only during V1 path
+      // V2 approved means no V1 resolution needed, so interpret should NOT be called
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+    });
+
+    it('if V2 rejects pronoun, V1 pronoun resolver still handles it', async () => {
+      mockShadowService.attemptHybridExecution.mockResolvedValue(null);
+      // V1 memory with single entity so resolvePronounIntent handles it
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
+        entities: [{ id: 'dev-sala', name: 'Luz Sala', type: 'light', roomId: 'r1' }],
+        timestamp: new Date().toISOString()
+      });
+      mockInterpreter.interpret.mockResolvedValue({
+        type: 'command',
+        deviceId: 'dev-sala',
+        command: 'turn_on',
+        prompt: 'enciende Luz Sala'
+      });
+      mockDeviceRepo.findDeviceById.mockResolvedValue(
+        createTestDevice({ id: 'dev-sala', name: 'Luz Sala', roomId: 'r1' })
+      );
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'dev-sala', name: 'Luz Sala', roomId: 'r1' })
+      ]);
+      mockDispatcher.dispatch.mockResolvedValue(undefined);
+
+      const response = await serviceWithV2.converse({ prompt: 'enciéndela', userId: 'u1' }, 'es');
+
+      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalled();
+      // V1 path ran — execution happened via V1 interpreter
+      expect(response.type).toBe('execution');
+    });
+
+    it('non-pronoun prompt bypasses V2 pronoun pre-check entirely', async () => {
+      process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
+      // V2 should not be called for non-pronoun prompts at this gate
+      mockShadowService.attemptHybridExecution.mockResolvedValue(null);
+      mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: '', reason: 'default' });
+
+      await serviceWithV2.converse({ prompt: 'enciende la luz de la cocina', userId: 'u1' }, 'es');
+
+      // The main C.0 gate runs but the pronoun pre-check guard must NOT have fired for this prompt.
+      // Verify that attemptHybridExecution was called only ONCE (from C.0 gate, not the pronoun pre-check).
+      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalledTimes(1);
+    });
+
+    it('V2 pronoun pre-check does NOT call shadow service when execution flag is false', async () => {
+      process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'false';
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+      mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: '', reason: 'default' });
+      mockShadowService.attemptHybridExecution.mockResolvedValue(null);
+
+      await serviceWithV2.converse({ prompt: 'enciéndela', userId: 'u1' }, 'es');
+
+      // With flag=false, the pronoun pre-check skips calling the service.
+      // The C.0 gate may still call it once (and returns null due to flag check inside),
+      // but it must NOT be called twice (once for pronoun pre-check + once for C.0).
+      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalledTimes(1);
+    });
+  });
 });

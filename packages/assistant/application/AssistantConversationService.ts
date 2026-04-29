@@ -228,7 +228,17 @@ export class AssistantConversationService {
         });
       }
     }
-
+    
+    // --- V2 PRONOUN PRE-CHECK ---
+    const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma)$/i.test(normalized);
+    if (isPronounPrompt && process.env.ASSISTANT_PLANNER_V2_EXECUTION === 'true') {
+      console.info(`[PLANNER_V2_PRONOUN_PRECHECK] ${JSON.stringify({ prompt: activePrompt })}`);
+      const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName);
+      if (v2Response) {
+        return this.returnWithShadow(activePrompt, userId, language, v2Response);
+      }
+    }
+ 
     // --- PRE-INTENT: PRONOUN RESOLUTION ("apágala", etc.) ---
     const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
     if (pronounIntent) {
@@ -550,35 +560,9 @@ export class AssistantConversationService {
     }
 
     // C.0) V2 Hybrid Execution Attempt (Strict Gate)
-    if (this.shadowService) {
-      const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId);
-      if (v2Result) {
-        // Bypass V1 execution completely
-        const device = await this.deviceRepository.findDeviceById(v2Result.deviceId);
-        const deviceName = device?.name ?? v2Result.deviceId;
-        
-        const execResult = await this.executeSingleCommand(v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
-        
-        if (execResult.status === 'success') {
-          await this.clearPendingAction(userId);
-          await this.memoryService.saveShortTermMemory(userId, {
-            lastQueryType: 'command',
-            entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
-            timestamp: new Date().toISOString()
-          });
-          if (device) {
-            console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ deviceId: device.id, deviceName: device.name })}`);
-          }
-        }
-
-        return {
-          type: 'execution',
-          message: execResult.status === 'success' 
-            ? this.buildCommandSuccessMessage(v2Result.command as DeviceCommandV1, deviceName, userName, language)
-            : (language === 'en' ? "Execution failed." : "La ejecución falló."),
-          execution: execResult
-        };
-      }
+    const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName);
+    if (v2Response) {
+      return this.returnWithShadow(activePrompt, userId, language, v2Response);
     }
 
     // C) Intent Interpretation (V1 Fallback)
@@ -2741,5 +2725,43 @@ export class AssistantConversationService {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
     return response;
+  }
+
+  private async attemptV2HybridExecution(
+    activePrompt: string, 
+    userId: string, 
+    language: 'es' | 'en', 
+    userName: string | null
+  ): Promise<AssistantConversationResponse | null> {
+    if (!this.shadowService) return null;
+
+    const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId);
+    if (!v2Result) return null;
+
+    // Bypass V1 execution completely
+    const device = await this.deviceRepository.findDeviceById(v2Result.deviceId);
+    const deviceName = device?.name ?? v2Result.deviceId;
+    
+    const execResult = await this.executeSingleCommand(v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
+    
+    if (execResult.status === 'success') {
+      await this.clearPendingAction(userId);
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'command',
+        entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
+        timestamp: new Date().toISOString()
+      });
+      if (device) {
+        console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ deviceId: device.id, deviceName: device.name })}`);
+      }
+    }
+
+    return {
+      type: 'execution',
+      message: execResult.status === 'success' 
+        ? this.buildCommandSuccessMessage(v2Result.command as DeviceCommandV1, deviceName, userName, language)
+        : (language === 'en' ? "Execution failed." : "La ejecución falló."),
+      execution: execResult
+    };
   }
 }
