@@ -560,12 +560,15 @@ export class AssistantConversationService {
         const execResult = await this.executeSingleCommand(v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
         
         if (execResult.status === 'success') {
-          this.clearPendingAction(userId).catch(() => {});
-          this.memoryService.saveShortTermMemory(userId, {
+          await this.clearPendingAction(userId);
+          await this.memoryService.saveShortTermMemory(userId, {
             lastQueryType: 'command',
             entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
             timestamp: new Date().toISOString()
-          }).catch(() => {});
+          });
+          if (device) {
+            console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ deviceId: device.id, deviceName: device.name })}`);
+          }
         }
 
         return {

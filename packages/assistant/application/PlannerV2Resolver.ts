@@ -146,15 +146,19 @@ export class PlannerV2Resolver {
 
     if (memory.entities && memory.entities.length > 0) {
       if (memory.entities.length === 1) {
+        console.info(`[PLANNER_V2_CONTEXT_RESOLVED] ${JSON.stringify({ context_source: 'short_term_memory', resolvedIds: [memory.entities[0].id] })}`);
         return { type: 'single', deviceId: memory.entities[0].id, contextSource: 'short_term_memory' };
       } else {
-        return { type: 'multiple', deviceIds: memory.entities.map(e => e.id), contextSource: 'short_term_memory' };
+        const resolvedIds = memory.entities.map(e => e.id);
+        console.info(`[PLANNER_V2_CONTEXT_RESOLVED] ${JSON.stringify({ context_source: 'short_term_memory', resolvedIds })}`);
+        return { type: 'multiple', deviceIds: resolvedIds, contextSource: 'short_term_memory' };
       }
     }
 
     if (hint === 'first_option') {
       const option = memory.clarificationOptions && memory.clarificationOptions[0];
       if (option) {
+        console.info(`[PLANNER_V2_CONTEXT_RESOLVED] ${JSON.stringify({ context_source: 'short_term_memory', resolvedIds: [option.id] })}`);
         return { type: 'single', deviceId: option.id, contextSource: 'short_term_memory' };
       }
     }
