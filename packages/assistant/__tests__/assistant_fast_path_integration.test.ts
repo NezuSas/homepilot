@@ -25,6 +25,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
   let mockMemory: any;
   let mockDispatcher: any;
   let mockDeviceRepo: any;
+  let mockRoomRepo: any;
   let mockShadowService: any;
   let mockIntentInterpreter: any;
 
@@ -33,6 +34,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDispatcher = createMockDeviceCommandDispatcher();
     mockMemory = createMockAssistantMemory();
     mockDeviceRepo = createMockDeviceRepository();
+    mockRoomRepo = createMockRoomRepository();
     mockShadowService = { 
       runShadow: jest.fn().mockResolvedValue(undefined),
       attemptHybridExecution: jest.fn().mockResolvedValue(null)
@@ -44,7 +46,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       createMockSceneExecutionService(), // 3
       mockDispatcher, // 4
       mockDeviceRepo, // 5
-      createMockRoomRepository(), // 6
+      mockRoomRepo, // 6
       createMockSceneRepository(), // 7
       createMockAssistantSmallTalk(), // 8
       mockMemory, // 9
@@ -153,6 +155,27 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       await service.converse({ prompt: 'ayúdame con la luz', userId: 'u1' }, 'es');
       
       expect(mockShadowService.runShadow).toHaveBeenCalled();
+    });
+
+    it('returns compact summary for broad query "estado de la casa" and bypasses shadow', async () => {
+      const devices = [
+        createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1', homeId: 'h1', lastKnownState: { on: true } }),
+        createTestDevice({ id: 'd2', name: 'Luz Sala', type: 'light', roomId: 'r2', homeId: 'h1', lastKnownState: { on: false } })
+      ];
+      mockDeviceRepo.findAll.mockResolvedValue(devices);
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
+        { id: 'r1', name: 'Cocina' },
+        { id: 'r2', name: 'Sala' }
+      ]);
+      
+      const res = await service.converse({ prompt: 'estado de la casa', userId: 'u1' }, 'es');
+      
+      expect(res.message).toContain('Estado de la casa:');
+      expect(res.message).toContain('Encendidas: 1');
+      expect(res.message).toContain('Apagadas: 1');
+      expect(res.message).toContain('Estancias con actividad: Cocina');
+      expect(res.message).toContain('dame detalle');
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
   });
 });

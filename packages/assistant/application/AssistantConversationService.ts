@@ -1848,6 +1848,62 @@ export class AssistantConversationService {
     const onDevices = filteredDevices.filter(d => d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on'));
     const offDevices = filteredDevices.filter(d => d.lastKnownState && (d.lastKnownState.on === false || d.lastKnownState.state === 'off'));
 
+    const isBroadQuery = (norm: string): boolean => {
+      const broadTriggers = [
+        'estado de la casa',
+        'estado',
+        'qué hay encendido y apagado',
+        'que hay encendido y apagado',
+        'home status',
+        'house status',
+        'status'
+      ];
+      // Check for exact matches to avoid catching "estado de la luz cocina"
+      return broadTriggers.some(t => norm === t);
+    };
+
+    if (isBroadQuery(normalized) && !entitiesFromMemory) {
+      const activeRooms = [...new Set(onDevices.map(d => this.resolveRoomName(d.roomId, roomMap, language)).filter(Boolean))];
+      const namePrefix = userName ? `${userName}, ` : '';
+      let broadMsg = "";
+      
+      if (language === 'es') {
+        broadMsg = `${namePrefix}Estado de la casa:\n`;
+        broadMsg += `• Encendidas: ${onDevices.length} luces/dispositivos\n`;
+        broadMsg += `• Apagadas: ${offDevices.length} luces/dispositivos\n`;
+        if (activeRooms.length > 0) {
+          broadMsg += `• Estancias con actividad: ${activeRooms.join(', ')}\n`;
+        }
+        broadMsg += `\nPuedes pedir: "dame detalle" para ver la lista completa.`;
+      } else {
+        broadMsg = `${namePrefix}Home status:\n`;
+        broadMsg += `• On: ${onDevices.length} lights/devices\n`;
+        broadMsg += `• Off: ${offDevices.length} lights/devices\n`;
+        if (activeRooms.length > 0) {
+          broadMsg += `• Active rooms: ${activeRooms.join(', ')}\n`;
+        }
+        broadMsg += `\nYou can say: "show detail" to see the full list.`;
+      }
+
+      // Still save memory for "dame detalle" follow-up
+      this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'state_devices',
+        entities: filteredDevices.map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          roomId: d.roomId,
+          roomName: this.resolveRoomName(d.roomId, roomMap, language) ?? undefined
+        })),
+        timestamp: new Date().toISOString()
+      }).catch(() => {});
+
+      return {
+        type: 'answer',
+        message: broadMsg
+      };
+    }
+
     let message = "";
     const namePrefix = userName ? `${userName}, ` : '';
 
