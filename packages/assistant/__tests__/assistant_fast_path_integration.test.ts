@@ -17,7 +17,8 @@ import {
   createMockAssistantDraftService,
   createMockAssistantDraftRepository,
   createTestDevice,
-  createMockSceneExecutionService
+  createMockSceneExecutionService,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Fast Path Integration in AssistantConversationService', () => {
@@ -57,7 +58,8 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       createMockSmartEntityResolver(), // 14
       createMockAssistantSuggestionService(), // 15
       createMockExecutionRecordRepository(), // 16
-      mockShadowService // 17 (shadow service)
+      createMockSystemVariableService(), // 17 (added)
+      mockShadowService // 18 (shadow service)
     );
   });
 

@@ -278,6 +278,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     smartEntityResolver,
     assistantSuggestionService,
     repos.executionRecordRepository,
+    systemVariableService,
     shadowService
   );
 

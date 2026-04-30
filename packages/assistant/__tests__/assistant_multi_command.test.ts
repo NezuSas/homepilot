@@ -11,7 +11,8 @@ import {
   createMockSmartEntityResolver,
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
-  createTestDevice
+  createTestDevice,
+  createMockSystemVariableService
 } from './test_helpers';
 import { IntentInterpreterService } from '../application/IntentInterpreterService';
 import { AssistantConfirmationPolicy } from '../application/AssistantConfirmationPolicy';
@@ -63,7 +64,8 @@ describe('AssistantConversationService - Multi-Command V1', () => {
       createMockAssistantLearningService(),
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
-      createMockExecutionRecordRepository()
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService()
     );
   });
 

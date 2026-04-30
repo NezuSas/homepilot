@@ -15,7 +15,8 @@ import {
   createMockExecutionRecordRepository,
   createMockAssistantSuggestionService,
   createMockSceneExecutionService,
-  createRealSmartEntityResolver
+  createRealSmartEntityResolver,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Language Intelligence V1', () => {
@@ -58,7 +59,8 @@ describe('Assistant Language Intelligence V1', () => {
       mockLearning,
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, mockAutomationRepo, mockMemory, mockLearning),
       createMockAssistantSuggestionService(),
-      createMockExecutionRecordRepository()
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService()
     );
   });
 

@@ -17,7 +17,8 @@ import {
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
   createTestDevice,
-  createTestRoom
+  createTestRoom,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Intelligence Layer V1', () => {
@@ -53,7 +54,8 @@ describe('Assistant Intelligence Layer V1', () => {
       learningService,
       createRealSmartEntityResolver(deviceRepo, roomRepo, createMockSceneRepository(), createMockAutomationRuleRepository(), memory, learningService),
       createMockAssistantSuggestionService(),
-      createMockExecutionRecordRepository()
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService()
     );
   });
 

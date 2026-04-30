@@ -16,7 +16,8 @@ import {
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
   createTestDevice,
-  createTestRoom
+  createTestRoom,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('AssistantConversationService UX V2', () => {
@@ -69,7 +70,8 @@ describe('AssistantConversationService UX V2', () => {
       createMockAssistantLearningService(),
       createRealSmartEntityResolver(deviceRepo, roomRepo, sceneRepo, createMockAutomationRuleRepository(), memory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
-      createMockExecutionRecordRepository()
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService()
     );
   });
 

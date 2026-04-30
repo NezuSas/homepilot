@@ -17,7 +17,8 @@ import {
   createMockAssistantDraftService,
   createMockAssistantDraftRepository,
   createTestDevice,
-  createMockSceneExecutionService
+  createMockSceneExecutionService,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Multi-Target Confirmation Guard', () => {
@@ -56,6 +57,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
+      createMockSystemVariableService(),
       mockShadowService
     );
 

@@ -15,7 +15,8 @@ import {
   createMockExecutionRecordRepository,
   createMockAssistantSuggestionService,
   createMockSceneExecutionService,
-  createRealSmartEntityResolver
+  createRealSmartEntityResolver,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Company Knowledge', () => {
@@ -51,7 +52,8 @@ describe('Assistant Company Knowledge', () => {
       mockLearning,
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, mockAutomationRepo, mockMemory, mockLearning),
       createMockAssistantSuggestionService(),
-      createMockExecutionRecordRepository()
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService()
     );
   });
 

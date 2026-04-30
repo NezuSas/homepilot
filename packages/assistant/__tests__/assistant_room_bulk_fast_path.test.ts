@@ -17,7 +17,8 @@ import {
   createMockAssistantDraftService,
   createTestDevice,
   createTestRoom,
-  createMockSceneExecutionService
+  createMockSceneExecutionService,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Room Bulk Fast-Path', () => {
@@ -50,6 +51,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
+      createMockSystemVariableService(),
       undefined
     );
   });

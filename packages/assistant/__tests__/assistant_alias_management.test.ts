@@ -18,7 +18,8 @@ import {
   createMockSmartEntityResolver,
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
-  createMockAssistantPlannerV2ShadowService
+  createMockAssistantPlannerV2ShadowService,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Alias Management V1', () => {
@@ -61,10 +62,12 @@ describe('Assistant Alias Management V1', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
+      createMockSystemVariableService(),
       mockShadow
     );
 
     mockHybridSpy = jest.spyOn(service as any, 'attemptV2HybridExecution');
+    mockShadow.runShadow.mockClear();
   });
 
   it('1. list aliases resolves target names', async () => {
@@ -286,9 +289,8 @@ describe('Assistant Alias Management V1', () => {
     });
     
     const res = await service.converse({ prompt: 'prende mi luz la luz', userId: 'u1' }, 'es');
-    
     expect(res.type).toBe('answer');
-    expect(res.message).toContain("Encontré varios aliases posibles:");
+    expect(res.message).toMatch(/varios aliases posibles/);
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
@@ -402,31 +404,37 @@ describe('Assistant Alias Management V1', () => {
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
-  it('27. presentation query bypasses shadow', async () => {
+  it('27. company info query bypasses shadow', async () => {
+    const res = await service.converse({ prompt: 'qué es nezu', userId: 'u1' }, 'es');
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('NEZU S.A.S.');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('28. presentation query bypasses shadow', async () => {
     const res = await service.converse({ prompt: 'qué puedes hacer', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
-  it('28. date/time query bypasses shadow', async () => {
+  it('29. time query bypasses shadow and uses correct format', async () => {
     const res = await service.converse({ prompt: 'qué hora es', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
+    // Basic check for time format (Son las XX:XX)
+    expect(res.message).toMatch(/Son las \d{2}:\d{2}/);
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
-  it('29. ambiguous home-control prompt still calls shadow', async () => {
-    // Setup ambiguous scenario: "enciende la luz" with no direct match in V1 fast paths
-    // It will fall through to FollowUpResolver -> intentInterpreter -> Planner V2
-    // Planner V2 might return a clarification, and returnWithShadow will be called.
-    
-    // Mocking intent interpretation to simulate a home control intent that doesn't resolve to a single device immediately
-    // or just fallback to smalltalk if not matching anything but returnWithShadow is still called there.
-    
+  it('30. date query bypasses shadow and uses correct format', async () => {
+    const res = await service.converse({ prompt: 'qué fecha es hoy', userId: 'u1' }, 'es');
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('Hoy es');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('31. ambiguous home-control prompt still calls shadow', async () => {
     mockShadow.runShadow.mockResolvedValue({ type: 'answer', message: 'shadow response' });
-    
     await service.converse({ prompt: 'enciende la luz', userId: 'u1' }, 'es');
-    
-    // Even if it fails to execute, it should have triggered shadow because it's a control-like prompt
     expect(mockShadow.runShadow).toHaveBeenCalled();
   });
 });

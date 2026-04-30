@@ -15,7 +15,8 @@ import {
   createMockExecutionRecordRepository,
   createMockAssistantSuggestionService,
   createMockSmartEntityResolver,
-  createTestDevice
+  createTestDevice,
+  createMockSystemVariableService
 } from './test_helpers';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 
@@ -58,7 +59,8 @@ describe('Assistant Proactive Suggestions', () => {
       mockLearning,
       createMockSmartEntityResolver(),
       mockSuggestion,
-      mockExecutionRepo
+      mockExecutionRepo,
+      createMockSystemVariableService()
     );
   });
 

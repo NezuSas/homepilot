@@ -16,7 +16,8 @@ import {
   createMockAutomationRuleRepository,
   createMockAssistantDraftService,
   createTestDevice,
-  createMockSceneExecutionService
+  createMockSceneExecutionService,
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Bulk Response UX', () => {
@@ -47,6 +48,7 @@ describe('Assistant Bulk Response UX', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
+      createMockSystemVariableService(),
       {} as any
     );
   });

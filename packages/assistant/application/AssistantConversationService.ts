@@ -9,6 +9,7 @@ import { SmartEntityResolver } from './SmartEntityResolver';
 import { AssistantSuggestionService } from './AssistantSuggestionService';
 import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
+import { SystemVariableService } from '../../system-vars/application/SystemVariableService';
 import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1, isValidCommand } from '../../devices/domain/commands';
 import { Scene } from '../../devices/domain/Scene';
@@ -176,6 +177,7 @@ export class AssistantConversationService {
     private readonly entityResolver: SmartEntityResolver,
     private readonly suggestionService: AssistantSuggestionService,
     private readonly executionRecordRepository: ExecutionRecordRepository,
+    private readonly systemVariableService: SystemVariableService,
     private readonly shadowService?: AssistantPlannerV2ShadowService
   ) {}
 
@@ -404,7 +406,7 @@ export class AssistantConversationService {
     }
 
     if (this.isDateTimeQuery(normalized)) {
-      return this.handleDateTimeQuery(normalized, language);
+      return await this.handleDateTimeQuery(normalized, language);
     }
 
     // --- ALIAS MANAGEMENT (Deterministic Routes) ---
@@ -1790,13 +1792,16 @@ export class AssistantConversationService {
     return triggers.some(t => normalized.includes(t));
   }
 
-  private handleDateTimeQuery(prompt: string, language: string): AssistantConversationResponse {
+  private async handleDateTimeQuery(prompt: string, language: string): Promise<AssistantConversationResponse> {
+    const timeZone = await this.systemVariableService.getSystemTimezone();
+    console.info(`[ASSISTANT_TIME_QUERY] ${JSON.stringify({ timeZone, language })}`);
+
     const now = new Date();
     const dateStr = now.toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { 
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone
     });
     const timeStr = now.toLocaleTimeString(language === 'en' ? 'en-US' : 'es-ES', { 
-      hour: '2-digit', minute: '2-digit' 
+      hour: '2-digit', minute: '2-digit', timeZone
     });
 
     let message = "";

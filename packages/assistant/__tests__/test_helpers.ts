@@ -250,3 +250,8 @@ export const createMockAssistantPlannerV2ShadowService = (): any => ({
   getStatus: jest.fn().mockReturnValue({ enabled: true }),
   getMetrics: jest.fn().mockReturnValue({ total_runs: 0 })
 });
+
+export const createMockSystemVariableService = (overrides?: any): any => ({
+  getSystemTimezone: jest.fn().mockResolvedValue('America/Guayaquil'),
+  ...overrides
+});

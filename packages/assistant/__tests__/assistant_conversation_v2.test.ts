@@ -17,7 +17,8 @@ import {
   createRealSmartEntityResolver,
   createMockAssistantSuggestionService,
   createTestDevice,
-  createTestRoom
+  createTestRoom,
+  createMockSystemVariableService
 } from './test_helpers';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
@@ -91,7 +92,8 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
       createMockAssistantLearningService(),
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
-      mockExecutionRepo
+      mockExecutionRepo,
+      createMockSystemVariableService()
     );
   });
 
@@ -345,6 +347,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
         createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
         createMockAssistantSuggestionService(),
         mockExecutionRepo,
+        createMockSystemVariableService(),
         mockShadowService as any
       );
     });

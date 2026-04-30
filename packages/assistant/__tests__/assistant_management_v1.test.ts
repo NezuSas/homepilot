@@ -12,7 +12,8 @@ import {
   createMockSmartEntityResolver,
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
-  createRealSmartEntityResolver
+  createRealSmartEntityResolver,
+  createMockSystemVariableService
 } from './test_helpers';
 import { createTestDevice } from './test_helpers';
 
@@ -70,7 +71,8 @@ describe('Assistant Management V1', () => {
       createMockAssistantLearningService(),
       createRealSmartEntityResolver(deviceRepo, roomRepo, sceneRepo, automationRepo, memory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
-      createMockExecutionRecordRepository()
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService()
     );
 
     // Default mocks

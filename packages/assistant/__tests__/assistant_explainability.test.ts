@@ -15,7 +15,8 @@ import {
   createMockExecutionRecordRepository,
   createRealSmartEntityResolver,
   createMockAssistantSuggestionService,
-  createTestDevice
+  createTestDevice,
+  createMockSystemVariableService
 } from './test_helpers';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { ExecutionRecord } from '../../devices/domain/ExecutionRecord';
@@ -53,7 +54,8 @@ describe('Assistant Explainability + Recovery', () => {
       createMockAssistantLearningService(),
       createRealSmartEntityResolver(mockDeviceRepo, createMockRoomRepository(), createMockSceneRepository(), createMockAutomationRuleRepository(), createMockAssistantMemory(), createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
-      mockExecutionRepo
+      mockExecutionRepo,
+      createMockSystemVariableService()
     );
   });
 

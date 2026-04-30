@@ -24,7 +24,8 @@ import {
   createRealSmartEntityResolver,
   createMockAssistantSuggestionService,
   createTestDevice,
-  createTestRoom
+  createTestRoom,
+  createMockSystemVariableService
 } from './test_helpers';
 import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
@@ -90,7 +91,8 @@ describe('AssistantConversationService', () => {
       createMockAssistantLearningService(),
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
-      mockExecutionRepo
+      mockExecutionRepo,
+      createMockSystemVariableService()
     );
   });
 
