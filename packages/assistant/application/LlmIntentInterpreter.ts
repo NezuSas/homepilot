@@ -236,18 +236,12 @@ CRITICAL: NEVER omit target.type.
 CRITICAL: Never copy allowed values as a combined string. Choose exactly one allowed value.
 
 Examples:
-
-User: apaga la luz de cocina
-JSON:
-{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Cocina"},"command":"turn_off","params":{},"confidence":0.9}],"user_feedback_draft":""}
-
+User: apaga la luz
+JSON: {"actions":[{"type":"set_state","target":{"type":"device","name":"Luz"},"command":"turn_off"}]}
 User: prende luz sala
-JSON:
-{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Sala"},"command":"turn_on","params":{},"confidence":0.9}],"user_feedback_draft":""}
-
-User: qué luces están encendidas
-JSON:
-{"type":"plan","plan_confidence":0.9,"actions":[{"type":"query_status","target":{"type":"category","name":"luces"},"command":"query","params":{},"confidence":0.9}],"user_feedback_draft":""}
+JSON: {"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Sala"},"command":"turn_on"}]}
+User: luces encendidas?
+JSON: {"actions":[{"type":"query_status","target":{"type":"category","name":"luces"},"command":"query"}]}
 
 Home:
 ${homeMapText}

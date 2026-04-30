@@ -109,7 +109,7 @@ describe('LlmIntentInterpreter', () => {
       
       // Should contain the instruction and concrete examples
       expect(prompt).toContain('Choose exactly one allowed value');
-      expect(prompt).toContain('{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Cocina"}');
+      expect(prompt).toContain('{"actions":[{"type":"set_state","target":{"type":"device","name":"Luz"},"command":"turn_off"}]}');
       expect(prompt).toContain('mockHomeMap');
     });
   });
