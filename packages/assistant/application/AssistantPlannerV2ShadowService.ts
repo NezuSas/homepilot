@@ -10,6 +10,8 @@ export interface ShadowResolutionResult {
   target: TargetReference;
   resolvedType: string;
   resolvedIds: string[];
+  command?: string;
+  confidence?: number;
 }
 
 export type ShadowErrorType = 'llm_failure' | 'timeout' | 'invalid_json' | 'invalid_json_contract' | 'empty_plan' | 'validation_failure' | 'resolution_failure' | 'build_failure' | 'unknown';
@@ -281,7 +283,7 @@ export class AssistantPlannerV2ShadowService {
     prompt: string,
     userId: string,
     memory?: AssistantMemoryState | null
-  ): Promise<{ deviceId: string; command: string; confidence: number; contextSource?: string } | null> {
+  ): Promise<{ deviceId?: string; command: string; confidence: number; contextSource?: string; resolvedType?: string; resolvedIds?: string[] } | null> {
     if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
 
     const skip = (reason: string, extra?: Record<string, unknown>) => {
@@ -331,10 +333,10 @@ export class AssistantPlannerV2ShadowService {
       const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma|el mismo|los mismos|las mismas|it|them)$/.test(lowerPrompt);
       const isContextReference = action.target.type === 'context_reference';
 
-      let resolved: { type: string; deviceId?: string; contextSource?: string };
+      let resolved: { type: string; deviceId?: string; deviceIds?: string[]; contextSource?: string };
 
       if (isPronounPrompt) {
-        if (!memory || memory.lastQueryType !== 'command' || !memory.entities || memory.entities.length !== 1) {
+        if (!memory || memory.lastQueryType !== 'command' || !memory.entities || memory.entities.length === 0) {
           return skip('unsafe_context_resolution', {
             memory_lastQueryType: memory?.lastQueryType,
             memory_entities_count: memory?.entities?.length
@@ -342,8 +344,9 @@ export class AssistantPlannerV2ShadowService {
         }
         
         resolved = {
-          type: 'single',
-          deviceId: memory.entities[0].id,
+          type: memory.entities.length > 1 ? 'multiple' : 'single',
+          deviceId: memory.entities.length === 1 ? memory.entities[0].id : undefined,
+          deviceIds: memory.entities.length > 1 ? memory.entities.map(e => e.id) : undefined,
           contextSource: 'short_term_memory'
         };
         
@@ -354,11 +357,26 @@ export class AssistantPlannerV2ShadowService {
         })}`);
       } else {
         const res = await this.resolver.resolve(action.target, userId);
-        resolved = { type: res.type, deviceId: res.deviceId, contextSource: res.contextSource };
+        resolved = { 
+          type: res.type, 
+          deviceId: res.deviceId, 
+          deviceIds: res.deviceIds,
+          contextSource: res.contextSource 
+        };
         
         if (isContextReference && resolved.contextSource !== 'short_term_memory') {
           return skip('unsafe_context_resolution');
         }
+      }
+
+      // 3. SUCCESSFUL GATE PASS (or Guarded Multi-Target)
+      if (resolved.type === 'category' || (resolved.deviceIds && resolved.deviceIds.length > 1)) {
+        return {
+          command: action.command,
+          confidence: action.confidence,
+          resolvedType: resolved.type,
+          resolvedIds: resolved.deviceIds || []
+        };
       }
 
       if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');

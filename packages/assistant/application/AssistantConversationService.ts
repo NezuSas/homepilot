@@ -231,6 +231,16 @@ export class AssistantConversationService {
         });
       }
     }
+
+    // --- V2: Bulk Action Confirmation Flow ---
+    if (memory?.pendingBulkAction) {
+      if (this.isBulkActionAccept(normalized)) {
+        return await this.handleBulkActionAccept(userId, language, memory.pendingBulkAction);
+      }
+      if (this.isBulkActionReject(normalized)) {
+        return await this.handleBulkActionReject(userId, language, memory.pendingBulkAction);
+      }
+    }
     
     // --- V2 PRONOUN PRE-CHECK ---
     const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma)$/i.test(normalized);
@@ -872,6 +882,7 @@ export class AssistantConversationService {
         pendingDraft: undefined,
         pendingManagementAction: undefined,
         pendingSuggestion: undefined,
+        pendingBulkAction: undefined,
         originalPrompt: undefined
       });
     }
@@ -1606,6 +1617,71 @@ export class AssistantConversationService {
   private isSuggestionPostpone(normalized: string): boolean {
     const postponeTriggers = ['despues', 'después', 'recuerdamelo despues', 'recuérdamelo después', 'mas tarde', 'más tarde', 'later', 'remind me later'];
     return postponeTriggers.includes(normalized) || postponeTriggers.some(t => normalized.startsWith(t + ' '));
+  }
+
+  private isBulkActionAccept(normalized: string): boolean {
+    const triggers = ['si', 'sí', 'confirmar', 'dale', 'ok', 'yes', 'confirm', 'proceed'];
+    return triggers.includes(normalized);
+  }
+
+  private isBulkActionReject(normalized: string): boolean {
+    const triggers = ['no', 'cancelar', 'no gracias', 'cancel', 'no thanks'];
+    return triggers.includes(normalized);
+  }
+
+  private async handleBulkActionAccept(userId: string, language: string, action: { deviceIds: string[], command: string, originalPrompt: string }): Promise<AssistantConversationResponse> {
+    const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
+    if (!allowedCommands.includes(action.command)) {
+      console.warn(`[ASSISTANT_BULK_EXECUTION_INVALID] {"command":"${action.command}"}`);
+      await this.clearPendingAction(userId);
+      return {
+        type: 'error',
+        message: language === 'en' ? "Invalid command for bulk action." : "Comando inválido para acción en lote."
+      };
+    }
+
+    console.info(`[ASSISTANT_BULK_EXECUTION_APPROVED] ${JSON.stringify({ count: action.deviceIds.length, command: action.command })}`);
+    const correlationId = `bulk-${Date.now()}`;
+    const results: ExecutedCommandResult[] = [];
+    const entities = [];
+
+    for (const deviceId of action.deviceIds) {
+      const device = await this.deviceRepository.findDeviceById(deviceId);
+      if (device) {
+        const result = await this.executeSingleCommand(deviceId, action.command as DeviceCommandV1, action.originalPrompt, correlationId);
+        results.push({ action: { deviceId, command: action.command as DeviceCommandV1 }, deviceName: device.name, result });
+        entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
+      }
+    }
+
+    await this.clearPendingAction(userId);
+    
+    // Save to memory so user can say "apágalas" later
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'command',
+      entities,
+      timestamp: new Date().toISOString()
+    });
+
+    const summary = this.formatMultiCommandSummary(results, language);
+    return {
+      type: 'execution',
+      message: summary,
+      execution: {
+        sceneId: 'bulk_action',
+        status: results.every(r => r.result.status === 'success') ? 'success' : 'failed',
+        actions: results.flatMap(r => r.result.actions)
+      }
+    };
+  }
+
+  private async handleBulkActionReject(userId: string, language: string, action: { deviceIds: string[], command: string }): Promise<AssistantConversationResponse> {
+    console.info(`[ASSISTANT_BULK_EXECUTION_CANCELLED] ${JSON.stringify({ count: action.deviceIds.length, command: action.command })}`);
+    await this.clearPendingAction(userId);
+    return {
+      type: 'answer',
+      message: language === 'en' ? "Action cancelled." : "Acción cancelada."
+    };
   }
 
   private async handleSuggestionAccept(userId: string, language: string, suggestion: PendingSuggestion): Promise<AssistantConversationResponse> {
@@ -2903,6 +2979,33 @@ export class AssistantConversationService {
 
     const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId, memory);
     if (!v2Result) return null;
+
+    // Multi-Target Guard
+    if ((v2Result.resolvedIds && v2Result.resolvedIds.length > 1) || v2Result.resolvedType === 'category') {
+      console.info(`[ASSISTANT_CONFIRMATION_REQUIRED] prompt="${activePrompt}" count=${v2Result.resolvedIds?.length}`);
+      
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'confirmation',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingBulkAction: {
+          type: 'bulk_action',
+          deviceIds: v2Result.resolvedIds || [],
+          command: v2Result.command,
+          timestamp: new Date().toISOString(),
+          originalPrompt: activePrompt
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I found ${v2Result.resolvedIds?.length} devices. Do you confirm you want to execute this action?`
+          : `Encontré ${v2Result.resolvedIds?.length} dispositivos. ¿Confirmas que quieres ejecutar esta acción?`
+      };
+    }
+
+    if (!v2Result.deviceId) return null;
 
     // Bypass V1 execution completely
     const device = await this.deviceRepository.findDeviceById(v2Result.deviceId);

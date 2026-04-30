@@ -495,12 +495,13 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       expect(result).toBeNull();
     });
 
-    it('should NOT execute for multiple target resolution', async () => {
+    it('should return result for multiple target resolution (guarded by confirmation later)', async () => {
       resolver.resolve.mockResolvedValue({ type: 'multiple', deviceIds: ['dev-1', 'dev-2'] });
       
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
       const result = await shadowService.attemptHybridExecution('prende la luz', 'u1');
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      expect(result?.resolvedType).toBe('multiple');
     });
 
     it('should NOT execute for low confidence', async () => {
@@ -513,12 +514,14 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       expect(result).toBeNull();
     });
 
-    it('should NOT execute for category actions', async () => {
+    it('should return result for category actions (guarded by confirmation later)', async () => {
       resolver.resolve.mockResolvedValue({ type: 'category', deviceIds: ['dev-1', 'dev-2'] });
       
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
       const result = await shadowService.attemptHybridExecution('prende las luces', 'u1');
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      expect(result?.resolvedType).toBe('category');
+      expect(result?.resolvedIds).toEqual(['dev-1', 'dev-2']);
     });
     it('should NOT execute pronoun if no memory provided', async () => {
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
@@ -526,15 +529,17 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       expect(result).toBeNull();
     });
 
-    it('should NOT execute pronoun if memory has multiple entities', async () => {
+    it('should return result for multiple entities from memory', async () => {
       const memory = {
         lastQueryType: 'command' as const,
         entities: [{ id: 'dev-1', name: 'luz 1', type: 'device', roomId: null }, { id: 'dev-2', name: 'luz 2', type: 'device', roomId: null }],
         timestamp: 'ts'
       };
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
-      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1', memory);
-      expect(result).toBeNull();
+      const result = await shadowService.attemptHybridExecution('enciéndelas', 'u1', memory);
+      expect(result).not.toBeNull();
+      expect(result?.resolvedType).toBe('multiple');
+      expect(result?.resolvedIds).toEqual(['dev-1', 'dev-2']);
     });
 
     it('should NOT execute pronoun if memory lastQueryType is not command', async () => {

@@ -54,6 +54,15 @@ export interface AssistantMemoryState {
     metadata: Record<string, unknown>;
     createdAt: string;
   };
+
+  /** Bulk action waiting for user confirmation (multi-device) */
+  pendingBulkAction?: {
+    type: 'bulk_action';
+    deviceIds: string[];
+    command: string;
+    timestamp: string;
+    originalPrompt: string;
+  };
 }
 
 export interface AssistantMemoryPort {
