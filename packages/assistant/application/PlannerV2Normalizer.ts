@@ -24,14 +24,28 @@ export class PlannerV2Normalizer {
     const changes: string[] = [];
     let normalized = false;
 
-    const validActionTypes = ['set_state', 'toggle', 'query_status', 'activate_scene'];
+    // Detect nested { plan: { type: "plan", ... } } and unwrap it
     const asRecord = plan as Record<string, unknown>;
+    if (
+      asRecord.plan &&
+      typeof asRecord.plan === 'object' &&
+      !Array.isArray(asRecord.plan) &&
+      typeof (asRecord.plan as Record<string, unknown>).type === 'string' &&
+      Array.isArray((asRecord.plan as Record<string, unknown>).actions)
+    ) {
+      plan = asRecord.plan as MutablePlannerDraft;
+      changes.push('Unwrapped nested plan object');
+      normalized = true;
+    }
+
+    const validActionTypes = ['set_state', 'toggle', 'query_status', 'activate_scene'];
+    const asRecord2 = plan as Record<string, unknown>;
     
     // Detect if root object is a PlannerAction and wrap it
     if (
       typeof plan.type === 'string' && validActionTypes.includes(plan.type) &&
-      asRecord.target && typeof asRecord.target === 'object' &&
-      typeof asRecord.command === 'string' &&
+      asRecord2.target && typeof asRecord2.target === 'object' &&
+      typeof asRecord2.command === 'string' &&
       !Array.isArray(plan.actions)
     ) {
       const action = plan as unknown as Partial<PlannerAction>;

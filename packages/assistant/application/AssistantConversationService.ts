@@ -1334,12 +1334,13 @@ export class AssistantConversationService {
       });
 
       if (result.status === 'success') {
-        this.clearPendingAction(userId).catch(() => {});
-        this.memoryService.saveShortTermMemory(userId, {
+        await this.clearPendingAction(userId);
+        await this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'command',
           entities: scene.actions.map(a => ({ id: a.deviceId, name: 'device', type: 'device', roomId: null })),
           timestamp: new Date().toISOString()
-        }).catch(() => {});
+        });
+        console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'selection', sceneId: scene.id, sceneName: scene.name })}`);
       }
 
       return {
@@ -1362,12 +1363,15 @@ export class AssistantConversationService {
       const result = await this.executeSingleCommand(targetId, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
       
       if (result.status === 'success') {
-        this.clearPendingAction(userId).catch(() => {});
-        this.memoryService.saveShortTermMemory(userId, {
+        await this.clearPendingAction(userId);
+        await this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'command',
           entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
           timestamp: new Date().toISOString()
-        }).catch(() => {});
+        });
+        if (device) {
+          console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'selection', deviceId: device.id, deviceName: device.name })}`);
+        }
       }
 
       return {

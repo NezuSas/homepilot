@@ -152,4 +152,45 @@ describe('PlannerV2Normalizer', () => {
     expect(result.normalized).toBe(false);
     expect(result.plan?.type).toBe('set_state');
   });
+
+  it('should unwrap nested { plan: { type: "plan", ... } } and validate successfully', () => {
+    const nested: any = {
+      plan: {
+        type: 'plan',
+        plan_confidence: 0.9,
+        actions: [{ type: 'set_state', target: { type: 'device', name: 'Luz Cocina' }, command: 'turn_off', confidence: 0.9 }],
+        user_feedback_draft: 'Apagando luz cocina'
+      }
+    };
+
+    const normResult = normalizer.normalize(nested);
+    expect(normResult.normalized).toBe(true);
+    expect(normResult.changes).toContain('Unwrapped nested plan object');
+    expect(normResult.plan?.type).toBe('plan');
+    expect(normResult.plan?.actions?.length).toBe(1);
+
+    // After unwrapping, plan must validate cleanly
+    const validationError = validator.validate(normResult.plan!);
+    expect(validationError).toBeNull();
+  });
+
+  it('should unwrap nested plan even when inner plan has missing fields, then repair them', () => {
+    const nested: any = {
+      plan: {
+        type: 'plan',
+        actions: [{ type: 'set_state', target: { type: 'device', name: 'Luz Sala' }, command: 'turn_on' }],
+        user_feedback_draft: ''
+      }
+    };
+
+    const normResult = normalizer.normalize(nested);
+    expect(normResult.normalized).toBe(true);
+    expect(normResult.changes).toContain('Unwrapped nested plan object');
+    // plan_confidence and action.confidence should have been repaired
+    expect(normResult.plan?.plan_confidence).toBeDefined();
+    expect(normResult.plan?.actions?.[0].confidence).toBeDefined();
+
+    const validationError = validator.validate(normResult.plan!);
+    expect(validationError).toBeNull();
+  });
 });

@@ -282,8 +282,8 @@ export class AssistantPlannerV2ShadowService {
   ): Promise<{ deviceId: string; command: string; confidence: number; contextSource?: string } | null> {
     if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
 
-    const skip = (reason: string) => {
-      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason, prompt })}`);
+    const skip = (reason: string, extra?: Record<string, unknown>) => {
+      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason, prompt, ...extra })}`);
       return null;
     };
 
@@ -301,22 +301,25 @@ export class AssistantPlannerV2ShadowService {
       if (result.error) return skip('llm_error');
       if (!result.plan) return skip('empty_plan');
 
-      let plan = result.plan;
-      const normResult = this.normalizer.normalize(plan);
-      if (normResult.plan) {
-        plan = normResult.plan;
-      }
+      // Always normalize before validating — same pipeline as shadow
+      const normResult = this.normalizer.normalize(result.plan);
+      const plan = normResult.plan;
+      if (!plan) return skip('normalization_failed');
 
       const validationError = this.validator.validate(plan);
-      if (validationError) return skip('validation_failed');
+      if (validationError) return skip('validation_failed', {
+        validation_error: validationError,
+        normalized: normResult.normalized,
+        normalization_changes: normResult.changes
+      });
 
       // 1. STRICT GATE CHECKS
       if (plan.type !== 'plan') return skip('invalid_root_type');
       if (!plan.actions || plan.actions.length !== 1) return skip('multiple_actions');
-      
+
       const action = plan.actions[0];
       if (action.type !== 'set_state') return skip('invalid_action_type');
-      
+
       const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
       if (!action.command || !allowedCommands.includes(action.command)) return skip('invalid_command');
 
@@ -343,7 +346,9 @@ export class AssistantPlannerV2ShadowService {
         deviceId: resolved.deviceId,
         command: action.command,
         confidence: action.confidence,
-        context_source: finalContextSource
+        context_source: finalContextSource,
+        normalized: normResult.normalized,
+        normalization_changes: normResult.changes
       })}`);
 
       return {
