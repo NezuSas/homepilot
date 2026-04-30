@@ -553,6 +553,12 @@ export class AssistantConversationService {
       return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleListAutomations(language), userId, language, memory, 'list_query'));
     }
 
+    // F3) Detail Follow-up (Deterministic)
+    if (this.isDetailFollowUp(normalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) {
+      // Detail follow-up is deterministic because it expands the previously saved state query context.
+      return await this.handleDetailFollowUp(memory, language);
+    }
+
     // Determine if we should attempt intent interpretation or just fallback to small talk directly
     if (!this.isLikelyHomeControlPrompt(normalized)) {
       if (process.env.NODE_ENV !== 'production') {
@@ -2012,6 +2018,56 @@ export class AssistantConversationService {
         roomMessage += `${d.name} (${rName ?? (language === 'en' ? 'No room' : 'Sin estancia')})\n`;
       }
       return { type: 'answer', message: roomMessage.trim() };
+    }
+
+    return {
+      type: 'answer',
+      message: message.trim()
+    };
+  }
+
+  private isDetailFollowUp(normalized: string): boolean {
+    const detailTriggers = [
+      "dame detalle", "detalle", "ver detalle", "lista completa", "muestrame todo", "muéstrametodo", 
+      "show detail", "full list", "details", "more detail"
+    ];
+    return detailTriggers.includes(normalized);
+  }
+
+  private async handleDetailFollowUp(memory: AssistantMemoryState, language: string): Promise<AssistantConversationResponse> {
+    const isEn = language === 'en';
+    const rememberedIds = (memory.entities || []).map(e => e.id);
+    const devices = await this.deviceRepository.findAll();
+    const filtered = devices.filter(d => rememberedIds.includes(d.id));
+    
+    if (filtered.length === 0) {
+      return {
+        type: 'answer',
+        message: isEn ? "I don't have the details for that anymore." : "Ya no tengo los detalles de esa consulta."
+      };
+    }
+
+    const onDevices = filtered.filter(d => d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on'));
+    const offDevices = filtered.filter(d => d.lastKnownState && (d.lastKnownState.on === false || d.lastKnownState.state === 'off'));
+
+    const roomMap = await this.buildRoomNameMap(filtered);
+
+    let message = isEn ? "House detail:\n" : "Detalle de la casa:\n";
+    
+    if (onDevices.length > 0) {
+      message += isEn ? "\nOn:\n" : "\nEncendidas:\n";
+      for (const d of onDevices) {
+        const rName = this.resolveRoomName(d.roomId, roomMap, language);
+        message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
+      }
+    }
+
+    if (offDevices.length > 0) {
+      message += isEn ? "\nOff:\n" : "\nApagadas:\n";
+      for (const d of offDevices) {
+        const rName = this.resolveRoomName(d.roomId, roomMap, language);
+        message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
+      }
     }
 
     return {

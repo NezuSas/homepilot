@@ -177,5 +177,65 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       expect(res.message).toContain('dame detalle');
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
+
+    it('returns detailed answer for "dame detalle" after broad state query and bypasses shadow', async () => {
+      const devices = [
+        createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1', homeId: 'h1', lastKnownState: { on: true } }),
+        createTestDevice({ id: 'd2', name: 'Luz Sala', type: 'light', roomId: 'r2', homeId: 'h1', lastKnownState: { on: false } })
+      ];
+      mockDeviceRepo.findAll.mockResolvedValue(devices);
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
+        { id: 'r1', name: 'Cocina' },
+        { id: 'r2', name: 'Sala' }
+      ]);
+      
+      // Setup memory
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'state_devices',
+        entities: [
+          { id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1', roomName: 'Cocina' },
+          { id: 'd2', name: 'Luz Sala', type: 'light', roomId: 'r2', roomName: 'Sala' }
+        ],
+        timestamp: new Date().toISOString()
+      });
+
+      const res = await service.converse({ prompt: 'dame detalle', userId: 'u1' }, 'es');
+      
+      expect(res.message).toContain('Detalle de la casa:');
+      expect(res.message).toContain('Encendidas:');
+      expect(res.message).toContain('• Luz Cocina (Cocina)');
+      expect(res.message).toContain('Apagadas:');
+      expect(res.message).toContain('• Luz Sala (Sala)');
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+    });
+
+    it('falls back to intent/shadow for "dame detalle" if memory is missing', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+      mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'dame detalle' });
+
+      await service.converse({ prompt: 'dame detalle', userId: 'u1' }, 'es');
+      
+      expect(mockShadowService.runShadow).toHaveBeenCalled();
+    });
+
+    it('works with English "show detail"', async () => {
+      const devices = [
+        createTestDevice({ id: 'd1', name: 'Kitchen Light', type: 'light', roomId: 'r1', homeId: 'h1', lastKnownState: { on: true } })
+      ];
+      mockDeviceRepo.findAll.mockResolvedValue(devices);
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue([{ id: 'r1', name: 'Kitchen' }]);
+      
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'state_devices',
+        entities: [{ id: 'd1', name: 'Kitchen Light', type: 'light', roomId: 'r1', roomName: 'Kitchen' }],
+        timestamp: new Date().toISOString()
+      });
+
+      const res = await service.converse({ prompt: 'show detail', userId: 'u1' }, 'en');
+      
+      expect(res.message).toContain('House detail:');
+      expect(res.message).toContain('On:');
+      expect(res.message).toContain('• Kitchen Light (Kitchen)');
+    });
   });
 });
