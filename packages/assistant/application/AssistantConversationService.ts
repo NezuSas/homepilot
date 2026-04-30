@@ -22,6 +22,7 @@ import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
 import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
+import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -171,6 +172,8 @@ export class AssistantConversationService {
     private readonly executionRecordRepository: ExecutionRecordRepository,
     private readonly shadowService?: AssistantPlannerV2ShadowService
   ) {}
+
+  private readonly fastPathResolver = new AssistantFastPathResolver();
 
   public async converse(request: AssistantConverseRequest, _langHint: string = 'es'): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
@@ -557,6 +560,12 @@ export class AssistantConversationService {
 
     if (process.env.NODE_ENV !== 'production') {
       console.debug('[AssistantConversation] routing=intent');
+    }
+
+    // C.-1) Deterministic Fast-Path Execution Attempt
+    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
+    if (fastPathResponse) {
+      return this.returnWithShadow(activePrompt, userId, language, fastPathResponse);
     }
 
     // C.0) V2 Hybrid Execution Attempt (Strict Gate)
@@ -2729,6 +2738,41 @@ export class AssistantConversationService {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
     return response;
+  }
+
+  private async attemptFastPathExecution(activePrompt: string, userId: string, language: string): Promise<AssistantConversationResponse | null> {
+    const devices = await this.deviceRepository.findAll();
+    const result = this.fastPathResolver.resolve(activePrompt, Array.from(devices));
+    if (!result) return null;
+
+    const device = devices.find((d) => d.id === result.deviceId);
+    if (!device) return null;
+
+    const execResult = await this.executeSingleCommand(result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`);
+    
+    if (execResult.status === 'success') {
+      await this.clearPendingAction(userId);
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'command',
+        entities: [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }],
+        timestamp: new Date().toISOString()
+      });
+      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'fast_path', deviceId: device.id, deviceName: device.name })}`);
+      
+      const isSpanish = language === 'es';
+      let msg = '';
+      if (result.command === 'turn_on') msg = isSpanish ? `Hecho, encendí ${device.name}.` : `Done, turned on ${device.name}.`;
+      else if (result.command === 'turn_off') msg = isSpanish ? `Hecho, apagué ${device.name}.` : `Done, turned off ${device.name}.`;
+      else msg = isSpanish ? `Hecho, alterné ${device.name}.` : `Done, toggled ${device.name}.`;
+
+      return {
+        type: 'execution',
+        message: msg,
+        execution: execResult
+      };
+    }
+    
+    return null;
   }
 
   private async attemptV2HybridExecution(

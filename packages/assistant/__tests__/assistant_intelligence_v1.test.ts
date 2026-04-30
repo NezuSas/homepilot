@@ -237,7 +237,7 @@ describe('Assistant Intelligence Layer V1', () => {
 
       const res = await service.converse({ prompt: 'prende luz escritorio', userId });
 
-      expect(res.message).toBe('Encendí Luz Escritorio.');
+      expect(res.message).toBe('Hecho, encendí Luz Escritorio.');
     });
 
     it('should return detailed summary for multi-command', async () => {
@@ -369,7 +369,7 @@ describe('Assistant Intelligence Layer V1', () => {
       const res = await service.converse({ prompt: 'prende luz escritorio', userId });
 
       expect(res.type).toBe('execution');
-      expect(res.message).toBe('Encendí Luz Escritorio.');
+      expect(res.message).toBe('Hecho, encendí Luz Escritorio.');
       expect(sceneExecutionService.execute).toHaveBeenCalled();
     });
 
