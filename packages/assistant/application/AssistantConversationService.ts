@@ -536,6 +536,7 @@ export class AssistantConversationService {
 
     // G2) Alias Creation Commands
     if (this.isAliasCreation(normalized)) {
+      console.info(`[ASSISTANT_USER_ALIAS_CREATE_DETECTED] ${JSON.stringify({ prompt, userId })}`);
       return await this.handleAliasCreation(normalized, userId, language);
     }
 
@@ -3064,7 +3065,7 @@ export class AssistantConversationService {
         const targetId = bestMatches[0].targetId;
         const room = rooms.find(r => r.id === targetId);
         if (room) {
-          console.info(`[ASSISTANT_USER_ALIAS_RESOLVED] ${JSON.stringify({ alias: roomName, resolved: room.name })}`);
+          console.info(`[ASSISTANT_USER_ALIAS_RESOLVED] ${JSON.stringify({ alias: bestMatches[0].norm, input: roomName, resolved: room.name })}`);
           return { status: 'resolved', rooms: [room] };
         } else {
           // If target is not a room, check if it's a device. If it's a device, we ignore it here (room context)
@@ -3122,6 +3123,7 @@ export class AssistantConversationService {
       this.roomRepository.findAll()
     ]);
     
+    console.info(`[ASSISTANT_USER_ALIAS_LOOKUP] ${JSON.stringify({ userId, aliases: userAliases, roomName })}`);
     const resolution = this.resolveRoomAlias(roomName, Array.from(rooms), Array.from(devices), userId, userAliases);
 
     if (resolution.status === 'ambiguous') {
