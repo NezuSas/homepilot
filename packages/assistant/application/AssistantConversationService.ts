@@ -352,59 +352,59 @@ export class AssistantConversationService {
 
     // --- DETERMINISTIC GLOBAL ROUTES (Highest Priority after Confirmations) ---
     if (this.isGreeting(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
+      return {
         type: 'answer',
         message: language === 'en'
           ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. You can ask what is on or ask me to control a light, scene, or device.`
           : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Puedes preguntarme qué está encendido o pedirme que controle alguna luz, escena o dispositivo.`
-      });
+      };
     }
 
     if (this.isWellnessQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
+      return {
         type: 'answer',
         message: language === 'en'
           ? `I'm operating normally${userName ? ', ' + userName : ''}. The system is stable. Would you like me to check something in your home?`
           : `Estoy funcionando correctamente${userName ? ', ' + userName : ''}. Todo el sistema está estable. ¿Quieres que revise algo en tu casa?`
-      });
+      };
     }
 
     if (normalized === 'como te llamas' || 
         normalized === 'quien eres' || 
         normalized === 'quién eres' ||
         this.isNameQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
+      return {
         type: 'answer',
         message: language === 'en' 
           ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely." 
           : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
-      });
+      };
     }
 
     if (this.isCompanyQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, this.handleCompanyInfoQuery(language));
+      return this.handleCompanyInfoQuery(language);
     }
 
     if (this.isPresentation(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
+      return {
         type: 'answer',
         message: language === 'en'
           ? "I can help you see what is on or off, control lights and devices, run scenes, ask for confirmation when an action is sensitive, and explain what happened if something fails."
           : "Puedo ayudarte a saber qué está encendido o apagado, controlar luces y dispositivos, ejecutar escenas, pedir confirmación cuando una acción sea delicada y explicarte si algo falla."
-      });
+      };
     }
 
     if (this.isHelpQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
+      return {
         type: 'answer',
         message: language === 'en'
           ? "You can ask me things like: \"which lights are on?\", \"turn off the kitchen light\", or \"activate movie scene\". I'm here to help you manage your home locally."
           : "Puedes preguntarme cosas como: \"qué luces están encendidas?\", \"apaga la luz de la cocina\", o \"activa la escena cine\". Estoy aquí para ayudarte a gestionar tu casa de forma local."
-      });
+      };
     }
 
     if (this.isDateTimeQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, this.handleDateTimeQuery(normalized, language));
+      return this.handleDateTimeQuery(normalized, language);
     }
 
     // --- ALIAS MANAGEMENT (Deterministic Routes) ---
@@ -577,7 +577,7 @@ export class AssistantConversationService {
 
     // A2) Semantic Equivalence
     if (this.isEquivalenceQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, this.handleEquivalenceQuery(language));
+      return this.handleEquivalenceQuery(language);
     }
 
     // F2) Room Queries (Deterministic)

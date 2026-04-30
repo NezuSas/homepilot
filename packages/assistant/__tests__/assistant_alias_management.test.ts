@@ -388,4 +388,45 @@ describe('Assistant Alias Management V1', () => {
     expect(mockHybridSpy).not.toHaveBeenCalled();
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
+
+  it('25. company info query bypasses shadow', async () => {
+    const res = await service.converse({ prompt: 'qué es nezu', userId: 'u1' }, 'es');
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('NEZU S.A.S.');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('26. greeting query bypasses shadow', async () => {
+    const res = await service.converse({ prompt: 'hola', userId: 'u1' }, 'es');
+    expect(res.type).toBe('answer');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('27. presentation query bypasses shadow', async () => {
+    const res = await service.converse({ prompt: 'qué puedes hacer', userId: 'u1' }, 'es');
+    expect(res.type).toBe('answer');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('28. date/time query bypasses shadow', async () => {
+    const res = await service.converse({ prompt: 'qué hora es', userId: 'u1' }, 'es');
+    expect(res.type).toBe('answer');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('29. ambiguous home-control prompt still calls shadow', async () => {
+    // Setup ambiguous scenario: "enciende la luz" with no direct match in V1 fast paths
+    // It will fall through to FollowUpResolver -> intentInterpreter -> Planner V2
+    // Planner V2 might return a clarification, and returnWithShadow will be called.
+    
+    // Mocking intent interpretation to simulate a home control intent that doesn't resolve to a single device immediately
+    // or just fallback to smalltalk if not matching anything but returnWithShadow is still called there.
+    
+    mockShadow.runShadow.mockResolvedValue({ type: 'answer', message: 'shadow response' });
+    
+    await service.converse({ prompt: 'enciende la luz', userId: 'u1' }, 'es');
+    
+    // Even if it fails to execute, it should have triggered shadow because it's a control-like prompt
+    expect(mockShadow.runShadow).toHaveBeenCalled();
+  });
 });
