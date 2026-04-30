@@ -191,4 +191,76 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       pendingBulkAction: undefined
     }));
   });
+
+  describe('Bulk Fast-Path (Deterministic)', () => {
+    it('triggers bulk confirmation for "enciende todas las luces" without calling shadow', async () => {
+      const lights = [
+        createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light' }),
+        createTestDevice({ id: 'l2', name: 'Luz 2', type: 'light' })
+      ];
+      mockDeviceRepo.findAll.mockResolvedValue(lights);
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+      const res = await service.converse({ prompt: 'enciende todas las luces', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('clarification');
+      expect(res.message).toContain('Encontré 2 luces');
+      expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+        pendingBulkAction: expect.objectContaining({
+          command: 'turn_on',
+          deviceIds: ['l1', 'l2']
+        })
+      }));
+    });
+
+    it('triggers bulk confirmation for "apaga todas las luces" without calling shadow', async () => {
+      const lights = [
+        createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light' })
+      ];
+      mockDeviceRepo.findAll.mockResolvedValue(lights);
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+      const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('clarification');
+      expect(res.message).toContain('Encontré 1 luces');
+      expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+        pendingBulkAction: expect.objectContaining({
+          command: 'turn_off',
+          deviceIds: ['l1']
+        })
+      }));
+    });
+
+    it('returns safe answer if no lights are found', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+      const res = await service.converse({ prompt: 'enciende todas las luces', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('answer');
+      expect(res.message).toContain('No encontré luces');
+    });
+
+    it('excludes unavailable devices from bulk resolution', async () => {
+      const devices = [
+        createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light' }),
+        createTestDevice({ id: 'l2', name: 'Luz 2', type: 'light', lastKnownState: { state: 'unavailable' } })
+      ];
+      mockDeviceRepo.findAll.mockResolvedValue(devices);
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+      const res = await service.converse({ prompt: 'enciende todas las luces', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('clarification');
+      expect(res.message).toContain('Encontré 1 luces');
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+        pendingBulkAction: expect.objectContaining({
+          deviceIds: ['l1']
+        })
+      }));
+    });
+  });
 });

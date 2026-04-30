@@ -581,6 +581,12 @@ export class AssistantConversationService {
       console.debug('[AssistantConversation] routing=intent');
     }
 
+    // C.-2) Deterministic Bulk Fast-Path (all lights, etc.)
+    if (this.isBulkFastPath(normalized)) {
+      const bulkResponse = await this.handleBulkFastPath(normalized, language, userId);
+      if (bulkResponse) return bulkResponse;
+    }
+
     // C.-1) Deterministic Fast-Path Execution Attempt
     const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
     if (fastPathResponse) {
@@ -2931,6 +2937,70 @@ export class AssistantConversationService {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
     return response;
+  }
+
+  private isBulkFastPath(normalized: string): boolean {
+    const triggers = [
+      'enciende todas las luces',
+      'prende todas las luces',
+      'apaga todas las luces',
+      'turn on all lights',
+      'turn off all lights'
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private async handleBulkFastPath(normalized: string, language: string, userId: string): Promise<AssistantConversationResponse | null> {
+    const isOff = normalized.includes('apaga') || normalized.includes('turn off');
+    const command = isOff ? 'turn_off' : 'turn_on';
+    
+    const allDevices = await this.deviceRepository.findAll();
+    const lightKeywords = ['luz', 'light', 'foco', 'lampara'];
+    
+    const targetDevices = allDevices.filter(d => {
+      const nameLower = d.name.toLowerCase();
+      const matchesType = d.type === 'light';
+      const matchesName = lightKeywords.some(k => nameLower.includes(k));
+      const isAvailable = d.lastKnownState?.state !== 'unavailable';
+      
+      return (matchesType || matchesName) && isAvailable;
+    });
+
+    if (targetDevices.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en' 
+          ? "I didn't find any available lights to control." 
+          : "No encontré luces disponibles para controlar."
+      };
+    }
+
+    const deviceIds = targetDevices.map(d => d.id);
+    console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({ 
+      source: 'bulk_fast_path', 
+      count: targetDevices.length, 
+      command 
+    })}`);
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'confirmation',
+      entities: [],
+      timestamp: new Date().toISOString(),
+      pendingBulkAction: {
+        type: 'bulk_action',
+        deviceIds,
+        command,
+        timestamp: new Date().toISOString(),
+        originalPrompt: normalized
+      }
+    });
+
+    return {
+      type: 'clarification',
+      message: language === 'en'
+        ? `I found ${targetDevices.length} lights. Do you confirm you want to turn them all ${isOff ? 'off' : 'on'}?`
+        : `Encontré ${targetDevices.length} luces. ¿Confirmas que quieres ${isOff ? 'apagarlas' : 'encenderlas'} todas?`
+    };
   }
 
   private async attemptFastPathExecution(activePrompt: string, userId: string, language: string): Promise<AssistantConversationResponse | null> {
