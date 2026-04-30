@@ -95,4 +95,22 @@ describe('LlmIntentInterpreter', () => {
     const intent = await interpreter.interpret('test');
     expect(intent).toBeNull();
   });
+
+  describe('buildPlannerV2Prompt (ultra_light)', () => {
+    it('should generate ultra_light prompt without enum pipe literals', async () => {
+      mockContextBuilder.buildUltraLightLlmHomeMap = jest.fn().mockResolvedValue({ text: 'mockHomeMap', devicesCount: 10 });
+      
+      const prompt = await interpreter.buildPlannerV2Prompt('apaga la luz de cocina', 'u1', 'ultra_light');
+      
+      // Should not have the old pipe strings
+      expect(prompt).not.toContain('set_state|query_status');
+      expect(prompt).not.toContain('turn_on|turn_off');
+      expect(prompt).not.toContain('device|room|category');
+      
+      // Should contain the instruction and concrete examples
+      expect(prompt).toContain('Choose exactly one allowed value');
+      expect(prompt).toContain('{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Cocina"}');
+      expect(prompt).toContain('mockHomeMap');
+    });
+  });
 });

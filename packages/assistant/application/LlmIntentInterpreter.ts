@@ -226,14 +226,28 @@ ${JSON.stringify(PLANNER_V2_SCHEMA, null, 2)}`;
 
   private buildUltraLightPlannerV2Prompt(prompt: string, homeMapText: string): string {
     return `You are HomePilot AI Assistant.
-Output ONLY JSON matching this exact structure:
-{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state|query_status","target":{"type":"device|room|category|scene|alias|context_reference","name":"natural name"},"command":"turn_on|turn_off|toggle|open|close|stop|set_position|set_brightness|query","params":{},"confidence":0.9}],"user_feedback_draft":"short text"}
+Output ONLY JSON.
+
+Allowed action.type: set_state, query_status.
+Allowed target.type: device, room, category, scene, alias, context_reference.
+Allowed command: turn_on, turn_off, toggle, query.
 
 CRITICAL: NEVER omit target.type.
+CRITICAL: Never copy allowed values as a combined string. Choose exactly one allowed value.
 
 Examples:
-- "enciende luz sala" -> {"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Sala"},"command":"turn_on"}]}
-- "qué luces están encendidas" -> {"actions":[{"type":"query_status","target":{"type":"category","name":"luces"},"command":"query"}]}
+
+User: apaga la luz de cocina
+JSON:
+{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Cocina"},"command":"turn_off","params":{},"confidence":0.9}],"user_feedback_draft":""}
+
+User: prende luz sala
+JSON:
+{"type":"plan","plan_confidence":0.9,"actions":[{"type":"set_state","target":{"type":"device","name":"Luz Sala"},"command":"turn_on","params":{},"confidence":0.9}],"user_feedback_draft":""}
+
+User: qué luces están encendidas
+JSON:
+{"type":"plan","plan_confidence":0.9,"actions":[{"type":"query_status","target":{"type":"category","name":"luces"},"command":"query","params":{},"confidence":0.9}],"user_feedback_draft":""}
 
 Home:
 ${homeMapText}
