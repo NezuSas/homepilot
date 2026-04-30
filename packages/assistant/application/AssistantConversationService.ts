@@ -62,6 +62,12 @@ export interface AssistantConverseRequest {
   confirmed?: boolean;
 }
 
+export interface RoomAliasResolution {
+  rooms: Room[];
+  status: 'resolved' | 'not_found' | 'ambiguous';
+  candidates?: string[];
+}
+
 type SuggestionContext =
   | 'command'
   | 'multi_command'
@@ -2993,27 +2999,75 @@ export class AssistantConversationService {
   } | null {
     const normalized = prompt.toLowerCase();
     
-    // Spanish Regex: (del|de) prioritized to avoid partial matches
-    const esRegex = /(enciende|prende|apaga).*(todas|todas las).*(luces).*(del|de)\s+(.+)/i;
+    // Spanish Regex: (del|de) prioritized. Optional "todas/todas las"
+    const esRegex = /(enciende|prende|apaga).*?(?:todas\s+(?:las\s+)?)?luces.*?(del|de)\s+(.+)/i;
     const esMatch = normalized.match(esRegex);
     if (esMatch) {
       const verb = esMatch[1].toLowerCase();
       const command = (verb === 'enciende' || verb === 'prende') ? 'turn_on' : 'turn_off';
-      const roomName = esMatch[5].trim();
+      const roomName = esMatch[3].trim(); // Group 3 is now the roomName because Group 2 was non-capturing
       return { command, roomName };
     }
 
-    // English Regex
-    const enRegex = /(turn|switch).*(on|off).*(all|all the).*(lights).*(in the|in)\s+(.+)/i;
+    // English Regex: Optional "all/all the"
+    const enRegex = /(turn|switch)\s+(on|off).*?(?:all\s+(?:the\s+)?)?lights.*?(in the|in)\s+(.+)/i;
     const enMatch = normalized.match(enRegex);
     if (enMatch) {
       const action = enMatch[2].toLowerCase();
       const command = action === 'on' ? 'turn_on' : 'turn_off';
-      const roomName = enMatch[6].trim();
+      const roomName = enMatch[4].trim(); // Group 4 is now the roomName
       return { command, roomName };
     }
 
     return null;
+  }
+
+  private resolveRoomAlias(roomName: string, rooms: Room[], _userId: string): RoomAliasResolution {
+    const normPromptRoom = this.normalizePrompt(roomName);
+    const roomEntries = rooms.map(r => ({ room: r, norm: this.normalizePrompt(r.name) }));
+
+    // Priority 1: Exact Match (normalized equality)
+    const exactMatches = roomEntries.filter(e => e.norm === normPromptRoom);
+    if (exactMatches.length === 1) return { status: 'resolved', rooms: [exactMatches[0].room] };
+    if (exactMatches.length > 1) {
+      const candidates = exactMatches.map(e => e.room.name);
+      console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'exact', candidates })}`);
+      return { status: 'ambiguous', rooms: [], candidates }; 
+    }
+
+    // Priority 2: Fuzzy Match (includes both ways)
+    const fuzzyMatches = roomEntries.filter(e => e.norm.includes(normPromptRoom) || normPromptRoom.includes(e.norm));
+    if (fuzzyMatches.length === 1) return { status: 'resolved', rooms: [fuzzyMatches[0].room] };
+    if (fuzzyMatches.length > 1) {
+      const candidates = fuzzyMatches.map(e => e.room.name);
+      console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'fuzzy', candidates })}`);
+      return { status: 'ambiguous', rooms: [], candidates };
+    }
+
+    // Priority 3: Alias Match
+    const spanishAliases = ["mi cuarto", "mi habitacion", "mi habitación", "dormitorio", "habitacion", "habitación", "cuarto", "master"];
+    const englishAliases = ["my room", "my bedroom", "bedroom", "master bedroom", "master"];
+    const allAliases = [...spanishAliases, ...englishAliases].map(a => this.normalizePrompt(a));
+
+    const matchedAlias = allAliases.find(alias => normPromptRoom.includes(alias));
+
+    if (matchedAlias) {
+      const principalKeywords = ["master", "principal"];
+      const candidates = roomEntries.filter(e => principalKeywords.some(k => e.norm.includes(k)));
+
+      if (candidates.length === 1) {
+        console.info(`[ASSISTANT_ROOM_ALIAS_RESOLVED] ${JSON.stringify({ input: roomName, resolvedRoom: candidates[0].room.name, matchedAlias })}`);
+        return { status: 'resolved', rooms: [candidates[0].room] };
+      }
+      
+      if (candidates.length > 1) {
+        const candidateNames = candidates.map(c => c.room.name);
+        console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'alias', candidates: candidateNames })}`);
+        return { status: 'ambiguous', rooms: [], candidates: candidateNames };
+      }
+    }
+
+    return { status: 'not_found', rooms: [] };
   }
 
   private async handleRoomBulkFastPath(
@@ -3027,13 +3081,19 @@ export class AssistantConversationService {
       this.roomRepository.findAll()
     ]);
     
-    const normPromptRoom = this.normalizePrompt(roomName);
-    const matchingRooms = rooms.filter(r => {
-      const normRoom = this.normalizePrompt(r.name);
-      return normRoom === normPromptRoom || normRoom.includes(normPromptRoom) || normPromptRoom.includes(normRoom);
-    });
+    const resolution = this.resolveRoomAlias(roomName, Array.from(rooms), userId);
 
-    if (matchingRooms.length === 0) {
+    if (resolution.status === 'ambiguous') {
+      const list = resolution.candidates?.join(', ') || '';
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `I found multiple possible rooms: ${list}. Which one do you want to use?`
+          : `Encontré varias estancias posibles: ${list}. ¿Cuál quieres usar?`
+      };
+    }
+
+    if (resolution.status === 'not_found' || resolution.rooms.length === 0) {
       return {
         type: 'answer',
         message: language === 'en' 
@@ -3042,6 +3102,7 @@ export class AssistantConversationService {
       };
     }
 
+    const matchingRooms = resolution.rooms;
     const targetRoomIds = matchingRooms.map(r => r.id);
     const displayRoomName = matchingRooms[0].name;
 
