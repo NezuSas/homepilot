@@ -581,7 +581,13 @@ export class AssistantConversationService {
       console.debug('[AssistantConversation] routing=intent');
     }
 
-    // C.-2) Deterministic Bulk Fast-Path (all lights, etc.)
+    // C.-2) Room Bulk Fast Path
+    const roomBulk = this.isRoomBulkFastPath(normalized);
+    if (roomBulk) {
+      return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, language);
+    }
+
+    // C.-1) Deterministic Bulk Fast-Path (all lights, etc.)
     if (this.isBulkFastPath(normalized)) {
       const bulkResponse = await this.handleBulkFastPath(normalized, language, userId);
       if (bulkResponse) return bulkResponse;
@@ -2979,6 +2985,117 @@ export class AssistantConversationService {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
     return response;
+  }
+
+  private isRoomBulkFastPath(prompt: string): {
+    command: 'turn_on' | 'turn_off';
+    roomName: string;
+  } | null {
+    const normalized = prompt.toLowerCase();
+    
+    // Spanish Regex: (del|de) prioritized to avoid partial matches
+    const esRegex = /(enciende|prende|apaga).*(todas|todas las).*(luces).*(del|de)\s+(.+)/i;
+    const esMatch = normalized.match(esRegex);
+    if (esMatch) {
+      const verb = esMatch[1].toLowerCase();
+      const command = (verb === 'enciende' || verb === 'prende') ? 'turn_on' : 'turn_off';
+      const roomName = esMatch[5].trim();
+      return { command, roomName };
+    }
+
+    // English Regex
+    const enRegex = /(turn|switch).*(on|off).*(all|all the).*(lights).*(in the|in)\s+(.+)/i;
+    const enMatch = normalized.match(enRegex);
+    if (enMatch) {
+      const action = enMatch[2].toLowerCase();
+      const command = action === 'on' ? 'turn_on' : 'turn_off';
+      const roomName = enMatch[6].trim();
+      return { command, roomName };
+    }
+
+    return null;
+  }
+
+  private async handleRoomBulkFastPath(
+    userId: string,
+    command: 'turn_on' | 'turn_off',
+    roomName: string,
+    language: string
+  ): Promise<AssistantConversationResponse> {
+    const [devices, rooms] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.roomRepository.findAll()
+    ]);
+    
+    const normPromptRoom = this.normalizePrompt(roomName);
+    const matchingRooms = rooms.filter(r => {
+      const normRoom = this.normalizePrompt(r.name);
+      return normRoom === normPromptRoom || normRoom.includes(normPromptRoom) || normPromptRoom.includes(normRoom);
+    });
+
+    if (matchingRooms.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en' 
+          ? "I didn't find any lights in that room." 
+          : "No encontré luces en esa estancia."
+      };
+    }
+
+    const targetRoomIds = matchingRooms.map(r => r.id);
+    const displayRoomName = matchingRooms[0].name;
+
+    const lightKeywords = ['luz', 'light', 'foco', 'lampara', 'lámpara'];
+    const matchingLights = devices.filter(d => {
+      const matchesType = d.type === 'light';
+      const matchesName = lightKeywords.some(k => d.name.toLowerCase().includes(k));
+      const isAvailable = d.lastKnownState?.state !== 'unavailable';
+      const isInRoom = d.roomId && targetRoomIds.includes(d.roomId);
+      
+      return (matchesType || matchesName) && isAvailable && isInRoom;
+    });
+
+    if (matchingLights.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en' 
+          ? "I didn't find any lights in that room." 
+          : "No encontré luces en esa estancia."
+      };
+    }
+
+    const deviceIds = matchingLights.map(l => l.id);
+    
+    console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
+      source: "room_bulk_fast_path",
+      room: displayRoomName,
+      count: matchingLights.length,
+      command
+    })}`);
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'confirmation',
+      entities: [],
+      timestamp: new Date().toISOString(),
+      pendingBulkAction: {
+        type: 'bulk_action',
+        deviceIds,
+        command,
+        timestamp: new Date().toISOString(),
+        originalPrompt: `Bulk room action for ${displayRoomName}`
+      }
+    });
+
+    const actionText = command === 'turn_on' 
+      ? (language === 'en' ? 'turn them on' : 'encenderlas')
+      : (language === 'en' ? 'turn them off' : 'apagarlas');
+
+    return {
+      type: 'clarification',
+      message: language === 'en'
+        ? `I found ${matchingLights.length} lights in ${displayRoomName}. Do you confirm you want to ${actionText}?`
+        : `Encontré ${matchingLights.length} luces en ${displayRoomName}. ¿Confirmas que quieres ${actionText}?`
+    };
   }
 
   private isBulkFastPath(normalized: string): boolean {
