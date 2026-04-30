@@ -248,4 +248,86 @@ describe('Assistant Alias Management V1', () => {
     expect(res.message).toBe("No encontré ese alias.");
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
+  it('17. device alias fast path success', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([]);
+    const device = createTestDevice({ id: 'd1', name: 'Luz Seccion Escritorio' });
+    mockDeviceRepo.findAll.mockResolvedValue([device]);
+    mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'd1' });
+    
+    // We must mock executeSingleCommand directly, or mock the dispatcher
+    // Since it's a private method, we mock the dispatcher
+    const execMock = jest.fn().mockResolvedValue({ status: 'success' });
+    service['executeSingleCommand'] = execMock;
+    
+    const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
+    
+    expect(res.type).toBe('execution');
+    expect(res.message).toBe("He encendido luz de lectura.");
+    expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende luz de lectura', expect.any(String));
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+      lastQueryType: 'command',
+      entities: [expect.objectContaining({ id: 'd1' })]
+    }));
+  });
+
+  it('18. device alias fast path ambiguous does not execute', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([]);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'd1', name: 'Luz 1' }),
+      createTestDevice({ id: 'd2', name: 'Luz 2' })
+    ]);
+    mockMemory.getAliases.mockResolvedValue({ 
+      'mi luz': 'd1',
+      'la luz': 'd2'
+    });
+    
+    const res = await service.converse({ prompt: 'prende mi luz la luz', userId: 'u1' }, 'es');
+    
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain("Encontré varios aliases posibles:");
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('19. device alias fast path invalid target falls back', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([]);
+    mockDeviceRepo.findAll.mockResolvedValue([]);
+    // alias points to non-existent device
+    mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'd1' });
+    
+    const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
+    
+    // It should fallback to intent or shadow, in test it falls back to shadow mock
+    expect(mockShadow.runShadow).toHaveBeenCalled();
+  });
+
+  it('20. room alias ignored in device fast path', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Oficina' })]);
+    mockDeviceRepo.findAll.mockResolvedValue([]);
+    mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'r1' });
+    
+    const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
+    
+    // It should fallback since it's a room alias, not a device
+    expect(mockShadow.runShadow).toHaveBeenCalled();
+  });
+
+  it('21. exact real device name wins over alias', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([]);
+    // Exact real device name is "Luz de Lectura"
+    const realDevice = createTestDevice({ id: 'd2', name: 'Luz de Lectura' });
+    mockDeviceRepo.findAll.mockResolvedValue([realDevice]);
+    
+    // Alias points to different device
+    mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'd1' });
+    
+    const execMock = jest.fn().mockResolvedValue({ status: 'success' });
+    service['executeSingleCommand'] = execMock;
+    
+    const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
+    
+    // It should execute against d2 because real exact match wins
+    expect(res.type).toBe('execution');
+    expect(execMock).toHaveBeenCalledWith('d2', 'turn_on', 'prende luz de lectura', expect.any(String));
+  });
 });

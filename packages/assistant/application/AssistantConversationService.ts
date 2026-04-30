@@ -639,6 +639,12 @@ export class AssistantConversationService {
       if (bulkResponse) return bulkResponse;
     }
 
+    // C.-1.5) Device Alias Fast Path
+    const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
+    if (deviceAliasFastPath) {
+      return deviceAliasFastPath;
+    }
+
     // C.-1) Deterministic Fast-Path Execution Attempt
     const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
     if (fastPathResponse) {
@@ -3560,6 +3566,106 @@ export class AssistantConversationService {
         ? `I found ${targetDevices.length} lights. Do you confirm you want to turn them all ${isOff ? 'off' : 'on'}?`
         : `Encontré ${targetDevices.length} luces. ¿Confirmas que quieres ${isOff ? 'apagarlas' : 'encenderlas'} todas?`
     };
+  }
+
+  private async attemptDeviceAliasFastPathExecution(activePrompt: string, userId: string, language: string, aliases: Record<string, string>): Promise<AssistantConversationResponse | null> {
+    const TURN_ON_VERBS = ['prende', 'prender', 'enciende', 'encender', 'activa', 'activar'];
+    const TURN_OFF_VERBS = ['apaga', 'apagar', 'desactiva', 'desactivar'];
+    const TOGGLE_VERBS = ['alterna', 'alternar', 'toggle'];
+
+    const normPrompt = this.normalizePrompt(activePrompt);
+    let command: DeviceCommandV1 | null = null;
+    let targetPhrase = normPrompt;
+
+    for (const verb of TURN_ON_VERBS) {
+      if (normPrompt.startsWith(verb + ' ') || normPrompt === verb) {
+        command = 'turn_on';
+        targetPhrase = normPrompt.substring(verb.length).trim();
+        break;
+      }
+    }
+    if (!command) {
+      for (const verb of TURN_OFF_VERBS) {
+        if (normPrompt.startsWith(verb + ' ') || normPrompt === verb) {
+          command = 'turn_off';
+          targetPhrase = normPrompt.substring(verb.length).trim();
+          break;
+        }
+      }
+    }
+    if (!command) {
+      for (const verb of TOGGLE_VERBS) {
+        if (normPrompt.startsWith(verb + ' ') || normPrompt === verb) {
+          command = 'toggle';
+          targetPhrase = normPrompt.substring(verb.length).trim();
+          break;
+        }
+      }
+    }
+
+    if (!command || !targetPhrase) return null;
+
+    const devices = await this.deviceRepository.findAll();
+    const normTarget = this.normalizePrompt(targetPhrase);
+
+    // Priority 1: Exact real device name wins over alias
+    const exactDevice = devices.find(d => this.normalizePrompt(d.name) === normTarget);
+    if (exactDevice) {
+      return null;
+    }
+
+    // Priority 2: User-defined device alias
+    const deviceAliases: Record<string, string> = {};
+    for (const [alias, targetId] of Object.entries(aliases)) {
+      if (devices.some(d => d.id === targetId)) {
+        deviceAliases[alias] = targetId;
+      }
+    }
+
+    const match = this.findBestAliasMatch(targetPhrase, deviceAliases);
+
+    if (match.status === 'not_found') {
+      return null;
+    }
+
+    if (match.status === 'ambiguous') {
+      const list = match.candidates?.join(', ') || '';
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `I found multiple possible aliases: ${list}. Which one do you want to use?`
+          : `Encontré varios aliases posibles: ${list}. ¿Cuál quieres usar?`
+      };
+    }
+
+    const targetDevice = devices.find(d => d.id === match.targetId);
+    if (!targetDevice) {
+      console.warn(`[ASSISTANT_DEVICE_ALIAS_INVALID] ${JSON.stringify({ alias: match.alias, targetId: match.targetId })}`);
+      return null;
+    }
+
+    console.info(`[ASSISTANT_DEVICE_ALIAS_RESOLVED] ${JSON.stringify({ alias: match.alias, targetId: targetDevice.id, command })}`);
+    const execResult = await this.executeSingleCommand(targetDevice.id, command, activePrompt, `alias-fastpath-${Date.now()}`);
+    
+    if (execResult.status === 'success') {
+      await this.clearPendingAction(userId);
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'command',
+        entities: [{ id: targetDevice.id, name: targetDevice.name, type: targetDevice.type, roomId: targetDevice.roomId }],
+        timestamp: new Date().toISOString()
+      });
+      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'device_alias', deviceId: targetDevice.id, deviceName: targetDevice.name, alias: match.alias })}`);
+
+      return {
+        type: 'execution',
+        message: language === 'en'
+          ? `I've ${command === 'turn_on' ? 'turned on' : command === 'turn_off' ? 'turned off' : 'toggled'} ${match.alias}.`
+          : `He ${command === 'turn_on' ? 'encendido' : command === 'turn_off' ? 'apagado' : 'alternado'} ${match.alias}.`,
+        execution: execResult
+      };
+    }
+
+    return null;
   }
 
   private async attemptFastPathExecution(activePrompt: string, userId: string, language: string): Promise<AssistantConversationResponse | null> {
