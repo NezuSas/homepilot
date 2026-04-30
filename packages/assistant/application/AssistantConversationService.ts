@@ -565,7 +565,9 @@ export class AssistantConversationService {
     // C.-1) Deterministic Fast-Path Execution Attempt
     const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
     if (fastPathResponse) {
-      return this.returnWithShadow(activePrompt, userId, language, fastPathResponse);
+      // Fast-Path is deterministic and already acts as the production comparison baseline;
+      // shadow is skipped to avoid unnecessary local LLM CPU load.
+      return fastPathResponse;
     }
 
     // C.0) V2 Hybrid Execution Attempt (Strict Gate)

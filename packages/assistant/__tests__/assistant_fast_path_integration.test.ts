@@ -25,12 +25,18 @@ describe('Fast Path Integration in AssistantConversationService', () => {
   let mockMemory: any;
   let mockDispatcher: any;
   let mockDeviceRepo: any;
+  let mockShadowService: any;
+  let mockIntentInterpreter: any;
 
   beforeEach(() => {
-    const mockIntentInterpreter = createMockIntentInterpreterPort();
+    mockIntentInterpreter = createMockIntentInterpreterPort();
     mockDispatcher = createMockDeviceCommandDispatcher();
     mockMemory = createMockAssistantMemory();
     mockDeviceRepo = createMockDeviceRepository();
+    mockShadowService = { 
+      runShadow: jest.fn().mockResolvedValue(undefined),
+      attemptHybridExecution: jest.fn().mockResolvedValue(null)
+    };
     
     service = new AssistantConversationService(
       mockIntentInterpreter, // 1
@@ -49,7 +55,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       createMockSmartEntityResolver(), // 14
       createMockAssistantSuggestionService(), // 15
       createMockExecutionRecordRepository(), // 16
-      undefined // 17 (shadow service)
+      mockShadowService // 17 (shadow service)
     );
   });
 
@@ -74,5 +80,32 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       lastQueryType: 'command',
       entities: [{ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' }]
     }));
+  });
+
+  it('bypasses shadow execution when fast path handles the request', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+
+    await service.converse({ prompt: 'prende luz cocina', userId: 'u1' }, 'es');
+    
+    // Fast path should succeed and NOT call shadow
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('calls shadow execution when fast path skips the request', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    
+    mockIntentInterpreter.interpret.mockResolvedValue({
+      type: 'unknown',
+      prompt: 'enciende luz',
+      reason: 'unknown'
+    });
+
+    await service.converse({ prompt: 'enciende luz', userId: 'u1' }, 'es');
+    
+    // Fast path skipped, so intent runs and shadow runs
+    expect(mockShadowService.runShadow).toHaveBeenCalled();
   });
 });
