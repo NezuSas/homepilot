@@ -33,7 +33,7 @@ export interface AssistantConversationResponse {
     options: Array<{
       id: string;
       label: string;
-      kind: "device" | "scene";
+      kind: "device" | "scene" | "alias_target";
     }>;
     pendingAction?: {
       command?: DeviceCommandV1;
@@ -235,6 +235,31 @@ export class AssistantConversationService {
           type: 'answer',
           message: language === 'en' ? "Action cancelled." : "Acción cancelada."
         });
+      }
+    }
+
+    // --- ALIAS DELETE CONFIRMATION ---
+    if (memory?.pendingAliasDelete) {
+      const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
+      const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
+
+      if (isAffirmative) {
+        await this.memoryService.deleteAlias(userId, memory.pendingAliasDelete.alias);
+        await this.clearPendingAction(userId);
+        console.info(`[ASSISTANT_USER_ALIAS_DELETED] ${JSON.stringify({ userId, alias: memory.pendingAliasDelete.alias })}`);
+        return {
+          type: 'answer',
+          message: language === 'en' 
+            ? `Done, I deleted the alias '${memory.pendingAliasDelete.alias}'.` 
+            : `Listo, eliminé el alias '${memory.pendingAliasDelete.alias}'.`
+        };
+      } else if (isNegative) {
+        await this.clearPendingAction(userId);
+        console.info(`[ASSISTANT_USER_ALIAS_DELETE_CANCELLED] ${JSON.stringify({ userId, alias: memory.pendingAliasDelete.alias })}`);
+        return {
+          type: 'answer',
+          message: language === 'en' ? "Action cancelled." : "Acción cancelada."
+        };
       }
     }
 
@@ -455,6 +480,20 @@ export class AssistantConversationService {
 
     // V2: Follow-up Resolution
     
+    // --- ALIAS MANAGEMENT (Deterministic Routes) ---
+    if (this.isAliasListQuery(normalized)) {
+      return await this.handleAliasList(userId, language);
+    }
+    
+    const meaningAlias = this.extractAliasMeaningQuery(normalized);
+    if (meaningAlias) {
+      return await this.handleAliasMeaning(userId, meaningAlias, language);
+    }
+
+    const deleteAliasReq = this.extractAliasDeleteRequest(normalized);
+    if (deleteAliasReq) {
+      return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
+    }
     // A2) Semantic Equivalence
     if (this.isEquivalenceQuery(normalized)) {
       return this.returnWithShadow(activePrompt, userId, language, this.handleEquivalenceQuery(language));
@@ -902,6 +941,7 @@ export class AssistantConversationService {
         pendingManagementAction: undefined,
         pendingSuggestion: undefined,
         pendingBulkAction: undefined,
+        pendingAliasDelete: undefined,
         originalPrompt: undefined
       });
     }
@@ -1032,6 +1072,29 @@ export class AssistantConversationService {
       this.roomRepository.findAll()
     ]);
     
+    // --- COLLISION GUARD ---
+    const normAlias = this.normalizePrompt(alias);
+    const existingRoom = rooms.find(r => this.normalizePrompt(r.name) === normAlias);
+    if (existingRoom) {
+      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, alias, targetName: existingRoom.name, collisionType: 'room' })}`);
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `A room or device named '${existingRoom.name}' already exists. Use another alias to avoid confusion.`
+          : `Ya existe una estancia o dispositivo llamado '${existingRoom.name}'. Usa otro alias para evitar confusiones.`
+      };
+    }
+    const existingDevice = devices.find(d => this.normalizePrompt(d.name) === normAlias);
+    if (existingDevice) {
+      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, alias, targetName: existingDevice.name, collisionType: 'device' })}`);
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `A room or device named '${existingDevice.name}' already exists. Use another alias to avoid confusion.`
+          : `Ya existe una estancia o dispositivo llamado '${existingDevice.name}'. Usa otro alias para evitar confusiones.`
+      };
+    }
+    
     // Check if target is a room
     const targetRoom = rooms.find(r => this.normalizePrompt(r.name) === this.normalizePrompt(targetName));
     if (targetRoom) {
@@ -1066,6 +1129,239 @@ export class AssistantConversationService {
         : `No pude encontrar un dispositivo o estancia llamado '${targetName}'.`
     };
   }
+
+  // --- ALIAS MANAGEMENT HANDLERS ---
+  private isAliasListQuery(normalized: string): boolean {
+    const listTriggersES = ['qué aliases tengo', 'que aliases tengo', 'qué nombres has aprendido', 'que nombres has aprendido', 'lista mis aliases', 'muestra mis aliases'];
+    const listTriggersEN = ['what aliases do i have', 'list my aliases', 'show my aliases', 'what names have you learned'];
+    return listTriggersES.some(t => normalized.includes(t)) || listTriggersEN.some(t => normalized.includes(t));
+  }
+
+  private async handleAliasList(userId: string, language: string): Promise<AssistantConversationResponse> {
+    const aliases = await this.memoryService.getAliases(userId);
+    const aliasKeys = Object.keys(aliases);
+    
+    if (aliasKeys.length === 0) {
+      console.info(`[ASSISTANT_USER_ALIAS_LIST] ${JSON.stringify({ userId, count: 0 })}`);
+      return {
+        type: 'answer',
+        message: language === 'en' ? "You haven't created any aliases yet." : "Aún no has creado aliases."
+      };
+    }
+
+    const [devices, rooms] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.roomRepository.findAll()
+    ]);
+
+    const lines: string[] = [];
+    for (const alias of aliasKeys) {
+      const targetId = aliases[alias];
+      let targetName = null;
+      const room = rooms.find(r => r.id === targetId);
+      if (room) {
+        targetName = room.name;
+      } else {
+        const device = devices.find(d => d.id === targetId);
+        if (device) targetName = device.name;
+      }
+
+      if (targetName) {
+        lines.push(`• ${alias} → ${targetName}`);
+      } else {
+        console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias, targetId, reason: 'entity_not_found' })}`);
+        lines.push(language === 'en' ? `• ${alias} → target not found` : `• ${alias} → objetivo no encontrado`);
+      }
+    }
+
+    console.info(`[ASSISTANT_USER_ALIAS_LIST] ${JSON.stringify({ userId, count: lines.length })}`);
+    const prefix = language === 'en' ? "These are the names I've learned:\n" : "Estos son los nombres que he aprendido:\n";
+    return {
+      type: 'answer',
+      message: prefix + lines.join('\n')
+    };
+  }
+
+  private extractAliasMeaningQuery(normalized: string): string | null {
+    const matchES = normalized.match(/(?:qué significa|que significa|a qué se refiere|a que se refiere) (.+)/i);
+    if (matchES) return matchES[1].trim();
+
+    const matchEN = normalized.match(/(?:what does) (.+?) (?:mean|refer to)/i);
+    if (matchEN) return matchEN[1].trim();
+
+    return null;
+  }
+
+  private findBestAliasMatch(input: string, aliases: Record<string, string>): {
+    alias: string;
+    targetId: string;
+    status: 'resolved' | 'not_found' | 'ambiguous';
+    candidates?: string[];
+  } {
+    const normInput = this.normalizePrompt(input);
+    let longestMatchLen = -1;
+    let matches: Array<{ norm: string; original: string; targetId: string }> = [];
+
+    for (const [alias, targetId] of Object.entries(aliases)) {
+      const normAlias = this.normalizePrompt(alias);
+      if (normInput === normAlias || normInput.includes(normAlias)) {
+        matches.push({ norm: normAlias, original: alias, targetId });
+        if (normAlias.length > longestMatchLen) {
+          longestMatchLen = normAlias.length;
+        }
+      }
+    }
+
+    if (matches.length === 0) {
+      return { alias: '', targetId: '', status: 'not_found' };
+    }
+
+    const bestMatches = matches.filter(m => m.norm.length === longestMatchLen);
+
+    if (bestMatches.length === 1) {
+      return { alias: bestMatches[0].original, targetId: bestMatches[0].targetId, status: 'resolved' };
+    }
+
+    return { 
+      alias: '', 
+      targetId: '', 
+      status: 'ambiguous', 
+      candidates: bestMatches.map(m => m.original) 
+    };
+  }
+
+  private async handleAliasMeaning(userId: string, targetAlias: string, language: string): Promise<AssistantConversationResponse> {
+    const aliases = await this.memoryService.getAliases(userId);
+    
+    const match = this.findBestAliasMatch(targetAlias, aliases);
+    
+    if (match.status === 'ambiguous') {
+      const list = match.candidates?.join(', ') || '';
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `I found multiple possible aliases: ${list}. Which one do you want to use?`
+          : `Encontré varios aliases posibles: ${list}. ¿Cuál quieres usar?`
+      };
+    }
+    
+    if (match.status === 'not_found') {
+      console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, alias: targetAlias, found: false })}`);
+      return {
+        type: 'answer',
+        message: language === 'en' ? "I didn't find that alias." : "No encontré ese alias."
+      };
+    }
+
+    const matchedKey = match.alias;
+    const targetId = match.targetId;
+    const [devices, rooms] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.roomRepository.findAll()
+    ]);
+
+    let targetName = null;
+    const room = rooms.find(r => r.id === targetId);
+    if (room) {
+      targetName = room.name;
+    } else {
+      const device = devices.find(d => d.id === targetId);
+      if (device) targetName = device.name;
+    }
+
+    if (!targetName) {
+      console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias: matchedKey, targetId, reason: 'entity_not_found' })}`);
+      return {
+        type: 'answer',
+        message: language === 'en' ? `• ${matchedKey} → target not found` : `• ${matchedKey} → objetivo no encontrado`
+      };
+    }
+
+    console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, alias: matchedKey, found: true })}`);
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? `'${matchedKey}' refers to ${targetName}.`
+        : `'${matchedKey}' se refiere a ${targetName}.`
+    };
+  }
+
+  private extractAliasDeleteRequest(normalized: string): string | null {
+    const matchES = normalized.match(/(?:olvida|elimina|borra alias|borra el alias) (.+)/i);
+    if (matchES) return matchES[1].trim();
+
+    const matchEN = normalized.match(/(?:forget|delete alias|remove alias) (.+)|(?:delete) (.+) (?:alias)/i);
+    if (matchEN) return (matchEN[1] || matchEN[2]).trim();
+
+    return null;
+  }
+
+  private async handleAliasDeleteRequest(userId: string, targetAlias: string, language: string, memory: AssistantMemoryState | null): Promise<AssistantConversationResponse> {
+    const aliases = await this.memoryService.getAliases(userId);
+    
+    const match = this.findBestAliasMatch(targetAlias, aliases);
+    
+    if (match.status === 'ambiguous') {
+      const list = match.candidates?.join(', ') || '';
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `I found multiple possible aliases: ${list}. Which one do you want to use?`
+          : `Encontré varios aliases posibles: ${list}. ¿Cuál quieres usar?`
+      };
+    }
+    
+    if (match.status === 'not_found') {
+      console.info(`[ASSISTANT_USER_ALIAS_DELETE_NOT_FOUND] ${JSON.stringify({ userId, alias: targetAlias })}`);
+      return {
+        type: 'answer',
+        message: language === 'en' ? "I didn't find that alias." : "No encontré ese alias."
+      };
+    }
+
+    const matchedKey = match.alias;
+    const targetId = match.targetId;
+    const [devices, rooms] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.roomRepository.findAll()
+    ]);
+
+    let targetName = 'Unknown';
+    const room = rooms.find(r => r.id === targetId);
+    if (room) targetName = room.name;
+    else {
+      const device = devices.find(d => d.id === targetId);
+      if (device) targetName = device.name;
+    }
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      ...(memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }),
+      pendingAliasDelete: {
+        alias: matchedKey,
+        targetId,
+        targetName,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    console.info(`[ASSISTANT_USER_ALIAS_DELETE_CONFIRMATION_REQUIRED] ${JSON.stringify({ userId, alias: matchedKey, targetName })}`);
+
+    return {
+      type: 'clarification',
+      message: language === 'en'
+        ? `Do you want me to forget the alias '${matchedKey}' for ${targetName}?`
+        : `¿Quieres que olvide el alias '${matchedKey}' para ${targetName}?`,
+      clarification: {
+        question: language === 'en' ? 'Delete alias?' : '¿Eliminar alias?',
+        options: [
+          { id: 'confirm', label: language === 'en' ? 'Yes, delete' : 'Sí, eliminar', kind: 'alias_target' },
+          { id: 'cancel', label: language === 'en' ? 'No, keep it' : 'No, mantener', kind: 'alias_target' }
+        ]
+      }
+    };
+  }
+
+
 
   private isEquivalenceQuery(normalized: string): boolean {
     const triggersES = [

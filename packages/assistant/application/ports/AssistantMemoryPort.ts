@@ -63,6 +63,14 @@ export interface AssistantMemoryState {
     timestamp: string;
     originalPrompt: string;
   };
+
+  /** Alias deletion waiting for user confirmation */
+  pendingAliasDelete?: {
+    alias: string;
+    targetId: string;
+    targetName: string;
+    timestamp: string;
+  };
 }
 
 export interface AssistantMemoryPort {
@@ -82,4 +90,5 @@ export interface AssistantMemoryPort {
   getAlias(userId: string, alias: string): Promise<string | null>;
   getAliases(userId: string): Promise<Record<string, string>>;
   setAlias(userId: string, alias: string, targetId: string): Promise<void>;
+  deleteAlias(userId: string, alias: string): Promise<void>;
 }

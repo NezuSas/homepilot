@@ -131,4 +131,8 @@ export class AssistantMemoryService implements AssistantMemoryPort {
       expiresAt: null
     });
   }
+
+  public async deleteAlias(userId: string, alias: string): Promise<void> {
+    await this.assistantMemoryRepository.delete(userId, `alias:${alias}`);
+  }
 }
