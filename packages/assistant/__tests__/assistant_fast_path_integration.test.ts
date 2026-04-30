@@ -108,4 +108,51 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     // Fast path skipped, so intent runs and shadow runs
     expect(mockShadowService.runShadow).toHaveBeenCalled();
   });
+
+  describe('Deterministic Query Shadow Bypass', () => {
+    it('bypasses shadow for "qué luces están encendidas" (State Query)', async () => {
+      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: true } });
+      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+      
+      await service.converse({ prompt: 'qué luces están encendidas', userId: 'u1' }, 'es');
+      
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+    });
+
+    it('bypasses shadow for "qué luces están apagadas" (State Query)', async () => {
+      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: false } });
+      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+      
+      await service.converse({ prompt: 'qué luces están apagadas', userId: 'u1' }, 'es');
+      
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+    });
+
+    it('bypasses shadow for "esta encendida la luz de la cocina?" (Point State Query)', async () => {
+      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: true } });
+      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+      
+      await service.converse({ prompt: 'esta encendida la luz cocina', userId: 'u1' }, 'es');
+      
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+    });
+
+    it('bypasses shadow for "que estancias conoces" (Room Query)', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+      
+      await service.converse({ prompt: 'que estancias conoces', userId: 'u1' }, 'es');
+      
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+    });
+
+    it('calls shadow for non-deterministic home-control prompt "ayúdame con la luz"', async () => {
+      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina' });
+      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+      mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'ayúdame con la luz' });
+
+      await service.converse({ prompt: 'ayúdame con la luz', userId: 'u1' }, 'es');
+      
+      expect(mockShadowService.runShadow).toHaveBeenCalled();
+    });
+  });
 });

@@ -509,7 +509,8 @@ export class AssistantConversationService {
 
     // F2) Room Queries (Deterministic)
     if (this.isRoomQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleRoomQuery(language), userId, language, memory, 'room_query'));
+      // Deterministic query handlers are production-grade baselines and skip Planner V2 shadow to avoid unnecessary local LLM CPU load.
+      return await this.attachSuggestionIfNeeded(await this.handleRoomQuery(language), userId, language, memory, 'room_query');
     }
 
     // G3) Draft Creation (Scenes/Automations) - High priority before state query
@@ -524,7 +525,8 @@ export class AssistantConversationService {
 
     // G) Point State Queries (is X on/off?) - PRIORITY OVER GENERAL STATE
     if (this.isPointStateQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handlePointStateQuery(normalized, language, userId), userId, language, memory, 'state_query'));
+      // Deterministic query handlers are production-grade baselines and skip Planner V2 shadow to avoid unnecessary local LLM CPU load.
+      return await this.attachSuggestionIfNeeded(await this.handlePointStateQuery(normalized, language, userId), userId, language, memory, 'state_query');
     }
 
     // H) State Queries
@@ -534,7 +536,8 @@ export class AssistantConversationService {
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
       }
-      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(result, userId, language, memory, 'state_query'));
+      // Deterministic query handlers are production-grade baselines and skip Planner V2 shadow to avoid unnecessary local LLM CPU load.
+      return await this.attachSuggestionIfNeeded(result, userId, language, memory, 'state_query');
     }
 
     // I) Management Intents (Rename, Toggle, Edit)
