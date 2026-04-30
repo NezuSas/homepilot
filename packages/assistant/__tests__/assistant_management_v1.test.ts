@@ -97,7 +97,7 @@ describe('Assistant Management V1', () => {
       
       const response = await service.converse({ prompt }, 'es');
       expect(response.type).toBe('answer');
-      expect(memory.setAlias).toHaveBeenCalledWith('system', 'mi cuarto', 'Cuarto Master');
+      expect(memory.setAlias).toHaveBeenCalledWith('system', 'mi cuarto', 'd1');
     });
   });
 

@@ -243,3 +243,10 @@ export const createMockSceneExecutionService = (overrides?: Partial<jest.Mocked<
   execute: jest.fn().mockResolvedValue({ sceneId: 's1', status: 'success', actions: [] }),
   ...overrides
 } as unknown as jest.Mocked<SceneExecutionService>);
+
+export const createMockAssistantPlannerV2ShadowService = (): any => ({
+  runShadow: jest.fn().mockResolvedValue(undefined),
+  attemptHybridExecution: jest.fn().mockResolvedValue(null),
+  getStatus: jest.fn().mockReturnValue({ enabled: true }),
+  getMetrics: jest.fn().mockReturnValue({ total_runs: 0 })
+});
