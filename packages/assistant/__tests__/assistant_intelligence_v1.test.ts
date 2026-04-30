@@ -259,7 +259,7 @@ describe('Assistant Intelligence Layer V1', () => {
 
       const res = await service.converse({ prompt: 'enciende luz y apaga ventilador', userId });
 
-      expect(res.message).toBe('Ejecuté 2 acciones: encendí Luz y apagué Ventilador.');
+      expect(res.message).toBe('Listo, controlé Luz y Ventilador correctamente.');
     });
 
     it('should handle partial failure in multi-command', async () => {
@@ -288,7 +288,8 @@ describe('Assistant Intelligence Layer V1', () => {
 
       const res = await service.converse({ prompt: 'enciende luz y apaga ventilador', userId });
 
-      expect(res.message).toContain('Ejecuté 1 de 2 acciones. Falló Ventilador: Timeout.');
+      expect(res.message).toContain('Ejecuté 1 de 2 acciones correctamente. Fallaron:');
+      expect(res.message).toContain('• Ventilador: Timeout');
     });
   });
 

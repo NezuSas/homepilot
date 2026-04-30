@@ -142,9 +142,7 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     const res2 = await service.converse({ prompt: 'sí', userId });
     
     expect(res2.type).toBe('execution');
-    expect(res2.message).toContain('Ejecuté 2 acciones');
-    expect(res2.message).toContain('apagué Luz Sala');
-    expect(res2.message).toContain('encendí Luz Cocina');
+    expect(res2.message).toContain('Listo, controlé Luz Sala y Luz Cocina correctamente.');
     expect(service['executeSingleCommand']).toHaveBeenCalledTimes(2);
     expect(service['executeSingleCommand']).toHaveBeenCalledWith('d1', 'turn_off', expect.any(String), expect.any(String));
     expect(service['executeSingleCommand']).toHaveBeenCalledWith('d2', 'turn_on', expect.any(String), expect.any(String));
@@ -275,7 +273,7 @@ describe('AssistantConversationService - Multi-Command V1', () => {
 
     const res = await service.converse({ prompt: 'sí', userId });
     expect(res.type).toBe('execution');
-    expect(res.message).toContain('Ejecuté 1 de 2 acciones');
-    expect(res.message).toContain('Device unreachable');
+    expect(res.message).toContain('Ejecuté 1 de 2 acciones correctamente.');
+    expect(res.message).toContain('• d2: Device unreachable');
   });
 });

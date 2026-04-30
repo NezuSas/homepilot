@@ -2620,30 +2620,72 @@ export class AssistantConversationService {
   }
 
   private formatMultiCommandSummary(results: ExecutedCommandResult[], language: string): string {
+    const isEn = language === 'en';
     const successes = results.filter(r => r.result.status === 'success');
     const failures = results.filter(r => r.result.status === 'failed');
 
     if (failures.length === 0) {
-      if (language === 'en') {
-        const details = results.map(r => `${r.action.command === 'turn_on' ? 'turned on' : 'turned off'} ${r.deviceName}`).join(' and ');
-        return `I executed ${results.length} actions: ${details}.`;
+      if (results.length === 1) {
+        const r = results[0];
+        if (isEn) {
+          const verb = r.action.command === 'turn_on' ? 'Turned on' : (r.action.command === 'turn_off' ? 'Turned off' : 'Controlled');
+          return `${verb} ${r.deviceName}.`;
+        } else {
+          const verb = r.action.command === 'turn_on' ? 'Encendí' : (r.action.command === 'turn_off' ? 'Apagué' : 'Controlé');
+          return `${verb} ${r.deviceName}.`;
+        }
+      }
+
+      if (results.length <= 3) {
+        const names = results.map(r => r.deviceName).join(isEn ? ', ' : ', ');
+        const lastIndex = names.lastIndexOf(', ');
+        const formattedNames = lastIndex !== -1 
+          ? names.substring(0, lastIndex) + (isEn ? ' and ' : ' y ') + names.substring(lastIndex + 2)
+          : names;
+
+        if (isEn) {
+          return `Done, controlled ${formattedNames} successfully.`;
+        } else {
+          return `Listo, controlé ${formattedNames} correctamente.`;
+        }
+      }
+
+      // Compact bulk response (> 3)
+      const commands = Array.from(new Set(results.map(r => r.action.command)));
+      const sameCmd = commands.length === 1;
+      const cmd = sameCmd ? commands[0] : 'mixed';
+
+      if (isEn) {
+        if (cmd === 'turn_on') return `Done, turned on ${results.length} lights successfully.`;
+        if (cmd === 'turn_off') return `Done, turned off ${results.length} lights successfully.`;
+        return `Done, executed ${results.length} actions successfully.`;
       } else {
-        const details = results.map(r => `${r.action.command === 'turn_on' ? 'encendí' : 'apagué'} ${r.deviceName}`).join(' y ');
-        return `Ejecuté ${results.length} acciones: ${details}.`;
+        if (cmd === 'turn_on') return `Listo, encendí ${results.length} luces correctamente.`;
+        if (cmd === 'turn_off') return `Listo, apagué ${results.length} luces correctamente.`;
+        return `Listo, ejecuté ${results.length} acciones correctamente.`;
       }
     }
 
+    // Total failure
     if (successes.length === 0) {
-      return language === 'en' 
-        ? `Failed to execute any actions. Errors: ${failures.map(f => `${f.deviceName}: ${f.result.actions[0]?.error}`).join(', ')}`
-        : `No pude ejecutar ninguna acción. Errores: ${failures.map(f => `${f.deviceName}: ${f.result.actions[0]?.error}`).join(', ')}`;
+      if (results.length === 1) {
+        const error = results[0].result.actions[0]?.error || (isEn ? 'Unknown error' : 'Error desconocido');
+        return isEn 
+          ? `Failed to control ${results[0].deviceName}: ${error}`
+          : `No pude controlar ${results[0].deviceName}: ${error}`;
+      }
+      const failList = failures.map(f => `• ${f.deviceName}: ${f.result.actions[0]?.error || 'Error'}`).join('\n');
+      return isEn
+        ? `Failed to execute any actions:\n${failList}`
+        : `No pude ejecutar ninguna acción:\n${failList}`;
     }
 
     // Partial failure
-    if (language === 'en') {
-      return `Executed ${successes.length} of ${results.length} actions. Failed ${failures[0].deviceName}: ${failures[0].result.actions[0]?.error}.`;
+    const failList = failures.map(f => `• ${f.deviceName}: ${f.result.actions[0]?.error || 'Error'}`).join('\n');
+    if (isEn) {
+      return `Executed ${successes.length} of ${results.length} actions successfully. Failed:\n${failList}`;
     } else {
-      return `Ejecuté ${successes.length} de ${results.length} acciones. Falló ${failures[0].deviceName}: ${failures[0].result.actions[0]?.error}.`;
+      return `Ejecuté ${successes.length} de ${results.length} acciones correctamente. Fallaron:\n${failList}`;
     }
   }
 
