@@ -273,17 +273,8 @@ export class AssistantConversationService {
       }
     }
     
-    // --- V2 PRONOUN PRE-CHECK ---
-    const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma)$/i.test(normalized);
-    if (isPronounPrompt && process.env.ASSISTANT_PLANNER_V2_EXECUTION === 'true') {
-      console.info(`[PLANNER_V2_PRONOUN_PRECHECK] ${JSON.stringify({ prompt: activePrompt })}`);
-      const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
-      if (v2Response) {
-        return this.returnWithShadow(activePrompt, userId, language, v2Response);
-      }
-    }
- 
     // --- PRE-INTENT: PRONOUN RESOLUTION ("apágala", etc.) ---
+    // Pronoun resolution from memory is deterministic and must run before Planner V2.
     const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
     if (pronounIntent) {
       if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') {
@@ -300,7 +291,7 @@ export class AssistantConversationService {
         });
       }
       if (isIntent(pronounIntent)) {
-        return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory));
+        return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
       }
     }
 
@@ -357,6 +348,110 @@ export class AssistantConversationService {
         console.debug(`[AssistantConversation] converse() selection path: ${Date.now() - t0}ms`);
       }
       return this.returnWithShadow(activePrompt, userId, language, result);
+    }
+
+    // --- DETERMINISTIC GLOBAL ROUTES (Highest Priority after Confirmations) ---
+    if (this.isGreeting(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, {
+        type: 'answer',
+        message: language === 'en'
+          ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. You can ask what is on or ask me to control a light, scene, or device.`
+          : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Puedes preguntarme qué está encendido o pedirme que controle alguna luz, escena o dispositivo.`
+      });
+    }
+
+    if (this.isWellnessQuery(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, {
+        type: 'answer',
+        message: language === 'en'
+          ? `I'm operating normally${userName ? ', ' + userName : ''}. The system is stable. Would you like me to check something in your home?`
+          : `Estoy funcionando correctamente${userName ? ', ' + userName : ''}. Todo el sistema está estable. ¿Quieres que revise algo en tu casa?`
+      });
+    }
+
+    if (normalized === 'como te llamas' || 
+        normalized === 'quien eres' || 
+        normalized === 'quién eres' ||
+        this.isNameQuery(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, {
+        type: 'answer',
+        message: language === 'en' 
+          ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely." 
+          : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
+      });
+    }
+
+    if (this.isCompanyQuery(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, this.handleCompanyInfoQuery(language));
+    }
+
+    if (this.isPresentation(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, {
+        type: 'answer',
+        message: language === 'en'
+          ? "I can help you see what is on or off, control lights and devices, run scenes, ask for confirmation when an action is sensitive, and explain what happened if something fails."
+          : "Puedo ayudarte a saber qué está encendido o apagado, controlar luces y dispositivos, ejecutar escenas, pedir confirmación cuando una acción sea delicada y explicarte si algo falla."
+      });
+    }
+
+    if (this.isHelpQuery(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, {
+        type: 'answer',
+        message: language === 'en'
+          ? "You can ask me things like: \"which lights are on?\", \"turn off the kitchen light\", or \"activate movie scene\". I'm here to help you manage your home locally."
+          : "Puedes preguntarme cosas como: \"qué luces están encendidas?\", \"apaga la luz de la cocina\", o \"activa la escena cine\". Estoy aquí para ayudarte a gestionar tu casa de forma local."
+      });
+    }
+
+    if (this.isDateTimeQuery(normalized)) {
+      return this.returnWithShadow(activePrompt, userId, language, this.handleDateTimeQuery(normalized, language));
+    }
+
+    // --- ALIAS MANAGEMENT (Deterministic Routes) ---
+    if (this.isAliasListQuery(normalized)) {
+      return await this.handleAliasList(userId, language);
+    }
+    
+    const meaningAlias = this.extractAliasMeaningQuery(normalized);
+    if (meaningAlias) {
+      return await this.handleAliasMeaning(userId, meaningAlias, language);
+    }
+
+    const deleteAliasReq = this.extractAliasDeleteRequest(normalized);
+    if (deleteAliasReq) {
+      return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
+    }
+
+    // G2) Alias Creation Commands
+    if (this.isAliasCreation(normalized)) {
+      console.info(`[ASSISTANT_USER_ALIAS_CREATE_DETECTED] ${JSON.stringify({ prompt, userId })}`);
+      return await this.handleAliasCreation(normalized, userId, language);
+    }
+
+    // C.-2) Room Bulk Fast Path
+    const roomBulk = this.isRoomBulkFastPath(normalized);
+    if (roomBulk) {
+      return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, language, aliases);
+    }
+
+    // C.-1) Deterministic Bulk Fast-Path (all lights, etc.)
+    if (this.isBulkFastPath(normalized)) {
+      const bulkResponse = await this.handleBulkFastPath(normalized, language, userId);
+      if (bulkResponse) return bulkResponse;
+    }
+
+    // C.-1.5) Device Alias Fast Path
+    const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
+    if (deviceAliasFastPath) {
+      return deviceAliasFastPath;
+    }
+
+    // C.-1) Deterministic Fast-Path Execution Attempt
+    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
+    if (fastPathResponse) {
+      // Fast-Path is deterministic and already acts as the production comparison baseline;
+      // shadow is skipped to avoid unnecessary local LLM CPU load.
+      return fastPathResponse;
     }
 
     // V2: Follow-up Resolution
@@ -463,6 +558,8 @@ export class AssistantConversationService {
         }
       }
 
+      // Moved down to respect priority and prevent premature execution
+
       followUp = this.followUpResolver.resolve(
         prompt,
         memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() },
@@ -478,88 +575,9 @@ export class AssistantConversationService {
       activePrompt = followUp.resolvedPrompt;
     }
 
-    // V2: Follow-up Resolution
-    
-    // --- ALIAS MANAGEMENT (Deterministic Routes) ---
-    if (this.isAliasListQuery(normalized)) {
-      return await this.handleAliasList(userId, language);
-    }
-    
-    const meaningAlias = this.extractAliasMeaningQuery(normalized);
-    if (meaningAlias) {
-      return await this.handleAliasMeaning(userId, meaningAlias, language);
-    }
-
-    const deleteAliasReq = this.extractAliasDeleteRequest(normalized);
-    if (deleteAliasReq) {
-      return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
-    }
     // A2) Semantic Equivalence
     if (this.isEquivalenceQuery(normalized)) {
       return this.returnWithShadow(activePrompt, userId, language, this.handleEquivalenceQuery(language));
-    }
-
-    // B) Greetings
-    if (this.isGreeting(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
-        type: 'answer',
-        message: language === 'en'
-          ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. You can ask what is on or ask me to control a light, scene, or device.`
-          : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Puedes preguntarme qué está encendido o pedirme que controle alguna luz, escena o dispositivo.`
-      });
-    }
-
-    // B2) Wellness queries — deterministic, never routed to LLM
-    if (this.isWellnessQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
-        type: 'answer',
-        message: language === 'en'
-          ? `I'm operating normally${userName ? ', ' + userName : ''}. The system is stable. Would you like me to check something in your home?`
-          : `Estoy funcionando correctamente${userName ? ', ' + userName : ''}. Todo el sistema está estable. ¿Quieres que revise algo en tu casa?`
-      });
-    }
-
-    // Identity / Name queries
-    if (normalized === 'como te llamas' || 
-        normalized === 'quien eres' || 
-        normalized === 'quién eres' ||
-        this.isNameQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
-        type: 'answer',
-        message: language === 'en' 
-          ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely." 
-          : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
-      });
-    }
-
-    // C.2) Company Knowledge (NEZU S.A.S.)
-    if (this.isCompanyQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, this.handleCompanyInfoQuery(language));
-    }
-
-    // D) Presentation / Capabilities
-    if (this.isPresentation(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
-        type: 'answer',
-        message: language === 'en'
-          ? "I can help you see what is on or off, control lights and devices, run scenes, ask for confirmation when an action is sensitive, and explain what happened if something fails."
-          : "Puedo ayudarte a saber qué está encendido o apagado, controlar luces y dispositivos, ejecutar escenas, pedir confirmación cuando una acción sea delicada y explicarte si algo falla."
-      });
-    }
-
-    // E) Help
-    if (this.isHelpQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, {
-        type: 'answer',
-        message: language === 'en'
-          ? "You can ask me things like: \"which lights are on?\", \"turn off the kitchen light\", or \"activate movie scene\". I'm here to help you manage your home locally."
-          : "Puedes preguntarme cosas como: \"qué luces están encendidas?\", \"apaga la luz de la cocina\", o \"activa la escena cine\". Estoy aquí para ayudarte a gestionar tu casa de forma local."
-      });
-    }
-
-    // F) Date/Time Queries
-    if (this.isDateTimeQuery(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, this.handleDateTimeQuery(normalized, language));
     }
 
     // F2) Room Queries (Deterministic)
@@ -571,12 +589,6 @@ export class AssistantConversationService {
     // G3) Draft Creation (Scenes/Automations) - High priority before state query
     if (this.isDraftCreation(normalized)) {
       return this.returnWithShadow(activePrompt, userId, language, await this.handleDraftCreation(normalized, language, userId));
-    }
-
-    // G2) Alias Creation Commands
-    if (this.isAliasCreation(normalized)) {
-      console.info(`[ASSISTANT_USER_ALIAS_CREATE_DETECTED] ${JSON.stringify({ prompt, userId })}`);
-      return await this.handleAliasCreation(normalized, userId, language);
     }
 
     // G) Point State Queries (is X on/off?) - PRIORITY OVER GENERAL STATE
@@ -625,32 +637,6 @@ export class AssistantConversationService {
 
     if (process.env.NODE_ENV !== 'production') {
       console.debug('[AssistantConversation] routing=intent');
-    }
-
-    // C.-2) Room Bulk Fast Path
-    const roomBulk = this.isRoomBulkFastPath(normalized);
-    if (roomBulk) {
-      return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, language, aliases);
-    }
-
-    // C.-1) Deterministic Bulk Fast-Path (all lights, etc.)
-    if (this.isBulkFastPath(normalized)) {
-      const bulkResponse = await this.handleBulkFastPath(normalized, language, userId);
-      if (bulkResponse) return bulkResponse;
-    }
-
-    // C.-1.5) Device Alias Fast Path
-    const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
-    if (deviceAliasFastPath) {
-      return deviceAliasFastPath;
-    }
-
-    // C.-1) Deterministic Fast-Path Execution Attempt
-    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
-    if (fastPathResponse) {
-      // Fast-Path is deterministic and already acts as the production comparison baseline;
-      // shadow is skipped to avoid unnecessary local LLM CPU load.
-      return fastPathResponse;
     }
 
     // C.0) V2 Hybrid Execution Attempt (Strict Gate)
@@ -1025,7 +1011,10 @@ export class AssistantConversationService {
     if (normalized.includes('guarda') && normalized.includes('como alias')) return true;
     if (normalized.includes('crea alias')) return true;
     if (normalized.includes('llama ') && normalized.includes(' a ')) return true;
-    if (normalized.includes(' es ')) return true;
+    
+    const questionWords = ['que', 'qué', 'cual', 'cuál', 'como', 'cómo', 'donde', 'dónde', 'quien', 'quién'];
+    const isQuestion = questionWords.some(w => normalized.startsWith(w + ' ')) || normalized.includes('?');
+    if (normalized.includes(' es ') && !isQuestion) return true;
 
     // Patrones explícitos EN
     if (normalized.includes('when i say') && normalized.includes('i mean')) return true;

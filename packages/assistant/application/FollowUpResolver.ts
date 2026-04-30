@@ -18,14 +18,7 @@ export class FollowUpResolver implements FollowUpResolverPort {
     };
 
     // 0. Resolve Aliases (e.g. "mi cuarto" -> "sala")
-    for (const [alias, target] of Object.entries(aliases)) {
-      if (normalized.includes(alias)) {
-        // We use a case-insensitive replacement on the original prompt if possible
-        const regex = new RegExp(alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        currentPrompt = currentPrompt.replace(regex, target);
-        normalized = this.normalize(currentPrompt);
-      }
-    }
+    // REMOVED: Aliases should not mutate the activePrompt text to targetIds, as this breaks V2 Shadow and V1 Intent.
 
     // 1. Resolve "esas", "esos", "esa", "eso" (List queries)
     const listTriggers = [

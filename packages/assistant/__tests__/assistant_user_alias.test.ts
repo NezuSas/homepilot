@@ -59,6 +59,8 @@ describe('Assistant User Alias', () => {
       createMockExecutionRecordRepository(),
       mockShadow
     );
+
+    jest.spyOn(service as any, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
   });
 
   it('creates a room alias successfully and skips shadow', async () => {

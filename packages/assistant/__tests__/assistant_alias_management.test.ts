@@ -31,6 +31,9 @@ describe('Assistant Alias Management V1', () => {
   let mockLearning: any;
   let mockShadow: any;
 
+  let mockFollowUp: any;
+  let mockHybridSpy: jest.SpyInstance;
+
   beforeEach(() => {
     mockMemory = createMockAssistantMemory();
     mockDeviceRepo = createMockDeviceRepository();
@@ -39,6 +42,7 @@ describe('Assistant Alias Management V1', () => {
     mockAutomationRepo = createMockAutomationRuleRepository();
     mockLearning = createMockAssistantLearningService();
     mockShadow = createMockAssistantPlannerV2ShadowService();
+    mockFollowUp = createMockFollowUpResolver();
 
     service = new AssistantConversationService(
       createMockIntentInterpreterPort(),
@@ -50,7 +54,7 @@ describe('Assistant Alias Management V1', () => {
       mockSceneRepo,
       createMockAssistantSmallTalk(),
       mockMemory,
-      createMockFollowUpResolver(),
+      mockFollowUp,
       createMockAssistantDraftService(),
       mockAutomationRepo,
       mockLearning,
@@ -59,6 +63,8 @@ describe('Assistant Alias Management V1', () => {
       createMockExecutionRecordRepository(),
       mockShadow
     );
+
+    mockHybridSpy = jest.spyOn(service as any, 'attemptV2HybridExecution');
   });
 
   it('1. list aliases resolves target names', async () => {
@@ -254,10 +260,7 @@ describe('Assistant Alias Management V1', () => {
     mockDeviceRepo.findAll.mockResolvedValue([device]);
     mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'd1' });
     
-    // We must mock executeSingleCommand directly, or mock the dispatcher
-    // Since it's a private method, we mock the dispatcher
-    const execMock = jest.fn().mockResolvedValue({ status: 'success' });
-    service['executeSingleCommand'] = execMock;
+    const execMock = jest.spyOn(service as any, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
     
     const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
     
@@ -321,13 +324,68 @@ describe('Assistant Alias Management V1', () => {
     // Alias points to different device
     mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'd1' });
     
-    const execMock = jest.fn().mockResolvedValue({ status: 'success' });
-    service['executeSingleCommand'] = execMock;
+    const execMock = jest.spyOn(service as any, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
     
     const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
     
     // It should execute against d2 because real exact match wins
     expect(res.type).toBe('execution');
     expect(execMock).toHaveBeenCalledWith('d2', 'turn_on', 'prende luz de lectura', expect.any(String));
+  });
+  it('22. activePrompt never contains UUID after alias resolution', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([]);
+    // Setup alias to nonexistent device to trigger fallback
+    mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': '3a8fae4d-80bf-4169-ac95-30844a5fc6b9' });
+    
+    // We mock shadow service to see what activePrompt it receives
+    mockShadow.runShadow.mockResolvedValue({ type: 'answer', message: 'shadow response' });
+    
+    await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
+    
+    // Shadow should be called with the original prompt text, not the UUID
+    expect(mockShadow.runShadow).toHaveBeenCalledWith(
+      'prende luz de lectura', // activePrompt
+      'u1',
+      'es',
+      expect.anything()
+    );
+  });
+
+  it('23. pronoun follow-up apágala executes and bypasses shadow', async () => {
+    // Fake the short-term memory to simulate previous alias resolution
+    mockMemory.getShortTermMemory.mockResolvedValue({
+      lastQueryType: 'command',
+      entities: [{ id: 'd1', name: 'Luz Seccion Escritorio', type: 'device' }],
+      timestamp: new Date().toISOString()
+    });
+    
+    const execMock = jest.spyOn(service as any, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
+    
+    const res = await service.converse({ prompt: 'apágala', userId: 'u1' }, 'es');
+    
+    expect(res.type).toBe('execution');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+    expect(mockHybridSpy).not.toHaveBeenCalled();
+    // Verify execution was called with d1
+    expect(execMock).toHaveBeenCalledWith('d1', 'turn_off', 'apagala', expect.any(String));
+  });
+
+  it('24. device alias fast path executes before FollowUpResolver', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([]);
+    const device = createTestDevice({ id: 'd1', name: 'Luz Seccion Escritorio' });
+    mockDeviceRepo.findAll.mockResolvedValue([device]);
+    mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': 'd1' });
+    
+    const execMock = jest.spyOn(service as any, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
+    
+    const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
+    
+    expect(res.type).toBe('execution');
+    expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende luz de lectura', expect.any(String));
+    
+    // FollowUpResolver should NOT be called for a direct alias match
+    expect(mockFollowUp.resolve).not.toHaveBeenCalled();
+    expect(mockHybridSpy).not.toHaveBeenCalled();
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 });

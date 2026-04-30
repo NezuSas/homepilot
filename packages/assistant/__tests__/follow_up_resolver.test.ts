@@ -46,10 +46,10 @@ describe('FollowUpResolver', () => {
     expect(result.referencesMemory).toBe(true);
   });
 
-  it('should resolve aliases correctly', () => {
+  it('should no longer resolve aliases (handled at conversation level)', () => {
     const aliases = { 'mi cuarto': 'sala' };
     const result = resolver.resolve('enciende las luces de mi cuarto', mockMemory, 'es', aliases);
-    expect(result.resolvedPrompt).toBe('enciende las luces de sala');
+    expect(result.resolvedPrompt).toBe('enciende las luces de mi cuarto');
     expect(result.referencesMemory).toBe(false);
   });
 
