@@ -520,20 +520,43 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       const result = await shadowService.attemptHybridExecution('prende las luces', 'u1');
       expect(result).toBeNull();
     });
-    it('should NOT execute pronoun if context is semantic_match', async () => {
-      resolver.resolve.mockResolvedValue({ type: 'single', deviceId: 'dev-2', contextSource: 'semantic_match' });
-      
+    it('should NOT execute pronoun if no memory provided', async () => {
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
-      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1');
+      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1', null);
       expect(result).toBeNull();
     });
 
-    it('should execute pronoun if context is short_term_memory', async () => {
-      resolver.resolve.mockResolvedValue({ type: 'single', deviceId: 'dev-1', contextSource: 'short_term_memory' });
-      
+    it('should NOT execute pronoun if memory has multiple entities', async () => {
+      const memory = {
+        lastQueryType: 'command' as const,
+        entities: [{ id: 'dev-1', name: 'luz 1', type: 'device', roomId: null }, { id: 'dev-2', name: 'luz 2', type: 'device', roomId: null }],
+        timestamp: 'ts'
+      };
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
-      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1');
-      expect(result).toEqual({ deviceId: 'dev-1', command: 'turn_on', confidence: 0.9, contextSource: 'short_term_memory' });
+      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1', memory);
+      expect(result).toBeNull();
+    });
+
+    it('should NOT execute pronoun if memory lastQueryType is not command', async () => {
+      const memory = {
+        lastQueryType: 'query_status' as const,
+        entities: [{ id: 'dev-1', name: 'luz', type: 'device', roomId: null }],
+        timestamp: 'ts'
+      };
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1', memory);
+      expect(result).toBeNull();
+    });
+
+    it('should execute pronoun if memory has exactly one command entity', async () => {
+      const memory = {
+        lastQueryType: 'command' as const,
+        entities: [{ id: 'luz-cocina', name: 'Luz Cocina', type: 'device', roomId: null }],
+        timestamp: 'ts'
+      };
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('enciéndela', 'u1', memory);
+      expect(result).toEqual({ deviceId: 'luz-cocina', command: 'turn_on', confidence: 0.9, contextSource: 'short_term_memory' });
     });
   });
 });

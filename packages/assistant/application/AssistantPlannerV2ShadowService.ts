@@ -4,6 +4,7 @@ import { PlannerV2Resolver } from './PlannerV2Resolver';
 import { PlannerV2Normalizer } from './PlannerV2Normalizer';
 import { AssistantConversationResponse } from './AssistantConversationService';
 import { TargetReference, AssistantPlanV2 } from './ports/AssistantPlannerV2';
+import { AssistantMemoryState } from './ports/AssistantMemoryPort';
 
 export interface ShadowResolutionResult {
   target: TargetReference;
@@ -278,7 +279,8 @@ export class AssistantPlannerV2ShadowService {
    */
   public async attemptHybridExecution(
     prompt: string,
-    userId: string
+    userId: string,
+    memory?: AssistantMemoryState | null
   ): Promise<{ deviceId: string; command: string; confidence: number; contextSource?: string } | null> {
     if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
 
@@ -326,17 +328,40 @@ export class AssistantPlannerV2ShadowService {
       if (typeof action.confidence !== 'number' || action.confidence < 0.85) return skip('low_confidence');
 
       // 2. RESOLUTION
-      const resolved = await this.resolver.resolve(action.target, userId);
-      if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
-
       const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma|el mismo|los mismos|las mismas|it|them)$/.test(lowerPrompt);
       const isContextReference = action.target.type === 'context_reference';
 
-      if (isPronounPrompt || isContextReference) {
-        if (resolved.contextSource !== 'short_term_memory') {
+      let resolved: { type: string; deviceId?: string; contextSource?: string };
+
+      if (isPronounPrompt) {
+        if (!memory || memory.lastQueryType !== 'command' || !memory.entities || memory.entities.length !== 1) {
+          return skip('unsafe_context_resolution', {
+            memory_lastQueryType: memory?.lastQueryType,
+            memory_entities_count: memory?.entities?.length
+          });
+        }
+        
+        resolved = {
+          type: 'single',
+          deviceId: memory.entities[0].id,
+          contextSource: 'short_term_memory'
+        };
+        
+        console.info(`[PLANNER_V2_CONTEXT_RESOLVED] ${JSON.stringify({
+          context_source: 'short_term_memory',
+          resolvedIds: [resolved.deviceId],
+          prompt
+        })}`);
+      } else {
+        const res = await this.resolver.resolve(action.target, userId);
+        resolved = { type: res.type, deviceId: res.deviceId, contextSource: res.contextSource };
+        
+        if (isContextReference && resolved.contextSource !== 'short_term_memory') {
           return skip('unsafe_context_resolution');
         }
       }
+
+      if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
 
       const finalContextSource = resolved.contextSource || 'semantic_match';
 

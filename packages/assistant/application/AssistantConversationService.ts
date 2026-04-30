@@ -233,7 +233,7 @@ export class AssistantConversationService {
     const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma)$/i.test(normalized);
     if (isPronounPrompt && process.env.ASSISTANT_PLANNER_V2_EXECUTION === 'true') {
       console.info(`[PLANNER_V2_PRONOUN_PRECHECK] ${JSON.stringify({ prompt: activePrompt })}`);
-      const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName);
+      const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
       if (v2Response) {
         return this.returnWithShadow(activePrompt, userId, language, v2Response);
       }
@@ -560,7 +560,7 @@ export class AssistantConversationService {
     }
 
     // C.0) V2 Hybrid Execution Attempt (Strict Gate)
-    const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName);
+    const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
     if (v2Response) {
       return this.returnWithShadow(activePrompt, userId, language, v2Response);
     }
@@ -2735,11 +2735,12 @@ export class AssistantConversationService {
     activePrompt: string, 
     userId: string, 
     language: 'es' | 'en', 
-    userName: string | null
+    userName: string | null,
+    memory: AssistantMemoryState | null
   ): Promise<AssistantConversationResponse | null> {
     if (!this.shadowService) return null;
 
-    const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId);
+    const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId, memory);
     if (!v2Result) return null;
 
     // Bypass V1 execution completely

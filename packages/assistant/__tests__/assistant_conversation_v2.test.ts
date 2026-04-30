@@ -364,7 +364,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
 
       const response = await serviceWithV2.converse({ prompt: 'enciéndela', userId: 'u1' }, 'es');
 
-      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalledWith('enciéndela', 'u1');
+      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalledWith('enciéndela', 'u1', null);
       expect(response.type).toBe('execution');
     });
 
