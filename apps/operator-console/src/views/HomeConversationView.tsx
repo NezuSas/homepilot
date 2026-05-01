@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
+import { apiFetch } from '../lib/apiClient';
 import { converseWithAssistant } from '../lib/assistantApi';
 import type { ChatMessage, AssistantConversationResponse, AssistantConverseRequest } from '../types/assistantConversation';
 import { StatusPill } from '../components/ui/StatusPill';
@@ -184,7 +185,30 @@ export const HomeConversationView: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sourceRoomId, setSourceRoomId] = useState<string>('');
+  const [rooms, setRooms] = useState<Array<{ id: string, name: string }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Fetch homes and then rooms for context selection
+    const fetchContextRooms = async () => {
+      try {
+        const homesRes = await apiFetch(`${API_BASE_URL}/api/v1/homes`);
+        if (!homesRes.ok) return;
+        const homes = await homesRes.json();
+        if (homes && homes.length > 0) {
+          const roomsRes = await apiFetch(`${API_BASE_URL}/api/v1/homes/${homes[0].id}/rooms`);
+          if (roomsRes.ok) {
+            const roomsData = await roomsRes.json();
+            setRooms(roomsData || []);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch context rooms:', err);
+      }
+    };
+    fetchContextRooms();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -212,7 +236,8 @@ export const HomeConversationView: React.FC = () => {
     try {
       const response = await converseWithAssistant({ 
         prompt: userText,
-        userName: user?.displayName || user?.username
+        userName: user?.displayName || user?.username,
+        sourceRoomId: sourceRoomId || undefined
       });
       handleResponse(response);
     } catch (error: unknown) {
@@ -253,7 +278,8 @@ export const HomeConversationView: React.FC = () => {
         userName: user?.displayName || user?.username,
         selectedOptionId: optionId,
         pendingAction,
-        confirmed: optionId === 'confirm'
+        confirmed: optionId === 'confirm',
+        sourceRoomId: sourceRoomId || undefined
       });
       handleResponse(response);
     } catch (error: unknown) {
@@ -277,6 +303,37 @@ export const HomeConversationView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full animate-in fade-in duration-500 bg-background overflow-hidden">
+      {/* Header with Context Selector */}
+      <div className="px-6 py-4 border-b border-border bg-card/30 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-primary/10 rounded-lg text-primary">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold tracking-tight">{t('assistant.conversation.title', 'Asistente de Hogar')}</h2>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-50">{t('assistant.conversation.subtitle', 'Control Inteligente')}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">
+              Contexto (Sala)
+            </span>
+            <select 
+              value={sourceRoomId}
+              onChange={(e) => setSourceRoomId(e.target.value)}
+              className="bg-muted/50 border border-border rounded-lg px-3 py-1 text-xs focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer min-w-[140px]"
+            >
+              <option value="">{t('assistant.conversation.no_context_room', 'Sin ubicación')}</option>
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>{room.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Scrollable Messages Area */}
       <div 
         ref={scrollRef}

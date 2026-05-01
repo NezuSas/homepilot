@@ -236,6 +236,10 @@ export class AssistantRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/assistant/converse') {
       try {
         const body = await this.parseBody<AssistantConverseRequest>(req);
+        
+        if (body.sourceRoomId) {
+          console.info(`[ASSISTANT_CONTEXT_SOURCE] {"sourceRoomId":"${body.sourceRoomId}","source":"operator_console"}`);
+        }
 
         // Backend user name resolution (preferred over frontend payload)
         const sessionUserName = req.user ? (req.user.displayName || req.user.username) : undefined;

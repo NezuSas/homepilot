@@ -9,10 +9,11 @@ export interface AssistantConversationResponse {
     options: Array<{
       id: string;
       label: string;
-      kind: "device" | "scene";
+      kind: "device" | "scene" | "alias_target";
     }>;
     pendingAction?: {
       command?: DeviceCommandV1;
+      targetId?: string;
       originalPrompt: string;
     };
   };
@@ -24,9 +25,11 @@ export interface AssistantConverseRequest {
   selectedOptionId?: string;
   pendingAction?: {
     command?: DeviceCommandV1;
+    targetId?: string;
     originalPrompt: string;
   };
   confirmed?: boolean;
+  sourceRoomId?: string;
 }
 
 export interface ChatMessage {
@@ -37,11 +40,12 @@ export interface ChatMessage {
   options?: Array<{
     id: string;
     label: string;
-    kind: "device" | "scene";
+    kind: "device" | "scene" | "alias_target";
   }>;
   execution?: SceneExecutionResult;
   pendingAction?: {
     command?: DeviceCommandV1;
+    targetId?: string;
     originalPrompt: string;
   };
   timestamp: string;
