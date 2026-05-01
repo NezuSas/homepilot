@@ -346,11 +346,12 @@ export class AssistantConversationService {
         }
       }
 
+      // Context-aware or deterministic selection path
       const result = await this.handleSelection(request, language);
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] converse() selection path: ${Date.now() - t0}ms`);
       }
-      return this.returnWithShadow(activePrompt, userId, language, result);
+      return result;
     }
 
     // --- DETERMINISTIC GLOBAL ROUTES (Highest Priority after Confirmations) ---
@@ -535,7 +536,8 @@ export class AssistantConversationService {
             ? memory.pendingIntent.command
             : this.inferCommandFromPrompt(memory.originalPrompt || prompt);
 
-          request.selectedOptionId = selectedId;
+          // Do NOT set selectedOptionId here — this is a text-resolved selection, not a UI click.
+          // handleSelection reads targetId from pendingAction.targetId when selectedOptionId is absent.
           request.pendingAction = {
             command,
             targetId: selectedId,
@@ -563,7 +565,9 @@ export class AssistantConversationService {
             });
           }
 
-          return this.returnWithShadow(activePrompt, userId, language, await this.handleSelection(request, language));
+          // Deterministic execution for context-aware or command follow-ups
+          const selectionResponse = await this.handleSelection(request, language);
+          return selectionResponse;
         }
       }
 
@@ -1661,7 +1665,10 @@ export class AssistantConversationService {
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
     const correlationId = `assistant:chat:selection:${Date.now()}`;
     const userId = request.userId || 'system';
-    const rawTargetId = request.selectedOptionId === 'confirm' ? request.pendingAction?.targetId : request.selectedOptionId;
+    // selectedOptionId is set by UI clicks; pendingAction.targetId is set by natural-language text resolution.
+    const rawTargetId = request.selectedOptionId === 'confirm'
+      ? request.pendingAction?.targetId
+      : (request.selectedOptionId ?? request.pendingAction?.targetId);
 
     if (!rawTargetId) {
       return { type: 'error', message: language === 'en' ? "Missing target for selection." : "Falta el objetivo para la selección." };
@@ -1707,15 +1714,23 @@ export class AssistantConversationService {
       };
     }
 
-    if (request.pendingAction?.command) {
+    let command = request.pendingAction?.command;
+    const originalPrompt = request.pendingAction?.originalPrompt || memory?.originalPrompt || '';
+    
+    // Fallback: reconstruct command from memory if missing (Requirement 6.2)
+    if (!command && memory?.source === 'context_room') {
+      command = this.inferCommandFromPrompt(originalPrompt);
+    }
+
+    if (command) {
       const device = await this.deviceRepository.findDeviceById(targetId);
       const deviceName = device?.name ?? targetId;
       
       if (device) {
-        this.learningService.recordClarificationSelected(userId, device.id, device.name, 'device', request.pendingAction.originalPrompt).catch(() => {});
+        this.learningService.recordClarificationSelected(userId, device.id, device.name, 'device', originalPrompt).catch(() => {});
       }
       
-      const result = await this.executeSingleCommand(targetId, request.pendingAction.command, request.pendingAction.originalPrompt, correlationId);
+      const result = await this.executeSingleCommand(targetId, command, originalPrompt, correlationId);
       
       if (result.status === 'success') {
         await this.clearPendingAction(userId);
@@ -1724,15 +1739,24 @@ export class AssistantConversationService {
           entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
           timestamp: new Date().toISOString()
         });
+        
         if (device) {
           console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'selection', deviceId: device.id, deviceName: device.name })}`);
         }
+        
+        const logSource = request.selectedOptionId ? 'ui_option' : 'text_selection';
+        console.info(`[ASSISTANT_SELECTION_EXECUTED] ${JSON.stringify({
+          source: logSource,
+          deviceId: targetId,
+          deviceName,
+          command
+        })}`);
       }
 
       return {
         type: 'execution',
         message: result.status === 'success' 
-          ? this.buildCommandSuccessMessage(request.pendingAction.command, deviceName, request.userName || null, language)
+          ? this.buildCommandSuccessMessage(command, deviceName, request.userName || null, language)
           : (language === 'en' ? "Execution failed." : "La ejecución falló."),
         execution: result
       };
@@ -3854,8 +3878,15 @@ export class AssistantConversationService {
         entities: lights.map(l => ({ id: l.id, name: l.name, type: l.type, roomId: l.roomId })),
         clarificationOptions,
         originalPrompt: prompt,
+        source: 'context_room',
         timestamp: new Date().toISOString()
       });
+
+      console.info(`[ASSISTANT_CONTEXT_ROOM_CLARIFICATION] ${JSON.stringify({
+        sourceRoomId,
+        count: lights.length,
+        command: vagueMatch.command
+      })}`);
 
       return {
         type: 'clarification',
@@ -3864,7 +3895,11 @@ export class AssistantConversationService {
           : "Encontré varias luces en esta estancia. ¿Cuál quieres controlar?",
         clarification: {
           question: language === 'en' ? "Which one?" : "¿Cuál?",
-          options: clarificationOptions
+          options: clarificationOptions,
+          pendingAction: {
+            command: vagueMatch.command,
+            originalPrompt: prompt
+          }
         }
       };
     }

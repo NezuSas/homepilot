@@ -184,11 +184,16 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     // Verify memory persistence for follow-up (Option A: no pendingIntent)
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       lastQueryType: 'clarification',
+      originalPrompt: 'prende la luz',
+      source: 'context_room'
+    }));
+    
+    // Verify pendingAction is returned for click execution
+    expect(res.clarification).toBeDefined();
+    expect(res.clarification?.pendingAction).toEqual({
+      command: 'turn_on',
       originalPrompt: 'prende la luz'
-    }));
-    expect(mockMemory.saveShortTermMemory).not.toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingIntent: expect.anything()
-    }));
+    });
   });
 
   it('8. unavailable lights are ignored', async () => {
@@ -288,6 +293,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
         { id: 'd2', label: 'Luz 2', kind: 'device' }
       ],
       originalPrompt: 'prende la luz',
+      source: 'context_room',
       timestamp: new Date().toISOString()
     });
     
@@ -300,6 +306,91 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Encendí Luz 1');
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('12.5 clicking an option with pendingAction executes directly and bypasses shadow', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
+    const d1 = createTestDevice({ id: 'd1', name: 'Luz 1', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findDeviceById.mockResolvedValue(d1);
+    mockMemory.getShortTermMemory.mockResolvedValue({
+      lastQueryType: 'clarification',
+      source: 'context_room',
+      timestamp: new Date().toISOString()
+    });
+
+    const res = await service.converse({
+      prompt: 'Selected: Luz 1',
+      userId: 'u1',
+      selectedOptionId: 'd1',
+      pendingAction: {
+        command: 'turn_on',
+        originalPrompt: 'prende la luz'
+      }
+    }, 'es');
+
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Encendí Luz 1');
+    expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+    // Verify log source
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[ASSISTANT_SELECTION_EXECUTED]'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"source":"ui_option"'));
+    consoleSpy.mockRestore();
+  });
+
+  it('12.6 clicking an option without pendingAction but memory source context_room reconstructs command', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
+    const d1 = createTestDevice({ id: 'd1', name: 'Luz 1', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findDeviceById.mockResolvedValue(d1);
+    mockMemory.getShortTermMemory.mockResolvedValue({
+      lastQueryType: 'clarification',
+      source: 'context_room',
+      originalPrompt: 'prende la luz',
+      timestamp: new Date().toISOString()
+    });
+
+    const res = await service.converse({
+      prompt: 'Selected: Luz 1',
+      userId: 'u1',
+      selectedOptionId: 'd1'
+      // pendingAction is missing
+    }, 'es');
+
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Encendí Luz 1');
+    expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"source":"ui_option"'));
+    consoleSpy.mockRestore();
+  });
+
+  it('12.7 typing candidate name after context clarification executes directly and bypasses shadow', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
+    const d1 = createTestDevice({ id: 'd1', name: 'Luz Mesa', type: 'light', roomId: 'r1' });
+    const d2 = createTestDevice({ id: 'd2', name: 'Luz Techo', type: 'light', roomId: 'r1' });
+    
+    mockMemory.getShortTermMemory.mockResolvedValue({
+      lastQueryType: 'clarification',
+      clarificationOptions: [
+        { id: 'd1', label: 'Luz Mesa', kind: 'device' },
+        { id: 'd2', label: 'Luz Techo', kind: 'device' }
+      ],
+      originalPrompt: 'prende la luz',
+      source: 'context_room',
+      timestamp: new Date().toISOString()
+    });
+    
+    mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(id === 'd1' ? d1 : d2));
+    
+    const res = await service.converse({ prompt: 'luz mesa', userId: 'u1' }, 'es');
+    
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Encendí Luz Mesa');
+    expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"source":"text_selection"'));
+    consoleSpy.mockRestore();
   });
 
   it('13. "turn off the light" with sourceRoomId executes directly in English', async () => {

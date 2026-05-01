@@ -20,6 +20,7 @@ export interface AssistantMemoryState {
   lastQueryType: string;
   entities: AssistantMemoryEntity[];
   timestamp: string;
+  source?: string;
   
   /** Action waiting for user confirmation (yes/no) */
   pendingIntent?: Intent & { timestamp: string };
