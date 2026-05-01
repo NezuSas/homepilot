@@ -61,6 +61,7 @@ export interface AssistantConverseRequest {
     originalPrompt: string;
   };
   confirmed?: boolean;
+  sourceRoomId?: string;
 }
 
 export interface RoomAliasResolution {
@@ -454,6 +455,12 @@ export class AssistantConversationService {
       // Fast-Path is deterministic and already acts as the production comparison baseline;
       // shadow is skipped to avoid unnecessary local LLM CPU load.
       return fastPathResponse;
+    }
+
+    // C.-1.7) Context-Aware Room Fast Path
+    const contextRoomFastPath = await this.attemptContextRoomFastPathExecution(activePrompt, request.sourceRoomId, userId, userName, language, aliases);
+    if (contextRoomFastPath) {
+      return contextRoomFastPath;
     }
 
     // V2: Follow-up Resolution
@@ -1002,8 +1009,14 @@ export class AssistantConversationService {
 
   private inferCommandFromPrompt(prompt: string): DeviceCommandV1 | undefined {
     const normalized = this.normalizePrompt(prompt);
-    if (normalized.includes('apaga') || normalized.includes('off') || normalized.includes('cierra')) return 'turn_off';
-    if (normalized.includes('enciende') || normalized.includes('prende') || normalized.includes('on') || normalized.includes('abre')) return 'turn_on';
+    // Explicit keywords
+    if (normalized.includes('apaga') || normalized.includes('off') || normalized.includes('cierra') || normalized.includes('close')) return 'turn_off';
+    if (normalized.includes('enciende') || normalized.includes('prende') || normalized.includes('on') || normalized.includes('abre') || normalized.includes('open')) return 'turn_on';
+    
+    // English phrases
+    if (normalized.includes('turn off')) return 'turn_off';
+    if (normalized.includes('turn on')) return 'turn_on';
+    
     return undefined;
   }
 
@@ -3761,5 +3774,161 @@ export class AssistantConversationService {
         : (language === 'en' ? "Execution failed." : "La ejecución falló."),
       execution: execResult
     };
+  }
+
+  private async attemptContextRoomFastPathExecution(
+    prompt: string,
+    sourceRoomId: string | undefined,
+    userId: string,
+    userName: string | null,
+    language: string,
+    aliases: Record<string, string>
+  ): Promise<AssistantConversationResponse | null> {
+    if (!sourceRoomId) return null;
+
+    const normalized = this.normalizePrompt(prompt);
+    const vagueMatch = this.isVagueLightCommand(normalized, language);
+    if (!vagueMatch) return null;
+
+    // 2. Explicit target guard (MANDATORY)
+    const [rooms, devices] = await Promise.all([
+      this.roomRepository.findAll(),
+      this.deviceRepository.findAll()
+    ]);
+
+    // Ensure prompt does not contain explicit room names
+    for (const room of rooms) {
+      if (normalized.includes(this.normalizePrompt(room.name))) return null;
+    }
+    // Ensure prompt does not contain explicit device names
+    for (const device of devices) {
+      if (normalized.includes(this.normalizePrompt(device.name))) return null;
+    }
+    // Ensure prompt does not contain user-defined aliases
+    for (const alias of Object.keys(aliases)) {
+      if (normalized.includes(this.normalizePrompt(alias))) return null;
+    }
+
+    // 3. Contextual Resolution
+    const targetRoom = rooms.find(r => r.id === sourceRoomId);
+    if (!targetRoom) return null;
+
+    const roomDevices = devices.filter(d => d.roomId === sourceRoomId);
+    const lights = roomDevices.filter(d => {
+      // Exclude only explicitly unavailable devices
+      const isAvailable = d.lastKnownState?.state !== 'unavailable';
+      if (!isAvailable) return false;
+
+      const isLightType = d.type === 'light';
+      const nameLower = d.name.toLowerCase();
+      const hasLightKeyword = nameLower.includes('luz') || nameLower.includes('light') || 
+                              nameLower.includes('foco') || nameLower.includes('lampara') || 
+                              nameLower.includes('lámpara');
+      return isLightType || hasLightKeyword;
+    });
+
+    if (lights.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en' ? "I didn't find controllable lights in this room." : "No encontré luces controlables en esta estancia."
+      };
+    }
+
+    let selectedLight: Device | null = null;
+    let reason: 'single_light' | 'primary_match' = 'single_light';
+
+    if (lights.length === 1) {
+      selectedLight = lights[0];
+      reason = 'single_light';
+    } else {
+      selectedLight = this.findPrimaryLight(lights);
+      reason = 'primary_match';
+    }
+
+    if (!selectedLight) {
+      // Ambiguity: DO NOT guess, MUST return clarification
+      const clarificationOptions = lights.map(l => ({ id: l.id, label: l.name, kind: 'device' as const }));
+      
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'clarification',
+        entities: lights.map(l => ({ id: l.id, name: l.name, type: l.type, roomId: l.roomId })),
+        clarificationOptions,
+        originalPrompt: prompt,
+        timestamp: new Date().toISOString()
+      });
+
+      return {
+        type: 'clarification',
+        message: language === 'en' 
+          ? "I found multiple lights in this room. Which one do you want to control?" 
+          : "Encontré varias luces en esta estancia. ¿Cuál quieres controlar?",
+        clarification: {
+          question: language === 'en' ? "Which one?" : "¿Cuál?",
+          options: clarificationOptions
+        }
+      };
+    }
+
+    // 4. Execution
+    const execResult = await this.executeSingleCommand(selectedLight.id, vagueMatch.command, prompt, `context-${Date.now()}`);
+    
+    if (execResult.status === 'success') {
+      await this.clearPendingAction(userId);
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'command',
+        entities: [{ id: selectedLight.id, name: selectedLight.name, type: selectedLight.type, roomId: selectedLight.roomId }],
+        timestamp: new Date().toISOString()
+      });
+
+      console.info(`[ASSISTANT_CONTEXT_ROOM_RESOLVED] ${JSON.stringify({
+        sourceRoomId,
+        roomName: targetRoom.name,
+        deviceId: selectedLight.id,
+        deviceName: selectedLight.name,
+        command: vagueMatch.command,
+        reason
+      })}`);
+
+      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ 
+        source: 'context_room', 
+        deviceId: selectedLight.id, 
+        deviceName: selectedLight.name,
+        roomId: targetRoom.id,
+        roomName: targetRoom.name
+      })}`);
+
+      const msg = this.buildCommandSuccessMessage(vagueMatch.command, selectedLight.name, userName, language);
+
+      return {
+        type: 'execution',
+        message: msg,
+        execution: execResult
+      };
+    }
+
+    return null;
+  }
+
+  private isVagueLightCommand(normalized: string, language: string): { command: DeviceCommandV1 } | null {
+    const isEs = language === 'es';
+    if (isEs) {
+      if (normalized === 'prende la luz' || normalized === 'enciende la luz' || normalized === 'prende luces' || normalized === 'enciende luces') return { command: 'turn_on' };
+      if (normalized === 'apaga la luz' || normalized === 'apaga luces') return { command: 'turn_off' };
+    } else {
+      if (normalized === 'turn on the light' || normalized === 'turn on lights') return { command: 'turn_on' };
+      if (normalized === 'turn off the light' || normalized === 'turn off lights') return { command: 'turn_off' };
+    }
+    return null;
+  }
+
+  private findPrimaryLight(lights: Device[]): Device | null {
+    const primaryKeywords = ['principal', 'main', 'techo', 'ceiling'];
+    const candidates = lights.filter(l => {
+      const nameLower = l.name.toLowerCase();
+      return primaryKeywords.some(kw => nameLower.includes(kw));
+    });
+
+    if (candidates.length === 1) return candidates[0];
+    return null;
   }
 }
