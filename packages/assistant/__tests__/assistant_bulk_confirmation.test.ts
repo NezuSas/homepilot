@@ -81,11 +81,10 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     const res = await service.converse({ prompt: 'prende las luces', userId: 'u1' }, 'es');
 
     expect(res.type).toBe('clarification');
-    expect(res.message).toContain('Encontré 3 dispositivos');
+    expect(res.message).toContain('En qué estancia quieres controlar la luz');
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingBulkAction: expect.objectContaining({
-        type: 'bulk_action',
-        deviceIds: ['d1', 'd2', 'd3'],
+      pendingIntent: expect.objectContaining({
+        type: 'command',
         command: 'turn_on'
       })
     }));
@@ -104,7 +103,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     const res = await service.converse({ prompt: 'apaga luces', userId: 'u1' }, 'es');
 
     expect(res.type).toBe('clarification');
-    expect(res.message).toContain('Encontré 1 dispositivos');
+    expect(res.message).toContain('En qué estancia quieres controlar la luz');
   });
 
   it('executes all devices when confirmed with "sí"', async () => {

@@ -78,11 +78,10 @@ export const createMockDeviceRepository = (overrides?: Partial<jest.Mocked<Devic
 export const createMockRoomRepository = (overrides?: Partial<jest.Mocked<RoomRepository>>): jest.Mocked<RoomRepository> => ({
   findAll: jest.fn().mockResolvedValue([]),
   findRoomsByHomeId: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findRoomById: jest.fn().mockResolvedValue(null),
+  saveRoom: jest.fn().mockResolvedValue(undefined),
   ...overrides
-} as jest.Mocked<RoomRepository>);
+} as any);
 
 export const createMockSceneRepository = (overrides?: Partial<jest.Mocked<SceneRepository>>): jest.Mocked<SceneRepository> => ({
   findAll: jest.fn().mockResolvedValue([]),

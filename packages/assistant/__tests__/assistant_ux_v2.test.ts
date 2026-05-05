@@ -91,19 +91,21 @@ describe('AssistantConversationService UX V2', () => {
       reason: 'Global command',
       summary: 'Turning off everything'
     });
-    deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', homeId: 'h1' })]);
+    const testDevice = createTestDevice({ id: 'd1', homeId: 'h1' });
+    deviceRepo.findAll.mockResolvedValue([testDevice]);
+    deviceRepo.findDeviceById.mockResolvedValue(testDevice);
     sceneExecutionService.execute.mockResolvedValue({ status: 'success', sceneId: 'global', actions: [] });
 
     const res1 = await service.converse({ prompt, userId });
     
     expect(res1.type).toBe('clarification');
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: expect.objectContaining({ command: 'turn_off' })
+      pendingBulkAction: expect.objectContaining({ command: 'turn_off' })
     }));
 
     // 2. Positive confirmation
     memory.getShortTermMemory.mockResolvedValue({
-      pendingIntent: { type: 'command', deviceId: 'all', command: 'turn_off', prompt, timestamp: new Date().toISOString() },
+      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt, timestamp: new Date().toISOString(), originalPrompt: prompt },
       timestamp: new Date().toISOString(),
       entities: []
     });
@@ -117,7 +119,7 @@ describe('AssistantConversationService UX V2', () => {
   it('apaga todo: should cancel on "no"', async () => {
     const userId = 'u1';
     memory.getShortTermMemory.mockResolvedValue({
-      pendingIntent: { type: 'command', deviceId: 'all', command: 'turn_off', prompt: 'apaga todo', timestamp: new Date().toISOString() },
+      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt: 'apaga todo', timestamp: new Date().toISOString(), originalPrompt: 'apaga todo' },
       timestamp: new Date().toISOString(),
       entities: []
     });
@@ -128,7 +130,7 @@ describe('AssistantConversationService UX V2', () => {
     expect(res.message).toContain('cancelada');
     // Verify memory cleanup
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: undefined
+      pendingBulkAction: undefined
     }));
   });
 
@@ -137,7 +139,7 @@ describe('AssistantConversationService UX V2', () => {
     const expiredDate = new Date(Date.now() - 400000).toISOString(); // > 6 mins
     
     memory.getShortTermMemory.mockResolvedValue({
-      pendingIntent: { type: 'command', deviceId: 'all', command: 'turn_off', prompt: 'apaga todo', timestamp: expiredDate },
+      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt: 'apaga todo', timestamp: expiredDate, originalPrompt: 'apaga todo' },
       timestamp: new Date().toISOString(),
       entities: []
     });
@@ -150,14 +152,14 @@ describe('AssistantConversationService UX V2', () => {
     
     // Should have cleared memory
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: undefined
+      pendingBulkAction: undefined
     }));
   });
 
   it('new intent: should clear pending actions to avoid context mixing', async () => {
     const userId = 'u1';
     memory.getShortTermMemory.mockResolvedValue({
-      pendingIntent: { type: 'command', deviceId: 'all', command: 'turn_off', prompt: 'apaga todo', timestamp: new Date().toISOString() },
+      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt: 'apaga todo', timestamp: new Date().toISOString(), originalPrompt: 'apaga todo' },
       timestamp: new Date().toISOString(),
       entities: []
     });
@@ -169,13 +171,14 @@ describe('AssistantConversationService UX V2', () => {
       prompt: 'enciende luz'
     });
     confirmationPolicy.evaluate.mockResolvedValue({ requiresConfirmation: false });
-    deviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'light-1', name: 'Luz' }));
-    deviceRepo.findAll.mockResolvedValue([]);
-
-    await service.converse({ prompt: 'enciende luz', userId });
+    deviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'light-1', name: 'Luz Sala' }));
+    deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', name: 'Luz Sala' })]);
 
     // Should have cleared previous pending intent before executing new one
+    await service.converse({ prompt: 'enciende luz sala', userId });
+
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
+      pendingBulkAction: undefined,
       pendingIntent: undefined
     }));
   });

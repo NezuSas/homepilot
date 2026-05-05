@@ -107,10 +107,14 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       reason: 'unknown'
     });
 
-    await service.converse({ prompt: 'enciende luz', userId: 'u1' }, 'es');
+    const response = await service.converse({ prompt: 'enciende luz', userId: 'u1' }, 'es');
     
-    // Fast path skipped, so intent runs and shadow runs
-    expect(mockShadowService.runShadow).toHaveBeenCalled();
+    // Safety Gate V2 blocks vague "enciende luz" and asks for room
+    expect(response.type).toBe('clarification');
+    expect(response.message).toContain('En qué estancia');
+    
+    // Shadow should NOT run for blocked safety gate cases
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   describe('Deterministic Query Shadow Bypass', () => {

@@ -143,7 +143,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
     mockDispatcher.dispatch.mockResolvedValue(undefined);
     mockMemory.saveShortTermMemory.mockClear();
 
-    await service.converse({ prompt: 'enciende la luz', userId: 'user-1' }, 'es');
+    await service.converse({ prompt: 'enciende luz sala', userId: 'user-1' }, 'es');
 
     // Give fire-and-forget a tick to settle
     await new Promise(r => setTimeout(r, 20));
@@ -398,6 +398,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
       });
       mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-cocina', name: 'Luz Cocina' }));
 
+      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'dev-cocina', name: 'Luz Cocina' })]);
       const response = await serviceWithV2.converse({ prompt: 'enciende la cocina', userId: 'u1' }, 'es');
 
       expect(response.type).toBe('execution');

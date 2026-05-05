@@ -74,12 +74,12 @@ describe('Assistant Proactive Suggestions', () => {
     };
     
     mockSuggestion.getSuggestion.mockResolvedValue(suggestion);
-    mockInterpreter.interpret.mockResolvedValue({ type: 'command', deviceId: 'dev-1', command: 'turn_on', prompt: 'prende la luz magica' });
+    mockInterpreter.interpret.mockResolvedValue({ type: 'command', deviceId: 'dev-1', command: 'turn_on', prompt: 'prende luz sala' });
     mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'dev-1', name: 'Luz Sala' })]);
     mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-1', name: 'Luz Sala' }));
 
     const request = {
-        prompt: 'prende la luz magica',
+        prompt: 'prende luz sala',
         userId: 'u1'
       };
     const response = await service.converse(request, 'es');
@@ -102,7 +102,7 @@ describe('Assistant Proactive Suggestions', () => {
     // Force an error from interpretation
     mockInterpreter.interpret.mockResolvedValue({ type: 'failure', message: 'Error' });
 
-    const response = await service.converse({ prompt: 'prende algo' }, 'es');
+    const response = await service.converse({ prompt: 'prende luz sala' }, 'es');
     
     expect(response.type).toBe('error');
     expect(response.message).not.toContain('💡');

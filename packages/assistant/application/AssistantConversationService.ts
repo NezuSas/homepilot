@@ -98,8 +98,8 @@ function isIntent(value: unknown): value is Intent {
   return typeof v.type === 'string' && validTypes.includes(v.type) && typeof v.prompt === 'string';
 }
 
-function isClarificationKind(value: unknown): value is 'device' | 'scene' {
-  return value === 'device' || value === 'scene';
+function isClarificationKind(value: unknown): value is 'device' | 'scene' | 'alias_target' | 'room' {
+  return value === 'device' || value === 'scene' || value === 'alias_target' || value === 'room';
 }
 
 // --- LANGUAGE INTELLIGENCE V1 ---
@@ -188,547 +188,205 @@ export class AssistantConversationService {
     const t0 = Date.now();
     const prompt = request.prompt.trim();
     let activePrompt = prompt;
-    // FALLBACK: 'system' is used for anonymous requests or background automated actions.
-    // In a multi-home production environment, userId should be mandatory for state-changing intents.
     const userId = request.userId || 'system';
     const userName = request.userName?.trim() || null;
     const namePrefix = userName ? `${userName}, ` : '';
     const normalized = this.normalizePrompt(prompt);
 
-    // V2: Load Contextual Memory & Aliases FIRST (includes stored language preference)
-    const t_mem = Date.now();
+    // V2: Load Contextual Memory & Aliases FIRST
     const [memory, aliases, storedLangPref] = await Promise.all([
       this.memoryService.getShortTermMemory(userId),
       this.memoryService.getAliases(userId),
       this.memoryService.getUserPreference(userId, 'preferred_language')
     ]);
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug(`[AssistantConversation] Memory load took ${Date.now() - t_mem}ms`);
-    }
 
     // --- LANGUAGE INTELLIGENCE V1 ---
-    // 1. Check explicit override command (highest priority — early return)
     const langOverride = isLanguageOverrideCommand(normalized);
     if (langOverride !== null) {
       await this.memoryService.setUserPreference(userId, 'preferred_language', langOverride);
       return {
         type: 'answer',
-        message: langOverride === 'en'
-          ? "Got it. I'll speak in English from now on."
-          : "Perfecto. A partir de ahora hablaré en español."
+        message: langOverride === 'en' ? "Got it. I'll speak in English from now on." : "Perfecto. A partir de ahora hablaré en español."
       };
     }
-    // 2. Resolve language: auto-detect > stored preference > API hint > default
     const detectedLang = detectLanguage(prompt);
     const storedValidLang: 'es' | 'en' = storedLangPref === 'en' ? 'en' : (_langHint === 'en' ? 'en' : 'es');
     const language: 'es' | 'en' = detectedLang ?? storedValidLang;
-    // 3. Persist resolved language asynchronously (fire-and-forget)
     this.memoryService.setUserPreference(userId, 'preferred_language', language).catch(() => {});
 
-    // --- TOP PRIORITY: MANAGEMENT CONFIRMATION ---
+    // --- 1. PENDING CONFIRMATIONS / SELECTED OPTION ---
+    // A) Management Confirmation
     if (memory?.pendingManagementAction) {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
-
-      if (isAffirmative) {
-        return this.returnWithShadow(activePrompt, userId, language, await this.executeManagementAction(memory.pendingManagementAction, userId, language));
-      } else if (isNegative) {
-        await this.clearPendingAction(userId);
-        return this.returnWithShadow(activePrompt, userId, language, {
-          type: 'answer',
-          message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-        });
-      }
+      if (isAffirmative) return this.returnWithShadow(activePrompt, userId, language, await this.executeManagementAction(memory.pendingManagementAction, userId, language));
+      if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }); }
     }
 
-    // --- ALIAS DELETE CONFIRMATION ---
+    // B) Alias Delete Confirmation
     if (memory?.pendingAliasDelete) {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
-
-      if (isAffirmative) {
-        await this.memoryService.deleteAlias(userId, memory.pendingAliasDelete.alias);
-        await this.clearPendingAction(userId);
-        console.info(`[ASSISTANT_USER_ALIAS_DELETED] ${JSON.stringify({ userId, alias: memory.pendingAliasDelete.alias })}`);
-        return {
-          type: 'answer',
-          message: language === 'en' 
-            ? `Done, I deleted the alias '${memory.pendingAliasDelete.alias}'.` 
-            : `Listo, eliminé el alias '${memory.pendingAliasDelete.alias}'.`
-        };
-      } else if (isNegative) {
-        await this.clearPendingAction(userId);
-        console.info(`[ASSISTANT_USER_ALIAS_DELETE_CANCELLED] ${JSON.stringify({ userId, alias: memory.pendingAliasDelete.alias })}`);
-        return {
-          type: 'answer',
-          message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-        };
-      }
+      if (isAffirmative) { await this.memoryService.deleteAlias(userId, memory.pendingAliasDelete.alias); await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? `Done, I deleted the alias '${memory.pendingAliasDelete.alias}'.` : `Listo, eliminé el alias '${memory.pendingAliasDelete.alias}'.` }; }
+      if (isNegative) { await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }; }
     }
 
-    // --- V2: Bulk Action Confirmation Flow ---
+    // C) Bulk Action Confirmation
     if (memory?.pendingBulkAction) {
-      if (this.isBulkActionAccept(normalized)) {
-        return await this.handleBulkActionAccept(userId, language, memory.pendingBulkAction);
-      }
-      if (this.isBulkActionReject(normalized)) {
-        return await this.handleBulkActionReject(userId, language, memory.pendingBulkAction);
-      }
-    }
-    
-    // --- PRE-INTENT: PRONOUN RESOLUTION ("apágala", etc.) ---
-    // Pronoun resolution from memory is deterministic and must run before Planner V2.
-    const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
-    if (pronounIntent) {
-      if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') {
-        return this.returnWithShadow(activePrompt, userId, language, {
-          type: 'clarification',
-          message: language === 'en' ? "I found several options for that. Which one do you mean?" : "Encontré varias opciones para eso. ¿A cuál te refieres?",
-          clarification: {
-            question: language === 'en' ? "Which one?" : "¿Cuál?",
-            options: pronounIntent.options.map(opt => ({ 
-              ...opt, 
-              kind: isClarificationKind(opt.kind) ? opt.kind : 'device' 
-            }))
-          }
-        });
-      }
-      if (isIntent(pronounIntent)) {
-        return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
+      const now = Date.now();
+      const pendingTime = new Date(memory.pendingBulkAction.timestamp).getTime();
+      if (now - pendingTime < 300000) {
+        if (this.isBulkActionAccept(normalized)) return await this.handleBulkActionAccept(userId, language, memory.pendingBulkAction);
+        if (this.isBulkActionReject(normalized)) return await this.handleBulkActionReject(userId, language, memory.pendingBulkAction);
+      } else {
+        await this.clearPendingAction(userId);
       }
     }
 
-    // --- SECOND PRIORITY: DRAFT CONFIRMATION ---
-    // Handle both UI button clicks (selectedOptionId='confirm'/'cancel') and natural language ("sí", "no")
+    // D) Draft Confirmation
     if (memory?.pendingDraft) {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
-
       if (isAffirmative) {
-        try {
-          await this.draftService.activateDraft(memory.pendingDraft.id, userId);
-          await this.clearPendingAction(userId);
-          return this.returnWithShadow(activePrompt, userId, language, {
-            type: 'answer',
-            message: language === 'en' ? "Ready. Scene activated successfully." : "Listo. Escena activada correctamente."
-          });
-        } catch (err: unknown) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn('[AssistantConversation] Error activating draft:', err);
-          }
-          return this.returnWithShadow(activePrompt, userId, language, {
-            type: 'error',
-            message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena."
-          });
-        }
-      } else if (isNegative) {
-        await this.clearPendingAction(userId);
-        return this.returnWithShadow(activePrompt, userId, language, {
-          type: 'answer',
-          message: language === 'en' ? "Understood, I didn't activate the scene." : "Entendido, no activé la escena."
-        });
+        try { await this.draftService.activateDraft(memory.pendingDraft.id, userId); await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Ready. Scene activated successfully." : "Listo. Escena activada correctamente." }); }
+        catch (err: unknown) { return this.returnWithShadow(activePrompt, userId, language, { type: 'error', message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena." }); }
       }
+      if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Understood, I didn't activate the scene." : "Entendido, no activé la escena." }); }
     }
 
-    // A) Selected Option Flow
+    // E) Selected Option Flow (UI clicks)
     if (request.selectedOptionId) {
       if (memory?.pendingIntent && (request.selectedOptionId === 'confirm' || request.selectedOptionId === 'cancel')) {
-        if (request.selectedOptionId === 'confirm') {
-          request.confirmed = true;
-          const intent = memory.pendingIntent;
-          return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory));
-        } else {
-          await this.clearPendingAction(userId);
-          return this.returnWithShadow(activePrompt, userId, language, {
-            type: 'answer',
-            message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-          });
+        if (request.selectedOptionId === 'confirm') { request.confirmed = true; return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory)); }
+        else { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }); }
+      }
+      return await this.handleSelection(request, language);
+    }
+
+    // F) Natural Language Confirmations (Yes/No)
+    if (this.isConfirmation(normalized)) {
+      if (memory?.pendingIntent) {
+        const now = Date.now();
+        const pendingTime = new Date(memory.pendingIntent.timestamp).getTime();
+        if (now - pendingTime < 300000) {
+          if (this.isPositiveConfirmation(normalized)) { request.confirmed = true; return await this.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory); }
+          else if (this.isNegativeConfirmation(normalized)) { await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }; }
         }
       }
-
-      // Context-aware or deterministic selection path
-      const result = await this.handleSelection(request, language);
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] converse() selection path: ${Date.now() - t0}ms`);
+      const pendingSuggestion = memory?.pendingSuggestion;
+      if (isPendingSuggestion(pendingSuggestion)) {
+        if (this.isSuggestionAccept(normalized)) return await this.handleSuggestionAccept(userId, language, pendingSuggestion);
+        if (this.isSuggestionReject(normalized)) return await this.handleSuggestionReject(userId, language, pendingSuggestion);
+        if (this.isSuggestionPostpone(normalized)) return await this.handleSuggestionPostpone(userId, language, pendingSuggestion);
       }
-      return result;
+      if (this.isPositiveConfirmation(normalized)) return { type: 'answer', message: language === 'en' ? "Confirm what? I don't have any pending actions." : "¿Confirmar qué? No tengo ninguna acción pendiente." };
     }
 
-    // --- DETERMINISTIC GLOBAL ROUTES (Highest Priority after Confirmations) ---
-    if (this.isGreeting(normalized)) {
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. You can ask what is on or ask me to control a light, scene, or device.`
-          : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Puedes preguntarme qué está encendido o pedirme que controle alguna luz, escena o dispositivo.`
-      };
+    // --- 2. NATURAL-LANGUAGE CLARIFICATION SELECTION FROM MEMORY ---
+    if (memory?.clarificationOptions && memory.clarificationOptions.length > 0) {
+      let selectionPrompt = normalized;
+      if (normalized.startsWith('y ') || normalized.startsWith('and ')) selectionPrompt = normalized.substring(normalized.startsWith('y ') ? 2 : 4).trim();
+      const selectedId = this.resolveSelectionFromMemory(selectionPrompt, memory.clarificationOptions, language);
+      if (selectedId) {
+        const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
+        let command = memory.pendingIntent?.type === 'command' ? memory.pendingIntent.command : undefined;
+        if (!command) command = this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
+        if (command) { request.pendingAction = { command, targetId: selectedId, originalPrompt: memory.originalPrompt || prompt }; return await this.handleSelection(request, language); }
+        else {
+          await this.memoryService.saveShortTermMemory(userId, { ...memory, entities: [{ id: selectedId, name: selectedOption?.label || 'Selected', type: 'device', roomId: null }], timestamp: new Date().toISOString() });
+          return { type: 'answer', message: language === 'en' ? `I've selected ${selectedOption?.label}. What would you like to do with it?` : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?` };
+        }
+      }
     }
 
-    if (this.isWellnessQuery(normalized)) {
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `I'm operating normally${userName ? ', ' + userName : ''}. The system is stable. Would you like me to check something in your home?`
-          : `Estoy funcionando correctamente${userName ? ', ' + userName : ''}. Todo el sistema está estable. ¿Quieres que revise algo en tu casa?`
-      };
+    // --- PRE-INTENT: PRONOUN RESOLUTION ---
+    const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
+    if (pronounIntent) {
+      if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') return { type: 'clarification', message: language === 'en' ? "I found several options for that. Which one do you mean?" : "Encontré varias opciones para eso. ¿A cuál te refieres?", clarification: { question: language === 'en' ? "Which one?" : "¿Cuál?", options: pronounIntent.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' })) } };
+      if (isIntent(pronounIntent)) return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
     }
 
-    if (normalized === 'como te llamas' || 
-        normalized === 'quien eres' || 
-        normalized === 'quién eres' ||
-        this.isNameQuery(normalized)) {
-      return {
-        type: 'answer',
-        message: language === 'en' 
-          ? "My name is HomePilot. I’m your local home assistant, designed to help you check, control, and understand your devices safely." 
-          : "Me llamo HomePilot. Soy el asistente local de tu casa, diseñado para ayudarte a consultar, controlar y entender tus dispositivos de forma segura."
-      };
-    }
-
-    if (this.isCompanyQuery(normalized)) {
-      return this.handleCompanyInfoQuery(language);
-    }
-
-    if (this.isPresentation(normalized)) {
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? "I can help you see what is on or off, control lights and devices, run scenes, ask for confirmation when an action is sensitive, and explain what happened if something fails."
-          : "Puedo ayudarte a saber qué está encendido o apagado, controlar luces y dispositivos, ejecutar escenas, pedir confirmación cuando una acción sea delicada y explicarte si algo falla."
-      };
-    }
-
-    if (this.isHelpQuery(normalized)) {
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? "You can ask me things like: \"which lights are on?\", \"turn off the kitchen light\", or \"activate movie scene\". I'm here to help you manage your home locally."
-          : "Puedes preguntarme cosas como: \"qué luces están encendidas?\", \"apaga la luz de la cocina\", o \"activa la escena cine\". Estoy aquí para ayudarte a gestionar tu casa de forma local."
-      };
-    }
-
-    if (this.isDateTimeQuery(normalized)) {
-      return await this.handleDateTimeQuery(normalized, language);
-    }
-
-    // --- ALIAS MANAGEMENT (Deterministic Routes) ---
-    if (this.isAliasListQuery(normalized)) {
-      return await this.handleAliasList(userId, language);
-    }
-    
+    // --- 3. ALIAS MANAGEMENT ---
+    if (this.isAliasListQuery(normalized)) return await this.handleAliasList(userId, language);
     const meaningAlias = this.extractAliasMeaningQuery(normalized);
-    if (meaningAlias) {
-      return await this.handleAliasMeaning(userId, meaningAlias, language);
-    }
-
+    if (meaningAlias) return await this.handleAliasMeaning(userId, meaningAlias, language);
     const deleteAliasReq = this.extractAliasDeleteRequest(normalized);
-    if (deleteAliasReq) {
-      return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
-    }
+    if (deleteAliasReq) return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
+    if (this.isAliasCreation(normalized)) return await this.handleAliasCreation(normalized, userId, language);
 
-    // G2) Alias Creation Commands
-    if (this.isAliasCreation(normalized)) {
-      console.info(`[ASSISTANT_USER_ALIAS_CREATE_DETECTED] ${JSON.stringify({ prompt, userId })}`);
-      return await this.handleAliasCreation(normalized, userId, language);
-    }
-
-    // C.-2) Room Bulk Fast Path
+    // --- 4. ROOM BULK FAST-PATH ---
     const roomBulk = this.isRoomBulkFastPath(normalized);
-    if (roomBulk) {
-      return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, language, aliases);
-    }
+    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, language, aliases);
 
-    // C.-1) Deterministic Bulk Fast-Path (all lights, etc.)
-    if (this.isBulkFastPath(normalized)) {
-      const bulkResponse = await this.handleBulkFastPath(normalized, language, userId);
-      if (bulkResponse) return bulkResponse;
-    }
+    // --- 5. GLOBAL BULK FAST-PATH ---
+    if (this.isBulkFastPath(normalized)) { const bulkResponse = await this.handleBulkFastPath(normalized, language, userId); if (bulkResponse) return bulkResponse; }
 
-    // C.-1.5) Device Alias Fast Path
+    // --- DETERMINISTIC GENERAL ROUTES ---
+    if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home.` : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa.` };
+    if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `I'm operating normally.` : `Estoy funcionando correctamente.` };
+    if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "My name is HomePilot." : "Me llamo HomePilot." };
+    if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
+    if (this.isHelpQuery(normalized)) return { type: 'answer', message: language === 'en' ? "I can control your home devices." : "Puedo controlar los dispositivos de tu casa." };
+    if (this.isPresentation(normalized)) return { type: 'answer', message: language === 'en' ? "I am your local assistant, I can help you see what is on and control your devices." : "Soy el asistente local de HomePilot. Puedo ayudarte a saber qué está encendido y a controlar tus dispositivos." };
+    if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
+
+    // --- 6. DEVICE ALIAS FAST-PATH ---
     const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
-    if (deviceAliasFastPath) {
-      return deviceAliasFastPath;
-    }
+    if (deviceAliasFastPath) return deviceAliasFastPath;
 
-    // C.-1) Deterministic Fast-Path Execution Attempt
+    // --- 7. EXACT/STRONG FAST-PATH ---
     const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
-    if (fastPathResponse) {
-      // Fast-Path is deterministic and already acts as the production comparison baseline;
-      // shadow is skipped to avoid unnecessary local LLM CPU load.
-      return fastPathResponse;
-    }
+    if (fastPathResponse) return fastPathResponse;
 
-    // C.-1.7) Context-Aware Room Fast Path
+    // --- 8. CONTEXT ROOM FAST-PATH ---
     const contextRoomFastPath = await this.attemptContextRoomFastPathExecution(activePrompt, request.sourceRoomId, userId, userName, language, aliases);
-    if (contextRoomFastPath) {
-      return contextRoomFastPath;
-    }
+    if (contextRoomFastPath) return contextRoomFastPath;
 
-    // V2: Follow-up Resolution
+    // --- 9. SAFETY GATE V2 ---
+    const safetyResult = await this.applySafetyGateV2(activePrompt, userId, language, request);
+    if (safetyResult) return safetyResult;
+
+    // --- 10. FOLLOW-UP RESOLVER ---
     activePrompt = prompt;
     let followUp: ResolvedFollowUp = { resolvedPrompt: prompt, handled: false, referencesMemory: false };
+    followUp = this.followUpResolver.resolve(prompt, memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }, language, aliases);
+    if (followUp.handled && followUp.response) return { type: 'answer', message: followUp.response };
+    activePrompt = followUp.resolvedPrompt;
 
-    if (!request.selectedOptionId) {
-      const t_followup = Date.now();
-      
-      // V2: Handle simple "yes/no" or "confirm/cancel" if there is a pending action
-      if (this.isConfirmation(normalized)) {
-        // A1: Check Pending Intent
-        // A1: Check Pending Intent
-        if (memory?.pendingIntent) {
-          const now = Date.now();
-          const pendingTime = new Date(memory.pendingIntent.timestamp).getTime();
-          const isExpired = now - pendingTime > 300000; // 5 minutes
+    // --- 11. PLANNER V2 / V1 FALLBACK ---
+    const resolvedNormalized = this.normalizePrompt(activePrompt);
+    if (this.isEquivalenceQuery(resolvedNormalized)) return this.handleEquivalenceQuery(language);
+    if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language);
+    if (this.isDraftCreation(resolvedNormalized)) return await this.handleDraftCreation(resolvedNormalized, language, userId);
+    if (this.isPointStateQuery(resolvedNormalized)) return await this.handlePointStateQuery(resolvedNormalized, language, userId);
+    if (this.isStateQuery(resolvedNormalized)) return await this.handleStateQuery(resolvedNormalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
+    if (this.isManagementIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language);
+    if (this.isListScenesIntent(resolvedNormalized)) return await this.handleListScenes(language);
+    if (this.isListAutomationsIntent(resolvedNormalized)) return await this.handleListAutomations(language);
+    if (this.isDetailFollowUp(resolvedNormalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) return await this.handleDetailFollowUp(memory, language);
 
-          if (!isExpired) {
-            if (this.isPositiveConfirmation(normalized)) {
-              request.confirmed = true;
-              const intent = memory.pendingIntent;
-              return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent, request, language, userId, userName, memory.originalPrompt || prompt, memory));
-            } else if (this.isNegativeConfirmation(normalized)) {
-              await this.clearPendingAction(userId);
-              return this.returnWithShadow(activePrompt, userId, language, {
-                type: 'answer',
-                message: language === 'en' ? "Action cancelled." : "Acción cancelada."
-              });
-            }
-          } else {
-            // Auto-clear if expired
-            await this.clearPendingAction(userId);
-            return this.returnWithShadow(activePrompt, userId, language, {
-              type: 'answer',
-              message: language === 'en' ? "Action expired, please try again." : "Acción expirada, intenta de nuevo."
-            });
-          }
-        }
+    if (!this.isLikelyHomeControlPrompt(resolvedNormalized)) return this.returnWithShadow(activePrompt, userId, language, await this.smallTalkService.handle(activePrompt, language, userName, userId));
 
-        // --- V2: Suggestion Response Flow (Low priority but above confirmation fallback) ---
-        const pendingSuggestion = memory?.pendingSuggestion;
-        if (isPendingSuggestion(pendingSuggestion)) {
-          if (this.isSuggestionAccept(normalized)) {
-            return this.returnWithShadow(activePrompt, userId, language, await this.handleSuggestionAccept(userId, language, pendingSuggestion));
-          }
-          if (this.isSuggestionReject(normalized)) {
-            return this.returnWithShadow(activePrompt, userId, language, await this.handleSuggestionReject(userId, language, pendingSuggestion));
-          }
-          if (this.isSuggestionPostpone(normalized)) {
-            return this.returnWithShadow(activePrompt, userId, language, await this.handleSuggestionPostpone(userId, language, pendingSuggestion));
-          }
-        }
-
-        // If user says "yes" but nothing is pending
-        if (this.isPositiveConfirmation(normalized)) {
-          return this.returnWithShadow(activePrompt, userId, language, {
-            type: 'answer',
-            message: language === 'en' ? "Confirm what? I don't have any pending actions." : "¿Confirmar qué? No tengo ninguna acción pendiente."
-          });
-        }
-      }
-
-      // V2: Handle clarification selection via natural language (e.g. "la primera", "la de la cocina")
-      if (memory?.clarificationOptions && memory.clarificationOptions.length > 0) {
-        const selectedId = this.resolveSelectionFromMemory(normalized, memory.clarificationOptions, language);
-        if (selectedId) {
-          const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
-          
-          // Reconstruct pending action from memory
-          let command = memory.pendingIntent?.type === 'command' 
-            ? memory.pendingIntent.command
-            : undefined;
-
-          if (!command) {
-            command = this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
-          }
-
-          // Do NOT set selectedOptionId here — this is a text-resolved selection, not a UI click.
-          // handleSelection reads targetId from pendingAction.targetId when selectedOptionId is absent.
-          request.pendingAction = {
-            command,
-            targetId: selectedId,
-            originalPrompt: memory.originalPrompt || prompt
-          };
-
-          if (!command) {
-            // Fallback: Selected but no command inferred
-            await this.memoryService.saveShortTermMemory(userId, {
-              ...memory,
-              entities: [{ 
-                id: selectedId, 
-                name: selectedOption?.label || 'Selected', 
-                type: 'device',
-                roomId: null 
-              }],
-              timestamp: new Date().toISOString()
-            });
-
-            return this.returnWithShadow(activePrompt, userId, language, {
-              type: 'answer',
-              message: language === 'en'
-                ? `I've selected ${selectedOption?.label}. What would you like to do with it?`
-                : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?`
-            });
-          }
-
-          // Deterministic execution for context-aware or command follow-ups
-          const selectionResponse = await this.handleSelection(request, language);
-          return selectionResponse;
-        }
-      }
-
-      // Moved down to respect priority and prevent premature execution
-
-      followUp = this.followUpResolver.resolve(
-        prompt,
-        memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() },
-        language,
-        aliases
-      );
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] FollowUpResolver took ${Date.now() - t_followup}ms`);
-      }
-      if (followUp.handled && followUp.response) {
-        return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: followUp.response });
-      }
-      activePrompt = followUp.resolvedPrompt;
-    }
-
-    // A2) Semantic Equivalence
-    if (this.isEquivalenceQuery(normalized)) {
-      return this.handleEquivalenceQuery(language);
-    }
-
-    // F2) Room Queries (Deterministic)
-    if (this.isRoomQuery(normalized)) {
-      // Deterministic query handlers are production-grade baselines and skip Planner V2 shadow to avoid unnecessary local LLM CPU load.
-      return await this.attachSuggestionIfNeeded(await this.handleRoomQuery(language), userId, language, memory, 'room_query');
-    }
-
-    // G3) Draft Creation (Scenes/Automations) - High priority before state query
-    if (this.isDraftCreation(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.handleDraftCreation(normalized, language, userId));
-    }
-
-    // G) Point State Queries (is X on/off?) - PRIORITY OVER GENERAL STATE
-    if (this.isPointStateQuery(normalized)) {
-      // Deterministic query handlers are production-grade baselines and skip Planner V2 shadow to avoid unnecessary local LLM CPU load.
-      return await this.attachSuggestionIfNeeded(await this.handlePointStateQuery(normalized, language, userId), userId, language, memory, 'state_query');
-    }
-
-    // H) State Queries
-    if (this.isStateQuery(normalized)) {
-      const t_state = Date.now();
-      const result = await this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
-      }
-      // Deterministic query handlers are production-grade baselines and skip Planner V2 shadow to avoid unnecessary local LLM CPU load.
-      return await this.attachSuggestionIfNeeded(result, userId, language, memory, 'state_query');
-    }
-
-    // I) Management Intents (Rename, Toggle, Edit)
-    if (this.isManagementIntent(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.handleManagementIntent(normalized, userId, language));
-    }
-
-    // J) Listing Intents (Scenes, Automations)
-    if (this.isListScenesIntent(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleListScenes(language), userId, language, memory, 'list_query'));
-    }
-    if (this.isListAutomationsIntent(normalized)) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.attachSuggestionIfNeeded(await this.handleListAutomations(language), userId, language, memory, 'list_query'));
-    }
-
-    // F3) Detail Follow-up (Deterministic)
-    if (this.isDetailFollowUp(normalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) {
-      // Detail follow-up is deterministic because it expands the previously saved state query context.
-      return await this.handleDetailFollowUp(memory, language);
-    }
-
-    // Determine if we should attempt intent interpretation or just fallback to small talk directly
-    if (!this.isLikelyHomeControlPrompt(normalized)) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[AssistantConversation] routing=smalltalk');
-      }
-      return this.returnWithShadow(activePrompt, userId, language, await this.smallTalkService.handle(activePrompt, language, userName, userId));
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug('[AssistantConversation] routing=intent');
-    }
-
-    if (['sin funcionar', 'test', 'deprecated'].some(b => normalized.includes(b))) {
-      return {
-        type: 'error',
-        message: language === 'en' 
-          ? "I cannot automatically control a device that is disabled or for testing." 
-          : "No puedo controlar automáticamente un dispositivo de prueba o sin funcionar."
-      };
-    }
-
-    // C.0) V2 Hybrid Execution Attempt (Strict Gate)
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
-    if (v2Response) {
-      return this.returnWithShadow(activePrompt, userId, language, v2Response);
-    }
+    if (v2Response) return this.returnWithShadow(activePrompt, userId, language, v2Response);
 
-    // C) Intent Interpretation (V1 Fallback)
     const intentResult = await this.intentInterpreter.interpret(activePrompt);
-
-    // Handle structured multi-command results
     if (intentResult && 'type' in intentResult) {
-      if (intentResult.type === 'failure') {
-        return { type: 'error', message: intentResult.message };
-      }
+      if (intentResult.type === 'failure') return { type: 'error', message: intentResult.message };
       if (intentResult.type === 'clarificationRequired') {
         const inferredCommand = this.inferCommandFromPrompt(intentResult.originalSegment) || this.inferCommandFromPrompt(activePrompt) || 'turn_on';
-        // Save pending query state so they can say "la primera"
-        await this.memoryService.saveShortTermMemory(userId, {
-          lastQueryType: 'clarification',
-          entities: [],
-          timestamp: new Date().toISOString(),
-          clarificationOptions: intentResult.options,
-          originalPrompt: activePrompt,
-          pendingIntent: {
-            type: 'command',
-            deviceId: '',
-            command: inferredCommand as DeviceCommandV1,
-            prompt: activePrompt,
-            timestamp: new Date().toISOString()
-          }
-        });
-        return this.returnWithShadow(activePrompt, userId, language, {
-          type: 'clarification',
-          message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`,
-          clarification: {
-            question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?",
-            options: intentResult.options.map(opt => ({ 
-              ...opt, 
-              kind: isClarificationKind(opt.kind) ? opt.kind : 'device' 
-            }))
-          }
-        });
+        await this.memoryService.saveShortTermMemory(userId, { lastQueryType: 'clarification', entities: [], timestamp: new Date().toISOString(), clarificationOptions: intentResult.options, originalPrompt: activePrompt, pendingIntent: { type: 'command', deviceId: '', command: inferredCommand as DeviceCommandV1, prompt: activePrompt, timestamp: new Date().toISOString() } });
+        return this.returnWithShadow(activePrompt, userId, language, { type: 'clarification', message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`, clarification: { question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?", options: intentResult.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' })) } });
       }
     }
 
     let intent: Intent;
-    if (intentResult && 'type' in intentResult && intentResult.type === 'success') {
-      intent = intentResult.intent;
-    } else if (isIntent(intentResult)) {
-      intent = intentResult;
-    } else {
-      intent = { type: 'unknown', prompt: activePrompt, reason: 'Invalid interpretation result' };
-    }
+    if (intentResult && 'type' in intentResult && intentResult.type === 'success') intent = intentResult.intent;
+    else if (isIntent(intentResult)) intent = intentResult;
+    else intent = { type: 'unknown', prompt: activePrompt, reason: 'Invalid interpretation result' };
 
-    // V2: If we interpreted a NEW intent, and there was a pending action, clear it to avoid context mixing
-    if (intent && intent.type !== 'unknown' && (memory?.pendingIntent || memory?.pendingDraft)) {
-      await this.clearPendingAction(userId);
-    }
-
-    if (!intent) {
-      return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent({ type: 'unknown', prompt: activePrompt, reason: 'unknown' }, request, language, userId, userName, activePrompt, memory));
-    }
-
-    return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent, request, language, userId, userName, activePrompt, memory));
+    if (intent && intent.type !== 'unknown' && (memory?.pendingIntent || memory?.pendingDraft)) await this.clearPendingAction(userId);
+    return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(intent || { type: 'unknown', prompt: activePrompt }, request, language, userId, userName, activePrompt, memory));
   }
 
   private async executeIntent(
@@ -763,7 +421,7 @@ export class AssistantConversationService {
 
       if (allMatches.length > 1) {
         const targetPhrase = this.extractTargetPhrase(prompt);
-        const isVague = ['la luz', 'las luces', 'luz', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
+        const isVague = ['la luz', 'las luces', 'luz', 'luces', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
         if (isVague && !request.sourceRoomId) {
           return {
             type: 'clarification',
@@ -865,7 +523,7 @@ export class AssistantConversationService {
       });
 
       // Clear pending confirmation if successful
-      this.clearPendingAction(userId).catch(() => {});
+      await this.clearPendingAction(userId);
 
       // Record learning event
       this.learningService.recordSceneUsed(userId, scene, prompt).catch(() => {});
@@ -878,6 +536,24 @@ export class AssistantConversationService {
     }
 
     if (intent.type === 'command') {
+      const preview = await this.confirmationPolicy.evaluate(intent, language);
+      if (preview.requiresConfirmation && !request.confirmed) {
+        const device = await this.deviceRepository.findDeviceById(intent.deviceId);
+        const deviceName = device?.name ?? intent.deviceId;
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'confirmation',
+          entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
+          timestamp: new Date().toISOString(),
+          pendingIntent: { ...intent, timestamp: new Date().toISOString() },
+          originalPrompt: prompt
+        });
+        return { 
+          type: 'clarification', 
+          message: language === 'en' 
+            ? `Are you sure you want to control ${deviceName}?` 
+            : `¿Estás seguro de que quieres controlar ${deviceName}?` 
+        };
+      }
       try {
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
@@ -893,7 +569,7 @@ export class AssistantConversationService {
         }
 
         // Clear pending confirmation
-        this.clearPendingAction(userId).catch(() => {});
+        await this.clearPendingAction(userId);
 
         // Record learning event
         if (device) {
@@ -923,6 +599,31 @@ export class AssistantConversationService {
     }
 
     if (intent.type === 'multi_command') {
+      const preview = await this.confirmationPolicy.evaluate(intent, language);
+      if (preview.requiresConfirmation && !request.confirmed) {
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'confirmation',
+          entities: [],
+          timestamp: new Date().toISOString(),
+          pendingIntent: { ...intent, timestamp: new Date().toISOString() },
+          originalPrompt: prompt
+        });
+        const actionSummary = intent.actions.slice(0, 3).map(a => a.targetName ?? a.deviceId).join(', ');
+        const confirmMsg = language === 'en'
+          ? `Are you sure you want to execute ${intent.actions.length} actions (${actionSummary})?`
+          : `¿Estás seguro de que quieres realizar ${intent.actions.length} acciones (${actionSummary})?`;
+        return { 
+          type: 'clarification', 
+          message: confirmMsg,
+          clarification: {
+            question: language === 'en' ? '¿Are you sure?' : '¿Estás seguro?',
+            options: [
+              { id: 'confirm', label: language === 'en' ? 'Yes, execute all' : 'Sí, ejecutar todo', kind: 'device' as const },
+              { id: 'cancel', label: language === 'en' ? 'No, cancel' : 'No, cancelar', kind: 'device' as const }
+            ]
+          }
+        };
+      }
       try {
         const results = [];
         const entities = [];
@@ -942,7 +643,7 @@ export class AssistantConversationService {
 
         const message = this.formatMultiCommandSummary(results, language);
 
-        this.clearPendingAction(userId).catch(() => {});
+        await this.clearPendingAction(userId);
         this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'command',
           entities,
@@ -1026,10 +727,9 @@ export class AssistantConversationService {
   }
 
   private resolveSelectionFromMemory(text: string, options: { id: string; label: string }[], language: string): string | null {
-    // Requirement B: strip prefixes
-    let normalized = text.toLowerCase().trim();
-    if (normalized.startsWith('seleccione:')) normalized = normalized.replace('seleccione:', '').trim();
-    if (normalized.startsWith('selected:')) normalized = normalized.replace('selected:', '').trim();
+    let normalized = this.normalizePrompt(text);
+    if (normalized.startsWith('seleccione ')) normalized = normalized.replace('seleccione ', '').trim();
+    if (normalized.startsWith('selected ')) normalized = normalized.replace('selected ', '').trim();
     
     // Check exact ID match first
     const exactId = options.find(opt => opt.id === text);
@@ -1037,27 +737,30 @@ export class AssistantConversationService {
 
     // Check indices
     const indexTriggers = [
-      { triggers: ['la primera', 'el primero', 'primera', 'primero', 'the first', 'first one'], index: 0 },
-      { triggers: ['la segunda', 'el segundo', 'segunda', 'segundo', 'the second', 'second one'], index: 1 },
-      { triggers: ['la tercera', 'el tercero', 'tercera', 'tercero', 'the third', 'third one'], index: 2 },
+      { triggers: ['la primera', 'el primero', 'primera', 'primero', 'the first', 'first one', '1st', 'primera'], index: 0 },
+      { triggers: ['la segunda', 'el segundo', 'segunda', 'segundo', 'the second', 'second one', '2nd'], index: 1 },
+      { triggers: ['la tercera', 'el tercero', 'tercera', 'tercero', 'the third', 'third one', '3rd'], index: 2 },
     ];
 
-    for (const match of indexTriggers) {
-      if (match.triggers.some(t => normalized.includes(t))) {
-        return options[match.index]?.id || null;
+    for (const group of indexTriggers) {
+      if (group.triggers.some(t => normalized === t || normalized.includes(t))) {
+        if (options[group.index]) return options[group.index].id;
       }
     }
 
-    // Check by name similarity in options
-    for (const opt of options) {
-      const label = opt.label.toLowerCase();
-      const normLabel = this.normalizePrompt(label);
-      if (normalized === label || normalized === normLabel || normalized.includes(normLabel) || normalized.includes(label)) return opt.id;
-    }
+    // Exact candidate label match
+    const exactLabel = options.find(opt => this.normalizePrompt(opt.label) === normalized);
+    if (exactLabel) return exactLabel.id;
+
+    // Partial label match (e.g. "luz sala")
+    const partialLabel = options.find(opt => {
+      const optLabel = this.normalizePrompt(opt.label);
+      return normalized.includes(optLabel) || optLabel.includes(normalized);
+    });
+    if (partialLabel) return partialLabel.id;
 
     return null;
   }
-
   private inferCommandFromPrompt(prompt: string): DeviceCommandV1 | undefined {
     const normalized = this.normalizePrompt(prompt);
     // Explicit keywords
@@ -1710,8 +1413,9 @@ export class AssistantConversationService {
   }
 
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
-    const correlationId = `assistant:chat:selection:${Date.now()}`;
     const userId = request.userId || 'system';
+    const memory = await this.memoryService.getShortTermMemory(userId);
+    const correlationId = `assistant:chat:selection:${Date.now()}`;
     // selectedOptionId is set by UI clicks; pendingAction.targetId is set by natural-language text resolution.
     const rawTargetId = request.selectedOptionId === 'confirm'
       ? request.pendingAction?.targetId
@@ -1722,13 +1426,24 @@ export class AssistantConversationService {
     }
 
     // Load memory to resolve from label if it looks like a label (Requirement B)
-    const memory = await this.memoryService.getShortTermMemory(userId);
     let targetId = rawTargetId;
 
     if (memory?.clarificationOptions) {
       const resolvedId = this.resolveSelectionFromMemory(rawTargetId, memory.clarificationOptions, language);
       if (resolvedId) {
         targetId = resolvedId;
+        const selectedOption = memory.clarificationOptions.find(opt => opt.id === targetId);
+        
+        // --- SAFETY GATE V2: ROOM SELECTION RESOLUTION ---
+        if (selectedOption?.kind === 'room') {
+          let command = request.pendingAction?.command;
+          if (!command && memory.pendingIntent?.type === 'command') command = memory.pendingIntent.command;
+          if (!command) command = this.inferCommandFromPrompt(memory.originalPrompt || request.prompt) as DeviceCommandV1 | undefined;
+          
+          if (command) {
+            return await this.handleRoomSelectionForLight(targetId, command, userId, language, memory.originalPrompt || request.prompt, correlationId);
+          }
+        }
       }
     }
     
@@ -1762,11 +1477,12 @@ export class AssistantConversationService {
     }
 
     let command = request.pendingAction?.command;
+    if (!command && memory?.pendingIntent?.type === 'command') command = memory.pendingIntent.command;
     const originalPrompt = request.pendingAction?.originalPrompt || memory?.originalPrompt || '';
     
-    // Fallback: reconstruct command from memory if missing (Requirement 6.2)
-    if (!command && memory?.source === 'context_room') {
-      command = this.inferCommandFromPrompt(originalPrompt);
+    // Fallback: reconstruct command from memory if missing (Requirement 6.2 & Selection resolution)
+    if (!command) {
+      command = this.inferCommandFromPrompt(originalPrompt) as DeviceCommandV1 | undefined;
     }
 
     if (!command) {
@@ -1807,13 +1523,13 @@ export class AssistantConversationService {
         })}`);
       }
 
-      return {
+      return await this.attachSuggestionIfNeeded({
         type: 'execution',
         message: result.status === 'success' 
           ? this.buildCommandSuccessMessage(command, deviceName, request.userName || null, language)
           : (language === 'en' ? "Execution failed." : "La ejecución falló."),
         execution: result
-      };
+      }, userId, language, memory, 'command');
     }
 
     return { 
@@ -1856,8 +1572,7 @@ export class AssistantConversationService {
   private isNameQuery(normalized: string): boolean {
     const triggers = [
       "como te llamas", "cómo te llamas", "cuál es tu nombre", "cual es tu nombre",
-      "quién eres", "quien eres",
-      "what is your name", "whats your name", "who are you"
+      "what is your name", "whats your name"
     ];
     return triggers.some(t => normalized.includes(t));
   }
@@ -1869,6 +1584,7 @@ export class AssistantConversationService {
 
   private isPresentation(normalized: string): boolean {
     const triggers = [
+      "quién eres", "quien eres", "who are you",
       "qué puedes hacer", "que puedes hacer", "preséntate", "presentate",
       "what can you do", "introduce yourself"
     ];
@@ -1881,6 +1597,124 @@ export class AssistantConversationService {
       "what date is today", "what time is it"
     ];
     return triggers.some(t => normalized.includes(t));
+  }
+
+  private async handleRoomSelectionForLight(roomId: string, command: DeviceCommandV1, userId: string, language: string, originalPrompt: string, correlationId: string): Promise<AssistantConversationResponse> {
+    const room = await this.roomRepository.findRoomById(roomId);
+    const roomName = room?.name ?? roomId;
+    
+    // 1. Find controllable lights in that room
+    const allDevices = await this.deviceRepository.findAll();
+    const roomDevices = allDevices.filter(d => d.roomId === roomId);
+    
+    const isLight = (d: Device): boolean => {
+      const name = (d.name || '').toLowerCase();
+      const type = (d.type || '').toLowerCase();
+      return type === 'light' || 
+             name.includes('luz') || 
+             name.includes('light') || 
+             name.includes('foco') || 
+             name.includes('lampara') || 
+             name.includes('lámpara');
+    };
+
+    const isAvailable = (d: Device): boolean => d.lastKnownState?.state !== 'unavailable';
+    const isNotBadName = (d: Device): boolean => {
+      const name = (d.name || '').toLowerCase();
+      return !name.includes('sin funcionar') && !name.includes('test') && !name.includes('deprecated');
+    };
+
+    const roomLights = roomDevices.filter(d => isLight(d) && isAvailable(d) && isNotBadName(d));
+
+    // 2. Resolution Logic
+    if (roomLights.length === 0) {
+      console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'no_lights' })}`);
+      return { 
+        type: 'answer', 
+        message: language === 'en' 
+          ? `I couldn't find any controllable lights in ${roomName}.` 
+          : `No encontré luces controlables en ${roomName}.` 
+      };
+    }
+
+    if (roomLights.length === 1) {
+      const light = roomLights[0];
+      console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'single_light', deviceId: light.id })}`);
+      const result = await this.executeSingleCommand(light.id, command, originalPrompt, correlationId);
+      
+      await this.clearPendingAction(userId);
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'command',
+        entities: [{ id: light.id, name: light.name, type: light.type, roomId: light.roomId }],
+        timestamp: new Date().toISOString()
+      });
+
+      return {
+        type: 'execution',
+        message: this.buildCommandSuccessMessage(command, light.name, null, language),
+        execution: result
+      };
+    }
+
+    // >1 lights: Check for unique primary
+    const primaryKeywords = ['principal', 'main', 'techo', 'ceiling', 'tumbado'];
+    const primaryLights = roomLights.filter(d => {
+      const name = (d.name || '').toLowerCase();
+      return primaryKeywords.some(kw => name.includes(kw));
+    });
+
+    if (primaryLights.length === 1) {
+      const light = primaryLights[0];
+      console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'primary_match', deviceId: light.id })}`);
+      const result = await this.executeSingleCommand(light.id, command, originalPrompt, correlationId);
+      
+      await this.clearPendingAction(userId);
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'command',
+        entities: [{ id: light.id, name: light.name, type: light.type, roomId: light.roomId }],
+        timestamp: new Date().toISOString()
+      });
+
+      return {
+        type: 'execution',
+        message: this.buildCommandSuccessMessage(command, light.name, null, language),
+        execution: result
+      };
+    }
+
+    // Else: return device clarification options
+    console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'clarification', count: roomLights.length })}`);
+    const options = roomLights.map(l => ({
+      id: l.id,
+      label: l.name,
+      kind: 'device' as const
+    }));
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'clarification',
+      entities: [],
+      timestamp: new Date().toISOString(),
+      clarificationOptions: options,
+      originalPrompt,
+      pendingIntent: {
+        type: 'command',
+        deviceId: '',
+        command,
+        prompt: originalPrompt,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    return {
+      type: 'clarification',
+      message: language === 'en'
+        ? `I found ${roomLights.length} lights in ${roomName}. Which one do you mean?`
+        : `Encontré ${roomLights.length} luces en ${roomName}. ¿A cuál te refieres?`,
+      clarification: {
+        question: language === 'en' ? "Device selection" : "Selección de dispositivo",
+        options
+      }
+    };
   }
 
   private async handleDateTimeQuery(prompt: string, language: string): Promise<AssistantConversationResponse> {
@@ -1969,6 +1803,90 @@ export class AssistantConversationService {
     return !hasAction;
   }
 
+  private async applySafetyGateV2(
+    prompt: string,
+    userId: string,
+    language: 'es' | 'en',
+    request: AssistantConverseRequest
+  ): Promise<AssistantConversationResponse | null> {
+    const normalized = this.normalizePrompt(prompt);
+    const targetPhrase = this.extractTargetPhrase(prompt);
+    
+    // A. Unknown Target Blocker
+    // If prompt has command verb + device noun + unknown qualifier
+    const commandVerbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'turn on', 'turn off', 'toggle'];
+    const hasVerb = commandVerbs.some(v => normalized.startsWith(v + ' '));
+    
+    if (this.isManagementIntent(normalized)) return null;
+    
+    if (hasVerb && targetPhrase) {
+      const isOrdinal = ['primera', 'segunda', 'la primera', 'la segunda', 'first', 'second', 'the first', 'the second'].includes(targetPhrase);
+      const isPronoun = ['la', 'lo', 'las', 'los', 'it', 'them', 'esa', 'eso', 'esas', 'esos', 'that', 'those'].includes(targetPhrase) || normalized.endsWith('la') || normalized.endsWith('lo');
+      const isMultiCommand = /\s(y|and|then|&)\s/i.test(normalized) || prompt.includes(',') || prompt.includes(';');
+      const isBulk = normalized.includes('todo') || normalized.includes('everything');
+
+      if (isOrdinal || isPronoun || isMultiCommand || isBulk) {
+        return null; // Let it pass to Follow-up resolver or Interpreter
+      }
+
+      const allMatches = await this.findMatchingDevices(prompt, userId);
+      if (allMatches.length === 0) {
+        // If it's a very vague "luz" or similar, maybe it's not an "unknown target" but a "vague light"
+        const isVague = ['la luz', 'las luces', 'luz', 'luces', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
+        if (!isVague) {
+          console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] Unknown target: "${targetPhrase}"`);
+          return {
+            type: 'answer',
+            message: language === 'en' 
+              ? `I couldn't find a device called '${targetPhrase}'.` 
+              : `No encontré un dispositivo llamado '${targetPhrase}'.`
+          };
+        }
+      }
+    }
+
+    // B. Vague Light Blocker
+    const isVague = ['la luz', 'las luces', 'luz', 'luces', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
+    if (hasVerb && isVague && !request.sourceRoomId) {
+      const rooms = await this.roomRepository.findAll();
+      const options = rooms.slice(0, 5).map(r => ({
+        id: r.id,
+        label: r.name,
+        kind: 'room' as const
+      }));
+
+      const inferredCommand = (this.inferCommandFromPrompt(normalized) || 'turn_on') as DeviceCommandV1;
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'clarification',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        clarificationOptions: options,
+        originalPrompt: prompt,
+        pendingIntent: {
+          type: 'command',
+          deviceId: '',
+          command: inferredCommand,
+          prompt,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] Vague light without context`);
+      return {
+        type: 'clarification',
+        message: language === 'en' 
+          ? "In which room do you want to control the light?" 
+          : "¿En qué estancia quieres controlar la luz?",
+        clarification: {
+          question: language === 'en' ? "Room selection" : "Selección de estancia",
+          options
+        }
+      };
+    }
+
+    return null;
+  }
+
   private isLikelyHomeControlPrompt(normalized: string): boolean {
     const conversationalPrefixes = [
       'que opinas', 'dime', 'cuentame', 'como funciona', 'explicame', 'hablame', 'sabes algo'
@@ -2035,6 +1953,7 @@ export class AssistantConversationService {
   }
 
   private async handleBulkActionAccept(userId: string, language: string, action: { deviceIds: string[], command: string, originalPrompt: string }): Promise<AssistantConversationResponse> {
+    const memory = await this.memoryService.getShortTermMemory(userId);
     const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
     if (!allowedCommands.includes(action.command)) {
       console.warn(`[ASSISTANT_BULK_EXECUTION_INVALID] {"command":"${action.command}"}`);
@@ -2069,7 +1988,7 @@ export class AssistantConversationService {
     });
 
     const summary = this.formatMultiCommandSummary(results, language);
-    return {
+    return await this.attachSuggestionIfNeeded({
       type: 'execution',
       message: summary,
       execution: {
@@ -2077,7 +1996,7 @@ export class AssistantConversationService {
         status: results.every(r => r.result.status === 'success') ? 'success' : 'failed',
         actions: results.flatMap(r => r.result.actions)
       }
-    };
+    }, userId, language, memory, 'multi_command');
   }
 
   private async handleBulkActionReject(userId: string, language: string, action: { deviceIds: string[], command: string }): Promise<AssistantConversationResponse> {
@@ -3621,31 +3540,41 @@ export class AssistantConversationService {
     const targetRoomIds = matchingRooms.map(r => r.id);
     const displayRoomName = matchingRooms[0].name;
 
+    const isEverything = roomName.toLowerCase().includes('todo') || roomName.toLowerCase().includes('everything');
     const lightKeywords = ['luz', 'light', 'foco', 'lampara', 'lámpara'];
-    const matchingLights = devices.filter(d => {
-      const matchesType = d.type === 'light';
-      const matchesName = lightKeywords.some(k => d.name.toLowerCase().includes(k));
+    
+    const matchingDevices = devices.filter(d => {
+      const nameLower = d.name.toLowerCase();
+      const isLight = d.type === 'light' || lightKeywords.some(k => nameLower.includes(k));
       const isAvailable = d.lastKnownState?.state !== 'unavailable';
       const isInRoom = d.roomId && targetRoomIds.includes(d.roomId);
       
-      return (matchesType || matchesName) && isAvailable && isInRoom;
+      if (!isInRoom || !isAvailable) return false;
+      
+      // Critical Requirement D: Exclude covers from turn_on/turn_off bulk
+      const isCover = d.type === 'cover' || d.type === 'shutter' || d.type === 'blind';
+      if (isCover && (command === 'turn_on' || command === 'turn_off')) return false;
+
+      if (isEverything) return true;
+      return isLight;
     });
 
-    if (matchingLights.length === 0) {
+    if (matchingDevices.length === 0) {
       return {
         type: 'answer',
         message: language === 'en' 
-          ? "I didn't find any lights in that room." 
-          : "No encontré luces en esa estancia."
+          ? "I didn't find any controllable devices in that room." 
+          : "No encontré dispositivos controlables en esa estancia."
       };
     }
 
-    const deviceIds = matchingLights.map(l => l.id);
+    const deviceIds = matchingDevices.map(l => l.id);
+
     
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
       source: "room_bulk_fast_path",
       room: displayRoomName,
-      count: matchingLights.length,
+      count: matchingDevices.length,
       command
     })}`);
 
@@ -3669,18 +3598,29 @@ export class AssistantConversationService {
     return {
       type: 'clarification',
       message: language === 'en'
-        ? `I found ${matchingLights.length} lights in ${displayRoomName}. Do you confirm you want to ${actionText}?`
-        : `Encontré ${matchingLights.length} luces en ${displayRoomName}. ¿Confirmas que quieres ${actionText}?`
+        ? `I found ${matchingDevices.length} lights in ${displayRoomName}. Do you confirm you want to ${actionText}?`
+        : `Encontré ${matchingDevices.length} luces en ${displayRoomName}. ¿Confirmas que quieres ${actionText}?`
     };
   }
 
   private isBulkFastPath(normalized: string): boolean {
+    // Exclusion syntax must go through multi-command parser, not bulk fast-path
+    const exclusionWords = ['menos', 'excepto', 'salvo', 'except', 'minus'];
+    if (exclusionWords.some(w => normalized.includes(w))) return false;
+
     const triggers = [
       'enciende todas las luces',
       'prende todas las luces',
       'apaga todas las luces',
       'turn on all lights',
-      'turn off all lights'
+      'turn off all lights',
+      'apaga todo',
+      'prende todo',
+      'enciende todo',
+      'turn off everything',
+      'turn on everything',
+      'turn everything off',
+      'turn everything on'
     ];
     return triggers.some(t => normalized.includes(t));
   }
@@ -3688,25 +3628,32 @@ export class AssistantConversationService {
   private async handleBulkFastPath(normalized: string, language: string, userId: string): Promise<AssistantConversationResponse | null> {
     const isOff = normalized.includes('apaga') || normalized.includes('turn off');
     const command = isOff ? 'turn_off' : 'turn_on';
+    const isEverything = normalized.includes('todo') || normalized.includes('everything');
     
     const allDevices = await this.deviceRepository.findAll();
-    const lightKeywords = ['luz', 'light', 'foco', 'lampara'];
+    const lightKeywords = ['luz', 'light', 'foco', 'lampara', 'lámpara'];
     
     const targetDevices = allDevices.filter(d => {
       const nameLower = d.name.toLowerCase();
-      const matchesType = d.type === 'light';
-      const matchesName = lightKeywords.some(k => nameLower.includes(k));
+      const isLight = d.type === 'light' || lightKeywords.some(k => nameLower.includes(k));
       const isAvailable = d.lastKnownState?.state !== 'unavailable';
       
-      return (matchesType || matchesName) && isAvailable;
+      if (!isAvailable) return false;
+      
+      // Critical Requirement D/C: Exclude covers from turn_on/turn_off bulk
+      const isCover = d.type === 'cover' || d.type === 'shutter' || d.type === 'blind';
+      if (isCover && (command === 'turn_on' || command === 'turn_off')) return false;
+
+      if (isEverything) return true;
+      return isLight;
     });
 
     if (targetDevices.length === 0) {
       return {
         type: 'answer',
         message: language === 'en' 
-          ? "I didn't find any available lights to control." 
-          : "No encontré luces disponibles para controlar."
+          ? (isEverything ? "I didn't find any controllable devices." : "I didn't find any lights.") 
+          : (isEverything ? "No encontré dispositivos controlables." : "No encontré luces.")
       };
     }
 
@@ -3826,13 +3773,13 @@ export class AssistantConversationService {
       });
       console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'device_alias', deviceId: targetDevice.id, deviceName: targetDevice.name, alias: match.alias })}`);
 
-      return {
+      return await this.attachSuggestionIfNeeded({
         type: 'execution',
         message: language === 'en'
           ? `I've ${command === 'turn_on' ? 'turned on' : command === 'turn_off' ? 'turned off' : 'toggled'} ${match.alias}.`
           : `He ${command === 'turn_on' ? 'encendido' : command === 'turn_off' ? 'apagado' : 'alternado'} ${match.alias}.`,
         execution: execResult
-      };
+      }, userId, language, null, 'command');
     }
 
     return null;
@@ -3863,11 +3810,11 @@ export class AssistantConversationService {
       else if (result.command === 'turn_off') msg = isSpanish ? `Hecho, apagué ${device.name}.` : `Done, turned off ${device.name}.`;
       else msg = isSpanish ? `Hecho, alterné ${device.name}.` : `Done, toggled ${device.name}.`;
 
-      return {
+      return await this.attachSuggestionIfNeeded({
         type: 'execution',
         message: msg,
         execution: execResult
-      };
+      }, userId, language, null, 'command');
     }
     
     return null;
@@ -4096,7 +4043,7 @@ export class AssistantConversationService {
   }
 
   private findPrimaryLight(lights: Device[]): Device | null {
-    const primaryKeywords = ['principal', 'main', 'techo', 'ceiling'];
+    const primaryKeywords = ['principal', 'main', 'techo', 'ceiling', 'tumbado'];
     const candidates = lights.filter(l => {
       const nameLower = l.name.toLowerCase();
       return primaryKeywords.some(kw => nameLower.includes(kw));

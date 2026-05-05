@@ -302,8 +302,10 @@ describe('Assistant Alias Management V1', () => {
     
     const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
     
-    // It should fallback to intent or shadow, in test it falls back to shadow mock
-    expect(mockShadow.runShadow).toHaveBeenCalled();
+    // Safety Gate V2 blocks unknown target — returns not-found answer, does NOT call shadow
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('luz de lectura');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('20. room alias ignored in device fast path', async () => {
@@ -313,8 +315,10 @@ describe('Assistant Alias Management V1', () => {
     
     const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
     
-    // It should fallback since it's a room alias, not a device
-    expect(mockShadow.runShadow).toHaveBeenCalled();
+    // Safety Gate V2 blocks unknown target — returns not-found answer, does NOT call shadow
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('luz de lectura');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('21. exact real device name wins over alias', async () => {
@@ -339,18 +343,12 @@ describe('Assistant Alias Management V1', () => {
     // Setup alias to nonexistent device to trigger fallback
     mockMemory.getAliases.mockResolvedValue({ 'luz de lectura': '3a8fae4d-80bf-4169-ac95-30844a5fc6b9' });
     
-    // We mock shadow service to see what activePrompt it receives
-    mockShadow.runShadow.mockResolvedValue({ type: 'answer', message: 'shadow response' });
+    const res = await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
     
-    await service.converse({ prompt: 'prende luz de lectura', userId: 'u1' }, 'es');
-    
-    // Shadow should be called with the original prompt text, not the UUID
-    expect(mockShadow.runShadow).toHaveBeenCalledWith(
-      'prende luz de lectura', // activePrompt
-      'u1',
-      'es',
-      expect.anything()
-    );
+    // Safety Gate V2 blocks — returns not-found answer, does NOT call shadow
+    expect(res.type).toBe('answer');
+    expect(res.message).toContain('luz de lectura');
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('23. pronoun follow-up apágala executes and bypasses shadow', async () => {
@@ -432,9 +430,12 @@ describe('Assistant Alias Management V1', () => {
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
-  it('31. ambiguous home-control prompt still calls shadow', async () => {
-    mockShadow.runShadow.mockResolvedValue({ type: 'answer', message: 'shadow response' });
-    await service.converse({ prompt: 'enciende la luz', userId: 'u1' }, 'es');
-    expect(mockShadow.runShadow).toHaveBeenCalled();
+  it('31. ambiguous home-control prompt is blocked by Safety Gate V2 with room clarification', async () => {
+    const res = await service.converse({ prompt: 'enciende la luz', userId: 'u1' }, 'es');
+    // Safety Gate V2 detects vague light without room context and asks for room
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('estancia');
+    // Shadow must NOT be called for safety-blocked prompts
+    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 });
