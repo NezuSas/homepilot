@@ -4,7 +4,7 @@ import { Intent } from '../ports/IntentInterpreterPort';
 export interface AssistantClarificationOption {
   id: string;
   label: string;
-  kind: 'device' | 'scene' | 'alias_target';
+  kind: 'device' | 'scene' | 'alias_target' | 'room';
 }
 
 export interface AssistantMemoryEntity {

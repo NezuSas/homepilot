@@ -74,10 +74,15 @@ describe('Assistant Proactive Suggestions', () => {
     };
     
     mockSuggestion.getSuggestion.mockResolvedValue(suggestion);
-    mockInterpreter.interpret.mockResolvedValue({ type: 'command', deviceId: 'dev-1', command: 'turn_on', prompt: 'prende la luz' });
-    mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-1', name: 'Luz' }));
+    mockInterpreter.interpret.mockResolvedValue({ type: 'command', deviceId: 'dev-1', command: 'turn_on', prompt: 'prende la luz magica' });
+    mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'dev-1', name: 'Luz Sala' })]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-1', name: 'Luz Sala' }));
 
-    const response = await service.converse({ prompt: 'prende la luz' }, 'es');
+    const request = {
+        prompt: 'prende la luz magica',
+        userId: 'u1'
+      };
+    const response = await service.converse(request, 'es');
     
     expect(response.message).toContain('💡 Would you like to create a scene?');
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({

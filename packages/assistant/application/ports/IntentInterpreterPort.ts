@@ -20,7 +20,7 @@ export type Intent =
 export type AssistantClarificationOption = {
   id: string;
   label: string;
-  kind: 'device' | 'scene' | 'alias_target';
+  kind: 'device' | 'scene' | 'alias_target' | 'room';
 };
 
 export type AssistantMultiCommandResult = 

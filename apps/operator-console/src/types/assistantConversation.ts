@@ -9,7 +9,7 @@ export interface AssistantConversationResponse {
     options: Array<{
       id: string;
       label: string;
-      kind: "device" | "scene" | "alias_target";
+      kind: "device" | "scene" | "alias_target" | "room";
     }>;
     pendingAction?: {
       command?: DeviceCommandV1;
@@ -40,7 +40,7 @@ export interface ChatMessage {
   options?: Array<{
     id: string;
     label: string;
-    kind: "device" | "scene" | "alias_target";
+    kind: "device" | "scene" | "alias_target" | "room";
   }>;
   execution?: SceneExecutionResult;
   pendingAction?: {

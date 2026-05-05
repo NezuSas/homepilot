@@ -320,11 +320,11 @@ describe('Assistant Intelligence Layer V1', () => {
     it('should limit disambiguation to top 3 ranked by usage', async () => {
       const userId = 'u1';
       const devices = [
-        createTestDevice({ id: 'd1', name: 'Luz 1' }),
-        createTestDevice({ id: 'd2', name: 'Luz 2' }),
-        createTestDevice({ id: 'd3', name: 'Luz 3' }),
-        createTestDevice({ id: 'd4', name: 'Luz 4' }),
-        createTestDevice({ id: 'd5', name: 'Luz 5' }),
+        createTestDevice({ id: 'd1', name: 'Luz de Prueba 1' }),
+        createTestDevice({ id: 'd2', name: 'Luz de Prueba 2' }),
+        createTestDevice({ id: 'd3', name: 'Luz de Prueba 3' }),
+        createTestDevice({ id: 'd4', name: 'Luz de Prueba 4' }),
+        createTestDevice({ id: 'd5', name: 'Luz de Prueba 5' }),
       ];
       deviceRepo.findAll.mockResolvedValue(devices);
       roomRepo.findRoomsByHomeId.mockResolvedValue([]);
@@ -340,10 +340,10 @@ describe('Assistant Intelligence Layer V1', () => {
         type: 'command',
         deviceId: 'd1', // Interpreter picked one, but disambiguation should still trigger
         command: 'turn_on',
-        prompt: 'luz'
+        prompt: 'luz de prueba'
       });
 
-      const res = await service.converse({ prompt: 'luz', userId });
+      const res = await service.converse({ prompt: 'luz de prueba', userId });
 
       expect(res.type).toBe('clarification');
       expect(res.clarification?.options).toHaveLength(3);
@@ -378,20 +378,20 @@ describe('Assistant Intelligence Layer V1', () => {
 
     it('should open clarification with max 3 options if no unique phrase match exists', async () => {
       const userId = 'u1';
-      const d1 = createTestDevice({ id: 'd1', name: 'Luz Escritorio' });
-      const d2 = createTestDevice({ id: 'd2', name: 'Luz Cocina' });
-      const d3 = createTestDevice({ id: 'd3', name: 'Luz Comedor' });
-      const d4 = createTestDevice({ id: 'd4', name: 'Luz Patio' });
+      const d1 = createTestDevice({ id: 'd1', name: 'Luz de Prueba Escritorio' });
+      const d2 = createTestDevice({ id: 'd2', name: 'Luz de Prueba Cocina' });
+      const d3 = createTestDevice({ id: 'd3', name: 'Luz de Prueba Comedor' });
+      const d4 = createTestDevice({ id: 'd4', name: 'Luz de Prueba Patio' });
       deviceRepo.findAll.mockResolvedValue([d1, d2, d3, d4]);
 
       // Mock intent to be a command so it triggers matching logic
       intentInterpreter.interpret.mockResolvedValue({
         type: 'command',
         command: 'turn_on',
-        prompt: 'prende la luz'
+        prompt: 'prende la luz de prueba'
       });
 
-      const res = await service.converse({ prompt: 'prende la luz', userId });
+      const res = await service.converse({ prompt: 'prende la luz de prueba', userId });
 
       expect(res.type).toBe('clarification');
       expect(res.clarification?.options).toHaveLength(3);

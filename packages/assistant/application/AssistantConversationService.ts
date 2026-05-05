@@ -34,7 +34,7 @@ export interface AssistantConversationResponse {
     options: Array<{
       id: string;
       label: string;
-      kind: "device" | "scene" | "alias_target";
+      kind: "device" | "scene" | "alias_target" | "room";
     }>;
     pendingAction?: {
       command?: DeviceCommandV1;
@@ -532,9 +532,13 @@ export class AssistantConversationService {
           const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
           
           // Reconstruct pending action from memory
-          const command = memory.pendingIntent?.type === 'command' 
+          let command = memory.pendingIntent?.type === 'command' 
             ? memory.pendingIntent.command
-            : this.inferCommandFromPrompt(memory.originalPrompt || prompt);
+            : undefined;
+
+          if (!command) {
+            command = this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
+          }
 
           // Do NOT set selectedOptionId here — this is a text-resolved selection, not a UI click.
           // handleSelection reads targetId from pendingAction.targetId when selectedOptionId is absent.
@@ -613,7 +617,7 @@ export class AssistantConversationService {
     // H) State Queries
     if (this.isStateQuery(normalized)) {
       const t_state = Date.now();
-      const result = await this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined);
+      const result = await this.handleStateQuery(normalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
       if (process.env.NODE_ENV !== 'production') {
         console.debug(`[AssistantConversation] StateQuery path took ${Date.now() - t_state}ms`);
       }
@@ -652,6 +656,15 @@ export class AssistantConversationService {
       console.debug('[AssistantConversation] routing=intent');
     }
 
+    if (['sin funcionar', 'test', 'deprecated'].some(b => normalized.includes(b))) {
+      return {
+        type: 'error',
+        message: language === 'en' 
+          ? "I cannot automatically control a device that is disabled or for testing." 
+          : "No puedo controlar automáticamente un dispositivo de prueba o sin funcionar."
+      };
+    }
+
     // C.0) V2 Hybrid Execution Attempt (Strict Gate)
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
     if (v2Response) {
@@ -667,13 +680,21 @@ export class AssistantConversationService {
         return { type: 'error', message: intentResult.message };
       }
       if (intentResult.type === 'clarificationRequired') {
+        const inferredCommand = this.inferCommandFromPrompt(intentResult.originalSegment) || this.inferCommandFromPrompt(activePrompt) || 'turn_on';
         // Save pending query state so they can say "la primera"
         await this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'clarification',
           entities: [],
           timestamp: new Date().toISOString(),
           clarificationOptions: intentResult.options,
-          originalPrompt: activePrompt
+          originalPrompt: activePrompt,
+          pendingIntent: {
+            type: 'command',
+            deviceId: '',
+            command: inferredCommand as DeviceCommandV1,
+            prompt: activePrompt,
+            timestamp: new Date().toISOString()
+          }
         });
         return this.returnWithShadow(activePrompt, userId, language, {
           type: 'clarification',
@@ -729,7 +750,33 @@ export class AssistantConversationService {
     // Check for ambiguity (deterministic V1 only for now)
     if (intent.type === 'command') {
       const allMatches = await this.findMatchingDevices(prompt, userId);
+      
+      if (!intent.deviceId && allMatches.length === 0) {
+        const targetPhrase = this.extractTargetPhrase(prompt);
+        return {
+          type: 'answer',
+          message: language === 'en' 
+            ? `I couldn't find a device matching your request.` 
+            : `No encontré un dispositivo llamado '${targetPhrase}'.`
+        };
+      }
+
       if (allMatches.length > 1) {
+        const targetPhrase = this.extractTargetPhrase(prompt);
+        const isVague = ['la luz', 'las luces', 'luz', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
+        if (isVague && !request.sourceRoomId) {
+          return {
+            type: 'clarification',
+            message: language === 'en' 
+              ? "In which room do you want to control the light?" 
+              : "¿En qué estancia quieres controlar la luz?",
+            clarification: {
+              question: language === 'en' ? "You can say: 'turn on the living room light'." : "Puedes decir: 'prende la luz de la sala'.",
+              options: []
+            }
+          };
+        }
+
         // Save to memory for future resolution (e.g. "la primera")
         const options = allMatches.map(d => ({
           id: d.id,
@@ -1722,6 +1769,13 @@ export class AssistantConversationService {
       command = this.inferCommandFromPrompt(originalPrompt);
     }
 
+    if (!command) {
+      const room = await this.roomRepository.findRoomById(targetId);
+      if (room) {
+        return await this.handleStateQuery(originalPrompt, language, request.userName || null, userId, undefined, targetId);
+      }
+    }
+
     if (command) {
       const device = await this.deviceRepository.findDeviceById(targetId);
       const deviceName = device?.name ?? targetId;
@@ -2185,7 +2239,8 @@ export class AssistantConversationService {
     language: string,
     userName: string | null,
     userId: string,
-    entitiesFromMemory?: AssistantMemoryEntity[]
+    entitiesFromMemory?: AssistantMemoryEntity[],
+    sourceRoomId?: string | null
   ): Promise<AssistantConversationResponse> {
     let allDevices: readonly Device[];
 
@@ -2244,6 +2299,39 @@ export class AssistantConversationService {
             const name = this.normalizePrompt(d.name);
             return roomTokens.some(t => normalized.includes(t) && name.includes(t));
           });
+        } else if (sourceRoomId) {
+          filteredDevices = allDevices.filter(d => d.roomId === sourceRoomId);
+          targetRoomId = sourceRoomId;
+          targetRoomName = roomMap.get(sourceRoomId) || null;
+        } else if (
+          !normalized.includes('estado') && 
+          !normalized.includes('que') && 
+          !normalized.includes('qué') && 
+          !normalized.includes('todas') && 
+          (normalized.includes(' la luz') || normalized.includes(' las luces')) && 
+          !normalized.includes(' de ') && 
+          !normalized.includes(' en ')
+        ) {
+          const rooms = await this.roomRepository.findAll();
+          const options = rooms.map(r => ({ id: r.id, label: r.name, kind: 'room' as const }));
+          
+          await this.memoryService.saveShortTermMemory(userId, {
+            lastQueryType: 'clarification',
+            entities: [],
+            timestamp: new Date().toISOString(),
+            clarificationOptions: options,
+            originalPrompt: normalized
+          });
+
+          return {
+            type: 'clarification',
+            message: language === 'en' ? 'In which room?' : '¿En qué estancia?',
+            clarification: {
+              question: language === 'en' ? 'Which room?' : '¿En qué estancia?',
+              options,
+              pendingAction: { originalPrompt: normalized }
+            }
+          };
         }
       }
 
@@ -2505,7 +2593,13 @@ export class AssistantConversationService {
 
   private async findMatchingDevices(prompt: string, userId: string = 'system'): Promise<Device[]> {
     const normalized = this.normalizePrompt(prompt);
-    const devices = await this.deviceRepository.findAll();
+    let devices = await this.deviceRepository.findAll();
+    
+    // Filter out non-controllable/deprecated devices
+    devices = devices.filter(d => {
+      const name = d.name.toLowerCase();
+      return !name.includes('test') && !name.includes('deprecated') && !name.includes('sin funcionar');
+    });
     
     // 1. Check for Exact Match first (highest priority)
     const exactMatch = devices.find(d => this.normalizePrompt(d.name) === normalized);
@@ -2545,7 +2639,28 @@ export class AssistantConversationService {
       const tokens = name.split(' ');
       let score = 0;
 
-      if (tokens.some(token => normalized.includes(token))) {
+      const targetTokens = normalized.split(' ').filter(t => t.length > 2 && !['prende', 'enciende', 'apaga', 'turn', 'on', 'off', 'las', 'los', 'del', 'the'].includes(t));
+      
+      let matchCount = 0;
+      for (const token of tokens) {
+        if (targetTokens.some(tt => tt.includes(token) || token.includes(tt))) {
+          matchCount++;
+        }
+      }
+
+      let targetMatchCount = 0;
+      for (const tt of targetTokens) {
+        if (tokens.some(token => token.includes(tt) || tt.includes(token))) {
+          targetMatchCount++;
+        }
+      }
+
+      const overlap = tokens.length > 0 ? (matchCount / tokens.length) : 0;
+      const targetOverlap = targetTokens.length > 0 ? (targetMatchCount / targetTokens.length) : 0;
+      
+      if (overlap >= 0.5 && targetOverlap >= 0.6) {
+        score = 10;
+      } else if (overlap === 1.0) {
         score = 10;
       }
 
@@ -3320,10 +3435,29 @@ export class AssistantConversationService {
   }
 
   private returnWithShadow(prompt: string, userId: string, language: string, response: AssistantConversationResponse): AssistantConversationResponse {
+    // Required: Any successful deterministic execution must return directly and bypass Planner V2 Shadow
+    if (response.type === 'execution' || response.type === 'clarification') {
+      return response;
+    }
+    
+    if (response.type === 'answer' && response.execution) {
+      return response;
+    }
+
     if (this.shadowService) {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
     return response;
+  }
+
+  private extractTargetPhrase(prompt: string): string {
+    const norm = this.normalizePrompt(prompt);
+    const verbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'turn on', 'turn off', 'toggle'];
+    for (const v of verbs) {
+      if (norm.startsWith(v + ' ')) return norm.substring(v.length + 1).trim();
+      if (norm === v) return '';
+    }
+    return norm;
   }
 
   private isRoomBulkFastPath(prompt: string): {
@@ -3332,23 +3466,28 @@ export class AssistantConversationService {
   } | null {
     const normalized = prompt.toLowerCase();
     
-    // Spanish Regex: (del|de) prioritized. Optional "todas/todas las"
-    const esRegex = /(enciende|prende|apaga).*?(?:todas\s+(?:las\s+)?)?luces.*?(del|de)\s+(.+)/i;
+    // Guard against multi-commands or exceptions which should be handled by V1 Intent Interpreter
+    if (normalized.includes('menos') || normalized.includes('excepto') || normalized.includes('solo') || normalized.includes(' y ')) {
+      return null;
+    }
+    
+    // Spanish Regex
+    const esRegex = /(enciende|prende|apaga).*?(?:todo\s+el|todo\s+en|todo|todas\s+(?:las\s+)?luces|luces)\s*(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)/i;
     const esMatch = normalized.match(esRegex);
     if (esMatch) {
       const verb = esMatch[1].toLowerCase();
       const command = (verb === 'enciende' || verb === 'prende') ? 'turn_on' : 'turn_off';
-      const roomName = esMatch[3].trim(); // Group 3 is now the roomName because Group 2 was non-capturing
+      const roomName = esMatch[2].trim();
       return { command, roomName };
     }
 
-    // English Regex: Optional "all/all the"
-    const enRegex = /(turn|switch)\s+(on|off).*?(?:all\s+(?:the\s+)?)?lights.*?(in the|in)\s+(.+)/i;
+    // English Regex
+    const enRegex = /(turn|switch)\s+(on|off).*?(?:all\s+(?:the\s+)?(?:lights|in)|everything\s+in|lights\s+in)\s*(?:the\s+)?(.+)/i;
     const enMatch = normalized.match(enRegex);
     if (enMatch) {
       const action = enMatch[2].toLowerCase();
       const command = action === 'on' ? 'turn_on' : 'turn_off';
-      const roomName = enMatch[4].trim(); // Group 4 is now the roomName
+      const roomName = enMatch[3].trim();
       return { command, roomName };
     }
 
