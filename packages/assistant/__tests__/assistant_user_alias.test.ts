@@ -150,7 +150,7 @@ describe('Assistant User Alias', () => {
     const res = await service.converse({ prompt: 'apaga todas las luces de mi lampara', userId: 'u1' }, 'es');
 
     // Should not resolve to anything because d1 is a device, not a room
-    expect(res.message).toBe('No encontré luces en esa estancia.');
+    expect(res.message).toBe('No encontré esa estancia.');
   });
 
   it('logs invalid and falls back if alias target does not exist', async () => {
@@ -163,6 +163,6 @@ describe('Assistant User Alias', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces de mi oficina', userId: 'u1' }, 'es');
 
-    expect(res.message).toBe('No encontré luces en esa estancia.');
+    expect(res.message).toBe('No encontré esa estancia.');
   });
 });

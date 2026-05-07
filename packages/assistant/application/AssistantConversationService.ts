@@ -314,12 +314,19 @@ export class AssistantConversationService {
     if (deleteAliasReq) return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
     if (this.isAliasCreation(normalized)) return await this.handleAliasCreation(normalized, userId, language);
 
-    // --- 4. ROOM BULK FAST-PATH ---
+    // --- 4. ROOM LIGHT FAST-PATH ---
+    const roomSingular = this.isRoomSingularLightFastPath(normalized);
+    if (roomSingular) {
+      const singularResponse = await this.handleRoomSingularLightFastPath(userId, roomSingular.command, roomSingular.roomName, language, prompt, aliases);
+      if (singularResponse) return singularResponse;
+    }
+
     const roomBulk = this.isRoomBulkFastPath(normalized);
-    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, language, aliases);
+    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases);
 
     // --- 5. GLOBAL BULK FAST-PATH ---
-    if (this.isBulkFastPath(normalized)) { const bulkResponse = await this.handleBulkFastPath(normalized, language, userId); if (bulkResponse) return bulkResponse; }
+    const globalBulk = this.isBulkFastPath(normalized);
+    if (globalBulk) { const bulkResponse = await this.handleBulkFastPath(normalized, globalBulk.bulkType, globalBulk.command, language, userId); if (bulkResponse) return bulkResponse; }
 
     // --- DETERMINISTIC GENERAL ROUTES ---
     if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home.` : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa.` };
@@ -400,6 +407,7 @@ export class AssistantConversationService {
   ): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
     const namePrefix = userName ? `${userName}, ` : '';
+    const correlationId = `assistant:chat:${t0}`;
 
     if (intent.type === 'unknown') {
       return this.smallTalkService.handle(prompt, language, userName, userId);
@@ -407,10 +415,41 @@ export class AssistantConversationService {
 
     // Check for ambiguity (deterministic V1 only for now)
     if (intent.type === 'command') {
+      // 1. Room-specific command?
+      if (intent.roomId && !intent.deviceId) {
+        if (intent.command === 'turn_on' || intent.command === 'turn_off') {
+          return await this.handleRoomSelectionForLight(intent.roomId, intent.command, userId, language, prompt, correlationId);
+        }
+      }
+
       const allMatches = await this.findMatchingDevices(prompt, userId);
       
       if (!intent.deviceId && allMatches.length === 0) {
         const targetPhrase = this.extractTargetPhrase(prompt);
+        const allDevices = await this.deviceRepository.findAll();
+        const fuzzyResult = this.findFuzzyCandidateSuggestions(targetPhrase, allDevices, language, intent.command, prompt);
+        
+        if (fuzzyResult) {
+          // If we have a fuzzy clarification, save it to memory
+          if (fuzzyResult.type === 'clarification' && fuzzyResult.clarification) {
+            await this.memoryService.saveShortTermMemory(userId, {
+              lastQueryType: 'clarification',
+              entities: [],
+              timestamp: new Date().toISOString(),
+              clarificationOptions: fuzzyResult.clarification.options,
+              originalPrompt: prompt,
+              pendingIntent: {
+                type: 'command',
+                deviceId: '',
+                command: intent.command,
+                prompt,
+                timestamp: new Date().toISOString()
+              }
+            });
+          }
+          return fuzzyResult;
+        }
+
         return {
           type: 'answer',
           message: language === 'en' 
@@ -511,7 +550,6 @@ export class AssistantConversationService {
     }
 
     // E) Execution
-    const correlationId = `assistant:chat:${Date.now()}`;
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
       if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found." : "Escena no encontrada." };
@@ -1150,8 +1188,8 @@ export class AssistantConversationService {
     return {
       type: 'answer',
       message: language === 'en'
-        ? 'Yes. In HomePilot, you can say "room", "area", or "space". I’ll treat them as references to where your devices are located.'
-        : 'Sí, en HomePilot puedes decir "cuarto", "habitación", "estancia" o "zona". Los usaré como referencias al espacio donde están tus dispositivos.'
+        ? 'Yes. In HomePilot, I can resolve rooms by their name or the aliases you define in your settings. I’ll treat them as references to where your devices are located.'
+        : 'Sí, en HomePilot puedo resolver estancias por su nombre o por los alias que definas en tu configuración. Los usaré como referencias al espacio donde están tus dispositivos.'
     };
   }
 
@@ -1174,23 +1212,10 @@ export class AssistantConversationService {
 
       // --- Room matching ---
       let selectedRoom: Room | null = null;
-
-      for (const room of allRooms) {
-        const normRoom = this.normalizePrompt(room.name);
-        if (normalized.includes(normRoom)) {
-          selectedRoom = room;
-          break;
-        }
-        // Synonym substitution: try replacing room-type keywords
-        const roomKeywords = ['cuarto', 'habitacion', 'estancia', 'zona', 'room', 'dormitorio'];
-        for (const keyword of roomKeywords) {
-          const replaced = normRoom.replace(/\b(cuarto|habitacion|estancia|zona|room|dormitorio)\b/g, keyword);
-          if (normalized.includes(replaced)) {
-            selectedRoom = room;
-            break;
-          }
-        }
-        if (selectedRoom) break;
+      const aliases = await this.memoryService.getAliases(userId);
+      const resolution = this.resolveRoomAlias(normalized, allRooms, devices, userId, aliases);
+      if (resolution.status === 'resolved' && resolution.rooms.length > 0) {
+        selectedRoom = resolution.rooms[0];
       }
 
       // --- Infer command ---
@@ -1198,7 +1223,6 @@ export class AssistantConversationService {
 
       // --- Room not found ---
       if (!selectedRoom) {
-        const mentionedRoom = this.extractMentionedRoomName(normalized);
         if (process.env.NODE_ENV !== 'production') {
           console.debug(`[DRAFT DEBUG] Room not found. Prompt: "${normalized}"`);
           console.debug(`[DRAFT DEBUG] Available rooms:`, allRooms.map((r: Room) => ({ id: r.id, name: r.name })));
@@ -1206,8 +1230,8 @@ export class AssistantConversationService {
         return {
           type: 'answer',
           message: language === 'en'
-            ? `I couldn't find the room "${mentionedRoom || 'specified'}". You can ask me "what rooms do you know".`
-            : `No encontré la estancia "${mentionedRoom || 'especificada'}". Puedes preguntarme "qué estancias conoces".`
+            ? `I couldn't find the room specified. You can ask me "what rooms do you know".`
+            : `No encontré la estancia especificada. Puedes preguntarme "qué estancias conoces".`
         };
       }
 
@@ -1342,32 +1366,67 @@ export class AssistantConversationService {
    * Uses a type-based check as primary filter, then validates via domain capabilities.
    * The type-based check runs first to handle HA devices or devices without explicit capabilities.
    */
-  private isControllableDevice(device: Device, command: DeviceCommandV1): boolean {
-    // 1. Skip unavailable devices
-    const rawState = device.lastKnownState;
-    if (rawState && typeof rawState['state'] === 'string' && rawState['state'] === 'unavailable') return false;
+  private isDeviceAvailable(device: Device): boolean {
+    return device.lastKnownState?.state !== 'unavailable';
+  }
 
-    const type = device.type.toLowerCase();
-    const name = device.name.toLowerCase();
-
-    // 2. Always exclude pure sensors — these are never controllable
-    if (type === 'sensor' || type === 'binary_sensor') return false;
-    if (name.includes('sensor') && !name.includes('luz') && !name.includes('foco')) return false;
-
-    // 3. Type-based check — reliable for both HA and local integrations
-    const TURN_TYPES = ['light', 'switch', 'outlet', 'dimmer'];
-    const COVER_COMMANDS = ['open', 'close', 'stop', 'set_position'];
-
-    if (TURN_TYPES.includes(type) && ['turn_on', 'turn_off', 'toggle'].includes(command)) return true;
-    if (type === 'cover' && COVER_COMMANDS.includes(command)) return true;
-
-    // 4. Name-based heuristic for unlabeled controllable devices
-    const controllableNames = ['luz', 'foco', 'lampara', 'interruptor', 'enchufe', 'tomacorriente', 'apagador'];
-    if (controllableNames.some(kw => name.includes(kw))) return true;
-
-    // 5. Domain validator as final fallback (handles explicit capabilities)
+  private supportsCommand(device: Device, command: DeviceCommandV1): boolean {
+    // A. Priority: Capability Validation
     const validation = validateDeviceCommand(device, { name: command, params: {} });
-    return validation.valid;
+    if (validation.valid) return true;
+
+    // B. Fallback: Known controllable domain types if capabilities missing/incomplete
+    const type = device.type.toLowerCase();
+    const CONTROLLABLE_TYPES = ['light', 'switch', 'outlet', 'dimmer'];
+    const isKnownType = CONTROLLABLE_TYPES.includes(type);
+
+    if (isKnownType && ['turn_on', 'turn_off', 'toggle'].includes(command)) {
+      return true;
+    }
+
+    const COVER_COMMANDS = ['open', 'close', 'stop', 'set_position'];
+    if (type === 'cover' && COVER_COMMANDS.includes(command)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isLightEntity(device: Device): boolean {
+    const caps = resolveCapabilitiesForDevice(device);
+    // Strictly type/capability based. No name keywords allowed.
+    return caps.some(c => c.type === 'light' || c.type === 'dimmer') || 
+           ['light', 'dimmer'].includes(device.type.toLowerCase());
+  }
+
+  private isControllableForBulk(device: Device, command: DeviceCommandV1, bulkType: 'all' | 'lights'): boolean {
+    if (!this.isDeviceAvailable(device)) return false;
+    if (!this.supportsCommand(device, command)) return false;
+
+    // Exclude sensors/cameras even if they somehow report turn_on/off support
+    const type = device.type.toLowerCase();
+    if (['sensor', 'binary_sensor', 'camera'].includes(type)) return false;
+
+    // Exclude covers/blinds/curtains for turn_on/turn_off
+    if (['cover', 'blind', 'curtain', 'shutter'].includes(type) && (command === 'turn_on' || command === 'turn_off')) {
+      return false;
+    }
+
+    if (bulkType === 'lights') {
+      return this.isLightEntity(device);
+    }
+
+    return true;
+  }
+
+  private isControllableDevice(device: Device, command: DeviceCommandV1): boolean {
+    if (!this.isDeviceAvailable(device)) return false;
+
+    // Always exclude pure sensors/cameras — these are never controllable
+    const type = device.type.toLowerCase();
+    if (['sensor', 'binary_sensor', 'camera'].includes(type)) return false;
+
+    return this.supportsCommand(device, command);
   }
 
 
@@ -1396,20 +1455,6 @@ export class AssistantConversationService {
         ? `I know these rooms:\n${roomList}`
         : `Conozco estas estancias:\n${roomList}`
     };
-  }
-
-  private extractMentionedRoomName(normalized: string): string | null {
-    const keywords = ['cuarto', 'estancia', 'habitacion', 'sala', 'cocina', 'baño', 'patio', 'comedor', 'dormitorio'];
-    for (const kw of keywords) {
-      if (normalized.includes(kw)) {
-        const parts = normalized.split(kw);
-        if (parts.length > 1) {
-          const rest = parts[1].trim().split(' ')[0];
-          return rest ? `${kw} ${rest}` : kw;
-        }
-      }
-    }
-    return null;
   }
 
   private async handleSelection(request: AssistantConverseRequest, language: string): Promise<AssistantConversationResponse> {
@@ -1607,24 +1652,7 @@ export class AssistantConversationService {
     const allDevices = await this.deviceRepository.findAll();
     const roomDevices = allDevices.filter(d => d.roomId === roomId);
     
-    const isLight = (d: Device): boolean => {
-      const name = (d.name || '').toLowerCase();
-      const type = (d.type || '').toLowerCase();
-      return type === 'light' || 
-             name.includes('luz') || 
-             name.includes('light') || 
-             name.includes('foco') || 
-             name.includes('lampara') || 
-             name.includes('lámpara');
-    };
-
-    const isAvailable = (d: Device): boolean => d.lastKnownState?.state !== 'unavailable';
-    const isNotBadName = (d: Device): boolean => {
-      const name = (d.name || '').toLowerCase();
-      return !name.includes('sin funcionar') && !name.includes('test') && !name.includes('deprecated');
-    };
-
-    const roomLights = roomDevices.filter(d => isLight(d) && isAvailable(d) && isNotBadName(d));
+    const roomLights = roomDevices.filter(d => this.isLightEntity(d) && this.isDeviceAvailable(d));
 
     // 2. Resolution Logic
     if (roomLights.length === 0) {
@@ -1656,31 +1684,8 @@ export class AssistantConversationService {
       };
     }
 
-    // >1 lights: Check for unique primary
-    const primaryKeywords = ['principal', 'main', 'techo', 'ceiling', 'tumbado'];
-    const primaryLights = roomLights.filter(d => {
-      const name = (d.name || '').toLowerCase();
-      return primaryKeywords.some(kw => name.includes(kw));
-    });
-
-    if (primaryLights.length === 1) {
-      const light = primaryLights[0];
-      console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'primary_match', deviceId: light.id })}`);
-      const result = await this.executeSingleCommand(light.id, command, originalPrompt, correlationId);
-      
-      await this.clearPendingAction(userId);
-      await this.memoryService.saveShortTermMemory(userId, {
-        lastQueryType: 'command',
-        entities: [{ id: light.id, name: light.name, type: light.type, roomId: light.roomId }],
-        timestamp: new Date().toISOString()
-      });
-
-      return {
-        type: 'execution',
-        message: this.buildCommandSuccessMessage(command, light.name, null, language),
-        execution: result
-      };
-    }
+    // >1 lights: If no unique primary metadata exists, ask which one.
+    // Name-based primary inference is no longer allowed.
 
     // Else: return device clarification options
     console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'clarification', count: roomLights.length })}`);
@@ -1711,7 +1716,7 @@ export class AssistantConversationService {
         ? `I found ${roomLights.length} lights in ${roomName}. Which one do you mean?`
         : `Encontré ${roomLights.length} luces en ${roomName}. ¿A cuál te refieres?`,
       clarification: {
-        question: language === 'en' ? "Device selection" : "Selección de dispositivo",
+        question: language === 'en' ? "Which one?" : "¿Cuál?",
         options
       }
     };
@@ -1824,8 +1829,10 @@ export class AssistantConversationService {
       const isPronoun = ['la', 'lo', 'las', 'los', 'it', 'them', 'esa', 'eso', 'esas', 'esos', 'that', 'those'].includes(targetPhrase) || normalized.endsWith('la') || normalized.endsWith('lo');
       const isMultiCommand = /\s(y|and|then|&)\s/i.test(normalized) || prompt.includes(',') || prompt.includes(';');
       const isBulk = normalized.includes('todo') || normalized.includes('everything');
+      const rooms = await this.roomRepository.findAll();
+      const isRoomMentioned = rooms.some(r => normalized.includes(this.normalizePrompt(r.name)));
 
-      if (isOrdinal || isPronoun || isMultiCommand || isBulk) {
+      if (isOrdinal || isPronoun || isMultiCommand || isBulk || isRoomMentioned) {
         return null; // Let it pass to Follow-up resolver or Interpreter
       }
 
@@ -1834,6 +1841,31 @@ export class AssistantConversationService {
         // If it's a very vague "luz" or similar, maybe it's not an "unknown target" but a "vague light"
         const isVague = ['la luz', 'las luces', 'luz', 'luces', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
         if (!isVague) {
+          // Attempt Fuzzy Matching before hard blocking
+          const allDevices = await this.deviceRepository.findAll();
+          const command = (this.inferCommandFromPrompt(normalized) || 'turn_on') as DeviceCommandV1;
+          const fuzzyResult = this.findFuzzyCandidateSuggestions(targetPhrase, allDevices, language, command, prompt);
+          
+          if (fuzzyResult) {
+            if (fuzzyResult.type === 'clarification' && fuzzyResult.clarification) {
+              await this.memoryService.saveShortTermMemory(userId, {
+                lastQueryType: 'clarification',
+                entities: [],
+                timestamp: new Date().toISOString(),
+                clarificationOptions: fuzzyResult.clarification.options,
+                originalPrompt: prompt,
+                pendingIntent: {
+                  type: 'command',
+                  deviceId: '',
+                  command: command,
+                  prompt: prompt,
+                  timestamp: new Date().toISOString()
+                }
+              });
+            }
+            return fuzzyResult;
+          }
+
           console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] Unknown target: "${targetPhrase}"`);
           return {
             type: 'answer',
@@ -1952,7 +1984,7 @@ export class AssistantConversationService {
     return triggers.includes(normalized);
   }
 
-  private async handleBulkActionAccept(userId: string, language: string, action: { deviceIds: string[], command: string, originalPrompt: string }): Promise<AssistantConversationResponse> {
+  private async handleBulkActionAccept(userId: string, language: string, action: { deviceIds: string[], command: string, originalPrompt: string, bulkType?: 'all' | 'lights' }): Promise<AssistantConversationResponse> {
     const memory = await this.memoryService.getShortTermMemory(userId);
     const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
     if (!allowedCommands.includes(action.command)) {
@@ -1987,7 +2019,7 @@ export class AssistantConversationService {
       timestamp: new Date().toISOString()
     });
 
-    const summary = this.formatMultiCommandSummary(results, language);
+    const summary = this.formatMultiCommandSummary(results, language, action.bulkType);
     return await this.attachSuggestionIfNeeded({
       type: 'execution',
       message: summary,
@@ -2178,8 +2210,15 @@ export class AssistantConversationService {
       };
     }
 
-    // Build room name map from actual device homeIds — fixes 'system' hardcode bug
+    // Resolve room map from repository
+    // Priority: Rooms belonging to the homes of the devices being queried
     const roomMap = await this.buildRoomNameMap(allDevices);
+    
+    // Fallback: If no rooms found via device homes, try global room list
+    if (roomMap.size === 0) {
+      const allRooms = await this.roomRepository.findAll();
+      for (const r of allRooms) roomMap.set(r.id, r.name);
+    }
 
     const isLightsOnly = normalized.includes('luz') || normalized.includes('luces') || normalized.includes('light');
 
@@ -2192,17 +2231,46 @@ export class AssistantConversationService {
     const isCompound = isOnQuery && isOffQuery;
     const hasNoExplicitState = !isOnQuery && !isOffQuery;
 
-    // Detect target room from the resolved map
+    // Detect target room from the resolved map + user aliases
     let targetRoomId: string | null = null;
     let targetRoomName: string | null = null;
 
-    for (const [roomId, roomName] of roomMap.entries()) {
-      const normRoom = this.normalizePrompt(roomName);
-      if (normalized.includes(normRoom)) {
-        targetRoomId = roomId;
-        targetRoomName = roomName;
-        break;
-      }
+    // We use the same resolution logic as in singular light path for consistency
+    const userAliases = await this.memoryService.getAliases(userId);
+    const rooms = await this.roomRepository.findAll();
+    
+    // We need to identify if there's a potential room mention in the prompt.
+    // Since we don't have a static list, we'll look for room names or aliases in the prompt.
+    const resolution = this.resolveRoomAlias(normalized, rooms, allDevices, userId, userAliases);
+    
+    if (resolution.status === 'resolved' && resolution.rooms.length > 0) {
+      targetRoomId = resolution.rooms[0].id;
+      targetRoomName = resolution.rooms[0].name;
+    } else if (resolution.status === 'ambiguous') {
+      // For state queries, if ambiguous, we can either return an answer or just treat as global.
+      // But the requirement says: "If a phrase looks like it references a room but no room resolves, return: No encontré esa estancia."
+      // Ambiguous is a form of "not resolved yet".
+      return {
+        type: 'answer',
+        message: language === 'en' 
+          ? `I found several rooms that could match. Please be more specific.` 
+          : `Encontré varias estancias que podrían coincidir. Por favor, sé más específico.`
+      };
+    }
+
+    // Detect if the prompt seems to mention a room but it wasn't resolved.
+    // This is tricky without a static list. A common pattern is "en [lugar]".
+    // If we didn't resolve a room but the prompt has "en " followed by words...
+    if (!targetRoomId && (normalized.includes(' en ') || normalized.includes(' de la ') || normalized.includes(' del '))) {
+       // Heuristic: if we see a preposition but no room matched, it's likely an unknown room.
+       // We exclude global terms like "casa", "hogar", "home".
+       const isGlobal = normalized.includes('casa') || normalized.includes('hogar') || normalized.includes('home');
+       if (!isGlobal) {
+         return {
+           type: 'answer',
+           message: language === 'en' ? "I couldn't find that room." : "No encontré esa estancia."
+         };
+       }
     }
 
     // Filtering
@@ -2211,14 +2279,7 @@ export class AssistantConversationService {
       if (targetRoomId) {
         filteredDevices = allDevices.filter(d => d.roomId === targetRoomId);
       } else {
-        const roomTokens = ['sala', 'cocina', 'cuarto', 'master', 'habitacion', 'living', 'kitchen', 'bedroom', 'bano'];
-        const promptHasRoomToken = roomTokens.some(t => normalized.includes(t));
-        if (promptHasRoomToken) {
-          filteredDevices = allDevices.filter(d => {
-            const name = this.normalizePrompt(d.name);
-            return roomTokens.some(t => normalized.includes(t) && name.includes(t));
-          });
-        } else if (sourceRoomId) {
+        if (sourceRoomId) {
           filteredDevices = allDevices.filter(d => d.roomId === sourceRoomId);
           targetRoomId = sourceRoomId;
           targetRoomName = roomMap.get(sourceRoomId) || null;
@@ -2254,26 +2315,19 @@ export class AssistantConversationService {
         }
       }
 
-      // Filter by type if lights only
       if (isLightsOnly) {
-        filteredDevices = filteredDevices.filter(d => {
-          const name = d.name.toLowerCase();
-          const hasLightKeyword = name.includes('luz') || name.includes('light');
-          const hasLightCapability = d.capabilities?.some(c => c.type === 'light');
-          return d.type === 'light' || hasLightKeyword || hasLightCapability;
-        });
+        filteredDevices = filteredDevices.filter(d => this.isLightEntity(d));
       }
     }
 
     // If no devices match the query at all
     if (filteredDevices.length === 0) {
-      if (targetRoomName || normalized.includes('bano') || normalized.includes('cocina')) {
-        const area = targetRoomName || (normalized.includes('bano') ? (language === 'en' ? 'Bathroom' : 'Baño') : (language === 'en' ? 'Kitchen' : 'Cocina'));
+      if (targetRoomName) {
         return {
           type: 'answer',
           message: language === 'en'
-            ? `I couldn't find any ${isLightsOnly ? 'lights' : 'devices'} in ${area}.`
-            : `No encontré ${isLightsOnly ? 'luces' : 'dispositivos'} en ${area}.`
+            ? `I couldn't find any ${isLightsOnly ? 'lights' : 'devices'} in ${targetRoomName}.`
+            : `No encontré ${isLightsOnly ? 'luces' : 'dispositivos'} en ${targetRoomName}.`
         };
       }
       return {
@@ -2442,7 +2496,7 @@ export class AssistantConversationService {
     }
 
     // V2: Room resolution — use cached roomName from memory or roomMap
-    const isRoomQuery = normalized.includes('cuarto') || normalized.includes('habitacion') || normalized.includes('donde');
+    const isRoomQuery = normalized.includes('donde') || normalized.includes('dónde') || normalized.includes('where');
     if (isRoomQuery && entitiesFromMemory && entitiesFromMemory.length > 0) {
       let roomMessage = '';
       for (const d of filteredDevices) {
@@ -2510,15 +2564,90 @@ export class AssistantConversationService {
     };
   }
 
+  private levenshteinDistance(a: string, b: string): number {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j;
+    }
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  }
+
+  private findFuzzyCandidateSuggestions(targetPhrase: string, devices: readonly Device[], language: string, command: DeviceCommandV1, originalPrompt: string): AssistantConversationResponse | null {
+    if (!targetPhrase || targetPhrase.trim().length < 3) return null;
+
+    const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "").trim();
+    const targetNorm = normalize(targetPhrase);
+
+    let bestMatch: Device | null = null;
+    let bestScore = 0; // 0 to 1, where 1 is exact match
+
+    for (const d of devices) {
+      if (!this.isDeviceAvailable(d)) continue;
+      // Note: we don't strictly filter by supportsCommand here because maybe they asked "prende la tv" but it's a sensor?
+      // Actually we should only suggest controllable devices if it's a command.
+      if (!this.isControllableDevice(d, command)) continue;
+
+      const nameNorm = normalize(d.name);
+      
+      // Calculate similarity
+      const distance = this.levenshteinDistance(targetNorm, nameNorm);
+      const maxLength = Math.max(targetNorm.length, nameNorm.length);
+      const similarity = maxLength === 0 ? 1 : 1 - (distance / maxLength);
+
+      if (similarity > bestScore) {
+        bestScore = similarity;
+        bestMatch = d;
+      }
+    }
+
+    // High confidence threshold (e.g. "lux sal" vs "luz sala") -> usually > 0.7 similarity
+    if (bestMatch && bestScore >= 0.7) {
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I didn't find a device called '${targetPhrase}'. Did you mean '${bestMatch.name}'?`
+          : `No encontré un dispositivo llamado '${targetPhrase}'. ¿Quisiste decir '${bestMatch.name}'?`,
+        clarification: {
+          question: language === 'en' ? `Did you mean '${bestMatch.name}'?` : `¿Quisiste decir '${bestMatch.name}'?`,
+          options: [{ id: bestMatch.id, label: bestMatch.name, kind: 'device' }],
+          pendingAction: {
+            command,
+            originalPrompt
+          }
+        }
+      };
+    }
+
+    // Low confidence or no match
+    return {
+      type: 'answer',
+      message: language === 'en' 
+        ? `I couldn't find a device called '${targetPhrase}'.` 
+        : `No encontré un dispositivo llamado '${targetPhrase}'.`
+    };
+  }
+
   private async findMatchingDevices(prompt: string, userId: string = 'system'): Promise<Device[]> {
     const normalized = this.normalizePrompt(prompt);
     let devices = await this.deviceRepository.findAll();
     
     // Filter out non-controllable/deprecated devices
-    devices = devices.filter(d => {
-      const name = d.name.toLowerCase();
-      return !name.includes('test') && !name.includes('deprecated') && !name.includes('sin funcionar');
-    });
+    devices = devices.filter(d => this.isDeviceAvailable(d));
     
     // 1. Check for Exact Match first (highest priority)
     const exactMatch = devices.find(d => this.normalizePrompt(d.name) === normalized);
@@ -2998,7 +3127,7 @@ export class AssistantConversationService {
     }
   }
 
-  private formatMultiCommandSummary(results: ExecutedCommandResult[], language: string): string {
+  private formatMultiCommandSummary(results: ExecutedCommandResult[], language: string, bulkType?: 'all' | 'lights'): string {
     const isEn = language === 'en';
     const successes = results.filter(r => r.result.status === 'success');
     const failures = results.filter(r => r.result.status === 'failed');
@@ -3034,13 +3163,17 @@ export class AssistantConversationService {
       const sameCmd = commands.length === 1;
       const cmd = sameCmd ? commands[0] : 'mixed';
 
+      const term = bulkType === 'lights' 
+        ? (isEn ? 'lights' : 'luces')
+        : (isEn ? 'devices' : 'dispositivos');
+
       if (isEn) {
-        if (cmd === 'turn_on') return `Done, turned on ${results.length} lights successfully.`;
-        if (cmd === 'turn_off') return `Done, turned off ${results.length} lights successfully.`;
+        if (cmd === 'turn_on') return `Done, turned on ${results.length} ${term} successfully.`;
+        if (cmd === 'turn_off') return `Done, turned off ${results.length} ${term} successfully.`;
         return `Done, executed ${results.length} actions successfully.`;
       } else {
-        if (cmd === 'turn_on') return `Listo, encendí ${results.length} luces correctamente.`;
-        if (cmd === 'turn_off') return `Listo, apagué ${results.length} luces correctamente.`;
+        if (cmd === 'turn_on') return `Listo, encendí ${results.length} ${term} correctamente.`;
+        if (cmd === 'turn_off') return `Listo, apagué ${results.length} ${term} correctamente.`;
         return `Listo, ejecuté ${results.length} acciones correctamente.`;
       }
     }
@@ -3382,6 +3515,7 @@ export class AssistantConversationService {
   private isRoomBulkFastPath(prompt: string): {
     command: 'turn_on' | 'turn_off';
     roomName: string;
+    bulkType: 'all' | 'lights';
   } | null {
     const normalized = prompt.toLowerCase();
     
@@ -3390,30 +3524,95 @@ export class AssistantConversationService {
       return null;
     }
     
-    // Spanish Regex
-    const esRegex = /(enciende|prende|apaga).*?(?:todo\s+el|todo\s+en|todo|todas\s+(?:las\s+)?luces|luces)\s*(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)/i;
+    // Spanish Regex: Strictly for BULK (todo, todas las luces, luces)
+    // Group 1: Verb
+    // Group 2: Bulk keyword
+    // Group 3: Room name
+    const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(todo\s+el|todo\s+en|todo|todas\s+(?:las\s+)?luces|luces)\s*(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
     const esMatch = normalized.match(esRegex);
     if (esMatch) {
       const verb = esMatch[1].toLowerCase();
-      const command = (verb === 'enciende' || verb === 'prende') ? 'turn_on' : 'turn_off';
-      const roomName = esMatch[2].trim();
-      return { command, roomName };
+      const command = (verb === 'enciende' || verb === 'prende' || verb === 'activa') ? 'turn_on' : 'turn_off';
+      const bulkKeyword = esMatch[2].toLowerCase();
+      const bulkType = (bulkKeyword.includes('todo') || bulkKeyword.includes('everything')) ? 'all' : 'lights';
+      const roomName = esMatch[3].trim();
+      return { command, roomName, bulkType };
     }
 
-    // English Regex
-    const enRegex = /(turn|switch)\s+(on|off).*?(?:all\s+(?:the\s+)?(?:lights|in)|everything\s+in|lights\s+in)\s*(?:the\s+)?(.+)/i;
+    // English Regex: Strictly for BULK
+    const enRegex = /^(turn|switch)\s+(on|off)\s+(all\s+(?:the\s+)?(?:lights|in)|everything\s+in|lights\s+in)\s*(?:the\s+)?(.+)$/i;
     const enMatch = normalized.match(enRegex);
     if (enMatch) {
       const action = enMatch[2].toLowerCase();
       const command = action === 'on' ? 'turn_on' : 'turn_off';
-      const roomName = enMatch[3].trim();
-      return { command, roomName };
+      const bulkKeyword = enMatch[3].toLowerCase();
+      const bulkType = (bulkKeyword.includes('everything') || bulkKeyword.includes('all in')) ? 'all' : 'lights';
+      const roomName = enMatch[4].trim();
+      return { command, roomName, bulkType };
     }
 
     return null;
   }
 
-  private resolveRoomAlias(roomName: string, rooms: Room[], devices: Device[], userId: string, userAliases: Record<string, string>): RoomAliasResolution {
+  private isSingularLightRequest(normalized: string): boolean {
+    const singularNouns = [
+      'la luz', 'el foco', 'la lampara', 'la bombilla', 'una luz', 'un foco',
+      'the light', 'the bulb', 'the lamp', 'the spotlight', 'a light'
+    ];
+    return singularNouns.some(n => normalized.includes(n));
+  }
+
+  private isRoomSingularLightFastPath(prompt: string): {
+    command: 'turn_on' | 'turn_off';
+    roomName: string;
+  } | null {
+    const normalized = prompt.toLowerCase();
+    
+    // Spanish Regex: (verb) + (singular noun) + (optional preposition) + (room name)
+    const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(?:la\s+|el\s+|una\s+|un\s+)?(luz|foco|lampara|bombilla)\s+(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
+    const esMatch = normalized.match(esRegex);
+    if (esMatch) {
+       const verb = esMatch[1].toLowerCase();
+       const command = (verb === 'enciende' || verb === 'prende' || verb === 'activa') ? 'turn_on' : 'turn_off';
+       const roomName = esMatch[3].trim();
+       return { command, roomName };
+    }
+    
+    // English Regex
+    const enRegex = /^(turn|switch)\s+(on|off)\s+(?:the\s+|a\s+)?(light|bulb|lamp|spotlight)\s+(?:in\s+|at\s+|the\s+)?(.+)$/i;
+    const enMatch = normalized.match(enRegex);
+    if (enMatch) {
+       const action = enMatch[2].toLowerCase();
+       const command = action === 'on' ? 'turn_on' : 'turn_off';
+       const roomName = enMatch[4].trim();
+       return { command, roomName };
+    }
+    
+    return null;
+  }
+
+  private async handleRoomSingularLightFastPath(
+    userId: string,
+    command: 'turn_on' | 'turn_off',
+    roomName: string,
+    language: string,
+    originalPrompt: string,
+    userAliases: Record<string, string>
+  ): Promise<AssistantConversationResponse | null> {
+    const [devices, rooms] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.roomRepository.findAll()
+    ]);
+    
+    const resolution = this.resolveRoomAlias(roomName, Array.from(rooms), Array.from(devices), userId, userAliases);
+    if (resolution.status === 'resolved' && resolution.rooms.length > 0) {
+      return await this.handleRoomSelectionForLight(resolution.rooms[0].id, command, userId, language, originalPrompt, `singular-${Date.now()}`);
+    }
+    
+    return null;
+  }
+
+  private resolveRoomAlias(roomName: string, rooms: ReadonlyArray<Room>, devices: ReadonlyArray<Device>, userId: string, userAliases: Record<string, string>): RoomAliasResolution {
     const normPromptRoom = this.normalizePrompt(roomName);
     const roomEntries = rooms.map(r => ({ room: r, norm: this.normalizePrompt(r.name) }));
 
@@ -3476,28 +3675,8 @@ export class AssistantConversationService {
       }
     }
 
-    // Priority 4: Built-in alias
-    const spanishAliases = ["mi cuarto", "mi habitacion", "mi habitación", "dormitorio", "habitacion", "habitación", "cuarto", "master"];
-    const englishAliases = ["my room", "my bedroom", "bedroom", "master bedroom", "master"];
-    const allAliases = [...spanishAliases, ...englishAliases].map(a => this.normalizePrompt(a));
-
-    const matchedAlias = allAliases.find(alias => normPromptRoom.includes(alias));
-
-    if (matchedAlias) {
-      const principalKeywords = ["master", "principal"];
-      const candidates = roomEntries.filter(e => principalKeywords.some(k => e.norm.includes(k)));
-
-      if (candidates.length === 1) {
-        console.info(`[ASSISTANT_ROOM_ALIAS_RESOLVED] ${JSON.stringify({ input: roomName, resolvedRoom: candidates[0].room.name, matchedAlias })}`);
-        return { status: 'resolved', rooms: [candidates[0].room] };
-      }
-      
-      if (candidates.length > 1) {
-        const candidateNames = candidates.map(c => c.room.name);
-        console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'alias', candidates: candidateNames })}`);
-        return { status: 'ambiguous', rooms: [], candidates: candidateNames };
-      }
-    }
+    // Priority 4: (DELETED) Built-in aliases are no longer supported.
+    // Use user-defined aliases or exact room names.
 
     return { status: 'not_found', rooms: [] };
   }
@@ -3506,6 +3685,7 @@ export class AssistantConversationService {
     userId: string,
     command: 'turn_on' | 'turn_off',
     roomName: string,
+    bulkType: 'all' | 'lights',
     language: string,
     userAliases: Record<string, string>
   ): Promise<AssistantConversationResponse> {
@@ -3531,8 +3711,8 @@ export class AssistantConversationService {
       return {
         type: 'answer',
         message: language === 'en' 
-          ? "I didn't find any lights in that room." 
-          : "No encontré luces en esa estancia."
+          ? "I didn't find that room." 
+          : "No encontré esa estancia."
       };
     }
 
@@ -3540,42 +3720,32 @@ export class AssistantConversationService {
     const targetRoomIds = matchingRooms.map(r => r.id);
     const displayRoomName = matchingRooms[0].name;
 
-    const isEverything = roomName.toLowerCase().includes('todo') || roomName.toLowerCase().includes('everything');
-    const lightKeywords = ['luz', 'light', 'foco', 'lampara', 'lámpara'];
-    
     const matchingDevices = devices.filter(d => {
-      const nameLower = d.name.toLowerCase();
-      const isLight = d.type === 'light' || lightKeywords.some(k => nameLower.includes(k));
-      const isAvailable = d.lastKnownState?.state !== 'unavailable';
       const isInRoom = d.roomId && targetRoomIds.includes(d.roomId);
-      
-      if (!isInRoom || !isAvailable) return false;
-      
-      // Critical Requirement D: Exclude covers from turn_on/turn_off bulk
-      const isCover = d.type === 'cover' || d.type === 'shutter' || d.type === 'blind';
-      if (isCover && (command === 'turn_on' || command === 'turn_off')) return false;
-
-      if (isEverything) return true;
-      return isLight;
+      if (!isInRoom) return false;
+      return this.isControllableForBulk(d, command, bulkType);
     });
 
     if (matchingDevices.length === 0) {
+      const deviceTerm = bulkType === 'lights' 
+        ? (language === 'en' ? 'lights' : 'luces')
+        : (language === 'en' ? 'controllable devices' : 'dispositivos controlables');
       return {
         type: 'answer',
         message: language === 'en' 
-          ? "I didn't find any controllable devices in that room." 
-          : "No encontré dispositivos controlables en esa estancia."
+          ? `I didn't find any ${deviceTerm} in ${displayRoomName}.` 
+          : `No encontré ${deviceTerm} en ${displayRoomName}.`
       };
     }
 
     const deviceIds = matchingDevices.map(l => l.id);
-
     
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
       source: "room_bulk_fast_path",
       room: displayRoomName,
       count: matchingDevices.length,
-      command
+      command,
+      bulkType
     })}`);
 
     await this.memoryService.saveShortTermMemory(userId, {
@@ -3586,34 +3756,46 @@ export class AssistantConversationService {
         type: 'bulk_action',
         deviceIds,
         command,
+        bulkType,
         timestamp: new Date().toISOString(),
         originalPrompt: `Bulk room action for ${displayRoomName}`
       }
     });
 
+    const deviceTerm = bulkType === 'lights'
+      ? (language === 'en' ? 'lights' : 'luces')
+      : (language === 'en' ? 'devices' : 'dispositivos');
+
     const actionText = command === 'turn_on' 
-      ? (language === 'en' ? 'turn them on' : 'encenderlas')
-      : (language === 'en' ? 'turn them off' : 'apagarlas');
+      ? (language === 'en' ? 'turn them on' : 'encenderlos')
+      : (language === 'en' ? 'turn them off' : 'apagarlos');
+
+    // For Spanish, "encenderlas/apagarlas" if it's "luces", "encenderlos/apagarlos" if it's "dispositivos"
+    const actionTextFinal = language === 'es' && bulkType === 'lights'
+      ? actionText.replace('los', 'las')
+      : actionText;
 
     return {
       type: 'clarification',
       message: language === 'en'
-        ? `I found ${matchingDevices.length} lights in ${displayRoomName}. Do you confirm you want to ${actionText}?`
-        : `Encontré ${matchingDevices.length} luces en ${displayRoomName}. ¿Confirmas que quieres ${actionText}?`
+        ? `I found ${matchingDevices.length} ${deviceTerm} in ${displayRoomName}. Do you confirm you want to ${actionText}?`
+        : `Encontré ${matchingDevices.length} ${deviceTerm} en ${displayRoomName}. ¿Confirmas que quieres ${actionTextFinal}?`
     };
   }
 
-  private isBulkFastPath(normalized: string): boolean {
+  private isBulkFastPath(normalized: string): { command: 'turn_on' | 'turn_off', bulkType: 'all' | 'lights' } | null {
     // Exclusion syntax must go through multi-command parser, not bulk fast-path
     const exclusionWords = ['menos', 'excepto', 'salvo', 'except', 'minus'];
-    if (exclusionWords.some(w => normalized.includes(w))) return false;
+    if (exclusionWords.some(w => normalized.includes(w))) return null;
 
-    const triggers = [
+    const lightsTriggers = [
       'enciende todas las luces',
       'prende todas las luces',
       'apaga todas las luces',
       'turn on all lights',
       'turn off all lights',
+    ];
+    const allTriggers = [
       'apaga todo',
       'prende todo',
       'enciende todo',
@@ -3622,38 +3804,36 @@ export class AssistantConversationService {
       'turn everything off',
       'turn everything on'
     ];
-    return triggers.some(t => normalized.includes(t));
+
+    const isOff = normalized.includes('apaga') || normalized.includes('turn off') || normalized.includes('off');
+    const command = isOff ? 'turn_off' : 'turn_on';
+
+    if (lightsTriggers.some(t => normalized.includes(t))) {
+      return { command, bulkType: 'lights' };
+    }
+    if (allTriggers.some(t => normalized.includes(t))) {
+      return { command, bulkType: 'all' };
+    }
+
+    return null;
   }
 
-  private async handleBulkFastPath(normalized: string, language: string, userId: string): Promise<AssistantConversationResponse | null> {
-    const isOff = normalized.includes('apaga') || normalized.includes('turn off');
-    const command = isOff ? 'turn_off' : 'turn_on';
-    const isEverything = normalized.includes('todo') || normalized.includes('everything');
-    
+  private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string): Promise<AssistantConversationResponse | null> {
     const allDevices = await this.deviceRepository.findAll();
-    const lightKeywords = ['luz', 'light', 'foco', 'lampara', 'lámpara'];
     
     const targetDevices = allDevices.filter(d => {
-      const nameLower = d.name.toLowerCase();
-      const isLight = d.type === 'light' || lightKeywords.some(k => nameLower.includes(k));
-      const isAvailable = d.lastKnownState?.state !== 'unavailable';
-      
-      if (!isAvailable) return false;
-      
-      // Critical Requirement D/C: Exclude covers from turn_on/turn_off bulk
-      const isCover = d.type === 'cover' || d.type === 'shutter' || d.type === 'blind';
-      if (isCover && (command === 'turn_on' || command === 'turn_off')) return false;
-
-      if (isEverything) return true;
-      return isLight;
+      return this.isControllableForBulk(d, command, bulkType);
     });
 
     if (targetDevices.length === 0) {
+      const deviceTerm = bulkType === 'lights' 
+        ? (language === 'en' ? 'lights' : 'luces')
+        : (language === 'en' ? 'controllable devices' : 'dispositivos controlables');
       return {
         type: 'answer',
         message: language === 'en' 
-          ? (isEverything ? "I didn't find any controllable devices." : "I didn't find any lights.") 
-          : (isEverything ? "No encontré dispositivos controlables." : "No encontré luces.")
+          ? `I didn't find any ${deviceTerm}.` 
+          : `No encontré ${deviceTerm}.`
       };
     }
 
@@ -3661,7 +3841,8 @@ export class AssistantConversationService {
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({ 
       source: 'bulk_fast_path', 
       count: targetDevices.length, 
-      command 
+      command,
+      bulkType
     })}`);
 
     await this.memoryService.saveShortTermMemory(userId, {
@@ -3672,16 +3853,31 @@ export class AssistantConversationService {
         type: 'bulk_action',
         deviceIds,
         command,
+        bulkType,
         timestamp: new Date().toISOString(),
         originalPrompt: normalized
       }
     });
 
+    const deviceTerm = bulkType === 'lights'
+      ? (language === 'en' ? 'lights' : 'luces')
+      : (language === 'en' ? 'devices' : 'dispositivos');
+
+    const isOff = command === 'turn_off';
+    const actionText = isOff
+      ? (language === 'en' ? 'turn them all off' : 'apagarlos todos')
+      : (language === 'en' ? 'turn them all on' : 'encenderlos todos');
+
+    // For Spanish, "apagarlas/encenderlas" if it's "luces"
+    const actionTextFinal = language === 'es' && bulkType === 'lights'
+      ? actionText.replace('los', 'las').replace('todos', 'todas')
+      : actionText;
+
     return {
       type: 'clarification',
       message: language === 'en'
-        ? `I found ${targetDevices.length} lights. Do you confirm you want to turn them all ${isOff ? 'off' : 'on'}?`
-        : `Encontré ${targetDevices.length} luces. ¿Confirmas que quieres ${isOff ? 'apagarlas' : 'encenderlas'} todas?`
+        ? `I found ${targetDevices.length} ${deviceTerm}. Do you confirm you want to ${actionText}?`
+        : `Encontré ${targetDevices.length} ${deviceTerm}. ¿Confirmas que quieres ${actionTextFinal}?`
     };
   }
 
@@ -3924,18 +4120,7 @@ export class AssistantConversationService {
     if (!targetRoom) return null;
 
     const roomDevices = devices.filter(d => d.roomId === sourceRoomId);
-    const lights = roomDevices.filter(d => {
-      // Exclude only explicitly unavailable devices
-      const isAvailable = d.lastKnownState?.state !== 'unavailable';
-      if (!isAvailable) return false;
-
-      const isLightType = d.type === 'light';
-      const nameLower = d.name.toLowerCase();
-      const hasLightKeyword = nameLower.includes('luz') || nameLower.includes('light') || 
-                              nameLower.includes('foco') || nameLower.includes('lampara') || 
-                              nameLower.includes('lámpara');
-      return isLightType || hasLightKeyword;
-    });
+    const lights = roomDevices.filter(d => this.isLightEntity(d) && this.isDeviceAvailable(d));
 
     if (lights.length === 0) {
       return {
@@ -3945,14 +4130,9 @@ export class AssistantConversationService {
     }
 
     let selectedLight: Device | null = null;
-    let reason: 'single_light' | 'primary_match' = 'single_light';
 
     if (lights.length === 1) {
       selectedLight = lights[0];
-      reason = 'single_light';
-    } else {
-      selectedLight = this.findPrimaryLight(lights);
-      reason = 'primary_match';
     }
 
     if (!selectedLight) {
@@ -4007,7 +4187,7 @@ export class AssistantConversationService {
         deviceId: selectedLight.id,
         deviceName: selectedLight.name,
         command: vagueMatch.command,
-        reason
+        reason: 'single_light'
       })}`);
 
       console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ 
@@ -4042,14 +4222,4 @@ export class AssistantConversationService {
     return null;
   }
 
-  private findPrimaryLight(lights: Device[]): Device | null {
-    const primaryKeywords = ['principal', 'main', 'techo', 'ceiling', 'tumbado'];
-    const candidates = lights.filter(l => {
-      const nameLower = l.name.toLowerCase();
-      return primaryKeywords.some(kw => nameLower.includes(kw));
-    });
-
-    if (candidates.length === 1) return candidates[0];
-    return null;
-  }
 }

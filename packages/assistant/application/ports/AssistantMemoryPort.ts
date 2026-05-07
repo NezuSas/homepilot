@@ -63,6 +63,7 @@ export interface AssistantMemoryState {
     command: string;
     timestamp: string;
     originalPrompt: string;
+    bulkType?: 'all' | 'lights';
   };
 
   /** Alias deletion waiting for user confirmation */

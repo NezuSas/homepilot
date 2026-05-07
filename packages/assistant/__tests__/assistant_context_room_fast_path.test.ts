@@ -144,7 +144,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.message).toContain('¿Confirmas que quieres apagarlas?');
   });
 
-  it('6. multiple lights with one "principal/main/techo/ceiling" picks primary', async () => {
+  it('6. multiple lights with one "principal/main/techo/ceiling" now asks for clarification instead of picking primary', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Sala' });
     const d1 = createTestDevice({ id: 'd1', name: 'Luz Secundaria', type: 'light', roomId: 'r1' });
     const d2 = createTestDevice({ id: 'd2', name: 'Luz Principal', type: 'light', roomId: 'r1' });
@@ -158,9 +158,9 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     
     const res = await service.converse({ prompt: 'prende la luz', userId: 'u1', sourceRoomId: 'r1' }, 'es');
     
-    expect(res.type).toBe('execution');
-    expect(res.message).toContain('Encendí Luz Principal');
-    expect(execMock).toHaveBeenCalledWith('d2', 'turn_on', 'prende la luz', expect.any(String));
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('Encontré varias luces');
+    expect(execMock).not.toHaveBeenCalled();
   });
 
   it('7. multiple lights without unique primary asks clarification and saves memory', async () => {

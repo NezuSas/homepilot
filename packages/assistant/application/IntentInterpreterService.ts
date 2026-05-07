@@ -184,11 +184,8 @@ export class IntentInterpreterService implements IntentInterpreterPort {
         // V1 Matcher: find by name containing keywords
         const found = devices.find(d => {
           const name = d.name.toLowerCase();
-          // Check location keywords
-          if (normalized.includes('sala') && !name.includes('sala')) return false;
-          if (normalized.includes('cocina') && !name.includes('cocina')) return false;
-          if (normalized.includes('cuarto') && !name.includes('cuarto')) return false;
-          if (normalized.includes('escritorio') && !name.includes('escritorio')) return false;
+          // No more room-in-name filtering here. 
+          // If a room was mentioned, it should have been resolved via FastPath or specific Room Intent.
           
           return name.includes('luz') || name.includes('lámpara') || name.includes('foco');
         });

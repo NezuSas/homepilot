@@ -92,7 +92,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
-    mockMemory.getAliases.mockResolvedValue({});
+    mockMemory.getAliases.mockResolvedValue({ 'mi cuarto': 'r1' });
     mockMemory.getUserPreference.mockResolvedValue(null);
 
     const res = await service.converse({ prompt: 'apaga todas las luces de mi cuarto', userId: 'u1' }, 'es');
@@ -106,7 +106,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
-    mockMemory.getAliases.mockResolvedValue({});
+    mockMemory.getAliases.mockResolvedValue({ 'mi cuarto': 'r1' });
     mockMemory.getUserPreference.mockResolvedValue(null);
 
     const res = await service.converse({ prompt: 'apaga luces de mi cuarto porfa', userId: 'u1' }, 'es');
@@ -138,18 +138,18 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
   it('handles alias ambiguity by reporting candidate rooms (improved UX)', async () => {
     const rooms = [
-      createTestRoom({ id: 'r1', name: 'Cuarto Master' }),
-      createTestRoom({ id: 'r2', name: 'Cuarto Principal' })
+      createTestRoom({ id: 'r1', name: 'Sala' }),
+      createTestRoom({ id: 'r2', name: 'Sala' })
     ];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
     mockMemory.getAliases.mockResolvedValue({});
     mockMemory.getUserPreference.mockResolvedValue(null);
 
-    const res = await service.converse({ prompt: 'apaga todas las luces de mi cuarto', userId: 'u1' }, 'es');
+    const res = await service.converse({ prompt: 'apaga todas las luces de la sala', userId: 'u1' }, 'es');
 
     expect(res.type).toBe('answer');
-    expect(res.message).toBe('Encontré varias estancias posibles: Cuarto Master, Cuarto Principal. ¿Cuál quieres usar?');
+    expect(res.message).toBe('Encontré varias estancias posibles: Sala, Sala. ¿Cuál quieres usar?');
   });
 
   it('resolves English "turn off lights in my bedroom" correctly', async () => {
@@ -158,7 +158,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
-    mockMemory.getAliases.mockResolvedValue({});
+    mockMemory.getAliases.mockResolvedValue({ 'my bedroom': 'r1' });
     mockMemory.getUserPreference.mockResolvedValue(null);
 
     const res = await service.converse({ prompt: 'turn off lights in my bedroom', userId: 'u1' }, 'en');
@@ -166,10 +166,10 @@ describe('Assistant Room Bulk Fast-Path', () => {
     expect(res.message).toContain('Master Bedroom');
   });
 
-  it('filters devices by keyword and type correctly', async () => {
+  it('filters devices by type correctly (strict classification)', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
     const devices = [
-      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }), // Keyword match
+      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }), // Should be excluded from 'luces' bulk
       createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1' })     // Type match
     ];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
@@ -180,6 +180,22 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga luces de la sala', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Encontré 2 luces');
+    // Only 1 device (the 'light' one) should be found when asking for 'luces'
+    expect(res.message).toContain('Encontré 1 luces');
+  });
+
+  it('includes both devices when using "todo" in the room', async () => {
+    const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
+    const devices = [
+      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }),
+      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1' })
+    ];
+    mockRoomRepo.findAll.mockResolvedValue(rooms);
+    mockDeviceRepo.findAll.mockResolvedValue(devices);
+    mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+    const res = await service.converse({ prompt: 'apaga todo en la sala', userId: 'u1' }, 'es');
+
+    expect(res.message).toContain('Encontré 2 dispositivos');
   });
 });

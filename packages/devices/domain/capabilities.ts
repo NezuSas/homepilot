@@ -61,7 +61,11 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
   ],
   'sensor': [],
   'binary_sensor': [],
-  'dimmer': [],
+  'dimmer': [
+    { name: 'turn_on' },
+    { name: 'turn_off' },
+    { name: 'toggle' }
+  ],
   'climate': [],
   'media_player': []
 };

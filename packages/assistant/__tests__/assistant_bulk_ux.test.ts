@@ -62,6 +62,7 @@ describe('Assistant Bulk Response UX', () => {
         type: 'bulk_action',
         deviceIds: ids,
         command,
+        bulkType: 'lights',
         timestamp: new Date().toISOString(),
         originalPrompt: 'bulk prompt'
       }

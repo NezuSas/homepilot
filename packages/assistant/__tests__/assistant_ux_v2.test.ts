@@ -100,12 +100,12 @@ describe('AssistantConversationService UX V2', () => {
     
     expect(res1.type).toBe('clarification');
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingBulkAction: expect.objectContaining({ command: 'turn_off' })
+      pendingBulkAction: expect.objectContaining({ command: 'turn_off', bulkType: 'all' })
     }));
 
     // 2. Positive confirmation
     memory.getShortTermMemory.mockResolvedValue({
-      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt, timestamp: new Date().toISOString(), originalPrompt: prompt },
+      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', bulkType: 'all', prompt, timestamp: new Date().toISOString(), originalPrompt: prompt },
       timestamp: new Date().toISOString(),
       entities: []
     });
@@ -113,6 +113,7 @@ describe('AssistantConversationService UX V2', () => {
     const res2 = await service.converse({ prompt: 'sí', userId });
     
     expect(res2.type).toBe('execution');
+    expect(res2.message).toBe('Apagué Device.');
     expect(sceneExecutionService.execute).toHaveBeenCalled();
   });
 
@@ -510,8 +511,8 @@ describe('AssistantConversationService UX V2', () => {
     const res = await service.converse({ prompt: 'es lo mismo que decir cuartos?', userId: 'u1' });
 
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('cuarto');
     expect(res.message).toContain('estancia');
+    expect(res.message).toContain('alias');
     // Must NOT call LLM or smalltalk
     expect(smallTalk.handle).not.toHaveBeenCalled();
     expect(intentInterpreter.interpret).not.toHaveBeenCalled();
@@ -522,7 +523,7 @@ describe('AssistantConversationService UX V2', () => {
 
     expect(res.type).toBe('answer');
     expect(res.message).toContain('room');
-    expect(res.message).toContain('area');
+    expect(res.message).toContain('alias');
     expect(smallTalk.handle).not.toHaveBeenCalled();
     expect(intentInterpreter.interpret).not.toHaveBeenCalled();
   });

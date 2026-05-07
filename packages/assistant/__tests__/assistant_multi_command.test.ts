@@ -212,7 +212,7 @@ describe('AssistantConversationService - Multi-Command V1', () => {
 
     const res1 = await service.converse({ prompt, userId });
     expect(res1.type).toBe('clarification');
-    expect(res1.clarification?.question).toContain('cuál');
+    expect(res1.clarification?.question.toLowerCase()).toContain('cuál');
     expect(res1.clarification?.options).toHaveLength(3); // Luz Sala, Luz Baño, Luz Cocina
     
     // No multi_command intent should be created yet

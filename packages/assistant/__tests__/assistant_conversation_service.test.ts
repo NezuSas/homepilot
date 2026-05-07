@@ -270,22 +270,21 @@ describe('AssistantConversationService', () => {
       expect(response.message).not.toContain('• Luz Sala');
     });
 
-    it('should filter by room token as fallback if room not in repo', async () => {
+    it('should return amigable message if room token is found but no room exists', async () => {
       mockRoomRepo.findRoomsByHomeId.mockResolvedValue([]);
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: '1', name: 'Luz Cocina', lastKnownState: { on: true } }),
-        createTestDevice({ id: '2', name: 'Luz Sala', lastKnownState: { on: true } })
+        createTestDevice({ id: '2', name: 'Luz Sala', lastKnownState: { on: true } }),
       ]);
 
       const response = await service.converse({ prompt: 'que luces estan encendidas en la cocina' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('• Luz Cocina');
-      expect(response.message).not.toContain('• Luz Sala');
+      expect(response.message).toBe('No encontré esa estancia.');
     });
 
     it('should return amigable message if no devices in room', async () => {
-       mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
-        { id: 'r1', name: 'Baño', homeId: 'h1', createdAt: '', updatedAt: '', entityVersion: 1 }
+       mockRoomRepo.findAll.mockResolvedValue([
+        createTestRoom({ id: 'r1', name: 'Baño', homeId: 'h1' })
       ]);
       mockDeviceRepo.findAll.mockResolvedValue([]);
 

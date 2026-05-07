@@ -158,19 +158,9 @@ describe('Assistant Room Selection Resolution', () => {
 
     const res = await service.converse({ prompt: 'Sala', userId: 'u1', selectedOptionId: 'r1' }, 'es');
 
-    expect(res.type).toBe('execution');
-    expect(res.message).toContain('Apagué Luz del Tumbado');
-    expect(mockSceneExecutionService.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actions: expect.arrayContaining([
-          expect.objectContaining({
-            deviceId: 'l2',
-            command: expect.objectContaining({ name: 'turn_off' })
-          })
-        ])
-      }),
-      expect.anything()
-    );
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('Encontré 2 luces en Sala');
+    expect(res.clarification?.options).toHaveLength(2);
   });
 
   it('4. selecting room with multiple lights and no primary asks device clarification', async () => {
