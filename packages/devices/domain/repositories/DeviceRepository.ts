@@ -1,4 +1,4 @@
-import { Device } from '../types';
+import { Device, DeviceSemanticType } from '../types';
 
 /**
  * Puerto de Salida (Outbound Port) para la persistencia del Dominio de Devices.
@@ -48,4 +48,9 @@ export interface DeviceRepository {
    * Recupera los external_ids que coinciden con un prefijo (e.g. 'ha:').
    */
   findAllExternalIdsByPrefix(prefix: string): Promise<ReadonlyArray<string>>;
+
+  /**
+   * Actualiza el tipo semántico de un dispositivo sin sobreescribir el resto de sus propiedades.
+   */
+  updateSemanticType(deviceId: string, semanticType: DeviceSemanticType | null): Promise<void>;
 }

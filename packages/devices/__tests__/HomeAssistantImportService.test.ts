@@ -31,7 +31,8 @@ describe('HomeAssistantImportService', () => {
       findAllByHomeId: jest.fn(),
       findAllExternalIdsByPrefix: jest.fn(),
       findByExternalIdAndHomeId: jest.fn().mockResolvedValue(null),
-      findByExternalId: jest.fn()
+      findByExternalId: jest.fn(),
+      updateSemanticType: jest.fn().mockResolvedValue(undefined)
     };
 
     mockHomeRepo = {

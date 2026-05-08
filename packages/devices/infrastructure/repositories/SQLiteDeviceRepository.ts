@@ -197,6 +197,21 @@ export class SQLiteDeviceRepository implements DeviceRepository {
     };
   }
 
+  async updateSemanticType(deviceId: string, semanticType: string | null): Promise<void> {
+    const updatedAt = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      UPDATE devices 
+      SET semantic_type = @semanticType, updated_at = @updatedAt
+      WHERE id = @deviceId
+    `);
+    
+    stmt.run({
+      deviceId,
+      semanticType,
+      updatedAt
+    });
+  }
+
   /**
    * Helper privado y tipado para serializar estados JSON de dispositivos.
    */

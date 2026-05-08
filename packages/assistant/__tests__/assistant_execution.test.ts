@@ -54,7 +54,8 @@ describe('Assistant Execution Integration', () => {
       findByExternalId: jest.fn(),
       findAllOrderedByStatus: jest.fn(),
       findAllByHomeId: jest.fn(),
-      findAllExternalIdsByPrefix: jest.fn()
+      findAllExternalIdsByPrefix: jest.fn(),
+      updateSemanticType: jest.fn()
     };
     mockSceneRepo = {
       findAll: jest.fn(),

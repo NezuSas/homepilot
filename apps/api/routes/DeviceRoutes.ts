@@ -244,6 +244,46 @@ export class DeviceRoutes extends ApiRoutes {
       return true;
     }
 
+    // PATCH /api/v1/devices/:id/semantic-type
+    const semanticPatchMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/semantic-type$/);
+    if (semanticPatchMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const deviceId = semanticPatchMatch[1];
+        const payload = await this.parseBody<Record<string, unknown>>(req);
+
+        if (!('semanticType' in payload)) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Missing semanticType key'), true;
+        }
+
+        const validSemanticTypes = ['light', 'switch', 'outlet', 'cover', 'sensor', 'unknown', null];
+        const { semanticType } = payload;
+
+        if (!validSemanticTypes.includes(semanticType as any)) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Invalid semanticType value'), true;
+        }
+
+        const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+
+        // Ownership validation
+        const home = await container.repositories.homeRepository.findHomeById(device.homeId);
+        if (!home || home.ownerId !== req.user!.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
+        }
+
+        await container.repositories.deviceRepository.updateSemanticType(deviceId, semanticType as any);
+        
+        const updatedDevice = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!updatedDevice) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+
+        this.sendJson(res, { device: this.enrichDevice(updatedDevice) });
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
+      }
+      return true;
+    }
+
     // PATCH /api/v1/devices/:id
     const devicePatchMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)$/);
     if (devicePatchMatch) {

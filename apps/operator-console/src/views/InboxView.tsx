@@ -485,6 +485,30 @@ const DeviceInspector: React.FC<{
     }
   };
 
+  const handleSemanticTypeChange = async (semanticType: string) => {
+    if (!device || isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      const payload = semanticType === 'automatic' ? null : semanticType;
+      const res = await apiFetch(`${API_URL}/devices/${device.id}/semantic-type`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ semanticType: payload })
+      });
+      if (res.ok) {
+        const data = await res.json() as { device: InspectableDevice };
+        setDevice(data.device);
+        onUpdate(data.device);
+      } else {
+        setError(t('common.errors.operation_failed'));
+      }
+    } catch {
+      setError(t('common.errors.operation_failed'));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleCommand = async (command: 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop') => {
     if (!device || isActionLoading) return;
     setIsActionLoading(true);
@@ -662,20 +686,24 @@ const DeviceInspector: React.FC<{
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {activeTab === 'info' && (
             <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                    <Database className="w-3 h-3" /> {t('audit_logs.device_label')}
-                  </span>
-                  <span className="font-mono text-xs font-bold break-all">{device.id}</span>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                      <Settings className="w-3 h-3" /> {t('inbox.inspector.external_id', { defaultValue: 'External ID' })}
+                      <Database className="w-3 h-3" /> Entity ID
                     </span>
+                  </div>
+                  <span className="font-mono text-xs font-bold break-all">{device.externalId || device.id}</span>
+                </div>
+                <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
+                  <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
+                    <Settings className="w-3 h-3" /> Tipo técnico & Origen
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-bold uppercase truncate">{device.type}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase bg-muted border border-border text-muted-foreground truncate">{device.integrationSource}</span>
                     {device.integrationSource === 'sonoff' && (
-                       <div className="flex items-center gap-1">
+                       <div className="flex items-center gap-1 ml-auto">
                           <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-success animate-pulse" : "bg-destructive")} />
                           <span className={cn("text-[8px] font-black uppercase", isOnline ? "text-success" : "text-destructive")}>
                              {isOnline ? t('common.online') : t('common.offline')}
@@ -683,7 +711,26 @@ const DeviceInspector: React.FC<{
                        </div>
                     )}
                   </div>
-                  <span className="font-mono text-xs font-bold break-all">{device.externalId}</span>
+                </div>
+                <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner relative">
+                  <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
+                    <Zap className="w-3 h-3" /> Función del dispositivo
+                  </span>
+                  <select 
+                    disabled={isActionLoading}
+                    className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-primary/50 transition-colors cursor-pointer w-full mt-1 appearance-none hover:border-primary/30"
+                    value={device.semanticType || 'automatic'}
+                    onChange={(e) => handleSemanticTypeChange(e.target.value)}
+                  >
+                    <option value="automatic">Automático</option>
+                    <option value="light">Luz</option>
+                    <option value="switch">Interruptor</option>
+                    <option value="outlet">Enchufe</option>
+                    <option value="cover">Cortina/Persiana</option>
+                    <option value="sensor">Sensor</option>
+                    <option value="unknown">Desconocido</option>
+                  </select>
+                  {isActionLoading && <Loader2 className="w-4 h-4 animate-spin absolute right-5 bottom-4 text-primary" />}
                 </div>
               </div>
 

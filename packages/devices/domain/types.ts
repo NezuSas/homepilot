@@ -6,6 +6,8 @@ import { DeviceCapability } from './capabilities';
 
 export type DeviceStatus = 'PENDING' | 'ASSIGNED';
 
+export type DeviceSemanticType = 'light' | 'switch' | 'outlet' | 'cover' | 'sensor' | 'unknown';
+
 export interface Device {
   readonly id: string;
   readonly homeId: string;
@@ -23,11 +25,11 @@ export interface Device {
   readonly createdAt: string;
   readonly updatedAt: string;
   /**
-   * Optional user-assigned semantic classification.
+   * Optional operator-assigned semantic classification.
+   * null/undefined means automatic/unset (reverts to device.type heuristics).
+   * Persisted in SQLite via semantic_type column.
+   * Assistant uses this field for deterministic intent resolution (e.g., lights).
    * Takes priority over device.type in isLightEntity resolution.
-   * Useful for HA-imported devices reported as 'switch' that are physically lights.
-   * TODO: Add UI classification control in operator-console DeviceDetail panel.
-   * TODO: Persist via DeviceRepository.saveDevice when schema migration is ready.
    */
-  readonly semanticType?: 'light' | 'switch' | 'outlet' | 'cover' | 'sensor' | 'unknown';
+  readonly semanticType?: DeviceSemanticType | null;
 }

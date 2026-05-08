@@ -71,7 +71,12 @@ export const createMockDeviceRepository = (overrides?: Partial<jest.Mocked<Devic
   findDeviceById: jest.fn().mockResolvedValue(null),
   findAllByHomeId: jest.fn().mockResolvedValue([]),
   saveDevice: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findInboxByHomeId: jest.fn().mockResolvedValue([]),
+  findAllOrderedByStatus: jest.fn().mockResolvedValue([]),
+  findAllExternalIdsByPrefix: jest.fn().mockResolvedValue([]),
+  findByExternalIdAndHomeId: jest.fn().mockResolvedValue(null),
+  findByExternalId: jest.fn().mockResolvedValue(null),
+  updateSemanticType: jest.fn().mockResolvedValue(undefined),
   ...overrides
 } as jest.Mocked<DeviceRepository>);
 

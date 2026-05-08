@@ -1,5 +1,5 @@
 import { DeviceRepository } from '../../domain/repositories/DeviceRepository';
-import { Device } from '../../domain/types';
+import { Device, DeviceSemanticType } from '../../domain/types';
 
 /**
  * Adaptador de persistencia temporal en memoria para desarrollo local y pruebas E2E.
@@ -85,5 +85,17 @@ export class InMemoryDeviceRepository implements DeviceRepository {
       }
     }
     return Object.freeze(ids);
+  }
+
+  async updateSemanticType(deviceId: string, semanticType: DeviceSemanticType | null): Promise<void> {
+    const device = this.devices.get(deviceId);
+    if (device) {
+      const updatedDevice = Object.freeze({
+        ...device,
+        semanticType,
+        updatedAt: new Date().toISOString(),
+      });
+      this.devices.set(deviceId, updatedDevice);
+    }
   }
 }

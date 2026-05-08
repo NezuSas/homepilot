@@ -111,6 +111,35 @@ describe('SQLite Devices Persistence Integration', () => {
       expect(foundInAll?.semanticType).toBe('light');
     });
 
+    it('updateSemanticType updates only semanticType and updatedAt', async () => {
+      const original = await deviceRepo.findDeviceById('dev-semantic-1');
+      expect(original).not.toBeNull();
+      if (!original) return;
+
+      const oldUpdatedAt = original.updatedAt;
+
+      // Small delay to ensure updatedAt changes if fast
+      await new Promise(r => setTimeout(r, 10));
+
+      await deviceRepo.updateSemanticType('dev-semantic-1', 'sensor');
+
+      const updated = await deviceRepo.findDeviceById('dev-semantic-1');
+      expect(updated).not.toBeNull();
+      expect(updated?.semanticType).toBe('sensor');
+      expect(updated?.updatedAt).not.toBe(oldUpdatedAt);
+      
+      // Check other fields remain intact
+      expect(updated?.name).toBe(original.name);
+      expect(updated?.type).toBe(original.type);
+      expect(updated?.status).toBe(original.status);
+      expect(updated?.integrationSource).toBe(original.integrationSource);
+      
+      // Set to null
+      await deviceRepo.updateSemanticType('dev-semantic-1', null);
+      const cleared = await deviceRepo.findDeviceById('dev-semantic-1');
+      expect(cleared?.semanticType).toBeUndefined();
+    });
+
     it('findInboxByHomeId retorna solo aquellos dispositivos en estado PENDING sin room', async () => {
       const inbox = await deviceRepo.findInboxByHomeId('home-1');
       expect(inbox).toHaveLength(2); // dev-1 and dev-semantic-1
