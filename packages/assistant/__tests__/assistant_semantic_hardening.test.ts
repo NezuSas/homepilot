@@ -333,4 +333,180 @@ describe('Assistant Semantic Hardening', () => {
       expect(mockMemory.setAlias).not.toHaveBeenCalled();
     });
   });
+
+  describe('Semantic Type Classification (Fix 1)', () => {
+    it('switch device with semanticType=light is included in "apaga todas las luces"', async () => {
+      // HA may report a physical light as type: 'switch'. semanticType overrides.
+      const haLight = createTestDevice({
+        id: 'ha-sw-1', name: 'Lámpara Comedor', type: 'switch', roomId: 'r1',
+        semanticType: 'light'
+      });
+      const regularSwitch = createTestDevice({
+        id: 'sw-2', name: 'Enchufe Cocina', type: 'switch', roomId: 'r1'
+        // no semanticType → not a light
+      });
+      const room = createTestRoom({ id: 'r1', name: 'Sala' });
+
+      mockDeviceRepo.findAll.mockResolvedValue([haLight, regularSwitch]);
+      mockRoomRepo.findAll.mockResolvedValue([room]);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const res = await service.converse({ prompt: 'apaga todas las luces sala', userId: 'u1' }, 'es');
+
+      // haLight should be included; regularSwitch excluded (no semanticType=light)
+      expect(res.type).toBe('clarification');
+      const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
+      expect(saveCall.pendingBulkAction.deviceIds).toContain('ha-sw-1');
+      expect(saveCall.pendingBulkAction.deviceIds).not.toContain('sw-2');
+    });
+
+    it('switch device with semanticType=switch is NOT included in light bulk', async () => {
+      const sw = createTestDevice({
+        id: 'sw-1', name: 'Switch Ventilador', type: 'switch', semanticType: 'switch'
+      });
+      mockDeviceRepo.findAll.mockResolvedValue([sw]);
+      mockRoomRepo.findAll.mockResolvedValue([]);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('answer');
+      expect(res.message).toContain('No encontré luces');
+    });
+
+    it('"todo" still includes controllable switches regardless of semanticType', async () => {
+      const sw = createTestDevice({
+        id: 'sw-1', name: 'Ventilador', type: 'switch', roomId: 'r1'
+      });
+      const room = createTestRoom({ id: 'r1', name: 'Sala' });
+      mockDeviceRepo.findAll.mockResolvedValue([sw]);
+      mockRoomRepo.findAll.mockResolvedValue([room]);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      // "todo" uses bulkType = 'all', so it should NOT filter out switches
+      const res = await service.converse({ prompt: 'apaga todo en la sala', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('clarification');
+      const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
+      expect(saveCall.pendingBulkAction.deviceIds).toContain('sw-1');
+      expect(saveCall.pendingBulkAction.bulkType).toBe('all');
+    });
+  });
+
+  describe('Typo lux must not route to room singular light (Fix 2)', () => {
+    it('"prende lux sala" does NOT route to isRoomSingularLightFastPath', () => {
+      // Internal unit test: verify the regex explicitly rejects 'lux'
+      const result = (service as any).isRoomSingularLightFastPath('prende lux sala');
+      expect(result).toBeNull();
+    });
+
+    it('"prende luz sala" DOES route to isRoomSingularLightFastPath', () => {
+      const result = (service as any).isRoomSingularLightFastPath('prende luz sala');
+      expect(result).not.toBeNull();
+      expect(result?.roomName).toBe('sala');
+      expect(result?.command).toBe('turn_on');
+    });
+  });
+
+  describe('Multi-command singular phrase must not expand rooms (Fix 3)', () => {
+    it('"prende luz sala y apaga cocina" returns clarification — not 9 actions', async () => {
+      const sala = createTestRoom({ id: 'r-sala', name: 'Sala' });
+      const cocina = createTestRoom({ id: 'r-cocina', name: 'Cocina' });
+      // Multiple devices in each room
+      const devices = [
+        createTestDevice({ id: 'd1', name: 'Luz Sala 1', type: 'light', roomId: 'r-sala' }),
+        createTestDevice({ id: 'd2', name: 'Luz Sala 2', type: 'light', roomId: 'r-sala' }),
+        createTestDevice({ id: 'd3', name: 'Switch Sala', type: 'switch', roomId: 'r-sala' }),
+        createTestDevice({ id: 'd4', name: 'Luz Cocina 1', type: 'light', roomId: 'r-cocina' }),
+        createTestDevice({ id: 'd5', name: 'Switch Cocina', type: 'switch', roomId: 'r-cocina' }),
+      ];
+      mockRoomRepo.findAll.mockResolvedValue([sala, cocina]);
+      mockDeviceRepo.findAll.mockResolvedValue(devices);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const res = await service.converse({ prompt: 'prende luz sala y apaga cocina', userId: 'u1' }, 'es');
+
+      // Must NOT produce an execution with many actions — must clarify or fail, not silently expand
+      expect(res.type).not.toBe('execution');
+      // Either clarification (if resolved to multi_command but ambiguous) or falls through
+      // The key assertion: NO execution with > 2 actions was produced
+      if (res.type === 'execution') {
+        // If execution happened, it should never have been dispatched to all 9 devices
+        fail('Should not silently execute a multi-room expansion');
+      }
+    });
+
+    it('"apaga todo cocina" can produce room bulk confirmation (explicit bulk keyword)', async () => {
+      const cocina = createTestRoom({ id: 'r-cocina', name: 'Cocina' });
+      const d1 = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r-cocina' });
+      mockRoomRepo.findAll.mockResolvedValue([cocina]);
+      mockDeviceRepo.findAll.mockResolvedValue([d1]);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const res = await service.converse({ prompt: 'apaga todo cocina', userId: 'u1' }, 'es');
+
+      // "todo" is a bulk keyword → room bulk fast-path → confirmation
+      expect(res.type).toBe('clarification');
+      const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
+      expect(saveCall?.pendingBulkAction?.bulkType).toBe('all');
+    });
+  });
+
+  describe('Aliases are strictly literal user-defined (Fix 4)', () => {
+    it('"office" does NOT resolve to any room without an explicit user alias', async () => {
+      // Even though "Cuarto Master" may be considered the "office", no auto-translation occurs
+      const room = createTestRoom({ id: 'r1', name: 'Cuarto Master' });
+      mockRoomRepo.findAll.mockResolvedValue([room]);
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+      // No aliases stored
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const resolution = await (service as any).resolveRoomAlias(
+        'office',
+        [room],
+        [],
+        'u1',
+        {} // empty aliases — "office" was never created by the user
+      );
+
+      expect(resolution.status).toBe('not_found');
+    });
+
+    it('"office" resolves after user creates alias "when i say office i mean Cuarto Master"', async () => {
+      const room = createTestRoom({ id: 'r1', name: 'Cuarto Master' });
+      mockRoomRepo.findAll.mockResolvedValue([room]);
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+
+      // User has explicitly created the alias
+      const userAliases = { 'office': 'r1' };
+      mockMemory.getAliases.mockResolvedValue(userAliases);
+
+      const resolution = await (service as any).resolveRoomAlias(
+        'office',
+        [room],
+        [],
+        'u1',
+        userAliases
+      );
+
+      expect(resolution.status).toBe('resolved');
+      expect(resolution.rooms[0].id).toBe('r1');
+    });
+
+    it('"cuando diga mi oficina me refiero a Cuarto Master" creates the alias correctly', async () => {
+      const room = createTestRoom({ id: 'r1', name: 'Cuarto Master' });
+      mockRoomRepo.findAll.mockResolvedValue([room]);
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+      mockMemory.getAlias.mockResolvedValue(null);
+
+      const res = await service.converse({
+        prompt: 'cuando diga mi oficina me refiero a Cuarto Master',
+        userId: 'u1'
+      }, 'es');
+
+      // Should store alias with room ID, not room name
+      expect(res.type).toBe('answer');
+      expect(mockMemory.setAlias).toHaveBeenCalledWith('u1', 'mi oficina', 'r1');
+    });
+  });
 });

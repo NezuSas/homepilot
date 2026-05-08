@@ -21,6 +21,7 @@ interface DeviceRow {
   entity_version: number;
   created_at: string;
   updated_at: string;
+  semantic_type: string | null;
 }
 
 /**
@@ -44,8 +45,8 @@ export class SQLiteDeviceRepository implements DeviceRepository {
 
     const stmt = this.db.prepare(`
       INSERT INTO devices (
-        id, home_id, room_id, external_id, name, type, vendor, status, integration_source, invert_state, last_known_state, entity_version, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
+        id, home_id, room_id, external_id, name, type, vendor, status, integration_source, invert_state, last_known_state, entity_version, created_at, updated_at, semantic_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'), ?)
       ON CONFLICT(id) DO UPDATE SET
         home_id = excluded.home_id,
         room_id = excluded.room_id,
@@ -58,6 +59,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
         invert_state = excluded.invert_state,
         last_known_state = excluded.last_known_state,
         entity_version = excluded.entity_version,
+        semantic_type = excluded.semantic_type,
         updated_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
     `);
 
@@ -74,7 +76,8 @@ export class SQLiteDeviceRepository implements DeviceRepository {
       device.invertState ? 1 : 0,
       serializedState,
       device.entityVersion,
-      device.createdAt
+      device.createdAt,
+      device.semanticType || null
     );
   }
 
@@ -190,6 +193,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
       entityVersion: row.entity_version,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      semanticType: row.semantic_type as Device['semanticType'] || undefined,
     };
   }
 

@@ -1416,10 +1416,19 @@ export class AssistantConversationService {
   }
 
   private isLightEntity(device: Device): boolean {
+    // Priority 1: User-assigned semantic classification (overrides hardware type)
+    if (device.semanticType === 'light') return true;
+    if (device.semanticType !== undefined && device.semanticType !== 'unknown') {
+      // Any other explicit semanticType means it's NOT a light
+      return false;
+    }
+
+    // Priority 2: Capability-based detection
     const caps = resolveCapabilitiesForDevice(device);
-    // Strictly type/capability based. No name keywords allowed.
-    return caps.some(c => c.type === 'light' || c.type === 'dimmer') || 
-           ['light', 'dimmer'].includes(device.type.toLowerCase());
+    if (caps.some(c => c.type === 'light' || c.type === 'dimmer')) return true;
+
+    // Priority 3: Hardware device.type fallback (no name heuristics)
+    return ['light', 'dimmer'].includes(device.type.toLowerCase());
   }
 
   private isControllableForBulk(device: Device, command: DeviceCommandV1, bulkType: 'all' | 'lights'): boolean {
@@ -3664,9 +3673,10 @@ export class AssistantConversationService {
     roomName: string;
   } | null {
     const normalized = prompt.toLowerCase();
-    
-    // Spanish Regex: (verb) + (singular noun) + (optional preposition) + (room name)
-    const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(?:la\s+|el\s+|una\s+|un\s+)?(luz|foco|lampara|bombilla)\s+(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
+
+    // Exact singular noun tokens for Spanish — 'lux' is intentionally excluded (typo).
+    // Regex uses word-boundary (\b) so partial matches like 'luxury' are rejected.
+    const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(?:la\s+|el\s+|una\s+|un\s+)?\b(luz|foco|lampara|bombilla)\b\s+(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
     const esMatch = normalized.match(esRegex);
     if (esMatch) {
        const verb = esMatch[1].toLowerCase();
@@ -3674,9 +3684,9 @@ export class AssistantConversationService {
        const roomName = esMatch[3].trim();
        return { command, roomName };
     }
-    
-    // English Regex
-    const enRegex = /^(turn|switch)\s+(on|off)\s+(?:the\s+|a\s+)?(light|bulb|lamp|spotlight)\s+(?:in\s+|at\s+|the\s+)?(.+)$/i;
+
+    // English: exact singular nouns only
+    const enRegex = /^(turn|switch)\s+(on|off)\s+(?:the\s+|a\s+)?\b(light|bulb|lamp|spotlight)\b\s+(?:in\s+|at\s+|the\s+)?(.+)$/i;
     const enMatch = normalized.match(enRegex);
     if (enMatch) {
        const action = enMatch[2].toLowerCase();
@@ -3684,7 +3694,7 @@ export class AssistantConversationService {
        const roomName = enMatch[4].trim();
        return { command, roomName };
     }
-    
+
     return null;
   }
 

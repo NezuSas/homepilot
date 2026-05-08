@@ -80,12 +80,43 @@ describe('SQLite Devices Persistence Integration', () => {
       expect(retrieved?.id).toBe('dev-1');
     });
 
+    it('persists and returns semanticType=light', async () => {
+      const device: Device = {
+        id: 'dev-semantic-1',
+        homeId: 'home-1',
+        roomId: null,
+        externalId: 'ext-semantic',
+        name: 'Luz Semántica',
+        type: 'switch', // Hardware is switch
+        semanticType: 'light', // Semantically classified as light
+        vendor: 'Sonoff',
+        status: 'PENDING',
+        integrationSource: 'ha',
+        invertState: false,
+        lastKnownState: null,
+        entityVersion: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await deviceRepo.saveDevice(device);
+
+      const retrieved = await deviceRepo.findDeviceById('dev-semantic-1');
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.type).toBe('switch');
+      expect(retrieved?.semanticType).toBe('light');
+
+      const all = await deviceRepo.findAll();
+      const foundInAll = all.find(d => d.id === 'dev-semantic-1');
+      expect(foundInAll?.semanticType).toBe('light');
+    });
+
     it('findInboxByHomeId retorna solo aquellos dispositivos en estado PENDING sin room', async () => {
       const inbox = await deviceRepo.findInboxByHomeId('home-1');
-      expect(inbox).toHaveLength(1);
-      expect(inbox[0].id).toBe('dev-1');
+      expect(inbox).toHaveLength(2); // dev-1 and dev-semantic-1
+      expect(inbox.some(d => d.id === 'dev-1')).toBe(true);
 
-      // Sacar de la bandeja reasignando habitación y completando estatus
+      // Sacar dev-1 de la bandeja reasignando habitación y completando estatus
       const retrieved = await deviceRepo.findDeviceById('dev-1');
       if (retrieved) {
          await deviceRepo.saveDevice({
@@ -96,7 +127,7 @@ describe('SQLite Devices Persistence Integration', () => {
       }
 
       const inboxAfter = await deviceRepo.findInboxByHomeId('home-1');
-      expect(inboxAfter).toHaveLength(0);
+      expect(inboxAfter).toHaveLength(1); // Only dev-semantic-1 remains
     });
 
     it('protege ante la repetición de descubrimiento gracias a la restricción UNIQUE compositiva', async () => {

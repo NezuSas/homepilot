@@ -195,14 +195,32 @@ export class AssistantMultiCommandParser {
   }
 
   private async resolveTargets(segment: string, allDevices: readonly Device[], allRooms: readonly Room[]): Promise<{ type: 'match', devices: Device[] } | AssistantMultiCommandResult> {
-    // 1. Try Room Match
+    // 1. Check for explicit bulk intent in segment — only then allow room-wide expansion.
+    // Single-target phrases like "luz sala" or "cocina" must NOT silently expand to all room devices.
+    const hasBulkKeyword = /\b(todo|todas\s+las\s+luces|todas|everything|all\s+lights|all)\b/i.test(segment);
+
+    // 2. Try Room Match
     const roomMatch = allRooms.find(r => segment.includes(this.normalizePrompt(r.name)));
     if (roomMatch) {
-      const roomDevices = allDevices.filter(d => d.roomId === roomMatch.id);
-      if (roomDevices.length > 0) return { type: 'match', devices: [...roomDevices] };
+      if (hasBulkKeyword) {
+        // Explicit bulk: expand all controllable devices in room
+        const roomDevices = allDevices.filter(d => d.roomId === roomMatch.id);
+        if (roomDevices.length > 0) return { type: 'match', devices: [...roomDevices] };
+      } else {
+        // Singular reference to a room: must clarify — never auto-expand
+        const roomDevices = allDevices.filter(d => d.roomId === roomMatch.id);
+        if (roomDevices.length === 0) {
+          return { type: 'failure', message: `No encontré dispositivos en "${roomMatch.name}".` };
+        }
+        return {
+          type: 'clarificationRequired',
+          options: roomDevices.map(d => ({ id: d.id, label: d.name, kind: 'device' as const })),
+          originalSegment: segment
+        };
+      }
     }
 
-    // 2. Score-based matching (like single commands)
+    // 3. Score-based device matching (like single commands)
     const scored = allDevices.map(d => {
       const name = this.normalizePrompt(d.name);
       let score = 0;
@@ -225,7 +243,7 @@ export class AssistantMultiCommandParser {
       } else {
         return { 
           type: 'clarificationRequired', 
-          options: bestMatches.map(d => ({ id: d.id, label: d.name, kind: 'device' })),
+          options: bestMatches.map(d => ({ id: d.id, label: d.name, kind: 'device' as const })),
           originalSegment: segment
         };
       }

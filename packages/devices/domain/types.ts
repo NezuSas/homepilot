@@ -22,4 +22,12 @@ export interface Device {
   readonly entityVersion: number;
   readonly createdAt: string;
   readonly updatedAt: string;
+  /**
+   * Optional user-assigned semantic classification.
+   * Takes priority over device.type in isLightEntity resolution.
+   * Useful for HA-imported devices reported as 'switch' that are physically lights.
+   * TODO: Add UI classification control in operator-console DeviceDetail panel.
+   * TODO: Persist via DeviceRepository.saveDevice when schema migration is ready.
+   */
+  readonly semanticType?: 'light' | 'switch' | 'outlet' | 'cover' | 'sensor' | 'unknown';
 }

@@ -38,12 +38,43 @@ export class HomeAssistantImportService {
     const deviceId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    // Mapping type
-    let deviceType: 'light' | 'switch' | 'sensor' | 'cover' = 'sensor';
-    if (domain === 'light') deviceType = 'light';
-    else if (domain === 'switch') deviceType = 'switch';
-    else if (domain === 'binary_sensor') deviceType = 'sensor';
-    else if (domain === 'cover') deviceType = 'cover';
+    // Mapping type and semanticType
+    let deviceType = 'sensor';
+    let semanticType: 'light' | 'switch' | 'cover' | 'sensor' | 'unknown' | undefined = undefined;
+
+    if (domain === 'light') {
+      deviceType = 'light';
+      semanticType = 'light';
+    } else if (domain === 'switch') {
+      deviceType = 'switch';
+      // Do NOT automatically guess it's a light even if name says "luz"
+      semanticType = undefined;
+    } else if (domain === 'binary_sensor') {
+      deviceType = 'binary_sensor';
+      semanticType = 'sensor';
+    } else if (domain === 'sensor') {
+      deviceType = 'sensor';
+      semanticType = 'sensor';
+    } else if (domain === 'cover') {
+      deviceType = 'cover';
+      semanticType = 'cover';
+    }
+
+    /*
+     * TODO: UI Implementation Plan for Semantic Classification
+     * The operator-console DeviceDetail panel needs a new dropdown control:
+     * "Clasificación Semántica" (semanticType)
+     * Options:
+     * - Automático (undefined)
+     * - Luz (light)
+     * - Interruptor (switch)
+     * - Enchufe (outlet)
+     * - Cortina/Persiana (cover)
+     * - Sensor (sensor)
+     * 
+     * This is critical for Sonoff/HA switches that physically control lights.
+     * Persistence will require updating DeviceRepository.saveDevice to store the semanticType column.
+     */
 
     const device = {
       id: deviceId,
@@ -52,6 +83,7 @@ export class HomeAssistantImportService {
       externalId: externalId,
       name: name || (haState.attributes.friendly_name as string) || entityId,
       type: deviceType,
+      semanticType,
       vendor: 'Home Assistant',
       status: 'PENDING' as const,
       integrationSource: 'ha',
