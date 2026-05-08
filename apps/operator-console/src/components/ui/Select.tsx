@@ -11,6 +11,8 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, label, error, helperText, disabled, children, variant = 'default', ...props }, ref) => {
+    const isPlaceholder = props.value === '' || props.value === undefined;
+
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
@@ -27,11 +29,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             disabled={disabled}
             className={cn(
               "flex w-full appearance-none items-center justify-between transition-all focus:outline-none focus:ring-2 cursor-pointer",
-              "placeholder:text-muted-foreground/40 font-bold",
-              variant === 'default' && "h-10 rounded-xl border border-border bg-background px-3 py-2 text-sm shadow-sm focus:ring-primary/40",
-              variant === 'small' && "h-7 rounded-lg border border-border/50 bg-background px-2 py-0.5 text-[11px] focus:ring-primary/40",
-              variant === 'primary' && "h-11 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 border-none active:scale-95 text-center",
-              variant === 'ghost' && "bg-transparent border-none px-2 py-1 text-sm focus:ring-0",
+              "font-bold",
+              isPlaceholder ? "text-muted-foreground/40" : "text-foreground",
+              variant === 'default' && "h-11 rounded-xl border border-border/40 bg-muted/20 px-4 py-2 text-sm shadow-sm focus:ring-primary/40 focus:border-primary/40 focus:bg-background",
+              variant === 'small' && "h-8 rounded-lg border border-border/50 bg-muted/20 px-2 py-0.5 text-[11px] focus:ring-primary/40 focus:bg-background",
+              variant === 'primary' && "h-14 rounded-2xl bg-primary text-primary-foreground px-6 py-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 border-none active:scale-95 text-center",
+              variant === 'ghost' && "bg-transparent border border-transparent hover:border-border/40 focus:border-primary/40 px-2 py-1 text-sm focus:ring-0",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
               error && "border-danger/50 focus:ring-danger/40 focus:border-danger bg-danger/5",
               className

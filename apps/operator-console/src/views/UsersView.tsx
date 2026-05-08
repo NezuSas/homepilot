@@ -279,6 +279,7 @@ export function UsersView() {
 
                         {/* CHANGE ROLE */}
                         <SelectField
+                          variant="small"
                           className="w-32"
                           value={u.role}
                           onChange={(selectedRole) => {

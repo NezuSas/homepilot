@@ -205,19 +205,16 @@ const DeviceTile: React.FC<{
           </div>
         ) : (
           <div className="mt-2 flex flex-col gap-2">
-             <div className="flex flex-col gap-1">
-               <label className="text-[7px] font-black uppercase tracking-tighter opacity-30 px-1">{t('topology.room_select')}</label>
-               <select 
-                 onClick={(e) => e.stopPropagation()}
-                 disabled={isProcessing}
-                 className="bg-muted/50 border border-border rounded px-1.5 py-1 text-[9px] font-bold outline-none w-full focus:border-primary/50 transition-colors"
-                 value={selectedRoomId}
-                 onChange={(e) => setSelectedRoomId(e.target.value)}
-               >
-                 {Array.isArray(rooms) && rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-                 {(!Array.isArray(rooms) || rooms.length === 0) && <option value="">{t('common.unassigned')}</option>}
-               </select>
-             </div>
+             <SelectField 
+               variant="small"
+               fullWidth
+               disabled={isProcessing}
+               value={selectedRoomId}
+               onChange={setSelectedRoomId}
+               options={Array.isArray(rooms) ? rooms.map(room => ({ value: room.id, label: room.name })) : []}
+               placeholder={t('common.unassigned')}
+               className="mt-1"
+             />
              <Button 
                size="sm"
                onClick={handleAssign}
@@ -847,18 +844,16 @@ const DeviceInspector: React.FC<{
                    {/* Room Management */}
                    <div className="pt-4 border-t border-border/10 flex flex-col gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[8px] font-black uppercase tracking-widest opacity-30">{t('topology.room_select')}</label>
-                        <select 
-                          className="bg-muted/50 border border-border rounded px-2 py-1.5 text-[10px] font-bold outline-none"
+                        <SelectField
+                          variant="small"
+                          fullWidth
                           value={device.roomId || ''}
-                          onChange={(e) => handleMove(e.target.value)}
+                          onChange={handleMove}
                           disabled={isActionLoading}
-                        >
-                          <option value="" disabled>{t('common.unassigned')}</option>
-                          {Array.isArray(rooms) && rooms.map(room => (
-                            <option key={room.id} value={room.id}>{room.name}</option>
-                          ))}
-                        </select>
+                          loading={isActionLoading}
+                          options={Array.isArray(rooms) ? rooms.map(room => ({ value: room.id, label: room.name })) : []}
+                          placeholder={t('common.unassigned')}
+                        />
                       </div>
 
                       {device.status === 'ASSIGNED' && (
