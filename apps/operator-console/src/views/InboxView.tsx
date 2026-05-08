@@ -12,6 +12,7 @@ import ConfirmModal from './ConfirmModal';
 import { Button } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { SearchFilterBar } from '../components/ui/SearchFilterBar';
+import { SelectField } from '../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 
@@ -716,21 +717,24 @@ const DeviceInspector: React.FC<{
                   <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
                     <Zap className="w-3 h-3" /> Función del dispositivo
                   </span>
-                  <select 
+                  <SelectField 
                     disabled={isActionLoading}
-                    className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-primary/50 transition-colors cursor-pointer w-full mt-1 appearance-none hover:border-primary/30"
+                    loading={isActionLoading}
                     value={device.semanticType || 'automatic'}
-                    onChange={(e) => handleSemanticTypeChange(e.target.value)}
-                  >
-                    <option value="automatic">Automático</option>
-                    <option value="light">Luz</option>
-                    <option value="switch">Interruptor</option>
-                    <option value="outlet">Enchufe</option>
-                    <option value="cover">Cortina/Persiana</option>
-                    <option value="sensor">Sensor</option>
-                    <option value="unknown">Desconocido</option>
-                  </select>
-                  {isActionLoading && <Loader2 className="w-4 h-4 animate-spin absolute right-5 bottom-4 text-primary" />}
+                    onChange={(val) => handleSemanticTypeChange(val)}
+                    options={[
+                      { value: 'automatic', label: 'Automático' },
+                      { value: 'light', label: 'Luz' },
+                      { value: 'switch', label: 'Interruptor' },
+                      { value: 'outlet', label: 'Enchufe' },
+                      { value: 'cover', label: 'Cortina/Persiana' },
+                      { value: 'sensor', label: 'Sensor' },
+                      { value: 'unknown', label: 'Desconocido' }
+                    ]}
+                  />
+                  <p className="text-[8px] text-muted-foreground/50 px-2 leading-relaxed">
+                    Determina cómo el Asistente interpreta este dispositivo.
+                  </p>
                 </div>
               </div>
 

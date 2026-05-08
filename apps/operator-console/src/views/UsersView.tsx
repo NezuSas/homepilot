@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, Activity } from 'lucide-react';
+import { SelectField } from '../components/ui/SelectField';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 
@@ -150,18 +151,18 @@ export function UsersView() {
                 <p className="text-[10px] text-muted-foreground mt-1 text-right">{t('users.create_form.password_hint')}</p>
               </div>
               <div className="col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.role')}</label>
-                <select 
-                  className="w-full bg-background border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                <SelectField
+                  label={t('users.create_form.role')}
                   value={newRole}
-                  onChange={e => setNewRole(e.target.value as any)}
-                >
-                  <option value="admin">{t('users.roles.admin')}</option>
-                  <option value="parent">{t('users.roles.parent')}</option>
-                  <option value="child">{t('users.roles.child')}</option>
-                  <option value="guest">{t('users.roles.guest')}</option>
-                  <option value="operator">{t('users.roles.operator')}</option>
-                </select>
+                  onChange={val => setNewRole(val as any)}
+                  options={[
+                    { value: 'admin', label: t('users.roles.admin') },
+                    { value: 'parent', label: t('users.roles.parent') },
+                    { value: 'child', label: t('users.roles.child') },
+                    { value: 'guest', label: t('users.roles.guest') },
+                    { value: 'operator', label: t('users.roles.operator') }
+                  ]}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-2 pt-4 border-t">
@@ -277,11 +278,10 @@ export function UsersView() {
                         </button>
 
                         {/* CHANGE ROLE */}
-                        <select
-                          className="bg-background border border-border text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-all shadow-sm text-[11px] font-bold px-2 py-1.5 outline-none cursor-pointer"
+                        <SelectField
+                          className="w-32"
                           value={u.role}
-                          onChange={(e) => {
-                            const selectedRole = e.target.value;
+                          onChange={(selectedRole) => {
                             if (selectedRole === u.role) return;
                             handleAction(
                               () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
@@ -290,14 +290,15 @@ export function UsersView() {
                               t('users.actions.confirm_role', { username: u.username })
                             );
                           }}
+                          options={[
+                            { value: 'admin', label: t('users.roles.admin') },
+                            { value: 'parent', label: t('users.roles.parent') },
+                            { value: 'child', label: t('users.roles.child') },
+                            { value: 'guest', label: t('users.roles.guest') },
+                            { value: 'operator', label: t('users.roles.operator') }
+                          ]}
                           title={t('users.actions.swap_role_title', { role: t(`users.roles.${u.role}`) })}
-                        >
-                          <option value="admin">{t('users.roles.admin')}</option>
-                          <option value="parent">{t('users.roles.parent')}</option>
-                          <option value="child">{t('users.roles.child')}</option>
-                          <option value="guest">{t('users.roles.guest')}</option>
-                          <option value="operator">{t('users.roles.operator')}</option>
-                        </select>
+                        />
 
                         {/* REVOKE SESSIONS */}
                         <button

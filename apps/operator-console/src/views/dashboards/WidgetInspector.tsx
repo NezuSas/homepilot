@@ -8,6 +8,7 @@ import {
   Settings2, Box, Zap
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { SelectField } from '../../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
@@ -101,24 +102,20 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           </div>
           <div className="grid grid-cols-2 gap-4">
              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.width_label')}</label>
-                <select 
-                  value={currentLayout.w}
-                  onChange={(e) => onUpdate(safeWidget.id, { layout: { ...currentLayout, w: parseInt(e.target.value) } })}
-                  className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-primary/50"
-                >
-                  {[2, 3, 4, 6, 8, 12].map(val => <option key={val} value={val}>{val} {t('dashboards.inspector.cols')}</option>)}
-                </select>
+                <SelectField
+                  label={t('dashboards.inspector.width_label')}
+                  value={String(currentLayout.w)}
+                  onChange={(val) => onUpdate(safeWidget.id, { layout: { ...currentLayout, w: parseInt(val) } })}
+                  options={[2, 3, 4, 6, 8, 12].map(val => ({ value: String(val), label: `${val} ${t('dashboards.inspector.cols')}` }))}
+                />
              </div>
              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.height_label')}</label>
-                <select 
-                  value={currentLayout.h}
-                  onChange={(e) => onUpdate(safeWidget.id, { layout: { ...currentLayout, h: parseInt(e.target.value) } })}
-                  className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-primary/50"
-                >
-                  {[2, 3, 4, 5, 6, 8, 10, 12].map(val => <option key={val} value={val}>{val} {t('dashboards.inspector.units')}</option>)}
-                </select>
+                <SelectField
+                  label={t('dashboards.inspector.height_label')}
+                  value={String(currentLayout.h)}
+                  onChange={(val) => onUpdate(safeWidget.id, { layout: { ...currentLayout, h: parseInt(val) } })}
+                  options={[2, 3, 4, 5, 6, 8, 10, 12].map(val => ({ value: String(val), label: `${val} ${t('dashboards.inspector.units')}` }))}
+                />
              </div>
           </div>
         </div>
@@ -169,52 +166,49 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               {/* Device Selector */}
               {(widget.type === 'device_control') && (
                  <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.target_device')}</label>
-                  <select 
+                  <SelectField
+                    label={t('dashboards.inspector.target_device')}
                     value={currentBinding.entityId || ''}
-                    onChange={(e) => onUpdate(safeWidget.id, { 
-                      binding: { ...currentBinding, entityId: e.target.value, entityType: 'device' } 
+                    placeholder={t('dashboards.inspector.select_device_placeholder')}
+                    onChange={(val) => onUpdate(safeWidget.id, { 
+                      binding: { ...currentBinding, entityId: val, entityType: 'device' } 
                     })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
-                  >
-                    <option value="">{t('dashboards.inspector.select_device_placeholder')}</option>
-                    {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({t(`device_types.${d.type}`, { defaultValue: d.type })})</option>)}
-                  </select>
+                    options={devices.map(d => ({ 
+                      value: d.id, 
+                      label: `${d.name} (${t(`device_types.${d.type}`, { defaultValue: d.type })})` 
+                    }))}
+                  />
                </div>
              )}
 
-             {/* Room Selector */}
-             {(widget.type === 'room_overview' || widget.type === 'room_summary') && (
+              {/* Room Selector */}
+              {(widget.type === 'room_overview' || widget.type === 'room_summary') && (
                  <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.reference_room')}</label>
-                  <select 
+                  <SelectField
+                    label={t('dashboards.inspector.reference_room')}
                     value={currentBinding.entityId || ''}
-                    onChange={(e) => onUpdate(safeWidget.id, { 
-                      binding: { ...currentBinding, entityId: e.target.value, entityType: 'room' } 
+                    placeholder={t('dashboards.inspector.select_room_placeholder')}
+                    onChange={(val) => onUpdate(safeWidget.id, { 
+                      binding: { ...currentBinding, entityId: val, entityType: 'room' } 
                     })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
-                  >
-                    <option value="">{t('dashboards.inspector.select_room_placeholder')}</option>
-                    {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
+                    options={rooms.map(r => ({ value: r.id, label: r.name }))}
+                  />
                </div>
              )}
 
-             {/* Scene Selector */}
-             {widget.type === 'scene_shortcut' && (
-               <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.scene_to_trigger')}</label>
-                  <select 
+              {/* Scene Selector */}
+              {widget.type === 'scene_shortcut' && (
+                <div className="space-y-2">
+                  <SelectField
+                    label={t('dashboards.inspector.scene_to_trigger')}
                     value={currentBinding.entityId || ''}
-                    disabled={loadingScenes}
-                    onChange={(e) => onUpdate(safeWidget.id, { 
-                      binding: { ...currentBinding, entityId: e.target.value, entityType: 'scene' } 
+                    loading={loadingScenes}
+                    placeholder={loadingScenes ? t('dashboards.inspector.loading_scenes') : t('dashboards.inspector.select_scene_placeholder')}
+                    onChange={(val) => onUpdate(safeWidget.id, { 
+                      binding: { ...currentBinding, entityId: val, entityType: 'scene' } 
                     })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
-                  >
-                    <option value="">{loadingScenes ? t('dashboards.inspector.loading_scenes') : t('dashboards.inspector.select_scene_placeholder')}</option>
-                    {scenes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+                    options={scenes.map(s => ({ value: s.id, label: s.name }))}
+                  />
                </div>
              )}
           </div>
@@ -229,11 +223,11 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           
           <div className="space-y-3">
              <div className="flex flex-col gap-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1">{t('dashboards.inspector.condition_label')}</label>
-                <select 
+                <SelectField
+                  label={t('dashboards.inspector.condition_label')}
                   value={currentVisibility.rules[0]?.type || 'always'}
-                  onChange={(e) => {
-                    const type = e.target.value as any;
+                  onChange={(val) => {
+                    const type = val as any;
                     onUpdate(safeWidget.id, { 
                       visibility: { 
                         ...currentVisibility,
@@ -241,31 +235,29 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                       } 
                     });
                   }}
-                  className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-primary/50"
-                >
-                  <option value="always">{t('dashboards.visibility.always')}</option>
-                  <option value="device_on">{t('dashboards.visibility.device_on')}</option>
-                  <option value="has_alerts">{t('dashboards.visibility.has_alerts')}</option>
-                  <option value="time_range">{t('dashboards.visibility.time_range')}</option>
-                </select>
+                  options={[
+                    { value: 'always', label: t('dashboards.visibility.always') },
+                    { value: 'device_on', label: t('dashboards.visibility.device_on') },
+                    { value: 'has_alerts', label: t('dashboards.visibility.has_alerts') },
+                    { value: 'time_range', label: t('dashboards.visibility.time_range') }
+                  ]}
+                />
              </div>
 
              {/* Rule Contextual Values */}
              {currentVisibility.rules[0]?.type === 'device_on' && (
                 <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
-                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Seleccionar Sensor/Luz</label>
-                   <select 
+                   <SelectField
+                     label="Seleccionar Sensor/Luz"
                      value={currentVisibility.rules[0].value || ''}
-                     onChange={(e) => {
+                     placeholder="Seleccionar..."
+                     onChange={(val) => {
                        const rules = [...currentVisibility.rules];
-                       rules[0] = { ...rules[0], value: e.target.value };
+                       rules[0] = { ...rules[0], value: val };
                        onUpdate(safeWidget.id, { visibility: { ...currentVisibility, rules } });
                      }}
-                    className="w-full bg-background border border-border/40 rounded-xl px-3 py-2 text-[10px] font-bold"
-                  >
-                    <option value="">Seleccionar...</option>
-                    {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                     options={devices.map(d => ({ value: d.id, label: d.name }))}
+                   />
                </div>
              )}
 

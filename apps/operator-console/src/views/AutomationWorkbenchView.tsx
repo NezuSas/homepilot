@@ -7,7 +7,7 @@ import { apiFetch } from '../lib/apiClient';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
+import { SelectField } from '../components/ui/SelectField';
 import { StatusPill } from '../components/ui/StatusPill';
 
 
@@ -287,15 +287,14 @@ export const AutomationWorkbenchView: React.FC = () => {
                   <Play className="w-3 h-3 fill-current" /> {t('automations.form.trigger_config')}
                 </span>
                 
-                <Select 
+                <SelectField 
                   label={t('automations.form.source_device')}
                   required
                   value={formData.triggerDeviceId}
-                  onChange={e => setFormData({...formData, triggerDeviceId: e.target.value})}
-                >
-                  <option value="">{t('automations.form.select_device')}</option>
-                  {Array.isArray(devices) && devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
-                </Select>
+                  placeholder={t('automations.form.select_device')}
+                  onChange={val => setFormData({...formData, triggerDeviceId: val})}
+                  options={devices.map(d => ({ value: d.id, label: `${d.name} (${d.type})` }))}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <Input 
@@ -322,29 +321,27 @@ export const AutomationWorkbenchView: React.FC = () => {
                   <Zap className="w-3 h-3 fill-current" /> {t('automations.form.action_result')}
                 </span>
 
-                <Select 
+                <SelectField 
                   label={t('automations.form.target_device')}
                   required
                   value={formData.targetDeviceId}
-                  onChange={e => setFormData({...formData, targetDeviceId: e.target.value})}
-                >
-                  <option value="">{t('automations.form.select_target')}</option>
-                  {Array.isArray(devices) && devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.type})</option>)}
-                </Select>
+                  placeholder={t('automations.form.select_target')}
+                  onChange={val => setFormData({...formData, targetDeviceId: val})}
+                  options={devices.map(d => ({ value: d.id, label: `${d.name} (${d.type})` }))}
+                />
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-[9px] font-bold text-muted-foreground">{t('automations.form.command')}</label>
-                  <select 
-                    required
-                    value={formData.command}
-                    onChange={e => setFormData({...formData, command: e.target.value})}
-                    className="bg-primary text-primary-foreground rounded-xl p-3 text-xs font-black uppercase tracking-widest outline-none shadow-lg shadow-primary/20 appearance-none text-center cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <option value="turn_on">{t('common.on')}</option>
-                    <option value="turn_off">{t('common.off')}</option>
-                    <option value="toggle">{t('common.actions.toggle')}</option>
-                  </select>
-                </div>
+                <SelectField 
+                  label={t('automations.form.command')}
+                  required
+                  variant="primary"
+                  value={formData.command}
+                  onChange={val => setFormData({...formData, command: val})}
+                  options={[
+                    { value: 'turn_on', label: t('common.on') },
+                    { value: 'turn_off', label: t('common.off') },
+                    { value: 'toggle', label: t('common.actions.toggle') }
+                  ]}
+                />
               </div>
 
               <div className="flex flex-col gap-4 mt-auto">

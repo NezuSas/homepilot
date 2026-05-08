@@ -4,6 +4,7 @@ import { Activity, Server, Zap, RefreshCw, AlertTriangle, CheckCircle2, XCircle,
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { SelectField } from '../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 interface DiagnosticsCounters {
@@ -299,16 +300,15 @@ export function DiagnosticsView() {
               {isAdmin && (
                 <div className="flex items-center gap-2 mt-1">
                    <span className="text-[9px] uppercase font-bold text-muted-foreground/50 tracking-tighter">{t('diagnostics.timezone')}</span>
-                   <select 
-                     className="bg-background/50 border border-border/50 rounded px-2 py-0.5 text-[10px] font-bold outline-none focus:border-primary transition-colors cursor-pointer"
+                   <SelectField 
+                     variant="small"
+                     fullWidth={false}
+                     className="w-auto"
                      value={snapshot.systemTimezone}
                      disabled={updatingTz}
-                     onChange={(e) => handleTimezoneChange(e.target.value)}
-                   >
-                     {TIMEZONE_VALUES.map(tz => (
-                       <option key={tz} value={tz}>{t(`timezones.${tz}`)}</option>
-                     ))}
-                   </select>
+                     onChange={handleTimezoneChange}
+                     options={TIMEZONE_VALUES.map(tz => ({ value: tz, label: t(`timezones.${tz}`) }))}
+                   />
                    {updatingTz && <RefreshCw className="w-3 h-3 animate-spin text-primary" />}
                 </div>
               )}
