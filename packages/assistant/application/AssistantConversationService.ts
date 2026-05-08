@@ -284,17 +284,40 @@ export class AssistantConversationService {
 
     // --- 2. NATURAL-LANGUAGE CLARIFICATION SELECTION FROM MEMORY ---
     if (memory?.clarificationOptions && memory.clarificationOptions.length > 0) {
-      let selectionPrompt = normalized;
-      if (normalized.startsWith('y ') || normalized.startsWith('and ')) selectionPrompt = normalized.substring(normalized.startsWith('y ') ? 2 : 4).trim();
-      const selectedId = this.resolveSelectionFromMemory(selectionPrompt, memory.clarificationOptions, language);
-      if (selectedId) {
-        const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
-        let command = memory.pendingIntent?.type === 'command' ? memory.pendingIntent.command : undefined;
-        if (!command) command = this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
-        if (command) { request.pendingAction = { command, targetId: selectedId, originalPrompt: memory.originalPrompt || prompt }; return await this.handleSelection(request, language); }
-        else {
-          await this.memoryService.saveShortTermMemory(userId, { ...memory, entities: [{ id: selectedId, name: selectedOption?.label || 'Selected', type: 'device', roomId: null }], timestamp: new Date().toISOString() });
-          return { type: 'answer', message: language === 'en' ? `I've selected ${selectedOption?.label}. What would you like to do with it?` : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?` };
+      const isExactLabel = memory.clarificationOptions.some(opt => opt.label.toLowerCase() === normalized);
+      if (!isExactLabel && !this.isClarificationSelectionReply(normalized)) {
+        // New intent detected: clear stale clarification but allow the rest of the pipeline to run
+        const { clarificationOptions, pendingIntent, originalPrompt, ...rest } = memory;
+        // Only clear pendingIntent/originalPrompt if they seem to belong to the clarification (e.g. vague light)
+        const isVagueClarification = memory.lastQueryType === 'clarification' || memory.source === 'context_room';
+        
+        const newMemory = {
+          ...rest,
+          clarificationOptions: undefined,
+          pendingIntent: isVagueClarification ? undefined : pendingIntent,
+          originalPrompt: isVagueClarification ? undefined : originalPrompt
+        };
+        
+        await this.memoryService.saveShortTermMemory(userId, newMemory);
+        // Update local memory for the rest of this execution
+        memory.clarificationOptions = undefined;
+        if (isVagueClarification) {
+           memory.pendingIntent = undefined;
+           memory.originalPrompt = undefined;
+        }
+      } else {
+        let selectionPrompt = normalized;
+        if (normalized.startsWith('y ') || normalized.startsWith('and ')) selectionPrompt = normalized.substring(normalized.startsWith('y ') ? 2 : 4).trim();
+        const selectedId = this.resolveSelectionFromMemory(selectionPrompt, memory.clarificationOptions, language);
+        if (selectedId) {
+          const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
+          let command = memory.pendingIntent?.type === 'command' ? memory.pendingIntent.command : undefined;
+          if (!command) command = this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
+          if (command) { request.pendingAction = { command, targetId: selectedId, originalPrompt: memory.originalPrompt || prompt }; return await this.handleSelection(request, language); }
+          else {
+            await this.memoryService.saveShortTermMemory(userId, { ...memory, entities: [{ id: selectedId, name: selectedOption?.label || 'Selected', type: 'device', roomId: null }], timestamp: new Date().toISOString() });
+            return { type: 'answer', message: language === 'en' ? `I've selected ${selectedOption?.label}. What would you like to do with it?` : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?` };
+          }
         }
       }
     }
@@ -1941,6 +1964,53 @@ export class AssistantConversationService {
     return triggers.some(t => normalized.includes(t));
   }
 
+  private isClarificationSelectionReply(normalized: string): boolean {
+    // 1. Detect fresh high-level intents
+    if (this.isAliasCreation(normalized)) return false;
+    if (this.isRoomBulkFastPath(normalized)) return false;
+    if (this.isBulkFastPath(normalized)) return false;
+    if (this.isManagementIntent(normalized)) return false;
+    if (this.isLikelyHomeControlPrompt(normalized)) {
+      // isLikelyHomeControlPrompt might catch short selection phrases like "la de la sala"
+      // we need to be careful. If it's a very short phrase (1-2 words) that matches a common selection pattern, we let it through.
+      const selectionPatterns = [
+        /^la primera$/i, /^la segunda$/i, /^la tercera$/i, /^la cuarta$/i,
+        /^primera$/i, /^segunda$/i, /^tercera$/i, /^cuarta$/i,
+        /^esa$/i, /^ese$/i, /^esas$/i, /^esos$/i, /^la de$/i, /^el de$/i,
+        /^the first$/i, /^the second$/i, /^the third$/i, /^the fourth$/i,
+        /^first$/i, /^second$/i, /^third$/i, /^fourth$/i,
+        /^that one$/i, /^this one$/i, /^those$/i, /^them$/i,
+        /^la de la (.+)$/i, /^el de la (.+)$/i, /^the one in (.+)$/i
+      ];
+      if (selectionPatterns.some(p => p.test(normalized))) {
+        return true;
+      }
+      
+      // If it's just 1-2 words and doesn't have a clear verb, it might be a label match (which is handled in converse)
+      // or a partial label match. We'll allow it to pass through to resolveSelectionFromMemory
+      // unless it's a clear fresh intent (already checked above).
+      const words = normalized.split(/\s+/);
+      if (words.length <= 3) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // 2. Keyword fallback for other intents (state queries, etc)
+    const newIntentKeywords = [
+      'estado', 'encendido', 'apagado', 'que', 'qué', 'cuales', 'cuáles', 'donde', 'dónde', 'status', 'where'
+    ];
+
+    if (newIntentKeywords.some(kw => this.containsWord(normalized, kw))) {
+      return false;
+    }
+
+    if (normalized.includes(' es ')) return false;
+
+    return true;
+  }
+
   /**
    * Builds a Map<roomId, roomName> by querying rooms for each unique homeId
    * found in the provided devices. This avoids the 'system' hardcode bug.
@@ -2054,24 +2124,30 @@ export class AssistantConversationService {
       const confidence = typeof metadata['confidence'] === 'string' ? metadata['confidence'] : undefined;
       
       if (confidence === 'high' && alias && target) {
-        // Validate target exists
         const devices = await this.deviceRepository.findAll();
         const rooms = await this.roomRepository.findAll();
         
-        const targetExists = devices.some(d => this.normalizePrompt(d.name) === this.normalizePrompt(target)) ||
-                           rooms.some(r => this.normalizePrompt(r.name) === this.normalizePrompt(target));
+        const matchingDevices = devices.filter(d => this.normalizePrompt(d.name) === this.normalizePrompt(target));
+        const matchingRooms = rooms.filter(r => this.normalizePrompt(r.name) === this.normalizePrompt(target));
         
-        // Safety: check alias does not already exist
-        const existingAlias = await this.memoryService.getAlias(userId, alias);
+        const totalMatches = matchingDevices.length + matchingRooms.length;
         
         // Safety: check alias does not match existing device name
         const nameCollision = devices.some(d => this.normalizePrompt(d.name) === this.normalizePrompt(alias));
+        // Safety: check alias does not already exist
+        const existingAlias = await this.memoryService.getAlias(userId, alias);
 
-        if (targetExists && !nameCollision && !existingAlias) {
-          await this.memoryService.setAlias(userId, alias, target);
+        if (totalMatches === 1 && !nameCollision && !existingAlias) {
+          const targetEntity = matchingDevices.length > 0 ? matchingDevices[0] : matchingRooms[0];
+          const type = matchingDevices.length > 0 ? 'device' : 'room';
+          
+          await this.memoryService.setAlias(userId, alias, targetEntity.id);
+          
+          console.info(`[ASSISTANT_USER_ALIAS_CREATED] {"userId":"${userId}","alias":"${alias}","targetId":"${targetEntity.id}","targetName":"${targetEntity.name}","type":"${type}"}`);
+          
           message = isEn 
-            ? `Alias created: from now on I'll understand "${alias}" as "${target}".`
-            : `Alias creado: a partir de ahora entenderé "${alias}" como "${target}".`;
+            ? `Alias created: from now on I'll understand "${alias}" as "${targetEntity.name}".`
+            : `Alias creado: a partir de ahora entenderé "${alias}" como "${targetEntity.name}".`;
         } else {
           if (existingAlias) {
             message = isEn 
@@ -2081,10 +2157,16 @@ export class AssistantConversationService {
             message = isEn
               ? `I cannot use "${alias}" as an alias because a device already has that name.`
               : `No puedo usar "${alias}" como alias porque un dispositivo ya tiene ese nombre.`;
-          } else {
+          } else if (totalMatches > 1) {
+            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] {"userId":"${userId}","alias":"${alias}","target":"${target}","reason":"ambiguous"}`);
             message = isEn
-              ? `I found the suggestion, but I need to confirm which device or room "${target}" refers to.`
-              : `Encontré la sugerencia, pero necesito confirmar a qué dispositivo o estancia se refiere "${target}".`;
+              ? `I found multiple items named "${target}". Please be more specific.`
+              : `Encontré varios elementos llamados "${target}". Por favor, sé más específico.`;
+          } else {
+            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] {"userId":"${userId}","alias":"${alias}","target":"${target}","reason":"not_found"}`);
+            message = isEn
+              ? `I couldn't find the device or room "${target}" to create the alias.`
+              : `No encontré el dispositivo o estancia "${target}" para crear el alias.`;
           }
         }
       }
@@ -3520,34 +3602,49 @@ export class AssistantConversationService {
     const normalized = prompt.toLowerCase();
     
     // Guard against multi-commands or exceptions which should be handled by V1 Intent Interpreter
-    if (normalized.includes('menos') || normalized.includes('excepto') || normalized.includes('solo') || normalized.includes(' y ')) {
+    if (normalized.includes('menos') || normalized.includes('excepto') || normalized.includes('solo') || normalized.includes(' y ') || normalized.includes(' except ') || normalized.includes(' but ')) {
       return null;
     }
     
-    // Spanish Regex: Strictly for BULK (todo, todas las luces, luces)
-    // Group 1: Verb
-    // Group 2: Bulk keyword
-    // Group 3: Room name
-    const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(todo\s+el|todo\s+en|todo|todas\s+(?:las\s+)?luces|luces)\s*(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
+    // Standalone bulk words that must NOT be captured as a room name.
+    // If the captured roomName matches one of these, no real room was specified.
+    const esBulkOnlyWords = ['luces', 'todo', 'todas', 'dispositivos'];
+    const enBulkOnlyWords = ['everything', 'all', 'all lights', 'all the lights', 'lights'];
+
+    // Spanish Regex:
+    // Group 1: Verb (enciende|prende|apaga|activa|desactiva)
+    // Group 2: Bulk keyword — fixed set without embedded prepositions
+    // Optional preposition cluster (en|el|del|de|la|las)
+    // Group 3: Room name (mandatory, at least one non-empty token after bulk keyword)
+    const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(todo|todas\s+las\s+luces|todas\s+las|todas|todo\s+el|todo\s+en|las\s+luces|luces)\s+(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
     const esMatch = normalized.match(esRegex);
     if (esMatch) {
       const verb = esMatch[1].toLowerCase();
       const command = (verb === 'enciende' || verb === 'prende' || verb === 'activa') ? 'turn_on' : 'turn_off';
-      const bulkKeyword = esMatch[2].toLowerCase();
-      const bulkType = (bulkKeyword.includes('todo') || bulkKeyword.includes('everything')) ? 'all' : 'lights';
+      const bulkKeyword = esMatch[2].toLowerCase().trim();
       const roomName = esMatch[3].trim();
+      // Guard: if the captured room name is itself a bulk-only word, no room was actually given
+      if (esBulkOnlyWords.includes(roomName)) return null;
+      const bulkType = (bulkKeyword.includes('todo') || bulkKeyword === 'todas') ? 'all' : 'lights';
       return { command, roomName, bulkType };
     }
 
-    // English Regex: Strictly for BULK
-    const enRegex = /^(turn|switch)\s+(on|off)\s+(all\s+(?:the\s+)?(?:lights|in)|everything\s+in|lights\s+in)\s*(?:the\s+)?(.+)$/i;
+    // English Regex:
+    // Group 1: Verb (turn|switch)
+    // Group 2: Direction (on|off)
+    // Group 3: Bulk keyword — fixed set
+    // Optional preposition cluster (in|at|the|of the|of)
+    // Group 4: Room name (mandatory)
+    const enRegex = /^(turn|switch)\s+(on|off)\s+(everything|all\s+the\s+lights|all\s+lights|all|the\s+lights|lights)\s+(?:in\s+|at\s+|the\s+|of\s+the\s+|of\s+)?(.+)$/i;
     const enMatch = normalized.match(enRegex);
     if (enMatch) {
       const action = enMatch[2].toLowerCase();
       const command = action === 'on' ? 'turn_on' : 'turn_off';
-      const bulkKeyword = enMatch[3].toLowerCase();
-      const bulkType = (bulkKeyword.includes('everything') || bulkKeyword.includes('all in')) ? 'all' : 'lights';
+      const bulkKeyword = enMatch[3].toLowerCase().trim();
       const roomName = enMatch[4].trim();
+      // Guard: if the captured room name is itself a bulk-only word, no room was actually given
+      if (enBulkOnlyWords.includes(roomName)) return null;
+      const bulkType = (bulkKeyword === 'everything' || bulkKeyword === 'all') ? 'all' : 'lights';
       return { command, roomName, bulkType };
     }
 
