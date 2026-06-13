@@ -41,11 +41,17 @@ HomePilot compite contra sistemas residenciales premium, no contra un dashboard 
 - Estados: verdes, amarillos y rojos sobrios, evitando tonos neon.
 
 ### Modo Claro
-- Base: canvas claro profesional con baja fatiga visual.
-- Superficies: tarjetas blancas con bordes suaves.
+- Base: canvas claro profesional con suficiente contraste contra tarjetas y sidebar.
+- Superficies: tarjetas porcelana con bordes mas visibles y sombras suaves.
 - Accion primaria: azul mas serio y profundo que en el modo oscuro para mantener contraste.
 - Acento premium: brass mas contenido para no convertir la UI en beige.
 - Estados: mismos significados semanticos que en modo oscuro, ajustados para legibilidad.
+
+### Criterio Visual
+- El modo claro no debe verse lavado ni como plantilla blanca generica.
+- El modo oscuro no debe perder separacion entre canvas, sidebar y cards.
+- Las cards de dispositivos deben tener presencia suficiente para una consola residencial premium.
+- Los estados activos pueden mezclar `primary` con una presencia minima de `accent` para sentirse mas HomePilot y menos dashboard generico.
 
 ### Uso
 - `primary`: acciones principales, seleccion activa, navegacion y controles.

@@ -18,33 +18,33 @@
 @layer base {
   :root {
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
-    --background:          222 20% 6%;       /* premium graphite canvas */
-    --card:                220 18% 9%;       /* warm graphite panels */
-    --card-foreground:     218 18% 91%;
-    --popover:             218 16% 12%;      /* elevated graphite */
+    --background:          220 18% 5%;       /* deep graphite canvas */
+    --card:                218 18% 10%;      /* visible graphite panels */
+    --card-foreground:     218 18% 92%;
+    --popover:             216 16% 14%;      /* elevated graphite */
     --popover-foreground:  218 18% 92%;
 
     /* ── Text ───────────────────────────────────────────────── */
     --foreground:           218 24% 93%;     /* soft porcelain text */
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              218 16% 17%;
-    --border-subtle:       218 14% 13%;
-    --input:               218 16% 17%;
-    --ring:                207 88% 58%;
+    --border:              216 16% 21%;
+    --border-subtle:       216 14% 16%;
+    --input:               216 16% 21%;
+    --ring:                204 82% 54%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             207 88% 56%;      /* refined control blue */
+    --primary:             204 82% 54%;      /* refined control blue */
     --primary-foreground:  214 48% 8%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           220 14% 13%;
+    --secondary:           218 14% 15%;
     --secondary-foreground: 218 24% 92%;
-    --muted:               220 14% 13%;
-    --muted-foreground:    218 11% 62%;
+    --muted:               218 14% 15%;
+    --muted-foreground:    218 11% 66%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              41 56% 56%;       /* restrained champagne/brass */
+    --accent:              39 52% 58%;       /* restrained champagne/brass */
     --accent-foreground:   38 46% 10%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
@@ -52,9 +52,9 @@
     --destructive-foreground: 0 0% 98%;
 
     /* ── Semantic Status ────────────────────────────────────── */
-    --success:             151 42% 45%;
+    --success:             151 38% 46%;
     --success-foreground:  150 42% 9%;
-    --warning:             41 64% 54%;
+    --warning:             39 58% 56%;
     --warning-foreground:  38 46% 10%;
     --danger:              358 70% 57%;
     --danger-foreground:   0 0% 98%;
@@ -86,39 +86,39 @@
     --premium-glow-warning:   0 0 20px -7px hsl(var(--warning) / 0.38);
 
     /* Device tile specific */
-    --device-on-glow:    0 0 22px -5px hsl(var(--primary) / 0.32), inset 0 1px 0 hsl(var(--primary) / 0.12);
-    --device-off-shadow: 0 1px 3px hsl(220 28% 2% / 0.42);
+    --device-on-glow:    0 0 24px -5px hsl(var(--primary) / 0.34), inset 0 1px 0 hsl(var(--accent) / 0.16);
+    --device-off-shadow: 0 8px 24px -18px hsl(220 28% 1% / 0.9), inset 0 1px 0 hsl(218 22% 100% / 0.03);
   }
 
   .light {
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
-    --background:          210 24% 98%;      /* clean residential canvas */
-    --card:                0 0% 100%;        /* #FFFFFF */
-    --card-foreground:     218 18% 16%;
-    --popover:             0 0% 100%;       
+    --background:          214 24% 95%;      /* clean residential canvas */
+    --card:                210 30% 99%;      /* porcelain panels */
+    --card-foreground:     218 18% 15%;
+    --popover:             0 0% 100%;
     --popover-foreground:  218 18% 16%;
 
     /* ── Text ───────────────────────────────────────────────── */
     --foreground:          218 28% 14%;
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              216 26% 88%;
-    --border-subtle:       216 28% 93%;
-    --input:               216 26% 88%;
-    --ring:                207 82% 45%;
+    --border:              215 22% 80%;
+    --border-subtle:       215 24% 88%;
+    --input:               215 22% 80%;
+    --ring:                205 82% 42%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             207 82% 45%;
+    --primary:             205 82% 42%;
     --primary-foreground:  0 0% 100%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           216 24% 95%;
+    --secondary:           215 24% 91%;
     --secondary-foreground: 218 28% 14%;
-    --muted:               216 24% 95%;
-    --muted-foreground:    218 12% 43%;
+    --muted:               215 24% 91%;
+    --muted-foreground:    218 13% 38%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              40 48% 48%;
+    --accent:              38 42% 43%;
     --accent-foreground:   0 0% 100%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
@@ -126,9 +126,9 @@
     --destructive-foreground: 0 0% 100%;
 
     /* ── Semantic Status ────────────────────────────────────── */
-    --success:             151 42% 38%;
+    --success:             151 38% 34%;
     --success-foreground:  0 0% 100%;
-    --warning:             40 62% 47%;
+    --warning:             38 48% 42%;
     --warning-foreground:  38 46% 10%;
     --danger:              358 70% 50%;
     --danger-foreground:   0 0% 100%;
@@ -139,8 +139,8 @@
     --premium-glow-danger:    0 8px 24px -6px hsl(var(--danger) / 0.25);
     --premium-glow-warning:   0 8px 20px -6px hsl(var(--warning) / 0.25);
 
-    --device-on-glow:    0 4px 16px -2px hsl(var(--primary) / 0.2), inset 0 1px 0 hsl(var(--primary) / 0.05);
-    --device-off-shadow: 0 1px 2px hsl(210 30% 15% / 0.1);
+    --device-on-glow:    0 10px 28px -14px hsl(var(--primary) / 0.36), inset 0 1px 0 hsl(var(--accent) / 0.12);
+    --device-off-shadow: 0 12px 30px -22px hsl(216 30% 18% / 0.42), inset 0 1px 0 hsl(0 0% 100% / 0.7);
   }
 }
 
@@ -151,14 +151,17 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
-    /* Subtle texture through a repeating dot grid */
-    background-image: radial-gradient(hsl(210 30% 100% / 0.018) 1px, transparent 1px);
+    background-image:
+      linear-gradient(180deg, hsl(var(--popover) / 0.14), transparent 260px),
+      radial-gradient(hsl(210 30% 100% / 0.018) 1px, transparent 1px);
     background-size: 32px 32px;
     background-attachment: fixed;
   }
 
   .light body {
-    background-image: radial-gradient(hsl(210 30% 0% / 0.04) 1px, transparent 1px);
+    background-image:
+      linear-gradient(180deg, hsl(var(--card) / 0.9), transparent 320px),
+      radial-gradient(hsl(218 24% 20% / 0.035) 1px, transparent 1px);
   }
 
   /* ── Focus rings ─────────────────────────────────────────── */
@@ -250,8 +253,8 @@
     box-shadow: 0 1px 3px hsl(210 30% 2% / 0.35), 0 1px 0 hsl(210 30% 100% / 0.03) inset;
   }
   .light .premium-card {
-    box-shadow: 0 1px 3px hsl(210 30% 2% / 0.08), 0 1px 0 hsl(210 30% 100% / 0.5) inset;
-    @apply bg-card/80;
+    box-shadow: 0 14px 34px -28px hsl(216 30% 18% / 0.52), 0 1px 0 hsl(0 0% 100% / 0.72) inset;
+    @apply bg-card;
   }
   
   .premium-card:hover {
@@ -261,7 +264,7 @@
   }
   
   .light .premium-card:hover {
-    box-shadow: 0 6px 20px hsl(210 30% 2% / 0.06), 0 1px 0 hsl(210 30% 100% / 0.5) inset;
+    box-shadow: 0 18px 42px -30px hsl(216 30% 18% / 0.58), 0 1px 0 hsl(0 0% 100% / 0.75) inset;
   }
 
   .luxury-text-gradient {
@@ -275,7 +278,7 @@
   /* ── Device state utilities ───────────────────────────────── */
   /* ON state: radiant, alive */
   .device-state-on {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--card)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.11) 0%, hsl(var(--accent) / 0.045) 44%, hsl(var(--card)) 100%);
     border-color: hsl(var(--primary) / 0.35);
     box-shadow: var(--device-on-glow);
   }
@@ -286,7 +289,7 @@
 
   /* OFF state: dormant, cool */
   .device-state-off {
-    background: hsl(var(--background));
+    background: hsl(var(--card));
     border-color: hsl(var(--border) / 0.7);
     box-shadow: var(--device-off-shadow);
   }
@@ -306,9 +309,12 @@
 
   /* ── Sidebar active indicator ─────────────────────────────── */
   .sidebar-item-active {
-    background: linear-gradient(90deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.06) 100%);
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.16) 0%, hsl(var(--primary) / 0.08) 100%);
     color: hsl(var(--primary));
     position: relative;
+  }
+  .light .sidebar-item-active {
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--accent) / 0.08) 100%);
   }
   .sidebar-item-active::before {
     content: '';
@@ -403,5 +409,14 @@
   }
   .shadow-depth-3 {
     box-shadow: 0 12px 40px hsl(210 30% 2% / 0.6), 0 1px 0 hsl(210 30% 100% / 0.06) inset;
+  }
+  .light .shadow-depth-1 {
+    box-shadow: 0 10px 28px -24px hsl(216 30% 18% / 0.48), 0 1px 0 hsl(0 0% 100% / 0.75) inset;
+  }
+  .light .shadow-depth-2 {
+    box-shadow: 0 16px 38px -28px hsl(216 30% 18% / 0.54), 0 1px 0 hsl(0 0% 100% / 0.8) inset;
+  }
+  .light .shadow-depth-3 {
+    box-shadow: 0 24px 60px -34px hsl(216 30% 18% / 0.6), 0 1px 0 hsl(0 0% 100% / 0.82) inset;
   }
 }
