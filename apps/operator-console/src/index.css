@@ -7,56 +7,56 @@
  *
  * Both Dark and Light modes are supported.
  * Surfaces follow a strict elevation ladder:
- *   [Dark ] depth-0 → background   #080C10  (base canvas)
- *           depth-1 → card         #0D1117  (panels, sidebar)
- *           depth-2 → popover      #131920  (modals, dropdowns, elevated cards)
- *   [Light] depth-0 → background   #F8FAFC
- *           depth-1 → card         #FFFFFF
- *           depth-2 → popover      #FFFFFF
+ *   [Dark ] depth-0 -> background   premium graphite canvas
+ *           depth-1 -> card         warm graphite panels
+ *           depth-2 -> popover      elevated graphite
+ *   [Light] depth-0 -> background   clean residential canvas
+ *           depth-1 -> card         white panels
+ *           depth-2 -> popover      elevated white surfaces
  */
 
 @layer base {
   :root {
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
-    --background:          216 35% 5%;       /* #080C10 */
-    --card:                216 30% 8%;       /* #0D1117 */
-    --card-foreground:     216 14% 90%;
-    --popover:             216 27% 11%;      /* #131920 */
-    --popover-foreground:  216 14% 90%;
+    --background:          222 20% 6%;       /* premium graphite canvas */
+    --card:                220 18% 9%;       /* warm graphite panels */
+    --card-foreground:     218 18% 91%;
+    --popover:             218 16% 12%;      /* elevated graphite */
+    --popover-foreground:  218 18% 92%;
 
     /* ── Text ───────────────────────────────────────────────── */
-    --foreground:           210 28% 92%;     /* #E3EAF1 */
+    --foreground:           218 24% 93%;     /* soft porcelain text */
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              210 20% 14%;      /* #1A2130 — slightly more visible */
-    --border-subtle:       210 20% 11%;      /* even quieter for internal dividers */
-    --input:               210 20% 14%;
-    --ring:                210 90% 60%;
+    --border:              218 16% 17%;
+    --border-subtle:       218 14% 13%;
+    --input:               218 16% 17%;
+    --ring:                207 88% 58%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             210 100% 58%;     /* #2196F3-ish blue */
-    --primary-foreground:  210 100% 8%;
+    --primary:             207 88% 56%;      /* refined control blue */
+    --primary-foreground:  214 48% 8%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           210 18% 12%;
-    --secondary-foreground: 210 28% 92%;
-    --muted:               210 18% 12%;
-    --muted-foreground:    210 14% 58%;      /* slightly more readable */
+    --secondary:           220 14% 13%;
+    --secondary-foreground: 218 24% 92%;
+    --muted:               220 14% 13%;
+    --muted-foreground:    218 11% 62%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              210 100% 58%;
-    --accent-foreground:   210 100% 8%;
+    --accent:              41 56% 56%;       /* restrained champagne/brass */
+    --accent-foreground:   38 46% 10%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
-    --destructive:         0 82% 58%;
+    --destructive:         358 70% 57%;
     --destructive-foreground: 0 0% 98%;
 
     /* ── Semantic Status ────────────────────────────────────── */
-    --success:             145 65% 42%;      /* slightly more muted, less neon */
-    --success-foreground:  145 65% 10%;
-    --warning:             38 88% 52%;
-    --warning-foreground:  38 88% 10%;
-    --danger:              0 82% 58%;
+    --success:             151 42% 45%;
+    --success-foreground:  150 42% 9%;
+    --warning:             41 64% 54%;
+    --warning-foreground:  38 46% 10%;
+    --danger:              358 70% 57%;
     --danger-foreground:   0 0% 98%;
 
     /* ── Reliability / Sync ─────────────────────────────────── */
@@ -80,57 +80,57 @@
     --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
 
     /* ── Effects ────────────────────────────────────────────── */
-    --premium-glow:           0 0 24px -6px hsl(var(--primary) / 0.4);
-    --premium-glow-success:   0 0 24px -6px hsl(var(--success) / 0.45);
-    --premium-glow-danger:    0 0 24px -6px hsl(var(--danger) / 0.35);
-    --premium-glow-warning:   0 0 20px -6px hsl(var(--warning) / 0.35);
+    --premium-glow:           0 0 24px -8px hsl(var(--primary) / 0.42);
+    --premium-glow-success:   0 0 24px -8px hsl(var(--success) / 0.38);
+    --premium-glow-danger:    0 0 24px -8px hsl(var(--danger) / 0.34);
+    --premium-glow-warning:   0 0 20px -7px hsl(var(--warning) / 0.38);
 
     /* Device tile specific */
-    --device-on-glow:    0 0 20px -4px hsl(var(--primary) / 0.3), inset 0 1px 0 hsl(var(--primary) / 0.1);
-    --device-off-shadow: 0 1px 3px hsl(210 30% 2% / 0.4);
+    --device-on-glow:    0 0 22px -5px hsl(var(--primary) / 0.32), inset 0 1px 0 hsl(var(--primary) / 0.12);
+    --device-off-shadow: 0 1px 3px hsl(220 28% 2% / 0.42);
   }
 
   .light {
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
-    --background:          210 33% 98%;      /* #F8FAFC */
+    --background:          210 24% 98%;      /* clean residential canvas */
     --card:                0 0% 100%;        /* #FFFFFF */
-    --card-foreground:     216 14% 15%;
+    --card-foreground:     218 18% 16%;
     --popover:             0 0% 100%;       
-    --popover-foreground:  216 14% 15%;
+    --popover-foreground:  218 18% 16%;
 
     /* ── Text ───────────────────────────────────────────────── */
-    --foreground:          216 28% 15%;      /* Dark text */
+    --foreground:          218 28% 14%;
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              214 32% 91%;      /* #E2E8F0 */
-    --border-subtle:       214 32% 94%;      /* Lighter lines */
-    --input:               214 32% 91%;
-    --ring:                210 100% 50%;
+    --border:              216 26% 88%;
+    --border-subtle:       216 28% 93%;
+    --input:               216 26% 88%;
+    --ring:                207 82% 45%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             210 100% 50%;     /* Pure blue */
-    --primary-foreground:  0 0% 100%;        /* White text */
+    --primary:             207 82% 45%;
+    --primary-foreground:  0 0% 100%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           214 32% 96%;      /* Light background filler */
-    --secondary-foreground: 216 28% 15%;     
-    --muted:               210 20% 96%;
-    --muted-foreground:    215 16% 47%;      /* #64748B */
+    --secondary:           216 24% 95%;
+    --secondary-foreground: 218 28% 14%;
+    --muted:               216 24% 95%;
+    --muted-foreground:    218 12% 43%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              210 100% 50%;
+    --accent:              40 48% 48%;
     --accent-foreground:   0 0% 100%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
-    --destructive:         0 84% 60%;
+    --destructive:         358 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
     /* ── Semantic Status ────────────────────────────────────── */
-    --success:             142 69% 38%;     
+    --success:             151 42% 38%;
     --success-foreground:  0 0% 100%;
-    --warning:             38 92% 50%;
-    --warning-foreground:  38 92% 10%;
-    --danger:              0 84% 60%;
+    --warning:             40 62% 47%;
+    --warning-foreground:  38 46% 10%;
+    --danger:              358 70% 50%;
     --danger-foreground:   0 0% 100%;
 
     /* ── Effects (Light mode relies more on shadow than brightness) ─ */

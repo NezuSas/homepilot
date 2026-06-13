@@ -23,10 +23,36 @@ El design system de HomePilot mantiene una interfaz premium, local-first y opera
 
 ### Estados
 - `primary`: accion principal e identidad HomePilot.
+- `accent`: acento premium tipo champagne/brass para momentos residenciales de lujo.
 - `success`: online, sincronizado o completado.
 - `warning`: atencion o estado intermedio.
 - `danger` / `destructive`: error, riesgo o accion destructiva.
 - `muted`: informacion secundaria.
+
+## Estrategia de Color
+
+HomePilot compite contra sistemas residenciales premium, no contra un dashboard SaaS generico. La paleta debe comunicar control profesional, confianza local y lujo discreto.
+
+### Modo Oscuro
+- Base: grafito calido y profundo, no negro plano.
+- Superficies: escalera de elevacion `background -> card -> popover`.
+- Accion primaria: azul control refinado, usado para interaccion y navegacion activa.
+- Acento premium: champagne/brass reservado para energia, iluminacion, escenas y momentos de valor residencial.
+- Estados: verdes, amarillos y rojos sobrios, evitando tonos neon.
+
+### Modo Claro
+- Base: canvas claro profesional con baja fatiga visual.
+- Superficies: tarjetas blancas con bordes suaves.
+- Accion primaria: azul mas serio y profundo que en el modo oscuro para mantener contraste.
+- Acento premium: brass mas contenido para no convertir la UI en beige.
+- Estados: mismos significados semanticos que en modo oscuro, ajustados para legibilidad.
+
+### Uso
+- `primary`: acciones principales, seleccion activa, navegacion y controles.
+- `accent`: detalles premium y contextos de hogar, nunca como color dominante.
+- `warning`: informacion energetica o atencion operativa.
+- `success`: salud, conexion y sincronizacion.
+- `danger` / `destructive`: errores, riesgos o eliminacion.
 
 ### Radius
 - `rounded-control`: botones, inputs y controles compactos.
