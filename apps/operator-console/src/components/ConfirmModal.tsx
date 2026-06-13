@@ -50,7 +50,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         onClick={isSubmitting ? undefined : onClose}
       />
 
-      <div className="relative w-full max-w-sm bg-card border border-foreground/10 rounded-[2rem] shadow-2xl shadow-black/40 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300">
+      <div className="relative w-full max-w-sm bg-card border border-foreground/10 rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300">
         <div className="p-8 pb-6 flex flex-col items-center text-center">
           <div className={`p-4 rounded-2xl mb-6 ${iconColors[variant]}`}>
             <AlertTriangle className="w-8 h-8" />

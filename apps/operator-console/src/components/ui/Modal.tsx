@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { X, AlertTriangle, Info, CheckCircle } from 'lucide-react';
+import { IconButton } from './IconButton';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export const Modal: React.FC<ModalProps> = ({
       
       {/* Modal */}
       <div className={cn(
-          "relative w-full max-w-lg bg-card border rounded-[2rem] shadow-2xl shadow-black/40 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[90vh]",
+          "relative w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[90vh]",
           variantConfig[variant].borderClass,
           className
         )}
@@ -80,12 +81,13 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {!hideCloseButton && onClose && (
-          <button 
+          <IconButton
+            icon={X}
+            label="Close modal"
             onClick={onClose}
-            className="absolute top-6 right-6 p-2 rounded-full hover:bg-foreground/5 transition-colors group z-10"
-          >
-            <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground/80 transition-colors" />
-          </button>
+            variant="ghost"
+            className="absolute top-6 right-6 z-10 rounded-pill"
+          />
         )}
       </div>
     </div>

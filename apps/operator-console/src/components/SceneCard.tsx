@@ -109,7 +109,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         onClick={(event) => onToggleFavorite(scene.id, event)}
         className={cn(
           'absolute top-8 right-8 p-3 rounded-full transition-all duration-300 z-20',
-          isFavorite ? 'text-rose-500 bg-rose-500/10 shadow-lg shadow-rose-500/20' : 'text-muted-foreground/40 hover:bg-muted hover:text-rose-400'
+          isFavorite ? 'text-danger bg-danger/10 shadow-lg shadow-danger/20' : 'text-muted-foreground/40 hover:bg-muted hover:text-danger'
         )}
       >
         <Heart className={cn('w-5 h-5', isFavorite && 'fill-current')} />

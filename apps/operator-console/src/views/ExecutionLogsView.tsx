@@ -46,7 +46,7 @@ export const ExecutionLogsView: React.FC = () => {
         <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{error}</p>
         <button 
            onClick={fetchRecords}
-           className="px-8 py-3 bg-destructive text-white rounded-2xl text-xs font-black hover:scale-105 transition-transform shadow-xl shadow-destructive/20"
+           className="px-8 py-3 bg-destructive text-destructive-foreground rounded-2xl text-xs font-black hover:scale-105 transition-transform shadow-xl shadow-destructive/20"
         >
           Retry Connection
         </button>

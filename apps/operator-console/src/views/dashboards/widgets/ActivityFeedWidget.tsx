@@ -46,7 +46,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
   const getEventIcon = (type: string) => {
     if (type.includes('Auth')) return <Shield className="w-3 h-3 text-blue-400" />;
     if (type.includes('Device')) return <Zap className="w-3 h-3 text-amber-400" />;
-    if (type.includes('Room')) return <Activity className="w-3 h-3 text-emerald-400" />;
+    if (type.includes('Room')) return <Activity className="w-3 h-3 text-success" />;
     return <Cpu className="w-3 h-3 text-muted-foreground/60" />;
   };
 

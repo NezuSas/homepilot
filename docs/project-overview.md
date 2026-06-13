@@ -13,6 +13,25 @@ Entregar un ecosistema de hogar robusto, completamente personalizable e intelige
 4. **Spec-Driven (Basado en Especificaciones)**: Todo el desarrollo sigue el modelo de Desarrollo Basado en Especificaciones (Spec-Driven Development o SDD). No se escribe código sin una especificación previa.
 5. **Sin Magia Implícita**: Todo es explícito.
 
+## Estado Actual del Producto
+
+HomePilot ya cuenta con un runtime local ejecutable con Docker y una Operator Console web enfocada en operacion Edge. La consola cubre vistas de inicio, espacios, escenas, automatizaciones, asistente, conversacion con la casa, paneles, energia, sistema, descubrimiento, diagnosticos y usuarios.
+
+La UI esta organizada con una regla practica:
+
+- Las vistas orquestan datos, estado y acciones.
+- Los componentes renderizan secciones visuales reutilizables.
+- Los primitivos de UI viven en `components/ui`.
+- El sidebar soporta modo expandido y modo rail colapsado sin comprimir textos largos.
+
+La documentacion operativa actual esta centralizada en:
+
+- `README.md`
+- `docs/architecture.md`
+- `docs/operator-console-frontend.md`
+- `docs/local-wsl-workflow.md`
+- `docs/documentation-index.md`
+
 ## Audiencia Objetivo
 - Clientes de hogares inteligentes (smart homes) premium.
 - Usuarios que necesitan alta confiabilidad, instalaciones de nivel profesional y automatización avanzada, pero que rechazan los ecosistemas cerrados de los integradores tradicionales.

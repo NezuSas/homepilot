@@ -137,7 +137,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
       <div className="flex justify-between items-start">
         <div className={cn(
           'p-2.5 rounded-xl transition-all duration-300',
-          isOn && isAssigned ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-muted text-muted-foreground',
+          isOn && isAssigned ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'bg-muted text-muted-foreground',
           isProcessing && 'animate-pulse',
         )}>
           <Icon className="w-5 h-5" />
@@ -149,7 +149,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
             disabled={isProcessing}
             className={cn(
               'p-2 rounded-full border-2 transition-all flex items-center justify-center',
-              isOn ? 'bg-primary border-primary text-white shadow-md' : 'bg-background border-border text-muted-foreground hover:border-primary/50',
+              isOn ? 'bg-primary border-primary text-primary-foreground shadow-md' : 'bg-background border-border text-muted-foreground hover:border-primary/50',
               isProcessing && 'bg-muted border-primary/20',
             )}
           >
@@ -218,7 +218,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
               disabled={!selectedRoomId || isProcessing}
               className={cn(
                 'w-full text-[8px] py-1 h-auto font-black uppercase tracking-widest shadow-sm transition-all',
-                isSonoff ? 'bg-success text-white hover:bg-success/90 shadow-success/10' : '',
+                isSonoff ? 'bg-success text-success-foreground hover:bg-success/90 shadow-success/10' : '',
               )}
               isLoading={isProcessing}
             >

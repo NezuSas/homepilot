@@ -96,7 +96,7 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
 
       {isOpen && rect && createPortal(
         <div 
-          className="portal-select-dropdown fixed z-[99999] bg-card/95 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          className="portal-select-dropdown fixed z-[99999] bg-card/95 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-depth-3 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
           style={{
             top: rect.bottom + 8,
             left: rect.left,

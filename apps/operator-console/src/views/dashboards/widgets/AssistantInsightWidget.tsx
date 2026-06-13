@@ -15,8 +15,8 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
       case 'high': return 'text-destructive border-destructive/20 bg-destructive/5';
-      case 'medium': return 'text-amber-500 border-amber-500/20 bg-amber-500/5';
-      case 'low': return 'text-blue-500 border-blue-500/20 bg-blue-500/5';
+      case 'medium': return 'text-warning border-warning/20 bg-warning/5';
+      case 'low': return 'text-primary border-primary/20 bg-primary/5';
       default: return 'text-muted-foreground border-border bg-muted/5';
     }
   };
@@ -28,7 +28,7 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
     )}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+          <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <h3 className="text-sm font-black text-foreground tracking-tight">
@@ -43,8 +43,8 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
       <div className="flex-1 min-h-0 flex flex-col justify-center items-center text-center py-2">
         {!topFinding ? (
           <div className="space-y-3 animate-in fade-in duration-700">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto border border-emerald-500/20">
-              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+            <div className="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center mx-auto border border-success/20">
+              <CheckCircle2 className="w-6 h-6 text-success" />
             </div>
             <div>
               <p className="text-xs font-black text-foreground mb-1">{t('dashboards.widgets.assistant_insights.no_findings')}</p>
@@ -64,7 +64,7 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
             </div>
 
             <div className="pt-2">
-              <Button size="sm" variant="primary" className="w-full text-[9px] font-black uppercase tracking-widest gap-2 bg-violet-600 hover:bg-violet-500 shadow-lg shadow-violet-500/20 transition-all duration-300">
+              <Button size="sm" variant="primary" className="w-full text-[9px] font-black uppercase tracking-widest gap-2 transition-all duration-300">
                 {t('dashboards.widgets.assistant_insights.view_details')} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>

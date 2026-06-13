@@ -113,7 +113,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         <button
           onClick={handleToggleAll}
           disabled={isProcessing}
-          className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-destructive/5 hover:bg-destructive text-destructive hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-95"
+          className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-destructive/5 hover:bg-destructive text-destructive hover:text-destructive-foreground rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-95"
         >
           {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}

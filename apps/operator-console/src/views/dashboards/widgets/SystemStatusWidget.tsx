@@ -60,13 +60,13 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
 
   const getMetricColor = (val: number) => {
     if (val > 85) return 'text-destructive';
-    if (val > 60) return 'text-amber-500';
+    if (val > 60) return 'text-warning';
     return 'text-primary';
   };
 
   const getMetricBg = (val: number) => {
     if (val > 85) return 'bg-destructive/20';
-    if (val > 60) return 'bg-amber-500/20';
+    if (val > 60) return 'bg-warning/20';
     return 'bg-primary/20';
   };
 
@@ -86,7 +86,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
         </div>
         {!loading && (
            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-glow shadow-emerald-500/50" />
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-glow shadow-success/50" />
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.system_status.online')}</span>
            </div>
         )}

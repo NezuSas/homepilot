@@ -101,8 +101,8 @@ export const HomeAssistantSettingsView: React.FC = () => {
 
   if (error) return (
     <div className="flex flex-col items-center justify-center h-64 gap-4 animate-in fade-in">
-      <div className="p-3 bg-rose-500/10 rounded-full">
-        <AlertCircle className="w-8 h-8 text-rose-500" />
+      <div className="p-3 bg-danger/10 rounded-full">
+        <AlertCircle className="w-8 h-8 text-danger" />
       </div>
       <div className="text-center">
         <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.error_title')}</h3>

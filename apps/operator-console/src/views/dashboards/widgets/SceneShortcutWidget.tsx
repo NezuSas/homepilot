@@ -54,7 +54,7 @@ export function SceneShortcutWidget({ config, isEditing, onConfigure }: { config
       <div className={cn(
         "w-16 h-16 rounded-[2rem] flex items-center justify-center border transition-all duration-500 mb-4",
         status === 'executing' ? "bg-primary border-primary shadow-xl shadow-primary/30 rotate-12" : 
-        status === 'success' ? "bg-emerald-500 border-emerald-500 text-white" :
+        status === 'success' ? "bg-success border-success text-success-foreground" :
         "bg-primary/10 border-primary/20"
       )}>
         {status === 'executing' ? (

@@ -97,7 +97,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
 
               <div className={cn(
                 'p-4 rounded-2xl transition-all duration-700 z-10',
-                isProcessingThis ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary',
+                isProcessingThis ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary',
                 (isEdgeResilient && isProcessingThis) && 'bg-success shadow-lg shadow-success/40 scale-110',
               )}>
                 {isEdgeResilient && isProcessingThis ? <Cpu className="w-5 h-5 animate-pulse" /> : <Zap className="w-5 h-5" />}
@@ -109,7 +109,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
                     <span className={cn(
                       'text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0',
                       isProcessingThis
-                        ? 'bg-white/20 border-white/40 text-white'
+                        ? 'bg-primary-foreground/20 border-primary-foreground/40 text-primary-foreground'
                         : 'bg-success/5 border-success/20 text-success/80',
                     )}>
                       {isFullyAutonomous ? t('dashboards.status.autonomous') : t('dashboards.status.edge')}
@@ -118,7 +118,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
                 </div>
                 <p className={cn(
                   'text-[10px] font-medium italic opacity-60 truncate',
-                  isProcessingThis ? 'text-white' : 'text-muted-foreground',
+                  isProcessingThis ? 'text-primary-foreground' : 'text-muted-foreground',
                 )}>
                   {isFullyAutonomous ? t('dashboards.status.hardware_execution') : (scene.description || t('dashboard.experience'))}
                 </p>

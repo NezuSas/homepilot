@@ -24,6 +24,48 @@ Las aplicaciones cliente (iOS, Android, Dashboards Web) son interfaces sin estad
 
 ---
 
+## Arquitectura Actual Implementada
+
+La implementación actual se concentra en el vertical Edge local y en la Operator Console web.
+
+### Runtime Local
+- **API Edge**: Fastify v5 con TypeScript. La lógica de rutas vive en implementaciones de `RouteHandler`; `ApiGateway.ts` no debe registrar rutas de dominio.
+- **WebSocket**: `ws` adjunto a `fastify.server`.
+- **UI**: React + Vite + TypeScript en `apps/operator-console`.
+- **Docker Compose**: levanta `homepilot-api`, `homepilot-ui`, `homeassistant` y servicios auxiliares configurados.
+- **Persistencia local**: `data/` es un directorio local ignorado por Git y usado por el runtime.
+
+### Limites de Modulos Actuales
+- La API mantiene contratos locales explicitos para consola, onboarding, auth, dispositivos, escenas, automatizaciones, dashboards y diagnosticos.
+- La Operator Console es una shell cliente. Puede orquestar estado de UI, llamadas API y navegacion, pero no debe contener reglas de negocio de dominio.
+- Los componentes visuales viven en `apps/operator-console/src/components`.
+- Los primitivos visuales reutilizables viven en `apps/operator-console/src/components/ui`.
+- Las vistas viven en `apps/operator-console/src/views` y deben permanecer como orquestadores.
+
+### Contrato de Validacion
+Todo cambio frontend o full-stack debe validar:
+
+```bash
+npm run typecheck
+npm run build
+npm run build --prefix apps/operator-console
+docker compose up --build
+docker compose ps
+```
+
+Cambios backend, API, auth, runtime, gateway o bootstrap tambien deben pasar:
+
+```bash
+npm run test
+```
+
+### Referencias Operativas
+- `docs/operator-console-frontend.md`: reglas actuales de modularidad UI.
+- `docs/local-wsl-workflow.md`: flujo Windows local -> `main` -> WSL -> Docker.
+- `docs/documentation-index.md`: mapa de documentacion y estado por area.
+
+---
+
 ## 1. Modelo de Dominio (Nivel Negocio)
 
 El dominio define la jerarquía lógica y los límites de propiedad (*ownership boundaries*) dentro de HomePilot. 

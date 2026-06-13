@@ -101,7 +101,7 @@ export const DashDeviceTile: React.FC<{
       <div className={cn(
         "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 z-10",
         isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40",
-        (isSonoff && isProcessing) && "bg-success text-white scale-110 shadow-success/20 shadow-xl"
+        (isSonoff && isProcessing) && "bg-success text-success-foreground scale-110 shadow-success/20 shadow-xl"
       )}>
         {isProcessing && isSonoff ? (
           <Zap className="w-5 h-5 animate-pulse" />

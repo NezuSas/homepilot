@@ -96,7 +96,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
           "absolute bottom-6 right-6 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl",
           isOn 
             ? "bg-primary text-primary-foreground shadow-primary/30 hover:scale-105 active:scale-95" 
-            : "bg-muted text-muted-foreground/30 hover:bg-muted-foreground/10 hover:text-muted-foreground shadow-black/5 active:scale-95"
+            : "bg-muted text-muted-foreground/30 hover:bg-muted-foreground/10 hover:text-muted-foreground shadow-depth-1 active:scale-95"
         )}
       >
         {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Power className="w-5 h-5" />}

@@ -260,7 +260,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                       autoFocus
                       onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                     />
-                    <button onClick={handleRename} className="p-1 px-2 bg-primary text-white text-[10px] font-black rounded uppercase">{t('common.save')}</button>
+                    <button onClick={handleRename} className="p-1 px-2 bg-primary text-primary-foreground text-[10px] font-black rounded uppercase">{t('common.save')}</button>
                     <button onClick={() => { setIsRenaming(false); setNewName(device.name); }} className="text-[10px] uppercase font-bold text-muted-foreground group">
                       <span className="border-b border-transparent group-hover:border-muted-foreground transition-all ml-1">{t('common.cancel')}</span>
                     </button>
@@ -294,7 +294,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 className={cn(
                   'flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
                   activeTab === tab
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]'
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
@@ -366,7 +366,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                 {(device.type === 'light' || device.type === 'switch') && (
                   <div className="flex gap-4">
-                    <button onClick={() => handleCommand('turn_on')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10 active:bg-primary/90">
+                    <button onClick={() => handleCommand('turn_on')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-primary-foreground hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10 active:bg-primary/90">
                       {t('inbox.inspector.actions.force_on')}
                     </button>
                     <button onClick={() => handleCommand('turn_off')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors active:scale-95">
@@ -380,7 +380,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                 {device.type === 'cover' && (
                   <div className="flex gap-4">
-                    <button onClick={() => handleCommand('open')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-white hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10">
+                    <button onClick={() => handleCommand('open')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-primary-foreground hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10">
                       {t('inbox.inspector.actions.open')}
                     </button>
                     <button onClick={() => handleCommand('stop')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors active:scale-95">

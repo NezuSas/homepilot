@@ -66,6 +66,11 @@
 
     /* ── Radius ─────────────────────────────────────────────── */
     --radius: 0.625rem;
+    --radius-control: 0.75rem;
+    --radius-card: 1.75rem;
+    --radius-panel: 2rem;
+    --radius-modal: 2rem;
+    --radius-pill: 9999px;
 
     /* ── Motion tokens ──────────────────────────────────────── */
     --duration-fast:   150ms;

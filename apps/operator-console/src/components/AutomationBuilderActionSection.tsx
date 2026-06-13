@@ -2,7 +2,7 @@ import React from 'react';
 import { AlertCircle, ArrowRight, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Select from '../views/Select';
-import { cn } from '../lib/utils';
+import { SegmentedControl } from './ui/SegmentedControl';
 import { humanize } from '../lib/naming-utils';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene } from './AutomationBuilderTypes';
 
@@ -34,26 +34,15 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
         <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">{t('automations.builder.action_subtitle')}</label>
       </div>
 
-      <div className="flex bg-primary/[0.05] p-1.5 rounded-2xl gap-2 border border-primary/10">
-        <button
-          onClick={() => onActionTypeChange('device_command')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-            actionType === 'device_command' ? "bg-primary text-primary-foreground shadow-lg" : "text-primary/40 hover:bg-primary/10 hover:text-primary"
-          )}
-        >
-          <Terminal className="w-4 h-4" /> {t('automations.builder.actions.direct_command')}
-        </button>
-        <button
-          onClick={() => onActionTypeChange('execute_scene')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-            actionType === 'execute_scene' ? "bg-primary text-primary-foreground shadow-lg" : "text-primary/40 hover:bg-primary/10 hover:text-primary"
-          )}
-        >
-          <ArrowRight className="w-3 h-3" /> {t('nav.scenes')}
-        </button>
-      </div>
+      <SegmentedControl
+        value={actionType}
+        tone="primary"
+        onChange={onActionTypeChange}
+        options={[
+          { value: 'device_command', label: t('automations.builder.actions.direct_command'), icon: Terminal },
+          { value: 'execute_scene', label: t('nav.scenes'), icon: ArrowRight },
+        ]}
+      />
 
       {actionType === 'device_command' ? (
         <div className="space-y-4 animate-in fade-in duration-300">

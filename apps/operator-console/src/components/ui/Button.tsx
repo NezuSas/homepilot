@@ -34,11 +34,11 @@ const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps['size']>, string> = {
-  xs:   'px-2.5 py-1 text-[0.7rem] rounded-lg gap-1.5',
-  sm:   'px-3 py-1.5 text-[0.76rem] rounded-xl gap-1.5',
-  md:   'px-4 py-2 text-[0.82rem] rounded-xl gap-2',
-  lg:   'px-5 py-2.5 text-sm rounded-2xl gap-2',
-  icon: 'p-2 rounded-xl flex items-center justify-center',
+  xs:   'px-2.5 py-1 text-caption rounded-lg gap-1.5',
+  sm:   'px-3 py-1.5 text-body rounded-control gap-1.5',
+  md:   'px-4 py-2 text-body rounded-control gap-2',
+  lg:   'px-5 py-2.5 text-sm rounded-panel gap-2',
+  icon: 'p-2 rounded-control flex items-center justify-center',
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

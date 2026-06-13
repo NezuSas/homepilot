@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
+import { Button } from './ui/Button';
 
 interface ScenesHeaderProps {
   sceneCount: number;
@@ -18,13 +19,10 @@ export const ScenesHeader: React.FC<ScenesHeaderProps> = ({ sceneCount, onCreate
           {t('scenes.header.available', { count: sceneCount })}
         </p>
       </div>
-      <button
-        onClick={onCreateScene}
-        className="bg-primary text-primary-foreground px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-wider hover:scale-[1.03] active:scale-95 transition-all flex items-center gap-3 premium-glow shadow-primary/20"
-      >
+      <Button onClick={onCreateScene} size="lg" className="uppercase tracking-wider premium-glow">
         <Plus className="w-5 h-5" />
         {t('dashboard.scene_create')}
-      </button>
+      </Button>
     </div>
   );
 };

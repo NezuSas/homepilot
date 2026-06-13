@@ -191,7 +191,7 @@ export const TopologyView: React.FC = () => {
                 <button 
                   onClick={handleAddRoom}
                   disabled={isCreatingRoom || !newRoomName.trim()}
-                  className="bg-primary text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
+                  className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   {isCreatingRoom ? <Loader2 className="w-3 h-3 animate-spin" /> : t('topology.add_room')}
                 </button>

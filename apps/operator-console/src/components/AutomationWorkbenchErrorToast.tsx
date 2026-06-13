@@ -8,7 +8,7 @@ interface AutomationWorkbenchErrorToastProps {
 }
 
 export const AutomationWorkbenchErrorToast: React.FC<AutomationWorkbenchErrorToastProps> = ({ title, message, onRetry }) => (
-  <div className="fixed bottom-10 right-10 bg-destructive text-white p-5 rounded-[2rem] shadow-2xl flex items-center gap-5 animate-in slide-in-from-right-4 z-[100] border border-white/20 backdrop-blur-md">
+  <div className="fixed bottom-10 right-10 bg-destructive text-destructive-foreground p-5 rounded-panel shadow-depth-3 flex items-center gap-5 animate-in slide-in-from-right-4 z-[100] border border-destructive/20 backdrop-blur-md">
     <AlertCircle className="w-6 h-6" />
     <div className="flex flex-col">
       <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{title}</span>

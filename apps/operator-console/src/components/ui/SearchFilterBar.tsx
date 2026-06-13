@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { SearchInput } from './Input';
+import { SegmentedControl } from './SegmentedControl';
 
 export interface FilterOption {
   value: string;
@@ -39,20 +40,13 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
       </div>
       
       {options.length > 0 && onFilterChange && (
-        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => onFilterChange(opt.value)}
-              className={cn(
-                "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                activeFilter === opt.value ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={activeFilter || options[0]?.value || ''}
+          options={options}
+          onChange={onFilterChange}
+          className="max-w-full overflow-x-auto no-scrollbar"
+          optionClassName="whitespace-nowrap flex-none"
+        />
       )}
     </div>
   );

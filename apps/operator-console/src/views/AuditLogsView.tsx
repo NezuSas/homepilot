@@ -63,7 +63,7 @@ export const AuditLogsView: React.FC = () => {
         <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{error}</p>
         <button 
            onClick={fetchLogs}
-           className="px-8 py-3 bg-destructive text-white rounded-2xl text-xs font-black hover:scale-105 transition-transform"
+           className="px-8 py-3 bg-destructive text-destructive-foreground rounded-2xl text-xs font-black hover:scale-105 transition-transform"
         >
           {t('audit_logs.retry')}
         </button>

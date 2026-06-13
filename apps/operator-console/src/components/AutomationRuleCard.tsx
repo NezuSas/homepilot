@@ -100,7 +100,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
           <div className={cn(
             'w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700 relative overflow-hidden',
             isEnabled
-              ? (isFullyAutonomous ? 'bg-success text-white premium-glow-success shadow-lg shadow-success/20' : 'bg-primary text-white premium-glow shadow-lg shadow-primary/20')
+              ? (isFullyAutonomous ? 'bg-success text-success-foreground premium-glow-success shadow-lg shadow-success/20' : 'bg-primary text-primary-foreground premium-glow shadow-lg shadow-primary/20')
               : 'bg-muted text-muted-foreground'
           )}>
             {rule.trigger.type === 'time' ? <Clock className="w-6 h-6 relative z-10" /> : <Zap className="w-6 h-6 relative z-10" />}
@@ -182,7 +182,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
           <div className={cn(
             'h-8 px-4 rounded-full flex items-center justify-center shrink-0 shadow-lg transition-all duration-700',
             isEnabled
-              ? (isFullyAutonomous ? 'bg-success text-white premium-glow-success' : 'bg-primary text-white premium-glow')
+              ? (isFullyAutonomous ? 'bg-success text-success-foreground premium-glow-success' : 'bg-primary text-primary-foreground premium-glow')
               : 'bg-muted text-muted-foreground/30'
           )}>
             <span className="text-[9px] font-black tracking-tighter">{t('automations.summary.then')}</span>

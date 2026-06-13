@@ -41,7 +41,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
       >
         {tab.title}
         {isEditing && tabs.length > 1 && (
-          <div onClick={(event) => { event.stopPropagation(); onDeleteTab(index); }} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform">
+          <div onClick={(event) => { event.stopPropagation(); onDeleteTab(index); }} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform">
             <X className="w-2 h-2" />
           </div>
         )}

@@ -47,7 +47,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       </div>
     )}
     {!isEditingDashboard && (
-      <button onClick={onDelete} className="p-3 bg-destructive/5 text-destructive rounded-2xl hover:bg-destructive hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
+      <button onClick={onDelete} className="p-3 bg-destructive/5 text-destructive rounded-2xl hover:bg-destructive hover:text-destructive-foreground transition-all"><Trash2 className="w-5 h-5" /></button>
     )}
   </div>
 );

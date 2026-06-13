@@ -68,7 +68,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
       )}>
         <div className={cn(
           "p-6 rounded-[2rem] shadow-xl border-2 transition-all duration-700 transform group-hover:scale-110",
-          rule.enabled ? "bg-primary text-white border-primary/20" : "bg-background text-muted-foreground border-border"
+          rule.enabled ? "bg-primary text-primary-foreground border-primary/20" : "bg-background text-muted-foreground border-border"
         )}>
           {rule.enabled ? <Play className="fill-current w-8 h-8" /> : <Pause className="fill-current w-8 h-8" />}
         </div>
@@ -79,7 +79,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             onClick={() => onToggle(rule.id, rule.enabled)}
             className={cn(
               "w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-              rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white" : "bg-primary text-white"
+              rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" : "bg-primary text-primary-foreground"
             )}
           >
             {rule.enabled ? t('common.disable') : t('common.enable')}
@@ -96,7 +96,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
 
             {rule._confirmingDelete ? (
               <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
-                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-white rounded-xl text-[9px] font-black uppercase tracking-tighter shadow-lg shadow-destructive/20">Confirm</button>
+                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-xl text-[9px] font-black uppercase tracking-tighter shadow-lg shadow-destructive/20">Confirm</button>
                 <button onClick={() => onConfirmingDeleteChange(rule.id, false)} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase transition-colors hover:bg-muted/80">X</button>
               </div>
             ) : (
@@ -111,7 +111,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         </div>
 
         {rule._error && (
-          <div className="absolute top-4 left-4 right-4 bg-destructive text-white text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl flex items-center justify-center gap-2">
+          <div className="absolute top-4 left-4 right-4 bg-destructive text-destructive-foreground text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl flex items-center justify-center gap-2">
             <AlertCircle className="w-3 h-3" /> {rule._error}
           </div>
         )}
@@ -166,7 +166,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
                 <span className="text-foreground/70">{rule.action.targetDeviceId}</span>
               </div>
               <div className="h-[1px] w-full bg-primary/10" />
-              <div className="inline-flex items-center gap-2 py-1.5 px-3 bg-primary text-white rounded-xl self-start shadow-lg shadow-primary/20 border border-white/10 group-hover:scale-105 transition-transform duration-300">
+              <div className="inline-flex items-center gap-2 py-1.5 px-3 bg-primary text-primary-foreground rounded-xl self-start shadow-lg shadow-primary/20 border border-primary/10 group-hover:scale-105 transition-transform duration-300">
                 <Cpu className="w-3.5 h-3.5 opacity-60" />
                 <span className="font-black uppercase tracking-tighter">{rule.action.command}</span>
               </div>
