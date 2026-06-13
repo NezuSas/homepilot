@@ -1,10 +1,10 @@
 /// <reference types="jest" />
-import { executeAssistantPrompt, AssistantConfirmationRequiredError } from '../assistantApi';
+import { converseWithAssistant } from '../assistantApi';
 import { apiFetch } from '../apiClient';
 
 jest.mock('../apiClient');
 jest.mock('../../config', () => ({
-  API_BASE_URL: 'http://localhost:3000'
+  API_BASE_URL: 'http://localhost:3000',
 }));
 
 describe('assistantApi', () => {
@@ -14,66 +14,59 @@ describe('assistantApi', () => {
     jest.resetAllMocks();
   });
 
-  it('executeAssistantPrompt throws AssistantConfirmationRequiredError on valid 409 preview', async () => {
+  it('converseWithAssistant posts the conversation payload to the converse endpoint', async () => {
     mockApiFetch.mockResolvedValue({
-      ok: false,
-      status: 409,
+      ok: true,
       json: async () => ({
-        error: 'CONFIRMATION_REQUIRED',
-        preview: {
-          prompt: 'apaga todo',
-          intentType: 'command',
-          requiresConfirmation: true,
-          summary: 'Comandos globales requieren confirmación.'
-        }
-      })
+        type: 'answer',
+        message: 'Hola',
+      }),
     });
 
-    await expect(executeAssistantPrompt('apaga todo')).rejects.toThrow(AssistantConfirmationRequiredError);
-  });
-
-  it('executeAssistantPrompt throws normal Error if 409 preview is malformed', async () => {
-    mockApiFetch.mockResolvedValue({
-      ok: false,
-      status: 409,
-      json: async () => ({
-        error: 'CONFIRMATION_REQUIRED',
-        preview: {
-          prompt: 'apaga todo',
-          // intentType is missing -> invalid
-          requiresConfirmation: true,
-          summary: 'Comandos globales requieren confirmación.'
-        }
-      })
+    const result = await converseWithAssistant({
+      prompt: 'hola',
+      sourceRoomId: 'room-1',
     });
 
-    await expect(executeAssistantPrompt('apaga todo')).rejects.toThrow(Error);
-    await expect(executeAssistantPrompt('apaga todo')).rejects.not.toThrow(AssistantConfirmationRequiredError);
+    expect(mockApiFetch).toHaveBeenCalledWith('http://localhost:3000/api/v1/assistant/converse', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: 'hola',
+        sourceRoomId: 'room-1',
+      }),
+    });
+    expect(result).toEqual({
+      type: 'answer',
+      message: 'Hola',
+    });
   });
 
-  it('executeAssistantPrompt throws normal Error on 500', async () => {
+  it('converseWithAssistant throws the backend message on failure', async () => {
     mockApiFetch.mockResolvedValue({
       ok: false,
       status: 500,
       json: async () => ({
-        error: { message: 'Internal Server Error' }
-      })
+        message: 'Assistant failed',
+      }),
     });
 
-    await expect(executeAssistantPrompt('haz algo')).rejects.toThrow('Internal Server Error');
+    await expect(converseWithAssistant({ prompt: 'haz algo' })).rejects.toThrow('Assistant failed');
   });
 
-  it('executeAssistantPrompt returns data on success', async () => {
+  it('converseWithAssistant falls back to a status-based error when response json is unavailable', async () => {
     mockApiFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        sceneId: 'test',
-        status: 'success',
-        actions: []
-      })
+      ok: false,
+      status: 503,
+      json: async () => {
+        throw new Error('invalid json');
+      },
     });
 
-    const result = await executeAssistantPrompt('prende luz');
-    expect(result.status).toBe('success');
+    await expect(converseWithAssistant({ prompt: 'haz algo' })).rejects.toThrow(
+      'Assistant conversation failed (503)'
+    );
   });
 });

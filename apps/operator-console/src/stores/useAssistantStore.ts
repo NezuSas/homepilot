@@ -3,6 +3,12 @@ import { API_ENDPOINTS } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { useAppShellStore } from './useAppShellStore';
 
+export interface AssistantFindingAction {
+  type: string;
+  label: string;
+  payload?: Record<string, unknown>;
+}
+
 export interface AssistantFinding {
   id: string;
   type: string;
@@ -12,8 +18,8 @@ export interface AssistantFinding {
   relatedEntityType: string | null;
   relatedEntityId: string | null;
   status: 'open' | 'dismissed' | 'resolved';
-  actions: { type: string; label: string; payload?: any }[];
-  metadata: Record<string, any>;
+  actions: AssistantFindingAction[];
+  metadata: Record<string, unknown>;
   score: number;
   explanation?: string;
 }

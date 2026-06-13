@@ -123,27 +123,6 @@
         "no_activity_long_term": "Long-term inactivity"
       }
     },
-    "command_center": {
-      "title": "Command Center",
-      "subtitle": "Natural Language Execution",
-      "placeholder": "e.g. turn off everything, turn on living room lights...",
-      "execute": "Execute",
-      "executing": "Executing...",
-      "history": "Recent History",
-      "no_history": "No recent commands.",
-      "errors": {
-        "unknown_intent": "I couldn't interpret that instruction.",
-        "execution_failed": "Failed to execute command."
-      },
-      "results": {
-        "success": "Command executed successfully",
-        "partial": "Partial execution: some actions failed",
-        "failed": "Total execution failure",
-        "actions_performed": "Actions performed",
-        "view_logs": "View Full History",
-        "view_technical_details": "View Technical Details"
-      }
-    },
     "conversation": {
       "title": "Talk to my Home",
       "subtitle": "Natural and friendly interaction with HomePilot",

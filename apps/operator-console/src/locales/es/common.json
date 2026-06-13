@@ -123,27 +123,6 @@
         "no_activity_long_term": "Inactividad prolongada"
       }
     },
-    "command_center": {
-      "title": "Centro de Comandos",
-      "subtitle": "Ejecución de Lenguaje Natural",
-      "placeholder": "Ej: apaga todo, prende luz sala...",
-      "execute": "Ejecutar",
-      "executing": "Ejecutando...",
-      "history": "Historial Reciente",
-      "no_history": "No hay comandos recientes.",
-      "errors": {
-        "unknown_intent": "No pude interpretar esa instrucción.",
-        "execution_failed": "Fallo al ejecutar el comando."
-      },
-      "results": {
-        "success": "Comando ejecutado con éxito",
-        "partial": "Ejecución parcial: algunas acciones fallaron",
-        "failed": "Fallo total en la ejecución",
-        "actions_performed": "Acciones realizadas",
-        "view_logs": "Ver Historial Completo",
-        "view_technical_details": "Ver Detalles Técnicos"
-      }
-    },
     "conversation": {
       "title": "Conversar con mi casa",
       "subtitle": "Interacción natural y amigable con HomePilot",

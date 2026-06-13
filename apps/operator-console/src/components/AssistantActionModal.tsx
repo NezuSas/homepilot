@@ -4,17 +4,19 @@ import { X, Check, Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import type { AssistantFindingAction } from '../stores/useAssistantStore';
 
 interface AssistantActionModalProps {
   findingId: string;
-  action: {
-    type: string;
-    label: string;
-    payload?: any;
-  };
+  action: AssistantFindingAction;
   deviceName?: string;
   onClose: () => void;
   onSuccess: () => void;
+}
+
+function getPayloadText(payload: Record<string, unknown> | undefined, key: string): string {
+  const value = payload?.[key];
+  return typeof value === 'string' ? value : '';
 }
 
 export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
@@ -28,7 +30,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState<{ id: string; name: string }[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
-  const [newName, setNewName] = useState(action.payload?.currentName || '');
+  const [newName, setNewName] = useState(getPayloadText(action.payload, 'currentName'));
 
   useEffect(() => {
     if (action.type === 'assign_room') {
@@ -42,10 +44,10 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const payload: any = {};
+      const payload: Record<string, string> = {};
       if (action.type === 'assign_room') payload.roomId = selectedRoomId;
       if (action.type === 'rename_device') payload.newName = newName;
-      if (action.type === 'activate_draft') payload.draftId = action.payload?.draftId;
+      if (action.type === 'activate_draft') payload.draftId = getPayloadText(action.payload, 'draftId');
 
       const resp = await apiFetch(API_ENDPOINTS.assistant.executeAction, {
         method: 'POST',

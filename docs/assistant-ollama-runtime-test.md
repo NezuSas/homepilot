@@ -36,7 +36,7 @@ OLLAMA_ENABLED=true docker compose up --build
 Ejecuta un comando natural hacia la API de HomePilot (reemplaza `<TOKEN>` con tu token de sesión real de HomePilot):
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/assistant/preview \
+curl -X POST http://localhost:3000/api/v1/assistant/converse \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"prende la luz de la sala"}'
@@ -44,8 +44,8 @@ curl -X POST http://localhost:3000/api/v1/assistant/preview \
 
 ### 5. Prueba desde la UI (Consola de Operador)
 1. Abre [http://localhost](http://localhost) en tu navegador.
-2. Navega a la vista **Asistente**.
-3. En el Centro de Comandos, escribe instrucciones como:
+2. Navega a la vista **Conversar con mi casa**.
+3. Escribe instrucciones como:
    - "apaga las luces de la cocina"
    - "enciende todo"
    - "activa la escena de relajación"

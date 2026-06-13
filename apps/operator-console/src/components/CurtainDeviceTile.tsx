@@ -4,11 +4,10 @@ import {
   Blinds, ArrowUp, ArrowDown, Square, Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { canExecuteCommand } from '../lib/deviceCapabilities';
 import { CoverPositionControl } from './CoverPositionControl';
+import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
 interface DeviceState {
   state?: 'open' | 'closed' | 'opening' | 'closing' | 'unknown';
@@ -16,32 +15,17 @@ interface DeviceState {
   [key: string]: unknown;
 }
 
-interface Device {
-  id: string;
-  homeId: string;
-  roomId: string | null;
-  name: string;
-  type: string;
-  status: 'PENDING' | 'ASSIGNED';
-  invertState?: boolean;
-  lastKnownState: Record<string, unknown> | null;
-  integrationSource?: string;
-  updatedAt?: string;
-  capabilities?: Array<{ type: string; name: string }>;
-}
-
 interface CurtainDeviceTileProps {
   device: Device;
   onUpdate?: (updated: Device) => void;
+  onCommand?: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<Device | null>;
   roomName?: string;
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
 }
 
-const API_URL = `${API_BASE_URL}/api/v1`;
-
 export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({ 
-  device, onUpdate, roomName, isDuplicateName, onActionExecute 
+  device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute 
 }) => {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
@@ -76,10 +60,9 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const isSonoff = device.integrationSource === 'sonoff';
 
   const handleCommand = async (command: string, params?: Record<string, unknown>) => {
-    if (isProcessing) return;
+    if (isProcessing || !onCommand) return;
     
-    // Validación UI antes de enviar
-    if (!canExecuteCommand(device as any, command)) {
+    if (!canExecuteCommand(device, command)) {
       console.warn(`[UI] Command ${command} not allowed for device ${device.id}`);
       return;
     }
@@ -89,16 +72,9 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
     
     setIsProcessing(command);
     try {
-      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          command: params ? { name: command, params } : command 
-        })
-      });
-      
-      if (res.ok) {
-        const updated = await res.json();
+      const updated = await onCommand(device.id, command, params);
+
+      if (updated) {
         setOptimisticState(null);
         if (onUpdate) onUpdate(updated);
         if (onActionExecute) onActionExecute(t('common.feedback.action_success', { 
@@ -122,10 +98,10 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   const localizedState = t(`common.cover.${state}`, { defaultValue: state });
 
-  const canOpen = canExecuteCommand(device as any, 'open');
-  const canClose = canExecuteCommand(device as any, 'close');
-  const canStop = canExecuteCommand(device as any, 'stop');
-  const canSetPosition = canExecuteCommand(device as any, 'set_position');
+  const canOpen = !!onCommand && canExecuteCommand(device, 'open');
+  const canClose = !!onCommand && canExecuteCommand(device, 'close');
+  const canStop = !!onCommand && canExecuteCommand(device, 'stop');
+  const canSetPosition = !!onCommand && canExecuteCommand(device, 'set_position');
 
   return (
     <div className={cn(

@@ -23,7 +23,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   confirmText,
   cancelText,
   variant = 'danger',
-  isSubmitting = false
+  isSubmitting = false,
 }) => {
   const { t } = useTranslation();
   const displayConfirm = confirmText || t('common.confirm');
@@ -34,30 +34,28 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const variantColors = {
     danger: 'bg-danger text-danger-foreground hover:bg-danger/90 shadow-danger/20',
     warning: 'bg-warning text-warning-foreground hover:bg-warning/90 shadow-warning/20',
-    info: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20'
+    info: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20',
   };
 
   const iconColors = {
-    danger:  'text-danger bg-danger/10',
+    danger: 'text-danger bg-danger/10',
     warning: 'text-warning bg-warning/10',
-    info:    'text-primary bg-primary/10'
+    info: 'text-primary bg-primary/10',
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-300"
         onClick={isSubmitting ? undefined : onClose}
       />
-      
-      {/* Modal */}
+
       <div className="relative w-full max-w-sm bg-card border border-foreground/10 rounded-[2rem] shadow-2xl shadow-black/40 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300">
         <div className="p-8 pb-6 flex flex-col items-center text-center">
           <div className={`p-4 rounded-2xl mb-6 ${iconColors[variant]}`}>
             <AlertTriangle className="w-8 h-8" />
           </div>
-          
+
           <h2 className="text-xl font-black text-foreground mb-2">{title}</h2>
           <p className="text-sm font-medium text-foreground/50 leading-relaxed">
             {description}
@@ -83,7 +81,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
 
-        <button 
+        <button
           disabled={isSubmitting}
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full hover:bg-foreground/5 transition-colors group"

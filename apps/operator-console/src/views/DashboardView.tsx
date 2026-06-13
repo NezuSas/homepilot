@@ -1,34 +1,22 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Cpu, Loader2, Plus, Zap, Sparkles, ShieldCheck
-} from 'lucide-react';
-import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
 import type { HomeMode, View } from '../types';
+import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
+import { DashboardEdgeStatus } from '../components/DashboardEdgeStatus';
+import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
+import { DashboardLoadingState } from '../components/DashboardLoadingState';
+import { DashboardRoomsSection } from '../components/DashboardRoomsSection';
+import { DashboardScenesSection } from '../components/DashboardScenesSection';
 import { HomeModeSelector } from '../components/HomeModeSelector';
-import { CurtainDeviceTile } from '../components/CurtainDeviceTile';
-import { DashDeviceTile } from '../components/DashDeviceTile';
-import { Button } from '../components/ui/Button';
-import { AssistantCard } from '../components/ui/AssistantCard';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
-import { hasCapability } from '../lib/deviceCapabilities';
-import type { AssistantFinding } from '../stores/useAssistantStore';
-import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
-
-interface DeviceState {
-  on?: boolean;
-  state?: 'on' | 'off';
-  brightness?: number;
-  power?: number;
-  [key: string]: unknown;
-}
+import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 
 interface SceneAction {
   deviceId: string;
@@ -46,25 +34,29 @@ interface Scene {
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
-const mapSnapshotToDevice = (snapshot: SnapshotDevice): Device => {
-  const {
-    externalId: _externalId,
-    vendor: _vendor,
-    entityVersion: _entityVersion,
-    ...device
-  } = snapshot;
+const getMetadataText = (
+  metadata: Record<string, unknown>,
+  keys: string[],
+  fallback: string
+): string => {
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
 
-  return device as Device;
+  return fallback;
 };
 
 export const DashboardView: React.FC<{ 
   onModeChange?: (mode: HomeMode) => void;
   onActionExecute?: (label: string) => void;
-  onNavigate?: (view: View, params?: any) => void;
+  onNavigate?: (view: View, params?: unknown) => void;
 }> = ({ onModeChange, onActionExecute, onNavigate }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
-  const [activeAction, setActiveAction] = useState<any | null>(null);
+  const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
@@ -111,8 +103,28 @@ useEffect(() => {
   fetchData();
 }, [homeId, fetchData]);
 
-  const handleDeviceUpdate = (updated: Device) => {
-    upsertDevice(updated as SnapshotDevice);
+  const executeDeviceCommand = useCallback(async (
+    deviceId: string,
+    command: string,
+    params?: Record<string, unknown>
+  ): Promise<SnapshotDevice | null> => {
+    const response = await apiFetch(`${API_URL}/devices/${deviceId}/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        command: params ? { name: command, params } : command,
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json() as SnapshotDevice;
+  }, []);
+
+  const handleDeviceUpdate = (updated: SnapshotDevice) => {
+    upsertDevice(updated);
   };
 
   const handleSceneExecute = async (scene: Scene) => {
@@ -146,11 +158,7 @@ useEffect(() => {
     const devicesToTurnOff = devices.filter(d => d.roomId === roomId && (d.lastKnownState?.on === true || d.lastKnownState?.state === 'on' || Number(d.lastKnownState?.brightness) > 0));
     try {
       await Promise.all((Array.isArray(devicesToTurnOff) ? devicesToTurnOff : []).map(d => 
-        apiFetch(`${API_URL}/devices/${d.id}/command`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: 'turn_off' })
-        })
+        executeDeviceCommand(d.id, 'turn_off')
       ));
       await fetchData();
     } catch (e) {
@@ -160,7 +168,7 @@ useEffect(() => {
     }
   };
 
-  const handleAction = async (finding: any, action: any) => {
+  const handleAction = async (finding: AssistantFinding, action: AssistantFindingAction) => {
     if (action.type === 'ignore' || action.type === 'dismiss') {
       try {
         await resolveFinding(finding.id);
@@ -180,12 +188,13 @@ useEffect(() => {
     }
 
     if (action.type === 'turn_off_device') {
+      const deviceId = action.payload?.deviceId;
+      if (typeof deviceId !== 'string') {
+        return;
+      }
+
       try {
-        await apiFetch(`${API_URL}/devices/${action.payload.deviceId}/command`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: 'turn_off' })
-        });
+        await executeDeviceCommand(deviceId, 'turn_off');
         await resolveFinding(finding.id);
         await fetchData();
       } catch (e) {
@@ -197,7 +206,7 @@ useEffect(() => {
     setActiveAction({ 
       findingId: finding.id, 
       action,
-      deviceName: finding.metadata.friendlyName || finding.metadata.deviceName || finding.metadata.name || finding.id
+      deviceName: getMetadataText(finding.metadata, ['friendlyName', 'deviceName', 'name'], finding.id)
     });
   };
 
@@ -221,21 +230,12 @@ useEffect(() => {
 
   const hasInitialData = (Array.isArray(devices) ? devices : []).length > 0;
   if (snapshotLoading && !hasInitialData) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
-      </div>
-    );
+    return <DashboardLoadingState />;
   }
 
   return (
     <div className="flex flex-col gap-10 pb-12 px-4 md:px-8 animate-in fade-in duration-500">
-      {luxuryRipple && (
-        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-          <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vmax] h-[100vmax] rounded-full border border-primary/20 animate-luxury-ripple" />
-        </div>
-      )}
+      <DashboardAtmosphereRipple active={luxuryRipple} />
 
       {/* LEVEL 1: Master State (Home Mode) */}
       <HomeModeSelector 
@@ -248,244 +248,36 @@ useEffect(() => {
       />
 
       {hasLocalDevices && (
-        <div className="flex flex-col items-center justify-center -mt-6 gap-4">
-           {/* Badge */}
-           <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-[9px] font-black uppercase tracking-widest text-primary/80 backdrop-blur-md shadow-sm">
-              <Cpu className="w-3.5 h-3.5" />
-              <span>{t('shell.status.edge_active')}</span>
-              <div className="w-1 h-1 bg-primary rounded-full animate-pulse mx-1" />
-              <span className="text-muted-foreground/60 tracking-wider">{t('shell.subtitle')}</span>
-           </div>
-
-           {/* Stats Summary */}
-           <div className="flex items-center gap-8 py-1">
-              <div className="flex flex-col items-center gap-1 group">
-                 <span className="text-[14px] font-black text-foreground tracking-tight">{localDevices.length}</span>
-                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-success/60">{t('dashboards.status.local')} {onlineLocalCount < localDevices.length && `(${onlineLocalCount} ${t('common.online')})`}</span>
-              </div>
-              <div className="w-px h-6 bg-border/40" />
-              <div className="flex flex-col items-center gap-1">
-                 <span className="text-[14px] font-black text-foreground tracking-tight">{bridgedCount}</span>
-                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">{t('dashboards.status.bridged')}</span>
-              </div>
-              <div className="w-px h-6 bg-border/40" />
-              <div className="flex flex-col gap-1 items-start max-w-[120px]">
-                 <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-2.5 h-2.5 text-primary opacity-60" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-primary/60">{t('dashboards.status.resilient')}</span>
-                 </div>
-                 <p className="text-[7px] font-bold leading-tight text-muted-foreground/40 uppercase italic">
-                    {t('dashboard.resilience_hint')}
-                 </p>
-              </div>
-           </div>
-        </div>
+        <DashboardEdgeStatus
+          localDeviceCount={localDevices.length}
+          onlineLocalCount={onlineLocalCount}
+          bridgedCount={bridgedCount}
+        />
       )}
 
-      {/* LEVEL 1.5: Proactive Insights */}
-      {prioritizedFindings.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-          <div className="flex items-center gap-3 px-2">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-               {t('dashboard.actionable_insights')}
-            </h2>
-            <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Array.isArray(prioritizedFindings) && prioritizedFindings.slice(0, 2).map((finding) => {
-               const isEnergy = finding.type.includes('energy') || finding.type.includes('consumption') || finding.type.includes('long_running');
-               return (
-               <AssistantCard 
-                  key={finding.id}
-                  icon={isEnergy ? Zap : Sparkles}
-                  category={isEnergy ? t('dashboard.energy_insight') : t('dashboard.proactive')}
-                  title={finding.metadata?.displayTitle ? finding.metadata.displayTitle : t(`assistant.types.${finding.type}`)}
-                  description={finding.metadata?.displayDescription ? finding.metadata.displayDescription : t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
-                  severity={finding.severity}
-                  actions={
-                    <div className="flex gap-2 w-full mt-2">
-                      {Array.isArray(finding.actions) && finding.actions.map((a: any, idx: number) => (
-                        <Button
-                          key={idx}
-                          size="sm"
-                          variant={idx === 0 ? "primary" : "secondary"}
-                          onClick={() => handleAction(finding, a)}
-                          className="flex-1 text-[10px] uppercase tracking-widest h-auto py-3"
-                        >
-                          {t(a.label)}
-                        </Button>
-                      ))}
-                    </div>
-                  }
-               />
-             )})}
-          </div>
-        </div>
-      )}
+      <DashboardInsightsSection
+        findings={prioritizedFindings}
+        onAction={handleAction}
+      />
 
-      {/* LEVEL 2: Atmosphere Recipes (Promoted Scenes) */}
-      {scenes.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">{t('dashboard.atmosphere_recipes')}</h2>
-            <Button 
-              variant="ghost"
-              onClick={() => setIsSceneModalOpen(true)}
-              className="group gap-2 text-xs font-black text-primary/60 hover:text-primary px-0 h-auto uppercase tracking-wider"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[3] group-hover:rotate-90 transition-transform duration-500" />
-              {t('dashboard.new_scene')}
-            </Button>
-          </div>
+      <DashboardScenesSection
+        scenes={scenes}
+        allDevices={allDevices}
+        roomProcessing={roomProcessing}
+        onCreateScene={() => setIsSceneModalOpen(true)}
+        onSceneExecute={handleSceneExecute}
+      />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.isArray(scenes) && scenes.map(scene => {
-              const sceneActions = scene.actions || [];
-              const localActions = sceneActions.filter(action => {
-                const device = allDevices.find(d => d.id === action.deviceId);
-                return device?.integrationSource === 'sonoff';
-              });
-              const isEdgeResilient = localActions.length > 0;
-              const isFullyAutonomous = localActions.length === sceneActions.length && sceneActions.length > 0;
-              const isProcessingThis = roomProcessing === 'scene_' + scene.id;
-
-              return (
-              <button
-                key={scene.id}
-                onClick={() => handleSceneExecute(scene)}
-                disabled={!!roomProcessing}
-                className={cn(
-                  "group relative flex items-center gap-6 p-6 rounded-[2.5rem] transition-all duration-500 text-left overflow-hidden border-2 active:scale-95 disabled:opacity-50 hover:-translate-y-1 hover:shadow-xl",
-                  isProcessingThis 
-                    ? "bg-primary border-primary text-primary-foreground shadow-2xl" 
-                    : "bg-card border-border shadow-md hover:border-primary/40",
-                  (isEdgeResilient && !isProcessingThis) && "hover:border-success/30"
-                )}
-              >
-                {/* Edge Atmospheric Pulsar */}
-                {isEdgeResilient && isProcessingThis && (
-                  <div className="absolute inset-0 bg-success/10 animate-atmospheric-glow pointer-events-none" />
-                )}
-
-                <div className={cn(
-                  "p-4 rounded-2xl transition-all duration-700 z-10",
-                  isProcessingThis ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
-                  (isEdgeResilient && isProcessingThis) && "bg-success shadow-lg shadow-success/40 scale-110"
-                )}>
-                  {isEdgeResilient && isProcessingThis ? <Cpu className="w-5 h-5 animate-pulse" /> : <Zap className="w-5 h-5" />}
-                </div>
-                <div className="min-w-0 flex-1 z-10">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="text-base font-black tracking-tight truncate">{scene.name}</h3>
-                    {isEdgeResilient && (
-                      <span className={cn(
-                        "text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0",
-                        isProcessingThis 
-                          ? "bg-white/20 border-white/40 text-white" 
-                          : "bg-success/5 border-success/20 text-success/80"
-                      )}>
-                        {isFullyAutonomous ? t('dashboards.status.autonomous') : t('dashboards.status.edge')}
-                      </span>
-                    )}
-                  </div>
-                  <p className={cn(
-                    "text-[10px] font-medium italic opacity-60 truncate",
-                    isProcessingThis ? "text-white" : "text-muted-foreground"
-                  )}>
-                    {isFullyAutonomous ? t('dashboards.status.hardware_execution') : (scene.description || t('dashboard.experience'))}
-                  </p>
-                </div>
-              </button>
-            )})}
-          </div>
-        </div>
-      )}
-
-      {scenes.length === 0 && (
-        <div className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5">
-           <Zap className="w-12 h-12 text-primary opacity-20 mb-4" />
-           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">{t('scenes.empty_title')}</p>
-           <Button 
-             variant="ghost" 
-             size="sm"
-             onClick={() => setIsSceneModalOpen(true)}
-             className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary/60"
-           >
-             {t('dashboard.scene_create')}
-           </Button>
-        </div>
-      )}
-
-      {/* LEVEL 3: Spatial Context (Rooms) */}
-      <div className="space-y-12">
-        {activeRooms.length === 0 ? (
-          <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-40">
-             <Cpu className="w-12 h-12 mb-4 text-muted-foreground" />
-             <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state')}</p>
-          </div>
-        ) : (
-          activeRooms.map(room => {
-          const roomDevices = (Array.isArray(devices) ? devices : []).filter(d => d.roomId === room.id);
-          const onCount = roomDevices.filter(d => {
-             const s = d.lastKnownState as DeviceState || {};
-             return s.on === true || s.state === 'on' || (Number(s.brightness) > 0);
-          }).length;
-          
-          return (
-            <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-              <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-muted-foreground/10 pl-6">
-                <div>
-                   <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
-                   <span className={cn(
-                     "text-[10px] font-black uppercase tracking-widest transition-colors",
-                     onCount > 0 ? "text-warning" : "text-muted-foreground/40"
-                   )}>
-                     {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
-                   </span>
-                </div>
-                {onCount > 0 && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    isLoading={roomProcessing === room.id}
-                    onClick={() => handleRoomTurnOff(room.id)}
-                    className="text-[9px] uppercase tracking-widest px-4 py-2 bg-transparent hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
-                  >
-                    {!roomProcessing && t('common.turn_off_all')}
-                  </Button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[auto]">
-                {roomDevices.map((device) => {
-                  const tileDevice = mapSnapshotToDevice(device);
-                  const isCover = hasCapability(tileDevice, 'cover');
-
-                  return isCover ? (
-                    <CurtainDeviceTile
-                      key={device.id}
-                      device={tileDevice}
-                      roomName={room.name}
-                      isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
-                      onUpdate={handleDeviceUpdate}
-                      onActionExecute={onActionExecute}
-                    />
-                  ) : (
-                    <DashDeviceTile
-                      key={device.id}
-                      device={tileDevice}
-                      roomName={room.name}
-                      isDuplicateName={(duplicateNames.get(humanize(device.id, device.name)) || 0) > 1}
-                      onUpdate={handleDeviceUpdate}
-                      onActionExecute={onActionExecute}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          );
-        }))}
-      </div>
+      <DashboardRoomsSection
+        activeRooms={activeRooms}
+        devices={devices}
+        duplicateNames={duplicateNames}
+        roomProcessing={roomProcessing}
+        onRoomTurnOff={handleRoomTurnOff}
+        onDeviceUpdate={handleDeviceUpdate}
+        onCommand={executeDeviceCommand}
+        onActionExecute={onActionExecute}
+      />
 
       {isSceneModalOpen && homeId && (
         <SceneBuilderModal 

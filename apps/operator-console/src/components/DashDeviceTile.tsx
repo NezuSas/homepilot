@@ -4,8 +4,6 @@ import {
   Cpu, Lightbulb, ToggleRight, Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { hasCapability, canExecuteCommand } from '../lib/deviceCapabilities';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
@@ -18,15 +16,14 @@ interface DeviceState {
   [key: string]: unknown;
 }
 
-const API_URL = `${API_BASE_URL}/api/v1`;
-
 export const DashDeviceTile: React.FC<{ 
   device: Device; 
   onUpdate?: (updated: Device) => void;
+  onCommand?: (deviceId: string, command: string) => Promise<Device | null>;
   roomName?: string;
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
-}> = ({ device, onUpdate, roomName, isDuplicateName, onActionExecute }) => {
+}> = ({ device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute }) => {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [optimisticState, setOptimisticState] = useState<boolean | null>(null);
@@ -47,7 +44,7 @@ export const DashDeviceTile: React.FC<{
   const isLight = hasCapability(device, 'light');
   const isSwitch = hasCapability(device, 'switch');
   const isSensor = hasCapability(device, 'sensor') || hasCapability(device, 'binary_sensor');
-  const canToggle = canExecuteCommand(device, 'toggle') || canExecuteCommand(device, 'turn_on');
+  const canToggle = !!onCommand && (canExecuteCommand(device, 'toggle') || canExecuteCommand(device, 'turn_on'));
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,14 +56,9 @@ export const DashDeviceTile: React.FC<{
 
     try {
       const command = nextState ? 'turn_on' : 'turn_off';
-      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command })
-      });
-      
-      if (res.ok) {
-        const updated = await res.json();
+      const updated = await onCommand(device.id, command);
+
+      if (updated) {
         setOptimisticState(null);
         if (onUpdate) onUpdate(updated);
         if (onActionExecute) onActionExecute(t('common.feedback.action_success', { 

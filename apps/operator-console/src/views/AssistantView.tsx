@@ -1,40 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Sparkles, 
-  Info,
+  Sparkles,
   RefreshCw,
-  PlusCircle,
-  Hash,
-  Type,
-  Copy,
-  Zap,
-  CheckCircle2,
-  ChevronDown,
-  Layers,
-  ArrowRight,
-  Terminal,
-  History,
-  Send,
-  AlertCircle
 } from 'lucide-react';
-import { previewAssistantPrompt, executeAssistantPrompt } from '../lib/assistantApi';
-import type { SceneExecutionResult, AssistantPreviewResult } from '../types/executions';
-import { cn } from '../lib/utils';
 import { AssistantActionModal } from '../components/AssistantActionModal';
+import { AssistantEmptyState } from '../components/AssistantEmptyState';
+import { AssistantFindingCard } from '../components/AssistantFindingCard';
+import { AssistantFindingGroupCard } from '../components/AssistantFindingGroupCard';
+import { AssistantLoadingState } from '../components/AssistantLoadingState';
+import { AssistantRecommendationsHeader } from '../components/AssistantRecommendationsHeader';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
-import { StatusPill } from '../components/ui/StatusPill';
 import { useAssistantStore } from '../stores/useAssistantStore';
-import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
-import { useAppShellStore } from '../stores/useAppShellStore';
-import type { AssistantFinding as Finding } from '../stores/useAssistantStore';
+import type { View } from '../types';
+import type { AssistantFinding as Finding, AssistantFindingAction } from '../stores/useAssistantStore';
+
+const getMetadataText = (
+  metadata: Record<string, unknown>,
+  keys: string[],
+  fallback: string
+): string => {
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return fallback;
+};
 
 export const AssistantView: React.FC<{
-  onNavigate: (view: any, params?: any) => void;
+  onNavigate: (view: View, params?: unknown) => void;
 }> = ({ onNavigate }) => {
   const { t } = useTranslation();
-  const [activeAction, setActiveAction] = useState<{ findingId: string; action: any; deviceName?: string } | null>(null);
+  const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const findings = useAssistantStore((state) => state.findings);
   const loading = useAssistantStore((state) => state.isLoading);
   const scanning = useAssistantStore((state) => state.isScanning);
@@ -42,78 +43,6 @@ export const AssistantView: React.FC<{
   const scanFindings = useAssistantStore((state) => state.scanFindings);
   const dismissFinding = useAssistantStore((state) => state.dismissFinding);
   
-  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
-  const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
-
-  const [prompt, setPrompt] = useState('');
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [lastResult, setLastResult] = useState<SceneExecutionResult | null>(null);
-  const [execError, setExecError] = useState<string | null>(null);
-  const [promptHistory, setPromptHistory] = useState<string[]>(() => {
-    const saved = localStorage.getItem('hp_assistant_history');
-    return saved ? JSON.parse(saved).slice(0, 10) : [];
-  });
-
-  const [previewToConfirm, setPreviewToConfirm] = useState<AssistantPreviewResult | null>(null);
-
-  const executeConfirmed = async (promptText: string, confirmed: boolean) => {
-    setIsExecuting(true);
-    try {
-      const result = await executeAssistantPrompt(promptText, confirmed);
-      setLastResult(result);
-      setPreviewToConfirm(null);
-      
-      // Refresh state asynchronously in background
-      Promise.all([
-        refreshSnapshot(),
-        refreshAssistantSummary()
-      ]).catch(err => console.error('[Assistant] Failed to refresh state after execution:', err));
-      
-      // Add to history if it's not the same as the last prompt
-      setPromptHistory(prevHistory => {
-        let newHistory = prevHistory;
-        if (prevHistory.length === 0 || prevHistory[0] !== promptText) {
-          newHistory = [promptText, ...prevHistory.filter(h => h !== promptText)].slice(0, 10);
-          localStorage.setItem('hp_assistant_history', JSON.stringify(newHistory));
-        }
-        return newHistory;
-      });
-      
-      setPrompt('');
-    } catch (err: any) {
-      if (err.message === 'CONFIRMATION_REQUIRED' && err.preview) {
-        setPreviewToConfirm(err.preview);
-      } else {
-        setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
-      }
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-
-  const handleExecute = async () => {
-    if (!prompt.trim() || isExecuting) return;
-    
-    setIsExecuting(true);
-    setExecError(null);
-    setLastResult(null);
-    setPreviewToConfirm(null);
-    
-    try {
-      const preview = await previewAssistantPrompt(prompt);
-      
-      if (preview.requiresConfirmation) {
-        setPreviewToConfirm(preview);
-        setIsExecuting(false);
-        return;
-      }
-      
-      await executeConfirmed(prompt, false);
-    } catch (err: any) {
-      setExecError(err.message || t('assistant.command_center.errors.execution_failed'));
-      setIsExecuting(false);
-    }
-  };
 
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
@@ -141,14 +70,14 @@ export const AssistantView: React.FC<{
     await dismissFinding(id);
   };
 
-  const handleAction = (finding: Finding, action: any) => {
+  const handleAction = (finding: Finding, action: AssistantFindingAction) => {
     // 1. Modal-based actions
     const modalActions = ['activate_draft', 'import_device', 'assign_room', 'rename_device'];
     if (modalActions.includes(action.type)) {
       setActiveAction({ 
         findingId: finding.id, 
         action,
-        deviceName: finding.metadata.friendlyName || finding.metadata.deviceName || finding.metadata.name || finding.id
+        deviceName: getMetadataText(finding.metadata, ['friendlyName', 'deviceName', 'name'], finding.id)
       });
       return;
     }
@@ -197,35 +126,6 @@ export const AssistantView: React.FC<{
     return 'system';
   };
 
-  const isProactiveType = (type: string) => 
-    [
-      'habit_pattern_detected', 
-      'proactive_automation_opportunity', 
-      'automation_suggestion', 
-      'scene_suggestion', 
-      'energy_waste_detected', 
-      'optimization_opportunity', 
-      'optimization_suggestion'
-    ].includes(type);
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'new_device_available':             return <PlusCircle className="w-5 h-5 text-primary" />;
-      case 'device_missing_room':              return <Hash className="w-5 h-5 text-warning" />;
-      case 'device_name_technical':            return <Type className="w-5 h-5 text-primary" />;
-      case 'device_name_duplicate':            return <Copy className="w-5 h-5 text-danger" />;
-      case 'automation_suggestion':            return <Sparkles className="w-5 h-5 text-primary" />;
-      case 'scene_suggestion':                 return <Sparkles className="w-5 h-5 text-primary" />;
-      case 'optimization_suggestion':          return <Zap className="w-5 h-5 text-success" />;
-      case 'energy_waste_detected':            return <Zap className="w-5 h-5 text-warning" />;
-      case 'habit_pattern_detected':           return <Sparkles className="w-5 h-5 text-primary" />;
-      case 'proactive_automation_opportunity': return <Sparkles className="w-5 h-5 text-primary" />;
-      case 'optimization_opportunity':         return <Info className="w-5 h-5 text-muted-foreground" />;
-      default:                                 return <Info className="w-5 h-5 text-primary" />;
-    }
-  };
-
-
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [expandedSubGroups, setExpandedSubGroups] = useState<Record<string, boolean>>({});
 
@@ -250,7 +150,7 @@ export const AssistantView: React.FC<{
     severity: 'high' | 'medium' | 'low';
     isGroup: true;
     subGroups: SubGroup[];
-    actions: { type: string; label: string; payload?: any }[];
+    actions: AssistantFindingAction[];
   }
 
   type ProcessedItem = Finding | GroupItem;
@@ -283,7 +183,7 @@ export const AssistantView: React.FC<{
         // Nested grouping by visible identity
         const subGroupMap: Record<string, Finding[]> = {};
         items.forEach(it => {
-          const name = it.metadata.friendlyName || it.metadata.deviceName || it.metadata.name || it.id;
+          const name = getMetadataText(it.metadata, ['friendlyName', 'deviceName', 'name'], it.id);
           if (!subGroupMap[name]) subGroupMap[name] = [];
           subGroupMap[name].push(it);
         });
@@ -310,12 +210,7 @@ export const AssistantView: React.FC<{
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4 animate-pulse">
-        <Sparkles className="w-12 h-12 text-primary/20" />
-        <div className="h-4 w-48 bg-muted rounded-full" />
-      </div>
-    );
+    return <AssistantLoadingState />;
   }
 
   return (
@@ -336,231 +231,12 @@ export const AssistantView: React.FC<{
         }
       />
 
-      {/* Command Center Card */}
-      <div className="bg-card border border-border/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 group/terminal relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
-        
-        <div className="p-8 relative">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover/terminal:scale-110 transition-transform duration-500">
-              <Terminal className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-black tracking-tight uppercase">{t('assistant.command_center.title')}</h2>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-50">{t('assistant.command_center.subtitle')}</p>
-            </div>
-          </div>
 
-          <div className="relative">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleExecute();
-                }
-              }}
-              placeholder={t('assistant.command_center.placeholder')}
-              className="w-full bg-muted/30 border-2 border-border/40 focus:border-primary/40 focus:bg-muted/50 rounded-3xl p-6 pr-24 text-sm font-medium transition-all min-h-[120px] resize-none outline-none placeholder:text-muted-foreground/30"
-              disabled={isExecuting}
-            />
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
-              <Button
-                onClick={handleExecute}
-                disabled={!prompt.trim() || isExecuting}
-                isLoading={isExecuting}
-                size="sm"
-                className="rounded-2xl px-6 h-12 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-              >
-                {!isExecuting && <Send className="w-4 h-4 mr-2" />}
-                {isExecuting ? t('assistant.command_center.executing') : t('assistant.command_center.execute')}
-              </Button>
-            </div>
-          </div>
-
-          {/* History chips */}
-          {promptHistory.length > 0 && !isExecuting && !lastResult && !execError && !previewToConfirm && (
-            <div className="mt-6 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-              <div className="flex items-center gap-1.5 px-3 py-1 text-muted-foreground/40">
-                <History className="w-3 h-3" />
-                <span className="text-[9px] font-black uppercase tracking-widest">{t('assistant.command_center.history')}</span>
-              </div>
-              {promptHistory.map((h, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPrompt(h)}
-                  className="px-4 py-1.5 rounded-full bg-muted/40 border border-border/40 hover:border-primary/30 hover:bg-primary/5 text-[10px] font-bold text-muted-foreground hover:text-primary transition-all"
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Result Area */}
-          {(previewToConfirm || lastResult || execError) && (
-            <div className="mt-8 p-6 rounded-[2rem] border animate-in zoom-in-95 duration-500 relative overflow-hidden bg-background/40 backdrop-blur-sm">
-              <button 
-                onClick={() => { setPreviewToConfirm(null); setLastResult(null); setExecError(null); }}
-                className="absolute top-4 right-4 p-2 text-muted-foreground/40 hover:text-foreground transition-colors"
-              >
-                <PlusCircle className="w-5 h-5 rotate-45" />
-              </button>
-
-              {previewToConfirm ? (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4 text-warning">
-                    <div className="p-3 rounded-2xl bg-warning/10">
-                      <AlertCircle className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black tracking-tight">{t('assistant.command_center.confirmation.title', 'Confirmación Requerida')}</h3>
-                      <p className="text-xs font-bold opacity-70">{previewToConfirm.reason}</p>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-card border border-border/40 rounded-xl space-y-2">
-                    <p className="text-sm font-medium text-foreground">{previewToConfirm.summary}</p>
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                      <span>Target: {previewToConfirm.targetName || 'N/A'}</span>
-                      <span>•</span>
-                      <span>{previewToConfirm.estimatedActionCount || 0} Actions</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <Button variant="ghost" size="sm" onClick={() => setPreviewToConfirm(null)} className="text-[10px] font-black uppercase tracking-widest">
-                      {t('assistant.command_center.confirmation.cancel', 'Cancelar')}
-                    </Button>
-                    <Button variant="primary" size="sm" onClick={() => executeConfirmed(previewToConfirm.prompt, true)} className="text-[10px] font-black uppercase tracking-widest px-6 shadow-lg shadow-primary/20 bg-warning hover:bg-warning/90 text-warning-foreground">
-                      {t('assistant.command_center.confirmation.confirm', 'Confirmar Ejecución')}
-                    </Button>
-                  </div>
-                </div>
-              ) : execError ? (
-                <div className="flex items-center gap-4 text-danger">
-                  <div className="p-3 rounded-2xl bg-danger/10">
-                    <AlertCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black tracking-tight">{t('assistant.command_center.errors.unknown_intent')}</h3>
-                    <p className="text-xs font-bold opacity-70">{execError}</p>
-                  </div>
-                </div>
-              ) : lastResult && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "p-3 rounded-2xl",
-                      lastResult.status === 'success' ? "bg-success/10 text-success" : 
-                      lastResult.status === 'partial' ? "bg-warning/10 text-warning" : "bg-danger/10 text-danger"
-                    )}>
-                      {lastResult.status === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black tracking-tight">
-                        {t(`assistant.command_center.results.${lastResult.status}`)}
-                      </h3>
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
-                        {lastResult.actions.length} {t('assistant.command_center.results.actions_performed')}
-                        {lastResult.actions.length > 0 && (
-                          <span className="ml-1">
-                            • {lastResult.actions.filter(a => a.status === 'success').length} OK
-                            {lastResult.actions.some(a => a.status === 'failed') && ` • ${lastResult.actions.filter(a => a.status === 'failed').length} FAIL`}
-                            {lastResult.actions.some(a => a.status === 'skipped') && ` • ${lastResult.actions.filter(a => a.status === 'skipped').length} SKIP`}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {lastResult.actions.map((action, i) => (
-                      <div key={i} className="flex flex-col p-3 rounded-xl bg-card border border-border/40 group/action hover:border-primary/20 transition-all">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-1.5 h-1.5 rounded-full",
-                              action.status === 'success' ? "bg-success" : 
-                              action.status === 'failed' ? "bg-danger" : "bg-muted"
-                            )} />
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-black tracking-tight leading-none mb-0.5">
-                                {action.commandName}
-                              </span>
-                              <span className="text-[9px] font-bold text-muted-foreground tracking-tight">
-                                ID: {action.deviceId}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <StatusPill variant={action.status === 'success' ? 'success' : action.status === 'failed' ? 'danger' : 'neutral'}>
-                              {action.status}
-                            </StatusPill>
-                          </div>
-                        </div>
-                        
-                        {(action.status === 'failed' || action.userMessage || action.suggestedAction) && (
-                          <div className="mt-2 pl-4.5 space-y-1">
-                            {action.userMessage && (
-                              <p className="text-[9px] font-bold text-danger italic">
-                                {action.userMessage}
-                              </p>
-                            )}
-                            {action.suggestedAction && (
-                              <p className="text-[9px] font-bold text-primary flex items-center gap-1">
-                                <Sparkles className="w-3 h-3" />
-                                {action.suggestedAction}
-                              </p>
-                            )}
-                            {action.technicalMessage && (
-                              <details className="mt-1">
-                                <summary className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-muted-foreground cursor-pointer outline-none">
-                                  {t('assistant.command_center.results.view_technical_details', 'Detalles Técnicos')}
-                                </summary>
-                                <pre className="mt-1 p-2 rounded bg-muted/30 text-[8px] font-mono text-muted-foreground break-all whitespace-pre-wrap border border-border/20">
-                                  {action.technicalMessage}
-                                </pre>
-                              </details>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-4 border-t border-border/40 flex justify-end">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onNavigate('system-executions')}
-                      className="text-[9px] font-black uppercase tracking-widest"
-                    >
-                      {t('assistant.command_center.results.view_logs')} <ArrowRight className="w-3 h-3 ml-2" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4 px-2">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">
-          {t('assistant.top_recommendations')}
-        </h2>
-        <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
-      </div>
+      <AssistantRecommendationsHeader />
 
 
       {findings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 px-6 border-2 border-dashed border-muted rounded-3xl bg-muted/5">
-          <CheckCircle2 className="w-16 h-16 text-primary mb-6 opacity-20" />
-          <h3 className="text-xl font-black mb-2 tracking-tight">{t('assistant.no_findings')}</h3>
-          <p className="text-muted-foreground max-w-sm text-center font-medium">
-            {t('assistant.subtitle')}
-          </p>
-        </div>
+        <AssistantEmptyState />
       ) : (
         <div className="space-y-12">
           {(() => {
@@ -581,214 +257,28 @@ export const AssistantView: React.FC<{
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sectionItems.map((item: ProcessedItem) => {
                       if ('isGroup' in item && item.isGroup) {
-                        const isExpanded = expandedGroups[item.id] || false;
-                        const subGroups = item.subGroups;
-                        const totalCount = subGroups.reduce((acc, sg) => acc + sg.findings.length, 0);
-                        const groupType = item.type;
-                        
-                        const getGroupKey = (type: string) => {
-                          if (type === 'new_device_available') return 'new_devices';
-                          if (type === 'device_missing_room') return 'missing_rooms';
-                          if (type === 'device_name_duplicate') return 'duplicate_names';
-                          return 'generic';
-                        };
-
                         return (
-                          <div key={item.id} className="col-span-1 md:col-span-2 lg:col-span-3">
-                            <div className={cn(
-                              "rounded-[2rem] border bg-card transition-all duration-300 overflow-hidden",
-                              isExpanded ? "border-primary/40 shadow-2xl shadow-primary/5" : "border-border hover:border-primary/20"
-                            )}>
-                              {/* Group Header */}
-                              <button 
-                                onClick={() => toggleGroup(item.id)}
-                                className="w-full flex items-center justify-between p-6 hover:bg-primary/5 transition-colors"
-                              >
-                                <div className="flex items-center gap-4">
-                                  <div className="p-3 rounded-2xl bg-primary/10 text-primary">
-                                    <Layers className="w-5 h-5" />
-                                  </div>
-                                  <div className="text-left">
-                                    <h3 className="text-sm font-black tracking-tight">
-                                      {t(`assistant.types.group.${getGroupKey(groupType)}`, { count: totalCount })}
-                                    </h3>
-                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
-                                      {t('assistant.group_hint', { count: totalCount })}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {item.actions.map((action, idx) => (
-                                    <Button
-                                      key={idx}
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (action.type === 'import_all') onNavigate('inbox');
-                                        else if (item.subGroups[0]?.findings[0]?.actions[0]) 
-                                          handleAction(item.subGroups[0].findings[0], item.subGroups[0].findings[0].actions[0]);
-                                      }}
-                                      className="text-[9px] font-black uppercase tracking-widest"
-                                    >
-                                      {t(action.label)}
-                                    </Button>
-                                  ))}
-                                  <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")} />
-                                </div>
-                              </button>
-
-                              {/* Group Content */}
-                              {isExpanded && (
-                                <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-muted/20">
-                                  <div className="space-y-4">
-                                    {item.subGroups.map((subGroup) => {
-                                      const subGroupId = `${item.id}_${subGroup.name}`;
-                                      const isSubExpanded = expandedSubGroups[subGroupId] || false;
-                                      const count = subGroup.findings.length;
-                                      const primaryFinding = subGroup.findings[0];
-
-                                      return (
-                                        <div key={subGroupId} className="space-y-2">
-                                          {/* SubGroup Row */}
-                                          <div className={cn(
-                                            "bg-card p-4 rounded-2xl border border-border/60 flex items-center justify-between group/sub transition-all",
-                                            isSubExpanded && "border-primary/30 bg-primary/5"
-                                          )}>
-                                            <div className="flex items-center gap-3 flex-1">
-                                              <div className="p-2 rounded-lg bg-muted text-foreground/70 group-hover/sub:text-primary transition-colors">
-                                                {getIcon(primaryFinding.type)}
-                                              </div>
-                                              <div className="text-left flex-1">
-                                                <p className="text-sm font-bold flex items-center gap-2">
-                                                  {subGroup.name}
-                                                  {count > 1 && (
-                                                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
-                                                       × {count}
-                                                    </span>
-                                                  )}
-                                                </p>
-                                                <p className="text-[10px] text-muted-foreground line-clamp-1">
-                                                  {t(`assistant.types.${primaryFinding.type}_description`, primaryFinding.metadata) as string}
-                                                </p>
-                                              </div>
-                                            </div>
-                                            
-                                            <div className="flex items-center gap-2">
-                                              {count > 1 ? (
-                                                <button 
-                                                  onClick={() => toggleSubGroup(subGroupId)}
-                                                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-all flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
-                                                >
-                                                  {isSubExpanded ? t('common.hide') : t('common.more')}
-                                                  <ChevronDown className={cn("w-3 h-3 transition-transform", isSubExpanded && "rotate-180")} />
-                                                </button>
-                                              ) : (
-                                                <button 
-                                                  onClick={() => primaryFinding.actions[0] && handleAction(primaryFinding, primaryFinding.actions[0])}
-                                                  className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all"
-                                                >
-                                                  <ArrowRight className="w-4 h-4" />
-                                                </button>
-                                              )}
-                                            </div>
-                                          </div>
-
-                                          {/* Individual Findings in SubGroup */}
-                                          {isSubExpanded && (
-                                            <div className="pl-12 pr-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                              {subGroup.findings.map(finding => (
-                                                <div key={finding.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/40 group/item">
-                                                  <span className="text-[11px] font-bold text-foreground">
-                                                    {finding.metadata.friendlyName || finding.metadata.deviceName || finding.id}
-                                                  </span>
-                                                  <button 
-                                                    onClick={() => finding.actions[0] && handleAction(finding, finding.actions[0])}
-                                                    className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
-                                                  >
-                                                    <ArrowRight className="w-3 h-3" />
-                                                  </button>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          <AssistantFindingGroupCard
+                            key={item.id}
+                            group={item}
+                            isExpanded={expandedGroups[item.id] || false}
+                            expandedSubGroups={expandedSubGroups}
+                            onToggleGroup={toggleGroup}
+                            onToggleSubGroup={toggleSubGroup}
+                            onImportAll={() => onNavigate('inbox')}
+                            onAction={handleAction}
+                          />
                         );
                       }
 
                       const finding = item as Finding;
                       return (
-                        <div 
+                        <AssistantFindingCard
                           key={finding.id}
-                          className={cn(
-                            "group relative flex flex-col p-6 rounded-[2rem] border transition-all duration-500",
-                            isProactiveType(finding.type) 
-                              ? "bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-xl shadow-primary/5 hover:shadow-primary/10 hover:-translate-y-1" 
-                              : "bg-card border-border hover:border-primary/30"
-                          )}
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="p-3 rounded-2xl bg-muted/50 text-foreground group-hover:scale-110 transition-transform">
-                              {getIcon(finding.type)}
-                            </div>
-                            <StatusPill 
-                              variant={finding.severity === 'high' ? 'danger' : finding.severity === 'medium' ? 'warning' : 'success'}
-                            >
-                              {t(`assistant.severities.${finding.severity}`)}
-                            </StatusPill>
-                          </div>
-
-                          <h3 className="text-sm font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
-                            {t(`assistant.types.${finding.type}`)}
-                          </h3>
-                          <p className="text-xs text-muted-foreground leading-relaxed mb-6 font-medium">
-                            {(t(`assistant.types.${finding.type}_description`, finding.metadata) as string)}
-                          </p>
-
-                          {finding.metadata.reasonKey && (
-                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 mb-6 font-primary">
-                              <p className="text-[10px] font-bold text-primary italic leading-normal flex items-center gap-2">
-                                <Info className="w-3 h-3" />
-                                {t(`assistant.types.reasons.${finding.metadata.reasonKey}`)}
-                              </p>
-                            </div>
-                          )}
-
-                          {finding.metadata.ready && (
-                            <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-success/10 border border-success/20 text-success">
-                              <Sparkles className="w-3 h-3" />
-                              <span className="text-[10px] font-black uppercase tracking-wider">
-                                {t('assistant.draft.ready')}
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="mt-auto flex items-center gap-2">
-                            {finding.actions.map((action, idx) => (
-                              <Button
-                                key={idx}
-                                variant={idx === 0 ? "primary" : "secondary"}
-                                onClick={() => handleAction(finding, action)}
-                                className="flex-1 text-[10px] uppercase tracking-widest h-auto py-3"
-                              >
-                                {t(action.label)}
-                              </Button>
-                            ))}
-                            <Button 
-                              variant="ghost"
-                              onClick={(e) => handleDismiss(finding.id, e)}
-                              className="px-3 hover:text-danger hover:bg-danger/10"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                            </Button>
-                          </div>
-                        </div>
+                          finding={finding}
+                          onAction={handleAction}
+                          onDismiss={handleDismiss}
+                        />
                       );
                     })}
                   </div>

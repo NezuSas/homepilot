@@ -1,34 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, ShieldAlert, UserMinus, Plus, ShieldCheck, Power, Activity } from 'lucide-react';
-import { SelectField } from '../components/ui/SelectField';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { UserCreateForm, type UserRole } from '../components/UserCreateForm';
+import { UsersErrorBanner } from '../components/UsersErrorBanner';
+import { UsersHeader } from '../components/UsersHeader';
+import { UsersLoadingState } from '../components/UsersLoadingState';
+import { UsersProtectionNote } from '../components/UsersProtectionNote';
+import { UsersTable, type PublicUserDto } from '../components/UsersTable';
 
-interface PublicUserDto {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatarDataUri: string | null;
-  role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  hasActiveSessions: boolean;
-}
+const ROLE_VALUES: UserRole[] = ['admin', 'parent', 'child', 'guest', 'operator'];
 
 export function UsersView() {
   const { t } = useTranslation();
   const [users, setUsers] = useState<PublicUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Create User Form State
   const [showCreate, setShowCreate] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'admin' | 'parent' | 'child' | 'guest' | 'operator'>('operator');
+  const [newRole, setNewRole] = useState<UserRole>('operator');
   const [createError, setCreateError] = useState('');
+
+  const roleOptions = ROLE_VALUES.map(role => ({ value: role, label: t(`users.roles.${role}`) }));
 
   const fetchUsers = async () => {
     try {
@@ -40,8 +34,8 @@ export function UsersView() {
       }
       const data = await res.json();
       setUsers(Array.isArray(data) ? data : []);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('common.errors.unknown'));
     } finally {
       setLoading(false);
     }
@@ -51,18 +45,26 @@ export function UsersView() {
     fetchUsers();
   }, []);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetCreateForm = () => {
+    setShowCreate(false);
+    setNewUsername('');
+    setNewPassword('');
+    setNewRole('operator');
+    setCreateError('');
+  };
+
+  const handleCreateUser = async (event: React.FormEvent) => {
+    event.preventDefault();
     setCreateError('');
     if (newPassword.length < 8) {
-      return setCreateError(t('change_password.error_length'));
+      setCreateError(t('change_password.error_length'));
+      return;
     }
+
     try {
       const res = await apiFetch(`${API_BASE_URL}/api/v1/admin/users`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: newUsername, passwordPlain: newPassword, role: newRole })
       });
       if (!res.ok) {
@@ -70,13 +72,10 @@ export function UsersView() {
         const msg = err.error?.message || (typeof err.error === 'string' ? err.error : t('users.errors.create_failed'));
         throw new Error(msg);
       }
-      setShowCreate(false);
-      setNewUsername('');
-      setNewPassword('');
-      setNewRole('operator');
+      resetCreateForm();
       await fetchUsers();
-    } catch (e: any) {
-      setCreateError(e.message);
+    } catch (error_: unknown) {
+      setCreateError(error_ instanceof Error ? error_.message : t('common.errors.unknown'));
     }
   };
 
@@ -91,245 +90,102 @@ export function UsersView() {
         throw new Error(msg);
       }
       await fetchUsers();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('common.errors.unknown'));
     }
   };
 
-  if (loading && users.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Activity className="w-8 h-8 animate-pulse text-muted-foreground mr-3" />
-        <span className="text-muted-foreground font-medium">{t('users.loading')}</span>
-      </div>
+  const handleToggleActive = (user: PublicUserDto) => {
+    handleAction(
+      () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${user.id}/active`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !user.isActive })
+      }),
+      user.isActive ? t('users.actions.confirm_suspend') : t('users.actions.confirm_restore')
     );
+  };
+
+  const handleChangeRole = (user: PublicUserDto, role: UserRole) => {
+    handleAction(
+      () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${user.id}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
+      }),
+      t('users.actions.confirm_role', { username: user.username })
+    );
+  };
+
+  const handleRevokeSessions = (user: PublicUserDto) => {
+    handleAction(
+      () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${user.id}/revoke-sessions`, { method: 'POST' }),
+      t('users.actions.confirm_revoke', { username: user.username })
+    );
+  };
+
+  if (loading && users.length === 0) {
+    return <UsersLoadingState label={t('users.loading')} />;
   }
 
   return (
     <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10">
-      
-      {error && (
-      <div className="bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-lg text-sm flex items-center">
-          <ShieldAlert className="w-5 h-5 mr-3 shrink-0" />
-          {error}
-        </div>
-      )}
+      {error && <UsersErrorBanner message={error} />}
 
-      {/* CREATE FORM */}
       {showCreate ? (
-        <div className="bg-card border rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="border-b px-5 py-4 bg-muted/30">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Plus className="w-4 h-4 text-primary" />
-              {t('users.create_form.title')}
-            </h3>
-          </div>
-          <form className="px-5 py-4 flex flex-col gap-4" onSubmit={handleCreateUser}>
-            {createError && <p className="text-danger text-sm font-medium">{createError}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.username')}</label>
-                <input 
-                  type="text" 
-                  value={newUsername} 
-                  onChange={e => setNewUsername(e.target.value)} 
-                  className="w-full bg-background border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder={t('users.create_form.username_placeholder')}
-                  required 
-                />
-              </div>
-              <div className="col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">{t('users.create_form.password')}</label>
-                <input 
-                  type="password" 
-                  value={newPassword} 
-                  onChange={e => setNewPassword(e.target.value)} 
-                  className="w-full bg-background border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder={t('common.password_mask')}
-                  required 
-                />
-                <p className="text-[10px] text-muted-foreground mt-1 text-right">{t('users.create_form.password_hint')}</p>
-              </div>
-              <div className="col-span-1">
-                <SelectField
-                  label={t('users.create_form.role')}
-                  value={newRole}
-                  onChange={val => setNewRole(val as any)}
-                  options={[
-                    { value: 'admin', label: t('users.roles.admin') },
-                    { value: 'parent', label: t('users.roles.parent') },
-                    { value: 'child', label: t('users.roles.child') },
-                    { value: 'guest', label: t('users.roles.guest') },
-                    { value: 'operator', label: t('users.roles.operator') }
-                  ]}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-2 pt-4 border-t">
-                <button 
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="px-4 py-2 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg transition-colors border"
-                >
-                  {t('common.cancel')}
-                </button>
-              <button 
-                type="submit"
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors shadow-sm"
-                disabled={!newUsername || !newPassword}
-              >
-                {t('users.create_form.submit')}
-              </button>
-            </div>
-          </form>
-        </div>
+        <UserCreateForm
+          title={t('users.create_form.title')}
+          usernameLabel={t('users.create_form.username')}
+          usernamePlaceholder={t('users.create_form.username_placeholder')}
+          passwordLabel={t('users.create_form.password')}
+          passwordPlaceholder={t('common.password_mask')}
+          passwordHint={t('users.create_form.password_hint')}
+          roleLabel={t('users.create_form.role')}
+          cancelLabel={t('common.cancel')}
+          submitLabel={t('users.create_form.submit')}
+          roleOptions={roleOptions}
+          username={newUsername}
+          password={newPassword}
+          role={newRole}
+          error={createError}
+          onUsernameChange={setNewUsername}
+          onPasswordChange={setNewPassword}
+          onRoleChange={setNewRole}
+          onCancel={resetCreateForm}
+          onSubmit={handleCreateUser}
+        />
       ) : (
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">{t('users.header.title')}</h2>
-            <p className="text-sm text-muted-foreground">{t('users.header.subtitle')}</p>
-          </div>
-          <button 
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            {t('users.header.add_button')}
-          </button>
-        </div>
+        <UsersHeader
+          title={t('users.header.title')}
+          subtitle={t('users.header.subtitle')}
+          addLabel={t('users.header.add_button')}
+          onAdd={() => setShowCreate(true)}
+        />
       )}
 
-      {/* TABLE */}
-      <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-         <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{t('users.table.identity')}</th>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{t('users.table.access')}</th>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{t('users.table.status')}</th>
-                  <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider text-right">{t('users.table.controls')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {Array.isArray(users) && users.map(u => (
-                  <tr key={u.id} className="hover:bg-muted/30 transition-colors group">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden shadow-sm">
-                          {u.avatarDataUri
-                            ? <img 
-                                src={u.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${u.avatarDataUri}` : u.avatarDataUri} 
-                                alt={u.username} 
-                                className="w-full h-full object-cover" 
-                              />
-                            : <span className="font-bold text-xs uppercase">{u.username.substring(0, 2)}</span>
-                          }
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{u.displayName || u.username}</span>
-                          <span className="text-[10px] text-muted-foreground font-mono opacity-60">@{u.username}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                        u.role === 'admin' ? 'bg-warning/10 text-warning border-warning/20' :
-                        u.role === 'parent' ? 'bg-primary/10 text-primary border-primary/20' :
-                        u.role === 'child' ? 'bg-foreground/10 text-foreground border-foreground/20' :
-                        u.role === 'guest' ? 'bg-muted text-muted-foreground border-border' :
-                        'bg-foreground/5 text-foreground/70 border-foreground/10'
-                      }`}>
-                        {u.role === 'admin' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                        {t(`users.roles.${u.role}`)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-col gap-1.5 items-start">
-                        <span className={`flex items-center text-[11px] font-bold ${u.isActive ? 'text-success' : 'text-danger'}`}>
-                          <span className={`w-2 h-2 rounded-full mr-2 ${u.isActive ? 'status-dot-synced animate-pulse' : 'status-dot-error shrink-0'}`}></span>
-                          {u.isActive ? t('users.status.active') : t('users.status.suspended')}
-                        </span>
-                        {u.hasActiveSessions && (
-                          <span className="inline-flex items-center gap-1.5 text-[10px] bg-muted/80 px-2 py-0.5 rounded border text-muted-foreground font-bold italic">
-                            <Activity className="w-3 h-3 text-primary" /> {t('users.status.live')}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 transition-all">
-                        {/* TOGGLE ACTIVE */}
-                        <button
-                          onClick={() => handleAction(
-                            () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/active`, { 
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !u.isActive }) 
-                            }),
-                            u.isActive ? t('users.actions.confirm_suspend') : t('users.actions.confirm_restore')
-                          )}
-                          className={`p-2 rounded-lg border transition-all ${
-                            u.isActive
-                              ? 'bg-background hover:bg-danger/10 border-border hover:border-danger/30 hover:text-danger text-muted-foreground shadow-sm'
-                              : 'bg-background hover:bg-success/10 border-border hover:border-success/30 hover:text-success text-muted-foreground shadow-sm'
-                          }`}
-                          title={u.isActive ? t('users.actions.suspend_title') : t('users.actions.restore_title')}
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
+      <UsersTable
+        users={users}
+        labels={{
+          identity: t('users.table.identity'),
+          access: t('users.table.access'),
+          status: t('users.table.status'),
+          controls: t('users.table.controls'),
+          active: t('users.status.active'),
+          suspended: t('users.status.suspended'),
+          live: t('users.status.live'),
+          suspendTitle: t('users.actions.suspend_title'),
+          restoreTitle: t('users.actions.restore_title'),
+          revokeTitle: t('users.actions.revoke_title'),
+          swapRoleTitle: (role) => t('users.actions.swap_role_title', { role: t(`users.roles.${role}`) })
+        }}
+        roleOptions={roleOptions}
+        getRoleLabel={(role) => t(`users.roles.${role}`)}
+        onToggleActive={handleToggleActive}
+        onChangeRole={handleChangeRole}
+        onRevokeSessions={handleRevokeSessions}
+      />
 
-                        {/* CHANGE ROLE */}
-                        <SelectField
-                          variant="small"
-                          className="w-32"
-                          value={u.role}
-                          onChange={(selectedRole) => {
-                            if (selectedRole === u.role) return;
-                            handleAction(
-                              () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/role`, { 
-                                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: selectedRole }) 
-                              }),
-                              t('users.actions.confirm_role', { username: u.username })
-                            );
-                          }}
-                          options={[
-                            { value: 'admin', label: t('users.roles.admin') },
-                            { value: 'parent', label: t('users.roles.parent') },
-                            { value: 'child', label: t('users.roles.child') },
-                            { value: 'guest', label: t('users.roles.guest') },
-                            { value: 'operator', label: t('users.roles.operator') }
-                          ]}
-                          title={t('users.actions.swap_role_title', { role: t(`users.roles.${u.role}`) })}
-                        />
-
-                        {/* REVOKE SESSIONS */}
-                        <button
-                          onClick={() => handleAction(
-                            () => apiFetch(`${API_BASE_URL}/api/v1/admin/users/${u.id}/revoke-sessions`, { 
-                              method: 'POST'
-                            }),
-                            t('users.actions.confirm_revoke', { username: u.username })
-                          )}
-                          className="p-2 bg-background border border-border text-muted-foreground hover:bg-warning/10 hover:border-warning/30 hover:text-warning rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
-                          disabled={!u.hasActiveSessions}
-                          title={t('users.actions.revoke_title')}
-                        >
-                          <UserMinus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-         </div>
-      </div>
-
-      <div className="bg-muted/30 border border-dashed rounded-xl p-6 text-center">
-        <p className="text-xs text-muted-foreground max-w-lg mx-auto leading-relaxed">
-          <ShieldAlert className="w-4 h-4 inline-block mr-1 mb-0.5" />
-          {t('users.protection_rule')}
-        </p>
-      </div>
+      <UsersProtectionNote message={t('users.protection_rule')} />
     </div>
   );
 }

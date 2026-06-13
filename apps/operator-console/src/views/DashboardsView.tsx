@@ -1,71 +1,21 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Plus, Trash2, LayoutDashboard,
-  PenLine, Check, X, ChevronRight
-} from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
-import { Button } from '../components/ui/Button';
-import { cn } from '../lib/utils';
+import { DashboardCreateForm } from '../components/DashboardCreateForm';
+import { DashboardEditorToolbar } from '../components/DashboardEditorToolbar';
+import { DashboardSidebarNav } from '../components/DashboardSidebarNav';
+import { DashboardTabsNav } from '../components/DashboardTabsNav';
+import { DashboardTitleBar } from '../components/DashboardTitleBar';
+import { DashboardsHero } from '../components/DashboardsHero';
+import { DashboardsLoadingState } from '../components/DashboardsLoadingState';
+import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
 import { WidgetInspector } from './dashboards/WidgetInspector';
 import { generateId } from '../utils/generateId';
 
 const API = `${API_BASE_URL}/api/v1`;
-
-// ─── Shared Components ────────────────────────────────────────────────────────
-
-function EmptyDashboards({ onCreate }: { onCreate: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[520px] gap-8 text-center select-none animate-in fade-in duration-700">
-      <div className="relative">
-        <div className="w-28 h-28 rounded-[2.5rem] bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 flex items-center justify-center shadow-2xl shadow-primary/10">
-          <LayoutDashboard className="w-12 h-12 text-primary/50" />
-        </div>
-        <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/40">
-          <Plus className="w-5 h-5 text-primary-foreground" />
-        </div>
-        <div className="absolute inset-0 rounded-[2.5rem] bg-primary/5 blur-2xl -z-10 scale-150" />
-      </div>
-      <div className="space-y-3 max-w-sm">
-        <h3 className="text-2xl font-black text-foreground tracking-tight">{t('dashboards.empty_title')}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t('dashboards.empty_description')}</p>
-      </div>
-      <Button variant="primary" onClick={onCreate} className="flex items-center gap-2 px-8 py-3 text-sm">
-        <Plus className="w-4 h-4" />
-        {t('dashboards.action_create')}
-      </Button>
-    </div>
-  );
-}
-
-function InlineTabCreator({ onConfirm, onCancel, placeholder, initialValue = '' }: { onConfirm: (title: string) => void; onCancel: () => void; placeholder: string, initialValue?: string }) {
-  const [value, setValue] = useState(initialValue);
-  const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
-  const handleConfirm = () => { if (value.trim()) onConfirm(value.trim()); };
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-primary/10 border border-primary/30 animate-in zoom-in-95 duration-150">
-      <input
-        ref={inputRef}
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') onCancel(); }}
-        placeholder={placeholder}
-        className="w-28 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/50"
-      />
-      <button onClick={handleConfirm} disabled={!value.trim()} className="p-0.5 rounded-md text-primary hover:bg-primary/20 disabled:opacity-30 transition-colors">
-        <Check className="w-3 h-3" />
-      </button>
-      <button onClick={onCancel} className="p-0.5 rounded-md text-muted-foreground hover:bg-muted transition-colors">
-        <X className="w-3 h-3" />
-      </button>
-    </div>
-  );
-}
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
@@ -236,14 +186,7 @@ export function DashboardsView() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-3 animate-pulse">
-          <LayoutDashboard className="w-8 h-8 text-primary/40" />
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{t('dashboards.loading')}</p>
-        </div>
-      </div>
-    );
+    return <DashboardsLoadingState label={t('dashboards.loading')} />;
   }
 
   const activeTab = active?.tabs[activeTabIdx];
@@ -251,64 +194,37 @@ export function DashboardsView() {
   return (
     <div className="flex flex-col gap-0 animate-in fade-in duration-700 min-h-full pb-20">
 
-      {/* ── Page Identity Banner ─────────────────────────────────────── */}
-      <div className="relative rounded-[2.5rem] overflow-hidden mb-8 border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-8 sm:p-10">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-primary/3 rounded-full blur-2xl translate-y-1/2" />
-        </div>
-        <div className="relative z-10 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-6 min-w-0">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/30 shrink-0">
-              <LayoutDashboard className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70 mb-2">{t('dashboards.category')}</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight truncate mb-1">{t('dashboards.title')}</h2>
-              <p className="text-xs text-muted-foreground/60 max-w-md">{t('dashboards.intro_subtitle')}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {active && (
-              <Button 
-                variant={isEditing ? "primary" : "secondary"} 
-                size="sm" 
-                onClick={() => { setIsEditing(!isEditing); if (isEditing) { setIsInspectorOpen(false); setSelectedWidgetId(null); } }}
-                className="flex items-center gap-2 px-6 rounded-2xl"
-              >
-                {isEditing ? <Check className="w-4 h-4" /> : <PenLine className="w-4 h-4" />}
-                <span className="hidden xs:inline uppercase font-black text-[10px] tracking-widest">{isEditing ? t('common.done') : t('dashboards.action_edit')}</span>
-              </Button>
-            )}
-            {!creating && !isEditing && (
-              <Button variant="primary" size="sm" onClick={() => setCreating(true)} className="flex items-center gap-2 px-6 rounded-2xl">
-                <Plus className="w-4 h-4" />
-                <span className="hidden xs:inline uppercase font-black text-[10px] tracking-widest">{t('dashboards.action_new')}</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      <DashboardsHero
+        category={t('dashboards.category')}
+        title={t('dashboards.title')}
+        subtitle={t('dashboards.intro_subtitle')}
+        canEdit={Boolean(active)}
+        isEditing={isEditing}
+        isCreating={creating}
+        editLabel={t('dashboards.action_edit')}
+        doneLabel={t('common.done')}
+        newLabel={t('dashboards.action_new')}
+        onToggleEditing={() => {
+          setIsEditing(!isEditing);
+          if (isEditing) {
+            setIsInspectorOpen(false);
+            setSelectedWidgetId(null);
+          }
+        }}
+        onCreate={() => setCreating(true)}
+      />
 
       {/* ── Create Form ──────────────────────────────────────────────── */}
       {creating && (
-        <div className="mb-6 p-6 rounded-3xl bg-card border border-primary/30 shadow-2xl shadow-primary/10 animate-in slide-in-from-top-4 duration-500">
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">{t('dashboards.action_new')}</p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-            <input
-              autoFocus
-              className="flex-1 bg-background border border-border/80 rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all shadow-inner"
-              placeholder={t('dashboards.placeholder_title')}
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setCreating(false); setNewTitle(''); } }}
-            />
-            <div className="flex items-center gap-3">
-              <Button variant="primary" onClick={handleCreate} className="flex-1 font-black uppercase tracking-widest text-[10px] px-8">{t('common.confirm')}</Button>
-              <Button variant="secondary" onClick={() => { setCreating(false); setNewTitle(''); }} className="p-3"><X className="w-4 h-4" /></Button>
-            </div>
-          </div>
-        </div>
+        <DashboardCreateForm
+          title={t('dashboards.action_new')}
+          value={newTitle}
+          placeholder={t('dashboards.placeholder_title')}
+          confirmLabel={t('common.confirm')}
+          onValueChange={setNewTitle}
+          onConfirm={handleCreate}
+          onCancel={() => { setCreating(false); setNewTitle(''); }}
+        />
       )}
 
       {/* ── Main Content ─────────────────────────────────────────────── */}
@@ -317,89 +233,49 @@ export function DashboardsView() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
 
-          {/* Sidebar Nav */}
-          <nav className="flex flex-col gap-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 px-2 mb-2">{t('dashboards.list_header')}</p>
-            <div className="flex flex-col gap-2">
-              {dashboards.map(d => {
-                const isActive = active?.id === d.id;
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => { setActive(d); setActiveTabIdx(0); setEditingTitle(false); setIsEditing(false); }}
-                    className={cn(
-                      'group flex items-center gap-4 p-4 rounded-3xl text-left transition-all duration-300 border',
-                      isActive
-                        ? 'bg-primary/5 border-primary/20 shadow-inner'
-                        : 'bg-card border-border/40 hover:bg-muted/40 hover:border-border'
-                    )}
-                  >
-                    <div className={cn(
-                      'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300',
-                      isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-muted text-muted-foreground/30 group-hover:scale-110'
-                    )}>
-                      <LayoutDashboard className="w-4 h-4" />
-                    </div>
-                    <span className={cn('flex-1 text-sm font-bold truncate', isActive ? 'text-primary' : 'text-foreground')}>{d.title}</span>
-                    {isActive && <ChevronRight className="w-4 h-4 text-primary/30" />}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
+          <DashboardSidebarNav
+            dashboards={dashboards}
+            activeDashboardId={active?.id}
+            title={t('dashboards.list_header')}
+            onSelect={(dashboard) => {
+              setActive(dashboard);
+              setActiveTabIdx(0);
+              setEditingTitle(false);
+              setIsEditing(false);
+            }}
+          />
 
           {/* Dashboard Area */}
           {active && (
             <div className="flex flex-col gap-8">
-              {/* Header: Title + Delete */}
-              <div className="flex items-center justify-between gap-4">
-                {editingTitle ? (
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <input
-                      autoFocus
-                      className="text-2xl sm:text-3xl font-black bg-transparent border-b-2 border-primary outline-none flex-1 text-foreground py-1"
-                      value={draftTitle}
-                      onChange={e => setDraftTitle(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') setEditingTitle(false); }}
-                    />
-                    <button onClick={handleRenameConfirm} className="p-2 text-primary"><Check className="w-5 h-5" /></button>
-                    <button onClick={() => setEditingTitle(false)} className="p-2 text-muted-foreground"><X className="w-5 h-5" /></button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 group flex-1">
-                    <h3 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{active.title}</h3>
-                    <button onClick={() => { setDraftTitle(active.title); setEditingTitle(true); }} className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-foreground transition-all"><PenLine className="w-4 h-4" /></button>
-                  </div>
-                )}
-                {!isEditing && (
-                  <button onClick={() => handleDelete(active.id)} className="p-3 bg-destructive/5 text-destructive rounded-2xl hover:bg-destructive hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
-                )}
-              </div>
+              <DashboardTitleBar
+                title={active.title}
+                draftTitle={draftTitle}
+                isEditingTitle={editingTitle}
+                isEditingDashboard={isEditing}
+                onDraftTitleChange={setDraftTitle}
+                onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
+                onCancelEditingTitle={() => setEditingTitle(false)}
+                onConfirmTitle={handleRenameConfirm}
+                onDelete={() => handleDelete(active.id)}
+              />
 
-              {/* Tabs Nav */}
-              <div className="flex items-center gap-4 overflow-x-auto no-scrollbar border-b border-border/40 pb-0">
-                {active.tabs.map((tab, idx) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => { setActiveTabIdx(idx); setSelectedWidgetId(null); setIsInspectorOpen(false); }}
-                    className={cn(
-                      "px-6 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-2 relative",
-                      activeTabIdx === idx ? "text-primary border-primary bg-primary/[0.02]" : "text-muted-foreground/40 border-transparent hover:text-muted-foreground hover:bg-muted/20"
-                    )}
-                  >
-                    {tab.title}
-                    {isEditing && active.tabs.length > 1 && (
-                      <div onClick={(e) => { e.stopPropagation(); handleDeleteTab(idx); }} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform">
-                        <X className="w-2 h-2" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-                <button onClick={() => setAddingTab(true)} className="px-4 text-muted-foreground/30 hover:text-primary transition-colors"><Plus className="w-4 h-4" /></button>
-                {addingTab && (
-                  <InlineTabCreator placeholder={t('dashboards.placeholder_tab_title')} onConfirm={handleAddTab} onCancel={() => setAddingTab(false)} />
-                )}
-              </div>
+              <DashboardTabsNav
+                tabs={active.tabs}
+                activeTabIdx={activeTabIdx}
+                isEditing={isEditing}
+                isAddingTab={addingTab}
+                placeholder={t('dashboards.placeholder_tab_title')}
+                onSelectTab={(index) => {
+                  setActiveTabIdx(index);
+                  setSelectedWidgetId(null);
+                  setIsInspectorOpen(false);
+                }}
+                onDeleteTab={handleDeleteTab}
+                onStartAddingTab={() => setAddingTab(true)}
+                onAddTab={handleAddTab}
+                onCancelAddingTab={() => setAddingTab(false)}
+              />
 
               {/* Canvas Area */}
               {activeTab ? (
@@ -419,32 +295,14 @@ export function DashboardsView() {
                       onLayoutChange={handleLayoutChange}
                    />
                    
-                   {/* Editor Tools Footer (Sticky/Floating) */}
                    {isEditing && (
-                     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[250] animate-in slide-in-from-bottom-12 duration-500 w-full max-w-4xl px-4 pointer-events-none">
-                        <div className="flex flex-col gap-3 p-4 rounded-[2rem] bg-background/85 backdrop-blur-2xl border border-primary/20 shadow-2xl shadow-primary/10 pointer-events-auto">
-                           <div className="flex items-center justify-between px-2">
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{t('dashboards.editor.widget_management')}</p>
-                              <button 
-                                onClick={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }} 
-                                className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted/50"
-                              >
-                                {t('common.done')} <Check className="w-3 h-3" />
-                              </button>
-                           </div>
-                           <div className="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-                              {(['device_control', 'room_overview', 'scene_shortcut', 'activity_feed', 'assistant_insight', 'system_status'] as WidgetType[]).map(type => (
-                                <button
-                                   key={type}
-                                   onClick={() => handleAddWidget(type)}
-                                   className="shrink-0 px-4 py-2 bg-card border border-border/80 hover:bg-primary/5 hover:border-primary/40 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-                                >
-                                  + {t(`dashboards.editor.add_${type}`, { defaultValue: type })}
-                                </button>
-                              ))}
-                           </div>
-                        </div>
-                     </div>
+                     <DashboardEditorToolbar
+                       title={t('dashboards.editor.widget_management')}
+                       doneLabel={t('common.done')}
+                       addWidgetLabel={(type) => t(`dashboards.editor.add_${type}`, { defaultValue: type })}
+                       onDone={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }}
+                       onAddWidget={handleAddWidget}
+                     />
                    )}
                 </div>
               ) : (
