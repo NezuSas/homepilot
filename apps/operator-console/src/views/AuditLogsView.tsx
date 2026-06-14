@@ -93,7 +93,7 @@ export const AuditLogsView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between mb-2">
          <div className="flex items-center gap-3">
             <Info className="w-5 h-5 text-primary opacity-40 px-0.5" />

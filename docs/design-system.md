@@ -77,6 +77,7 @@ HomePilot compite contra sistemas residenciales premium, no contra un dashboard 
 
 Usar estos antes de crear estilos manuales:
 
+- `PageFrame`: padding, ancho maximo y ritmo vertical de vistas no inmersivas.
 - `Button`: acciones con variantes `primary`, `secondary`, `outline`, `ghost`, `danger`.
 - `IconButton`: acciones icon-only con `aria-label` obligatorio.
 - `Card`: superficies repetibles.
@@ -99,6 +100,7 @@ Usar estos antes de crear estilos manuales:
 5. No crear banners manuales cuando `AlertBanner` cubra el caso.
 6. Usar radius nombrados antes que `rounded-[...]` en componentes nuevos.
 7. Las vistas pueden componer; no deben definir un lenguaje visual paralelo.
+8. No repetir `max-w-[1600px]`, `mx-auto` ni padding de pagina dentro de una vista si `PageFrame` ya gobierna el contenedor.
 8. Todo componente visual nuevo debe aceptar props explicitas y no depender de estado global salvo que sea dueño del flujo.
 
 ## Estado Actual

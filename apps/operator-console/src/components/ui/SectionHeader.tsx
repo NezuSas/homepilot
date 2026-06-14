@@ -23,7 +23,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
         ref={ref}
         className={cn(
           'flex flex-col sm:flex-row sm:items-center justify-between gap-4',
-          level === 'view'    && 'mb-8',
+          level === 'view'    && 'mb-8 rounded-panel border border-border/50 bg-card/35 p-5 shadow-depth-1 backdrop-blur-md',
           level === 'section' && 'mb-6',
           level === 'group'   && 'mb-3',
           className
@@ -43,8 +43,8 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
             {Icon && (
               <span
                 className={cn(
-                  'flex items-center justify-center rounded-lg',
-                  level === 'view'    && 'p-1.5 bg-primary/10 text-primary',
+                  'flex shrink-0 items-center justify-center rounded-lg',
+                  level === 'view'    && 'h-11 w-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-depth-1',
                   level === 'section' && 'p-1 bg-muted text-muted-foreground',
                   level === 'group'   && 'text-muted-foreground/50',
                   iconClassName
@@ -61,7 +61,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
             )}
 
             {level === 'view' ? (
-              <h2 className="text-2xl font-black tracking-tighter text-foreground/90 leading-none">
+              <h2 className="text-2xl font-black tracking-tighter luxury-text-gradient leading-none">
                 {title}
               </h2>
             ) : level === 'section' ? (

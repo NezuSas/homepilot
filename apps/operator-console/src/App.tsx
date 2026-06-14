@@ -49,6 +49,9 @@ import { EnergyView } from './views/EnergyView';
 import { ExecutionLogsView } from './views/ExecutionLogsView';
 import { HomeConversationView } from './views/HomeConversationView';
 import { SystemStatusBar } from './components/SystemStatusBar';
+import { AlertBanner } from './components/ui/AlertBanner';
+import { Button } from './components/ui/Button';
+import { PageFrame } from './components/ui/PageFrame';
 import { SidebarItem } from './components/ui/SidebarItem';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
 import type { HomeMode, View } from './types';
@@ -771,33 +774,24 @@ function App() {
         
         <section className={cn(
           "flex-1 min-h-0 relative scroll-smooth",
-          currentView === 'home-conversation' ? "p-0 overflow-hidden" : "overflow-y-auto p-4 sm:p-8"
+          currentView === 'home-conversation' ? "overflow-hidden" : "overflow-y-auto"
         )}>
            {isBackendOffline && (
-             <div className="max-w-[1600px] mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-               <div className="bg-destructive/10 border-2 border-destructive/20 rounded-[2rem] p-6 flex items-center justify-between gap-6 backdrop-blur-xl">
-                 <div className="flex items-center gap-4">
-                   <div className="p-3 bg-destructive text-destructive-foreground rounded-2xl shadow-lg shadow-destructive/20">
-                     <ShieldAlert className="w-6 h-6" />
-                   </div>
-                   <div>
-                     <h3 className="font-black tracking-tight text-destructive">{t('system.connection_lost')}</h3>
-                     <p className="text-[10px] uppercase font-black tracking-widest text-destructive/60">{t('system.unreachable_msg')}</p>
-                   </div>
-                 </div>
-                 <button 
-                   onClick={() => window.location.reload()}
-                   className="px-6 py-3 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                 >
-                   {t('system.retry')}
-                 </button>
-               </div>
-             </div>
+             <PageFrame className="pb-0 animate-in fade-in slide-in-from-top-4 duration-500">
+               <AlertBanner
+                 variant="danger"
+                 icon={ShieldAlert}
+                 title={t('system.connection_lost')}
+                 message={t('system.unreachable_msg')}
+                 action={
+                   <Button variant="danger" size="sm" onClick={() => window.location.reload()}>
+                     {t('system.retry')}
+                   </Button>
+                 }
+               />
+             </PageFrame>
            )}
-           <div className={cn(
-             "mx-auto w-full h-full",
-             currentView === 'home-conversation' ? "max-w-none" : "max-w-[1600px]"
-           )}>
+           <PageFrame immersive={currentView === 'home-conversation'}>
              {currentView === 'dashboard' && (
                 <DashboardView 
                   onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
@@ -836,7 +830,7 @@ function App() {
              {currentView === 'system-ha' && <HomeAssistantSettingsView />}
              {currentView === 'system-users' && <UsersView />}
              {currentView === 'home-conversation' && <HomeConversationView />}
-           </div>
+           </PageFrame>
         </section>
 
         <SystemStatusBar 

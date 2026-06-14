@@ -153,7 +153,7 @@ const AutomationsView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-12 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-700 px-2 lg:px-0">
+    <div className="flex flex-col gap-12 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-700">
       <AutomationsHeader
         activeCount={rules.filter(r => r.enabled).length}
         onCreate={() => setIsBuilderOpen(true)}

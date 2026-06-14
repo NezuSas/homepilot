@@ -245,7 +245,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-12 px-4 md:px-8 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-8 pb-12 animate-in fade-in duration-500">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
       {/* LEVEL 1: Master State (Home Mode) */}

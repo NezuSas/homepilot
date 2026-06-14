@@ -167,7 +167,7 @@ export function DiagnosticsView() {
   const formatTime = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString() : t('common.never');
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
+    <div className="space-y-6 pb-10">
 
       <DiagnosticsResilienceSummary
         devices={devices}

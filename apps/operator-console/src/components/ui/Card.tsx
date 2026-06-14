@@ -7,15 +7,15 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantStyles: Record<NonNullable<CardProps['variant']>, string> = {
   default:
-    'bg-card border-border/70 shadow-depth-1 hover:border-border hover:shadow-depth-2',
+    'bg-card/85 border-border/70 shadow-depth-1 hover:border-border hover:shadow-depth-2',
   elevated:
     'bg-popover border-border/50 shadow-depth-2 hover:shadow-depth-3',
   glass:
-    'bg-card/30 backdrop-blur-xl border-white/8 shadow-depth-1',
+    'bg-card/35 backdrop-blur-xl border-border/45 shadow-depth-1',
   error:
     'bg-danger/5 border-danger/25 shadow-sm',
   active:
-    'bg-primary/5 border-primary/30 shadow-depth-1',
+    'device-state-on',
 };
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(

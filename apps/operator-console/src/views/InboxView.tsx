@@ -80,7 +80,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
 
   return (
-    <div className="flex flex-col gap-10 p-2">
+    <div className="flex flex-col gap-10">
       {hasLocalDevices && (
         <div className="flex items-center gap-2 px-4 py-2 mt-2 border border-success/20 bg-success/5 rounded-xl animate-in fade-in slide-in-from-top-2 duration-1000 shadow-sm">
           <Cpu className="w-3.5 h-3.5 text-success/80" />

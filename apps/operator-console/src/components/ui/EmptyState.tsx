@@ -19,13 +19,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => (
   <div
     className={cn(
-      'flex flex-col items-center justify-center rounded-panel border-2 border-dashed border-border/30 bg-card/10 px-6 py-16 text-center',
+      'flex flex-col items-center justify-center rounded-panel border border-border/45 bg-card/35 px-6 py-16 text-center shadow-depth-1 backdrop-blur-md',
       className
     )}
     {...props}
   >
     {Icon && (
-      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-panel bg-primary/10 text-primary">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-panel border border-primary/20 bg-primary/10 text-primary shadow-depth-1">
         <Icon className="h-5 w-5" />
       </div>
     )}
