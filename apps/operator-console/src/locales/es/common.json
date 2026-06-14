@@ -173,6 +173,21 @@
     "active_units_other": "{{count}} Activos",
     "active_units": "{{count}} Activos",
     "all_off": "Todo Apagado",
+    "command_center": {
+      "label": "Centro de mando residencial",
+      "title": "Tu casa esta bajo control",
+      "active_devices": "Dispositivos activos",
+      "active_ratio": "{{count}}% del hogar",
+      "local_control": "Control local",
+      "local_detail": "{{online}}/{{total}} online",
+      "scenes": "Escenas listas",
+      "rooms_detail": "{{count}} espacios",
+      "attention": "Atencion requerida",
+      "insights_pending": "{{count}} alertas",
+      "stable": "Sistema estable",
+      "devices": "dispositivos",
+      "runtime": "Operando con estado local, escenas y asistencia proactiva"
+    },
     "editor": {
       "widget_management": "Gestión de Widgets",
       "add_device_control": "Dispositivo",

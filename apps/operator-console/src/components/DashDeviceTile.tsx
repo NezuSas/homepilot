@@ -80,15 +80,20 @@ export const DashDeviceTile: React.FC<{
   const localizedState = isOffline 
     ? t('device_states.error') 
     : (isOn ? t('device_states.on') : t('device_states.off'));
+  const brightness = Number(lastState.brightness);
+  const power = Number(lastState.power);
+  const primaryMetric = Number.isFinite(brightness) && brightness > 0
+    ? `${Math.round(brightness)}%`
+    : (Number.isFinite(power) && power > 0 ? `${power.toFixed(power >= 10 ? 0 : 1)}W` : localizedState);
 
   return (
     <div 
       onClick={handleToggle}
       data-demo="device-tile"
       className={cn(
-        "relative group transition-all duration-500 rounded-[2rem] p-4 flex flex-col justify-between border-2 h-full hover:-translate-y-1 hover:shadow-xl overflow-hidden",
+        "relative group transition-all duration-500 rounded-[2rem] p-4 flex min-h-[10.5rem] flex-col justify-between border h-full hover:-translate-y-1 hover:shadow-xl overflow-hidden",
         (canToggle && !isOffline) ? "cursor-pointer active:scale-95" : "cursor-default",
-        isOn ? "bg-primary/5 border-primary shadow-lg shadow-primary/10" : "bg-card border-border shadow-md hover:border-primary/20",
+        isOn ? "device-state-on" : "device-state-off",
         (!isOn && isSonoff) && "hover:border-success/40",
         isOffline && "opacity-30 grayscale pointer-events-none hover:translate-y-0"
       )}
@@ -98,50 +103,69 @@ export const DashDeviceTile: React.FC<{
         <div className="absolute inset-0 bg-success/5 animate-atmospheric-glow pointer-events-none" />
       )}
       
-      <div className={cn(
-        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 z-10",
-        isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40",
-        (isSonoff && isProcessing) && "bg-success text-success-foreground scale-110 shadow-success/20 shadow-xl"
-      )}>
-        {isProcessing && isSonoff ? (
-          <Zap className="w-5 h-5 animate-pulse" />
-        ) : (
-          <Icon className={cn("w-4 h-4", isOn && "animate-pulse")} />
-        )}
-      </div>
-
-      <div className="flex flex-col min-w-0">
-        <div className="flex items-center justify-between gap-1 mb-1">
-          <h4 className="text-xs font-bold truncate tracking-tight">{displayName}</h4>
-          {isSonoff && (
-            <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1 py-0.5 rounded shrink-0">{t('dashboards.status.local')}</span>
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
+          isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/50",
+          (isSonoff && isProcessing) && "bg-success text-success-foreground scale-110 shadow-success/20 shadow-xl"
+        )}>
+          {isProcessing && isSonoff ? (
+            <Zap className="w-5 h-5 animate-pulse" />
+          ) : (
+            <Icon className={cn("w-4 h-4", isOn && "animate-pulse")} />
           )}
         </div>
-        <div className="flex items-center gap-1.5 min-h-[12px]">
-          {isProcessing ? (
-            <>
-              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSonoff ? "bg-success animate-ping" : "status-dot-updating")} />
-              <span className={cn("text-[8px] font-black uppercase tracking-widest truncate", isSonoff ? "text-success" : "opacity-40")}>
+
+        <div className="flex min-w-0 flex-col items-end gap-1">
+          <span className={cn(
+            "max-w-[5.75rem] truncate rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-widest",
+            isOn ? "border-primary/20 bg-primary/10 text-primary" : "border-border/50 bg-muted/30 text-muted-foreground"
+          )}>
+            {primaryMetric}
+          </span>
+          {isSonoff && (
+            <span className={cn(
+              "rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-widest",
+              isOnline ? "border-success/20 bg-success/10 text-success" : "border-danger/20 bg-danger/10 text-danger"
+            )}>
+              {isOnline ? t('common.online') : t('common.offline')}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="relative z-10 flex min-w-0 flex-col gap-3">
+        <div className="min-w-0">
+          <h4 className="truncate text-sm font-black tracking-tight text-foreground">{displayName}</h4>
+          <span className="mt-1 block truncate text-[8px] font-black uppercase tracking-[0.22em] text-muted-foreground/50">
+            {roomName || t('common.unassigned')}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className={cn(
+              "h-1.5 w-1.5 shrink-0 rounded-full",
+              isProcessing ? "status-dot-updating" : (isOn ? "bg-primary" : "bg-muted-foreground/35")
+            )} />
+            {isProcessing ? (
+              <span className={cn("truncate text-[8px] font-black uppercase tracking-widest", isSonoff ? "text-success" : "text-muted-foreground")}>
                 {isSonoff ? t('dashboards.status.edge_exec') : t('device_states.updating')}
               </span>
-            </>
-          ) : (
-            <div className="flex items-center gap-1.5 min-w-0">
+            ) : (
               <span className={cn(
-                "text-[9px] font-medium tracking-wide transition-opacity duration-300 truncate",
-                isOn ? "text-primary opacity-90" : "text-muted-foreground/50"
+                "truncate text-[9px] font-bold uppercase tracking-widest transition-opacity duration-300",
+                isOn ? "text-primary" : "text-muted-foreground/55"
               )}>
                 {localizedState}
               </span>
-              {isSonoff && (
-                <>
-                  <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                  <span className={cn("text-[8px] font-black uppercase tracking-widest shrink-0", isOnline ? "text-success" : "text-destructive opacity-80")}>
-                    {isOnline ? t('common.online') : t('common.offline')}
-                  </span>
-                </>
-              )}
-            </div>
+            )}
+          </div>
+
+          {isSonoff && (
+            <span className="shrink-0 rounded border border-success/20 bg-success/10 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-success">
+              {t('dashboards.status.local')}
+            </span>
           )}
         </div>
       </div>

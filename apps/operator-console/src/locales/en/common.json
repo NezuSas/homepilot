@@ -173,6 +173,21 @@
     "active_units_other": "{{count}} Active",
     "active_units": "{{count}} Active",
     "all_off": "All Off",
+    "command_center": {
+      "label": "Residential command center",
+      "title": "Your home is under control",
+      "active_devices": "Active devices",
+      "active_ratio": "{{count}}% of home",
+      "local_control": "Local control",
+      "local_detail": "{{online}}/{{total}} online",
+      "scenes": "Scenes ready",
+      "rooms_detail": "{{count}} spaces",
+      "attention": "Needs attention",
+      "insights_pending": "{{count}} alerts",
+      "stable": "System stable",
+      "devices": "devices",
+      "runtime": "Operating with local state, scenes, and proactive assistance"
+    },
     "editor": {
       "widget_management": "Widget Management",
       "add_device_control": "Device",

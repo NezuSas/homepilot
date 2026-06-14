@@ -59,15 +59,23 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
 
         return (
           <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-            <div className="flex items-center justify-between mb-8 px-2 border-l-4 border-muted-foreground/10 pl-6">
-              <div>
-                <h3 className="text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
+            <div className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-border/50 bg-card/35 p-5 shadow-depth-1 backdrop-blur-md md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className={cn(
+                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border',
+                  onCount > 0 ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border/60 bg-muted/40 text-muted-foreground',
+                )}>
+                  <Cpu className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                <h3 className="truncate text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
                 <span className={cn(
                   'text-[10px] font-black uppercase tracking-widest transition-colors',
                   onCount > 0 ? 'text-warning' : 'text-muted-foreground/40',
                 )}>
                   {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
                 </span>
+              </div>
               </div>
               {onCount > 0 && (
                 <Button
@@ -82,7 +90,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 grid-auto-rows-[auto]">
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
               {roomDevices.map((device) => {
                 const isCover = hasCapability(device, 'cover');
                 const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;

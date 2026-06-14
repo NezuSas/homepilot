@@ -7,11 +7,11 @@ import { humanize } from '../lib/naming-utils';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
 import type { HomeMode, View } from '../types';
 import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
-import { DashboardEdgeStatus } from '../components/DashboardEdgeStatus';
 import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
 import { DashboardLoadingState } from '../components/DashboardLoadingState';
 import { DashboardRoomsSection } from '../components/DashboardRoomsSection';
 import { DashboardScenesSection } from '../components/DashboardScenesSection';
+import { HomeCommandCenter } from '../components/HomeCommandCenter';
 import { HomeModeSelector } from '../components/HomeModeSelector';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { useAssistantStore } from '../stores/useAssistantStore';
@@ -30,6 +30,14 @@ interface Scene {
   name: string;
   description?: string;
   actions: SceneAction[];
+}
+
+interface DeviceActivityState {
+  on?: boolean;
+  state?: 'on' | 'off';
+  brightness?: number;
+  power?: number;
+  [key: string]: unknown;
 }
 
 const API_URL = `${API_BASE_URL}/api/v1`;
@@ -222,11 +230,14 @@ useEffect(() => {
 
   const activeRooms = useMemo(() => (Array.isArray(rooms) ? rooms : []).filter(r => (Array.isArray(devices) ? devices : []).some(d => d.roomId === r.id)), [rooms, devices]);
   const localDevices = useMemo(() => (Array.isArray(devices) ? devices : []).filter(d => d.integrationSource === 'sonoff'), [devices]);
-  const hasLocalDevices = localDevices.length > 0;
   const bridgedCount = (Array.isArray(devices) ? devices : []).length - localDevices.length;
   const onlineLocalCount = useMemo(() => 
     localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
   [localDevices]);
+  const activeDeviceCount = useMemo(() => devices.filter((device) => {
+    const state = (device.lastKnownState || {}) as DeviceActivityState;
+    return state.on === true || state.state === 'on' || Number(state.brightness) > 0 || Number(state.power) > 0;
+  }).length, [devices]);
 
   const hasInitialData = (Array.isArray(devices) ? devices : []).length > 0;
   if (snapshotLoading && !hasInitialData) {
@@ -234,7 +245,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex flex-col gap-10 pb-12 px-4 md:px-8 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-8 pb-12 px-4 md:px-8 animate-in fade-in duration-500">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
       {/* LEVEL 1: Master State (Home Mode) */}
@@ -247,13 +258,17 @@ useEffect(() => {
         }} 
       />
 
-      {hasLocalDevices && (
-        <DashboardEdgeStatus
-          localDeviceCount={localDevices.length}
-          onlineLocalCount={onlineLocalCount}
-          bridgedCount={bridgedCount}
-        />
-      )}
+      <HomeCommandCenter
+        currentMode={getSafeHomeMode(currentMode)}
+        roomCount={activeRooms.length}
+        deviceCount={devices.length}
+        activeDeviceCount={activeDeviceCount}
+        localDeviceCount={localDevices.length}
+        onlineLocalCount={onlineLocalCount}
+        bridgedCount={bridgedCount}
+        sceneCount={scenes.length}
+        findingCount={prioritizedFindings.length}
+      />
 
       <DashboardInsightsSection
         findings={prioritizedFindings}

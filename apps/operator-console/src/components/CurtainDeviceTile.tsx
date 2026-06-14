@@ -105,8 +105,8 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   return (
     <div className={cn(
-      "relative group transition-all duration-700 rounded-[2rem] p-4 flex flex-col justify-between border-2 h-full overflow-hidden",
-      (isMoving || isOpen) ? "bg-primary/5 border-primary/20" : "bg-card border-border shadow-md hover:border-primary/20",
+      "relative group transition-all duration-700 rounded-[2rem] p-4 flex min-h-[10.5rem] flex-col justify-between border h-full overflow-hidden hover:-translate-y-1",
+      (isMoving || isOpen) ? "device-state-on" : "device-state-off",
       device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
     )}>
       
@@ -116,7 +116,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
       <div 
         className={cn(
-          "absolute inset-0 pointer-events-none transition-transform duration-[1500ms] ease-in-out z-0 opacity-40",
+          "absolute inset-0 pointer-events-none transition-transform [transition-duration:1500ms] ease-in-out z-0 opacity-40",
           isOpen ? "-translate-y-full" : "translate-y-0"
         )}
         style={{

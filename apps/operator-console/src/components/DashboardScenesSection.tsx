@@ -67,7 +67,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {scenes.map((scene) => {
           const sceneActions = scene.actions || [];
           const localActions = sceneActions.filter((action) => {
@@ -84,10 +84,10 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
               onClick={() => onSceneExecute(scene)}
               disabled={!!roomProcessing}
               className={cn(
-                'group relative flex items-center gap-6 p-6 rounded-[2.5rem] transition-all duration-500 text-left overflow-hidden border-2 active:scale-95 disabled:opacity-50 hover:-translate-y-1 hover:shadow-xl',
+                'group relative flex min-h-[8rem] items-stretch gap-5 overflow-hidden rounded-[2rem] border p-5 text-left transition-all duration-500 active:scale-95 disabled:opacity-50 hover:-translate-y-1 hover:shadow-xl',
                 isProcessingThis
                   ? 'bg-primary border-primary text-primary-foreground shadow-2xl'
-                  : 'bg-card border-border shadow-md hover:border-primary/40',
+                  : 'bg-card/80 border-border shadow-depth-1 hover:border-primary/40',
                 (isEdgeResilient && !isProcessingThis) && 'hover:border-success/30',
               )}
             >
@@ -96,15 +96,16 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
               )}
 
               <div className={cn(
-                'p-4 rounded-2xl transition-all duration-700 z-10',
+                'z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-700',
                 isProcessingThis ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary',
                 (isEdgeResilient && isProcessingThis) && 'bg-success shadow-lg shadow-success/40 scale-110',
               )}>
                 {isEdgeResilient && isProcessingThis ? <Cpu className="w-5 h-5 animate-pulse" /> : <Zap className="w-5 h-5" />}
               </div>
-              <div className="min-w-0 flex-1 z-10">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="text-base font-black tracking-tight truncate">{scene.name}</h3>
+              <div className="z-10 flex min-w-0 flex-1 flex-col justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-1 flex items-center gap-2">
+                  <h3 className="truncate text-base font-black tracking-tight">{scene.name}</h3>
                   {isEdgeResilient && (
                     <span className={cn(
                       'text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0',
@@ -117,11 +118,22 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
                   )}
                 </div>
                 <p className={cn(
-                  'text-[10px] font-medium italic opacity-60 truncate',
+                  'truncate text-[10px] font-medium italic opacity-60',
                   isProcessingThis ? 'text-primary-foreground' : 'text-muted-foreground',
                 )}>
                   {isFullyAutonomous ? t('dashboards.status.hardware_execution') : (scene.description || t('dashboard.experience'))}
                 </p>
+                </div>
+
+                <div className={cn(
+                  'flex items-center justify-between rounded-full border px-3 py-2 text-[8px] font-black uppercase tracking-widest',
+                  isProcessingThis
+                    ? 'border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground/80'
+                    : 'border-border/50 bg-background/25 text-muted-foreground',
+                )}>
+                  <span>{sceneActions.length} {t('dashboard.command_center.devices', { defaultValue: 'dispositivos' })}</span>
+                  <span>{localActions.length} {t('dashboards.status.local')}</span>
+                </div>
               </div>
             </button>
           );
