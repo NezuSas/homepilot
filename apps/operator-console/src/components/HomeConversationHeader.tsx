@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, MessageSquareText } from 'lucide-react';
+import { Bot, Cpu, MessageSquareText, ShieldCheck } from 'lucide-react';
 import { StatusPill } from './ui/StatusPill';
 
 interface HomeConversationHeaderProps {
@@ -17,23 +17,31 @@ export const HomeConversationHeader: React.FC<HomeConversationHeaderProps> = ({
   isLoading,
   messageCount
 }) => (
-  <header className="shrink-0 border-b border-border/60 bg-card/55 px-4 py-4 shadow-depth-1 backdrop-blur-xl md:px-6">
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <header className="shrink-0 border-b border-border/60 bg-card/75 px-4 py-4 shadow-depth-1 backdrop-blur-xl md:px-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-panel border border-primary/20 bg-primary/10 text-primary shadow-depth-1">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-panel border border-primary/25 bg-primary/10 text-primary shadow-depth-1">
           <Bot className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-black tracking-tight text-foreground">{title}</h2>
+          <h2 className="truncate text-xl font-black tracking-tight text-foreground">{title}</h2>
           <p className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/55">
             {subtitle}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <StatusPill variant={isLoading ? 'warning' : 'success'} pulse={isLoading}>
           {statusLabel}
+        </StatusPill>
+        <StatusPill variant="primary" className="hidden md:inline-flex">
+          <Cpu className="h-3 w-3" />
+          Edge
+        </StatusPill>
+        <StatusPill variant="neutral" className="hidden md:inline-flex">
+          <ShieldCheck className="h-3 w-3" />
+          Local
         </StatusPill>
         {messageCount > 0 && (
           <StatusPill variant="neutral" className="hidden sm:inline-flex">

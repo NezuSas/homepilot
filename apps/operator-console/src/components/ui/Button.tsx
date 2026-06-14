@@ -11,25 +11,20 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
     'bg-primary text-primary-foreground border border-transparent ' +
-    'hover:bg-primary/90 hover:-translate-y-px hover:shadow-lg hover:shadow-primary/25 ' +
-    'active:translate-y-0 active:scale-[0.98] ' +
+    'hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 ' +
     'shadow-sm shadow-primary/20',
   secondary:
     'bg-muted/60 text-foreground border border-border/60 ' +
-    'hover:bg-muted hover:border-border hover:-translate-y-px hover:shadow-sm ' +
-    'active:translate-y-0 active:scale-[0.98]',
+    'hover:bg-muted hover:border-border hover:shadow-sm',
   outline:
     'bg-transparent text-foreground border border-border ' +
-    'hover:bg-muted/50 hover:border-border/80 ' +
-    'active:scale-[0.98]',
+    'hover:bg-muted/50 hover:border-border/80',
   ghost:
     'bg-transparent text-foreground border border-transparent ' +
-    'hover:bg-muted/60 ' +
-    'active:scale-[0.98]',
+    'hover:bg-muted/60',
   danger:
     'bg-danger text-danger-foreground border border-transparent ' +
-    'hover:bg-danger/90 hover:-translate-y-px hover:shadow-lg hover:shadow-danger/20 ' +
-    'active:translate-y-0 active:scale-[0.98] ' +
+    'hover:bg-danger/90 hover:shadow-lg hover:shadow-danger/20 ' +
     'shadow-sm shadow-danger/15',
 };
 
@@ -48,11 +43,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled || isLoading}
       className={cn(
         // Base
-        'inline-flex items-center justify-center font-semibold transition-all duration-150',
+        'control-transition interactive-lift inline-flex items-center justify-center font-semibold',
         // Focus
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         // Disabled
-        'disabled:opacity-45 disabled:pointer-events-none disabled:translate-y-0 disabled:shadow-none',
+        'disabled:opacity-45 disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100 disabled:shadow-none',
         variantStyles[variant],
         sizeStyles[size],
         className

@@ -125,16 +125,21 @@ export const HomeConversationView: React.FC = () => {
 
       <div
         ref={scrollRef}
-        className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth px-4 py-5 md:px-6 lg:px-10 lg:py-8"
+        className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth bg-muted/10 px-4 py-5 md:px-6 lg:px-10 lg:py-8"
       >
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+        <div
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          className="mx-auto flex w-full max-w-5xl flex-col gap-5"
+        >
           {messages.length === 0 && (
-          <HomeConversationEmptyState
-            title={t('assistant.conversation.empty_chat_title')}
-            description={t('assistant.conversation.empty_chat_description')}
-            suggestions={suggestions}
-            onSuggestionClick={handleSend}
-          />
+            <HomeConversationEmptyState
+              title={t('assistant.conversation.empty_chat_title')}
+              description={t('assistant.conversation.empty_chat_description')}
+              suggestions={suggestions}
+              onSuggestionClick={handleSend}
+            />
           )}
 
           {messages.map(message => (

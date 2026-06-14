@@ -22,7 +22,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
         disabled={isDisabled}
         className={cn(
           // Base
-          'relative w-full flex items-center justify-between rounded-xl group transition-all',
+          'control-transition relative w-full flex items-center justify-between rounded-xl group',
           nested ? 'py-1.5 px-2' : 'py-2 px-3',
           // Active state (uses sidebar-item-active from index.css for the left bar)
           active
@@ -31,9 +31,8 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           // Disabled
           isDisabled
             ? 'opacity-50 cursor-not-allowed pointer-events-none'
-            : 'cursor-pointer active:scale-[0.98]',
+            : 'interactive-lift cursor-pointer',
           // Duration
-          'duration-150',
           collapsedOnDesktop && 'lg:justify-center lg:px-2',
           className
         )}
@@ -44,7 +43,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           {/* Icon container */}
           <span
             className={cn(
-              'flex items-center justify-center rounded-lg transition-all duration-150 shrink-0',
+              'surface-transition flex items-center justify-center rounded-lg shrink-0',
               nested ? 'w-6 h-6' : 'w-7 h-7',
               active
                 ? 'bg-primary/15 text-primary'
@@ -57,7 +56,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           {/* Label */}
           <span
             className={cn(
-              'tracking-tight text-left leading-none whitespace-nowrap overflow-hidden transition-[opacity,width,margin] duration-200',
+              'tracking-tight text-left leading-none whitespace-nowrap overflow-hidden transition-[opacity,width,margin] duration-base',
               nested ? 'text-[0.76rem]' : 'text-[0.82rem]',
               active ? 'font-bold text-primary' : 'font-medium',
               collapsedOnDesktop && 'lg:w-0 lg:opacity-0 lg:ml-0'
@@ -68,7 +67,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
         </div>
 
         {/* Right side: badge or soon tag */}
-        <div className={cn("flex items-center gap-1.5 shrink-0 transition-opacity duration-150", collapsedOnDesktop && "lg:hidden")}>
+        <div className={cn("flex items-center gap-1.5 shrink-0 surface-transition", collapsedOnDesktop && "lg:hidden")}>
           {badge && <div className="shrink-0">{badge}</div>}
 
           {soonText && (

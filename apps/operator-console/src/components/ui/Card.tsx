@@ -23,7 +23,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        'rounded-card border overflow-hidden transition-all duration-250',
+        'surface-transition rounded-card border overflow-hidden',
         variantStyles[variant],
         className
       )}

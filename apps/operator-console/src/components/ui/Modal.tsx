@@ -51,13 +51,13 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-300"
+        className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-base"
         onClick={onClose}
       />
       
       {/* Modal */}
       <div className={cn(
-          "relative w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[90vh]",
+          "surface-transition relative w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-[90vh]",
           variantConfig[variant].borderClass,
           className
         )}

@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { hasCapability, canExecuteCommand } from '../lib/deviceCapabilities';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
+import { DeviceTileShell } from './ui/DeviceTileShell';
 
 interface DeviceState {
   on?: boolean;
@@ -44,26 +45,31 @@ export const DashDeviceTile: React.FC<{
   const isLight = hasCapability(device, 'light');
   const isSwitch = hasCapability(device, 'switch');
   const isSensor = hasCapability(device, 'sensor') || hasCapability(device, 'binary_sensor');
-  const canToggle = !!onCommand && (canExecuteCommand(device, 'toggle') || canExecuteCommand(device, 'turn_on'));
+  const canTurnOn = canExecuteCommand(device, 'turn_on');
+  const canTurnOff = canExecuteCommand(device, 'turn_off');
+  const canToggleCommand = canExecuteCommand(device, 'toggle');
+  const nextCommand = isOn
+    ? (canTurnOff ? 'turn_off' : (canToggleCommand ? 'toggle' : null))
+    : (canTurnOn ? 'turn_on' : (canToggleCommand ? 'toggle' : null));
+  const canToggle = !!onCommand && !isSensor && !!nextCommand;
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isProcessing || isOffline || isSensor || !canToggle) return;
+    if (isProcessing || isOffline || !canToggle || !nextCommand) return;
     
     const nextState = !isOn;
     setOptimisticState(nextState);
     setIsProcessing(true);
 
     try {
-      const command = nextState ? 'turn_on' : 'turn_off';
-      const updated = await onCommand(device.id, command);
+      const updated = await onCommand(device.id, nextCommand);
 
       if (updated) {
         setOptimisticState(null);
         if (onUpdate) onUpdate(updated);
         if (onActionExecute) onActionExecute(t('common.feedback.action_success', { 
           name: displayName, 
-          action: t(`common.actions.${command}`) 
+          action: t(`common.actions.${nextCommand}`)
         }));
       } else {
         setOptimisticState(null);
@@ -87,15 +93,16 @@ export const DashDeviceTile: React.FC<{
     : (Number.isFinite(power) && power > 0 ? `${power.toFixed(power >= 10 ? 0 : 1)}W` : localizedState);
 
   return (
-    <div 
+    <DeviceTileShell
       onClick={handleToggle}
       data-demo="device-tile"
+      active={isOn}
+      interactive={canToggle && !isOffline}
+      disabled={isOffline}
+      syncing={isProcessing}
+      aria-label={`${displayName}: ${localizedState}`}
       className={cn(
-        "relative group transition-all duration-500 rounded-[2rem] p-4 flex min-h-[10.5rem] flex-col justify-between border h-full hover:-translate-y-1 hover:shadow-xl overflow-hidden",
-        (canToggle && !isOffline) ? "cursor-pointer active:scale-95" : "cursor-default",
-        isOn ? "device-state-on" : "device-state-off",
         (!isOn && isSonoff) && "hover:border-success/40",
-        isOffline && "opacity-30 grayscale pointer-events-none hover:translate-y-0"
       )}
     >
       {/* Edge Atmosphere Glow */}
@@ -105,7 +112,7 @@ export const DashDeviceTile: React.FC<{
       
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
+          "surface-transition w-10 h-10 rounded-xl flex items-center justify-center",
           isOn ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/50",
           (isSonoff && isProcessing) && "bg-success text-success-foreground scale-110 shadow-success/20 shadow-xl"
         )}>
@@ -169,6 +176,6 @@ export const DashDeviceTile: React.FC<{
           )}
         </div>
       </div>
-    </div>
+    </DeviceTileShell>
   );
 };

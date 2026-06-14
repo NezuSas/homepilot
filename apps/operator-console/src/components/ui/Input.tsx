@@ -20,7 +20,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative flex items-center">
           {icon && (
-            <div className={cn("absolute left-3 text-muted-foreground", disabled && "opacity-50")}>
+            <div className={cn("pointer-events-none absolute left-3 text-muted-foreground surface-transition", disabled && "opacity-50")}>
               {icon}
             </div>
           )}
@@ -28,9 +28,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              "flex h-10 w-full rounded-xl border bg-background px-3 py-2 text-sm transition-all shadow-sm",
+              "surface-transition flex h-10 w-full rounded-xl border bg-background px-3 py-2 text-sm shadow-sm",
               "border-border placeholder:text-muted-foreground/40",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40 focus-visible:shadow-depth-1",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
               error && "border-danger/50 focus-visible:ring-danger/40 focus-visible:border-danger bg-danger/5",
               icon && "pl-10",

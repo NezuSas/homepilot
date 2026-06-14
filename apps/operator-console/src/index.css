@@ -78,6 +78,7 @@
     --duration-slow:   400ms;
     --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring:     cubic-bezier(0.2, 0.8, 0.2, 1);
 
     /* ── Effects ────────────────────────────────────────────── */
     --premium-glow:           0 0 24px -8px hsl(var(--primary) / 0.42);
@@ -146,6 +147,10 @@
 
 @layer base {
   * { border-color: hsl(var(--border)); }
+
+  html {
+    scroll-behavior: smooth;
+  }
   
   body {
     background-color: hsl(var(--background));
@@ -156,6 +161,11 @@
       radial-gradient(hsl(210 30% 100% / 0.018) 1px, transparent 1px);
     background-size: 32px 32px;
     background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.28);
+    color: hsl(var(--foreground));
   }
 
   .light body {
@@ -169,6 +179,21 @@
     outline: 2px solid hsl(var(--primary) / 0.7);
     outline-offset: 2px;
     border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 1ms !important;
+    }
   }
 
   /* ── Animations ─────────────────────────────────────────── */
@@ -349,6 +374,33 @@
 }
 
 @layer utilities {
+  /* ── Consistent interaction motion ───────────────────────── */
+  .surface-transition {
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform, filter;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-out);
+  }
+
+  .control-transition {
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-spring);
+  }
+
+  .interactive-lift {
+    will-change: transform;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .interactive-lift:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  .interactive-lift:active {
+    transform: translateY(0) scale(0.98);
+  }
+
   /* ── Glow utilities ───────────────────────────────────────── */
   .premium-glow         { box-shadow: var(--premium-glow); }
   .premium-glow-success { box-shadow: var(--premium-glow-success); }

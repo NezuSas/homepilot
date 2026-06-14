@@ -7,6 +7,8 @@ import { cn } from '../lib/utils';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { canExecuteCommand } from '../lib/deviceCapabilities';
 import { CoverPositionControl } from './CoverPositionControl';
+import { Button } from './ui/Button';
+import { DeviceTileShell } from './ui/DeviceTileShell';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
 interface DeviceState {
@@ -102,13 +104,15 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const canClose = !!onCommand && canExecuteCommand(device, 'close');
   const canStop = !!onCommand && canExecuteCommand(device, 'stop');
   const canSetPosition = !!onCommand && canExecuteCommand(device, 'set_position');
+  const primaryCoverCommand = isOpen ? (canClose ? 'close' : null) : (canOpen ? 'open' : null);
+  const primaryCoverLabel = primaryCoverCommand ? t(`common.actions.${primaryCoverCommand}`) : '';
 
   return (
-    <div className={cn(
-      "relative group transition-all duration-700 rounded-[2rem] p-4 flex min-h-[10.5rem] flex-col justify-between border h-full overflow-hidden hover:-translate-y-1",
-      (isMoving || isOpen) ? "device-state-on" : "device-state-off",
-      device.status === 'PENDING' && "opacity-30 grayscale pointer-events-none"
-    )}>
+    <DeviceTileShell
+      active={isMoving || isOpen}
+      disabled={device.status === 'PENDING'}
+      syncing={isMoving}
+    >
       
       {isMoving && (
         <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow pointer-events-none z-0" />
@@ -129,7 +133,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex justify-between items-start">
           <div className={cn(
-            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700",
+            "surface-transition w-10 h-10 rounded-xl flex items-center justify-center",
             (isMoving || isOpen) ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40"
           )}>
             {isMoving ? (
@@ -164,38 +168,40 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
         {/* Dynamic Action Strip based on capabilities */}
         <div className="flex flex-col gap-3 mt-4">
-          {(canOpen || canClose || canStop) && (
+          {(primaryCoverCommand || canStop) && (
             <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-2xl border border-border/20 backdrop-blur-md shadow-inner">
-              {(canOpen || canClose) && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleCommand(isOpen ? 'close' : 'open'); }}
+              {primaryCoverCommand && (
+                <Button
+                  type="button"
+                  variant={isOpen ? 'outline' : 'primary'}
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleCommand(primaryCoverCommand); }}
                   disabled={!!isProcessing || isMoving}
                   className={cn(
-                    "flex-1 h-9 rounded-xl flex items-center justify-center gap-2 transition-all duration-500 active:scale-95 border",
-                    isOpen 
-                      ? "bg-background border-border text-foreground hover:bg-muted" 
-                      : "bg-primary border-primary/20 text-primary-foreground shadow-lg shadow-primary/10"
+                    "flex-1 h-9 rounded-xl text-[9px] font-black uppercase tracking-widest",
+                    isOpen && "bg-background"
                   )}
                 >
                   {isOpen ? <ArrowDown className="w-3 h-3 opacity-60" /> : <ArrowUp className="w-3 h-3 opacity-60" />}
-                  <span className="text-[9px] font-black uppercase tracking-widest">
-                    {isOpen ? t('common.actions.close') : t('common.actions.open')}
-                  </span>
-                </button>
+                  <span>{primaryCoverLabel}</span>
+                </Button>
               )}
 
               {canStop && (
-                <button
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
                   onClick={(e) => { e.stopPropagation(); handleCommand('stop'); }}
                   disabled={!!isProcessing}
                   className={cn(
-                    "w-10 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border border-border/10",
+                    "w-10 h-9 rounded-xl border border-border/10",
                     isMoving ? "bg-secondary/20 text-secondary-foreground" : "bg-muted/20 text-muted-foreground/40 hover:bg-muted hover:text-foreground"
                   )}
                   title={t('common.actions.stop')}
                 >
                   {isProcessing === 'stop' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3 fill-current" />}
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -205,6 +211,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
               initialPosition={position} 
               onPositionChange={handlePositionChange}
               disabled={!!isProcessing}
+              ariaLabel={t('common.cover.position', { defaultValue: 'Posición de cortina' })}
             />
           )}
         </div>
@@ -218,6 +225,6 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
           />
         </div>
       )}
-    </div>
+    </DeviceTileShell>
   );
 };

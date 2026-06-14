@@ -44,7 +44,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         onClick={isInteractive ? onClick : undefined}
         className={cn(
           // Base structure
-          'relative rounded-[1.75rem] border transition-all overflow-hidden group flex flex-col justify-between',
+          'surface-transition relative rounded-[1.75rem] border overflow-hidden group flex flex-col justify-between',
           // Padding — slightly more breathing room
           'p-5',
           // Cursor
@@ -58,7 +58,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
               ? 'device-state-on'
               : 'device-state-off',
           // Interactive hover lift — only when not disabled and not applying via CSS
-          isInteractive && !disabled ? 'hover:-translate-y-[2px] transition-transform duration-200' : '',
+          isInteractive && !disabled ? 'interactive-lift' : '',
           className
         )}
         {...props}
@@ -80,7 +80,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
             {/* Icon container */}
             <div
               className={cn(
-                'p-2.5 rounded-2xl transition-all duration-300 relative',
+                'surface-transition p-2.5 rounded-2xl relative',
                 active && !error
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
                   : error
@@ -111,7 +111,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
 
           {rightAction && (
             <div
-              className="z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              className="surface-transition z-10 opacity-0 group-hover:opacity-100"
               onClick={(e) => { if (isInteractive) e.stopPropagation(); }}
             >
               {rightAction}

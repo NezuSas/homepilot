@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../lib/utils';
 
 interface CoverPositionControlProps {
   initialPosition?: number;
   onPositionChange: (position: number) => void;
   disabled?: boolean;
+  ariaLabel?: string;
 }
 
 /**
@@ -14,13 +15,16 @@ interface CoverPositionControlProps {
 export const CoverPositionControl: React.FC<CoverPositionControlProps> = ({
   initialPosition = 0,
   onPositionChange,
-  disabled = false
+  disabled = false,
+  ariaLabel = 'Cover position'
 }) => {
   const [value, setValue] = useState(initialPosition);
+  const lastCommittedValue = useRef(initialPosition);
 
   // Sincronizar con el estado externo cuando cambie
   useEffect(() => {
     setValue(initialPosition);
+    lastCommittedValue.current = initialPosition;
   }, [initialPosition]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,8 +32,10 @@ export const CoverPositionControl: React.FC<CoverPositionControlProps> = ({
     setValue(newVal);
   };
 
-  const handleRelease = () => {
+  const commitValue = () => {
     if (disabled) return;
+    if (lastCommittedValue.current === value) return;
+    lastCommittedValue.current = value;
     onPositionChange(value);
   };
 
@@ -39,10 +45,13 @@ export const CoverPositionControl: React.FC<CoverPositionControlProps> = ({
         type="range"
         min="0"
         max="100"
+        aria-label={ariaLabel}
         value={value}
         onChange={handleChange}
-        onMouseUp={handleRelease}
-        onTouchEnd={handleRelease}
+        onMouseUp={commitValue}
+        onTouchEnd={commitValue}
+        onBlur={commitValue}
+        onKeyUp={commitValue}
         disabled={disabled}
         className={cn(
           "w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary",

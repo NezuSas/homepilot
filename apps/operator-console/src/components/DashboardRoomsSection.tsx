@@ -11,8 +11,9 @@ import { DashDeviceTile } from './DashDeviceTile';
 
 interface DeviceState {
   on?: boolean;
-  state?: 'on' | 'off';
+  state?: 'on' | 'off' | 'open' | 'closed' | 'opening' | 'closing';
   brightness?: number;
+  current_position?: number;
   [key: string]: unknown;
 }
 
@@ -26,6 +27,20 @@ interface DashboardRoomsSectionProps {
   onCommand: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<SnapshotDevice | null>;
   onActionExecute?: (label: string) => void;
 }
+
+const isDeviceActive = (device: SnapshotDevice): boolean => {
+  const state = device.lastKnownState as DeviceState || {};
+
+  if (hasCapability(device, 'cover')) {
+    return state.state === 'open'
+      || state.state === 'opening'
+      || Number(state.current_position) > 0;
+  }
+
+  return state.on === true
+    || state.state === 'on'
+    || Number(state.brightness) > 0;
+};
 
 export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
   activeRooms,
@@ -52,10 +67,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
     <div className="space-y-12">
       {activeRooms.map((room) => {
         const roomDevices = devices.filter((device) => device.roomId === room.id);
-        const onCount = roomDevices.filter((device) => {
-          const state = device.lastKnownState as DeviceState || {};
-          return state.on === true || state.state === 'on' || Number(state.brightness) > 0;
-        }).length;
+        const onCount = roomDevices.filter(isDeviceActive).length;
 
         return (
           <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">

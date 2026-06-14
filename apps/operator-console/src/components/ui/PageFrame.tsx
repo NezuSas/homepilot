@@ -20,7 +20,7 @@ export const PageFrame = React.forwardRef<HTMLDivElement, PageFrameProps>(
         'mx-auto w-full',
         immersive
           ? 'h-full max-w-none'
-          : 'min-h-full px-4 py-4 sm:px-8 sm:py-8',
+          : 'min-h-full px-4 py-4 sm:px-8 sm:py-8 animate-slide-up-fade',
         !immersive && maxWidthClasses[maxWidth],
         className,
       )}

@@ -31,10 +31,9 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       title={title || label}
       disabled={disabled}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-control transition-all duration-150',
+        'control-transition interactive-lift inline-flex shrink-0 items-center justify-center rounded-control',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-        'disabled:pointer-events-none disabled:opacity-45',
-        'active:scale-[0.98]',
+        'disabled:pointer-events-none disabled:opacity-45 disabled:translate-y-0 disabled:scale-100',
         variantStyles[variant],
         sizeStyles[size],
         className
