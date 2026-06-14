@@ -129,7 +129,7 @@ export function UsersView() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10">
+    <div className="flex flex-col gap-8 pb-10">
       {error && <UsersErrorBanner message={error} />}
 
       {showCreate ? (

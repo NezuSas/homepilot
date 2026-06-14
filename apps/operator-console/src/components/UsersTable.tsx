@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, Power, Shield, ShieldCheck, UserMinus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { Card } from './ui/Card';
 import { SelectField } from './ui/SelectField';
 import type { UserRole } from './UserCreateForm';
 
@@ -64,7 +65,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   onChangeRole,
   onRevokeSessions
 }) => (
-  <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+  <Card className="rounded-panel">
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-muted/50 border-b">
@@ -157,5 +158,5 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         </tbody>
       </table>
     </div>
-  </div>
+  </Card>
 );

@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Loader2, ShieldAlert, AlertCircle, RefreshCw, Activity } from 'lucide-react';
+import { Loader2, ShieldAlert, RefreshCw, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import type { ExecutionRecord } from '../types/executions';
 import { ExecutionCard } from '../components/ExecutionCard';
+import { AlertBanner } from '../components/ui/AlertBanner';
+import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
 
 export const ExecutionLogsView: React.FC = () => {
   const [records, setRecords] = useState<ExecutionRecord[]>([]);
@@ -40,39 +43,34 @@ export const ExecutionLogsView: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-12 border-2 border-dashed border-destructive/20 bg-destructive/5 rounded-[3rem] text-center max-w-2xl mx-auto mt-10">
-        <AlertCircle className="w-14 h-14 text-destructive mx-auto mb-6 opacity-80" />
-        <h3 className="text-xl font-black text-destructive/80 mb-2">Observability Error</h3>
-        <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{error}</p>
-        <button 
-           onClick={fetchRecords}
-           className="px-8 py-3 bg-destructive text-destructive-foreground rounded-2xl text-xs font-black hover:scale-105 transition-transform shadow-xl shadow-destructive/20"
-        >
-          Retry Connection
-        </button>
-      </div>
+      <AlertBanner
+        variant="danger"
+        icon={ShieldAlert}
+        title="Observability Error"
+        message={error}
+        action={
+          <Button variant="danger" size="sm" onClick={fetchRecords}>
+            Retry Connection
+          </Button>
+        }
+      />
     );
   }
 
   if (records.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-border/40 rounded-[4rem] bg-card/10 p-12 text-center group">
-        <div className="relative mb-10">
-           <div className="absolute -inset-6 bg-primary/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-           <ShieldAlert className="relative w-20 h-20 text-muted-foreground/20 group-hover:rotate-12 transition-transform" />
-        </div>
-        <h3 className="text-2xl font-black text-foreground/80 mb-4 tracking-tighter">No Executions Detected</h3>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-10 leading-relaxed font-medium">
-          There is no historical data for scenes or automations yet. Execute a scene to see it here.
-        </p>
-        <button 
-          onClick={fetchRecords}
-          className="flex items-center gap-2 px-6 py-3 bg-card border border-border/60 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-muted transition-all"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Scan Edge Logs
-        </button>
-      </div>
+      <EmptyState
+        icon={ShieldAlert}
+        title="No Executions Detected"
+        description="There is no historical data for scenes or automations yet. Execute a scene to see it here."
+        className="min-h-[500px]"
+        action={
+          <Button variant="outline" size="sm" onClick={fetchRecords} className="gap-2 text-[10px] uppercase tracking-widest">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Scan Edge Logs
+          </Button>
+        }
+      />
     );
   }
 

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { Button } from './ui/Button';
+import { SectionHeader } from './ui/SectionHeader';
 
 interface UsersHeaderProps {
   title: string;
@@ -10,14 +11,16 @@ interface UsersHeaderProps {
 }
 
 export const UsersHeader: React.FC<UsersHeaderProps> = ({ title, subtitle, addLabel, onAdd }) => (
-  <div className="flex justify-between items-end">
-    <div>
-      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-      <p className="text-sm text-muted-foreground">{subtitle}</p>
-    </div>
-    <Button onClick={onAdd} size="sm">
-      <Plus className="w-4 h-4" />
-      {addLabel}
-    </Button>
-  </div>
+  <SectionHeader
+    level="view"
+    icon={Users}
+    title={title}
+    subtitle={subtitle}
+    action={
+      <Button onClick={onAdd} size="sm" className="gap-2">
+        <Plus className="w-4 h-4" />
+        {addLabel}
+      </Button>
+    }
+  />
 );

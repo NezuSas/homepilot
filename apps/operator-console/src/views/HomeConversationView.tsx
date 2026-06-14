@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { converseWithAssistant } from '../lib/assistantApi';
 import { useSession } from '../lib/useSession';
@@ -22,7 +22,7 @@ export const HomeConversationView: React.FC = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages.length, isLoading]);
 
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
@@ -106,55 +106,61 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
-  const suggestions = [
+  const suggestions = useMemo(() => [
     t('assistant.conversation.placeholder').split('ej: ')[1]?.split(',')[0] || t('assistant.conversation.suggestion_1'),
     t('assistant.conversation.suggestion_1'),
     t('assistant.conversation.suggestion_2'),
     t('assistant.conversation.suggestion_3')
-  ];
+  ], [t]);
 
   return (
-    <div className="flex flex-col h-full w-full animate-in fade-in duration-500 bg-background overflow-hidden">
+    <section className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background">
       <HomeConversationHeader
         title={t('assistant.conversation.title', 'Asistente de Hogar')}
         subtitle={t('assistant.conversation.subtitle', 'Control Inteligente')}
+        statusLabel={isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
+        isLoading={isLoading}
+        messageCount={messages.length}
       />
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 lg:px-10 py-6 space-y-6 scroll-smooth custom-scrollbar"
+        className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth px-4 py-5 md:px-6 lg:px-10 lg:py-8"
       >
-        {messages.length === 0 && (
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+          {messages.length === 0 && (
           <HomeConversationEmptyState
             title={t('assistant.conversation.empty_chat_title')}
             description={t('assistant.conversation.empty_chat_description')}
             suggestions={suggestions}
             onSuggestionClick={handleSend}
           />
-        )}
+          )}
 
-        {messages.map(message => (
-          <HomeConversationMessageBubble
-            key={message.id}
-            message={message}
-            user={user}
-            onOptionClick={handleOptionClick}
-          />
-        ))}
+          {messages.map(message => (
+            <HomeConversationMessageBubble
+              key={message.id}
+              message={message}
+              user={user}
+              onOptionClick={handleOptionClick}
+            />
+          ))}
 
-        {isLoading && <HomeConversationTypingIndicator />}
+          {isLoading && <HomeConversationTypingIndicator />}
+        </div>
       </div>
 
       <HomeConversationComposer
         input={input}
         isLoading={isLoading}
         placeholder={t('assistant.conversation.placeholder')}
+        sendLabel={t('assistant.conversation.send')}
         versionLabel={t('assistant.conversation.version_label')}
         inputHint={t('assistant.conversation.input_hint')}
         onInputChange={setInput}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
       />
-    </div>
+    </section>
   );
 };

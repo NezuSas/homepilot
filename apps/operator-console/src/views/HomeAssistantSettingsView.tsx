@@ -3,6 +3,9 @@ import { Save, RefreshCw, CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Glo
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
 
 interface HASettingsStatus {
   baseUrl: string;
@@ -107,12 +110,11 @@ export const HomeAssistantSettingsView: React.FC = () => {
       <div className="text-center">
         <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.error_title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">{error}</p>
-        <button 
+        <Button
           onClick={fetchStatus}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all"
         >
           {t('common.retry')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -127,7 +129,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Status Card */}
-        <div className="md:col-span-2 bg-card/40 border rounded-2xl p-6 backdrop-blur-xl flex flex-col gap-4 shadow-sm border-white/10 ring-1 ring-black/5">
+        <Card variant="glass" className="md:col-span-2 rounded-2xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-xl ${status.connectivityStatus === 'reachable' ? 'bg-success/10' : 'bg-danger/10'}`}>
@@ -163,10 +165,10 @@ export const HomeAssistantSettingsView: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Security Info Card */}
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col gap-3 relative overflow-hidden group">
+        <Card variant="active" className="rounded-2xl p-6 flex flex-col gap-3 relative group">
           <ShieldCheck className="absolute -right-4 -bottom-4 w-32 h-32 text-primary/5 group-hover:scale-110 transition-transform duration-700" />
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
@@ -178,11 +180,11 @@ export const HomeAssistantSettingsView: React.FC = () => {
           <div className="mt-auto pt-2">
              <span className="text-[10px] bg-primary/20 text-primary-foreground px-2 py-1 rounded font-bold">{t('ha_settings.security.badge')}</span>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Form Section */}
-      <div className="bg-card/40 border rounded-2xl overflow-hidden shadow-sm">
+      <Card className="rounded-2xl">
         <header className="border-b p-6 bg-muted/20">
           <h3 className="font-semibold">{t('ha_settings.config.title')}</h3>
           <p className="text-sm text-muted-foreground">{t('ha_settings.config.subtitle')}</p>
@@ -191,33 +193,29 @@ export const HomeAssistantSettingsView: React.FC = () => {
         <form onSubmit={handleSave} className="p-8 space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Globe className="w-4 h-4 text-muted-foreground" />
-                {t('ha_settings.config.url_label')}
-              </label>
-              <input 
+              <Input
+                label={t('ha_settings.config.url_label')}
+                icon={<Globe className="w-4 h-4" />}
                 type="url" 
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="http://192.168.1.100:8123"
-                className="w-full bg-background/50 border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono text-sm"
+                className="font-mono"
                 required
               />
               <p className="text-[11px] text-muted-foreground">{t('ha_settings.test.url_hint')}</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Database className="w-4 h-4 text-muted-foreground" />
-                {t('ha_settings.config.token_label')}
-              </label>
               <div className="relative group">
-                <input 
+                <Input
+                  label={t('ha_settings.config.token_label')}
+                  icon={<Database className="w-4 h-4" />}
                   type="password" 
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   placeholder={status.hasToken ? t('ha_settings.config.token_masked', { token: status.maskedToken }) : t('ha_settings.config.token_placeholder')}
-                  className="w-full bg-background/50 border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono text-sm pr-12"
+                  className="font-mono pr-12"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                    {status.hasToken && <CheckCircle2 className="w-4 h-4 text-success" />}
@@ -244,27 +242,28 @@ export const HomeAssistantSettingsView: React.FC = () => {
           )}
 
           <div className="flex items-center justify-between pt-4">
-            <button 
+            <Button
               type="button"
               onClick={handleTest}
               disabled={testing || !baseUrl}
-              className="flex items-center gap-2 text-sm font-medium px-6 py-2.5 rounded-xl border hover:bg-muted transition-all disabled:opacity-50"
+              variant="outline"
+              className="gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${testing ? 'animate-spin' : ''}`} />
               {testing ? t('ha_settings.status_card.testing') : t('ha_settings.status_card.test_button')}
-            </button>
+            </Button>
 
-            <button 
+            <Button
               type="submit"
               disabled={loading || !baseUrl}
-              className="flex items-center gap-2 text-sm font-bold px-8 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+              className="gap-2"
             >
               <Save className="w-4 h-4" />
               {t('ha_settings.status_card.save_button')}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

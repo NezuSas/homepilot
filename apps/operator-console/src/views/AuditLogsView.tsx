@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, ShieldAlert, AlertCircle, Clock, Zap, Info } from 'lucide-react';
+import { Loader2, ShieldAlert, Clock, Zap, Info, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { mapActivityType } from '../lib/i18n-mapping-utils';
+import { AlertBanner } from '../components/ui/AlertBanner';
+import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
 
 /**
  * Registro de actividad atómico para la UI.
@@ -57,38 +60,34 @@ export const AuditLogsView: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-12 border-2 border-dashed border-destructive/20 bg-destructive/5 rounded-[3rem] text-center max-w-3xl mx-auto mt-10">
-        <AlertCircle className="w-14 h-14 text-destructive mx-auto mb-6" />
-        <h3 className="text-xl font-black text-destructive/80 mb-2">{t('audit_logs.error_title')}</h3>
-        <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{error}</p>
-        <button 
-           onClick={fetchLogs}
-           className="px-8 py-3 bg-destructive text-destructive-foreground rounded-2xl text-xs font-black hover:scale-105 transition-transform"
-        >
-          {t('audit_logs.retry')}
-        </button>
-      </div>
+      <AlertBanner
+        variant="danger"
+        icon={ShieldAlert}
+        title={t('audit_logs.error_title')}
+        message={error}
+        action={
+          <Button variant="danger" size="sm" onClick={fetchLogs}>
+            {t('audit_logs.retry')}
+          </Button>
+        }
+      />
     );
   }
 
   if (logs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-border/40 rounded-[3rem] bg-card/10 p-12 text-center">
-        <div className="relative mb-10">
-           <div className="absolute -inset-4 bg-primary/5 rounded-full blur-2xl animate-pulse" />
-           <ShieldAlert className="relative w-16 h-16 text-muted-foreground/30" />
-        </div>
-        <h3 className="text-2xl font-black text-foreground/80 mb-4">{t('audit_logs.empty_title')}</h3>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-10 leading-relaxed font-medium">
-          {t('audit_logs.empty_description')}
-        </p>
-        <button 
-          onClick={fetchLogs}
-          className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest"
-        >
-          {t('audit_logs.refresh')}
-        </button>
-      </div>
+      <EmptyState
+        icon={ShieldAlert}
+        title={t('audit_logs.empty_title')}
+        description={t('audit_logs.empty_description')}
+        className="min-h-[500px]"
+        action={
+          <Button variant="outline" size="sm" onClick={fetchLogs} className="gap-2 text-[10px] uppercase tracking-widest">
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t('audit_logs.refresh')}
+          </Button>
+        }
+      />
     );
   }
 
@@ -100,7 +99,7 @@ export const AuditLogsView: React.FC = () => {
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{t('audit_logs.v1_title')}</span>
          </div>
          <button onClick={fetchLogs} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
-            <RefreshIcon className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3.5 h-3.5" />
             {t('audit_logs.live_update')}
          </button>
       </div>
@@ -220,7 +219,3 @@ export const AuditLogsView: React.FC = () => {
     </div>
   );
 };
-
-const RefreshIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-);

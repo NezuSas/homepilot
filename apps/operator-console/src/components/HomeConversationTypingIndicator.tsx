@@ -1,17 +1,18 @@
 import React from 'react';
 import { Bot } from 'lucide-react';
+import { Card } from './ui/Card';
 
 export const HomeConversationTypingIndicator: React.FC = () => (
-  <div className="flex justify-start w-full max-w-[85%] animate-in fade-in duration-300">
-    <div className="flex space-x-3">
-      <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center shrink-0 shadow-lg">
-        <Bot className="w-5 h-5 text-primary animate-pulse" />
+  <div className="flex w-full max-w-[85%] justify-start animate-in fade-in duration-300">
+    <div className="flex gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted shadow-depth-1">
+        <Bot className="h-5 w-5 animate-pulse text-primary" />
       </div>
-      <div className="bg-muted/30 border border-border p-4 rounded-2xl rounded-tl-none flex space-x-1.5 items-center shadow-lg">
-        <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
-        <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
-        <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" />
-      </div>
+      <Card className="flex items-center gap-1.5 rounded-2xl rounded-tl-md p-4 shadow-depth-1">
+        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
+        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
+        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60" />
+      </Card>
     </div>
   </div>
 );

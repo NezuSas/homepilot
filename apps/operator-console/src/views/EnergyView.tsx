@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Zap, Cpu, TrendingDown, AlertTriangle, Leaf, ChevronRight, Activity } from 'lucide-react';
 import type { View } from '../types';
 import { useEnergyStore } from '../stores/useEnergyStore';
+import { Card } from '../components/ui/Card';
 
 interface EnergyViewProps {
   onNavigate?: (view: View) => void;
@@ -76,7 +77,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
             <div className="flex flex-col gap-8">
               {/* Top Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="relative rounded-3xl border border-border/60 bg-card overflow-hidden p-6 flex flex-col justify-between shadow-sm">
+                <Card className="relative flex flex-col justify-between p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
                       <Zap className="w-5 h-5 text-warning/80" />
@@ -93,9 +94,9 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                       </span>
                     </div>
                   </div>
-                </div>
+                </Card>
 
-                <div className="relative rounded-3xl border border-border/60 bg-card overflow-hidden p-6 flex flex-col justify-between shadow-sm">
+                <Card className="relative flex flex-col justify-between p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                       <Activity className="w-5 h-5 text-primary/80" />
@@ -110,7 +111,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                       <span className="text-sm font-bold text-muted-foreground">kWh</span>
                     </div>
                   </div>
-                </div>
+                </Card>
               </div>
 
               {/* Live Consumption List */}
@@ -123,7 +124,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {Array.isArray(wEntities) && wEntities.map((e) => (
-                      <div key={e.entity_id} className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border/60 shadow-sm transition-all hover:border-border">
+                      <Card key={e.entity_id} className="flex items-center justify-between gap-4 rounded-2xl p-4">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
                             <Zap className="w-4 h-4 text-warning/60" />
@@ -134,7 +135,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                           <span className="text-sm font-black text-warning/90">{Math.round(e.state)}</span>
                           <span className="text-[10px] font-black text-muted-foreground/60">W</span>
                         </div>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 )}
@@ -181,7 +182,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
 
         {/* Right: Bridge to Assistant */}
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 flex flex-col gap-4">
+          <Card className="rounded-2xl p-5 sm:p-6 flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Zap className="w-4 h-4 text-primary/70" />
@@ -203,7 +204,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                 <ChevronRight className="w-3.5 h-3.5 text-primary/50 group-hover:translate-x-0.5 transition-transform shrink-0" />
               </button>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     </div>
