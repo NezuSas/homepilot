@@ -8,7 +8,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La UI debe permitir dictar una instrucción con micrófono cuando el navegador soporte Web Speech API.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con voces neurales gratuitas.
-- La UI puede usar `speechSynthesis` solo como fallback si el servicio TTS local no responde.
+- La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
 - La experiencia de voz no debe requerir API keys ni proveedores cloud de pago.
 - Las acciones ambiguas, masivas o sensibles deben seguir usando las confirmaciones actuales.
 
@@ -27,5 +27,5 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio MP3 al endpoint TTS backend.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con voces neurales gratuitas y sin API key.
-- Si el servicio TTS local falla, la UI usa `speechSynthesis` solo como fallback sin romper la conversación.
+- Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.
 - Typecheck, build, build de Operator Console, tests y Docker pasan.
