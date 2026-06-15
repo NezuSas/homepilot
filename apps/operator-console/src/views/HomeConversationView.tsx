@@ -41,6 +41,8 @@ interface SpeechRecognitionLike extends EventTarget {
   onend: ((event: Event) => void) | null;
   onerror: ((event: Event) => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onstart: ((event: Event) => void) | null;
+  abort: () => void;
   start: () => void;
   stop: () => void;
 }
@@ -66,6 +68,18 @@ function createSpeechAudioUrl(audioBase64: string, audioContentType: string): st
   return URL.createObjectURL(new Blob([bytes], { type: audioContentType }));
 }
 
+async function requestMicrophoneAccess(): Promise<boolean> {
+  if (!navigator.mediaDevices?.getUserMedia) return true;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const HomeConversationView: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useSession(noopSessionCleared);
@@ -74,6 +88,7 @@ export const HomeConversationView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
+  const [speechNotice, setSpeechNotice] = useState('');
   const [speechSupport, setSpeechSupport] = useState({
     recognition: false,
     synthesis: false
@@ -99,7 +114,7 @@ export const HomeConversationView: React.FC = () => {
   }, [messages.length, isLoading]);
 
   useEffect(() => () => {
-    recognitionRef.current?.stop();
+    recognitionRef.current?.abort();
     speechRequestIdRef.current += 1;
     stopProfessionalSpeech();
   }, []);
@@ -176,6 +191,7 @@ export const HomeConversationView: React.FC = () => {
     if (!text.trim() || isLoading) return;
 
     const userText = text.trim();
+    setSpeechNotice('');
     setInput('');
     addMessage({ role: 'user', content: userText });
     setIsLoading(true);
@@ -193,11 +209,18 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
-  const handleToggleListening = () => {
+  const handleToggleListening = async () => {
     if (!speechSupport.recognition || isLoading) return;
 
     if (isListening) {
       recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const hasMicrophoneAccess = await requestMicrophoneAccess();
+    if (!hasMicrophoneAccess) {
+      setSpeechNotice(t('assistant.conversation.voice_permission_error'));
       setIsListening(false);
       return;
     }
@@ -209,8 +232,15 @@ export const HomeConversationView: React.FC = () => {
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = i18n.language.startsWith('en') ? 'en-US' : 'es-ES';
+    recognition.onstart = () => {
+      setSpeechNotice('');
+      setIsListening(true);
+    };
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = () => {
+      setSpeechNotice(t('assistant.conversation.voice_start_error'));
+      setIsListening(false);
+    };
     recognition.onresult = (event: SpeechRecognitionEventLike) => {
       let finalTranscript = '';
       let interimTranscript = '';
@@ -243,8 +273,13 @@ export const HomeConversationView: React.FC = () => {
       speechEnabledRef.current = true;
       setIsSpeechEnabled(true);
     }
-    setIsListening(true);
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch {
+      setSpeechNotice(t('assistant.conversation.voice_start_error'));
+      setIsListening(false);
+    }
   };
 
   const handleToggleSpeech = () => {
@@ -352,7 +387,7 @@ export const HomeConversationView: React.FC = () => {
         placeholder={t('assistant.conversation.placeholder')}
         sendLabel={t('assistant.conversation.send')}
         versionLabel={t('assistant.conversation.version_label')}
-        inputHint={t('assistant.conversation.input_hint')}
+        inputHint={speechNotice || t('assistant.conversation.input_hint')}
         isListening={isListening}
         isSpeechRecognitionSupported={speechSupport.recognition}
         isSpeechSynthesisSupported={speechSupport.synthesis}
@@ -364,7 +399,7 @@ export const HomeConversationView: React.FC = () => {
         onInputChange={setInput}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
-        onToggleListening={handleToggleListening}
+        onToggleListening={() => void handleToggleListening()}
         onToggleSpeech={handleToggleSpeech}
       />
     </section>

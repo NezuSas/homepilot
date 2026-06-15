@@ -133,6 +133,8 @@
       "sending": "Sending...",
       "voice_start": "Talk to HomePilot",
       "voice_listening": "Listening...",
+      "voice_permission_error": "Microphone permission denied",
+      "voice_start_error": "Could not start microphone",
       "speech_on": "Response reading enabled",
       "speech_off": "Enable response reading",
       "empty_title": "Start a conversation",

@@ -133,6 +133,8 @@
       "sending": "Enviando...",
       "voice_start": "Hablar con HomePilot",
       "voice_listening": "Escuchando...",
+      "voice_permission_error": "Permiso de micrófono denegado",
+      "voice_start_error": "No se pudo iniciar el micrófono",
       "speech_on": "Lectura de respuestas activada",
       "speech_off": "Activar lectura de respuestas",
       "empty_title": "Empieza una conversación",

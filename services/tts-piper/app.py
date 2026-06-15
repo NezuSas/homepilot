@@ -1,16 +1,18 @@
 import base64
+import io
 import os
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Literal
+import wave
 
 from fastapi import FastAPI, HTTPException
+from piper.voice import PiperVoice
 from pydantic import BaseModel, Field
 
 
 MAX_TEXT_LENGTH = 1200
 MODEL_DIR = Path(os.getenv("PIPER_MODEL_DIR", "/models"))
+VOICE_CACHE: dict[str, PiperVoice] = {}
 
 app = FastAPI(title="HomePilot Piper TTS", version="1.0.0")
 
@@ -38,9 +40,44 @@ def resolve_model(language: str) -> Path:
     return model_path
 
 
+def resolve_voice(language: str) -> PiperVoice:
+    model_path = resolve_model(language)
+    cache_key = str(model_path)
+    cached_voice = VOICE_CACHE.get(cache_key)
+    if cached_voice is not None:
+        return cached_voice
+
+    voice = PiperVoice.load(model_path)
+    VOICE_CACHE[cache_key] = voice
+    return voice
+
+
+def synthesize_wav_bytes(voice: PiperVoice, text: str) -> bytes:
+    audio_buffer = io.BytesIO()
+    chunks = list(voice.synthesize(text))
+    if not chunks:
+        return b""
+
+    first_chunk = chunks[0]
+    with wave.open(audio_buffer, "wb") as wav_file:
+        wav_file.setnchannels(first_chunk.sample_channels)
+        wav_file.setsampwidth(first_chunk.sample_width)
+        wav_file.setframerate(first_chunk.sample_rate)
+        for chunk in chunks:
+            wav_file.writeframes(chunk.audio_int16_bytes)
+
+    return audio_buffer.getvalue()
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+async def preload_default_voices() -> None:
+    resolve_voice("es")
+    resolve_voice("en")
 
 
 @app.post("/api/tts", response_model=TextToSpeechResponse)
@@ -49,25 +86,12 @@ async def synthesize(request: TextToSpeechRequest) -> TextToSpeechResponse:
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
 
-    model_path = resolve_model(request.language)
-
-    with tempfile.NamedTemporaryFile(suffix=".wav") as audio_file:
-        try:
-            completed = subprocess.run(
-                ["piper", "--model", str(model_path), "--output_file", audio_file.name],
-                input=text,
-                text=True,
-                capture_output=True,
-                timeout=float(os.getenv("PIPER_SYNTHESIS_TIMEOUT_SECONDS", "20")),
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise HTTPException(status_code=504, detail="piper synthesis timed out") from exc
-
-        if completed.returncode != 0:
-            raise HTTPException(status_code=502, detail="piper synthesis failed")
-
-        audio = Path(audio_file.name).read_bytes()
+    try:
+        audio = synthesize_wav_bytes(resolve_voice(request.language), text)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="piper synthesis failed") from exc
 
     if not audio:
         raise HTTPException(status_code=502, detail="piper synthesis returned empty audio")

@@ -6,6 +6,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
 - La UI debe permitir dictar una instrucción con micrófono cuando el navegador soporte Web Speech API.
+- La UI debe pedir permiso de micrófono antes de iniciar reconocimiento y recuperar el estado si el navegador lo rechaza.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
@@ -25,7 +26,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La caja de chat expone botón de micrófono si el navegador soporta reconocimiento de voz.
 - Al terminar el dictado, el texto reconocido se envía al asistente como un prompt normal.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
-- Si una respuesta del asistente llega con lectura activada, la UI solicita audio MP3 al endpoint TTS backend.
+- Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-davefx-medium` por defecto.
+- El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.
 - Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.
 - Typecheck, build, build de Operator Console, tests y Docker pasan.
