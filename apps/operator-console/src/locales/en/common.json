@@ -145,17 +145,17 @@
       "ready": "Ready",
       "input_hint": "Shift + Enter for newline",
       "version_label": "HomePilot Conversation V1.0",
-      "empty_chat_title": "Ready to operate",
-      "empty_chat_description": "Ask for status, run scenes, or control devices in natural language. Sensitive actions ask for confirmation before they run.",
-      "capability_status": "Check what is on by space or device",
-      "capability_actions": "Run scenes and commands with guided execution",
-      "capability_safety": "Confirm bulk actions before applying them",
+      "empty_chat_title": "Assistant ready",
+      "empty_chat_description": "Check status, control devices, and run scenes in natural language. Sensitive actions always ask for confirmation.",
+      "capability_status": "Status by space",
+      "capability_actions": "Scenes and commands",
+      "capability_safety": "Safe confirmation",
       "suggestions_label": "Useful commands to start",
-      "suggestion_status": "What lights are on?",
-      "suggestion_1": "Turn off everything",
-      "suggestion_2": "Activate cinema scene",
+      "suggestion_status": "Lights on",
+      "suggestion_1": "Turn everything off",
+      "suggestion_2": "Activate cinema",
       "suggestion_3": "Turn off the living room lights",
-      "suggestion_4": "Who are you?"
+      "suggestion_4": "Who are you"
     }
   },
   "dashboard": {

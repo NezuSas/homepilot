@@ -145,17 +145,17 @@
       "ready": "Listo",
       "input_hint": "Shift + Enter para nueva línea",
       "version_label": "Conversación HomePilot V1.0",
-      "empty_chat_title": "Listo para operar",
-      "empty_chat_description": "Consulta estados, ejecuta escenas o controla dispositivos con lenguaje natural. Las acciones sensibles piden confirmación antes de ejecutarse.",
-      "capability_status": "Consulta qué está encendido por espacio o dispositivo",
-      "capability_actions": "Ejecuta escenas y comandos de forma guiada",
-      "capability_safety": "Confirma acciones masivas antes de aplicarlas",
+      "empty_chat_title": "Asistente listo",
+      "empty_chat_description": "Consulta estados, controla dispositivos y ejecuta escenas con lenguaje natural. Las acciones sensibles siempre piden confirmación.",
+      "capability_status": "Estados por espacio",
+      "capability_actions": "Escenas y comandos",
+      "capability_safety": "Confirmación segura",
       "suggestions_label": "Comandos útiles para empezar",
-      "suggestion_status": "¿Qué luces están encendidas?",
-      "suggestion_1": "Apaga todo",
-      "suggestion_2": "Activa escena cine",
+      "suggestion_status": "Luces encendidas",
+      "suggestion_1": "Apagar todo",
+      "suggestion_2": "Activar escena cine",
       "suggestion_3": "Apaga las luces de la sala",
-      "suggestion_4": "¿Quién eres?"
+      "suggestion_4": "Quién eres"
     }
   },
   "dashboard": {

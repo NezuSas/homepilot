@@ -112,7 +112,6 @@ export const HomeConversationView: React.FC = () => {
     t('assistant.conversation.suggestion_status'),
     t('assistant.conversation.suggestion_1'),
     t('assistant.conversation.suggestion_2'),
-    t('assistant.conversation.suggestion_3'),
     t('assistant.conversation.suggestion_4')
   ], [t]);
 
