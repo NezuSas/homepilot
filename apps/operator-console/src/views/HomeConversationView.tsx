@@ -70,7 +70,7 @@ export const HomeConversationView: React.FC = () => {
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const sendTextRef = useRef<(text: string) => void>(() => {});
+  const speechEnabledRef = useRef(false);
 
   useEffect(() => {
     setSpeechSupport({
@@ -100,7 +100,7 @@ export const HomeConversationView: React.FC = () => {
   };
 
   const speakAssistantResponse = (text: string) => {
-    if (!isSpeechEnabled || !speechSupport.synthesis || !text.trim()) return;
+    if (!speechEnabledRef.current || !speechSupport.synthesis || !text.trim()) return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -151,12 +151,6 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    sendTextRef.current = (text: string) => {
-      void handleSend(text);
-    };
-  });
-
   const handleToggleListening = () => {
     if (!speechSupport.recognition || isLoading) return;
 
@@ -194,7 +188,7 @@ export const HomeConversationView: React.FC = () => {
       const spokenText = finalTranscript.trim();
       if (spokenText) {
         setInput(spokenText);
-        sendTextRef.current(spokenText);
+        void handleSend(spokenText);
         return;
       }
 
@@ -203,8 +197,19 @@ export const HomeConversationView: React.FC = () => {
     };
 
     recognitionRef.current = recognition;
+    if (speechSupport.synthesis) {
+      speechEnabledRef.current = true;
+      setIsSpeechEnabled(true);
+    }
     setIsListening(true);
     recognition.start();
+  };
+
+  const handleToggleSpeech = () => {
+    const nextSpeechEnabled = !speechEnabledRef.current;
+    if (!nextSpeechEnabled) window.speechSynthesis?.cancel();
+    speechEnabledRef.current = nextSpeechEnabled;
+    setIsSpeechEnabled(nextSpeechEnabled);
   };
 
   const handleOptionClick = async (optionId: string, label: string, pendingAction?: AssistantConverseRequest['pendingAction']) => {
@@ -315,10 +320,7 @@ export const HomeConversationView: React.FC = () => {
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
         onToggleListening={handleToggleListening}
-        onToggleSpeech={() => {
-          if (isSpeechEnabled) window.speechSynthesis?.cancel();
-          setIsSpeechEnabled(prev => !prev);
-        }}
+        onToggleSpeech={handleToggleSpeech}
       />
     </section>
   );
