@@ -32,6 +32,12 @@ export interface AssistantConverseRequest {
   sourceRoomId?: string;
 }
 
+export interface AssistantTextToSpeechResponse {
+  provider: "edge";
+  audioContentType: "audio/mpeg";
+  audioBase64: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";

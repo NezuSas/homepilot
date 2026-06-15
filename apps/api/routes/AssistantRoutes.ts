@@ -4,6 +4,10 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { AssistantConverseRequest } from '../../../packages/assistant/application/AssistantConversationService';
+import {
+  AssistantTextToSpeechUnavailableError,
+  AssistantTextToSpeechValidationError
+} from '../../../packages/assistant/application/AssistantTextToSpeechService';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -154,6 +158,29 @@ export class AssistantRoutes extends ApiRoutes {
         return this.sendJson(res, response), true;
       } catch (e: unknown) {
         this.sendError(res, 500, 'ASSISTANT_CONVERSE_ERROR', e instanceof Error ? e.message : String(e));
+      }
+      return true;
+    }
+
+    // POST /api/v1/assistant/tts
+    if (method === 'POST' && pathname === '/api/v1/assistant/tts') {
+      try {
+        const body = await this.parseBody<{ text?: string }>(req);
+        const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
+        const response = await container.services.assistantTextToSpeechService.synthesize({
+          text: body.text || '',
+          language
+        });
+
+        return this.sendJson(res, response), true;
+      } catch (e: unknown) {
+        if (e instanceof AssistantTextToSpeechValidationError) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', e.message), true;
+        }
+        if (e instanceof AssistantTextToSpeechUnavailableError) {
+          return this.sendError(res, 409, 'TTS_UNAVAILABLE', e.message), true;
+        }
+        this.sendError(res, 500, 'ASSISTANT_TTS_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }

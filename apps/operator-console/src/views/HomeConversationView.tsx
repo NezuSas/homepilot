@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { converseWithAssistant } from '../lib/assistantApi';
+import { converseWithAssistant, synthesizeAssistantSpeech } from '../lib/assistantApi';
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
 import type { AssistantConversationResponse, AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
@@ -56,6 +56,48 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
   return browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition ?? null;
 }
 
+function scoreSpeechVoice(voice: SpeechSynthesisVoice, language: string): number {
+  const normalizedName = voice.name.toLowerCase();
+  const normalizedLang = voice.lang.toLowerCase();
+  const targetLanguage = language.startsWith('en') ? 'en' : 'es';
+  let score = 0;
+
+  if (normalizedLang.startsWith(targetLanguage)) score += 100;
+  if (targetLanguage === 'es' && normalizedLang.includes('419')) score += 16;
+  if (targetLanguage === 'es' && normalizedLang.includes('us')) score += 10;
+  if (targetLanguage === 'en' && normalizedLang.includes('us')) score += 14;
+  if (normalizedName.includes('natural')) score += 36;
+  if (normalizedName.includes('online')) score += 30;
+  if (normalizedName.includes('google')) score += 28;
+  if (normalizedName.includes('microsoft')) score += 24;
+  if (normalizedName.includes('neural')) score += 20;
+  if (normalizedName.includes('premium')) score += 18;
+  if (normalizedName.includes('female')) score += 6;
+  if (normalizedName.includes('helena') || normalizedName.includes('elvira') || normalizedName.includes('dalia')) score += 8;
+  if (normalizedName.includes('compact')) score -= 12;
+  if (voice.default) score += 4;
+
+  return score;
+}
+
+function resolvePreferredSpeechVoice(voices: SpeechSynthesisVoice[], language: string): SpeechSynthesisVoice | null {
+  const targetLanguage = language.startsWith('en') ? 'en' : 'es';
+  const candidates = voices.filter(voice => voice.lang.toLowerCase().startsWith(targetLanguage));
+  if (candidates.length === 0) return null;
+
+  return [...candidates].sort((a, b) => scoreSpeechVoice(b, language) - scoreSpeechVoice(a, language))[0] ?? null;
+}
+
+function createSpeechAudioUrl(audioBase64: string, audioContentType: string): string {
+  const binary = atob(audioBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return URL.createObjectURL(new Blob([bytes], { type: audioContentType }));
+}
+
 export const HomeConversationView: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useSession(noopSessionCleared);
@@ -64,6 +106,7 @@ export const HomeConversationView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
+  const [speechVoices, setSpeechVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [speechSupport, setSpeechSupport] = useState({
     recognition: false,
     synthesis: false
@@ -71,12 +114,27 @@ export const HomeConversationView: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const speechEnabledRef = useRef(false);
+  const speechAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speechAudioUrlRef = useRef<string | null>(null);
+  const speechRequestIdRef = useRef(0);
 
   useEffect(() => {
     setSpeechSupport({
       recognition: getSpeechRecognitionConstructor() !== null,
-      synthesis: 'speechSynthesis' in window
+      synthesis: 'Audio' in window || 'speechSynthesis' in window
     });
+  }, []);
+
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+
+    const syncVoices = () => {
+      setSpeechVoices(window.speechSynthesis.getVoices());
+    };
+
+    syncVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', syncVoices);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', syncVoices);
   }, []);
 
   useEffect(() => {
@@ -87,6 +145,8 @@ export const HomeConversationView: React.FC = () => {
 
   useEffect(() => () => {
     recognitionRef.current?.stop();
+    speechRequestIdRef.current += 1;
+    stopProfessionalSpeech();
     window.speechSynthesis?.cancel();
   }, []);
 
@@ -99,14 +159,64 @@ export const HomeConversationView: React.FC = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const speakAssistantResponse = (text: string) => {
-    if (!speechEnabledRef.current || !speechSupport.synthesis || !text.trim()) return;
+  const stopProfessionalSpeech = () => {
+    if (speechAudioRef.current) {
+      speechAudioRef.current.pause();
+      speechAudioRef.current.src = '';
+      speechAudioRef.current = null;
+    }
+
+    if (speechAudioUrlRef.current) {
+      URL.revokeObjectURL(speechAudioUrlRef.current);
+      speechAudioUrlRef.current = null;
+    }
+  };
+
+  const speakWithBrowserFallback = (text: string) => {
+    if (!speechEnabledRef.current || !text.trim()) return;
+    if (!('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = i18n.language.startsWith('en') ? 'en-US' : 'es-ES';
-    utterance.rate = 0.96;
+    utterance.voice = resolvePreferredSpeechVoice(speechVoices, i18n.language);
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const speakAssistantResponse = async (text: string) => {
+    if (!speechEnabledRef.current || !text.trim()) return;
+
+    speechRequestIdRef.current += 1;
+    const requestId = speechRequestIdRef.current;
+    stopProfessionalSpeech();
+    window.speechSynthesis?.cancel();
+
+    const professionalSpeech = await synthesizeAssistantSpeech(text);
+    if (requestId !== speechRequestIdRef.current || !speechEnabledRef.current) return;
+
+    if (!professionalSpeech) {
+      speakWithBrowserFallback(text);
+      return;
+    }
+
+    try {
+      const audioUrl = createSpeechAudioUrl(professionalSpeech.audioBase64, professionalSpeech.audioContentType);
+      const audio = new Audio(audioUrl);
+      speechAudioUrlRef.current = audioUrl;
+      speechAudioRef.current = audio;
+      audio.onended = stopProfessionalSpeech;
+      audio.onerror = () => {
+        stopProfessionalSpeech();
+        speakWithBrowserFallback(text);
+      };
+      await audio.play();
+    } catch {
+      stopProfessionalSpeech();
+      speakWithBrowserFallback(text);
+    }
   };
 
   const handleResponse = (response: AssistantConversationResponse) => {
@@ -118,7 +228,7 @@ export const HomeConversationView: React.FC = () => {
       execution: response.execution,
       pendingAction: response.clarification?.pendingAction
     });
-    speakAssistantResponse(response.message);
+    void speakAssistantResponse(response.message);
   };
 
   const addErrorMessage = (error: unknown) => {
@@ -207,7 +317,11 @@ export const HomeConversationView: React.FC = () => {
 
   const handleToggleSpeech = () => {
     const nextSpeechEnabled = !speechEnabledRef.current;
-    if (!nextSpeechEnabled) window.speechSynthesis?.cancel();
+    if (!nextSpeechEnabled) {
+      speechRequestIdRef.current += 1;
+      stopProfessionalSpeech();
+      window.speechSynthesis?.cancel();
+    }
     speechEnabledRef.current = nextSpeechEnabled;
     setIsSpeechEnabled(nextSpeechEnabled);
   };

@@ -27,6 +27,8 @@ const SAFE_MESSAGES: Record<string, string> = {
   'INVALID_COMMAND': 'Comando no válido para este dispositivo.',
   'AUTOMATION_ERROR': 'Error en la gestión de automatizaciones.',
   'REFRESH_ERROR': 'No se pudo actualizar el estado desde Home Assistant.',
+  'TTS_UNAVAILABLE': 'La voz profesional gratuita no está disponible.',
+  'ASSISTANT_TTS_ERROR': 'No se pudo generar la respuesta hablada.',
   'HOME_NOT_FOUND': 'Hogar no encontrado.',
   'HA_ENTITY_NOT_FOUND': 'Entidad de Home Assistant no encontrada.',
   'AUTOMATIONLOOPERROR': 'Se detectó un bucle infinito en la automatización.',

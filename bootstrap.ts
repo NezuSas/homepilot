@@ -22,6 +22,7 @@ import { FollowUpResolver } from './packages/assistant/application/FollowUpResol
 import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Validator';
 import { PlannerV2Resolver } from './packages/assistant/application/PlannerV2Resolver';
 import { AssistantPlannerV2ShadowService } from './packages/assistant/application/AssistantPlannerV2ShadowService';
+import { AssistantTextToSpeechService } from './packages/assistant/application/AssistantTextToSpeechService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -98,6 +99,7 @@ export interface BootstrapContainer {
     assistantConfirmationPolicy: AssistantConfirmationPolicy;
     assistantConversationService: AssistantConversationService;
     assistantPlannerV2ShadowService: AssistantPlannerV2ShadowService;
+    assistantTextToSpeechService: AssistantTextToSpeechService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -260,6 +262,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const plannerV2Validator = new PlannerV2Validator();
   const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService);
   const shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, plannerV2Validator, plannerV2Resolver);
+  const assistantTextToSpeechService = new AssistantTextToSpeechService();
 
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
@@ -306,7 +309,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       intentInterpreterService,
       assistantConfirmationPolicy,
       assistantConversationService,
-      assistantPlannerV2ShadowService: shadowService
+      assistantPlannerV2ShadowService: shadowService,
+      assistantTextToSpeechService
     },
     guards: {
       authGuard: authModule.authGuard

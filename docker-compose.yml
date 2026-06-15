@@ -30,6 +30,9 @@ services:
       - ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT=${ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT:-true}
       - ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS=${ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS:-8000}
       - ASSISTANT_PLANNER_V2_SHADOW_MODEL=${ASSISTANT_PLANNER_V2_SHADOW_MODEL:-}
+      - TTS_PROVIDER=${TTS_PROVIDER:-edge}
+      - TTS_BASE_URL=${TTS_BASE_URL:-http://homepilot-tts:8088}
+      - TTS_TIMEOUT_MS=${TTS_TIMEOUT_MS:-12000}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -42,6 +45,8 @@ services:
       homeassistant:
         condition: service_healthy
       ollama:
+        condition: service_started
+      homepilot-tts:
         condition: service_started
 
   homepilot-ui:
@@ -81,6 +86,26 @@ services:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+  homepilot-tts:
+    build:
+      context: .
+      dockerfile: services/tts-edge/Dockerfile
+    container_name: homepilot-tts
+    environment:
+      - EDGE_TTS_VOICE_ES=${EDGE_TTS_VOICE_ES:-es-MX-DaliaNeural}
+      - EDGE_TTS_VOICE_EN=${EDGE_TTS_VOICE_EN:-en-US-AriaNeural}
+      - EDGE_TTS_RATE=${EDGE_TTS_RATE:--4%}
+      - EDGE_TTS_VOLUME=${EDGE_TTS_VOLUME:-+0%}
+      - EDGE_TTS_PITCH=${EDGE_TTS_PITCH:-+0Hz}
+    ports:
+      - "8088:8088"
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
 volumes:

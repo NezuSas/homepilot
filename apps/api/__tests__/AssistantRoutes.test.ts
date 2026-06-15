@@ -9,18 +9,27 @@ describe('AssistantRoutes', () => {
   let mockRes: Partial<http.ServerResponse>;
   let mockContainer: Partial<BootstrapContainer>;
   let mockAssistantConversationService: any;
+  let mockAssistantTextToSpeechService: any;
   let mockAuthGuard: any;
 
   beforeEach(() => {
     mockAssistantConversationService = {
       converse: jest.fn().mockResolvedValue({ type: 'answer', message: 'Hello' })
     };
+    mockAssistantTextToSpeechService = {
+      synthesize: jest.fn().mockResolvedValue({
+        provider: 'edge',
+        audioContentType: 'audio/mpeg',
+        audioBase64: 'YWJj'
+      })
+    };
     mockAuthGuard = {
       protect: jest.fn().mockResolvedValue(true)
     };
     mockContainer = {
       services: {
-        assistantConversationService: mockAssistantConversationService
+        assistantConversationService: mockAssistantConversationService,
+        assistantTextToSpeechService: mockAssistantTextToSpeechService
       } as any,
       guards: {
         authGuard: mockAuthGuard
@@ -78,5 +87,22 @@ describe('AssistantRoutes', () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"sourceRoomId":"r1"'));
     
     consoleSpy.mockRestore();
+  });
+
+  it('POST /api/v1/assistant/tts returns professional speech audio', async () => {
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({ text: 'Hola casa' });
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/tts', 'POST', mockContainer as BootstrapContainer);
+
+    expect(mockAssistantTextToSpeechService.synthesize).toHaveBeenCalledWith({
+      text: 'Hola casa',
+      language: 'es'
+    });
+    expect(mockRes.writeHead).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+    expect(mockRes.end).toHaveBeenCalledWith(JSON.stringify({
+      provider: 'edge',
+      audioContentType: 'audio/mpeg',
+      audioBase64: 'YWJj'
+    }));
   });
 });
