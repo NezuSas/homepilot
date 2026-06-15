@@ -10,9 +10,11 @@ import { HomeConversationHeader } from '../components/HomeConversationHeader';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
 
+const noopSessionCleared = () => {};
+
 export const HomeConversationView: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useSession(() => {});
+  const { user } = useSession(noopSessionCleared);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -107,17 +109,24 @@ export const HomeConversationView: React.FC = () => {
   };
 
   const suggestions = useMemo(() => [
-    t('assistant.conversation.placeholder').split('ej: ')[1]?.split(',')[0] || t('assistant.conversation.suggestion_1'),
+    t('assistant.conversation.suggestion_status'),
     t('assistant.conversation.suggestion_1'),
     t('assistant.conversation.suggestion_2'),
-    t('assistant.conversation.suggestion_3')
+    t('assistant.conversation.suggestion_3'),
+    t('assistant.conversation.suggestion_4')
+  ], [t]);
+
+  const capabilityLabels = useMemo(() => [
+    t('assistant.conversation.capability_status'),
+    t('assistant.conversation.capability_actions'),
+    t('assistant.conversation.capability_safety')
   ], [t]);
 
   return (
     <section className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background">
       <HomeConversationHeader
-        title={t('assistant.conversation.title', 'Asistente de Hogar')}
-        subtitle={t('assistant.conversation.subtitle', 'Control Inteligente')}
+        title={t('assistant.conversation.header_title')}
+        subtitle={t('assistant.conversation.header_subtitle')}
         statusLabel={isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
         isLoading={isLoading}
         messageCount={messages.length}
@@ -137,6 +146,8 @@ export const HomeConversationView: React.FC = () => {
             <HomeConversationEmptyState
               title={t('assistant.conversation.empty_chat_title')}
               description={t('assistant.conversation.empty_chat_description')}
+              capabilities={capabilityLabels}
+              suggestionLabel={t('assistant.conversation.suggestions_label')}
               suggestions={suggestions}
               onSuggestionClick={handleSend}
             />

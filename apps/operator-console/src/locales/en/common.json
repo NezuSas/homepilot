@@ -126,6 +126,8 @@
     "conversation": {
       "title": "Talk to my Home",
       "subtitle": "Natural and friendly interaction with HomePilot",
+      "header_title": "Operational assistant",
+      "header_subtitle": "Natural control with safe confirmations",
       "placeholder": "Tell me something, e.g. what lights are on?",
       "send": "Send",
       "sending": "Sending...",
@@ -133,6 +135,8 @@
       "empty_description": "You can ask about the state of your home or ask me to perform actions for you.",
       "selected_option": "I selected: {{label}}",
       "options_question": "Which one do you want to control?",
+      "confirmation_question": "Confirm the action",
+      "needs_clarification": "Needs clarification",
       "execution_success": "Action completed successfully.",
       "execution_partial": "Action partially completed.",
       "execution_failed": "Could not complete the action.",
@@ -141,11 +145,17 @@
       "ready": "Ready",
       "input_hint": "Shift + Enter for newline",
       "version_label": "HomePilot Conversation V1.0",
-      "empty_chat_title": "Talk to your home",
-      "empty_chat_description": "Ask what is on, control lights, or get help with your devices.",
+      "empty_chat_title": "Ready to operate",
+      "empty_chat_description": "Ask for status, run scenes, or control devices in natural language. Sensitive actions ask for confirmation before they run.",
+      "capability_status": "Check what is on by space or device",
+      "capability_actions": "Run scenes and commands with guided execution",
+      "capability_safety": "Confirm bulk actions before applying them",
+      "suggestions_label": "Useful commands to start",
+      "suggestion_status": "What lights are on?",
       "suggestion_1": "Turn off everything",
       "suggestion_2": "Activate cinema scene",
-      "suggestion_3": "Who are you?"
+      "suggestion_3": "Turn off the living room lights",
+      "suggestion_4": "Who are you?"
     }
   },
   "dashboard": {

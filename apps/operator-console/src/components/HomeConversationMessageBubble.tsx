@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, ChevronRight } from 'lucide-react';
+import { Bot, CheckCircle2, ChevronRight, HelpCircle, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { cn } from '../lib/utils';
@@ -28,7 +28,9 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
   const { t, i18n } = useTranslation();
   const isUserMessage = message.role === 'user';
   const isError = message.responseType === 'error';
+  const isClarification = message.responseType === 'clarification';
   const userLabel = user?.displayName || user?.username || 'Usuario';
+  const hasConfirmationOptions = message.options?.some(option => option.id === 'confirm' || option.id === 'cancel') ?? false;
 
   return (
     <div
@@ -79,23 +81,41 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
 
             {message.options && message.options.length > 0 && (
               <div className="mt-4 space-y-3 border-t border-border/50 pt-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
-                  {t('assistant.conversation.options_question')}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {message.options.map(option => (
-                    <Button
-                      key={option.id}
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onOptionClick(option.id, option.label, message.pendingAction)}
-                      className="rounded-xl bg-background/60"
-                    >
-                      <span>{option.label}</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  ))}
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                  {hasConfirmationOptions ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                  ) : (
+                    <HelpCircle className="h-3.5 w-3.5 text-primary" />
+                  )}
+                  <span>
+                    {hasConfirmationOptions ? t('assistant.conversation.confirmation_question') : t('assistant.conversation.options_question')}
+                  </span>
+                </div>
+                <div className={cn("grid gap-2", hasConfirmationOptions ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
+                  {message.options.map(option => {
+                    const isConfirm = option.id === 'confirm';
+                    const isCancel = option.id === 'cancel';
+
+                    return (
+                      <Button
+                        key={option.id}
+                        type="button"
+                        variant={isConfirm ? 'primary' : isCancel ? 'outline' : 'secondary'}
+                        size="sm"
+                        onClick={() => onOptionClick(option.id, option.label, message.pendingAction)}
+                        className={cn(
+                          "min-h-10 rounded-xl bg-background/60",
+                          isConfirm && "bg-success text-success-foreground hover:bg-success/90 shadow-success/15",
+                          isCancel && "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {isConfirm && <CheckCircle2 className="h-4 w-4" />}
+                        {isCancel && <XCircle className="h-4 w-4" />}
+                        <span className="min-w-0 truncate">{option.label}</span>
+                        {!isConfirm && !isCancel && <ChevronRight className="h-4 w-4" />}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -109,6 +129,15 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                 ) : (
                   <StatusPill variant="danger">{t('assistant.conversation.execution_failed')}</StatusPill>
                 )}
+              </div>
+            )}
+
+            {isClarification && !message.options?.length && (
+              <div className="mt-4 border-t border-border/50 pt-4">
+                <StatusPill variant="primary">
+                  <HelpCircle className="h-3 w-3" />
+                  {t('assistant.conversation.needs_clarification')}
+                </StatusPill>
               </div>
             )}
           </Card>

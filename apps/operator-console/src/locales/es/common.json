@@ -126,6 +126,8 @@
     "conversation": {
       "title": "Conversar con mi casa",
       "subtitle": "Interacción natural y amigable con HomePilot",
+      "header_title": "Asistente operativo",
+      "header_subtitle": "Control natural con confirmaciones seguras",
       "placeholder": "Dime algo, ej: ¿qué luces están encendidas?",
       "send": "Enviar",
       "sending": "Enviando...",
@@ -133,6 +135,8 @@
       "empty_description": "Puedes preguntar por el estado de tu casa o pedirme que ejecute acciones por ti.",
       "selected_option": "Seleccioné: {{label}}",
       "options_question": "¿Cuál quieres controlar?",
+      "confirmation_question": "Confirma la acción",
+      "needs_clarification": "Necesita aclaración",
       "execution_success": "Acción completada con éxito.",
       "execution_partial": "Acción completada parcialmente.",
       "execution_failed": "No se pudo completar la acción.",
@@ -141,11 +145,17 @@
       "ready": "Listo",
       "input_hint": "Shift + Enter para nueva línea",
       "version_label": "Conversación HomePilot V1.0",
-      "empty_chat_title": "Habla con tu casa",
-      "empty_chat_description": "Pregunta qué está encendido, controla luces o pide ayuda con tus dispositivos.",
+      "empty_chat_title": "Listo para operar",
+      "empty_chat_description": "Consulta estados, ejecuta escenas o controla dispositivos con lenguaje natural. Las acciones sensibles piden confirmación antes de ejecutarse.",
+      "capability_status": "Consulta qué está encendido por espacio o dispositivo",
+      "capability_actions": "Ejecuta escenas y comandos de forma guiada",
+      "capability_safety": "Confirma acciones masivas antes de aplicarlas",
+      "suggestions_label": "Comandos útiles para empezar",
+      "suggestion_status": "¿Qué luces están encendidas?",
       "suggestion_1": "Apaga todo",
       "suggestion_2": "Activa escena cine",
-      "suggestion_3": "¿Quién eres?"
+      "suggestion_3": "Apaga las luces de la sala",
+      "suggestion_4": "¿Quién eres?"
     }
   },
   "dashboard": {
