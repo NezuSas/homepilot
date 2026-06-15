@@ -154,7 +154,8 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'quién eres' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Soy el asistente local');
+      expect(response.message).toContain('Soy el asistente local de HomePilot');
+      expect(response.message).toContain('Límites:');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
 
@@ -171,16 +172,47 @@ describe('AssistantConversationService', () => {
     });
 
     it('should respond to "qué puedes hacer" correctly', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'dev-light', name: 'Luz Escritorio', type: 'light', lastKnownState: { on: false } })
+      ]);
+      mockSceneRepo.findAll.mockResolvedValue([
+        { id: 'scene-1', homeId: 'h1', roomId: 'r1', name: 'Cine', actions: [], executionMode: 'parallel', createdAt: '', updatedAt: '' }
+      ]);
+      mockMemory.getAliases.mockResolvedValue({ 'mi cuarto': 'r1' });
+
       const response = await service.converse({ prompt: 'qué puedes hacer' }, 'es');
+
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Puedo ayudarte a saber qué está encendido');
+      expect(response.message).toContain('Puedes pedirme:');
+      expect(response.message).toContain('Contexto actual de HomePilot:');
+      expect(response.message).toContain('1 dispositivos controlables');
+      expect(response.message).toContain('escenas: Cine');
+      expect(response.message).toContain('aliases: mi cuarto');
     });
 
     it('should respond to "what can you do" in English', async () => {
       const response = await service.converse({ prompt: 'what can you do' }, 'en');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('I can help you see what is on');
+      expect(response.message).toContain('You can ask me:');
+      expect(response.message).toContain('Limits:');
+      expect(response.message).toContain('Current HomePilot context:');
+    });
+
+    it('should explain backend scope when asked if it can answer anything', async () => {
+      const response = await service.converse({ prompt: 'puedo preguntarte cualquier cosa' }, 'es');
+
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('no para responder cualquier tema de internet');
+      expect(response.message).toContain('Solo puedo operar dispositivos');
+    });
+
+    it('should explain limits in English', async () => {
+      const response = await service.converse({ prompt: 'what are your limits' }, 'en');
+
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('not to answer any topic from the internet');
+      expect(response.message).toContain('I can only operate devices');
     });
   });
 

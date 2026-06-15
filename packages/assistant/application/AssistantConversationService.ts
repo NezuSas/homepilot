@@ -356,8 +356,7 @@ export class AssistantConversationService {
     if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `I'm operating normally.` : `Estoy funcionando correctamente.` };
     if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "My name is HomePilot." : "Me llamo HomePilot." };
     if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
-    if (this.isHelpQuery(normalized)) return { type: 'answer', message: language === 'en' ? "I can control your home devices." : "Puedo controlar los dispositivos de tu casa." };
-    if (this.isPresentation(normalized)) return { type: 'answer', message: language === 'en' ? "I am your local assistant, I can help you see what is on and control your devices." : "Soy el asistente local de HomePilot. Puedo ayudarte a saber qué está encendido y a controlar tus dispositivos." };
+    if (this.isHelpQuery(normalized) || this.isPresentation(normalized) || this.isScopeQuery(normalized)) return await this.handleCapabilitiesGuide(userId, language);
     if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
 
     // --- 6. DEVICE ALIAS FAST-PATH ---
@@ -1666,6 +1665,96 @@ export class AssistantConversationService {
       "what can you do", "introduce yourself"
     ];
     return triggers.some(t => normalized.includes(t));
+  }
+
+  private isScopeQuery(normalized: string): boolean {
+    const triggers = [
+      "que puedo preguntarte", "qué puedo preguntarte", "que cosas puedo preguntar",
+      "puedo preguntarte cualquier cosa", "te puedo preguntar cualquier cosa",
+      "cuales son tus limites", "cuáles son tus límites", "que limites tienes", "qué límites tienes",
+      "que no puedes hacer", "qué no puedes hacer",
+      "what can i ask you", "can i ask you anything", "what are your limits",
+      "what cant you do", "what can't you do"
+    ];
+    return triggers.some(t => normalized.includes(t));
+  }
+
+  private async handleCapabilitiesGuide(userId: string, language: string): Promise<AssistantConversationResponse> {
+    const [devices, rooms, scenes, automations, aliases] = await Promise.all([
+      this.deviceRepository.findAll(),
+      this.roomRepository.findAll(),
+      this.sceneRepository.findAll(),
+      this.automationRepository.findAll(),
+      this.memoryService.getAliases(userId)
+    ]);
+
+    const controllableDevices = devices.filter((device: Device) => (
+      this.isControllableDevice(device, 'turn_on') ||
+      this.isControllableDevice(device, 'turn_off') ||
+      this.isControllableDevice(device, 'toggle')
+    ));
+    const roomNames = rooms.slice(0, 5).map((room: Room) => room.name);
+    const sceneNames = scenes.slice(0, 5).map((scene: Scene) => scene.name);
+    const aliasNames = Object.keys(aliases).slice(0, 5);
+
+    const esLines = [
+      "Soy el asistente local de HomePilot. Estoy diseñado para operar tu casa, no para responder cualquier tema de internet.",
+      "",
+      "Puedes pedirme:",
+      "• Estado: \"qué luces están encendidas\", \"qué está apagado en la sala\", \"dame detalles\".",
+      "• Control: \"prende luz escritorio\", \"apaga las luces del cuarto master\", \"apaga todo\".",
+      "• Escenas y rutinas: \"activa escena cine\", \"crea una escena para apagar la sala\".",
+      "• Alias: \"llama mi cuarto a Cuarto Master\", \"qué aliases tengo\", \"elimina el alias mi cuarto\".",
+      "• Recuperación: \"por qué falló\", \"reintenta la última acción\", \"la primera\", \"sí\" o \"no\".",
+      "",
+      "Límites:",
+      "• No soy un buscador general ni respondo temas fuera del hogar.",
+      "• Solo puedo operar dispositivos, estancias, escenas, automatizaciones y alias registrados en HomePilot.",
+      "• Si una orden es ambigua o masiva, te pediré elegir o confirmar antes de ejecutar."
+    ];
+
+    const enLines = [
+      "I am HomePilot's local assistant. I am built to operate your home, not to answer any topic from the internet.",
+      "",
+      "You can ask me:",
+      "• Status: \"what lights are on\", \"what is off in the living room\", \"show details\".",
+      "• Control: \"turn on desk light\", \"turn off the master bedroom lights\", \"turn everything off\".",
+      "• Scenes and routines: \"activate cinema scene\", \"create a scene to turn off the living room\".",
+      "• Aliases: \"call master my room\", \"what aliases do I have\", \"delete my room alias\".",
+      "• Recovery: \"why did it fail\", \"retry the last action\", \"the first one\", \"yes\" or \"no\".",
+      "",
+      "Limits:",
+      "• I am not a general search assistant and I avoid topics outside the home.",
+      "• I can only operate devices, rooms, scenes, automations, and aliases registered in HomePilot.",
+      "• If a command is ambiguous or bulk-level, I will ask you to choose or confirm before executing."
+    ];
+
+    const lines = language === 'en' ? enLines : esLines;
+    const inventoryLabel = language === 'en' ? "Current HomePilot context:" : "Contexto actual de HomePilot:";
+    const roomsLabel = language === 'en' ? "rooms" : "estancias";
+    const devicesLabel = language === 'en' ? "controllable devices" : "dispositivos controlables";
+    const scenesLabel = language === 'en' ? "scenes" : "escenas";
+    const automationsLabel = language === 'en' ? "automations" : "automatizaciones";
+    const aliasesLabel = language === 'en' ? "aliases" : "aliases";
+    const examplesLabel = language === 'en' ? "Examples available now" : "Ejemplos disponibles ahora";
+    const noneLabel = language === 'en' ? "none yet" : "ninguno todavía";
+
+    lines.push(
+      "",
+      `${inventoryLabel} ${rooms.length} ${roomsLabel}, ${controllableDevices.length} ${devicesLabel}, ${scenes.length} ${scenesLabel}, ${automations.length} ${automationsLabel}, ${Object.keys(aliases).length} ${aliasesLabel}.`
+    );
+
+    const examples: string[] = [];
+    if (roomNames.length > 0) examples.push(`${roomsLabel}: ${roomNames.join(', ')}`);
+    if (sceneNames.length > 0) examples.push(`${scenesLabel}: ${sceneNames.join(', ')}`);
+    if (aliasNames.length > 0) examples.push(`${aliasesLabel}: ${aliasNames.join(', ')}`);
+
+    lines.push(`${examplesLabel}: ${examples.length > 0 ? examples.join(' | ') : noneLabel}.`);
+
+    return {
+      type: 'answer',
+      message: lines.join('\n')
+    };
   }
 
   private isDateTimeQuery(normalized: string): boolean {
