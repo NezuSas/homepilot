@@ -32,9 +32,12 @@ const isDeviceActive = (device: SnapshotDevice): boolean => {
   const state = device.lastKnownState as DeviceState || {};
 
   if (hasCapability(device, 'cover')) {
+    if (typeof state.current_position === 'number') {
+      return state.current_position > 0;
+    }
+
     return state.state === 'open'
-      || state.state === 'opening'
-      || Number(state.current_position) > 0;
+      || state.state === 'opening';
   }
 
   return state.on === true
@@ -71,16 +74,16 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
 
         return (
           <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-            <div className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-border/50 bg-card/35 p-5 shadow-depth-1 backdrop-blur-md md:flex-row md:items-center md:justify-between">
+            <div className="mb-4 flex flex-col gap-3 border-b border-border/45 pb-4 md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div className={cn(
-                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border',
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
                   onCount > 0 ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border/60 bg-muted/40 text-muted-foreground',
                 )}>
-                  <Cpu className="h-5 w-5" />
+                  <Cpu className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                <h3 className="truncate text-3xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
+                <h3 className="truncate text-2xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
                 <span className={cn(
                   'text-[10px] font-black uppercase tracking-widest transition-colors',
                   onCount > 0 ? 'text-warning' : 'text-muted-foreground/40',
@@ -95,7 +98,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
                   variant="outline"
                   isLoading={roomProcessing === room.id}
                   onClick={() => onRoomTurnOff(room.id)}
-                  className="text-[9px] uppercase tracking-widest px-4 py-2 bg-transparent hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
+                  className="text-[9px] uppercase tracking-widest px-4 py-2 bg-background/30 hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
                 >
                   {!roomProcessing && t('common.turn_off_all')}
                 </Button>

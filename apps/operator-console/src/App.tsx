@@ -384,25 +384,6 @@ function App() {
     }
   };
 
-  const viewSubtitle = (): string => {
-    switch (currentView) {
-      case 'dashboard':           return t('dashboard.living_space');
-      case 'spaces':              return t('dashboard.spaces_subtitle');
-      case 'scenes':              return t('dashboard.recipes');
-      case 'automations':         return t('dashboard.logic_engine');
-      case 'assistant':           return t('assistant.subtitle');
-      case 'resilience-showcase': return t('dashboard.resilience_insight');
-      case 'system-devices':      return t('dashboard.discovery');
-      case 'system-inbox':        return t('dashboard.discovery');
-      case 'system-diagnostics':  return t('dashboard.observability');
-      case 'system-audit':        return t('dashboard.observability');
-      case 'system-executions':   return t('dashboard.observability');
-      case 'system-ha':           return t('dashboard.platform');
-      case 'home-conversation':   return t('assistant.conversation.subtitle');
-      default:                    return '';
-    }
-  };
-
   return (
     <div 
       className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
@@ -734,16 +715,16 @@ function App() {
           </div>
         </header>
 
-        <header className="hidden lg:flex view-header-accent pl-6 pr-10 py-6 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
+        <header className="hidden lg:flex h-14 view-header-accent pl-6 pr-8 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
           {/* Online badge */}
-          <div className="absolute top-0 right-0 p-6 flex items-center gap-3 animate-in fade-in duration-700">
+          <div className="absolute inset-y-0 right-0 pr-8 flex items-center gap-3 animate-in fade-in duration-700">
             <div className="flex items-center gap-1.5 px-3 py-1 bg-success/8 rounded-full border border-success/15">
               <div className="status-dot-synced" />
               <span className="text-[9px] font-bold uppercase tracking-widest text-success/70">{t('shell.status.online')}</span>
             </div>
           </div>
 
-          <div className="max-w-[1600px] mx-auto w-full relative z-10 flex items-center gap-6">
+          <div className="max-w-[1600px] mx-auto w-full relative z-10 flex items-center gap-4 pr-48">
             <button
               onClick={() => setIsDesktopSidebarOpen(prev => !prev)}
               className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 rounded-xl transition-all"
@@ -751,23 +732,18 @@ function App() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex flex-col min-w-0">
-              {/* Breadcrumb-style section label */}
+            <div className="flex min-w-0 items-center gap-2">
               {activeSystemSection && (
-                <p className="text-[8.5px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-1.5">
-                  {t('nav.system')}
-                </p>
+                <>
+                  <span className="text-[9px] font-black uppercase tracking-[0.22em] text-muted-foreground/35">
+                    {t('nav.system')}
+                  </span>
+                  <span className="h-1 w-1 rounded-full bg-muted-foreground/25" />
+                </>
               )}
-              {/* View title */}
-              <h1 className="text-[1.6rem] font-black tracking-tighter text-foreground/90 leading-none truncate">
+              <span className="truncate text-sm font-black uppercase tracking-[0.18em] text-foreground/70">
                 {viewTitle()}
-              </h1>
-              {/* Subtitle as eyebrow below title */}
-              {viewSubtitle() && (
-                <p className="text-[9px] text-muted-foreground/40 mt-1.5 font-black uppercase tracking-[0.2em] truncate">
-                  {viewSubtitle()}
-                </p>
-              )}
+              </span>
             </div>
           </div>
         </header>

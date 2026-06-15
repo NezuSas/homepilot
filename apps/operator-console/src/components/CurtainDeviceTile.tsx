@@ -48,12 +48,20 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   };
 
   const state = optimisticState || getFunctionalState(rawState);
-  const position = lastState.current_position;
+  const rawPosition = lastState.current_position;
+  const position = typeof rawPosition === 'number'
+    ? Math.min(100, Math.max(0, rawPosition))
+    : undefined;
   
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';
-  const isOpen = state === 'open' || (position !== undefined && position > 0);
   const isMoving = isOpening || isClosing;
+  const isOpen = position !== undefined ? position > 0 : state === 'open';
+  const displayState = isMoving
+    ? state
+    : position !== undefined
+      ? (position > 0 ? 'open' : 'closed')
+      : state;
 
   const displayName = isDuplicateName 
     ? disambiguate(humanize(device.id, device.name), roomName)
@@ -98,7 +106,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
     handleCommand('set_position', { position: pos });
   };
 
-  const localizedState = t(`common.cover.${state}`, { defaultValue: state });
+  const localizedState = t(`common.cover.${displayState}`, { defaultValue: displayState });
 
   const canOpen = !!onCommand && canExecuteCommand(device, 'open');
   const canClose = !!onCommand && canExecuteCommand(device, 'close');
