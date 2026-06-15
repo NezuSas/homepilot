@@ -1,5 +1,5 @@
 import React from 'react';
-import { Send, Zap } from 'lucide-react';
+import { Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { StatusPill } from './ui/StatusPill';
@@ -11,9 +11,19 @@ interface HomeConversationComposerProps {
   sendLabel: string;
   versionLabel: string;
   inputHint: string;
+  isListening: boolean;
+  isSpeechRecognitionSupported: boolean;
+  isSpeechSynthesisSupported: boolean;
+  isSpeechEnabled: boolean;
+  voiceLabel: string;
+  listeningLabel: string;
+  speechOnLabel: string;
+  speechOffLabel: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
+  onToggleListening: () => void;
+  onToggleSpeech: () => void;
 }
 
 export const HomeConversationComposer: React.FC<HomeConversationComposerProps> = ({
@@ -23,9 +33,19 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   sendLabel,
   versionLabel,
   inputHint,
+  isListening,
+  isSpeechRecognitionSupported,
+  isSpeechSynthesisSupported,
+  isSpeechEnabled,
+  voiceLabel,
+  listeningLabel,
+  speechOnLabel,
+  speechOffLabel,
   onInputChange,
   onSend,
-  onKeyDown
+  onKeyDown,
+  onToggleListening,
+  onToggleSpeech
 }) => (
   <footer className="shrink-0 border-t border-border/60 bg-background/85 px-4 py-4 backdrop-blur-xl md:px-6 md:pb-6">
     <div className="mx-auto max-w-5xl">
@@ -46,6 +66,33 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             className="custom-scrollbar min-h-[52px] max-h-48 flex-1 resize-none border-none bg-transparent px-3 py-3 pr-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
             disabled={isLoading}
           />
+          {isSpeechRecognitionSupported && (
+            <Button
+              type="button"
+              variant={isListening ? 'danger' : 'secondary'}
+              size="icon"
+              disabled={isLoading}
+              aria-label={isListening ? listeningLabel : voiceLabel}
+              title={isListening ? listeningLabel : voiceLabel}
+              onClick={onToggleListening}
+              className="h-11 w-11 shrink-0 rounded-xl"
+            >
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+          )}
+          {isSpeechSynthesisSupported && (
+            <Button
+              type="button"
+              variant={isSpeechEnabled ? 'primary' : 'secondary'}
+              size="icon"
+              aria-label={isSpeechEnabled ? speechOnLabel : speechOffLabel}
+              title={isSpeechEnabled ? speechOnLabel : speechOffLabel}
+              onClick={onToggleSpeech}
+              className="h-11 w-11 shrink-0 rounded-xl"
+            >
+              {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+          )}
           <Button
             type="submit"
             variant="primary"

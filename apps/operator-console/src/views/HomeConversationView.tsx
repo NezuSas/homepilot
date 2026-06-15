@@ -12,19 +12,83 @@ import { HomeConversationTypingIndicator } from '../components/HomeConversationT
 
 const noopSessionCleared = () => {};
 
+interface SpeechRecognitionAlternativeLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultLike {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionAlternativeLike;
+  [index: number]: SpeechRecognitionAlternativeLike;
+}
+
+interface SpeechRecognitionResultListLike {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResultLike;
+  [index: number]: SpeechRecognitionResultLike;
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultListLike;
+}
+
+interface SpeechRecognitionLike extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: ((event: Event) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null {
+  const browserWindow = window as Window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+
+  return browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition ?? null;
+}
+
 export const HomeConversationView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useSession(noopSessionCleared);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
+  const [speechSupport, setSpeechSupport] = useState({
+    recognition: false,
+    synthesis: false
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const sendTextRef = useRef<(text: string) => void>(() => {});
+
+  useEffect(() => {
+    setSpeechSupport({
+      recognition: getSpeechRecognitionConstructor() !== null,
+      synthesis: 'speechSynthesis' in window
+    });
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages.length, isLoading]);
+
+  useEffect(() => () => {
+    recognitionRef.current?.stop();
+    window.speechSynthesis?.cancel();
+  }, []);
 
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
@@ -33,6 +97,16 @@ export const HomeConversationView: React.FC = () => {
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, newMessage]);
+  };
+
+  const speakAssistantResponse = (text: string) => {
+    if (!isSpeechEnabled || !speechSupport.synthesis || !text.trim()) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = i18n.language.startsWith('en') ? 'en-US' : 'es-ES';
+    utterance.rate = 0.96;
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleResponse = (response: AssistantConversationResponse) => {
@@ -44,6 +118,7 @@ export const HomeConversationView: React.FC = () => {
       execution: response.execution,
       pendingAction: response.clarification?.pendingAction
     });
+    speakAssistantResponse(response.message);
   };
 
   const addErrorMessage = (error: unknown) => {
@@ -74,6 +149,62 @@ export const HomeConversationView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    sendTextRef.current = (text: string) => {
+      void handleSend(text);
+    };
+  });
+
+  const handleToggleListening = () => {
+    if (!speechSupport.recognition || isLoading) return;
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = getSpeechRecognitionConstructor();
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = i18n.language.startsWith('en') ? 'en-US' : 'es-ES';
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const transcript = result[0]?.transcript?.trim() ?? '';
+        if (!transcript) continue;
+
+        if (result.isFinal) {
+          finalTranscript += `${transcript} `;
+        } else {
+          interimTranscript += `${transcript} `;
+        }
+      }
+
+      const spokenText = finalTranscript.trim();
+      if (spokenText) {
+        setInput(spokenText);
+        sendTextRef.current(spokenText);
+        return;
+      }
+
+      const partialText = interimTranscript.trim();
+      if (partialText) setInput(partialText);
+    };
+
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.start();
   };
 
   const handleOptionClick = async (optionId: string, label: string, pendingAction?: AssistantConverseRequest['pendingAction']) => {
@@ -172,9 +303,22 @@ export const HomeConversationView: React.FC = () => {
         sendLabel={t('assistant.conversation.send')}
         versionLabel={t('assistant.conversation.version_label')}
         inputHint={t('assistant.conversation.input_hint')}
+        isListening={isListening}
+        isSpeechRecognitionSupported={speechSupport.recognition}
+        isSpeechSynthesisSupported={speechSupport.synthesis}
+        isSpeechEnabled={isSpeechEnabled}
+        voiceLabel={t('assistant.conversation.voice_start')}
+        listeningLabel={t('assistant.conversation.voice_listening')}
+        speechOnLabel={t('assistant.conversation.speech_on')}
+        speechOffLabel={t('assistant.conversation.speech_off')}
         onInputChange={setInput}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
+        onToggleListening={handleToggleListening}
+        onToggleSpeech={() => {
+          if (isSpeechEnabled) window.speechSynthesis?.cancel();
+          setIsSpeechEnabled(prev => !prev);
+        }}
       />
     </section>
   );

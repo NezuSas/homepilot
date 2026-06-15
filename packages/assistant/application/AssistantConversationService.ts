@@ -337,6 +337,8 @@ export class AssistantConversationService {
     if (deleteAliasReq) return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
     if (this.isAliasCreation(normalized)) return await this.handleAliasCreation(normalized, userId, language);
 
+    activePrompt = normalized;
+
     // --- 4. ROOM LIGHT FAST-PATH ---
     const roomSingular = this.isRoomSingularLightFastPath(normalized);
     if (roomSingular) {
@@ -1629,19 +1631,50 @@ export class AssistantConversationService {
       .replace(/\bcomo stas\b/g, "como estas")
       .replace(/\bcm estas\b/g, "como estas")
       .replace(/\bq tal\b/g, "que tal")
-      .replace(/\bk tal\b/g, "que tal");
+      .replace(/\bk tal\b/g, "que tal")
+      .replace(/\bapagues\b/g, "apaga")
+      .replace(/\benciendas\b/g, "enciende")
+      .replace(/\bprendas\b/g, "prende")
+      .replace(/\bcierres\b/g, "cierra")
+      .replace(/\babras\b/g, "abre");
 
-    // Strip polite prefixes so intent matching works on the core request
+    // Strip conversational wrappers so intent matching works on the core request.
     const politePrefixes = [
-      'puedes ', 'podrias ', 'me ayudas a ', 'me ayudas ',
-      'quiero que ', 'haz que ', 'haz ', 'por favor '
+      'homepilot ', 'oye homepilot ', 'ok homepilot ', 'hola homepilot ',
+      'oye ', 'ok ',
+      'puedes ', 'puede ', 'podrias ', 'podria ', 'me puedes ', 'me podrias ',
+      'me ayudas a ', 'me ayudas ', 'ayudame a ', 'ayudame ',
+      'quiero que ', 'quisiera que ', 'necesito que ', 'haz que ', 'haz ',
+      'por favor ', 'porfa ', 'porfis '
     ];
-    for (const prefix of politePrefixes) {
-      if (normalized.startsWith(prefix)) {
-        normalized = normalized.slice(prefix.length).trim();
-        break;
+
+    let strippedPrefix = true;
+    while (strippedPrefix) {
+      strippedPrefix = false;
+      for (const prefix of politePrefixes) {
+        if (normalized.startsWith(prefix)) {
+          normalized = normalized.slice(prefix.length).trim();
+          strippedPrefix = true;
+          break;
+        }
       }
     }
+
+    const politeSuffixes = [
+      ' por favor', ' porfa', ' porfis', ' gracias'
+    ];
+    let strippedSuffix = true;
+    while (strippedSuffix) {
+      strippedSuffix = false;
+      for (const suffix of politeSuffixes) {
+        if (normalized.endsWith(suffix)) {
+          normalized = normalized.slice(0, -suffix.length).trim();
+          strippedSuffix = true;
+          break;
+        }
+      }
+    }
+
     return normalized;
   }
 

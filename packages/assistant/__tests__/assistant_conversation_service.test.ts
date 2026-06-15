@@ -381,6 +381,39 @@ describe('AssistantConversationService', () => {
       expect(mockSmallTalk.handle).toHaveBeenCalled(); // Because intent was unknown
     });
 
+    it('should understand conversational wrappers around state queries', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: '1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } }),
+        createTestDevice({ id: '2', name: 'Luz Cocina', type: 'light', lastKnownState: { on: false } })
+      ]);
+
+      const response = await service.converse({
+        prompt: 'oye HomePilot me puedes decir qué luces están encendidas por favor'
+      }, 'es');
+
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Luz Sala');
+      expect(response.message).not.toContain('Luz Cocina');
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+    });
+
+    it('should normalize conversational command conjugations before execution flow', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } })
+      ]);
+      mockDeviceRepo.findDeviceById.mockResolvedValue(
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } })
+      );
+
+      const response = await service.converse({
+        prompt: 'oye HomePilot me puedes apagar luz sala porfa'
+      }, 'es');
+
+      expect(response.type).toBe('execution');
+      expect(response.message.toLowerCase()).toContain('apagué luz sala');
+      expect(mockDispatcher.dispatch).toHaveBeenCalled();
+    });
+
     it('should delegate unknown conversational prompts to SmallTalkService', async () => {
       mockSmallTalk.handle.mockResolvedValue({
         type: 'answer',
