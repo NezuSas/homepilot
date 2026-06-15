@@ -13,7 +13,9 @@ interface DeviceState {
   on?: boolean;
   state?: 'on' | 'off' | 'open' | 'closed' | 'opening' | 'closing';
   brightness?: number;
-  current_position?: number;
+  current_position?: unknown;
+  position?: unknown;
+  attributes?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -32,8 +34,19 @@ const isDeviceActive = (device: SnapshotDevice): boolean => {
   const state = device.lastKnownState as DeviceState || {};
 
   if (hasCapability(device, 'cover')) {
-    if (typeof state.current_position === 'number') {
-      return state.current_position > 0;
+    const parsePosition = (value: unknown): number | undefined => {
+      if (value === null || value === undefined || value === '') return undefined;
+      const parsed = typeof value === 'number' ? value : Number(value);
+      if (!Number.isFinite(parsed)) return undefined;
+      return Math.min(100, Math.max(0, parsed));
+    };
+    const position = parsePosition(state.current_position)
+      ?? parsePosition(state.position)
+      ?? parsePosition(state.attributes?.current_position)
+      ?? parsePosition(state.attributes?.position);
+
+    if (position !== undefined) {
+      return position > 0;
     }
 
     return state.state === 'open'

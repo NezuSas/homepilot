@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize } from '../lib/naming-utils';
+import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
 import type { HomeMode, View } from '../types';
 import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
@@ -34,9 +35,12 @@ interface Scene {
 
 interface DeviceActivityState {
   on?: boolean;
-  state?: 'on' | 'off';
+  state?: 'on' | 'off' | 'open' | 'closed' | 'opening' | 'closing';
   brightness?: number;
   power?: number;
+  current_position?: unknown;
+  position?: unknown;
+  attributes?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -55,6 +59,35 @@ const getMetadataText = (
   }
 
   return fallback;
+};
+
+const parseCoverPosition = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.min(100, Math.max(0, parsed));
+};
+
+const isDeviceActive = (device: SnapshotDevice): boolean => {
+  const state = (device.lastKnownState || {}) as DeviceActivityState;
+
+  if (hasCapability(device, 'cover')) {
+    const position = parseCoverPosition(state.current_position)
+      ?? parseCoverPosition(state.position)
+      ?? parseCoverPosition(state.attributes?.current_position)
+      ?? parseCoverPosition(state.attributes?.position);
+
+    if (position !== undefined) {
+      return position > 0;
+    }
+
+    return state.state === 'open' || state.state === 'opening';
+  }
+
+  return state.on === true
+    || state.state === 'on'
+    || Number(state.brightness) > 0
+    || Number(state.power) > 0;
 };
 
 export const DashboardView: React.FC<{ 
@@ -163,10 +196,20 @@ useEffect(() => {
 
   const handleRoomTurnOff = async (roomId: string) => {
     setRoomProcessing(roomId);
-    const devicesToTurnOff = devices.filter(d => d.roomId === roomId && (d.lastKnownState?.on === true || d.lastKnownState?.state === 'on' || Number(d.lastKnownState?.brightness) > 0));
+    const devicesToTurnOff = devices.filter((device) => device.roomId === roomId && isDeviceActive(device));
+    const executableCommands = devicesToTurnOff
+      .map((device) => {
+        if (hasCapability(device, 'cover')) {
+          return canExecuteCommand(device, 'close') ? { deviceId: device.id, command: 'close' } : null;
+        }
+
+        return canExecuteCommand(device, 'turn_off') ? { deviceId: device.id, command: 'turn_off' } : null;
+      })
+      .filter((item): item is { deviceId: string; command: string } => item !== null);
+
     try {
-      await Promise.all((Array.isArray(devicesToTurnOff) ? devicesToTurnOff : []).map(d => 
-        executeDeviceCommand(d.id, 'turn_off')
+      await Promise.all(executableCommands.map((item) =>
+        executeDeviceCommand(item.deviceId, item.command)
       ));
       await fetchData();
     } catch (e) {
@@ -234,10 +277,7 @@ useEffect(() => {
   const onlineLocalCount = useMemo(() => 
     localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
   [localDevices]);
-  const activeDeviceCount = useMemo(() => devices.filter((device) => {
-    const state = (device.lastKnownState || {}) as DeviceActivityState;
-    return state.on === true || state.state === 'on' || Number(state.brightness) > 0 || Number(state.power) > 0;
-  }).length, [devices]);
+  const activeDeviceCount = useMemo(() => devices.filter(isDeviceActive).length, [devices]);
 
   const hasInitialData = (Array.isArray(devices) ? devices : []).length > 0;
   if (snapshotLoading && !hasInitialData) {

@@ -13,7 +13,9 @@ import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore'
 
 interface DeviceState {
   state?: 'open' | 'closed' | 'opening' | 'closing' | 'unknown';
-  current_position?: number;
+  current_position?: unknown;
+  position?: unknown;
+  attributes?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -48,10 +50,16 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   };
 
   const state = optimisticState || getFunctionalState(rawState);
-  const rawPosition = lastState.current_position;
-  const position = typeof rawPosition === 'number'
-    ? Math.min(100, Math.max(0, rawPosition))
-    : undefined;
+  const parsePosition = (value: unknown): number | undefined => {
+    if (value === null || value === undefined || value === '') return undefined;
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(parsed)) return undefined;
+    return Math.min(100, Math.max(0, parsed));
+  };
+  const position = parsePosition(lastState.current_position)
+    ?? parsePosition(lastState.position)
+    ?? parsePosition(lastState.attributes?.current_position)
+    ?? parsePosition(lastState.attributes?.position);
   
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';

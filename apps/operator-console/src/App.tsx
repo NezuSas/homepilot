@@ -715,7 +715,7 @@ function App() {
           </div>
         </header>
 
-        <header className="hidden lg:flex h-14 view-header-accent pl-6 pr-8 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
+        <header className="hidden lg:flex h-12 view-header-accent pl-6 pr-8 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
           {/* Online badge */}
           <div className="absolute inset-y-0 right-0 pr-8 flex items-center gap-3 animate-in fade-in duration-700">
             <div className="flex items-center gap-1.5 px-3 py-1 bg-success/8 rounded-full border border-success/15">
@@ -724,7 +724,7 @@ function App() {
             </div>
           </div>
 
-          <div className="max-w-[1600px] mx-auto w-full relative z-10 flex items-center gap-4 pr-48">
+          <div className="max-w-[1600px] mx-auto w-full relative z-10 flex items-center pr-48">
             <button
               onClick={() => setIsDesktopSidebarOpen(prev => !prev)}
               className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 rounded-xl transition-all"
@@ -732,19 +732,6 @@ function App() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex min-w-0 items-center gap-2">
-              {activeSystemSection && (
-                <>
-                  <span className="text-[9px] font-black uppercase tracking-[0.22em] text-muted-foreground/35">
-                    {t('nav.system')}
-                  </span>
-                  <span className="h-1 w-1 rounded-full bg-muted-foreground/25" />
-                </>
-              )}
-              <span className="truncate text-sm font-black uppercase tracking-[0.18em] text-foreground/70">
-                {viewTitle()}
-              </span>
-            </div>
           </div>
         </header>
         
