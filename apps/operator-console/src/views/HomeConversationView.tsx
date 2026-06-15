@@ -12,7 +12,10 @@ import { HomeConversationTypingIndicator } from '../components/HomeConversationT
 
 const noopSessionCleared = () => {};
 
-const MAX_RECORDING_MS = 12000;
+const MAX_RECORDING_MS = 8000;
+const MIN_RECORDING_MS = 700;
+const STOP_AFTER_SILENCE_MS = 900;
+const SPEECH_LEVEL_THRESHOLD = 0.018;
 
 function canUseLocalSpeechRecording(): boolean {
   return window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== 'undefined';
@@ -59,11 +62,18 @@ export const HomeConversationView: React.FC = () => {
     recording: false,
     synthesis: false
   });
+  const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedAudioInputId, setSelectedAudioInputId] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaChunksRef = useRef<Blob[]>([]);
   const recordingTimeoutRef = useRef<number | null>(null);
+  const recordingStartedAtRef = useRef(0);
+  const silenceStartedAtRef = useRef<number | null>(null);
+  const speechDetectedRef = useRef(false);
+  const silenceAnimationFrameRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const speechEnabledRef = useRef(false);
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
@@ -77,6 +87,27 @@ export const HomeConversationView: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!canUseLocalSpeechRecording()) return;
+
+    let isMounted = true;
+    const loadAudioInputs = async () => {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      if (!isMounted) return;
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      setAudioInputDevices(audioInputs);
+      setSelectedAudioInputId(current => audioInputs.some(device => device.deviceId === current) ? current : audioInputs[0]?.deviceId || '');
+    };
+
+    void loadAudioInputs();
+    navigator.mediaDevices.addEventListener?.('devicechange', loadAudioInputs);
+
+    return () => {
+      isMounted = false;
+      navigator.mediaDevices.removeEventListener?.('devicechange', loadAudioInputs);
+    };
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -87,6 +118,7 @@ export const HomeConversationView: React.FC = () => {
       window.clearTimeout(recordingTimeoutRef.current);
       recordingTimeoutRef.current = null;
     }
+    stopSilenceDetection();
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
@@ -186,6 +218,17 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
+  const stopSilenceDetection = () => {
+    if (silenceAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(silenceAnimationFrameRef.current);
+      silenceAnimationFrameRef.current = null;
+    }
+    void audioContextRef.current?.close();
+    audioContextRef.current = null;
+    silenceStartedAtRef.current = null;
+    speechDetectedRef.current = false;
+  };
+
   const stopMediaStream = () => {
     mediaStreamRef.current?.getTracks().forEach(track => track.stop());
     mediaStreamRef.current = null;
@@ -200,6 +243,7 @@ export const HomeConversationView: React.FC = () => {
 
   const stopLocalRecording = () => {
     clearRecordingTimeout();
+    stopSilenceDetection();
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
       return;
@@ -219,6 +263,50 @@ export const HomeConversationView: React.FC = () => {
     }
 
     return t('assistant.conversation.voice_start_error');
+  };
+
+  const startSilenceDetection = (stream: MediaStream) => {
+    stopSilenceDetection();
+
+    const browserWindow = window as Window & { webkitAudioContext?: typeof AudioContext };
+    const AudioContextConstructor = window.AudioContext || browserWindow.webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 1024;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    audioContextRef.current = audioContext;
+
+    const samples = new Uint8Array(analyser.fftSize);
+    const detectSilence = () => {
+      analyser.getByteTimeDomainData(samples);
+      let sum = 0;
+      for (const sample of samples) {
+        const value = (sample - 128) / 128;
+        sum += value * value;
+      }
+
+      const volume = Math.sqrt(sum / samples.length);
+      const now = Date.now();
+      const elapsed = now - recordingStartedAtRef.current;
+
+      if (volume >= SPEECH_LEVEL_THRESHOLD) {
+        speechDetectedRef.current = true;
+        silenceStartedAtRef.current = null;
+      } else if (speechDetectedRef.current && elapsed >= MIN_RECORDING_MS) {
+        silenceStartedAtRef.current ??= now;
+        if (now - silenceStartedAtRef.current >= STOP_AFTER_SILENCE_MS) {
+          stopLocalRecording();
+          return;
+        }
+      }
+
+      silenceAnimationFrameRef.current = window.requestAnimationFrame(detectSilence);
+    };
+
+    silenceAnimationFrameRef.current = window.requestAnimationFrame(detectSilence);
   };
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
@@ -263,13 +351,22 @@ export const HomeConversationView: React.FC = () => {
     }
 
     try {
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      };
+      if (selectedAudioInputId) {
+        audioConstraints.deviceId = { exact: selectedAudioInputId };
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        audio: audioConstraints
       });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      setAudioInputDevices(audioInputs);
+      setSelectedAudioInputId(current => audioInputs.some(device => device.deviceId === current) ? current : audioInputs[0]?.deviceId || '');
       const mimeType = getPreferredAudioMimeType();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaChunksRef.current = [];
@@ -294,11 +391,15 @@ export const HomeConversationView: React.FC = () => {
 
       setSpeechNotice('');
       setIsListening(true);
+      recordingStartedAtRef.current = Date.now();
+      silenceStartedAtRef.current = null;
+      speechDetectedRef.current = false;
       if (speechSupport.synthesis) {
         speechEnabledRef.current = true;
         setIsSpeechEnabled(true);
       }
       recorder.start();
+      startSilenceDetection(stream);
       recordingTimeoutRef.current = window.setTimeout(() => stopLocalRecording(), MAX_RECORDING_MS);
     } catch (error) {
       const errorName = error instanceof DOMException ? error.name : undefined;
@@ -363,6 +464,11 @@ export const HomeConversationView: React.FC = () => {
     t('assistant.conversation.capability_safety')
   ], [t]);
 
+  const audioInputOptions = useMemo(() => audioInputDevices.map((device, index) => ({
+    id: device.deviceId,
+    label: device.label || t('assistant.conversation.audio_input_fallback', { count: index + 1 })
+  })), [audioInputDevices, t]);
+
   return (
     <section className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background">
       <HomeConversationHeader
@@ -418,11 +524,15 @@ export const HomeConversationView: React.FC = () => {
         isSpeechRecordingSupported={speechSupport.recording}
         isSpeechSynthesisSupported={speechSupport.synthesis}
         isSpeechEnabled={isSpeechEnabled}
+        audioInputDevices={audioInputOptions}
+        selectedAudioInputId={selectedAudioInputId}
+        audioInputLabel={t('assistant.conversation.audio_input_label')}
         voiceLabel={t('assistant.conversation.voice_start')}
         listeningLabel={t('assistant.conversation.voice_listening')}
         speechOnLabel={t('assistant.conversation.speech_on')}
         speechOffLabel={t('assistant.conversation.speech_off')}
         onInputChange={setInput}
+        onAudioInputChange={setSelectedAudioInputId}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
         onToggleListening={() => void handleToggleListening()}

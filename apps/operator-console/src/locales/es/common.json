@@ -140,6 +140,8 @@
       "voice_transcribing": "Transcribiendo voz...",
       "voice_transcription_error": "No se pudo transcribir el audio",
       "voice_start_error": "No se pudo iniciar el micrófono",
+      "audio_input_label": "Micrófono",
+      "audio_input_fallback": "Micrófono {{count}}",
       "speech_on": "Lectura de respuestas activada",
       "speech_off": "Activar lectura de respuestas",
       "empty_title": "Empieza una conversación",

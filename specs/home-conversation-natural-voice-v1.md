@@ -8,6 +8,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La UI debe permitir dictar una instrucción con micrófono grabando audio local con `MediaRecorder`.
 - La UI debe enviar el audio al backend para transcripción local y no depender de Web Speech API.
 - La UI debe habilitar dictado solo en contexto seguro y mostrar errores específicos de permisos, hardware o transcripción.
+- La UI debe permitir elegir el dispositivo de entrada cuando el navegador reporte más de un micrófono.
+- La UI debe cortar la grabación automáticamente después de detectar voz y silencio para reducir latencia.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
@@ -26,7 +28,9 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 ## Acceptance Criteria
 - Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
+- La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.
 - Al terminar la grabación, el audio se transcribe en el servicio local `homepilot-stt` y el texto resultante se envía al asistente como un prompt normal.
+- La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-davefx-medium` por defecto.

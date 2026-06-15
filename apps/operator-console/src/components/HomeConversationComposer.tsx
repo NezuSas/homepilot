@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Mic, MicOff, Send, SlidersHorizontal, Volume2, VolumeX, Zap } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { StatusPill } from './ui/StatusPill';
@@ -15,11 +15,15 @@ interface HomeConversationComposerProps {
   isSpeechRecordingSupported: boolean;
   isSpeechSynthesisSupported: boolean;
   isSpeechEnabled: boolean;
+  audioInputDevices: Array<{ id: string; label: string }>;
+  selectedAudioInputId: string;
+  audioInputLabel: string;
   voiceLabel: string;
   listeningLabel: string;
   speechOnLabel: string;
   speechOffLabel: string;
   onInputChange: (value: string) => void;
+  onAudioInputChange: (deviceId: string) => void;
   onSend: () => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
   onToggleListening: () => void;
@@ -37,11 +41,15 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   isSpeechRecordingSupported,
   isSpeechSynthesisSupported,
   isSpeechEnabled,
+  audioInputDevices,
+  selectedAudioInputId,
+  audioInputLabel,
   voiceLabel,
   listeningLabel,
   speechOnLabel,
   speechOffLabel,
   onInputChange,
+  onAudioInputChange,
   onSend,
   onKeyDown,
   onToggleListening,
@@ -67,18 +75,39 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             disabled={isLoading}
           />
           {isSpeechRecordingSupported && (
-            <Button
-              type="button"
-              variant={isListening ? 'danger' : 'secondary'}
-              size="icon"
-              disabled={isLoading}
-              aria-label={isListening ? listeningLabel : voiceLabel}
-              title={isListening ? listeningLabel : voiceLabel}
-              onClick={onToggleListening}
-              className="h-11 w-11 shrink-0 rounded-xl"
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {audioInputDevices.length > 1 && (
+                <label className="flex h-11 items-center gap-1 rounded-xl border border-border/70 bg-muted/40 px-2 text-muted-foreground focus-within:border-primary/40">
+                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
+                  <span className="sr-only">{audioInputLabel}</span>
+                  <select
+                    value={selectedAudioInputId}
+                    onChange={event => onAudioInputChange(event.target.value)}
+                    disabled={isLoading || isListening}
+                    title={audioInputLabel}
+                    className="max-w-[150px] bg-transparent text-[11px] font-bold uppercase tracking-wider text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {audioInputDevices.map(device => (
+                      <option key={device.id} value={device.id}>
+                        {device.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <Button
+                type="button"
+                variant={isListening ? 'danger' : 'secondary'}
+                size="icon"
+                disabled={isLoading}
+                aria-label={isListening ? listeningLabel : voiceLabel}
+                title={isListening ? listeningLabel : voiceLabel}
+                onClick={onToggleListening}
+                className="h-11 w-11 shrink-0 rounded-xl"
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            </div>
           )}
           {isSpeechSynthesisSupported && (
             <Button
