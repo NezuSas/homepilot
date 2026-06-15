@@ -31,8 +31,8 @@ function isAssistantTextToSpeechResponse(value: unknown): value is AssistantText
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (
-    candidate.provider === 'edge' &&
-    candidate.audioContentType === 'audio/mpeg' &&
+    candidate.provider === 'piper' &&
+    candidate.audioContentType === 'audio/wav' &&
     typeof candidate.audioBase64 === 'string' &&
     candidate.audioBase64.length > 0
   );

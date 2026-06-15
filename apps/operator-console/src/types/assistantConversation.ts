@@ -33,8 +33,8 @@ export interface AssistantConverseRequest {
 }
 
 export interface AssistantTextToSpeechResponse {
-  provider: "edge";
-  audioContentType: "audio/mpeg";
+  provider: "piper";
+  audioContentType: "audio/wav";
   audioBase64: string;
 }
 

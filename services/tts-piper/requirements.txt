@@ -1,3 +1,3 @@
-edge-tts==7.2.3
 fastapi==0.124.2
+piper-tts==1.3.0
 uvicorn==0.38.0

@@ -18,8 +18,8 @@ describe('AssistantRoutes', () => {
     };
     mockAssistantTextToSpeechService = {
       synthesize: jest.fn().mockResolvedValue({
-        provider: 'edge',
-        audioContentType: 'audio/mpeg',
+        provider: 'piper',
+        audioContentType: 'audio/wav',
         audioBase64: 'YWJj'
       })
     };
@@ -100,8 +100,8 @@ describe('AssistantRoutes', () => {
     });
     expect(mockRes.writeHead).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
     expect(mockRes.end).toHaveBeenCalledWith(JSON.stringify({
-      provider: 'edge',
-      audioContentType: 'audio/mpeg',
+      provider: 'piper',
+      audioContentType: 'audio/wav',
       audioBase64: 'YWJj'
     }));
   });

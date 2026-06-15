@@ -13,7 +13,7 @@ describe('AssistantTextToSpeechService', () => {
   });
 
   it('rejects empty text', async () => {
-    const service = new AssistantTextToSpeechService('edge', 'http://tts.local', 1000);
+    const service = new AssistantTextToSpeechService('piper', 'http://tts.local', 1000);
 
     await expect(service.synthesize({ text: '   ', language: 'es' })).rejects.toBeInstanceOf(
       AssistantTextToSpeechValidationError
@@ -28,21 +28,21 @@ describe('AssistantTextToSpeechService', () => {
     );
   });
 
-  it('returns audio from the edge tts service', async () => {
+  it('returns audio from the piper tts service', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        provider: 'edge',
-        audioContentType: 'audio/mpeg',
+        provider: 'piper',
+        audioContentType: 'audio/wav',
         audioBase64: 'YWJj'
       })
     });
     global.fetch = fetchMock;
-    const service = new AssistantTextToSpeechService('edge', 'http://tts.local/', 1000);
+    const service = new AssistantTextToSpeechService('piper', 'http://tts.local/', 1000);
 
     await expect(service.synthesize({ text: 'Hola casa', language: 'es' })).resolves.toEqual({
-      provider: 'edge',
-      audioContentType: 'audio/mpeg',
+      provider: 'piper',
+      audioContentType: 'audio/wav',
       audioBase64: 'YWJj'
     });
     expect(fetchMock).toHaveBeenCalledWith(
@@ -57,9 +57,9 @@ describe('AssistantTextToSpeechService', () => {
   it('rejects invalid tts payloads', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({ provider: 'edge' })
+      json: jest.fn().mockResolvedValue({ provider: 'piper' })
     });
-    const service = new AssistantTextToSpeechService('edge', 'http://tts.local', 1000);
+    const service = new AssistantTextToSpeechService('piper', 'http://tts.local', 1000);
 
     await expect(service.synthesize({ text: 'Hola', language: 'es' })).rejects.toBeInstanceOf(
       AssistantTextToSpeechUnavailableError

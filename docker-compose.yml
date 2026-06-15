@@ -30,7 +30,7 @@ services:
       - ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT=${ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT:-true}
       - ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS=${ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS:-8000}
       - ASSISTANT_PLANNER_V2_SHADOW_MODEL=${ASSISTANT_PLANNER_V2_SHADOW_MODEL:-}
-      - TTS_PROVIDER=${TTS_PROVIDER:-edge}
+      - TTS_PROVIDER=${TTS_PROVIDER:-piper}
       - TTS_BASE_URL=${TTS_BASE_URL:-http://homepilot-tts:8088}
       - TTS_TIMEOUT_MS=${TTS_TIMEOUT_MS:-12000}
     extra_hosts:
@@ -91,14 +91,12 @@ services:
   homepilot-tts:
     build:
       context: .
-      dockerfile: services/tts-edge/Dockerfile
+      dockerfile: services/tts-piper/Dockerfile
     container_name: homepilot-tts
     environment:
-      - EDGE_TTS_VOICE_ES=${EDGE_TTS_VOICE_ES:-es-MX-DaliaNeural}
-      - EDGE_TTS_VOICE_EN=${EDGE_TTS_VOICE_EN:-en-US-AriaNeural}
-      - EDGE_TTS_RATE=${EDGE_TTS_RATE:--4%}
-      - EDGE_TTS_VOLUME=${EDGE_TTS_VOLUME:-+0%}
-      - EDGE_TTS_PITCH=${EDGE_TTS_PITCH:-+0Hz}
+      - PIPER_VOICE_ES=${PIPER_VOICE_ES:-es_ES-davefx-medium}
+      - PIPER_VOICE_EN=${PIPER_VOICE_EN:-en_US-lessac-medium}
+      - PIPER_SYNTHESIS_TIMEOUT_SECONDS=${PIPER_SYNTHESIS_TIMEOUT_SECONDS:-20}
     ports:
       - "8088:8088"
     healthcheck:
