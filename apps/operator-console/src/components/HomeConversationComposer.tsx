@@ -1,5 +1,6 @@
 import React from 'react';
-import { Mic, MicOff, Send, SlidersHorizontal, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
+import { AudioInputPicker } from './AudioInputPicker';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { StatusPill } from './ui/StatusPill';
@@ -76,25 +77,13 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
           />
           {isSpeechRecordingSupported && (
             <div className="flex shrink-0 items-center gap-1.5">
-              {audioInputDevices.length > 1 && (
-                <label className="flex h-11 items-center gap-1 rounded-xl border border-border/70 bg-muted/40 px-2 text-muted-foreground focus-within:border-primary/40">
-                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
-                  <span className="sr-only">{audioInputLabel}</span>
-                  <select
-                    value={selectedAudioInputId}
-                    onChange={event => onAudioInputChange(event.target.value)}
-                    disabled={isLoading || isListening}
-                    title={audioInputLabel}
-                    className="max-w-[150px] bg-transparent text-[11px] font-bold uppercase tracking-wider text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {audioInputDevices.map(device => (
-                      <option key={device.id} value={device.id}>
-                        {device.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
+              <AudioInputPicker
+                devices={audioInputDevices}
+                selectedDeviceId={selectedAudioInputId}
+                label={audioInputLabel}
+                disabled={isLoading || isListening}
+                onChange={onAudioInputChange}
+              />
               <Button
                 type="button"
                 variant={isListening ? 'danger' : 'secondary'}
