@@ -12,8 +12,9 @@ import type { View } from '../types';
  */
 const PADDING = 8;
 const GAP = 12;
+const VIEWPORT_MARGIN = 20;
 const TOOLTIP_WIDTH = 320;
-const TOOLTIP_HEIGHT_APPROX = 240;
+const TOOLTIP_HEIGHT_APPROX = 230;
 const MOBILE_BREAKPOINT = 768;
 
 interface DemoGuideOverlayProps {
@@ -112,19 +113,33 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
     const W = targetRect.width + (PADDING * 2);
     const H = targetRect.height + (PADDING * 2);
 
-    // Desktop Tooltip Placement
-    const spaceAbove = T;
-    let tooltipT = 0;
-    if (spaceAbove > TOOLTIP_HEIGHT_APPROX + GAP) {
-      tooltipT = T - TOOLTIP_HEIGHT_APPROX - GAP;
-    } else {
-      tooltipT = B + GAP;
-    }
-
-    const tooltipL = Math.min(
-      Math.max(20, targetRect.left + targetRect.width / 2 - TOOLTIP_WIDTH / 2),
-      window.innerWidth - TOOLTIP_WIDTH - 20
+    const clampX = (value: number) => Math.min(
+      Math.max(VIEWPORT_MARGIN, value),
+      window.innerWidth - TOOLTIP_WIDTH - VIEWPORT_MARGIN
     );
+    const clampY = (value: number) => Math.min(
+      Math.max(VIEWPORT_MARGIN, value),
+      window.innerHeight - TOOLTIP_HEIGHT_APPROX - VIEWPORT_MARGIN
+    );
+    const centeredY = clampY(targetRect.top + (targetRect.height / 2) - (TOOLTIP_HEIGHT_APPROX / 2));
+    const centeredX = clampX(targetRect.left + (targetRect.width / 2) - (TOOLTIP_WIDTH / 2));
+
+    let tooltipL = 0;
+    let tooltipT = 0;
+
+    if (window.innerWidth - R >= TOOLTIP_WIDTH + GAP + VIEWPORT_MARGIN) {
+      tooltipL = R + GAP;
+      tooltipT = centeredY;
+    } else if (L >= TOOLTIP_WIDTH + GAP + VIEWPORT_MARGIN) {
+      tooltipL = L - TOOLTIP_WIDTH - GAP;
+      tooltipT = centeredY;
+    } else if (window.innerHeight - B >= TOOLTIP_HEIGHT_APPROX + GAP + VIEWPORT_MARGIN) {
+      tooltipL = centeredX;
+      tooltipT = B + GAP;
+    } else {
+      tooltipL = centeredX;
+      tooltipT = Math.max(VIEWPORT_MARGIN, T - TOOLTIP_HEIGHT_APPROX - GAP);
+    }
 
     return { L, T, R, B, W, H, tooltipL, tooltipT };
   };
@@ -172,7 +187,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
             width: TOOLTIP_WIDTH,
           }}
         >
-          <div className="bg-card/95 border border-primary/20 rounded-[2rem] p-6 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
+          <div className="bg-card/95 border border-primary/20 rounded-[1.75rem] p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
              <div className="absolute top-0 left-0 h-0.5 bg-primary/20 transition-all duration-1000" style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }} />
              
              <div className="flex items-center justify-between mb-3 mt-0.5">
@@ -184,18 +199,19 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
                 </button>
              </div>
              
-             <h3 className="text-lg font-black tracking-tighter mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
-             <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 opacity-85 font-medium">
+             <h3 className="text-base font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
+             <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 opacity-85 font-medium">
                 {t(currentStep.descriptionKey)}
              </p>
              
              <div className="flex items-center gap-3">
                 <Button 
                   onClick={nextStep} 
-                  className="flex-1 rounded-xl py-5 text-[9px] font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                  size="sm"
+                  className="h-10 min-w-[9rem] rounded-xl px-4 text-[9px] font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                 >
                   {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-3 h-3" />
                 </Button>
                 <button 
                   onClick={endDemo}
