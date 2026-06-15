@@ -43,6 +43,7 @@ interface SpeechRecognitionLike extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives: number;
   onend: ((event: Event) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
@@ -61,6 +62,10 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
   };
 
   return browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition ?? null;
+}
+
+function canUseSpeechRecognition(): boolean {
+  return getSpeechRecognitionConstructor() !== null && window.isSecureContext;
 }
 
 function createSpeechAudioUrl(audioBase64: string, audioContentType: string): string {
@@ -95,7 +100,7 @@ export const HomeConversationView: React.FC = () => {
 
   useEffect(() => {
     setSpeechSupport({
-      recognition: getSpeechRecognitionConstructor() !== null,
+      recognition: canUseSpeechRecognition(),
       synthesis: 'Audio' in window
     });
   }, []);
@@ -203,7 +208,7 @@ export const HomeConversationView: React.FC = () => {
   };
 
   const resolveSpeechRecognitionError = (error?: string): string => {
-    if (error === 'not-allowed' || error === 'service-not-allowed') {
+    if (error === 'not-allowed' || error === 'service-not-allowed' || error === 'SecurityError') {
       return t('assistant.conversation.voice_permission_error');
     }
 
@@ -215,11 +220,24 @@ export const HomeConversationView: React.FC = () => {
       return t('assistant.conversation.voice_capture_error');
     }
 
+    if (error === 'network') {
+      return t('assistant.conversation.voice_network_error');
+    }
+
+    if (error === 'NotFoundError' || error === 'NotReadableError') {
+      return t('assistant.conversation.voice_capture_error');
+    }
+
     return t('assistant.conversation.voice_start_error');
   };
 
   const handleToggleListening = () => {
-    if (!speechSupport.recognition || isLoading) return;
+    if (isLoading) return;
+
+    if (!speechSupport.recognition) {
+      setSpeechNotice(t('assistant.conversation.voice_unavailable_error'));
+      return;
+    }
 
     if (isListening) {
       recognitionRef.current?.stop();
@@ -235,6 +253,7 @@ export const HomeConversationView: React.FC = () => {
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = i18n.language.startsWith('en') ? 'en-US' : 'es-ES';
+    recognition.maxAlternatives = 1;
     recognition.onstart = () => {
       setSpeechNotice('');
       setIsListening(true);
@@ -280,8 +299,9 @@ export const HomeConversationView: React.FC = () => {
     try {
       setIsListening(true);
       recognition.start();
-    } catch {
-      setSpeechNotice(t('assistant.conversation.voice_start_error'));
+    } catch (error) {
+      const errorName = error instanceof DOMException ? error.name : undefined;
+      setSpeechNotice(resolveSpeechRecognitionError(errorName));
       setIsListening(false);
     }
   };

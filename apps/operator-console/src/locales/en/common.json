@@ -136,6 +136,8 @@
       "voice_permission_error": "Microphone permission denied",
       "voice_no_speech": "I did not hear anything",
       "voice_capture_error": "No microphone detected",
+      "voice_network_error": "Speech recognition unavailable",
+      "voice_unavailable_error": "Open HomePilot from localhost or HTTPS to use the microphone",
       "voice_start_error": "Could not start microphone",
       "speech_on": "Response reading enabled",
       "speech_off": "Enable response reading",
