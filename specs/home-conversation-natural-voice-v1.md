@@ -6,7 +6,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
 - La UI debe permitir dictar una instrucción con micrófono cuando el navegador soporte Web Speech API.
-- La UI debe pedir permiso de micrófono antes de iniciar reconocimiento y recuperar el estado si el navegador lo rechaza.
+- La UI debe iniciar el reconocimiento en el mismo gesto del usuario y recuperar el estado si el navegador lo rechaza.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.

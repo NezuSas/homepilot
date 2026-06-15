@@ -134,6 +134,8 @@
       "voice_start": "Hablar con HomePilot",
       "voice_listening": "Escuchando...",
       "voice_permission_error": "Permiso de micrófono denegado",
+      "voice_no_speech": "No escuché nada",
+      "voice_capture_error": "No se detectó un micrófono",
       "voice_start_error": "No se pudo iniciar el micrófono",
       "speech_on": "Lectura de respuestas activada",
       "speech_off": "Activar lectura de respuestas",

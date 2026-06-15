@@ -134,6 +134,8 @@
       "voice_start": "Talk to HomePilot",
       "voice_listening": "Listening...",
       "voice_permission_error": "Microphone permission denied",
+      "voice_no_speech": "I did not hear anything",
+      "voice_capture_error": "No microphone detected",
       "voice_start_error": "Could not start microphone",
       "speech_on": "Response reading enabled",
       "speech_off": "Enable response reading",

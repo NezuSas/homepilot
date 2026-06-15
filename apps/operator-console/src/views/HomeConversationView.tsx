@@ -34,12 +34,17 @@ interface SpeechRecognitionEventLike extends Event {
   readonly results: SpeechRecognitionResultListLike;
 }
 
+interface SpeechRecognitionErrorEventLike extends Event {
+  readonly error?: string;
+  readonly message?: string;
+}
+
 interface SpeechRecognitionLike extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
   onend: ((event: Event) => void) | null;
-  onerror: ((event: Event) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onstart: ((event: Event) => void) | null;
   abort: () => void;
@@ -66,18 +71,6 @@ function createSpeechAudioUrl(audioBase64: string, audioContentType: string): st
   }
 
   return URL.createObjectURL(new Blob([bytes], { type: audioContentType }));
-}
-
-async function requestMicrophoneAccess(): Promise<boolean> {
-  if (!navigator.mediaDevices?.getUserMedia) return true;
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach(track => track.stop());
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export const HomeConversationView: React.FC = () => {
@@ -209,7 +202,23 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
-  const handleToggleListening = async () => {
+  const resolveSpeechRecognitionError = (error?: string): string => {
+    if (error === 'not-allowed' || error === 'service-not-allowed') {
+      return t('assistant.conversation.voice_permission_error');
+    }
+
+    if (error === 'no-speech') {
+      return t('assistant.conversation.voice_no_speech');
+    }
+
+    if (error === 'audio-capture') {
+      return t('assistant.conversation.voice_capture_error');
+    }
+
+    return t('assistant.conversation.voice_start_error');
+  };
+
+  const handleToggleListening = () => {
     if (!speechSupport.recognition || isLoading) return;
 
     if (isListening) {
@@ -218,16 +227,10 @@ export const HomeConversationView: React.FC = () => {
       return;
     }
 
-    const hasMicrophoneAccess = await requestMicrophoneAccess();
-    if (!hasMicrophoneAccess) {
-      setSpeechNotice(t('assistant.conversation.voice_permission_error'));
-      setIsListening(false);
-      return;
-    }
-
     const SpeechRecognition = getSpeechRecognitionConstructor();
     if (!SpeechRecognition) return;
 
+    recognitionRef.current?.abort();
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -237,8 +240,8 @@ export const HomeConversationView: React.FC = () => {
       setIsListening(true);
     };
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => {
-      setSpeechNotice(t('assistant.conversation.voice_start_error'));
+    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+      setSpeechNotice(resolveSpeechRecognitionError(event.error));
       setIsListening(false);
     };
     recognition.onresult = (event: SpeechRecognitionEventLike) => {
@@ -275,6 +278,7 @@ export const HomeConversationView: React.FC = () => {
     }
 
     try {
+      setIsListening(true);
       recognition.start();
     } catch {
       setSpeechNotice(t('assistant.conversation.voice_start_error'));
@@ -399,7 +403,7 @@ export const HomeConversationView: React.FC = () => {
         onInputChange={setInput}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
-        onToggleListening={() => void handleToggleListening()}
+        onToggleListening={handleToggleListening}
         onToggleSpeech={handleToggleSpeech}
       />
     </section>
