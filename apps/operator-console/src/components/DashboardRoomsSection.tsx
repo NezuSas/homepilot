@@ -44,9 +44,10 @@ const isDeviceActive = (device: SnapshotDevice): boolean => {
       ?? parsePosition(state.position)
       ?? parsePosition(state.attributes?.current_position)
       ?? parsePosition(state.attributes?.position);
+    const functionalPosition = position !== undefined && device.invertState ? 100 - position : position;
 
-    if (position !== undefined) {
-      return position > 0;
+    if (functionalPosition !== undefined) {
+      return functionalPosition > 0;
     }
 
     return state.state === 'open'

@@ -942,6 +942,7 @@
   },
   "demo": {
     "start_button": "Iniciar Demo Guiada",
+    "sidebar_summary": "{{count}} pasos de control local",
     "controls": {
       "label": "Guía",
       "step_of": "Paso {{current}} de {{total}}",
@@ -952,19 +953,35 @@
     "steps": {
       "dashboard": {
         "title": "Tu hogar, un solo control",
-        "description": "Todo está unificado en un solo sistema. Sin apps separadas, sin complejidad."
+        "description": "HomePilot centraliza espacios, escenas, dispositivos y salud del sistema en una sola consola local, pensada para operar la casa sin saltar entre apps."
+      },
+      "modes": {
+        "title": "Modos para cada momento",
+        "description": "Cambia la intención de la casa entre Relax, Fuera, Noche o Eco. Cada modo prepara la interfaz y el contexto para operar más rápido."
+      },
+      "command_center": {
+        "title": "Lectura ejecutiva del hogar",
+        "description": "Este centro resume dispositivos activos, control local, escenas disponibles y alertas. Sirve para saber si todo está bajo control de un vistazo."
+      },
+      "scenes": {
+        "title": "Escenas listas para ejecutar",
+        "description": "Las escenas agrupan comandos de varios dispositivos. HomePilot muestra cuántos puntos toca y si pueden ejecutarse con resiliencia local."
       },
       "devices": {
-        "title": "Respuesta inmediata",
-        "description": "Los comandos se ejecutan dentro de tu casa, no en la nube. Más rápido y sin depender de internet."
+        "title": "Control fino por dispositivo",
+        "description": "Cada tarjeta permite ver estado, habitación y acciones disponibles. Luces, cortinas y switches mantienen comportamiento consistente en toda la consola."
+      },
+      "conversation": {
+        "title": "Habla con tu casa",
+        "description": "El chat permite pedir acciones naturales, revisar confirmaciones y operar la vivienda con una experiencia más humana que un panel tradicional."
       },
       "automations": {
         "title": "Tu casa piensa por ti",
-        "description": "Las automatizaciones funcionan localmente, incluso si falla el internet."
+        "description": "Las reglas convierten horarios, estados y escenas en acciones automáticas. La consola distingue lo que corre en Edge y lo que depende de servicios externos."
       },
       "resilience": {
         "title": "Diseñado para la vida real",
-        "description": "El sistema sigue funcionando incluso sin conexión o servicios externos."
+        "description": "El showcase de resiliencia confirma qué parte del hogar sigue operando sin internet, para que el sistema sea confiable cuando más importa."
       }
     }
   },

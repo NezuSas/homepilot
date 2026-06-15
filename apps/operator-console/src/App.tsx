@@ -184,10 +184,31 @@ function App() {
 
   const DEMO_STEPS: DemoStep[] = [
     {
-      id: 'dashboard',
+      id: 'dashboard-nav',
       target: '[data-demo="nav-dashboard"]',
       titleKey: 'demo.steps.dashboard.title',
       descriptionKey: 'demo.steps.dashboard.description',
+      view: 'dashboard'
+    },
+    {
+      id: 'home-modes',
+      target: '[data-demo="home-mode-selector"]',
+      titleKey: 'demo.steps.modes.title',
+      descriptionKey: 'demo.steps.modes.description',
+      view: 'dashboard'
+    },
+    {
+      id: 'command-center',
+      target: '[data-demo="command-center"]',
+      titleKey: 'demo.steps.command_center.title',
+      descriptionKey: 'demo.steps.command_center.description',
+      view: 'dashboard'
+    },
+    {
+      id: 'scenes',
+      target: '[data-demo="dashboard-scenes"]',
+      titleKey: 'demo.steps.scenes.title',
+      descriptionKey: 'demo.steps.scenes.description',
       view: 'dashboard'
     },
     {
@@ -196,6 +217,13 @@ function App() {
       titleKey: 'demo.steps.devices.title',
       descriptionKey: 'demo.steps.devices.description',
       view: 'dashboard'
+    },
+    {
+      id: 'conversation',
+      target: '[data-demo="nav-home-conversation"]',
+      titleKey: 'demo.steps.conversation.title',
+      descriptionKey: 'demo.steps.conversation.description',
+      view: 'home-conversation'
     },
     {
       id: 'automations',
@@ -479,13 +507,14 @@ function App() {
                data-demo="nav-resilience"
                collapsedOnDesktop={isDesktopSidebarCollapsed}
              />
-             <SidebarItem 
-               icon={MessageSquare} 
-               label={t('nav.talk_to_home')} 
-               active={currentView === 'home-conversation'} 
-               onClick={() => navigateTo('home-conversation')} 
-               collapsedOnDesktop={isDesktopSidebarCollapsed}
-             />
+            <SidebarItem
+              icon={MessageSquare}
+              label={t('nav.talk_to_home')}
+              active={currentView === 'home-conversation'}
+              onClick={() => navigateTo('home-conversation')}
+              collapsedOnDesktop={isDesktopSidebarCollapsed}
+              data-demo="nav-home-conversation"
+            />
           </div>
 
           {/* ── PERSONALIZATION ────────────────────────────────────── */}
@@ -609,15 +638,23 @@ function App() {
           <button
             onClick={() => startDemo(DEMO_STEPS)}
             className={cn(
-              "hidden lg:flex items-center gap-2 w-full px-3 py-2.5 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 group shadow-sm shadow-primary/5",
-              isDesktopSidebarCollapsed && "lg:justify-center lg:px-2"
+              "hidden lg:flex items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 control-transition interactive-lift group",
+              "hover:bg-primary/15 hover:border-primary/30",
+              isDesktopSidebarCollapsed && "lg:justify-center lg:px-2 lg:py-2.5"
             )}
             title={isDesktopSidebarCollapsed ? t('demo.start_button') : undefined}
           >
-            <div className="p-1.5 bg-primary rounded-lg text-primary-foreground group-hover:scale-110 transition-transform">
+            <div className="p-2 bg-primary rounded-xl text-primary-foreground group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <span className={cn("text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0")}>{t('demo.start_button')}</span>
+            <div className={cn("flex min-w-0 flex-1 flex-col text-left overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>
+              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                {t('demo.start_button')}
+              </span>
+              <span className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.14em] text-primary/60">
+                {t('demo.sidebar_summary', { count: DEMO_STEPS.length })}
+              </span>
+            </div>
           </button>
 
           <div className="flex flex-col gap-3">

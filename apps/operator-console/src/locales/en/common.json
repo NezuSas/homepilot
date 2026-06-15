@@ -942,6 +942,7 @@
   },
   "demo": {
     "start_button": "Start Guided Demo",
+    "sidebar_summary": "{{count}} local-control steps",
     "controls": {
       "label": "Guide",
       "step_of": "Step {{current}} of {{total}}",
@@ -952,19 +953,35 @@
     "steps": {
       "dashboard": {
         "title": "Your Home, One Control Layer",
-        "description": "Everything in your home is unified into a single control system. No fragmented apps, no complexity."
+        "description": "HomePilot brings spaces, scenes, devices, and system health into one local console, designed to operate the home without jumping between apps."
+      },
+      "modes": {
+        "title": "Modes for Every Moment",
+        "description": "Switch the home's intent between Relax, Away, Night, or Eco. Each mode prepares the interface and context for faster operation."
+      },
+      "command_center": {
+        "title": "Executive Home Readout",
+        "description": "This command center summarizes active devices, local control, available scenes, and alerts, so you can read the home's status at a glance."
+      },
+      "scenes": {
+        "title": "Scenes Ready to Execute",
+        "description": "Scenes group commands across devices. HomePilot shows how many endpoints each scene touches and whether it can run with local resilience."
       },
       "devices": {
-        "title": "Instant Response",
-        "description": "Commands are executed directly in your home, not in the cloud. This means faster response and zero dependency on internet."
+        "title": "Precise Device Control",
+        "description": "Each tile exposes status, room context, and available actions. Lights, curtains, and switches keep a consistent control model across the console."
+      },
+      "conversation": {
+        "title": "Talk to Your Home",
+        "description": "The chat lets you request natural actions, review confirmations, and operate the home with a more human experience than a traditional panel."
       },
       "automations": {
         "title": "Your Home Thinks For You",
-        "description": "Automations run locally, so your home keeps working even if internet or external services fail."
+        "description": "Rules turn schedules, states, and scenes into automatic actions. The console distinguishes what runs on Edge from what depends on external services."
       },
       "resilience": {
         "title": "Built for Real-World Reliability",
-        "description": "This system continues operating even during outages. Your home is not dependent on external systems."
+        "description": "The resilience showcase confirms which parts of the home continue operating without internet, so the system is dependable when it matters most."
       }
     }
   },

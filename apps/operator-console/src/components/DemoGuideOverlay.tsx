@@ -12,8 +12,8 @@ import type { View } from '../types';
  */
 const PADDING = 8;
 const GAP = 12;
-const TOOLTIP_WIDTH = 280;
-const TOOLTIP_HEIGHT_APPROX = 220;
+const TOOLTIP_WIDTH = 320;
+const TOOLTIP_HEIGHT_APPROX = 240;
 const MOBILE_BREAKPOINT = 768;
 
 interface DemoGuideOverlayProps {
@@ -185,7 +185,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
              </div>
              
              <h3 className="text-lg font-black tracking-tighter mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
-             <p className="text-[13px] text-muted-foreground leading-snug mb-5 opacity-80 font-medium">
+             <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 opacity-85 font-medium">
                 {t(currentStep.descriptionKey)}
              </p>
              

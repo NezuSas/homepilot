@@ -76,9 +76,10 @@ const isDeviceActive = (device: SnapshotDevice): boolean => {
       ?? parseCoverPosition(state.position)
       ?? parseCoverPosition(state.attributes?.current_position)
       ?? parseCoverPosition(state.attributes?.position);
+    const functionalPosition = position !== undefined && device.invertState ? 100 - position : position;
 
-    if (position !== undefined) {
-      return position > 0;
+    if (functionalPosition !== undefined) {
+      return functionalPosition > 0;
     }
 
     return state.state === 'open' || state.state === 'opening';
@@ -200,7 +201,8 @@ useEffect(() => {
     const executableCommands = devicesToTurnOff
       .map((device) => {
         if (hasCapability(device, 'cover')) {
-          return canExecuteCommand(device, 'close') ? { deviceId: device.id, command: 'close' } : null;
+          const command = device.invertState ? 'open' : 'close';
+          return canExecuteCommand(device, command) ? { deviceId: device.id, command } : null;
         }
 
         return canExecuteCommand(device, 'turn_off') ? { deviceId: device.id, command: 'turn_off' } : null;

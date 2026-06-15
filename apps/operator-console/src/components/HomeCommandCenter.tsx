@@ -76,7 +76,8 @@ export const HomeCommandCenter: React.FC<HomeCommandCenterProps> = ({
       'premium-card relative overflow-hidden rounded-[2rem] p-5 md:p-6 shadow-depth-2',
       'bg-gradient-to-br',
       modeTone[currentMode],
-    )}>
+    )}
+    data-demo="command-center">
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex flex-col gap-6 xl:flex-row xl:items-stretch xl:justify-between">
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-5">

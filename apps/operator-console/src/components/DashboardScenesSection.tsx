@@ -38,7 +38,10 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
 
   if (scenes.length === 0) {
     return (
-      <div className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5">
+      <div
+        className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5"
+        data-demo="dashboard-scenes"
+      >
         <Zap className="w-12 h-12 text-primary opacity-20 mb-4" />
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">{t('scenes.empty_title')}</p>
         <Button
@@ -54,7 +57,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-scenes">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">{t('dashboard.atmosphere_recipes')}</h2>
         <Button

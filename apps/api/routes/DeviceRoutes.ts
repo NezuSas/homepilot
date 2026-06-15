@@ -290,7 +290,7 @@ export class DeviceRoutes extends ApiRoutes {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const deviceId = devicePatchMatch[1];
-        const payload = await this.parseBody<{ name?: string }>(req);
+        const payload = await this.parseBody<{ name?: string; invertState?: boolean }>(req);
 
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
@@ -301,18 +301,27 @@ export class DeviceRoutes extends ApiRoutes {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
         }
 
-        if (payload.name) {
-          const updatedDevice = {
-            ...device,
-            name: payload.name,
-            updatedAt: new Date().toISOString(),
-            entityVersion: device.entityVersion + 1,
-          };
-          await container.repositories.deviceRepository.saveDevice(updatedDevice);
-          this.sendJson(res, this.enrichDevice(updatedDevice));
-        } else {
+        const nextName = typeof payload.name === 'string' && payload.name.trim().length > 0
+          ? payload.name.trim()
+          : device.name;
+        const nextInvertState = typeof payload.invertState === 'boolean'
+          ? payload.invertState
+          : device.invertState;
+
+        if (nextName === device.name && nextInvertState === device.invertState) {
           this.sendJson(res, this.enrichDevice(device));
+          return true;
         }
+
+        const updatedDevice = {
+          ...device,
+          name: nextName,
+          invertState: nextInvertState,
+          updatedAt: new Date().toISOString(),
+          entityVersion: device.entityVersion + 1,
+        };
+        await container.repositories.deviceRepository.saveDevice(updatedDevice);
+        this.sendJson(res, this.enrichDevice(updatedDevice));
       } catch (error: unknown) {
         this.sendError(res, 500, 'UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }

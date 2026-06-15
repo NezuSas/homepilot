@@ -20,6 +20,7 @@ import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from './ConfirmModal';
+import { Button } from './ui/Button';
 import { SelectField } from './ui/SelectField';
 
 type InspectableDevice = Device & {
@@ -122,6 +123,29 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         const data = await res.json() as { device: InspectableDevice };
         setDevice(data.device);
         onUpdate(data.device);
+      } else {
+        setError(t('common.errors.operation_failed'));
+      }
+    } catch {
+      setError(t('common.errors.operation_failed'));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleInvertStateChange = async (invertState: boolean) => {
+    if (!device || isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invertState }),
+      });
+      if (res.ok) {
+        const updated = await res.json() as InspectableDevice;
+        setDevice(updated);
+        onUpdate(updated);
       } else {
         setError(t('common.errors.operation_failed'));
       }
@@ -356,6 +380,42 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     Determina cómo el Asistente interpreta este dispositivo.
                   </p>
                 </div>
+
+                {device.type === 'cover' && (
+                  <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-3 shadow-inner">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary">
+                          Estado de cortina invertido
+                        </span>
+                        <p className="mt-1 text-[8px] text-muted-foreground/50 leading-relaxed">
+                          Actívalo cuando Home Assistant reporte abierta pero físicamente está cerrada.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={device.invertState === true}
+                        disabled={isActionLoading}
+                        onClick={() => handleInvertStateChange(device.invertState !== true)}
+                        className={cn(
+                          'relative h-8 w-14 shrink-0 rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                          device.invertState
+                            ? 'border-primary/40 bg-primary/25'
+                            : 'border-border bg-muted/60',
+                          isActionLoading && 'pointer-events-none opacity-50',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'absolute top-1 h-6 w-6 rounded-full bg-background shadow-sm surface-transition',
+                            device.invertState ? 'left-7 bg-primary' : 'left-1',
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 p-8 bg-black/5 border-2 border-dashed border-border/50 rounded-[2.5rem] flex flex-col gap-6">
@@ -366,42 +426,43 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                 {(device.type === 'light' || device.type === 'switch') && (
                   <div className="flex gap-4">
-                    <button onClick={() => handleCommand('turn_on')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-primary-foreground hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10 active:bg-primary/90">
+                    <Button onClick={() => handleCommand('turn_on')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.force_on')}
-                    </button>
-                    <button onClick={() => handleCommand('turn_off')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors active:scale-95">
+                    </Button>
+                    <Button variant="secondary" onClick={() => handleCommand('turn_off')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.force_off')}
-                    </button>
-                    <button onClick={() => handleCommand('toggle')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors active:scale-95">
+                    </Button>
+                    <Button variant="outline" onClick={() => handleCommand('toggle')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.toggle')}
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {device.type === 'cover' && (
                   <div className="flex gap-4">
-                    <button onClick={() => handleCommand('open')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-primary text-primary-foreground hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/10">
+                    <Button onClick={() => handleCommand(device.invertState ? 'close' : 'open')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.open')}
-                    </button>
-                    <button onClick={() => handleCommand('stop')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-muted text-foreground hover:bg-muted/80 transition-colors active:scale-95">
+                    </Button>
+                    <Button variant="secondary" onClick={() => handleCommand('stop')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.stop')}
-                    </button>
-                    <button onClick={() => handleCommand('close')} className="flex-1 py-4 rounded-2xl text-[10px] font-black tracking-widest bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors active:scale-95">
+                    </Button>
+                    <Button variant="outline" onClick={() => handleCommand(device.invertState ? 'open' : 'close')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.close')}
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {device.externalId.startsWith('ha:') && (
                   <div className="pt-6 border-t border-border/20 flex flex-col gap-4">
-                    <button
+                    <Button
                       onClick={handleRefresh}
                       disabled={isRefreshing}
-                      className="w-full py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 transition-all flex items-center justify-center gap-3 group"
+                      variant="secondary"
+                      className="w-full h-12 text-[10px] font-black uppercase tracking-widest"
                     >
                       <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
                       {isRefreshing ? t('inbox.discovery.importing') : t('inbox.discovery.refresh_hint')}
-                    </button>
+                    </Button>
                     {error && (
                       <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20">
                         <AlertCircle className="w-4 h-4 shrink-0" />

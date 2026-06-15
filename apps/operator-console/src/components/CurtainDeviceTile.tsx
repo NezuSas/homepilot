@@ -56,10 +56,11 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
     if (!Number.isFinite(parsed)) return undefined;
     return Math.min(100, Math.max(0, parsed));
   };
-  const position = parsePosition(lastState.current_position)
+  const rawPosition = parsePosition(lastState.current_position)
     ?? parsePosition(lastState.position)
     ?? parsePosition(lastState.attributes?.current_position)
     ?? parsePosition(lastState.attributes?.position);
+  const position = rawPosition !== undefined && device.invertState ? 100 - rawPosition : rawPosition;
   
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';
@@ -120,8 +121,13 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const canClose = !!onCommand && canExecuteCommand(device, 'close');
   const canStop = !!onCommand && canExecuteCommand(device, 'stop');
   const canSetPosition = !!onCommand && canExecuteCommand(device, 'set_position');
-  const primaryCoverCommand = isOpen ? (canClose ? 'close' : null) : (canOpen ? 'open' : null);
-  const primaryCoverLabel = primaryCoverCommand ? t(`common.actions.${primaryCoverCommand}`) : '';
+  const desiredCoverCommand = isOpen ? 'close' : 'open';
+  const executableCoverCommand = device.invertState
+    ? (desiredCoverCommand === 'open' ? 'close' : 'open')
+    : desiredCoverCommand;
+  const canExecutePrimary = executableCoverCommand === 'open' ? canOpen : canClose;
+  const primaryCoverCommand = canExecutePrimary ? executableCoverCommand : null;
+  const primaryCoverLabel = t(`common.actions.${desiredCoverCommand}`);
 
   return (
     <DeviceTileShell
@@ -224,8 +230,8 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
           {canSetPosition && (
             <CoverPositionControl 
-              initialPosition={position} 
-              onPositionChange={handlePositionChange}
+              initialPosition={position}
+              onPositionChange={(nextPosition) => handlePositionChange(device.invertState ? 100 - nextPosition : nextPosition)}
               disabled={!!isProcessing}
               ariaLabel={t('common.cover.position', { defaultValue: 'Posición de cortina' })}
             />

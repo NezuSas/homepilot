@@ -20,7 +20,10 @@ const MODES = [
 export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({ currentMode, onModeChange }) => {
   const { t } = useTranslation();
   return (
-    <div className="w-full overflow-x-auto no-scrollbar mb-2 animate-in fade-in slide-in-from-top-4 duration-1000">
+    <div
+      className="w-full overflow-x-auto no-scrollbar mb-2 animate-in fade-in slide-in-from-top-4 duration-1000"
+      data-demo="home-mode-selector"
+    >
       <div className="flex items-center gap-3 p-2 bg-muted/20 backdrop-blur-xl rounded-[2.5rem] border border-border/40 w-fit min-w-full md:min-w-0 mx-auto px-4 sm:px-2">
         {MODES.map((mode) => {
           const isActive = currentMode === mode.id;
