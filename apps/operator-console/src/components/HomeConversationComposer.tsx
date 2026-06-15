@@ -12,7 +12,7 @@ interface HomeConversationComposerProps {
   versionLabel: string;
   inputHint: string;
   isListening: boolean;
-  isSpeechRecognitionSupported: boolean;
+  isSpeechRecordingSupported: boolean;
   isSpeechSynthesisSupported: boolean;
   isSpeechEnabled: boolean;
   voiceLabel: string;
@@ -34,7 +34,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   versionLabel,
   inputHint,
   isListening,
-  isSpeechRecognitionSupported,
+  isSpeechRecordingSupported,
   isSpeechSynthesisSupported,
   isSpeechEnabled,
   voiceLabel,
@@ -66,7 +66,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             className="custom-scrollbar min-h-[52px] max-h-48 flex-1 resize-none border-none bg-transparent px-3 py-3 pr-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
             disabled={isLoading}
           />
-          {isSpeechRecognitionSupported && (
+          {isSpeechRecordingSupported && (
             <Button
               type="button"
               variant={isListening ? 'danger' : 'secondary'}

@@ -10,6 +10,7 @@ describe('AssistantRoutes', () => {
   let mockContainer: Partial<BootstrapContainer>;
   let mockAssistantConversationService: any;
   let mockAssistantTextToSpeechService: any;
+  let mockAssistantSpeechToTextService: any;
   let mockAuthGuard: any;
 
   beforeEach(() => {
@@ -23,13 +24,20 @@ describe('AssistantRoutes', () => {
         audioBase64: 'YWJj'
       })
     };
+    mockAssistantSpeechToTextService = {
+      transcribe: jest.fn().mockResolvedValue({
+        provider: 'whisper-local',
+        transcript: 'enciende la sala'
+      })
+    };
     mockAuthGuard = {
       protect: jest.fn().mockResolvedValue(true)
     };
     mockContainer = {
       services: {
         assistantConversationService: mockAssistantConversationService,
-        assistantTextToSpeechService: mockAssistantTextToSpeechService
+        assistantTextToSpeechService: mockAssistantTextToSpeechService,
+        assistantSpeechToTextService: mockAssistantSpeechToTextService
       } as any,
       guards: {
         authGuard: mockAuthGuard
@@ -103,6 +111,26 @@ describe('AssistantRoutes', () => {
       provider: 'piper',
       audioContentType: 'audio/wav',
       audioBase64: 'YWJj'
+    }));
+  });
+
+  it('POST /api/v1/assistant/stt returns local speech transcript', async () => {
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({
+      audioBase64: 'YWJj',
+      audioContentType: 'audio/webm'
+    });
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/stt', 'POST', mockContainer as BootstrapContainer);
+
+    expect(mockAssistantSpeechToTextService.transcribe).toHaveBeenCalledWith({
+      audioBase64: 'YWJj',
+      audioContentType: 'audio/webm',
+      language: 'es'
+    });
+    expect(mockRes.writeHead).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+    expect(mockRes.end).toHaveBeenCalledWith(JSON.stringify({
+      provider: 'whisper-local',
+      transcript: 'enciende la sala'
     }));
   });
 });

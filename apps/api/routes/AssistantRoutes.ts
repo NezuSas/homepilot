@@ -8,6 +8,10 @@ import {
   AssistantTextToSpeechUnavailableError,
   AssistantTextToSpeechValidationError
 } from '../../../packages/assistant/application/AssistantTextToSpeechService';
+import {
+  AssistantSpeechToTextUnavailableError,
+  AssistantSpeechToTextValidationError
+} from '../../../packages/assistant/application/AssistantSpeechToTextService';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -181,6 +185,30 @@ export class AssistantRoutes extends ApiRoutes {
           return this.sendError(res, 409, 'TTS_UNAVAILABLE', e.message), true;
         }
         this.sendError(res, 500, 'ASSISTANT_TTS_ERROR', e instanceof Error ? e.message : String(e));
+      }
+      return true;
+    }
+
+    // POST /api/v1/assistant/stt
+    if (method === 'POST' && pathname === '/api/v1/assistant/stt') {
+      try {
+        const body = await this.parseBody<{ audioBase64?: string; audioContentType?: string }>(req);
+        const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
+        const response = await container.services.assistantSpeechToTextService.transcribe({
+          audioBase64: body.audioBase64 || '',
+          audioContentType: body.audioContentType || '',
+          language
+        });
+
+        return this.sendJson(res, response), true;
+      } catch (e: unknown) {
+        if (e instanceof AssistantSpeechToTextValidationError) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', e.message), true;
+        }
+        if (e instanceof AssistantSpeechToTextUnavailableError) {
+          return this.sendError(res, 409, 'STT_UNAVAILABLE', e.message), true;
+        }
+        this.sendError(res, 500, 'ASSISTANT_STT_ERROR', e instanceof Error ? e.message : String(e));
       }
       return true;
     }

@@ -33,6 +33,9 @@ services:
       - TTS_PROVIDER=${TTS_PROVIDER:-piper}
       - TTS_BASE_URL=${TTS_BASE_URL:-http://homepilot-tts:8088}
       - TTS_TIMEOUT_MS=${TTS_TIMEOUT_MS:-12000}
+      - STT_PROVIDER=${STT_PROVIDER:-whisper-local}
+      - STT_BASE_URL=${STT_BASE_URL:-http://homepilot-stt:8090}
+      - STT_TIMEOUT_MS=${STT_TIMEOUT_MS:-30000}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -47,6 +50,8 @@ services:
       ollama:
         condition: service_started
       homepilot-tts:
+        condition: service_started
+      homepilot-stt:
         condition: service_started
 
   homepilot-ui:
@@ -101,6 +106,24 @@ services:
       - "8088:8088"
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  homepilot-stt:
+    build:
+      context: .
+      dockerfile: services/stt-whisper/Dockerfile
+    container_name: homepilot-stt
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-tiny}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
+      - WHISPER_MAX_AUDIO_BYTES=${WHISPER_MAX_AUDIO_BYTES:-9000000}
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3

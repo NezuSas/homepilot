@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { converseWithAssistant, synthesizeAssistantSpeech } from '../lib/assistantApi';
+import { converseWithAssistant, synthesizeAssistantSpeech, transcribeAssistantSpeech } from '../lib/assistantApi';
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
 import type { AssistantConversationResponse, AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
@@ -12,60 +12,15 @@ import { HomeConversationTypingIndicator } from '../components/HomeConversationT
 
 const noopSessionCleared = () => {};
 
-interface SpeechRecognitionAlternativeLike {
-  transcript: string;
+const MAX_RECORDING_MS = 12000;
+
+function canUseLocalSpeechRecording(): boolean {
+  return window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== 'undefined';
 }
 
-interface SpeechRecognitionResultLike {
-  readonly isFinal: boolean;
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternativeLike;
-  [index: number]: SpeechRecognitionAlternativeLike;
-}
-
-interface SpeechRecognitionResultListLike {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResultLike;
-  [index: number]: SpeechRecognitionResultLike;
-}
-
-interface SpeechRecognitionEventLike extends Event {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultListLike;
-}
-
-interface SpeechRecognitionErrorEventLike extends Event {
-  readonly error?: string;
-  readonly message?: string;
-}
-
-interface SpeechRecognitionLike extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onend: ((event: Event) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onstart: ((event: Event) => void) | null;
-  abort: () => void;
-  start: () => void;
-  stop: () => void;
-}
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null {
-  const browserWindow = window as Window & {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  };
-
-  return browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition ?? null;
-}
-
-function canUseSpeechRecognition(): boolean {
-  return getSpeechRecognitionConstructor() !== null && window.isSecureContext;
+function getPreferredAudioMimeType(): string {
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+  return candidates.find(candidate => MediaRecorder.isTypeSupported(candidate)) || '';
 }
 
 function createSpeechAudioUrl(audioBase64: string, audioContentType: string): string {
@@ -78,8 +33,21 @@ function createSpeechAudioUrl(audioBase64: string, audioContentType: string): st
   return URL.createObjectURL(new Blob([bytes], { type: audioContentType }));
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const [, base64 = ''] = result.split(',');
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error('AUDIO_READ_FAILED'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export const HomeConversationView: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useSession(noopSessionCleared);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -88,11 +56,14 @@ export const HomeConversationView: React.FC = () => {
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [speechNotice, setSpeechNotice] = useState('');
   const [speechSupport, setSpeechSupport] = useState({
-    recognition: false,
+    recording: false,
     synthesis: false
   });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaChunksRef = useRef<Blob[]>([]);
+  const recordingTimeoutRef = useRef<number | null>(null);
   const speechEnabledRef = useRef(false);
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
@@ -100,7 +71,7 @@ export const HomeConversationView: React.FC = () => {
 
   useEffect(() => {
     setSpeechSupport({
-      recognition: canUseSpeechRecognition(),
+      recording: canUseLocalSpeechRecording(),
       synthesis: 'Audio' in window
     });
   }, []);
@@ -112,7 +83,15 @@ export const HomeConversationView: React.FC = () => {
   }, [messages.length, isLoading]);
 
   useEffect(() => () => {
-    recognitionRef.current?.abort();
+    if (recordingTimeoutRef.current !== null) {
+      window.clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    mediaStreamRef.current = null;
     speechRequestIdRef.current += 1;
     stopProfessionalSpeech();
   }, []);
@@ -207,21 +186,32 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
-  const resolveSpeechRecognitionError = (error?: string): string => {
-    if (error === 'not-allowed' || error === 'service-not-allowed' || error === 'SecurityError') {
+  const stopMediaStream = () => {
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    mediaStreamRef.current = null;
+  };
+
+  const clearRecordingTimeout = () => {
+    if (recordingTimeoutRef.current !== null) {
+      window.clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+  };
+
+  const stopLocalRecording = () => {
+    clearRecordingTimeout();
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      return;
+    }
+
+    stopMediaStream();
+    setIsListening(false);
+  };
+
+  const resolveRecordingError = (error?: string): string => {
+    if (error === 'NotAllowedError' || error === 'SecurityError') {
       return t('assistant.conversation.voice_permission_error');
-    }
-
-    if (error === 'no-speech') {
-      return t('assistant.conversation.voice_no_speech');
-    }
-
-    if (error === 'audio-capture') {
-      return t('assistant.conversation.voice_capture_error');
-    }
-
-    if (error === 'network') {
-      return t('assistant.conversation.voice_network_error');
     }
 
     if (error === 'NotFoundError' || error === 'NotReadableError') {
@@ -231,77 +221,89 @@ export const HomeConversationView: React.FC = () => {
     return t('assistant.conversation.voice_start_error');
   };
 
-  const handleToggleListening = () => {
+  const handleRecordingComplete = async (audioBlob: Blob) => {
+    stopMediaStream();
+    setIsListening(false);
+
+    if (audioBlob.size === 0) {
+      setSpeechNotice(t('assistant.conversation.voice_no_speech'));
+      return;
+    }
+
+    setSpeechNotice(t('assistant.conversation.voice_transcribing'));
+
+    try {
+      const audioBase64 = await blobToBase64(audioBlob);
+      const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm');
+      const spokenText = transcription?.transcript.trim() ?? '';
+
+      if (!spokenText) {
+        setSpeechNotice(t('assistant.conversation.voice_no_speech'));
+        return;
+      }
+
+      setInput(spokenText);
+      await handleSend(spokenText);
+    } catch {
+      setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
+    }
+  };
+
+  const handleToggleListening = async () => {
     if (isLoading) return;
 
-    if (!speechSupport.recognition) {
+    if (!speechSupport.recording) {
       setSpeechNotice(t('assistant.conversation.voice_unavailable_error'));
       return;
     }
 
     if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+      stopLocalRecording();
       return;
     }
 
-    const SpeechRecognition = getSpeechRecognitionConstructor();
-    if (!SpeechRecognition) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      const mimeType = getPreferredAudioMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaChunksRef.current = [];
+      mediaStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
 
-    recognitionRef.current?.abort();
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = i18n.language.startsWith('en') ? 'en-US' : 'es-ES';
-    recognition.maxAlternatives = 1;
-    recognition.onstart = () => {
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) {
+          mediaChunksRef.current.push(event.data);
+        }
+      };
+      recorder.onerror = () => {
+        setSpeechNotice(t('assistant.conversation.voice_start_error'));
+        stopLocalRecording();
+      };
+      recorder.onstop = () => {
+        clearRecordingTimeout();
+        const audioBlob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        mediaChunksRef.current = [];
+        void handleRecordingComplete(audioBlob);
+      };
+
       setSpeechNotice('');
       setIsListening(true);
-    };
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
-      setSpeechNotice(resolveSpeechRecognitionError(event.error));
-      setIsListening(false);
-    };
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
-
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const result = event.results[index];
-        const transcript = result[0]?.transcript?.trim() ?? '';
-        if (!transcript) continue;
-
-        if (result.isFinal) {
-          finalTranscript += `${transcript} `;
-        } else {
-          interimTranscript += `${transcript} `;
-        }
+      if (speechSupport.synthesis) {
+        speechEnabledRef.current = true;
+        setIsSpeechEnabled(true);
       }
-
-      const spokenText = finalTranscript.trim();
-      if (spokenText) {
-        setInput(spokenText);
-        void handleSend(spokenText);
-        return;
-      }
-
-      const partialText = interimTranscript.trim();
-      if (partialText) setInput(partialText);
-    };
-
-    recognitionRef.current = recognition;
-    if (speechSupport.synthesis) {
-      speechEnabledRef.current = true;
-      setIsSpeechEnabled(true);
-    }
-
-    try {
-      setIsListening(true);
-      recognition.start();
+      recorder.start();
+      recordingTimeoutRef.current = window.setTimeout(() => stopLocalRecording(), MAX_RECORDING_MS);
     } catch (error) {
       const errorName = error instanceof DOMException ? error.name : undefined;
-      setSpeechNotice(resolveSpeechRecognitionError(errorName));
+      setSpeechNotice(resolveRecordingError(errorName));
+      stopMediaStream();
       setIsListening(false);
     }
   };
@@ -413,7 +415,7 @@ export const HomeConversationView: React.FC = () => {
         versionLabel={t('assistant.conversation.version_label')}
         inputHint={speechNotice || t('assistant.conversation.input_hint')}
         isListening={isListening}
-        isSpeechRecognitionSupported={speechSupport.recognition}
+        isSpeechRecordingSupported={speechSupport.recording}
         isSpeechSynthesisSupported={speechSupport.synthesis}
         isSpeechEnabled={isSpeechEnabled}
         voiceLabel={t('assistant.conversation.voice_start')}
@@ -423,7 +425,7 @@ export const HomeConversationView: React.FC = () => {
         onInputChange={setInput}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
-        onToggleListening={handleToggleListening}
+        onToggleListening={() => void handleToggleListening()}
         onToggleSpeech={handleToggleSpeech}
       />
     </section>

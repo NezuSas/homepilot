@@ -5,13 +5,14 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
-- La UI debe permitir dictar una instrucción con micrófono cuando el navegador soporte Web Speech API.
-- La UI debe iniciar el reconocimiento en el mismo gesto del usuario y recuperar el estado si el navegador lo rechaza.
-- La UI debe habilitar dictado solo en contexto seguro y mostrar errores específicos de permisos, hardware o servicio de reconocimiento.
+- La UI debe permitir dictar una instrucción con micrófono grabando audio local con `MediaRecorder`.
+- La UI debe enviar el audio al backend para transcripción local y no depender de Web Speech API.
+- La UI debe habilitar dictado solo en contexto seguro y mostrar errores específicos de permisos, hardware o transcripción.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
 - La experiencia de voz no debe requerir API keys ni proveedores cloud de pago.
+- El backend debe exponer un endpoint STT propio que delegue en un servicio local Docker con Whisper.
 - Las acciones ambiguas, masivas o sensibles deben seguir usando las confirmaciones actuales.
 
 ## Fuera de Alcance
@@ -24,11 +25,12 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Acceptance Criteria
 - Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
-- La caja de chat expone botón de micrófono si el navegador soporta reconocimiento de voz.
-- Al terminar el dictado, el texto reconocido se envía al asistente como un prompt normal.
+- La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
+- Al terminar la grabación, el audio se transcribe en el servicio local `homepilot-stt` y el texto resultante se envía al asistente como un prompt normal.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-davefx-medium` por defecto.
 - El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.
 - Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.
+- Si el servicio STT local falla, la conversación sigue funcionando por texto sin depender del reconocimiento de voz del navegador.
 - Typecheck, build, build de Operator Console, tests y Docker pasan.

@@ -23,6 +23,7 @@ import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Va
 import { PlannerV2Resolver } from './packages/assistant/application/PlannerV2Resolver';
 import { AssistantPlannerV2ShadowService } from './packages/assistant/application/AssistantPlannerV2ShadowService';
 import { AssistantTextToSpeechService } from './packages/assistant/application/AssistantTextToSpeechService';
+import { AssistantSpeechToTextService } from './packages/assistant/application/AssistantSpeechToTextService';
 import fs from 'fs';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -100,6 +101,7 @@ export interface BootstrapContainer {
     assistantConversationService: AssistantConversationService;
     assistantPlannerV2ShadowService: AssistantPlannerV2ShadowService;
     assistantTextToSpeechService: AssistantTextToSpeechService;
+    assistantSpeechToTextService: AssistantSpeechToTextService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -263,6 +265,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService);
   const shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, plannerV2Validator, plannerV2Resolver);
   const assistantTextToSpeechService = new AssistantTextToSpeechService();
+  const assistantSpeechToTextService = new AssistantSpeechToTextService();
 
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
@@ -310,7 +313,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       assistantConfirmationPolicy,
       assistantConversationService,
       assistantPlannerV2ShadowService: shadowService,
-      assistantTextToSpeechService
+      assistantTextToSpeechService,
+      assistantSpeechToTextService
     },
     guards: {
       authGuard: authModule.authGuard

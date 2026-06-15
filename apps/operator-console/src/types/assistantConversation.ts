@@ -38,6 +38,11 @@ export interface AssistantTextToSpeechResponse {
   audioBase64: string;
 }
 
+export interface AssistantSpeechToTextResponse {
+  provider: "whisper-local";
+  transcript: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";

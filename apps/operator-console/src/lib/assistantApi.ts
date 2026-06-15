@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../config';
 import type {
   AssistantConverseRequest,
   AssistantConversationResponse,
+  AssistantSpeechToTextResponse,
   AssistantTextToSpeechResponse
 } from '../types/assistantConversation';
 
@@ -51,4 +52,28 @@ export async function synthesizeAssistantSpeech(text: string): Promise<Assistant
 
   const payload: unknown = await response.json().catch(() => null);
   return isAssistantTextToSpeechResponse(payload) ? payload : null;
+}
+
+function isAssistantSpeechToTextResponse(value: unknown): value is AssistantSpeechToTextResponse {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return candidate.provider === 'whisper-local' && typeof candidate.transcript === 'string';
+}
+
+export async function transcribeAssistantSpeech(
+  audioBase64: string,
+  audioContentType: string
+): Promise<AssistantSpeechToTextResponse | null> {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/assistant/stt`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ audioBase64, audioContentType }),
+  });
+
+  if (!response.ok) return null;
+
+  const payload: unknown = await response.json().catch(() => null);
+  return isAssistantSpeechToTextResponse(payload) ? payload : null;
 }
