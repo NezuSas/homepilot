@@ -17,12 +17,14 @@ interface AudioInputPickerProps {
 
 const normalizeAudioInputLabel = (label: string): string => {
   const cleanLabel = label
-    .replace(/\s*\([^)]*audio[^)]*\)/gi, '')
-    .replace(/\b(default|communications|comunicaciones|micr[oó]fono|microphone|array|matriz)\b/gi, '')
+    .replace(/\b(default|communications|comunicaciones)\b/gi, '')
+    .replace(/\b(micr[oó]fono|microphone|array|matriz|audio)\b/gi, '')
+    .replace(/[()[\]{}]/g, ' ')
+    .replace(/^[\s:._|/\\-]+|[\s:._|/\\-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-  return cleanLabel || label;
+  return cleanLabel.length > 1 ? cleanLabel : label;
 };
 
 export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
@@ -73,7 +75,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="relative block">
+    <div ref={containerRef} className="relative block shrink-0">
       <button
         type="button"
         disabled={disabled}
@@ -83,7 +85,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
         title={selectedLabel}
         onClick={() => setIsOpen(current => !current)}
         className={cn(
-          'control-transition flex h-11 w-[8.75rem] items-center gap-2 rounded-xl border px-3 sm:w-auto sm:max-w-[178px]',
+          'control-transition flex h-11 w-[10rem] items-center gap-2 rounded-xl border px-3 sm:w-[11rem]',
           'border-border/70 bg-muted/45 text-foreground shadow-sm hover:border-primary/35 hover:bg-muted/65',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
           'disabled:pointer-events-none disabled:opacity-50'
