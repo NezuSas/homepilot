@@ -109,6 +109,32 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
+  it('lets exact device names win over room singular light routing', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'other-room' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+    mockRoomRepo.findAll.mockResolvedValue([{ id: 'room-sala', name: 'Sala' }]);
+
+    const response = await service.converse({ prompt: 'Apaga luz sala.', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Luz Sala');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('handles imperfect speech transcription for an exact device command', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+
+    const response = await service.converse({ prompt: 'quiero que a pa eso luz sala', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Luz Sala');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
   it('calls shadow execution when fast path skips the request', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);

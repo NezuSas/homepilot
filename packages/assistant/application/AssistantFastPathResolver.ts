@@ -78,6 +78,7 @@ export class AssistantFastPathResolver {
   };
 
   private readonly GENERIC_TARGETS = new Set(['device', 'dispositivo', 'interruptor', 'light', 'luz', 'switch']);
+  private readonly BULK_TERMS = new Set(['all', 'everything', 'todo', 'todos', 'todas']);
   private readonly MANAGEMENT_TERMS = new Set(['automation', 'automatizacion', 'automatizaciones', 'escena', 'escenas', 'routine', 'rutina', 'rutinas', 'scene', 'scenes']);
   private readonly EXCLUSION_TERMS = new Set(['except', 'excepto', 'menos']);
   private readonly MEMORY_REFERENCE_TERMS = new Set(['aquel', 'aquella', 'esa', 'ese', 'eso', 'esta', 'este', 'esto', 'primera', 'primero', 'segunda', 'segundo']);
@@ -94,7 +95,13 @@ export class AssistantFastPathResolver {
   private normalizeText(text: string): string {
     return text.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // remove diacritics
-      .replace(/[^\w\s]/gi, '') // remove punctuation
+      .replace(/[^\w\s]/gi, ' ') // remove punctuation
+      .replace(/\ba\s+paga\b/g, 'apaga')
+      .replace(/\ba\s+pa\b/g, 'apaga')
+      .replace(/\bapage\b/g, 'apaga')
+      .replace(/\bensaila\b/g, 'en sala')
+      .replace(/\bensala\b/g, 'en sala')
+      .replace(/\s+/g, ' ')
       .trim();
   }
 
@@ -172,14 +179,17 @@ export class AssistantFastPathResolver {
     if (!commandMatch.targetPhrase) return skip('no_target_phrase');
 
     // 2. Remove stopwords and fix typos
-    if (commandMatch.targetPhrase.split(/\s+/).some(token => this.EXCLUSION_TERMS.has(token))) return skip('exclusion_target');
+    const rawTargetTokens = commandMatch.targetPhrase.split(/\s+/);
+    if (rawTargetTokens.some(token => this.BULK_TERMS.has(token))) return skip('bulk_target');
+    if (rawTargetTokens.some(token => this.EXCLUSION_TERMS.has(token))) return skip('exclusion_target');
     if (this.containsCommandPhrase(commandMatch.targetPhrase)) return skip('multi_command_target');
 
-    const tokens = commandMatch.targetPhrase.split(/\s+/).filter(t => !this.STOPWORDS.has(t));
+    const tokens = rawTargetTokens.filter(t => !this.STOPWORDS.has(t));
     if (tokens.length === 0) return skip('only_stopwords_in_target');
-    if (tokens.some(token => this.MEMORY_REFERENCE_TERMS.has(token))) return skip('memory_reference_target');
+    const concreteTokens = tokens.filter(token => !this.MEMORY_REFERENCE_TERMS.has(token));
+    if (concreteTokens.length === 0) return skip('memory_reference_target');
     
-    const cleanedTarget = this.cleanTypos(tokens.join(' '));
+    const cleanedTarget = this.cleanTypos(concreteTokens.join(' '));
     if (this.GENERIC_TARGETS.has(cleanedTarget)) return skip('generic_target_without_context');
 
     // 3. Score devices

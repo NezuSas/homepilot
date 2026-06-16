@@ -61,6 +61,16 @@ describe('AssistantFastPathResolver', () => {
     });
   });
 
+  it('resolves imperfect speech transcription fragments for turn off commands', () => {
+    const result = resolver.resolve('quiero que a pa eso luz sala', mockDevices);
+    expect(result).toEqual({
+      deviceId: 'd2',
+      deviceName: 'Luz Sala',
+      command: 'turn_off',
+      confidence: 1.0
+    });
+  });
+
   it('resolves courtesy phrases with filler words after the command', () => {
     const result = resolver.resolve('cuando puedas enciende por favor la luz de cocina', mockDevices);
     expect(result).toEqual({
@@ -101,6 +111,11 @@ describe('AssistantFastPathResolver', () => {
   it('returns null for multiple targets "enciende todas las luces"', () => {
     const result = resolver.resolve('enciende todas las luces', mockDevices);
     // "todas luces" doesn't strongly match any specific device by >= 0.9 confidence or is ambiguous
+    expect(result).toBeNull();
+  });
+
+  it('returns null for bulk light commands so confirmation flows handle them', () => {
+    const result = resolver.resolve('apaga todas las luces sala', mockDevices);
     expect(result).toBeNull();
   });
 });

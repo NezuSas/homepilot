@@ -339,7 +339,11 @@ export class AssistantConversationService {
 
     activePrompt = normalized;
 
-    // --- 4. ROOM LIGHT FAST-PATH ---
+    // --- 4. EXACT/STRONG FAST-PATH ---
+    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
+    if (fastPathResponse) return fastPathResponse;
+
+    // --- 5. ROOM LIGHT FAST-PATH ---
     const roomSingular = this.isRoomSingularLightFastPath(normalized);
     if (roomSingular) {
       const singularResponse = await this.handleRoomSingularLightFastPath(userId, roomSingular.command, roomSingular.roomName, language, prompt, aliases);
@@ -349,9 +353,13 @@ export class AssistantConversationService {
     const roomBulk = this.isRoomBulkFastPath(normalized);
     if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases);
 
-    // --- 5. GLOBAL BULK FAST-PATH ---
+    // --- 6. GLOBAL BULK FAST-PATH ---
     const globalBulk = this.isBulkFastPath(normalized);
     if (globalBulk) { const bulkResponse = await this.handleBulkFastPath(normalized, globalBulk.bulkType, globalBulk.command, language, userId); if (bulkResponse) return bulkResponse; }
+
+    // --- 7. DEVICE ALIAS FAST-PATH ---
+    const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
+    if (deviceAliasFastPath) return deviceAliasFastPath;
 
     // --- DETERMINISTIC GENERAL ROUTES ---
     if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home.` : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa.` };
@@ -360,14 +368,6 @@ export class AssistantConversationService {
     if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
     if (this.isHelpQuery(normalized) || this.isPresentation(normalized) || this.isScopeQuery(normalized)) return await this.handleCapabilitiesGuide(userId, language);
     if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
-
-    // --- 6. DEVICE ALIAS FAST-PATH ---
-    const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
-    if (deviceAliasFastPath) return deviceAliasFastPath;
-
-    // --- 7. EXACT/STRONG FAST-PATH ---
-    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
-    if (fastPathResponse) return fastPathResponse;
 
     // --- 8. CONTEXT ROOM FAST-PATH ---
     const contextRoomFastPath = await this.attemptContextRoomFastPathExecution(activePrompt, request.sourceRoomId, userId, userName, language, aliases);
@@ -1635,6 +1635,11 @@ export class AssistantConversationService {
       .replace(/\bapagues\b/g, "apaga")
       .replace(/\benciendas\b/g, "enciende")
       .replace(/\bprendas\b/g, "prende")
+      .replace(/\ba\s+paga\b/g, "apaga")
+      .replace(/\ba\s+pa\b/g, "apaga")
+      .replace(/\bapage\b/g, "apaga")
+      .replace(/\bensaila\b/g, "en sala")
+      .replace(/\bensala\b/g, "en sala")
       .replace(/\bcierres\b/g, "cierra")
       .replace(/\babras\b/g, "abre");
 
