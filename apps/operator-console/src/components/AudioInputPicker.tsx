@@ -83,17 +83,17 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
         title={selectedLabel}
         onClick={() => setIsOpen(current => !current)}
         className={cn(
-          'control-transition flex h-11 w-11 items-center justify-center gap-2 rounded-xl border px-0 sm:w-auto sm:max-w-[178px] sm:justify-start sm:px-3',
+          'control-transition flex h-11 w-[8.75rem] items-center gap-2 rounded-xl border px-3 sm:w-auto sm:max-w-[178px]',
           'border-border/70 bg-muted/45 text-foreground shadow-sm hover:border-primary/35 hover:bg-muted/65',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
           'disabled:pointer-events-none disabled:opacity-50'
         )}
       >
         <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <span className="hidden min-w-0 flex-1 truncate text-left text-[10px] font-bold uppercase tracking-wider sm:block">
+        <span className="min-w-0 flex-1 truncate text-left text-[10px] font-bold uppercase tracking-wider">
           {selectedLabel}
         </span>
-        <ChevronUp className={cn('hidden h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform sm:block', isOpen && 'rotate-180')} />
+        <ChevronUp className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
