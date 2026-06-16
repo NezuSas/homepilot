@@ -64,7 +64,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
           onSend();
         }}
       >
-        <Card className="relative flex items-end rounded-panel border-border/70 bg-card/90 p-2 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
+        <Card className="relative flex items-end overflow-visible rounded-panel border-border/70 bg-card/90 p-2 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
           <textarea
             aria-label={placeholder}
             rows={1}
