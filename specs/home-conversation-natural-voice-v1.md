@@ -5,6 +5,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
+- El backend debe detectar comandos aunque el verbo no sea la primera palabra de la frase.
 - La UI debe permitir dictar una instrucción con micrófono grabando audio local con `MediaRecorder`.
 - La UI debe enviar el audio al backend para transcripción local y no depender de Web Speech API.
 - La UI debe habilitar dictado solo en contexto seguro y mostrar errores específicos de permisos, hardware o transcripción.
@@ -28,6 +29,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Acceptance Criteria
 - Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
+- Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.
 - El selector de micrófono trunca nombres largos, mantiene tamaño estable y muestra opciones legibles en modo oscuro.

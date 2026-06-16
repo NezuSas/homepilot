@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AudioInputPicker } from './AudioInputPicker';
+import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { StatusPill } from './ui/StatusPill';
@@ -64,7 +65,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
           onSend();
         }}
       >
-        <Card className="relative flex items-end overflow-visible rounded-panel border-border/70 bg-card/90 p-2 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
+        <Card className="relative flex items-end overflow-visible rounded-panel border-border/70 bg-card/95 p-2 shadow-depth-2 transition-all duration-300 focus-within:border-primary/45 focus-within:bg-card focus-within:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary/10">
           <textarea
             aria-label={placeholder}
             rows={1}
@@ -72,11 +73,11 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             onChange={event => onInputChange(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="custom-scrollbar min-h-[52px] max-h-48 flex-1 resize-none border-none bg-transparent px-3 py-3 pr-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
+            className="custom-scrollbar min-h-[52px] max-h-48 flex-1 resize-none border-none bg-transparent px-4 py-3 pr-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
             disabled={isLoading}
           />
           {isSpeechRecordingSupported && (
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-border/45 bg-background/45 p-1 shadow-inner shadow-black/5">
               <AudioInputPicker
                 devices={audioInputDevices}
                 selectedDeviceId={selectedAudioInputId}
@@ -92,7 +93,10 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
                 aria-label={isListening ? listeningLabel : voiceLabel}
                 title={isListening ? listeningLabel : voiceLabel}
                 onClick={onToggleListening}
-                className="h-11 w-11 shrink-0 rounded-xl"
+                className={cn(
+                  'h-10 w-10 shrink-0 rounded-xl',
+                  isListening && 'shadow-lg shadow-primary/20 ring-2 ring-primary/35'
+                )}
               >
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
@@ -106,7 +110,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
               aria-label={isSpeechEnabled ? speechOnLabel : speechOffLabel}
               title={isSpeechEnabled ? speechOnLabel : speechOffLabel}
               onClick={onToggleSpeech}
-              className="h-11 w-11 shrink-0 rounded-xl"
+              className="h-10 w-10 shrink-0 rounded-xl"
             >
               {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
@@ -117,7 +121,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             size="icon"
             disabled={!input.trim() || isLoading}
             aria-label={sendLabel}
-            className="h-11 w-11 shrink-0 rounded-xl shadow-md shadow-primary/15"
+            className="h-10 w-10 shrink-0 rounded-xl shadow-md shadow-primary/15"
           >
             <Send className="h-4 w-4" />
           </Button>

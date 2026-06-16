@@ -18,7 +18,7 @@ interface AudioInputPickerProps {
 const normalizeAudioInputLabel = (label: string): string => {
   const cleanLabel = label
     .replace(/\b(default|communications|comunicaciones)\b/gi, '')
-    .replace(/\b(micr[oó]fono|microphone|array|matriz|audio)\b/gi, '')
+    .replace(/\b(micr[oó]fono|microphone|array|matriz|mezcla|stereo|audio)\b/gi, '')
     .replace(/[()[\]{}]/g, ' ')
     .replace(/^[\s:._|/\\-]+|[\s:._|/\\-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
@@ -85,8 +85,8 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
         title={selectedLabel}
         onClick={() => setIsOpen(current => !current)}
         className={cn(
-          'control-transition flex h-11 w-[10rem] items-center gap-2 rounded-xl border px-3 sm:w-[11rem]',
-          'border-border/70 bg-muted/45 text-foreground shadow-sm hover:border-primary/35 hover:bg-muted/65',
+          'control-transition flex h-10 w-[9.25rem] items-center gap-2 rounded-xl border px-3 sm:w-[10.5rem]',
+          'border-border/70 bg-background/50 text-foreground shadow-sm hover:border-primary/35 hover:bg-muted/55',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
           'disabled:pointer-events-none disabled:opacity-50'
         )}
@@ -99,8 +99,8 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full right-0 z-50 mb-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-panel border border-border/70 bg-popover shadow-depth-3">
-          <div className="border-b border-border/50 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="absolute bottom-full right-0 z-50 mb-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-panel border border-border/70 bg-popover/95 shadow-depth-3 backdrop-blur-xl">
+          <div className="border-b border-border/50 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
             {label}
           </div>
           <div role="listbox" aria-label={label} className="max-h-64 overflow-y-auto p-1.5">
@@ -120,9 +120,9 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'control-transition flex w-full items-center gap-2 rounded-control px-3 py-2 text-left',
+                    'control-transition flex w-full items-center gap-2 rounded-control px-3 py-2.5 text-left',
                     'text-xs font-semibold text-foreground hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-none',
-                    isSelected && 'bg-primary/12 text-primary'
+                    isSelected && 'bg-primary/12 text-primary shadow-inner'
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{deviceLabel}</span>

@@ -97,6 +97,18 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
+  it('handles natural phrases through fast path without exact wording', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+
+    const response = await service.converse({ prompt: 'oye HomePilot me puedes encender la luz de cocina por favor', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
   it('calls shadow execution when fast path skips the request', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);

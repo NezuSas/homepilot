@@ -51,6 +51,43 @@ describe('AssistantFastPathResolver', () => {
     });
   });
 
+  it('resolves natural Spanish phrases without requiring the verb at the start', () => {
+    const result = resolver.resolve('oye HomePilot me puedes apagar la luz de la sala por favor', mockDevices);
+    expect(result).toEqual({
+      deviceId: 'd2',
+      deviceName: 'Luz Sala',
+      command: 'turn_off',
+      confidence: 1.0
+    });
+  });
+
+  it('resolves courtesy phrases with filler words after the command', () => {
+    const result = resolver.resolve('cuando puedas enciende por favor la luz de cocina', mockDevices);
+    expect(result).toEqual({
+      deviceId: 'd1',
+      deviceName: 'Luz Cocina',
+      command: 'turn_on',
+      confidence: 1.0
+    });
+  });
+
+  it('returns null for room-only targets so contextual resolvers can handle them', () => {
+    const result = resolver.resolve('me ayudas a apagar cocina', mockDevices);
+    expect(result).toBeNull();
+  });
+
+  it('resolves English natural phrases through the same safe path', () => {
+    const result = resolver.resolve('hey HomePilot could you turn on the kitchen light please', [
+      { id: 'd1', name: 'Kitchen Light', type: 'light', roomId: 'r1' } as Device
+    ]);
+    expect(result).toEqual({
+      deviceId: 'd1',
+      deviceName: 'Kitchen Light',
+      command: 'turn_on',
+      confidence: 1.0
+    });
+  });
+
   it('returns null for ambiguous target "enciende luz"', () => {
     const result = resolver.resolve('enciende luz', mockDevices);
     expect(result).toBeNull();
