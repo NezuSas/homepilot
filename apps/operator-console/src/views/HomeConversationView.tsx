@@ -17,6 +17,39 @@ const MIN_RECORDING_MS = 700;
 const STOP_AFTER_SILENCE_MS = 900;
 const SPEECH_LEVEL_THRESHOLD = 0.018;
 
+function normalizeVoiceTranscript(transcript: string): string {
+  return transcript
+    .trim()
+    .replace(/\ba\s+pagar\b/gi, 'apagar')
+    .replace(/\ba\s+paga\b/gi, 'apaga')
+    .replace(/\ba\s+pa\b/gi, 'apaga')
+    .replace(/\bapage\b/gi, 'apaga')
+    .replace(/\bla\s+luz\s+a\s+la\s+sala\b/gi, 'la luz de la sala')
+    .replace(/\b(el|la)\s+luceje\b/gi, 'luces')
+    .replace(/\bluceje\b/gi, 'luces')
+    .replace(/\bluseje\b/gi, 'luces')
+    .replace(/\bsentidas\b/gi, 'encendidas')
+    .replace(/\bsendidas\b/gi, 'encendidas')
+    .replace(/\bluces\s+esta\s+en\s+encendidas\b/gi, 'luces estan encendidas')
+    .replace(/\bque\s+luces\s+esta\s+en\s+encendidas\b/gi, 'que luces estan encendidas')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function isUsableVoiceTranscript(transcript: string): boolean {
+  const normalized = transcript.toLowerCase();
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length < 2) return false;
+
+  return [
+    'apaga', 'apagar', 'enciende', 'encender', 'prende', 'prender',
+    'abre', 'abrir', 'cierra', 'cerrar', 'luces', 'luz', 'estado',
+    'encendidas', 'apagadas', 'escena', 'quien', 'ayuda', 'todo',
+    'hola', 'gracias', 'dime', 'como', 'puedes', 'hacer', 'cuentame',
+    'chiste', 'broma', 'homepilot', 'nezu'
+  ].some(keyword => normalized.includes(keyword));
+}
+
 function canUseLocalSpeechRecording(): boolean {
   return window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== 'undefined';
 }
@@ -323,10 +356,15 @@ export const HomeConversationView: React.FC = () => {
     try {
       const audioBase64 = await blobToBase64(audioBlob);
       const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm');
-      const spokenText = transcription?.transcript.trim() ?? '';
+      const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
 
       if (!spokenText) {
         setSpeechNotice(t('assistant.conversation.voice_no_speech'));
+        return;
+      }
+
+      if (!isUsableVoiceTranscript(spokenText)) {
+        setSpeechNotice(t('assistant.conversation.voice_not_understood'));
         return;
       }
 

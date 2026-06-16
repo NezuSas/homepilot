@@ -85,11 +85,8 @@ describe('Assistant Semantic Hardening', () => {
 
     const res = await service.converse({ prompt: 'apaga la luz de mi cuarto', userId: 'u1' }, 'es');
     
-    // Should NOT have resolved to Dormitorio via hardcoded alias
-    // Since it's 'unknown' to interpreter, it goes to smalltalk or similar
-    // But let's check if it even tried to resolve room and failed
     expect(res.type).toBe('answer');
-    expect(res.message).toBe('Hello'); // Default mock smalltalk
+    expect(res.message).toContain('No entendí ese comando');
   });
 
   it('State query with unknown room returns "No encontré esa estancia"', async () => {

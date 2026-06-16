@@ -369,16 +369,17 @@ describe('AssistantConversationService', () => {
       }
     });
 
-    it('should route likely home control prompts to IntentInterpreter', async () => {
-      mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'enciende luz sala', reason: 'mock' });
+    it('should answer quickly when a likely home control prompt remains unknown', async () => {
+      mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'enciende luz fantasma', reason: 'mock' });
       mockSmallTalk.handle.mockResolvedValue({
         type: 'answer',
         message: 'Fallback fallback'
       });
       
-      await service.converse({ prompt: 'enciende luz sala' }, 'es');
-      expect(mockInterpreter.interpret).toHaveBeenCalled();
-      expect(mockSmallTalk.handle).toHaveBeenCalled(); // Because intent was unknown
+      const response = await service.converse({ prompt: 'enciende luz fantasma' }, 'es');
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+      expect(mockSmallTalk.handle).not.toHaveBeenCalled();
+      expect(response.type).toBe('answer');
     });
 
     it('should understand conversational wrappers around state queries', async () => {

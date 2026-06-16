@@ -96,9 +96,11 @@ export class AssistantFastPathResolver {
     return text.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // remove diacritics
       .replace(/[^\w\s]/gi, ' ') // remove punctuation
+      .replace(/\ba\s+pagar\b/g, 'apagar')
       .replace(/\ba\s+paga\b/g, 'apaga')
       .replace(/\ba\s+pa\b/g, 'apaga')
       .replace(/\bapage\b/g, 'apaga')
+      .replace(/\bla\s+luz\s+a\s+la\s+sala\b/g, 'la luz de la sala')
       .replace(/\bensaila\b/g, 'en sala')
       .replace(/\bensala\b/g, 'en sala')
       .replace(/\s+/g, ' ')

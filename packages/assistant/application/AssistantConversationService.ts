@@ -434,6 +434,15 @@ export class AssistantConversationService {
     const correlationId = `assistant:chat:${t0}`;
 
     if (intent.type === 'unknown') {
+      if (this.isLikelyHomeControlPrompt(this.normalizePrompt(prompt))) {
+        return {
+          type: 'answer',
+          message: language === 'en'
+            ? "I did not understand that command. Try saying it again with the device and room, for example: turn off the living room light."
+            : "No entendí ese comando. Dímelo otra vez con el dispositivo y la estancia, por ejemplo: apaga la luz de la sala."
+        };
+      }
+
       return this.smallTalkService.handle(prompt, language, userName, userId);
     }
 
@@ -1635,9 +1644,18 @@ export class AssistantConversationService {
       .replace(/\bapagues\b/g, "apaga")
       .replace(/\benciendas\b/g, "enciende")
       .replace(/\bprendas\b/g, "prende")
+      .replace(/\ba\s+pagar\b/g, "apagar")
       .replace(/\ba\s+paga\b/g, "apaga")
       .replace(/\ba\s+pa\b/g, "apaga")
       .replace(/\bapage\b/g, "apaga")
+      .replace(/\bla\s+luz\s+a\s+la\s+sala\b/g, "la luz de la sala")
+      .replace(/\b(el|la)\s+luceje\b/g, "luces")
+      .replace(/\bluceje\b/g, "luces")
+      .replace(/\bluseje\b/g, "luces")
+      .replace(/\bsentidas\b/g, "encendidas")
+      .replace(/\bsendidas\b/g, "encendidas")
+      .replace(/\bluces\s+esta\s+en\s+encendidas\b/g, "luces estan encendidas")
+      .replace(/\bque\s+luces\s+esta\s+en\s+encendidas\b/g, "que luces estan encendidas")
       .replace(/\bensaila\b/g, "en sala")
       .replace(/\bensala\b/g, "en sala")
       .replace(/\bcierres\b/g, "cierra")

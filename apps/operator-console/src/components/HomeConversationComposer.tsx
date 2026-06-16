@@ -65,7 +65,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
           onSend();
         }}
       >
-        <Card className="relative flex items-end overflow-visible rounded-panel border-border/70 bg-card/95 p-2 shadow-depth-2 transition-all duration-300 focus-within:border-primary/45 focus-within:bg-card focus-within:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary/10">
+        <Card className="relative flex flex-col gap-2 overflow-visible rounded-panel border-border/70 bg-card/95 p-2 shadow-depth-2 transition-all duration-300 focus-within:border-primary/45 focus-within:bg-card focus-within:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary/10 sm:flex-row sm:items-end">
           <textarea
             aria-label={placeholder}
             rows={1}
@@ -73,11 +73,12 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             onChange={event => onInputChange(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="custom-scrollbar min-h-[52px] max-h-48 flex-1 resize-none border-none bg-transparent px-4 py-3 pr-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
+            className="custom-scrollbar min-h-[48px] max-h-48 w-full flex-1 resize-none border-none bg-transparent px-4 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
             disabled={isLoading}
           />
-          {isSpeechRecordingSupported && (
-            <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-border/45 bg-background/45 p-1 shadow-inner shadow-black/5">
+          <div className="flex w-full shrink-0 items-center justify-end gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1 shadow-inner shadow-black/5 sm:w-auto">
+            {isSpeechRecordingSupported && (
+              <>
               <AudioInputPicker
                 devices={audioInputDevices}
                 selectedDeviceId={selectedAudioInputId}
@@ -100,31 +101,32 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
               >
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-            </div>
-          )}
-          {isSpeechSynthesisSupported && (
+              </>
+            )}
+            {isSpeechSynthesisSupported && (
+              <Button
+                type="button"
+                variant={isSpeechEnabled ? 'primary' : 'secondary'}
+                size="icon"
+                aria-label={isSpeechEnabled ? speechOnLabel : speechOffLabel}
+                title={isSpeechEnabled ? speechOnLabel : speechOffLabel}
+                onClick={onToggleSpeech}
+                className="h-10 w-10 shrink-0 rounded-xl"
+              >
+                {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+            )}
             <Button
-              type="button"
-              variant={isSpeechEnabled ? 'primary' : 'secondary'}
+              type="submit"
+              variant="primary"
               size="icon"
-              aria-label={isSpeechEnabled ? speechOnLabel : speechOffLabel}
-              title={isSpeechEnabled ? speechOnLabel : speechOffLabel}
-              onClick={onToggleSpeech}
-              className="h-10 w-10 shrink-0 rounded-xl"
+              disabled={!input.trim() || isLoading}
+              aria-label={sendLabel}
+              className="h-10 w-10 shrink-0 rounded-xl shadow-md shadow-primary/15"
             >
-              {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <Send className="h-4 w-4" />
             </Button>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            size="icon"
-            disabled={!input.trim() || isLoading}
-            aria-label={sendLabel}
-            className="h-10 w-10 shrink-0 rounded-xl shadow-md shadow-primary/15"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+          </div>
         </Card>
       </form>
       <div className="mt-3 flex items-center justify-between gap-3 px-1">

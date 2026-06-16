@@ -135,6 +135,29 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
 
+  it('normalizes voice phrase "a pagar la luz a la sala" into the Sala light command', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+
+    const response = await service.converse({ prompt: 'a pagar la luz a la sala', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Luz Sala');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
+  it('normalizes noisy speech status query without calling the intent interpreter', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+
+    const response = await service.converse({ prompt: 'que el luceje está en sentidas', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(response.message).toContain('Luz Sala');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
   it('calls shadow execution when fast path skips the request', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);

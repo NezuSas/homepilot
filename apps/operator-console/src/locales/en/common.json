@@ -135,6 +135,7 @@
       "voice_listening": "Recording...",
       "voice_permission_error": "Microphone permission denied",
       "voice_no_speech": "I did not hear anything",
+      "voice_not_understood": "I did not understand that. Try saying: turn off the living room light",
       "voice_capture_error": "No microphone detected",
       "voice_unavailable_error": "Open HomePilot from localhost or HTTPS to use the microphone",
       "voice_transcribing": "Transcribing voice...",

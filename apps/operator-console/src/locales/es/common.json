@@ -135,6 +135,7 @@
       "voice_listening": "Grabando...",
       "voice_permission_error": "Permiso de micrófono denegado",
       "voice_no_speech": "No escuché nada",
+      "voice_not_understood": "No entendí bien. Intenta decir: apaga la luz de la sala",
       "voice_capture_error": "No se detectó un micrófono",
       "voice_unavailable_error": "Abre HomePilot desde localhost o HTTPS para usar el micrófono",
       "voice_transcribing": "Transcribiendo voz...",
