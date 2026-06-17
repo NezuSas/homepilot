@@ -391,17 +391,17 @@ function App() {
   }, [globalWakeNotice, isGlobalWakeProcessing]);
 
   const handleGlobalWakeStatusChange = useCallback((wakeStatus: GlobalWakeStatus) => {
-    if (wakeStatus === 'idle' || wakeStatus === 'processing') return;
+    if (wakeStatus === 'idle' || wakeStatus === 'listening' || wakeStatus === 'processing') {
+      return;
+    }
 
     setGlobalWakeNotice({
       id: `wake-${wakeStatus}`,
-      message: wakeStatus === 'listening'
-        ? 'Activador local atento.'
-        : wakeStatus === 'capturing'
-          ? 'Te escucho. Continúa con la orden.'
-          : wakeStatus === 'transcribing'
-            ? 'Interpretando audio localmente.'
-            : 'La escucha por voz no está disponible en este navegador.',
+      message: wakeStatus === 'capturing'
+        ? 'Te escucho. Continúa con la orden.'
+        : wakeStatus === 'transcribing'
+          ? 'Interpretando audio localmente.'
+          : 'La escucha por voz no está disponible en este navegador.',
       tone: wakeStatus === 'unavailable' ? 'warning' : 'info',
       status: wakeStatus
     });
@@ -508,12 +508,13 @@ function App() {
           responseType: response.type,
           elapsedMs: Date.now() - globalWakeStartedAtRef.current
         });
-        setGlobalWakeNotice({
-          id,
-          message: response.message,
-          tone: response.type === 'error' ? 'error' : response.type === 'clarification' ? 'warning' : 'success',
-          status: 'speaking'
-        });
+        const noticeTone = response.type === 'error' ? 'error' : response.type === 'clarification' ? 'warning' : 'success';
+        const noticeMessage = response.type === 'error'
+          ? 'No pude completar la solicitud por voz.'
+          : response.type === 'clarification'
+            ? 'Necesito una confirmación adicional.'
+            : 'Respuesta enviada por voz.';
+        setGlobalWakeNotice({ id, message: noticeMessage, tone: noticeTone, status: 'speaking' });
         void speakGlobalWakeResponse(response.message);
       }).catch((error: unknown) => {
         const message = error instanceof Error && error.message

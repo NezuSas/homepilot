@@ -32,7 +32,7 @@ def resolve_model(language: str) -> Path:
     model_name = (
         os.getenv("PIPER_VOICE_EN", "en_US-lessac-medium")
         if language == "en"
-        else os.getenv("PIPER_VOICE_ES", "es_ES-davefx-medium")
+        else os.getenv("PIPER_VOICE_ES", "es_ES-sharvard-medium")
     )
     model_path = MODEL_DIR / f"{model_name}.onnx"
     if not model_path.exists():

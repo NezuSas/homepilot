@@ -17,6 +17,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
 - La UI debe mostrar estado global discreto de escucha, captura, transcripción, procesamiento y respuesta cuando el activador esté disponible.
 - La UI debe registrar telemetría local de latencia para activador global, procesamiento y reproducción de voz sin enviar datos a servicios externos.
+- La UI no debe mostrar toasts repetidos por ciclos pasivos de escucha global; solo captura activa, transcripción, procesamiento, fallos o entrega final de voz pueden ser visibles.
+- La UI no debe previsualizar la respuesta completa del asistente fuera de la vista de conversación; los avisos ambientales deben usar estados genéricos mientras TTS reproduce el detalle.
 - Las vistas pesadas de la Operator Console deben poder cargarse de forma diferida para reducir el bundle inicial.
 - La guía de producto debe explicar que la voz es local, que requiere permiso de micrófono, que el activador funciona con la consola abierta y que las acciones sensibles conservan confirmación.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
@@ -64,7 +66,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
-- El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-davefx-medium` por defecto.
+- El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-sharvard-medium` por defecto, configurable por `PIPER_VOICE_ES`.
 - El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.
 - Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.
 - Si el servicio STT local falla, la conversación sigue funcionando por texto sin depender del reconocimiento de voz del navegador.
