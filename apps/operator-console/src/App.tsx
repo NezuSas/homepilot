@@ -421,6 +421,13 @@ function App() {
     });
   }, []);
 
+  const handleGlobalWakeInterrupt = useCallback(() => {
+    setGlobalWakeNotice(null);
+    setIsGlobalWakeProcessing(false);
+    stopGlobalWakeSpeech();
+    window.dispatchEvent(new Event(HOME_CONVERSATION_STOP_SPEECH_EVENT));
+  }, [stopGlobalWakeSpeech]);
+
   if (status === 'checking') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background relative overflow-hidden">
@@ -1052,6 +1059,7 @@ function App() {
         enabled={status === 'authenticated' && !loadingSetup && !setupStatus?.requiresOnboarding}
         interruptOnly={isGlobalWakeProcessing || isGlobalWakeSpeaking}
         onCommand={handleGlobalWakeCommand}
+        onWakeInterrupt={handleGlobalWakeInterrupt}
         onStatusChange={handleGlobalWakeStatusChange}
       />
       {showProfileModal && user && (

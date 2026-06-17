@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { transcribeAssistantSpeech } from '../lib/assistantApi';
 import { blobToBase64, canUseLocalSpeechRecording, getPreferredAudioMimeType } from '../lib/audioRecording';
-import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
+import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
 import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
 const MAX_WAKE_RECORDING_MS = 9000;
@@ -13,10 +13,11 @@ interface GlobalWakeListenerProps {
   enabled: boolean;
   interruptOnly?: boolean;
   onCommand: (command: string) => void;
+  onWakeInterrupt?: () => void;
   onStatusChange?: (status: GlobalWakeStatus) => void;
 }
 
-export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, onStatusChange }: GlobalWakeListenerProps) {
+export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, onWakeInterrupt, onStatusChange }: GlobalWakeListenerProps) {
   const enabledRef = useRef(enabled);
   const interruptOnlyRef = useRef(interruptOnly);
   const isRecordingRef = useRef(false);
@@ -164,7 +165,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
 
       if (interruptOnlyRef.current) {
         if (captureCommand) {
-          if (isSilenceVoiceCommand(spokenText)) {
+          if (isUsableVoiceTranscript(spokenText)) {
             onStatusChange?.('processing');
             onCommand(spokenText);
             scheduleWakeCycle(false, 900);
@@ -175,10 +176,17 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         }
 
         const interruptionWakeResult = extractWakeCommand(spokenText);
-        if (interruptionWakeResult.activated && interruptionWakeResult.command && isSilenceVoiceCommand(interruptionWakeResult.command)) {
-          onStatusChange?.('processing');
-          onCommand(interruptionWakeResult.command);
-          scheduleWakeCycle(false, 900);
+        if (interruptionWakeResult.activated) {
+          onWakeInterrupt?.();
+
+          if (interruptionWakeResult.command && isUsableVoiceTranscript(interruptionWakeResult.command)) {
+            onStatusChange?.('processing');
+            onCommand(interruptionWakeResult.command);
+            scheduleWakeCycle(false, 900);
+            return;
+          }
+
+          scheduleWakeCycle(true, 150);
           return;
         }
 
