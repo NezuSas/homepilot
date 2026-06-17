@@ -39,6 +39,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Frases con activador fonético o separado, como `ok jompailot apaga la luz de la sala` u `ok home pilot apaga el territorio`, deben normalizar el prefijo antes de evaluar la intención.
 - Comandos de control con verbo claro pero destino inexistente deben responder por ruta determinística rápida, sin esperar interpretación pesada.
 - Las respuestas de ejecución, error, objetivo no encontrado, aclaración y bloqueo de seguridad deben poder adjuntar metadato opcional `responseStyle` y formatearse con tono residencial tipo Jarvis sin afirmar acciones no confirmadas.
+- El tono tipo Jarvis debe sonar como un operador residencial premium: natural, breve, sereno y seguro, evitando lenguaje técnico como "dispositivo ha sido..." cuando pueda expresarse como una acción humana.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.

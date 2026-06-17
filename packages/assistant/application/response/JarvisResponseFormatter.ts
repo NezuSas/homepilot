@@ -27,26 +27,50 @@ export class JarvisResponseFormatter {
     return templates[0];
   }
 
+  private static describeTarget(target?: string): string {
+    const normalizedTarget = target?.trim();
+    if (!normalizedTarget) return 'el objetivo solicitado';
+
+    const lowerTarget = normalizedTarget.toLowerCase();
+    if (lowerTarget === 'luz escritorio' || lowerTarget === 'luz del escritorio') {
+      return 'la luz del escritorio';
+    }
+
+    if (lowerTarget.startsWith('luz ')) {
+      const lightTarget = lowerTarget.replace(/^luz\s+/, '').trim();
+      return lightTarget ? `la luz de ${lightTarget}` : 'la luz solicitada';
+    }
+
+    if (lowerTarget.startsWith('cortina ')) {
+      return `la ${lowerTarget}`;
+    }
+
+    return normalizedTarget;
+  }
+
   public static format(input: JarvisResponseStyle, options?: FormatterOptions): string {
     const name = input.userName?.trim() || 'Señor';
     const idx = options?.variantIndex;
 
     switch (input.status) {
       case 'success': {
-        const verbs: Record<string, string> = {
-          turn_on: 'encendido',
-          turn_off: 'apagado',
-          open: 'abierto',
-          close: 'cerrado',
-          toggle: 'ajustado',
-          stop: 'detenido',
-          set_position: 'ajustado'
+        const actionCopy: Record<string, { action: string; state: string }> = {
+          turn_on: { action: 'encendido', state: 'encendido' },
+          turn_off: { action: 'apagado', state: 'apagado' },
+          open: { action: 'abierto', state: 'abierto' },
+          close: { action: 'cerrado', state: 'cerrado' },
+          toggle: { action: 'ajustado', state: 'ajustado' },
+          stop: { action: 'detenido', state: 'detenido' },
+          set_position: { action: 'ajustado', state: 'ajustado' }
         };
-        const actionVerb = input.action && verbs[input.action] ? verbs[input.action] : 'completado';
-        const target = input.target || 'el dispositivo solicitado';
+        const copy = input.action && actionCopy[input.action]
+          ? actionCopy[input.action]
+          : { action: 'completado', state: 'bajo control' };
+        const target = this.describeTarget(input.target);
         return this.getTemplate([
-          `Hecho, ${name}. ${target} ha sido ${actionVerb}.`,
-          `Listo, ${name}. ${target} ahora está ${actionVerb}.`
+          `Por supuesto, ${name}. He ${copy.action} ${target}.`,
+          `Listo, ${name}. ${target} queda ${copy.state}.`,
+          `De inmediato, ${name}. ${target} está ${copy.state}.`
         ], idx);
       }
 
@@ -55,33 +79,33 @@ export class JarvisResponseFormatter {
         const suggestionsText = input.suggestions && input.suggestions.length > 0
           ? ` ¿Quizás se refiere a ${input.suggestions.slice(0, 3).join(' o ')}?`
           : ' ¿Desea indicarme la estancia correcta?';
-        return `No tengo registrado ningún dispositivo o estancia con el nombre "${searched}", ${name}.${suggestionsText}`;
+        return `No encuentro "${searched}" en el mapa de la casa, ${name}.${suggestionsText}`;
       }
 
       case 'failed': {
-        const target = input.target || 'el dispositivo solicitado';
+        const target = this.describeTarget(input.target);
         const errorReason = input.reason === 'device_offline'
           ? 'no responde en la red local'
-          : 'ha reportado un error interno';
-        return `Lo lamento, ${name}. ${target} ${errorReason}. No he podido completar la acción.`;
+          : 'no aceptó la orden';
+        return `Lo lamento, ${name}. ${target} ${errorReason}. No confirmaré una acción que la casa no ejecutó.`;
       }
 
       case 'security_blocked':
         return input.reason === 'mass_action_requires_confirmation'
-          ? `He bloqueado preventivamente una acción masiva, ${name}. Necesito que me confirme explícitamente si desea proceder.`
-          : `Acción cancelada, ${name}. El sistema de seguridad de HomePilot ha restringido este comando.`;
+          ? `He detenido la orden por seguridad, ${name}. Es una acción amplia y necesito su confirmación antes de tocar la casa.`
+          : `Acción contenida, ${name}. La seguridad residencial no permite ejecutar ese comando.`;
 
       case 'clarification':
         if (input.suggestions && input.suggestions.length > 0) {
-          return `He encontrado múltiples coincidencias, ${name}. ¿Se refiere a ${input.suggestions.join(' o ')}?`;
+          return `Tengo más de una posibilidad, ${name}. ¿Se refiere a ${input.suggestions.join(' o ')}?`;
         }
-        return `¿Podría ser más específico, ${name}? No estoy seguro de qué dispositivo desea controlar.`;
+        return `Necesito una precisión más, ${name}. Dígame el dispositivo y la estancia para actuar sin margen de error.`;
 
       case 'info':
-        return `Entendido, ${name}. Actualmente el estado de ${input.target || 'la casa'} es el siguiente.`;
+        return `Entendido, ${name}. Le presento el estado actual de ${input.target || 'la casa'}.`;
 
       default:
-        return `Sistema listo, ${name}.`;
+        return `Sistema residencial listo, ${name}.`;
     }
   }
 }
