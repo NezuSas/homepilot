@@ -1663,7 +1663,13 @@ export class AssistantConversationService {
 
     // Strip conversational wrappers so intent matching works on the core request.
     const politePrefixes = [
+      'ok jompailot ', 'ok jom pailot ', 'ok hom pailot ', 'ok jon pailot ',
+      'oye jompailot ', 'oye jom pailot ', 'oye hom pailot ',
+      'hola jompailot ', 'hey jompailot ',
+      'jompailot ', 'jom pailot ', 'hom pailot ', 'jon pailot ', 'home pailot ',
+      'oye home pilot ', 'ok home pilot ', 'hey home pilot ', 'hola home pilot ',
       'homepilot ', 'oye homepilot ', 'ok homepilot ', 'hola homepilot ',
+      'home pilot ',
       'oye ', 'ok ',
       'puedes ', 'puede ', 'podrias ', 'podria ', 'me puedes ', 'me podrias ',
       'me ayudas a ', 'me ayudas ', 'ayudame a ', 'ayudame ',
@@ -1997,9 +2003,9 @@ export class AssistantConversationService {
     // A. Unknown Target Blocker
     // If prompt has command verb + device noun + unknown qualifier
     const commandVerbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'turn on', 'turn off', 'toggle'];
-    const hasVerb = commandVerbs.some(v => normalized.startsWith(v + ' '));
+    const hasVerb = commandVerbs.some(v => normalized.startsWith(v + ' ') || this.containsWord(normalized, v));
     
-    if (this.isManagementIntent(normalized)) return null;
+    if (this.isManagementIntent(normalized) || this.isDraftCreation(normalized)) return null;
     
     if (hasVerb && targetPhrase) {
       const isOrdinal = ['primera', 'segunda', 'la primera', 'la segunda', 'first', 'second', 'the first', 'the second'].includes(targetPhrase);

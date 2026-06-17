@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
+import { converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { useSession } from './lib/useSession';
 import { DashboardView } from './views/DashboardView';
 import { TopologyView } from './views/TopologyView';
@@ -64,6 +65,12 @@ import { DemoGuideOverlay } from './components/DemoGuideOverlay';
 import { UserProfileModal } from './components/UserProfileModal';
 import { GlobalWakeListener } from './components/GlobalWakeListener';
 
+type GlobalWakeNotice = {
+  id: string;
+  message: string;
+  tone: 'info' | 'success' | 'warning' | 'error';
+};
+
 /**
  * Union de vistas posibles para tipado estricto.
  *
@@ -92,6 +99,16 @@ function resolveView(view: View): View {
     case 'users':       return 'system-users';
     default:            return view;
   }
+}
+
+function createGlobalSpeechAudioUrl(audioBase64: string, audioContentType: string): string {
+  const binary = atob(audioBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return URL.createObjectURL(new Blob([bytes], { type: audioContentType }));
 }
 
 /** Returns true if the given canonical view belongs to the System section. */
@@ -124,6 +141,8 @@ function App() {
   const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string } | null>(null);
+  const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNotice | null>(null);
+  const [isGlobalWakeProcessing, setIsGlobalWakeProcessing] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
@@ -143,6 +162,9 @@ function App() {
     } catch { /* ignore */ }
     return { displayName: null, avatarDataUri: null };
   });
+  const globalWakeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const globalWakeAudioUrlRef = useRef<string | null>(null);
+  const globalWakeRequestIdRef = useRef(0);
 
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
   const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
@@ -316,6 +338,57 @@ function App() {
     setShowPwdModal(false);
   }, [clearSession]);
 
+  const stopGlobalWakeSpeech = useCallback(() => {
+    if (globalWakeAudioRef.current) {
+      globalWakeAudioRef.current.pause();
+      globalWakeAudioRef.current.src = '';
+      globalWakeAudioRef.current = null;
+    }
+
+    if (globalWakeAudioUrlRef.current) {
+      URL.revokeObjectURL(globalWakeAudioUrlRef.current);
+      globalWakeAudioUrlRef.current = null;
+    }
+  }, []);
+
+  const speakGlobalWakeResponse = useCallback(async (text: string) => {
+    if (!text.trim() || typeof Audio === 'undefined') return;
+
+    globalWakeRequestIdRef.current += 1;
+    const requestId = globalWakeRequestIdRef.current;
+    stopGlobalWakeSpeech();
+
+    const speech = await synthesizeAssistantSpeech(text);
+    if (!speech || requestId !== globalWakeRequestIdRef.current) return;
+
+    try {
+      const audioUrl = createGlobalSpeechAudioUrl(speech.audioBase64, speech.audioContentType);
+      const audio = new Audio(audioUrl);
+      globalWakeAudioUrlRef.current = audioUrl;
+      globalWakeAudioRef.current = audio;
+      audio.onended = stopGlobalWakeSpeech;
+      audio.onerror = stopGlobalWakeSpeech;
+      await audio.play();
+    } catch {
+      stopGlobalWakeSpeech();
+    }
+  }, [stopGlobalWakeSpeech]);
+
+  useEffect(() => () => {
+    globalWakeRequestIdRef.current += 1;
+    stopGlobalWakeSpeech();
+  }, [stopGlobalWakeSpeech]);
+
+  useEffect(() => {
+    if (!globalWakeNotice || isGlobalWakeProcessing) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setGlobalWakeNotice(current => current?.id === globalWakeNotice.id ? null : current);
+    }, 8000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [globalWakeNotice, isGlobalWakeProcessing]);
+
   if (status === 'checking') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background relative overflow-hidden">
@@ -393,11 +466,41 @@ function App() {
     const text = command.trim();
     if (!text) return;
 
+    if (currentView !== 'home-conversation') {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      setIsGlobalWakeProcessing(true);
+      setGlobalWakeNotice({
+        id,
+        message: 'Procesando comando de voz...',
+        tone: 'info'
+      });
+
+      void converseWithAssistant({
+        prompt: text,
+        userName: user?.displayName || user?.username
+      }).then(response => {
+        setGlobalWakeNotice({
+          id,
+          message: response.message,
+          tone: response.type === 'error' ? 'error' : response.type === 'clarification' ? 'warning' : 'success'
+        });
+        void speakGlobalWakeResponse(response.message);
+      }).catch((error: unknown) => {
+        const message = error instanceof Error && error.message
+          ? error.message
+          : 'No pude procesar el comando de voz.';
+        setGlobalWakeNotice({ id, message, tone: 'error' });
+        void speakGlobalWakeResponse(message);
+      }).finally(() => {
+        setIsGlobalWakeProcessing(false);
+      });
+      return;
+    }
+
     setPendingHomeConversationPrompt({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       text
     });
-    navigateTo('home-conversation');
   };
 
   const activeSystemSection = isSystemView(currentView);
@@ -881,6 +984,32 @@ function App() {
         onSuccess={handlePasswordChanged}
       />
       <DemoGuideOverlay onNavigate={navigateTo} />
+      {globalWakeNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(
+            "fixed bottom-14 left-1/2 z-[70] w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 rounded-[1.35rem] border bg-card/95 p-4 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors",
+            globalWakeNotice.tone === 'success' && "border-primary/35",
+            globalWakeNotice.tone === 'warning' && "border-warning/40",
+            globalWakeNotice.tone === 'error' && "border-destructive/40",
+            globalWakeNotice.tone === 'info' && "border-border"
+          )}
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-[0.62rem] font-black uppercase tracking-[0.24em] text-muted-foreground">
+              HomePilot
+            </span>
+            <span className={cn(
+              "rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em]",
+              isGlobalWakeProcessing ? "border-warning/40 text-warning" : "border-primary/30 text-primary"
+            )}>
+              {isGlobalWakeProcessing ? 'Procesando' : 'Respuesta'}
+            </span>
+          </div>
+          <p className="text-sm font-semibold leading-6 text-foreground">{globalWakeNotice.message}</p>
+        </div>
+      )}
       <GlobalWakeListener
         enabled={status === 'authenticated' && !loadingSetup && !setupStatus?.requiresOnboarding}
         onCommand={handleGlobalWakeCommand}

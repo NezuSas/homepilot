@@ -109,6 +109,33 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
+  it('normalizes separated wake phrase before fast path execution', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+
+    const response = await service.converse({ prompt: 'ok home pilot apaga la luz sala', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Luz Sala');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('returns fast unknown-target feedback for global wake commands with invalid targets', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+    mockRoomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Sala' }]);
+
+    const response = await service.converse({ prompt: 'ok home pilot apaga el territorio', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(response.message).toContain("No encontré un dispositivo llamado 'el territorio'");
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
   it('lets exact device names win over room singular light routing', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'other-room' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
