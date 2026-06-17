@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import { transcribeAssistantSpeech } from '../lib/assistantApi';
 import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
 
-const MAX_WAKE_RECORDING_MS = 8000;
-const MIN_WAKE_RECORDING_MS = 700;
-const STOP_WAKE_AFTER_SILENCE_MS = 900;
+const MAX_WAKE_RECORDING_MS = 9000;
+const MIN_WAKE_RECORDING_MS = 900;
+const STOP_WAKE_AFTER_SILENCE_MS = 1900;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 
 interface GlobalWakeListenerProps {

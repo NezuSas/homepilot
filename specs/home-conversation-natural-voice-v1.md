@@ -31,8 +31,10 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 ## Acceptance Criteria
 - Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
 - Frases cortas de cortesía como `hola` no deben descartarse por tener una sola palabra.
-- El activador local debe reconocer `HomePilot`/`oye HomePilot` y comenzar captura de orden sin requerir presionar el botón de micrófono cada vez.
+- El activador local debe reconocer `HomePilot`/`oye HomePilot` y variantes fonéticas en español como `ok jompailot`, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
 - Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
+- Si el activador global abre la vista de conversación con una orden pendiente, la respuesta debe habilitar lectura por voz antes de enviar el prompt.
+- La captura global debe tolerar aproximadamente un segundo adicional de silencio final para evitar cortar frases habladas con pausas naturales.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.

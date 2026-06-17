@@ -229,7 +229,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     if (!pendingPrompt || isLoading || consumedPendingPromptIdRef.current === pendingPrompt.id) return;
 
     consumedPendingPromptIdRef.current = pendingPrompt.id;
-    if (speechSupport.synthesis) {
+    if (typeof Audio !== 'undefined') {
       speechEnabledRef.current = true;
       setIsSpeechEnabled(true);
     }
@@ -237,7 +237,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     void handleSend(pendingPrompt.text).then(() => {
       onPendingPromptConsumed?.(pendingPrompt.id);
     });
-  }, [pendingPrompt, isLoading, onPendingPromptConsumed, speechSupport.synthesis]);
+  }, [pendingPrompt, isLoading, onPendingPromptConsumed]);
 
   const stopSilenceDetection = () => {
     if (silenceAnimationFrameRef.current !== null) {
