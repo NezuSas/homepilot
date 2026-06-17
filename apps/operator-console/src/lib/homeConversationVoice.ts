@@ -20,18 +20,21 @@ export function normalizeVoiceTranscript(transcript: string): string {
 export function isUsableVoiceTranscript(transcript: string): boolean {
   const normalized = normalizeWakeText(transcript);
   const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (!/[a-z0-9]/.test(normalized)) return false;
+
   if (tokens.length < 2) {
-    return ['hola', 'hello', 'hi', 'hey', 'gracias', 'thanks', 'homepilot'].includes(normalized);
+    return ['hola', 'hello', 'hi', 'hey', 'gracias', 'thanks', 'homepilot', 'si', 'no'].includes(normalized);
   }
 
-  return [
-    'apaga', 'apagar', 'enciende', 'encender', 'prende', 'prender',
-    'abre', 'abrir', 'cierra', 'cerrar', 'luces', 'luz', 'estado',
-    'encendidas', 'apagadas', 'escena', 'quien', 'ayuda', 'todo',
-    'hola', 'gracias', 'dime', 'como', 'estas', 'tal', 'bien',
-    'hora', 'fecha', 'dia', 'puedes', 'hacer', 'cuentame',
-    'nombre', 'llamas', 'quien', 'eres', 'chiste', 'broma', 'homepilot', 'nezu'
-  ].some(keyword => normalized.includes(keyword));
+  const lowValueTranscripts = [
+    'ok',
+    'okay',
+    'eh',
+    'mmm',
+    'ah'
+  ];
+
+  return !lowValueTranscripts.includes(normalized);
 }
 
 export function normalizeWakeText(text: string): string {

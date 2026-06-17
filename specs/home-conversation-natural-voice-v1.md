@@ -13,6 +13,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El selector de micrófono debe ser un componente modular propio, consistente en modo claro y oscuro, sin depender del menú nativo del sistema operativo.
 - La UI debe cortar la grabación automáticamente después de detectar voz y silencio para reducir latencia.
 - La UI debe permitir un modo de activador local `HomePilot` mientras la consola esté abierta y tenga permiso de micrófono.
+- La UI no debe bloquear frases naturales de varias palabras por no coincidir con una lista rígida de keywords; el backend conserva la responsabilidad de resolver intención o responder que no entendió.
+- La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
@@ -42,6 +44,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El tono tipo Jarvis debe sonar como un operador residencial premium: natural, breve, sereno y seguro, evitando lenguaje técnico como "dispositivo ha sido..." cuando pueda expresarse como una acción humana.
 - Preguntas conversacionales cortas como `ok jompailot cómo estás` o `ok jompailot qué hora es` deben responder de forma útil y enfocada en la casa, no como charla genérica desconectada del sistema residencial.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
+- Frases naturales de varias palabras deben llegar al backend aunque no contengan una keyword exacta conocida; solo deben descartarse capturas vacías o de bajo valor como ruido.
+- La grabación manual y la escucha global usan la misma implementación base para soporte de `MediaRecorder`, selección de MIME y conversión base64.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.
 - El selector de micrófono trunca nombres largos, mantiene tamaño estable y muestra opciones legibles en modo oscuro.

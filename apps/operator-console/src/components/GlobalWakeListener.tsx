@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { transcribeAssistantSpeech } from '../lib/assistantApi';
+import { blobToBase64, canUseLocalSpeechRecording, getPreferredAudioMimeType } from '../lib/audioRecording';
 import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
 
 const MAX_WAKE_RECORDING_MS = 9000;
@@ -10,28 +11,6 @@ const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 interface GlobalWakeListenerProps {
   enabled: boolean;
   onCommand: (command: string) => void;
-}
-
-function canUseLocalSpeechRecording(): boolean {
-  return window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== 'undefined';
-}
-
-function getPreferredAudioMimeType(): string {
-  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-  return candidates.find(candidate => MediaRecorder.isTypeSupported(candidate)) || '';
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      const [, base64 = ''] = result.split(',');
-      resolve(base64);
-    };
-    reader.onerror = () => reject(new Error('AUDIO_READ_FAILED'));
-    reader.readAsDataURL(blob);
-  });
 }
 
 export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerProps) {
