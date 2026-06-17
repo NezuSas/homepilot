@@ -23,7 +23,7 @@ describe('JarvisResponseFormatter', () => {
 
     const message = JarvisResponseFormatter.format(style, { variantIndex: 1 });
 
-    expect(message).toBe('Listo, Señor. la luz de estudio queda encendido.');
+    expect(message).toBe('Listo, Señor. la luz de estudio queda encendida.');
   });
 
   it('formats mass action security blocks without claiming execution', () => {

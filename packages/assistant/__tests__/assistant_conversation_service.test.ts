@@ -101,7 +101,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'Hola' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('ayudarte con tu casa');
+      expect(response.message).toContain('La casa está atenta');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
 
@@ -109,7 +109,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'hello' }, 'en');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('ready to help with your home');
+      expect(response.message).toContain('residence is standing by');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
 
@@ -162,13 +162,13 @@ describe('AssistantConversationService', () => {
     it('should respond to "Cómo te llamas?" correctly', async () => {
       const response = await service.converse({ prompt: 'Cómo te llamas?' }, 'es');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Me llamo HomePilot');
+      expect(response.message).toContain('Soy HomePilot');
     });
 
     it('should respond to "what is your name" in English', async () => {
       const response = await service.converse({ prompt: 'what is your name' }, 'en');
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('My name is HomePilot');
+      expect(response.message).toContain('I am HomePilot');
     });
 
     it('should respond to "qué puedes hacer" correctly', async () => {
@@ -222,6 +222,7 @@ describe('AssistantConversationService', () => {
       
       expect(response.type).toBe('answer');
       expect(response.message).toMatch(/Son las \d{2}:\d{2}/);
+      expect(response.message).toContain('La casa permanece atenta');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
 
@@ -342,7 +343,7 @@ describe('AssistantConversationService', () => {
       for (const prompt of typoPrompts) {
         const response = await service.converse({ prompt, userName: 'User' }, 'es');
         expect(response.type).toBe('answer');
-        expect(response.message).toContain('Estoy funcionando correctamente');
+        expect(response.message).toContain('Operando con normalidad');
         expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
         expect(mockExecutionRepo.save).not.toHaveBeenCalled();
       }

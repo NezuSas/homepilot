@@ -48,6 +48,23 @@ export class JarvisResponseFormatter {
     return normalizedTarget;
   }
 
+  private static describeState(target: string, masculineState: string): string {
+    const feminineStates: Record<string, string> = {
+      encendido: 'encendida',
+      apagado: 'apagada',
+      abierto: 'abierta',
+      cerrado: 'cerrada',
+      ajustado: 'ajustada',
+      detenido: 'detenida'
+    };
+
+    if (target.startsWith('la ')) {
+      return feminineStates[masculineState] || masculineState;
+    }
+
+    return masculineState;
+  }
+
   public static format(input: JarvisResponseStyle, options?: FormatterOptions): string {
     const name = input.userName?.trim() || 'Señor';
     const idx = options?.variantIndex;
@@ -67,10 +84,11 @@ export class JarvisResponseFormatter {
           ? actionCopy[input.action]
           : { action: 'completado', state: 'bajo control' };
         const target = this.describeTarget(input.target);
+        const state = this.describeState(target, copy.state);
         return this.getTemplate([
           `Por supuesto, ${name}. He ${copy.action} ${target}.`,
-          `Listo, ${name}. ${target} queda ${copy.state}.`,
-          `De inmediato, ${name}. ${target} está ${copy.state}.`
+          `Listo, ${name}. ${target} queda ${state}.`,
+          `De inmediato, ${name}. ${target} está ${state}.`
         ], idx);
       }
 

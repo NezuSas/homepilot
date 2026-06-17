@@ -385,9 +385,9 @@ export class AssistantConversationService {
     if (deviceAliasFastPath) return deviceAliasFastPath;
 
     // --- DETERMINISTIC GENERAL ROUTES ---
-    if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. Home systems are standing by.` : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Sistemas del hogar atentos.` };
-    if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `I'm operating normally. All available systems are responsive.` : `Estoy funcionando correctamente. Sistemas disponibles y atentos.` };
-    if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "My name is HomePilot, your local residential operator." : "Me llamo HomePilot, tu operador residencial local." };
+    if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Good to hear you${userName ? ', ' + userName : ''}. The residence is standing by.` : `A la orden${userName ? ', ' + userName : ''}. La casa está atenta.` };
+    if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `Operating normally. Local control and residential systems are standing by.` : `Operando con normalidad. Control local y sistemas residenciales atentos.` };
+    if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "I am HomePilot, your residential operator." : "Soy HomePilot, tu operador residencial." };
     if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
     if (this.isHelpQuery(normalized) || this.isPresentation(normalized) || this.isScopeQuery(normalized)) return await this.handleCapabilitiesGuide(userId, language);
     if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
@@ -1986,9 +1986,9 @@ export class AssistantConversationService {
 
     let message = "";
     if (prompt.includes('fecha') || prompt.includes('date')) {
-      message = language === 'en' ? `Today is ${dateStr}.` : `Hoy es ${dateStr}.`;
+      message = language === 'en' ? `Today is ${dateStr}. Residential schedule remains available.` : `Hoy es ${dateStr}. La agenda residencial queda disponible.`;
     } else {
-      message = language === 'en' ? `It is ${timeStr}.` : `Son las ${timeStr}.`;
+      message = language === 'en' ? `It is ${timeStr}. Home systems remain attentive.` : `Son las ${timeStr}. La casa permanece atenta.`;
     }
 
     return {
