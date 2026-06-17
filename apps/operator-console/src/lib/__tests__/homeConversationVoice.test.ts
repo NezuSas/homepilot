@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { extractWakeCommand, isUsableVoiceTranscript } from '../homeConversationVoice';
+import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript } from '../homeConversationVoice';
 
 describe('homeConversationVoice', () => {
   it('accepts accented wellness prompts after wake word extraction', () => {
@@ -27,5 +27,19 @@ describe('homeConversationVoice', () => {
   it('allows short confirmation replies for voice-driven confirmations', () => {
     expect(isUsableVoiceTranscript('sí')).toBe(true);
     expect(isUsableVoiceTranscript('no')).toBe(true);
+  });
+
+  it('detects voice interruption commands after wake word extraction', () => {
+    const wake = extractWakeCommand('ok jompailot, cállate');
+
+    expect(wake).toEqual({ activated: true, command: 'callate' });
+    expect(isSilenceVoiceCommand(wake.command)).toBe(true);
+    expect(isUsableVoiceTranscript(wake.command)).toBe(true);
+  });
+
+  it('accepts natural silence variations as usable commands', () => {
+    expect(isSilenceVoiceCommand('silencio')).toBe(true);
+    expect(isSilenceVoiceCommand('deja de hablar')).toBe(true);
+    expect(isSilenceVoiceCommand('no sigas hablando')).toBe(true);
   });
 });

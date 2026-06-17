@@ -10,7 +10,7 @@ import { HomeConversationEmptyState } from '../components/HomeConversationEmptyS
 import { HomeConversationHeader } from '../components/HomeConversationHeader';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
-import { isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
+import { HOME_CONVERSATION_STOP_SPEECH_EVENT, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
 
 const noopSessionCleared = () => {};
 
@@ -125,6 +125,18 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       speechAudioUrlRef.current = null;
     }
   };
+
+  useEffect(() => {
+    const handleStopSpeech = () => {
+      speechRequestIdRef.current += 1;
+      stopProfessionalSpeech();
+    };
+
+    window.addEventListener(HOME_CONVERSATION_STOP_SPEECH_EVENT, handleStopSpeech);
+    return () => {
+      window.removeEventListener(HOME_CONVERSATION_STOP_SPEECH_EVENT, handleStopSpeech);
+    };
+  }, []);
 
   const speakAssistantResponse = async (text: string) => {
     if (!speechEnabledRef.current || !text.trim()) return;

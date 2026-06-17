@@ -31,6 +31,7 @@ import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
 import { converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { createSpeechAudioUrl } from './lib/audioRecording';
+import { HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { useSession } from './lib/useSession';
 import { LoginView } from './views/LoginView';
@@ -68,6 +69,7 @@ const ResilienceShowcaseView = lazy(() => import('./views/ResilienceShowcaseView
 const EnergyView = lazy(() => import('./views/EnergyView').then(module => ({ default: module.EnergyView })));
 const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(module => ({ default: module.ExecutionLogsView })));
 const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
+const GLOBAL_WAKE_SILENCE_ACKNOWLEDGEMENT = 'De acuerdo, Oscar.';
 
 function ViewLoadingState() {
   return (
@@ -479,6 +481,20 @@ function App() {
   const handleGlobalWakeCommand = (command: string) => {
     const text = command.trim();
     if (!text) return;
+
+    if (isSilenceVoiceCommand(text)) {
+      recordHomeConversationTelemetry('global_wake_processed', {
+        sourceView: currentView,
+        responseType: 'silence',
+        elapsedMs: 0
+      });
+      setGlobalWakeNotice(null);
+      setIsGlobalWakeProcessing(false);
+      stopGlobalWakeSpeech();
+      window.dispatchEvent(new Event(HOME_CONVERSATION_STOP_SPEECH_EVENT));
+      void speakGlobalWakeResponse(GLOBAL_WAKE_SILENCE_ACKNOWLEDGEMENT);
+      return;
+    }
 
     if (currentView !== 'home-conversation') {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
