@@ -24,6 +24,7 @@ import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from
 import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
 import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
+import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -42,6 +43,7 @@ export interface AssistantConversationResponse {
       originalPrompt: string;
     };
   };
+  responseStyle?: JarvisResponseStyle;
 }
 
 export interface ExecutedCommandResult {
@@ -183,6 +185,27 @@ export class AssistantConversationService {
   ) {}
 
   private readonly fastPathResolver = new AssistantFastPathResolver();
+
+  private withJarvisStyle(
+    response: AssistantConversationResponse,
+    style: JarvisResponseStyle,
+    language: string
+  ): AssistantConversationResponse {
+    const responseStyle = {
+      ...style,
+      userName: style.userName?.trim() || undefined
+    };
+
+    if (language !== 'es' || !responseStyle.userName) {
+      return { ...response, responseStyle };
+    }
+
+    return {
+      ...response,
+      message: JarvisResponseFormatter.format(responseStyle),
+      responseStyle
+    };
+  }
 
   public async converse(request: AssistantConverseRequest, _langHint: string = 'es'): Promise<AssistantConversationResponse> {
     const t0 = Date.now();
@@ -340,7 +363,7 @@ export class AssistantConversationService {
     activePrompt = normalized;
 
     // --- 4. EXACT/STRONG FAST-PATH ---
-    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language);
+    const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language, userName);
     if (fastPathResponse) return fastPathResponse;
 
     // --- 5. ROOM LIGHT FAST-PATH ---
@@ -407,7 +430,12 @@ export class AssistantConversationService {
       if (intentResult.type === 'clarificationRequired') {
         const inferredCommand = this.inferCommandFromPrompt(intentResult.originalSegment) || this.inferCommandFromPrompt(activePrompt) || 'turn_on';
         await this.memoryService.saveShortTermMemory(userId, { lastQueryType: 'clarification', entities: [], timestamp: new Date().toISOString(), clarificationOptions: intentResult.options, originalPrompt: activePrompt, pendingIntent: { type: 'command', deviceId: '', command: inferredCommand as DeviceCommandV1, prompt: activePrompt, timestamp: new Date().toISOString() } });
-        return this.returnWithShadow(activePrompt, userId, language, { type: 'clarification', message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`, clarification: { question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?", options: intentResult.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' })) } });
+        const options = intentResult.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' }));
+        return this.returnWithShadow(activePrompt, userId, language, this.withJarvisStyle({ type: 'clarification', message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`, clarification: { question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?", options } }, {
+          status: 'clarification',
+          suggestions: options.map(option => option.label),
+          userName: userName || undefined
+        }, language));
       }
     }
 
@@ -483,12 +511,16 @@ export class AssistantConversationService {
           return fuzzyResult;
         }
 
-        return {
+        return this.withJarvisStyle({
           type: 'answer',
           message: language === 'en' 
             ? `I couldn't find a device matching your request.` 
             : `No encontré un dispositivo llamado '${targetPhrase}'.`
-        };
+        }, {
+          status: 'not_found',
+          searched: targetPhrase,
+          userName: userName || undefined
+        }, language);
       }
 
       if (allMatches.length > 1) {
@@ -523,7 +555,7 @@ export class AssistantConversationService {
           originalPrompt: prompt
         });
 
-      return {
+      return this.withJarvisStyle({
         type: 'clarification',
         message: language === 'en' ? "I found several matching devices. Please choose the target." : "Encontré varios dispositivos compatibles. Indícame el objetivo.",
           clarification: {
@@ -535,7 +567,11 @@ export class AssistantConversationService {
               originalPrompt: prompt
             }
           }
-        };
+        }, {
+          status: 'clarification',
+          suggestions: options.map(option => option.label),
+          userName: userName || undefined
+        }, language);
       } else if (allMatches.length === 1) {
         // V2: Save single match to memory for follow-ups — fire-and-forget
         this.memoryService.saveShortTermMemory(userId, {
@@ -564,7 +600,7 @@ export class AssistantConversationService {
         originalPrompt: prompt
       });
 
-      return {
+      return this.withJarvisStyle({
         type: 'clarification',
         message: `${namePrefix}${preview.reason} ${preview.summary}`.trim(),
         clarification: {
@@ -579,7 +615,12 @@ export class AssistantConversationService {
             originalPrompt: prompt
           }
         }
-      };
+      }, {
+        status: 'security_blocked',
+        reason: 'mass_action_requires_confirmation',
+        target: preview.summary,
+        userName: userName || undefined
+      }, language);
     }
 
     // E) Execution
@@ -618,12 +659,17 @@ export class AssistantConversationService {
           pendingIntent: { ...intent, timestamp: new Date().toISOString() },
           originalPrompt: prompt
         });
-        return { 
+        return this.withJarvisStyle({ 
           type: 'clarification', 
           message: language === 'en' 
             ? `Are you sure you want to control ${deviceName}?` 
             : `¿Estás seguro de que quieres controlar ${deviceName}?` 
-        };
+        }, {
+          status: 'security_blocked',
+          reason: 'mass_action_requires_confirmation',
+          target: deviceName,
+          userName: userName || undefined
+        }, language);
       }
       try {
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
@@ -632,11 +678,16 @@ export class AssistantConversationService {
         
         if (result.status === 'failed') {
           this.learningService.recordCommandResult(userId, intent.deviceId, false, result.actions[0]?.error || 'Unknown error').catch(() => {});
-          return {
+          return this.withJarvisStyle({
             type: 'error',
             message: result.actions[0]?.userMessage || result.actions[0]?.error || (language === 'en' ? "Execution failed." : "La ejecución falló."),
             execution: result
-          };
+          }, {
+            status: 'failed',
+            target: deviceName,
+            reason: result.actions[0]?.error === 'DEVICE_OFFLINE' ? 'device_offline' : result.actions[0]?.error,
+            userName: userName || undefined
+          }, language);
         }
 
         // Clear pending confirmation
@@ -655,11 +706,16 @@ export class AssistantConversationService {
           timestamp: new Date().toISOString()
         }).catch(() => {});
 
-        return await this.attachSuggestionIfNeeded({
+        return await this.attachSuggestionIfNeeded(this.withJarvisStyle({
           type: 'execution',
           message: this.buildCommandSuccessMessage(intent.command, deviceName, userName, language),
           execution: result
-        }, userId, language, memory, 'command');
+        }, {
+          status: 'success',
+          action: intent.command,
+          target: deviceName,
+          userName: userName || undefined
+        }, language), userId, language, memory, 'command');
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
@@ -683,7 +739,7 @@ export class AssistantConversationService {
         const confirmMsg = language === 'en'
           ? `I can execute ${intent.actions.length} actions (${actionSummary}). Confirm to proceed.`
           : `Puedo ejecutar ${intent.actions.length} acciones (${actionSummary}). Confírmame para proceder.`;
-        return { 
+        return this.withJarvisStyle({ 
           type: 'clarification', 
           message: confirmMsg,
           clarification: {
@@ -693,7 +749,12 @@ export class AssistantConversationService {
               { id: 'cancel', label: language === 'en' ? 'No, cancel' : 'No, cancelar', kind: 'device' as const }
             ]
           }
-        };
+        }, {
+          status: 'security_blocked',
+          reason: 'mass_action_requires_confirmation',
+          target: actionSummary,
+          userName: userName || undefined
+        }, language);
       }
       try {
         const results = [];
@@ -1610,13 +1671,19 @@ export class AssistantConversationService {
         })}`);
       }
 
-      return await this.attachSuggestionIfNeeded({
+      return await this.attachSuggestionIfNeeded(this.withJarvisStyle({
         type: 'execution',
         message: result.status === 'success' 
           ? this.buildCommandSuccessMessage(command, deviceName, request.userName || null, language)
           : (language === 'en' ? "Execution failed." : "La ejecución falló."),
         execution: result
-      }, userId, language, memory, 'command');
+      }, {
+        status: result.status === 'success' ? 'success' : 'failed',
+        action: command,
+        target: deviceName,
+        reason: result.actions[0]?.error,
+        userName: request.userName?.trim() || undefined
+      }, language), userId, language, memory, 'command');
     }
 
     return { 
@@ -2050,12 +2117,16 @@ export class AssistantConversationService {
           }
 
           console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] Unknown target: "${targetPhrase}"`);
-          return {
+          return this.withJarvisStyle({
             type: 'answer',
             message: language === 'en' 
               ? `I couldn't find a device called '${targetPhrase}'.` 
               : `No encontré un dispositivo llamado '${targetPhrase}'.`
-          };
+          }, {
+            status: 'not_found',
+            searched: targetPhrase,
+            userName: request.userName?.trim() || undefined
+          }, language);
         }
       }
     }
@@ -2087,7 +2158,7 @@ export class AssistantConversationService {
       });
 
       console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] Vague light without context`);
-      return {
+      return this.withJarvisStyle({
         type: 'clarification',
         message: language === 'en' 
           ? "In which room do you want to control the light?" 
@@ -2096,7 +2167,11 @@ export class AssistantConversationService {
           question: language === 'en' ? "Room selection" : "Selección de estancia",
           options
         }
-      };
+      }, {
+        status: 'clarification',
+        suggestions: options.map(option => option.label),
+        userName: request.userName?.trim() || undefined
+      }, language);
     }
 
     return null;
@@ -4239,7 +4314,7 @@ export class AssistantConversationService {
     return null;
   }
 
-  private async attemptFastPathExecution(activePrompt: string, userId: string, language: string): Promise<AssistantConversationResponse | null> {
+  private async attemptFastPathExecution(activePrompt: string, userId: string, language: string, userName: string | null): Promise<AssistantConversationResponse | null> {
     const devices = await this.deviceRepository.findAll();
     const result = this.fastPathResolver.resolve(activePrompt, Array.from(devices));
     if (!result) return null;
@@ -4264,11 +4339,16 @@ export class AssistantConversationService {
       else if (result.command === 'turn_off') msg = isSpanish ? `Hecho, apagué ${device.name}.` : `Done, turned off ${device.name}.`;
       else msg = isSpanish ? `Hecho, alterné ${device.name}.` : `Done, toggled ${device.name}.`;
 
-      return await this.attachSuggestionIfNeeded({
+      return await this.attachSuggestionIfNeeded(this.withJarvisStyle({
         type: 'execution',
         message: msg,
         execution: execResult
-      }, userId, language, null, 'command');
+      }, {
+        status: 'success',
+        action: result.command,
+        target: device.name,
+        userName: userName || undefined
+      }, language), userId, language, null, 'command');
     }
     
     return null;

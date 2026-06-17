@@ -1,5 +1,15 @@
 import type { SceneExecutionResult, DeviceCommandV1 } from './executions';
 
+export type JarvisResponseStyle = {
+  status: 'success' | 'failed' | 'not_found' | 'clarification' | 'security_blocked' | 'info';
+  action?: string;
+  target?: string;
+  searched?: string;
+  reason?: string;
+  suggestions?: string[];
+  userName?: string;
+};
+
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
   message: string;
@@ -17,6 +27,7 @@ export interface AssistantConversationResponse {
       originalPrompt: string;
     };
   };
+  responseStyle?: JarvisResponseStyle;
 }
 
 export interface AssistantConverseRequest {
