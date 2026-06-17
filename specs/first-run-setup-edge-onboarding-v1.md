@@ -72,7 +72,7 @@ Restricción Global: Nada aquí esquiva Auth/RBAC. Un Operador genérico puede c
 
 ### 5. UI (Frontend) / Pasos de Flujo
 El onboarding redirecciona la UI preexistente obligando foco si `requiresOnboarding === true`. 
-**Si isInitialized === true, el onboarding abandona su flujo obligatorio pero permanece en Settings como consulta o reevaluación técnica.**
+**Si isInitialized === true, el onboarding abandona su flujo obligatorio pero permanece en Settings/Sistema como consulta o reevaluación técnica mediante la entrada "Asistente de Instalación".**
 
 Flujo:
 - **Paso 1: Diagnóstico Integral**. La presentación ya no será apenas "Admin Check". Incluirá: Estado del sistema Edge, Nombre/Rol del usuario montado, Status de HA Config crudo, Status de HA connectivity persistente.

@@ -42,6 +42,7 @@ export type View =
   | 'system-executions'
   | 'system-users'
   | 'system-ha'
+  | 'system-onboarding'
   // Legacy aliases resolved at runtime (not stored in state)
   | 'topology'
   | 'inbox'

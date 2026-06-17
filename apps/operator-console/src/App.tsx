@@ -101,7 +101,8 @@ function isSystemView(view: View): boolean {
     || view === 'system-audit'
     || view === 'system-executions'
     || view === 'system-users'
-    || view === 'system-ha';
+    || view === 'system-ha'
+    || view === 'system-onboarding';
 }
 
 /**
@@ -406,6 +407,7 @@ function App() {
       case 'system-audit':        return t('nav.system_audit');
       case 'system-executions':   return t('nav.system_executions', 'Historial de Ejecución');
       case 'system-ha':           return t('nav.system_ha');
+      case 'system-onboarding':   return t('nav.system_onboarding');
       case 'system-users':        return t('nav.system_users');
       case 'home-conversation':   return t('nav.talk_to_home');
       default:                    return t('nav.dashboard');
@@ -627,6 +629,13 @@ function App() {
                         onClick={() => navigateTo('system-ha')}
                         nested
                       />
+                      <SidebarItem
+                        icon={Monitor}
+                        label={t('nav.system_onboarding')}
+                        active={currentView === 'system-onboarding'}
+                        onClick={() => navigateTo('system-onboarding')}
+                        nested
+                      />
                   </div>
                 )}
               </div>
@@ -828,6 +837,13 @@ function App() {
              {currentView === 'system-audit' && <AuditLogsView />}
              {currentView === 'system-executions' && <ExecutionLogsView />}
              {currentView === 'system-ha' && <HomeAssistantSettingsView />}
+             {currentView === 'system-onboarding' && setupStatus && (
+               <OnboardingView
+                 statusProvider={setupStatus}
+                 userContext={user}
+                 onCompleted={() => setSetupStatus((prev) => prev ? { ...prev, requiresOnboarding: false } : null)}
+               />
+             )}
              {currentView === 'system-users' && <UsersView />}
              {currentView === 'home-conversation' && <HomeConversationView />}
            </PageFrame>

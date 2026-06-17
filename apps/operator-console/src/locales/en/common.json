@@ -25,6 +25,7 @@
     "system_audit": "Audit Logs",
     "system_users": "Users & Access",
     "system_ha": "HA Integration",
+    "system_onboarding": "Setup Assistant",
     "group_personalization": "Personalization",
     "coming_soon": "Coming soon",
     "talk_to_home": "Talk to my Home"
