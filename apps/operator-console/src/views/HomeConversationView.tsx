@@ -10,7 +10,12 @@ import { HomeConversationEmptyState } from '../components/HomeConversationEmptyS
 import { HomeConversationHeader } from '../components/HomeConversationHeader';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
-import { HOME_CONVERSATION_STOP_SPEECH_EVENT, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
+import {
+  HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT,
+  HOME_CONVERSATION_STOP_SPEECH_EVENT,
+  isUsableVoiceTranscript,
+  normalizeVoiceTranscript
+} from '../lib/homeConversationVoice';
 
 const noopSessionCleared = () => {};
 
@@ -113,7 +118,15 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     setMessages(prev => [...prev, newMessage]);
   };
 
+  const notifySpeechActivity = (speaking: boolean) => {
+    window.dispatchEvent(new CustomEvent(HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, {
+      detail: { speaking }
+    }));
+  };
+
   const stopProfessionalSpeech = () => {
+    notifySpeechActivity(false);
+
     if (speechAudioRef.current) {
       speechAudioRef.current.pause();
       speechAudioRef.current.src = '';
@@ -157,6 +170,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       speechAudioRef.current = audio;
       audio.onended = stopProfessionalSpeech;
       audio.onerror = stopProfessionalSpeech;
+      notifySpeechActivity(true);
       await audio.play();
     } catch {
       stopProfessionalSpeech();

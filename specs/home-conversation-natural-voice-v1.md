@@ -22,6 +22,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La UI no debe previsualizar la respuesta completa del asistente fuera de la vista de conversación.
 - La UI debe permitir interrumpir la respuesta hablada desde cualquier pantalla con el activador local y comandos como `callate`, `silencio`, `para`, `detente` o `deja de hablar`.
 - La interrupción de voz debe detener tanto la reproducción global como la reproducción de `Conversar con mi casa`, y responder con una confirmación breve y elegante.
+- Mientras HomePilot procesa una orden o reproduce una respuesta hablada, el activador global debe aceptar solo comandos de interrupción y descartar cualquier otra captura para evitar respuestas encadenadas.
 - Las vistas pesadas de la Operator Console deben poder cargarse de forma diferida para reducir el bundle inicial.
 - La guía de producto debe explicar que la voz es local, que requiere permiso de micrófono, que el activador funciona con la consola abierta y que las acciones sensibles conservan confirmación.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
@@ -58,6 +59,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El activador global muestra un indicador no intrusivo cuando está escuchando, capturando, transcribiendo o respondiendo.
 - El flujo global registra tiempos de detección, resolución y reproducción para diagnosticar latencia de voz local.
 - Si el usuario dice `ok jompailot callate`, `ok jompailot silencio` o `ok jompailot deja de hablar`, HomePilot detiene de inmediato cualquier respuesta en reproducción y responde con una confirmación corta.
+- Si el micrófono captura eco, ruido o texto no accionable mientras HomePilot está hablando, no debe reenviarlo al backend ni producir respuestas repetidas de aclaración.
 - El shell carga vistas por demanda con `React.lazy`/`Suspense` sin cambiar rutas ni contratos.
 - Las respuestas rápidas de saludo, estado del asistente y nombre se delegan a un helper modular testeado.
 - El onboarding comercial debe comunicar capacidades y límites de voz sin prometer ejecución autónoma fuera de la consola abierta.

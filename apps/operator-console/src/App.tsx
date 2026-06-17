@@ -31,7 +31,7 @@ import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
 import { converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { createSpeechAudioUrl } from './lib/audioRecording';
-import { HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
+import { HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { useSession } from './lib/useSession';
 import { LoginView } from './views/LoginView';
@@ -141,6 +141,7 @@ function App() {
   const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string } | null>(null);
   const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNoticeModel | null>(null);
   const [isGlobalWakeProcessing, setIsGlobalWakeProcessing] = useState(false);
+  const [isGlobalWakeSpeaking, setIsGlobalWakeSpeaking] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
@@ -338,6 +339,8 @@ function App() {
   }, [clearSession]);
 
   const stopGlobalWakeSpeech = useCallback(() => {
+    setIsGlobalWakeSpeaking(false);
+
     if (globalWakeAudioRef.current) {
       globalWakeAudioRef.current.pause();
       globalWakeAudioRef.current.src = '';
@@ -367,6 +370,7 @@ function App() {
       globalWakeAudioRef.current = audio;
       audio.onended = stopGlobalWakeSpeech;
       audio.onerror = stopGlobalWakeSpeech;
+      setIsGlobalWakeSpeaking(true);
       await audio.play();
       recordHomeConversationTelemetry('global_wake_spoken', {
         elapsedMs: Date.now() - globalWakeStartedAtRef.current,
@@ -381,6 +385,18 @@ function App() {
     globalWakeRequestIdRef.current += 1;
     stopGlobalWakeSpeech();
   }, [stopGlobalWakeSpeech]);
+
+  useEffect(() => {
+    const handleHomeConversationSpeechActivity = (event: Event) => {
+      const detail = (event as CustomEvent<{ speaking?: boolean }>).detail;
+      setIsGlobalWakeSpeaking(Boolean(detail?.speaking));
+    };
+
+    window.addEventListener(HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, handleHomeConversationSpeechActivity);
+    return () => {
+      window.removeEventListener(HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, handleHomeConversationSpeechActivity);
+    };
+  }, []);
 
   useEffect(() => {
     if (!globalWakeNotice || isGlobalWakeProcessing) return;
@@ -1034,6 +1050,7 @@ function App() {
       )}
       <GlobalWakeListener
         enabled={status === 'authenticated' && !loadingSetup && !setupStatus?.requiresOnboarding}
+        interruptOnly={isGlobalWakeProcessing || isGlobalWakeSpeaking}
         onCommand={handleGlobalWakeCommand}
         onStatusChange={handleGlobalWakeStatusChange}
       />
