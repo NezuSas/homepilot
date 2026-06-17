@@ -723,12 +723,26 @@
     "error_failed": "Login failed. Please verify your credentials."
   },
   "onboarding": {
-    "title": "First-Run Setup",
-    "subtitle": "Welcome to HomePilot Edge. Let's get your local network configured.",
+    "kicker": "Residential installer",
+    "title": "Activate HomePilot Edge",
+    "subtitle": "Connect the appliance to Home Assistant and prepare the console for local-network operation.",
     "error_save": "Failed to save connection",
     "error_complete": "Failed to complete onboarding",
+    "progress": {
+      "step": "Step {{count}}",
+      "diagnostics": "Diagnostics",
+      "bridge": "HA Bridge",
+      "activation": "Activation"
+    },
+    "side": {
+      "title": "Delivery criteria",
+      "local": "Local control is validated before opening the workspace.",
+      "secure": "The token is protected and used only to bind the bridge.",
+      "recoverable": "The system can be revalidated from settings if Home Assistant changes."
+    },
     "step1": {
       "title": "System Diagnostic",
+      "description": "We validate identity, configuration, and connectivity before activating the environment.",
       "admin": "Admin Access",
       "ha_config": "Home Assistant Config",
       "connection": "Last Connection State",
@@ -738,10 +752,13 @@
       "config_missing": "Missing",
       "valid": "Valid",
       "unknown": "Unknown / Unreachable",
+      "operator_note_title": "Installer note",
+      "operator_note": "Activation requires an active administrator. If Home Assistant is not configured yet, the next step prepares the bridge and tests the live connection.",
       "continue": "Continue to Integration"
     },
     "step2": {
       "title": "Home Assistant Core",
+      "description": "Enter the URL reachable from Docker or the local network and a long-lived access token.",
       "url": "Local URL",
       "token": "Long-Lived Access Token",
       "docker_hint": "Running in Docker? Use <code class=\"bg-muted px-1 py-0.5 rounded text-xs font-mono\">http://homeassistant:8123</code> for internal network access.",
@@ -749,11 +766,19 @@
       "save": "Save & Continue",
       "success": "Connection successful!",
       "url_placeholder": "http://homeassistant.local:8123",
-      "token_placeholder": "Long-lived access token..."
+      "token_placeholder": "Long-lived access token...",
+      "token_help_title": "How to get the token",
+      "token_help_1": "1. In Home Assistant, open your user profile.",
+      "token_help_2": "2. Create a long-lived access token for HomePilot Edge.",
+      "token_help_3": "3. Paste it here, test the connection, and save only after the bridge responds."
     },
     "step3": {
+      "kicker": "Bridge confirmed",
       "title": "System Ready",
       "subtitle": "Your HomePilot Edge appliance is configured and securely bonded with your Home Assistant network.",
+      "next_1": "Import devices",
+      "next_2": "Assign spaces",
+      "next_3": "Test scenes",
       "complete": "Complete Setup & Boot Workspace"
     }
   },

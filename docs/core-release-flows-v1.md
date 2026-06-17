@@ -13,6 +13,12 @@ Este documento define los flujos críticos que deben ser validados para garantiz
 **Descripción**: El instalador configura la conexión con Home Assistant (URL + Token).
 **Criterio de Éxito**: `POST /api/v1/system/setup-status/complete` solo retorna éxito si la validación viva contra HA es exitosa y persiste `isInitialized = true`.
 **Idempotencia**: Si el sistema ya está inicializado, llamadas subsecuentes a `/complete` deben retornar el estado actual sin repetir validaciones costosas ni alterar el timestamp original de inicialización.
+**UX de Instalación**:
+- El instalador debe mostrar progreso explícito: diagnóstico, bridge HA y activación.
+- El usuario debe ver el estado de acceso administrador, configuración HA y última conexión antes de avanzar.
+- La pantalla de integración debe explicar cómo obtener el token de larga duración y recomendar `http://homeassistant:8123` para despliegues Docker.
+- No se debe permitir guardar la conexión hasta que la prueba viva contra Home Assistant responda correctamente.
+- Al completar, el instalador debe indicar los siguientes pasos operativos: importar dispositivos, asignar espacios y probar escenas.
 
 ## 3. Identity Management
 **Descripción**: Ciclo de vida de la sesión del usuario (Login, Logout, Change Password).
