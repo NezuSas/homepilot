@@ -1,5 +1,5 @@
 import React from 'react';
-import { Radio, Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AudioInputPicker } from './AudioInputPicker';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
@@ -14,7 +14,6 @@ interface HomeConversationComposerProps {
   versionLabel: string;
   inputHint: string;
   isListening: boolean;
-  isWakeListening: boolean;
   isSpeechRecordingSupported: boolean;
   isSpeechSynthesisSupported: boolean;
   isSpeechEnabled: boolean;
@@ -23,8 +22,6 @@ interface HomeConversationComposerProps {
   audioInputLabel: string;
   voiceLabel: string;
   listeningLabel: string;
-  wakeLabel: string;
-  wakeListeningLabel: string;
   speechOnLabel: string;
   speechOffLabel: string;
   onInputChange: (value: string) => void;
@@ -32,7 +29,6 @@ interface HomeConversationComposerProps {
   onSend: () => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
   onToggleListening: () => void;
-  onToggleWakeListening: () => void;
   onToggleSpeech: () => void;
 }
 
@@ -44,7 +40,6 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   versionLabel,
   inputHint,
   isListening,
-  isWakeListening,
   isSpeechRecordingSupported,
   isSpeechSynthesisSupported,
   isSpeechEnabled,
@@ -53,8 +48,6 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   audioInputLabel,
   voiceLabel,
   listeningLabel,
-  wakeLabel,
-  wakeListeningLabel,
   speechOnLabel,
   speechOffLabel,
   onInputChange,
@@ -62,7 +55,6 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   onSend,
   onKeyDown,
   onToggleListening,
-  onToggleWakeListening,
   onToggleSpeech
 }) => (
   <footer className="shrink-0 border-t border-border/60 bg-background/85 px-4 py-4 backdrop-blur-xl md:px-6 md:pb-6">
@@ -108,21 +100,6 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
                 )}
               >
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              <Button
-                type="button"
-                variant={isWakeListening ? 'primary' : 'secondary'}
-                size="icon"
-                disabled={isLoading || (isListening && !isWakeListening)}
-                aria-label={isWakeListening ? wakeListeningLabel : wakeLabel}
-                title={isWakeListening ? wakeListeningLabel : wakeLabel}
-                onClick={onToggleWakeListening}
-                className={cn(
-                  'h-10 w-10 shrink-0 rounded-xl',
-                  isWakeListening && 'animate-pulse shadow-lg shadow-primary/20 ring-2 ring-primary/35'
-                )}
-              >
-                <Radio className="h-4 w-4" />
               </Button>
               </>
             )}

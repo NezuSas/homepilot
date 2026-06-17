@@ -9,6 +9,7 @@ import { HomeConversationEmptyState } from '../components/HomeConversationEmptyS
 import { HomeConversationHeader } from '../components/HomeConversationHeader';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
+import { isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
 
 const noopSessionCleared = () => {};
 
@@ -16,68 +17,10 @@ const MAX_RECORDING_MS = 8000;
 const MIN_RECORDING_MS = 700;
 const STOP_AFTER_SILENCE_MS = 900;
 const SPEECH_LEVEL_THRESHOLD = 0.018;
-type RecordingMode = 'command' | 'wake';
 
-function normalizeVoiceTranscript(transcript: string): string {
-  return transcript
-    .trim()
-    .replace(/\ba\s+pagar\b/gi, 'apagar')
-    .replace(/\ba\s+paga\b/gi, 'apaga')
-    .replace(/\ba\s+pa\b/gi, 'apaga')
-    .replace(/\bapage\b/gi, 'apaga')
-    .replace(/\bla\s+luz\s+a\s+la\s+sala\b/gi, 'la luz de la sala')
-    .replace(/\b(el|la)\s+luceje\b/gi, 'luces')
-    .replace(/\bluceje\b/gi, 'luces')
-    .replace(/\bluseje\b/gi, 'luces')
-    .replace(/\bsentidas\b/gi, 'encendidas')
-    .replace(/\bsendidas\b/gi, 'encendidas')
-    .replace(/\bluces\s+esta\s+en\s+encendidas\b/gi, 'luces estan encendidas')
-    .replace(/\bque\s+luces\s+esta\s+en\s+encendidas\b/gi, 'que luces estan encendidas')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-function isUsableVoiceTranscript(transcript: string): boolean {
-  const normalized = transcript.toLowerCase();
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-  if (tokens.length < 2) {
-    return ['hola', 'hello', 'hi', 'hey', 'gracias', 'thanks', 'homepilot'].includes(normalized);
-  }
-
-  return [
-    'apaga', 'apagar', 'enciende', 'encender', 'prende', 'prender',
-    'abre', 'abrir', 'cierra', 'cerrar', 'luces', 'luz', 'estado',
-    'encendidas', 'apagadas', 'escena', 'quien', 'ayuda', 'todo',
-    'hola', 'gracias', 'dime', 'como', 'puedes', 'hacer', 'cuentame',
-    'chiste', 'broma', 'homepilot', 'nezu'
-  ].some(keyword => normalized.includes(keyword));
-}
-
-function normalizeWakeText(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-function extractWakeCommand(transcript: string): { activated: boolean; command: string } {
-  const normalized = normalizeWakeText(transcript);
-  const wakePhrases = ['oye homepilot', 'ok homepilot', 'hey homepilot', 'hola homepilot', 'home pilot', 'homepilot'];
-
-  for (const phrase of wakePhrases) {
-    const index = normalized.indexOf(phrase);
-    if (index >= 0) {
-      return {
-        activated: true,
-        command: normalized.slice(index + phrase.length).trim()
-      };
-    }
-  }
-
-  return { activated: false, command: '' };
+interface HomeConversationViewProps {
+  pendingPrompt?: { id: string; text: string } | null;
+  onPendingPromptConsumed?: (id: string) => void;
 }
 
 function canUseLocalSpeechRecording(): boolean {
@@ -112,14 +55,13 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-export const HomeConversationView: React.FC = () => {
+export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed }) => {
   const { t } = useTranslation();
   const { user } = useSession(noopSessionCleared);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isWakeListening, setIsWakeListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [speechNotice, setSpeechNotice] = useState('');
   const [speechSupport, setSpeechSupport] = useState({
@@ -142,9 +84,7 @@ export const HomeConversationView: React.FC = () => {
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
   const speechRequestIdRef = useRef(0);
-  const recordingModeRef = useRef<RecordingMode>('command');
-  const wakeListeningRef = useRef(false);
-  const discardNextRecordingRef = useRef(false);
+  const consumedPendingPromptIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSpeechSupport({
@@ -193,7 +133,6 @@ export const HomeConversationView: React.FC = () => {
     mediaStreamRef.current = null;
     speechRequestIdRef.current += 1;
     stopProfessionalSpeech();
-    wakeListeningRef.current = false;
   }, []);
 
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
@@ -286,6 +225,16 @@ export const HomeConversationView: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (!pendingPrompt || isLoading || consumedPendingPromptIdRef.current === pendingPrompt.id) return;
+
+    consumedPendingPromptIdRef.current = pendingPrompt.id;
+    setInput(pendingPrompt.text);
+    void handleSend(pendingPrompt.text).then(() => {
+      onPendingPromptConsumed?.(pendingPrompt.id);
+    });
+  }, [pendingPrompt, isLoading, onPendingPromptConsumed]);
+
   const stopSilenceDetection = () => {
     if (silenceAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(silenceAnimationFrameRef.current);
@@ -319,13 +268,6 @@ export const HomeConversationView: React.FC = () => {
 
     stopMediaStream();
     setIsListening(false);
-  };
-
-  const stopWakeListening = () => {
-    wakeListeningRef.current = false;
-    discardNextRecordingRef.current = true;
-    setIsWakeListening(false);
-    stopLocalRecording();
   };
 
   const resolveRecordingError = (error?: string): string => {
@@ -385,22 +327,11 @@ export const HomeConversationView: React.FC = () => {
   };
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    const mode = recordingModeRef.current;
     stopMediaStream();
     setIsListening(false);
-    setIsWakeListening(false);
-
-    if (discardNextRecordingRef.current) {
-      discardNextRecordingRef.current = false;
-      setSpeechNotice('');
-      return;
-    }
 
     if (audioBlob.size === 0) {
       setSpeechNotice(t('assistant.conversation.voice_no_speech'));
-      if (mode === 'wake' && wakeListeningRef.current) {
-        window.setTimeout(() => void startLocalRecording('wake'), 250);
-      }
       return;
     }
 
@@ -413,41 +344,6 @@ export const HomeConversationView: React.FC = () => {
 
       if (!spokenText) {
         setSpeechNotice(t('assistant.conversation.voice_no_speech'));
-        if (mode === 'wake' && wakeListeningRef.current) {
-          window.setTimeout(() => void startLocalRecording('wake'), 250);
-        }
-        return;
-      }
-
-      if (mode === 'wake') {
-        const wakeResult = extractWakeCommand(spokenText);
-        if (!wakeResult.activated) {
-          setSpeechNotice(t('assistant.conversation.wake_listening'));
-          if (wakeListeningRef.current) {
-            window.setTimeout(() => void startLocalRecording('wake'), 250);
-          }
-          return;
-        }
-
-        if (!wakeResult.command) {
-          setSpeechNotice(t('assistant.conversation.wake_activated'));
-          wakeListeningRef.current = false;
-          setIsWakeListening(false);
-          window.setTimeout(() => void startLocalRecording('command'), 250);
-          return;
-        }
-
-        if (!isUsableVoiceTranscript(wakeResult.command)) {
-          setSpeechNotice(t('assistant.conversation.voice_not_understood'));
-          wakeListeningRef.current = false;
-          setIsWakeListening(false);
-          return;
-        }
-
-        wakeListeningRef.current = false;
-        setIsWakeListening(false);
-        setInput(wakeResult.command);
-        await handleSend(wakeResult.command);
         return;
       }
 
@@ -460,13 +356,10 @@ export const HomeConversationView: React.FC = () => {
       await handleSend(spokenText);
     } catch {
       setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
-      if (mode === 'wake' && wakeListeningRef.current) {
-        window.setTimeout(() => void startLocalRecording('wake'), 500);
-      }
     }
   };
 
-  const startLocalRecording = async (mode: RecordingMode) => {
+  const startLocalRecording = async () => {
     if (isLoading) return;
 
     if (!speechSupport.recording) {
@@ -480,8 +373,6 @@ export const HomeConversationView: React.FC = () => {
     }
 
     try {
-      discardNextRecordingRef.current = false;
-      recordingModeRef.current = mode;
       const audioConstraints: MediaTrackConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
@@ -522,7 +413,6 @@ export const HomeConversationView: React.FC = () => {
 
       setSpeechNotice('');
       setIsListening(true);
-      setIsWakeListening(mode === 'wake');
       recordingStartedAtRef.current = Date.now();
       silenceStartedAtRef.current = null;
       speechDetectedRef.current = false;
@@ -538,28 +428,11 @@ export const HomeConversationView: React.FC = () => {
       setSpeechNotice(resolveRecordingError(errorName));
       stopMediaStream();
       setIsListening(false);
-      setIsWakeListening(false);
     }
   };
 
   const handleToggleListening = async () => {
-    if (isWakeListening) {
-      stopWakeListening();
-      return;
-    }
-
-    await startLocalRecording('command');
-  };
-
-  const handleToggleWakeListening = async () => {
-    if (isWakeListening) {
-      stopWakeListening();
-      return;
-    }
-
-    wakeListeningRef.current = true;
-    setSpeechNotice(t('assistant.conversation.wake_listening'));
-    await startLocalRecording('wake');
+    await startLocalRecording();
   };
 
   const handleToggleSpeech = () => {
@@ -674,7 +547,6 @@ export const HomeConversationView: React.FC = () => {
         versionLabel={t('assistant.conversation.version_label')}
         inputHint={speechNotice || t('assistant.conversation.input_hint')}
         isListening={isListening}
-        isWakeListening={isWakeListening}
         isSpeechRecordingSupported={speechSupport.recording}
         isSpeechSynthesisSupported={speechSupport.synthesis}
         isSpeechEnabled={isSpeechEnabled}
@@ -683,8 +555,6 @@ export const HomeConversationView: React.FC = () => {
         audioInputLabel={t('assistant.conversation.audio_input_label')}
         voiceLabel={t('assistant.conversation.voice_start')}
         listeningLabel={t('assistant.conversation.voice_listening')}
-        wakeLabel={t('assistant.conversation.wake_start')}
-        wakeListeningLabel={t('assistant.conversation.wake_listening')}
         speechOnLabel={t('assistant.conversation.speech_on')}
         speechOffLabel={t('assistant.conversation.speech_off')}
         onInputChange={setInput}
@@ -692,7 +562,6 @@ export const HomeConversationView: React.FC = () => {
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
         onToggleListening={() => void handleToggleListening()}
-        onToggleWakeListening={() => void handleToggleWakeListening()}
         onToggleSpeech={handleToggleSpeech}
       />
     </section>

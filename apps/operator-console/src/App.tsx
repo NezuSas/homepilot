@@ -62,6 +62,7 @@ import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
 import { useDemoGuideStore, type DemoStep } from './stores/useDemoGuideStore';
 import { DemoGuideOverlay } from './components/DemoGuideOverlay';
 import { UserProfileModal } from './components/UserProfileModal';
+import { GlobalWakeListener } from './components/GlobalWakeListener';
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -122,6 +123,7 @@ interface SetupStatus {
 function App() {
   const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string } | null>(null);
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
@@ -385,6 +387,17 @@ function App() {
     if (isSystemView(resolved)) {
       setIsSystemExpanded(true);
     }
+  };
+
+  const handleGlobalWakeCommand = (command: string) => {
+    const text = command.trim();
+    if (!text) return;
+
+    setPendingHomeConversationPrompt({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text
+    });
+    navigateTo('home-conversation');
   };
 
   const activeSystemSection = isSystemView(currentView);
@@ -845,7 +858,14 @@ function App() {
                />
              )}
              {currentView === 'system-users' && <UsersView />}
-             {currentView === 'home-conversation' && <HomeConversationView />}
+             {currentView === 'home-conversation' && (
+               <HomeConversationView
+                 pendingPrompt={pendingHomeConversationPrompt}
+                 onPendingPromptConsumed={(id) => {
+                   setPendingHomeConversationPrompt(current => current?.id === id ? null : current);
+                 }}
+               />
+             )}
            </PageFrame>
         </section>
 
@@ -861,6 +881,10 @@ function App() {
         onSuccess={handlePasswordChanged}
       />
       <DemoGuideOverlay onNavigate={navigateTo} />
+      <GlobalWakeListener
+        enabled={status === 'authenticated' && !loadingSetup && !setupStatus?.requiresOnboarding}
+        onCommand={handleGlobalWakeCommand}
+      />
       {showProfileModal && user && (
         <UserProfileModal
           user={user}
