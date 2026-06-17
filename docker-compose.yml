@@ -115,10 +115,16 @@ services:
     build:
       context: .
       dockerfile: services/stt-whisper/Dockerfile
+      args:
+        - WHISPER_MODEL=${WHISPER_MODEL:-small}
+        - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
     container_name: homepilot-stt
     environment:
-      - WHISPER_MODEL=${WHISPER_MODEL:-tiny}
+      - WHISPER_MODEL=${WHISPER_MODEL:-small}
       - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
+      - WHISPER_BEAM_SIZE=${WHISPER_BEAM_SIZE:-3}
+      - WHISPER_VAD_MIN_SILENCE_MS=${WHISPER_VAD_MIN_SILENCE_MS:-650}
+      - WHISPER_VAD_SPEECH_PAD_MS=${WHISPER_VAD_SPEECH_PAD_MS:-400}
       - WHISPER_MAX_AUDIO_BYTES=${WHISPER_MAX_AUDIO_BYTES:-9000000}
     ports:
       - "8090:8090"

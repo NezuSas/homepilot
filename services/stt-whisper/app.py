@@ -8,9 +8,12 @@ from faster_whisper import WhisperModel
 from pydantic import BaseModel, Field
 
 
-MODEL_NAME = os.getenv("WHISPER_MODEL", "tiny")
+MODEL_NAME = os.getenv("WHISPER_MODEL", "small")
 COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 MAX_AUDIO_BYTES = int(os.getenv("WHISPER_MAX_AUDIO_BYTES", "9000000"))
+BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "3"))
+VAD_MIN_SILENCE_MS = int(os.getenv("WHISPER_VAD_MIN_SILENCE_MS", "650"))
+VAD_SPEECH_PAD_MS = int(os.getenv("WHISPER_VAD_SPEECH_PAD_MS", "400"))
 
 app = FastAPI(title="HomePilot STT Whisper", version="1.0.0")
 
@@ -76,8 +79,13 @@ async def transcribe(request: SpeechToTextRequest) -> SpeechToTextResponse:
         segments, _info = get_model().transcribe(
             audio_file.name,
             language=language,
-            beam_size=1,
-            vad_filter=True
+            beam_size=BEAM_SIZE,
+            vad_filter=True,
+            vad_parameters={
+                "min_silence_duration_ms": VAD_MIN_SILENCE_MS,
+                "speech_pad_ms": VAD_SPEECH_PAD_MS
+            },
+            condition_on_previous_text=False
         )
         transcript = " ".join(segment.text.strip() for segment in segments).strip()
 

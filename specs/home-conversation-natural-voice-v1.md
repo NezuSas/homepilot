@@ -34,6 +34,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.
 - El selector de micrófono trunca nombres largos, mantiene tamaño estable y muestra opciones legibles en modo oscuro.
 - Al terminar la grabación, el audio se transcribe en el servicio local `homepilot-stt` y el texto resultante se envía al asistente como un prompt normal.
+- El servicio local de STT debe usar un perfil balanceado por defecto: `WHISPER_MODEL=small`, `WHISPER_COMPUTE_TYPE=int8`, `WHISPER_BEAM_SIZE=3` y VAD configurable para mejorar comprensión natural sin abandonar ejecución local.
+- El modelo de STT debe permanecer configurable por variables de entorno para permitir perfiles `tiny/base` en hardware limitado o modelos superiores en equipos más potentes.
 - La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
