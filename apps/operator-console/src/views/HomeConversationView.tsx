@@ -229,11 +229,15 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     if (!pendingPrompt || isLoading || consumedPendingPromptIdRef.current === pendingPrompt.id) return;
 
     consumedPendingPromptIdRef.current = pendingPrompt.id;
+    if (speechSupport.synthesis) {
+      speechEnabledRef.current = true;
+      setIsSpeechEnabled(true);
+    }
     setInput(pendingPrompt.text);
     void handleSend(pendingPrompt.text).then(() => {
       onPendingPromptConsumed?.(pendingPrompt.id);
     });
-  }, [pendingPrompt, isLoading, onPendingPromptConsumed]);
+  }, [pendingPrompt, isLoading, onPendingPromptConsumed, speechSupport.synthesis]);
 
   const stopSilenceDetection = () => {
     if (silenceAnimationFrameRef.current !== null) {
