@@ -54,7 +54,7 @@ HomePilot opera actualmente utilizando repositorios `In-Memory`. Si bien esto ha
 ### Tablas Principales
 *   **`homes`**: `id (PK)`, `owner_id (FK_USER)`, `name`, `created_at`, `updated_at`.
 *   **`rooms`**: `id (PK)`, `home_id (FK)`, `name`, `created_at`, `updated_at`.
-*   **`devices`**: `id (PK)`, `home_id (FK)`, `room_id (FK_NULL)`, `external_id`, `name`, `type`, `vendor`, `status`, `last_known_state (JSON)`, `entity_version`, `created_at`, `updated_at`.
+*   **`devices`**: `id (PK)`, `home_id (FK)`, `room_id (FK_NULL)`, `external_id`, `name`, `type`, `vendor`, `status`, `last_known_state (JSON)`, `entity_version`, `created_at`, `updated_at`. La identidad externa es única por hogar (`home_id`, `external_id`) y el repositorio debe rechazar explícitamente un descubrimiento duplicado antes de persistirlo.
 *   **`automation_rules`**: `id (PK)`, `home_id (FK)`, `user_id`, `name`, `enabled`, `trigger (JSON)`, `action (JSON)`, `created_at`, `updated_at`.
 *   **`activity_logs`**: `id (PK)`, `device_id (FK)`, `type`, `description`, `data (JSON)`, `timestamp`, `correlation_id`.
 

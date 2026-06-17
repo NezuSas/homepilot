@@ -45,6 +45,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
 - Frases cortas de cortesía como `hola` no deben descartarse por tener una sola palabra.
 - El activador local debe reconocer `HomePilot`/`oye HomePilot` y variantes fonéticas en español como `ok jompailot`, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
+- Todas las superficies de voz y texto deben consumir un único catálogo canónico de activadores. Una variante aceptada para despertar, interrumpir o silenciar también debe eliminarse del comando antes de resolver cualquier acción o conversación; no puede haber listas divergentes entre frontend, fast path y conversación backend.
+- El catálogo canónico debe cubrir de forma uniforme `HomePilot`, `Home Pilot`, los prefijos conversacionales `ok`, `oye`, `hey` y `hola`, y las variantes fonéticas españolas soportadas (`jompailot`, `jom pailot`, `hom pailot`, `jon pailot`, `home pailot`, `hom pilot`, `jom pilot`, `jon pilot`, `on pilot`, `om pilot`).
 - Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
 - Si el activador global abre la vista de conversación con una orden pendiente, la respuesta debe habilitar lectura por voz antes de enviar el prompt.
 - La captura global debe tolerar aproximadamente un segundo adicional de silencio final para evitar cortar frases habladas con pausas naturales.

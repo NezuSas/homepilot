@@ -42,6 +42,16 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    */
   public async saveDevice(device: Device): Promise<void> {
     const serializedState = this.serializeState(device.lastKnownState);
+    const duplicate = this.db.prepare(`
+      SELECT id
+      FROM devices
+      WHERE home_id = ? AND external_id = ? AND id <> ?
+      LIMIT 1
+    `).get(device.homeId, device.externalId, device.id) as { id: string } | undefined;
+
+    if (duplicate) {
+      throw new Error(`Device externalId already exists in home: ${device.externalId}`);
+    }
 
     const stmt = this.db.prepare(`
       INSERT INTO devices (

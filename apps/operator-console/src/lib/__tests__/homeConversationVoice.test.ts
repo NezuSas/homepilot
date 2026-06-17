@@ -1,7 +1,22 @@
 /// <reference types="jest" />
 import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript } from '../homeConversationVoice';
+import { HOME_PILOT_WAKE_PHRASES } from '../../../../../packages/shared/domain/homePilotWakePhrases';
 
 describe('homeConversationVoice', () => {
+  it.each(HOME_PILOT_WAKE_PHRASES)('uses the canonical wake phrase "%s" for every voice action', phrase => {
+    expect(extractWakeCommand(`${phrase}, apaga la luz de la sala`)).toEqual({
+      activated: true,
+      command: 'apaga la luz de la sala'
+    });
+  });
+
+  it('does not activate when a wake phrase is embedded inside another sentence', () => {
+    expect(extractWakeCommand('mi automatizacion se llama homepilot nocturno')).toEqual({
+      activated: false,
+      command: ''
+    });
+  });
+
   it('accepts accented wellness prompts after wake word extraction', () => {
     const wake = extractWakeCommand('ok jompailot, cómo estás');
 

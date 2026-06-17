@@ -26,6 +26,7 @@ import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowServi
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
 import { AssistantQuickResponseService } from './AssistantQuickResponseService';
+import { extractHomePilotWakeCommand } from '../../shared/domain/homePilotWakePhrases';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -1729,15 +1730,13 @@ export class AssistantConversationService {
       .replace(/\bcierres\b/g, "cierra")
       .replace(/\babras\b/g, "abre");
 
+    const wakeCommand = extractHomePilotWakeCommand(normalized);
+    if (wakeCommand.activated) {
+      normalized = wakeCommand.command;
+    }
+
     // Strip conversational wrappers so intent matching works on the core request.
     const politePrefixes = [
-      'ok jompailot ', 'ok jom pailot ', 'ok hom pailot ', 'ok jon pailot ',
-      'oye jompailot ', 'oye jom pailot ', 'oye hom pailot ',
-      'hola jompailot ', 'hey jompailot ',
-      'jompailot ', 'jom pailot ', 'hom pailot ', 'jon pailot ', 'home pailot ',
-      'oye home pilot ', 'ok home pilot ', 'hey home pilot ', 'hola home pilot ',
-      'homepilot ', 'oye homepilot ', 'ok homepilot ', 'hola homepilot ',
-      'home pilot ',
       'oye ', 'ok ',
       'puedes ', 'puede ', 'podrias ', 'podria ', 'me puedes ', 'me podrias ',
       'me ayudas a ', 'me ayudas ', 'ayudame a ', 'ayudame ',

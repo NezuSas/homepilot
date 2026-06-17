@@ -1,3 +1,8 @@
+import {
+  extractHomePilotWakeCommand,
+  normalizeHomePilotWakeText
+} from '../../../../packages/shared/domain/homePilotWakePhrases';
+
 export const HOME_CONVERSATION_STOP_SPEECH_EVENT = 'homepilot:stop-home-conversation-speech';
 export const HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT = 'homepilot:home-conversation-speech-activity';
 
@@ -42,13 +47,7 @@ export function isUsableVoiceTranscript(transcript: string): boolean {
 }
 
 export function normalizeWakeText(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  return normalizeHomePilotWakeText(text);
 }
 
 export function isSilenceVoiceCommand(transcript: string): boolean {
@@ -81,45 +80,5 @@ export function isSilenceVoiceCommand(transcript: string): boolean {
 }
 
 export function extractWakeCommand(transcript: string): { activated: boolean; command: string } {
-  const normalized = normalizeWakeText(transcript);
-  const wakePhrases = [
-    'ok jompailot',
-    'ok jom pailot',
-    'ok hom pailot',
-    'ok jon pailot',
-    'oye homepilot',
-    'oye jompailot',
-    'oye jom pailot',
-    'oye hom pailot',
-    'ok homepilot',
-    'ok home pilot',
-    'hey homepilot',
-    'hey jompailot',
-    'hola homepilot',
-    'hola jompailot',
-    'jompailot',
-    'jom pailot',
-    'hom pailot',
-    'jon pailot',
-    'home pailot',
-    'home pilot',
-    'homepilot',
-    'hom pilot',
-    'jom pilot',
-    'jon pilot',
-    'on pilot',
-    'om pilot'
-  ];
-
-  for (const phrase of wakePhrases) {
-    const index = normalized.indexOf(phrase);
-    if (index >= 0) {
-      return {
-        activated: true,
-        command: normalized.slice(index + phrase.length).trim()
-      };
-    }
-  }
-
-  return { activated: false, command: '' };
+  return extractHomePilotWakeCommand(transcript);
 }
