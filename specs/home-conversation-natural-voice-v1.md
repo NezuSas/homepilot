@@ -17,8 +17,9 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
 - La UI debe mostrar estado global discreto de escucha, captura, transcripción, procesamiento y respuesta cuando el activador esté disponible.
 - La UI debe registrar telemetría local de latencia para activador global, procesamiento y reproducción de voz sin enviar datos a servicios externos.
-- La UI no debe mostrar toasts repetidos por ciclos pasivos de escucha global; solo captura activa, transcripción, procesamiento, fallos o entrega final de voz pueden ser visibles.
-- La UI no debe previsualizar la respuesta completa del asistente fuera de la vista de conversación; los avisos ambientales deben usar estados genéricos mientras TTS reproduce el detalle.
+- La UI no debe mostrar toasts repetidos por ciclos pasivos de escucha global.
+- La UI no debe mostrar toasts para el flujo exitoso de escucha, procesamiento o entrega de voz fuera de la vista de conversación; solo fallos o indisponibilidad del micrófono deben ser visibles.
+- La UI no debe previsualizar la respuesta completa del asistente fuera de la vista de conversación.
 - Las vistas pesadas de la Operator Console deben poder cargarse de forma diferida para reducir el bundle inicial.
 - La guía de producto debe explicar que la voz es local, que requiere permiso de micrófono, que el activador funciona con la consola abierta y que las acciones sensibles conservan confirmación.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.

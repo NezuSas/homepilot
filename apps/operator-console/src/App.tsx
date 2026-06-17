@@ -391,18 +391,14 @@ function App() {
   }, [globalWakeNotice, isGlobalWakeProcessing]);
 
   const handleGlobalWakeStatusChange = useCallback((wakeStatus: GlobalWakeStatus) => {
-    if (wakeStatus === 'idle' || wakeStatus === 'listening' || wakeStatus === 'processing') {
+    if (wakeStatus !== 'unavailable') {
       return;
     }
 
     setGlobalWakeNotice({
       id: `wake-${wakeStatus}`,
-      message: wakeStatus === 'capturing'
-        ? 'Te escucho. Continúa con la orden.'
-        : wakeStatus === 'transcribing'
-          ? 'Interpretando audio localmente.'
-          : 'La escucha por voz no está disponible en este navegador.',
-      tone: wakeStatus === 'unavailable' ? 'warning' : 'info',
+      message: 'La escucha por voz no está disponible en este navegador.',
+      tone: 'warning',
       status: wakeStatus
     });
   }, []);
@@ -492,12 +488,7 @@ function App() {
         promptLength: text.length
       });
       setIsGlobalWakeProcessing(true);
-      setGlobalWakeNotice({
-        id,
-        message: 'Procesando comando de voz...',
-        tone: 'info',
-        status: 'processing'
-      });
+      setGlobalWakeNotice(null);
 
       void converseWithAssistant({
         prompt: text,
@@ -508,13 +499,14 @@ function App() {
           responseType: response.type,
           elapsedMs: Date.now() - globalWakeStartedAtRef.current
         });
-        const noticeTone = response.type === 'error' ? 'error' : response.type === 'clarification' ? 'warning' : 'success';
-        const noticeMessage = response.type === 'error'
-          ? 'No pude completar la solicitud por voz.'
-          : response.type === 'clarification'
-            ? 'Necesito una confirmación adicional.'
-            : 'Respuesta enviada por voz.';
-        setGlobalWakeNotice({ id, message: noticeMessage, tone: noticeTone, status: 'speaking' });
+        if (response.type === 'error') {
+          setGlobalWakeNotice({
+            id,
+            message: 'No pude completar la solicitud por voz.',
+            tone: 'error',
+            status: 'idle'
+          });
+        }
         void speakGlobalWakeResponse(response.message);
       }).catch((error: unknown) => {
         const message = error instanceof Error && error.message
