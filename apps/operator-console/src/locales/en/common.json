@@ -1023,7 +1023,7 @@
       },
       "conversation": {
         "title": "Talk to Your Home",
-        "description": "The chat lets you request natural actions, review confirmations, and operate the home with a more human experience than a traditional panel."
+        "description": "The assistant understands natural commands, responds with local voice, and keeps safe confirmations for sensitive actions while the console is open."
       },
       "automations": {
         "title": "Your Home Thinks For You",

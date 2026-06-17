@@ -25,6 +25,7 @@ import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolver
 import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
+import { AssistantQuickResponseService } from './AssistantQuickResponseService';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -385,9 +386,9 @@ export class AssistantConversationService {
     if (deviceAliasFastPath) return deviceAliasFastPath;
 
     // --- DETERMINISTIC GENERAL ROUTES ---
-    if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Good to hear you${userName ? ', ' + userName : ''}. The residence is standing by.` : `A la orden${userName ? ', ' + userName : ''}. La casa está atenta.` };
-    if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `Operating normally. Local control and residential systems are standing by.` : `Operando con normalidad. Control local y sistemas residenciales atentos.` };
-    if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "I am HomePilot, your residential operator." : "Soy HomePilot, tu operador residencial." };
+    if (this.isGreeting(normalized)) return AssistantQuickResponseService.format('greeting', language, userName);
+    if (this.isWellnessQuery(normalized)) return AssistantQuickResponseService.format('wellness', language, userName);
+    if (this.isNameQuery(normalized)) return AssistantQuickResponseService.format('name', language, userName);
     if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
     if (this.isHelpQuery(normalized) || this.isPresentation(normalized) || this.isScopeQuery(normalized)) return await this.handleCapabilitiesGuide(userId, language);
     if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);

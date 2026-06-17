@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
 import {
   LayoutDashboard,
   Home,
@@ -30,25 +30,12 @@ import { cn } from './lib/utils';
 import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
 import { converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
+import { createSpeechAudioUrl } from './lib/audioRecording';
+import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { useSession } from './lib/useSession';
-import { DashboardView } from './views/DashboardView';
-import { TopologyView } from './views/TopologyView';
-import { InboxView } from './views/InboxView';
-import AutomationsView from './views/AutomationsView';
-import { AuditLogsView } from './views/AuditLogsView';
-import { HomeAssistantSettingsView } from './views/HomeAssistantSettingsView';
-import { DiagnosticsView } from './views/DiagnosticsView';
 import { LoginView } from './views/LoginView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
-import { UsersView } from './views/UsersView';
-import ScenesView from './views/ScenesView';
-import { AssistantView } from './views/AssistantView';
-import { DashboardsView } from './views/DashboardsView';
-import ResilienceShowcaseView from './views/ResilienceShowcaseView';
-import { EnergyView } from './views/EnergyView';
-import { ExecutionLogsView } from './views/ExecutionLogsView';
-import { HomeConversationView } from './views/HomeConversationView';
 import { SystemStatusBar } from './components/SystemStatusBar';
 import { AlertBanner } from './components/ui/AlertBanner';
 import { Button } from './components/ui/Button';
@@ -64,12 +51,31 @@ import { useDemoGuideStore, type DemoStep } from './stores/useDemoGuideStore';
 import { DemoGuideOverlay } from './components/DemoGuideOverlay';
 import { UserProfileModal } from './components/UserProfileModal';
 import { GlobalWakeListener } from './components/GlobalWakeListener';
+import { GlobalWakeNotice, type GlobalWakeNoticeModel, type GlobalWakeStatus } from './components/GlobalWakeNotice';
 
-type GlobalWakeNotice = {
-  id: string;
-  message: string;
-  tone: 'info' | 'success' | 'warning' | 'error';
-};
+const DashboardView = lazy(() => import('./views/DashboardView').then(module => ({ default: module.DashboardView })));
+const TopologyView = lazy(() => import('./views/TopologyView').then(module => ({ default: module.TopologyView })));
+const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
+const AutomationsView = lazy(() => import('./views/AutomationsView'));
+const AuditLogsView = lazy(() => import('./views/AuditLogsView').then(module => ({ default: module.AuditLogsView })));
+const HomeAssistantSettingsView = lazy(() => import('./views/HomeAssistantSettingsView').then(module => ({ default: module.HomeAssistantSettingsView })));
+const DiagnosticsView = lazy(() => import('./views/DiagnosticsView').then(module => ({ default: module.DiagnosticsView })));
+const UsersView = lazy(() => import('./views/UsersView').then(module => ({ default: module.UsersView })));
+const ScenesView = lazy(() => import('./views/ScenesView'));
+const AssistantView = lazy(() => import('./views/AssistantView').then(module => ({ default: module.AssistantView })));
+const DashboardsView = lazy(() => import('./views/DashboardsView').then(module => ({ default: module.DashboardsView })));
+const ResilienceShowcaseView = lazy(() => import('./views/ResilienceShowcaseView'));
+const EnergyView = lazy(() => import('./views/EnergyView').then(module => ({ default: module.EnergyView })));
+const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(module => ({ default: module.ExecutionLogsView })));
+const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
+
+function ViewLoadingState() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
+      <Monitor className="h-7 w-7 animate-pulse" />
+    </div>
+  );
+}
 
 /**
  * Union de vistas posibles para tipado estricto.
@@ -99,16 +105,6 @@ function resolveView(view: View): View {
     case 'users':       return 'system-users';
     default:            return view;
   }
-}
-
-function createGlobalSpeechAudioUrl(audioBase64: string, audioContentType: string): string {
-  const binary = atob(audioBase64);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return URL.createObjectURL(new Blob([bytes], { type: audioContentType }));
 }
 
 /** Returns true if the given canonical view belongs to the System section. */
@@ -141,7 +137,7 @@ function App() {
   const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string } | null>(null);
-  const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNotice | null>(null);
+  const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNoticeModel | null>(null);
   const [isGlobalWakeProcessing, setIsGlobalWakeProcessing] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
@@ -165,6 +161,7 @@ function App() {
   const globalWakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const globalWakeAudioUrlRef = useRef<string | null>(null);
   const globalWakeRequestIdRef = useRef(0);
+  const globalWakeStartedAtRef = useRef(0);
 
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
   const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
@@ -362,13 +359,17 @@ function App() {
     if (!speech || requestId !== globalWakeRequestIdRef.current) return;
 
     try {
-      const audioUrl = createGlobalSpeechAudioUrl(speech.audioBase64, speech.audioContentType);
+      const audioUrl = createSpeechAudioUrl(speech.audioBase64, speech.audioContentType);
       const audio = new Audio(audioUrl);
       globalWakeAudioUrlRef.current = audioUrl;
       globalWakeAudioRef.current = audio;
       audio.onended = stopGlobalWakeSpeech;
       audio.onerror = stopGlobalWakeSpeech;
       await audio.play();
+      recordHomeConversationTelemetry('global_wake_spoken', {
+        elapsedMs: Date.now() - globalWakeStartedAtRef.current,
+        textLength: text.length
+      });
     } catch {
       stopGlobalWakeSpeech();
     }
@@ -468,28 +469,44 @@ function App() {
 
     if (currentView !== 'home-conversation') {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      globalWakeStartedAtRef.current = Date.now();
+      recordHomeConversationTelemetry('global_wake_detected', {
+        sourceView: currentView,
+        promptLength: text.length
+      });
       setIsGlobalWakeProcessing(true);
       setGlobalWakeNotice({
         id,
         message: 'Procesando comando de voz...',
-        tone: 'info'
+        tone: 'info',
+        status: 'processing'
       });
 
       void converseWithAssistant({
         prompt: text,
         userName: user?.displayName || user?.username
       }).then(response => {
+        recordHomeConversationTelemetry('global_wake_processed', {
+          sourceView: currentView,
+          responseType: response.type,
+          elapsedMs: Date.now() - globalWakeStartedAtRef.current
+        });
         setGlobalWakeNotice({
           id,
           message: response.message,
-          tone: response.type === 'error' ? 'error' : response.type === 'clarification' ? 'warning' : 'success'
+          tone: response.type === 'error' ? 'error' : response.type === 'clarification' ? 'warning' : 'success',
+          status: 'speaking'
         });
         void speakGlobalWakeResponse(response.message);
       }).catch((error: unknown) => {
         const message = error instanceof Error && error.message
           ? error.message
           : 'No pude procesar el comando de voz.';
-        setGlobalWakeNotice({ id, message, tone: 'error' });
+        recordHomeConversationTelemetry('global_wake_failed', {
+          sourceView: currentView,
+          elapsedMs: Date.now() - globalWakeStartedAtRef.current
+        });
+        setGlobalWakeNotice({ id, message, tone: 'error', status: 'idle' });
         void speakGlobalWakeResponse(message);
       }).finally(() => {
         setIsGlobalWakeProcessing(false);
@@ -502,6 +519,23 @@ function App() {
       text
     });
   };
+
+  const handleGlobalWakeStatusChange = useCallback((wakeStatus: GlobalWakeStatus) => {
+    if (wakeStatus === 'idle' || wakeStatus === 'processing') return;
+
+    setGlobalWakeNotice({
+      id: `wake-${wakeStatus}`,
+      message: wakeStatus === 'listening'
+        ? 'Activador local atento.'
+        : wakeStatus === 'capturing'
+          ? 'Te escucho. Continúa con la orden.'
+          : wakeStatus === 'transcribing'
+            ? 'Interpretando audio localmente.'
+            : 'La escucha por voz no está disponible en este navegador.',
+      tone: wakeStatus === 'unavailable' ? 'warning' : 'info',
+      status: wakeStatus
+    });
+  }, []);
 
   const activeSystemSection = isSystemView(currentView);
   const isDesktopSidebarCollapsed = !isDesktopSidebarOpen;
@@ -917,58 +951,60 @@ function App() {
              </PageFrame>
            )}
            <PageFrame immersive={currentView === 'home-conversation'}>
-             {currentView === 'dashboard' && (
-                <DashboardView 
-                  onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))} 
-                  onActionExecute={() => {
-                    pulseSyncStatus();
-                  }}
-                  onNavigate={navigateTo}
-                />
-              )}
-             {/* Spaces = TopologyView (user-facing room management) */}
-             {currentView === 'spaces' && <TopologyView />}
-              {currentView === 'scenes' && (
-                <ScenesView 
-                  onActionExecute={() => {
-                     pulseSyncStatus();
-                  }}
-                />
-              )}
-             {currentView === 'automations' && <AutomationsView />}
-             {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
-             {currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
+             <Suspense fallback={<ViewLoadingState />}>
+               {currentView === 'dashboard' && (
+                  <DashboardView
+                    onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))}
+                    onActionExecute={() => {
+                      pulseSyncStatus();
+                    }}
+                    onNavigate={navigateTo}
+                  />
+                )}
+               {/* Spaces = TopologyView (user-facing room management) */}
+               {currentView === 'spaces' && <TopologyView />}
+                {currentView === 'scenes' && (
+                  <ScenesView
+                    onActionExecute={() => {
+                       pulseSyncStatus();
+                    }}
+                  />
+                )}
+               {currentView === 'automations' && <AutomationsView />}
+               {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
+               {currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
 
-              {/* Custom Dashboards */}
-               {currentView === 'dashboards' && <DashboardsView />}
+                {/* Custom Dashboards */}
+                 {currentView === 'dashboards' && <DashboardsView />}
 
-              {currentView === 'energy' && (
-                <EnergyView onNavigate={navigateTo} />
-              )}
+                {currentView === 'energy' && (
+                  <EnergyView onNavigate={navigateTo} />
+                )}
 
-             {/* System section views */}
-             {currentView === 'system-devices' && <InboxView mode="manager" />}
-             {currentView === 'system-inbox' && <InboxView mode="discovery" />}
-             {currentView === 'system-diagnostics' && <DiagnosticsView />}
-             {currentView === 'system-audit' && <AuditLogsView />}
-             {currentView === 'system-executions' && <ExecutionLogsView />}
-             {currentView === 'system-ha' && <HomeAssistantSettingsView />}
-             {currentView === 'system-onboarding' && setupStatus && (
-               <OnboardingView
-                 statusProvider={setupStatus}
-                 userContext={user}
-                 onCompleted={() => setSetupStatus((prev) => prev ? { ...prev, requiresOnboarding: false } : null)}
-               />
-             )}
-             {currentView === 'system-users' && <UsersView />}
-             {currentView === 'home-conversation' && (
-               <HomeConversationView
-                 pendingPrompt={pendingHomeConversationPrompt}
-                 onPendingPromptConsumed={(id) => {
-                   setPendingHomeConversationPrompt(current => current?.id === id ? null : current);
-                 }}
-               />
-             )}
+               {/* System section views */}
+               {currentView === 'system-devices' && <InboxView mode="manager" />}
+               {currentView === 'system-inbox' && <InboxView mode="discovery" />}
+               {currentView === 'system-diagnostics' && <DiagnosticsView />}
+               {currentView === 'system-audit' && <AuditLogsView />}
+               {currentView === 'system-executions' && <ExecutionLogsView />}
+               {currentView === 'system-ha' && <HomeAssistantSettingsView />}
+               {currentView === 'system-onboarding' && setupStatus && (
+                 <OnboardingView
+                   statusProvider={setupStatus}
+                   userContext={user}
+                   onCompleted={() => setSetupStatus((prev) => prev ? { ...prev, requiresOnboarding: false } : null)}
+                 />
+               )}
+               {currentView === 'system-users' && <UsersView />}
+               {currentView === 'home-conversation' && (
+                 <HomeConversationView
+                   pendingPrompt={pendingHomeConversationPrompt}
+                   onPendingPromptConsumed={(id) => {
+                     setPendingHomeConversationPrompt(current => current?.id === id ? null : current);
+                   }}
+                 />
+               )}
+             </Suspense>
            </PageFrame>
         </section>
 
@@ -985,34 +1021,12 @@ function App() {
       />
       <DemoGuideOverlay onNavigate={navigateTo} />
       {globalWakeNotice && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={cn(
-            "fixed bottom-14 left-1/2 z-[70] w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 rounded-[1.35rem] border bg-card/95 p-4 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors",
-            globalWakeNotice.tone === 'success' && "border-primary/35",
-            globalWakeNotice.tone === 'warning' && "border-warning/40",
-            globalWakeNotice.tone === 'error' && "border-destructive/40",
-            globalWakeNotice.tone === 'info' && "border-border"
-          )}
-        >
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <span className="text-[0.62rem] font-black uppercase tracking-[0.24em] text-muted-foreground">
-              HomePilot
-            </span>
-            <span className={cn(
-              "rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em]",
-              isGlobalWakeProcessing ? "border-warning/40 text-warning" : "border-primary/30 text-primary"
-            )}>
-              {isGlobalWakeProcessing ? 'Procesando' : 'Respuesta'}
-            </span>
-          </div>
-          <p className="text-sm font-semibold leading-6 text-foreground">{globalWakeNotice.message}</p>
-        </div>
+        <GlobalWakeNotice notice={globalWakeNotice} isProcessing={isGlobalWakeProcessing} />
       )}
       <GlobalWakeListener
         enabled={status === 'authenticated' && !loadingSetup && !setupStatus?.requiresOnboarding}
         onCommand={handleGlobalWakeCommand}
+        onStatusChange={handleGlobalWakeStatusChange}
       />
       {showProfileModal && user && (
         <UserProfileModal

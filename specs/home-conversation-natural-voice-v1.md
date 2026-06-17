@@ -15,6 +15,10 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La UI debe permitir un modo de activador local `HomePilot` mientras la consola esté abierta y tenga permiso de micrófono.
 - La UI no debe bloquear frases naturales de varias palabras por no coincidir con una lista rígida de keywords; el backend conserva la responsabilidad de resolver intención o responder que no entendió.
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
+- La UI debe mostrar estado global discreto de escucha, captura, transcripción, procesamiento y respuesta cuando el activador esté disponible.
+- La UI debe registrar telemetría local de latencia para activador global, procesamiento y reproducción de voz sin enviar datos a servicios externos.
+- Las vistas pesadas de la Operator Console deben poder cargarse de forma diferida para reducir el bundle inicial.
+- La guía de producto debe explicar que la voz es local, que requiere permiso de micrófono, que el activador funciona con la consola abierta y que las acciones sensibles conservan confirmación.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
@@ -46,6 +50,11 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - Frases naturales de varias palabras deben llegar al backend aunque no contengan una keyword exacta conocida; solo deben descartarse capturas vacías o de bajo valor como ruido.
 - La grabación manual y la escucha global usan la misma implementación base para soporte de `MediaRecorder`, selección de MIME y conversión base64.
+- El activador global muestra un indicador no intrusivo cuando está escuchando, capturando, transcribiendo o respondiendo.
+- El flujo global registra tiempos de detección, resolución y reproducción para diagnosticar latencia de voz local.
+- El shell carga vistas por demanda con `React.lazy`/`Suspense` sin cambiar rutas ni contratos.
+- Las respuestas rápidas de saludo, estado del asistente y nombre se delegan a un helper modular testeado.
+- El onboarding comercial debe comunicar capacidades y límites de voz sin prometer ejecución autónoma fuera de la consola abierta.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.
 - El selector de micrófono trunca nombres largos, mantiene tamaño estable y muestra opciones legibles en modo oscuro.

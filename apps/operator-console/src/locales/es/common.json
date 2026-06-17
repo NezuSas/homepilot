@@ -1023,7 +1023,7 @@
       },
       "conversation": {
         "title": "Habla con tu casa",
-        "description": "El chat permite pedir acciones naturales, revisar confirmaciones y operar la vivienda con una experiencia más humana que un panel tradicional."
+        "description": "El asistente entiende órdenes naturales, responde con voz local y mantiene confirmaciones seguras para acciones sensibles mientras la consola está abierta."
       },
       "automations": {
         "title": "Tu casa piensa por ti",

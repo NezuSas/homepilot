@@ -39,6 +39,7 @@ Todas las respuestas de error deben seguir este esquema:
 - Reemplazar `alert()` residuales en el frontend.
 - En `OperatorConsoleServer.ts`, extraer parsing, validación y mapping de errores en handlers complejos. Evitar lógica de negocio en la capa de transporte.
 - Eliminar logs de depuración y mensajes "verbose" no aptos para producción.
+- Revisar `npm audit` antes de release y documentar cada vulnerabilidad aceptada, diferida o corregida. No aplicar `npm audit fix --force` sin validar impacto en build, tests y Docker.
 
 ### Verificación Pragmática
 El script `verify_release_v1.ts` debe validar:
@@ -56,4 +57,4 @@ Se considera la V1 lista para release cuando:
 4. Se han eliminado todos los `alert()` nativos.
 5. El documento `docs/release-readiness-v1.md` ha sido completado.
 6. El script `scripts/verify_release_v1.ts` se ejecuta con éxito en el entorno objetivo.
-
+7. Las vulnerabilidades reportadas por `npm audit` tienen decisión explícita de corrección, mitigación o aceptación temporal.

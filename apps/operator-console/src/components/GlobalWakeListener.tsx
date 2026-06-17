@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { transcribeAssistantSpeech } from '../lib/assistantApi';
 import { blobToBase64, canUseLocalSpeechRecording, getPreferredAudioMimeType } from '../lib/audioRecording';
 import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
+import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
 const MAX_WAKE_RECORDING_MS = 9000;
 const MIN_WAKE_RECORDING_MS = 900;
@@ -11,9 +12,10 @@ const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 interface GlobalWakeListenerProps {
   enabled: boolean;
   onCommand: (command: string) => void;
+  onStatusChange?: (status: GlobalWakeStatus) => void;
 }
 
-export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerProps) {
+export function GlobalWakeListener({ enabled, onCommand, onStatusChange }: GlobalWakeListenerProps) {
   const enabledRef = useRef(enabled);
   const isRecordingRef = useRef(false);
   const isCapturingCommandRef = useRef(false);
@@ -32,7 +34,11 @@ export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerPro
   }, [enabled]);
 
   useEffect(() => {
-    if (!enabled || !canUseLocalSpeechRecording()) return;
+    if (!enabled) return;
+    if (!canUseLocalSpeechRecording()) {
+      onStatusChange?.('unavailable');
+      return;
+    }
 
     void startWakeCycle(false);
 
@@ -40,7 +46,7 @@ export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerPro
       enabledRef.current = false;
       stopRecording();
     };
-  }, [enabled]);
+  }, [enabled, onStatusChange]);
 
   const clearRecordingTimeout = () => {
     if (recordingTimeoutRef.current !== null) {
@@ -140,6 +146,7 @@ export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerPro
     }
 
     try {
+      onStatusChange?.('transcribing');
       const audioBase64 = await blobToBase64(audioBlob);
       const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm');
       const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
@@ -151,6 +158,7 @@ export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerPro
 
       if (captureCommand) {
         if (isUsableVoiceTranscript(spokenText)) {
+          onStatusChange?.('processing');
           onCommand(spokenText);
           scheduleWakeCycle(false, 900);
           return;
@@ -166,6 +174,7 @@ export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerPro
       }
 
       if (wakeResult.command && isUsableVoiceTranscript(wakeResult.command)) {
+        onStatusChange?.('processing');
         onCommand(wakeResult.command);
         scheduleWakeCycle(false, 900);
         return;
@@ -181,6 +190,7 @@ export function GlobalWakeListener({ enabled, onCommand }: GlobalWakeListenerPro
     if (!enabledRef.current || isRecordingRef.current) return;
 
     try {
+      onStatusChange?.(captureCommand ? 'capturing' : 'listening');
       isRecordingRef.current = true;
       isCapturingCommandRef.current = captureCommand;
       const stream = await navigator.mediaDevices.getUserMedia({
