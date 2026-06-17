@@ -1784,15 +1784,27 @@ export class AssistantConversationService {
   }
 
   private isHelpQuery(normalized: string): boolean {
-    const triggers = ["ayuda", "help"];
-    return triggers.some(t => normalized === t || normalized.startsWith(t + " "));
+    const triggers = [
+      "ayuda", "help",
+      "ayudame", "necesito ayuda",
+      "guia", "guiame",
+      "como uso esto", "como se usa esto", "como puedo usar esto"
+    ];
+    return triggers.some(t => normalized === t || normalized.startsWith(t + " ") || normalized.includes(t));
   }
 
   private isPresentation(normalized: string): boolean {
     const triggers = [
       "quién eres", "quien eres", "who are you",
       "qué puedes hacer", "que puedes hacer", "preséntate", "presentate",
-      "what can you do", "introduce yourself"
+      "que haces", "para que sirves",
+      "que sabes hacer", "que puedes controlar",
+      "que comandos entiendes", "que ordenes entiendes",
+      "que puedo pedirte", "que te puedo pedir",
+      "como me ayudas con la casa", "como puedes ayudarme con la casa",
+      "what can you do", "what do you do", "what can you control",
+      "what commands do you understand", "how can you help me with the house",
+      "introduce yourself"
     ];
     return triggers.some(t => normalized.includes(t));
   }
@@ -1800,6 +1812,8 @@ export class AssistantConversationService {
   private isScopeQuery(normalized: string): boolean {
     const triggers = [
       "que puedo preguntarte", "qué puedo preguntarte", "que cosas puedo preguntar",
+      "que cosas puedo decirte", "que puedo decirte",
+      "como debo hablarte", "como te puedo hablar",
       "puedo preguntarte cualquier cosa", "te puedo preguntar cualquier cosa",
       "cuales son tus limites", "cuáles son tus límites", "que limites tienes", "qué límites tienes",
       "que no puedes hacer", "qué no puedes hacer",
@@ -1828,14 +1842,17 @@ export class AssistantConversationService {
     const aliasNames = Object.keys(aliases).slice(0, 5);
 
     const esLines = [
-      "Soy el asistente local de HomePilot. Estoy diseñado para operar tu casa, no para responder cualquier tema de internet.",
+      "Soy HomePilot, tu operador residencial local. Estoy para ayudarte a consultar, controlar y organizar la casa con órdenes naturales.",
       "",
       "Puedes pedirme:",
-      "• Estado: \"qué luces están encendidas\", \"qué está apagado en la sala\", \"dame detalles\".",
-      "• Control: \"prende luz escritorio\", \"apaga las luces del cuarto master\", \"apaga todo\".",
-      "• Escenas y rutinas: \"activa escena cine\", \"crea una escena para apagar la sala\".",
-      "• Alias: \"llama mi cuarto a Cuarto Master\", \"qué aliases tengo\", \"elimina el alias mi cuarto\".",
-      "• Recuperación: \"por qué falló\", \"reintenta la última acción\", \"la primera\", \"sí\" o \"no\".",
+      "• Estado general: \"qué está encendido\", \"qué luces están encendidas\", \"cómo está la casa\".",
+      "• Control por estancia: \"apaga la luz de la sala\", \"enciende el escritorio\", \"cierra la cortina del cuarto master\".",
+      "• Acciones masivas seguras: \"apaga todo\", \"apaga todas las luces\", \"cierra todas las cortinas\". Te pediré confirmación cuando corresponda.",
+      "• Escenas: \"activa escena cine\", \"apaga cuarto master\", \"crea una escena para apagar la sala\".",
+      "• Automatizaciones: \"qué automatizaciones tengo\", \"desactiva la rutina de noche\", \"por qué no se ejecutó\".",
+      "• Alias y lenguaje personal: \"llama mi cuarto a Cuarto Master\", \"qué aliases tengo\", \"elimina el alias mi cuarto\".",
+      "• Seguimiento: \"la primera\", \"esa\", \"sí\", \"no\", \"dame detalles\", \"reintenta la última acción\".",
+      "• Voz: puedes invocarme con el activador local, interrumpirme mientras hablo y dictar una nueva orden.",
       "",
       "Límites:",
       "• No soy un buscador general ni respondo temas fuera del hogar.",
@@ -1844,14 +1861,17 @@ export class AssistantConversationService {
     ];
 
     const enLines = [
-      "I am HomePilot's local assistant. I am built to operate your home, not to answer any topic from the internet.",
+      "I am HomePilot, your local residential operator. I help you inspect, control, and organize the home with natural commands.",
       "",
       "You can ask me:",
-      "• Status: \"what lights are on\", \"what is off in the living room\", \"show details\".",
-      "• Control: \"turn on desk light\", \"turn off the master bedroom lights\", \"turn everything off\".",
-      "• Scenes and routines: \"activate cinema scene\", \"create a scene to turn off the living room\".",
-      "• Aliases: \"call master my room\", \"what aliases do I have\", \"delete my room alias\".",
-      "• Recovery: \"why did it fail\", \"retry the last action\", \"the first one\", \"yes\" or \"no\".",
+      "• General status: \"what is on\", \"what lights are on\", \"how is the house\".",
+      "• Room control: \"turn off the living room light\", \"turn on the desk\", \"close the master bedroom curtain\".",
+      "• Safe bulk actions: \"turn everything off\", \"turn off all lights\", \"close all curtains\". I will ask for confirmation when needed.",
+      "• Scenes: \"activate cinema scene\", \"turn off master bedroom\", \"create a scene to turn off the living room\".",
+      "• Automations: \"what automations do I have\", \"disable night routine\", \"why did it not run\".",
+      "• Aliases and personal language: \"call master my room\", \"what aliases do I have\", \"delete my room alias\".",
+      "• Follow-ups: \"the first one\", \"that one\", \"yes\", \"no\", \"show details\", \"retry the last action\".",
+      "• Voice: you can wake me locally, interrupt me while I am speaking, and dictate a new command.",
       "",
       "Limits:",
       "• I am not a general search assistant and I avoid topics outside the home.",

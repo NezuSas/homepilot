@@ -5,6 +5,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
+- El backend debe ignorar prefijos de activación si llegan dentro del texto final, como `HomePilot`, `ok jompailot`, `home pilot` u `oye HomePilot`.
 - El backend debe detectar comandos aunque el verbo no sea la primera palabra de la frase.
 - La UI debe permitir dictar una instrucción con micrófono grabando audio local con `MediaRecorder`.
 - La UI debe enviar el audio al backend para transcripción local y no depender de Web Speech API.
@@ -53,6 +54,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Las respuestas de ejecución, error, objetivo no encontrado, aclaración y bloqueo de seguridad deben poder adjuntar metadato opcional `responseStyle` y formatearse con tono residencial tipo Jarvis sin afirmar acciones no confirmadas.
 - El tono tipo Jarvis debe sonar como un operador residencial premium: natural, breve, sereno y seguro, evitando lenguaje técnico como "dispositivo ha sido..." cuando pueda expresarse como una acción humana.
 - Preguntas conversacionales cortas como `ok jompailot cómo estás` o `ok jompailot qué hora es` deben responder de forma útil y enfocada en la casa, no como charla genérica desconectada del sistema residencial.
+- Preguntas de capacidad como `HomePilot qué puedes hacer`, `qué te puedo pedir`, `cómo me ayudas con la casa`, `qué comandos entiendes` o `qué puedes controlar` deben responder con una guía residencial concreta, sin caer en aclaración genérica.
+- La guía de capacidades debe cubrir escenarios humanos de uso: estado, control por estancia, luces, cortinas, escenas, automatizaciones, alias, confirmaciones, recuperación de fallos, límites y ejemplos disponibles del hogar actual.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - Frases naturales de varias palabras deben llegar al backend aunque no contengan una keyword exacta conocida; solo deben descartarse capturas vacías o de bajo valor como ruido.
 - La grabación manual y la escucha global usan la misma implementación base para soporte de `MediaRecorder`, selección de MIME y conversión base64.

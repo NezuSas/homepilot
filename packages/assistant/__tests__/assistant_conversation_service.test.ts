@@ -154,7 +154,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'quién eres' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('Soy el asistente local de HomePilot');
+      expect(response.message).toContain('Soy HomePilot');
       expect(response.message).toContain('Límites:');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
@@ -190,6 +190,31 @@ describe('AssistantConversationService', () => {
       expect(response.message).toContain('aliases: mi cuarto');
     });
 
+    it('should answer capabilities when the wake word reaches the backend', async () => {
+      const response = await service.converse({ prompt: 'HomePilot qué puedes hacer' }, 'es');
+
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Puedes pedirme:');
+      expect(response.message).toContain('Estado general');
+      expect(response.message).not.toContain('No estoy seguro');
+    });
+
+    it('should answer natural capability variations', async () => {
+      const prompts = [
+        'qué te puedo pedir',
+        'qué comandos entiendes',
+        'cómo me ayudas con la casa',
+        'qué puedes controlar'
+      ];
+
+      for (const prompt of prompts) {
+        const response = await service.converse({ prompt }, 'es');
+        expect(response.type).toBe('answer');
+        expect(response.message).toContain('Puedes pedirme:');
+        expect(response.message).not.toContain('No estoy seguro');
+      }
+    });
+
     it('should respond to "what can you do" in English', async () => {
       const response = await service.converse({ prompt: 'what can you do' }, 'en');
       
@@ -203,7 +228,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'puedo preguntarte cualquier cosa' }, 'es');
 
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('no para responder cualquier tema de internet');
+      expect(response.message).toContain('No soy un buscador general');
       expect(response.message).toContain('Solo puedo operar dispositivos');
     });
 
@@ -211,7 +236,7 @@ describe('AssistantConversationService', () => {
       const response = await service.converse({ prompt: 'what are your limits' }, 'en');
 
       expect(response.type).toBe('answer');
-      expect(response.message).toContain('not to answer any topic from the internet');
+      expect(response.message).toContain('not a general search assistant');
       expect(response.message).toContain('I can only operate devices');
     });
   });
