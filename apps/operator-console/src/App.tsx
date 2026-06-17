@@ -390,6 +390,23 @@ function App() {
     return () => window.clearTimeout(timeoutId);
   }, [globalWakeNotice, isGlobalWakeProcessing]);
 
+  const handleGlobalWakeStatusChange = useCallback((wakeStatus: GlobalWakeStatus) => {
+    if (wakeStatus === 'idle' || wakeStatus === 'processing') return;
+
+    setGlobalWakeNotice({
+      id: `wake-${wakeStatus}`,
+      message: wakeStatus === 'listening'
+        ? 'Activador local atento.'
+        : wakeStatus === 'capturing'
+          ? 'Te escucho. Continúa con la orden.'
+          : wakeStatus === 'transcribing'
+            ? 'Interpretando audio localmente.'
+            : 'La escucha por voz no está disponible en este navegador.',
+      tone: wakeStatus === 'unavailable' ? 'warning' : 'info',
+      status: wakeStatus
+    });
+  }, []);
+
   if (status === 'checking') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background relative overflow-hidden">
@@ -519,23 +536,6 @@ function App() {
       text
     });
   };
-
-  const handleGlobalWakeStatusChange = useCallback((wakeStatus: GlobalWakeStatus) => {
-    if (wakeStatus === 'idle' || wakeStatus === 'processing') return;
-
-    setGlobalWakeNotice({
-      id: `wake-${wakeStatus}`,
-      message: wakeStatus === 'listening'
-        ? 'Activador local atento.'
-        : wakeStatus === 'capturing'
-          ? 'Te escucho. Continúa con la orden.'
-          : wakeStatus === 'transcribing'
-            ? 'Interpretando audio localmente.'
-            : 'La escucha por voz no está disponible en este navegador.',
-      tone: wakeStatus === 'unavailable' ? 'warning' : 'info',
-      status: wakeStatus
-    });
-  }, []);
 
   const activeSystemSection = isSystemView(currentView);
   const isDesktopSidebarCollapsed = !isDesktopSidebarOpen;
