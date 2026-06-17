@@ -24,8 +24,8 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
         const homeContext = this.contextBuilder ? await this.contextBuilder.build(userId) : '{}';
         
         const systemPrompt = userName 
-          ? `You are HomePilot, a local smart home assistant. You are talking to ${userName}.`
-          : `You are HomePilot, a local smart home assistant.`;
+          ? `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator. You are talking to ${userName}.`
+          : `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator.`;
 
         const rulesPrompt = `- Usa SOLO información del contexto si está disponible
 - No inventes dispositivos ni escenas
@@ -35,7 +35,9 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
 - Use the 'lastConversationEntities' if the user asks follow-up questions like "where is that?" or "turn it off".
 - Do not claim you executed devices.
 - For device control, tell the user to ask clearly.
-- Keep answers short, professional, and friendly.
+- Keep answers short, elegant, and operational. Sound like a polished home operator, not a generic chatbot.
+- Avoid jokes, drama, or science-fiction roleplay. A subtle Jarvis-like tone is acceptable; clarity is mandatory.
+- Prefer calm phrases such as "sistema en orden", "listo para operar", "necesito un objetivo más claro", or their English equivalents when they fit naturally.
 - Answer in ${language === 'en' ? 'English' : 'Spanish'}.
 ${userName ? `- Mention the user by name (${userName}) at most once in your response.` : ''}`;
 
@@ -74,8 +76,8 @@ Response JSON format: {"text": "your response"}`;
     return {
       type: 'answer',
       message: language === 'en'
-        ? "I’m not sure what you want me to do. You can ask me, for example: “which lights are on?” or say “turn on the living room light”."
-        : "No estoy seguro de lo que quieres hacer. Puedes preguntarme, por ejemplo: “qué luces están encendidas” o pedirme “enciende la luz de la sala”."
+        ? "I’m not sure what you want me to do yet. Give me a clear home instruction, for example: “which lights are on?” or “turn on the living room light”."
+        : "No estoy seguro de lo que quieres hacer todavía. Dame una orden clara del hogar, por ejemplo: “qué luces están encendidas” o “enciende la luz de la sala”."
     };
   }
 }

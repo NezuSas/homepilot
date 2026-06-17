@@ -248,7 +248,7 @@ export class AssistantConversationService {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
       if (isAffirmative) {
-        try { await this.draftService.activateDraft(memory.pendingDraft.id, userId); await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Ready. Scene activated successfully." : "Listo. Escena activada correctamente." }); }
+        try { await this.draftService.activateDraft(memory.pendingDraft.id, userId); await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Ready. Scene activated successfully. Systems aligned." : "Listo. Escena activada correctamente. Sistemas alineados." }); }
         catch (err: unknown) { return this.returnWithShadow(activePrompt, userId, language, { type: 'error', message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena." }); }
       }
       if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Understood, I didn't activate the scene." : "Entendido, no activé la escena." }); }
@@ -362,9 +362,9 @@ export class AssistantConversationService {
     if (deviceAliasFastPath) return deviceAliasFastPath;
 
     // --- DETERMINISTIC GENERAL ROUTES ---
-    if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home.` : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa.` };
-    if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `I'm operating normally.` : `Estoy funcionando correctamente.` };
-    if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "My name is HomePilot." : "Me llamo HomePilot." };
+    if (this.isGreeting(normalized)) return { type: 'answer', message: language === 'en' ? `Hi${userName ? ', ' + userName : ''}. I’m ready to help with your home. Home systems are standing by.` : `Hola${userName ? ', ' + userName : ''}, estoy listo para ayudarte con tu casa. Sistemas del hogar atentos.` };
+    if (this.isWellnessQuery(normalized)) return { type: 'answer', message: language === 'en' ? `I'm operating normally. All available systems are responsive.` : `Estoy funcionando correctamente. Sistemas disponibles y atentos.` };
+    if (this.isNameQuery(normalized)) return { type: 'answer', message: language === 'en' ? "My name is HomePilot, your local residential operator." : "Me llamo HomePilot, tu operador residencial local." };
     if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
     if (this.isHelpQuery(normalized) || this.isPresentation(normalized) || this.isScopeQuery(normalized)) return await this.handleCapabilitiesGuide(userId, language);
     if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
@@ -438,8 +438,8 @@ export class AssistantConversationService {
         return {
           type: 'answer',
           message: language === 'en'
-            ? "I did not understand that command. Try saying it again with the device and room, for example: turn off the living room light."
-            : "No entendí ese comando. Dímelo otra vez con el dispositivo y la estancia, por ejemplo: apaga la luz de la sala."
+            ? "I did not understand that command. Give me the device and room, for example: turn off the living room light."
+            : "No entendí ese comando. Indícame dispositivo y estancia, por ejemplo: apaga la luz de la sala."
         };
       }
 
@@ -523,9 +523,9 @@ export class AssistantConversationService {
           originalPrompt: prompt
         });
 
-        return {
-          type: 'clarification',
-          message: language === 'en' ? "I found several devices that match." : "Encontré varios dispositivos que coinciden.",
+      return {
+        type: 'clarification',
+        message: language === 'en' ? "I found several matching devices. Please choose the target." : "Encontré varios dispositivos compatibles. Indícame el objetivo.",
           clarification: {
             question: language === 'en' ? "Which one do you want to control?" : "¿Cuál quieres controlar?",
             options,
@@ -585,7 +585,7 @@ export class AssistantConversationService {
     // E) Execution
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
-      if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found." : "Escena no encontrada." };
+      if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found. I need a valid scene." : "Escena no encontrada. Necesito una escena válida." };
 
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
@@ -601,7 +601,7 @@ export class AssistantConversationService {
 
       return await this.attachSuggestionIfNeeded({
         type: 'execution',
-        message: language === 'en' ? "Executing scene..." : "Ejecutando escena...",
+        message: language === 'en' ? "Scene execution started." : "Escena en ejecución.",
         execution: result
       }, userId, language, memory, 'scene');
     }
@@ -681,8 +681,8 @@ export class AssistantConversationService {
         });
         const actionSummary = intent.actions.slice(0, 3).map(a => a.targetName ?? a.deviceId).join(', ');
         const confirmMsg = language === 'en'
-          ? `Are you sure you want to execute ${intent.actions.length} actions (${actionSummary})?`
-          : `¿Estás seguro de que quieres realizar ${intent.actions.length} acciones (${actionSummary})?`;
+          ? `I can execute ${intent.actions.length} actions (${actionSummary}). Confirm to proceed.`
+          : `Puedo ejecutar ${intent.actions.length} acciones (${actionSummary}). Confírmame para proceder.`;
         return { 
           type: 'clarification', 
           message: confirmMsg,
@@ -750,7 +750,7 @@ export class AssistantConversationService {
 
     return {
       type: 'error',
-      message: language === 'en' ? "Unknown intent type." : "Tipo de intención desconocido."
+      message: language === 'en' ? "Instruction type not recognized. Standing by for a clearer command." : "Tipo de instrucción no reconocido. Quedo atento a una orden más clara."
     };
   }
 

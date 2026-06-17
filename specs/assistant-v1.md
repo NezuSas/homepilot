@@ -69,3 +69,10 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 ## 8. i18n
 - Full support for ES and EN.
 - No hardcoded strings in services.
+
+## 9. Conversational Voice
+- Assistant responses must sound like a professional residential operator: concise, calm, confident, and service-oriented.
+- The assistant may use a subtle "Jarvis-like" tone, but must not become theatrical, verbose, or obscure operational clarity.
+- Device execution responses must stay explicit about what was controlled.
+- Ambiguous, unsafe, or unknown commands must be acknowledged immediately and ask for a clearer device/room target.
+- The assistant must not claim that an action was executed unless the execution result confirms it.
