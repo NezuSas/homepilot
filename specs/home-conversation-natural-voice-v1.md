@@ -12,6 +12,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La UI debe permitir elegir el dispositivo de entrada cuando el navegador reporte más de un micrófono.
 - El selector de micrófono debe ser un componente modular propio, consistente en modo claro y oscuro, sin depender del menú nativo del sistema operativo.
 - La UI debe cortar la grabación automáticamente después de detectar voz y silencio para reducir latencia.
+- La UI debe permitir un modo de activador local `HomePilot` mientras la consola esté abierta y tenga permiso de micrófono.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
@@ -29,6 +30,9 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Acceptance Criteria
 - Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
+- Frases cortas de cortesía como `hola` no deben descartarse por tener una sola palabra.
+- El activador local debe reconocer `HomePilot`/`oye HomePilot` y comenzar captura de orden sin requerir presionar el botón de micrófono cada vez.
+- Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - La caja de chat expone botón de micrófono si el navegador permite grabación local de audio.
 - La caja de chat expone selector de micrófono cuando hay múltiples entradas disponibles.
