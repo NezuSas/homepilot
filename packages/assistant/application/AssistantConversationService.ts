@@ -904,8 +904,10 @@ export class AssistantConversationService {
   private inferCommandFromPrompt(prompt: string): DeviceCommandV1 | undefined {
     const normalized = this.normalizePrompt(prompt);
     // Explicit keywords
-    if (normalized.includes('apaga') || normalized.includes('off') || normalized.includes('cierra') || normalized.includes('close')) return 'turn_off';
-    if (normalized.includes('enciende') || normalized.includes('prende') || normalized.includes('on') || normalized.includes('abre') || normalized.includes('open')) return 'turn_on';
+    if (normalized.includes('cierra') || normalized.includes('cerrar') || normalized.includes('close')) return 'close';
+    if (normalized.includes('abre') || normalized.includes('abrir') || normalized.includes('open')) return 'open';
+    if (normalized.includes('apaga') || normalized.includes('off')) return 'turn_off';
+    if (normalized.includes('enciende') || normalized.includes('prende') || normalized.includes('on')) return 'turn_on';
     
     // English phrases
     if (normalized.includes('turn off')) return 'turn_off';
@@ -1497,7 +1499,7 @@ export class AssistantConversationService {
   private isLightEntity(device: Device): boolean {
     // Priority 1: User-assigned semantic classification (overrides hardware type)
     if (device.semanticType === 'light') return true;
-    if (device.semanticType !== undefined && device.semanticType !== 'unknown') {
+    if (device.semanticType != null && device.semanticType !== 'unknown') {
       // Any other explicit semanticType means it's NOT a light
       return false;
     }
@@ -1506,8 +1508,13 @@ export class AssistantConversationService {
     const caps = resolveCapabilitiesForDevice(device);
     if (caps.some(c => c.type === 'light' || c.type === 'dimmer')) return true;
 
-    // Priority 3: Hardware device.type fallback (no name heuristics)
-    return ['light', 'dimmer'].includes(device.type.toLowerCase());
+    // Priority 3: Hardware device.type fallback
+    if (['light', 'dimmer'].includes(device.type.toLowerCase())) return true;
+
+    // Priority 4: Conservative fallback for HA switches with an explicit light name.
+    // Manual semantic classification above always takes precedence.
+    const normalizedName = this.normalizePrompt(device.name);
+    return /^(luz|luces|lampara|lamparas|foco|focos)(\s|$)/.test(normalizedName);
   }
 
   private isControllableForBulk(device: Device, command: DeviceCommandV1, bulkType: 'all' | 'lights'): boolean {
@@ -2204,7 +2211,7 @@ export class AssistantConversationService {
     
     // A. Unknown Target Blocker
     // If prompt has command verb + device noun + unknown qualifier
-    const commandVerbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'turn on', 'turn off', 'toggle'];
+    const commandVerbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'abre', 'abrir', 'cierra', 'cerrar', 'turn on', 'turn off', 'open', 'close', 'toggle'];
     const hasVerb = commandVerbs.some(v => normalized.startsWith(v + ' ') || this.containsWord(normalized, v));
     
     if (this.isManagementIntent(normalized) || this.isDraftCreation(normalized)) return null;
@@ -3957,7 +3964,7 @@ export class AssistantConversationService {
 
   private extractTargetPhrase(prompt: string): string {
     const norm = this.normalizePrompt(prompt);
-    const verbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'turn on', 'turn off', 'toggle'];
+    const verbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'abre', 'abrir', 'cierra', 'cerrar', 'turn on', 'turn off', 'open', 'close', 'toggle'];
     for (const v of verbs) {
       if (norm.startsWith(v + ' ')) return norm.substring(v.length + 1).trim();
       if (norm === v) return '';
@@ -4457,6 +4464,7 @@ export class AssistantConversationService {
 
     const device = devices.find((d) => d.id === result.deviceId);
     if (!device) return null;
+    if (!this.isControllableDevice(device, result.command)) return null;
 
     const execResult = await this.executeSingleCommand(result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`);
     
@@ -4473,6 +4481,8 @@ export class AssistantConversationService {
       let msg = '';
       if (result.command === 'turn_on') msg = isSpanish ? `Hecho, encendí ${device.name}.` : `Done, turned on ${device.name}.`;
       else if (result.command === 'turn_off') msg = isSpanish ? `Hecho, apagué ${device.name}.` : `Done, turned off ${device.name}.`;
+      else if (result.command === 'open') msg = isSpanish ? `Hecho, abrí ${device.name}.` : `Done, opened ${device.name}.`;
+      else if (result.command === 'close') msg = isSpanish ? `Hecho, cerré ${device.name}.` : `Done, closed ${device.name}.`;
       else msg = isSpanish ? `Hecho, alterné ${device.name}.` : `Done, toggled ${device.name}.`;
 
       return await this.attachSuggestionIfNeeded(this.withJarvisStyle({

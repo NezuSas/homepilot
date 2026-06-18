@@ -29,6 +29,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
   let mockRoomRepo: any;
   let mockShadowService: any;
   let mockIntentInterpreter: any;
+  let mockSceneExecution: any;
 
   beforeEach(() => {
     mockIntentInterpreter = createMockIntentInterpreterPort();
@@ -36,6 +37,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockMemory = createMockAssistantMemory();
     mockDeviceRepo = createMockDeviceRepository();
     mockRoomRepo = createMockRoomRepository();
+    mockSceneExecution = createMockSceneExecutionService();
     mockShadowService = { 
       runShadow: jest.fn().mockResolvedValue(undefined),
       attemptHybridExecution: jest.fn().mockResolvedValue(null)
@@ -44,7 +46,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     service = new AssistantConversationService(
       mockIntentInterpreter, // 1
       createMockAssistantConfirmationPolicy(), // 2
-      createMockSceneExecutionService(), // 3
+      mockSceneExecution, // 3
       mockDispatcher, // 4
       mockDeviceRepo, // 5
       mockRoomRepo, // 6
@@ -107,6 +109,30 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(response.type).toBe('execution');
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
+  it('opens a Home Assistant cover through the deterministic fast path', async () => {
+    const cover = createTestDevice({
+      id: 'cover-sala',
+      name: 'Cortina Sala Curtain',
+      type: 'cover',
+      roomId: 'r1',
+      lastKnownState: { state: 'closed' }
+    });
+    mockDeviceRepo.findAll.mockResolvedValue([cover]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(cover);
+
+    const response = await service.converse({ prompt: 'abre la cortina de la sala', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('abrí Cortina Sala Curtain');
+    expect(mockSceneExecution.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actions: [{ deviceId: 'cover-sala', command: { name: 'open', params: {} } }]
+      }),
+      expect.objectContaining({ sourceId: 'assistant', sourceType: 'manual' })
+    );
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
 
   it('normalizes separated wake phrase before fast path execution', async () => {
@@ -216,11 +242,13 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     });
 
     it('bypasses shadow for "qué luces están apagadas" (State Query)', async () => {
-      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: false } });
+      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'switch', lastKnownState: { state: 'off' } });
       mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
       
-      await service.converse({ prompt: 'qué luces están apagadas', userId: 'u1' }, 'es');
+      const response = await service.converse({ prompt: 'qué luces están apagadas', userId: 'u1' }, 'es');
       
+      expect(response.message).toContain('Luz Cocina');
+      expect(response.message).not.toContain('No hay luces apagadas');
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 

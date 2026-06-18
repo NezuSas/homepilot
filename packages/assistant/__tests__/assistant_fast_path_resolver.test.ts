@@ -9,6 +9,7 @@ describe('AssistantFastPathResolver', () => {
     { id: 'd2', name: 'Luz Sala', type: 'light', roomId: 'r2' } as Device,
     { id: 'd3', name: 'Luz Pasillo', type: 'light', roomId: 'r3' } as Device,
     { id: 'd4', name: 'Ventilador', type: 'switch', roomId: 'r4' } as Device,
+    { id: 'd5', name: 'Cortina Sala Curtain', type: 'cover', roomId: 'r2' } as Device,
   ];
 
   it('resolves exact match "prende luz cocina"', () => {
@@ -95,6 +96,26 @@ describe('AssistantFastPathResolver', () => {
       deviceName: 'Kitchen Light',
       command: 'turn_on',
       confidence: 1.0
+    });
+  });
+
+  it('resolves opening the living room curtain to the cover open command', () => {
+    const result = resolver.resolve('abre la cortina de la sala', mockDevices);
+    expect(result).toEqual({
+      deviceId: 'd5',
+      deviceName: 'Cortina Sala Curtain',
+      command: 'open',
+      confidence: 0.92
+    });
+  });
+
+  it('resolves closing the living room curtain to the cover close command', () => {
+    const result = resolver.resolve('cierra la cortina de la sala', mockDevices);
+    expect(result).toEqual({
+      deviceId: 'd5',
+      deviceName: 'Cortina Sala Curtain',
+      command: 'close',
+      confidence: 0.92
     });
   });
 

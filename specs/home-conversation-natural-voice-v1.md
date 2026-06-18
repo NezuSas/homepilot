@@ -50,10 +50,10 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El activador local debe reconocer `HomePilot`/`oye HomePilot` y variantes fonéticas en español como `ok jompailot`, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
 - Todas las superficies de voz y texto deben consumir un único catálogo canónico de activadores. Una variante aceptada para despertar, interrumpir o silenciar también debe eliminarse del comando antes de resolver cualquier acción o conversación; no puede haber listas divergentes entre frontend, fast path y conversación backend.
 - El catálogo canónico debe cubrir de forma uniforme `HomePilot`, `Home Pilot`, los prefijos conversacionales `ok`, `oye`, `hey` y `hola`, y las variantes fonéticas soportadas (`pome pilot`, `pome pilote`, `jompailot`, `hombalot`, `han pilot`, `hombilot`, `hambailot`, `hambailo`, `compa y lot`, `jom pailot`, `hom pailot`, `jon pailot`, `home pailot`, `hom pilot`, `jom pilot`, `jon pilot`, `on pilot`, `om pilot`).
-- La escucha pasiva del activador debe cerrar la muestra tras aproximadamente 900 ms de silencio para reducir el tiempo hasta la confirmación sonora, mientras la captura posterior de una orden conserva el margen extendido de silencio para frases naturales.
+- La escucha pasiva debe priorizar la confirmación inmediata: después de detectar voz, debe cerrar la muestra del activador tras aproximadamente 350 ms de silencio, sin aplicar ese umbral corto a la captura posterior de la orden.
 - Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
 - Si el activador global abre la vista de conversación con una orden pendiente, la respuesta debe habilitar lectura por voz antes de enviar el prompt.
-- La captura global debe tolerar aproximadamente un segundo adicional de silencio final para evitar cortar frases habladas con pausas naturales.
+- La captura global de la orden debe tolerar 2 segundos continuos de silencio final para evitar cortar frases habladas con pausas naturales.
 - Si el activador global se usa desde otra pantalla, HomePilot no debe forzar navegación al chat; debe procesar la orden en segundo plano, mostrar una respuesta discreta y reproducir voz si el navegador lo permite.
 - Frases con activador fonético o separado, como `ok jompailot apaga la luz de la sala` u `ok home pilot apaga el territorio`, deben normalizar el prefijo antes de evaluar la intención.
 - Comandos de control con verbo claro pero destino inexistente deben responder por ruta determinística rápida, sin esperar interpretación pesada.
@@ -69,6 +69,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La grabación manual y la escucha global usan la misma implementación base para soporte de `MediaRecorder`, selección de MIME y conversión base64.
 - El activador global muestra un indicador no intrusivo cuando está escuchando, capturando, transcribiendo o respondiendo.
 - Cuando se reconoce cualquier variante canónica del activador y HomePilot comienza a capturar una orden, la consola debe reproducir una confirmación sonora local breve. El sonido también debe emitirse al interrumpir una respuesta para iniciar una nueva captura, sin depender de red ni de TTS.
+- La confirmación sonora debe reproducirse inmediatamente después de que Whisper reconozca el activador, antes de iniciar la captura de la orden.
 - Tras la confirmación sonora, si el usuario no comienza una orden en 2 segundos, HomePilot vuelve a la escucha pasiva sin encadenar capturas vacías.
 - Una vez iniciada la orden, HomePilot espera pausas naturales y finaliza la captura después de 2 segundos continuos de silencio.
 - Si una orden hablada no obtiene respuesta en 5 segundos, la UI cancela esa espera y comunica de inmediato que no pudo entender o procesar la solicitud.
@@ -91,6 +92,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
+- Órdenes como `abre la cortina de la sala` y `cierra la cortina de la sala` deben resolverse por ruta determinística hacia los comandos `open` y `close`; nunca deben degradarse a `turn_on` o `turn_off`.
+- Las consultas `qué luces están apagadas` deben incluir dispositivos HA de tipo `switch` cuyo nombre indique explícitamente que son luces cuando no exista una clasificación semántica manual; una clasificación manual distinta de `light` siempre prevalece.
 - El endpoint TTS acepta respuestas residenciales extensas, incluida la guía completa de capacidades, sin devolver `VALIDATION_ERROR` por el límite anterior de 1200 caracteres.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-sharvard-medium` por defecto, configurable por `PIPER_VOICE_ES`.
 - El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.

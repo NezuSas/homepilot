@@ -77,7 +77,10 @@ export class AssistantFastPathResolver {
     'focos': 'luz',
   };
 
-  private readonly GENERIC_TARGETS = new Set(['device', 'dispositivo', 'interruptor', 'light', 'luz', 'switch']);
+  private readonly GENERIC_TARGETS = new Set([
+    'blind', 'cortina', 'curtain', 'cover', 'device', 'dispositivo', 'interruptor',
+    'light', 'luz', 'persiana', 'switch'
+  ]);
   private readonly BULK_TERMS = new Set(['all', 'everything', 'todo', 'todos', 'todas']);
   private readonly MANAGEMENT_TERMS = new Set(['automation', 'automatizacion', 'automatizaciones', 'escena', 'escenas', 'routine', 'rutina', 'rutinas', 'scene', 'scenes']);
   private readonly EXCLUSION_TERMS = new Set(['except', 'excepto', 'menos']);
@@ -86,10 +89,14 @@ export class AssistantFastPathResolver {
   private readonly TURN_ON_PHRASES = ['prende', 'prender', 'prendes', 'enciende', 'encender', 'enciendes', 'activa', 'activar', 'activas', 'turn on', 'switch on'];
   private readonly TURN_OFF_PHRASES = ['apaga', 'apagar', 'apagas', 'desactiva', 'desactivar', 'desactivas', 'turn off', 'switch off'];
   private readonly TOGGLE_PHRASES = ['alterna', 'alternar', 'alternas', 'toggle'];
+  private readonly OPEN_PHRASES = ['abre', 'abrir', 'abres', 'open'];
+  private readonly CLOSE_PHRASES = ['cierra', 'cerrar', 'cierras', 'close'];
   private readonly COMMAND_PHRASES: Array<{ command: DeviceCommandV1; phrase: string }> = [
     ...this.TURN_ON_PHRASES.map(phrase => ({ command: 'turn_on' as const, phrase })),
     ...this.TURN_OFF_PHRASES.map(phrase => ({ command: 'turn_off' as const, phrase })),
     ...this.TOGGLE_PHRASES.map(phrase => ({ command: 'toggle' as const, phrase })),
+    ...this.OPEN_PHRASES.map(phrase => ({ command: 'open' as const, phrase })),
+    ...this.CLOSE_PHRASES.map(phrase => ({ command: 'close' as const, phrase })),
   ].sort((a, b) => b.phrase.split(/\s+/).length - a.phrase.split(/\s+/).length);
 
   private normalizeText(text: string): string {

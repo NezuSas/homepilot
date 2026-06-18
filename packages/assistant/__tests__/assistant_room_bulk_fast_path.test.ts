@@ -166,11 +166,12 @@ describe('Assistant Room Bulk Fast-Path', () => {
     expect(res.message).toContain('Master Bedroom');
   });
 
-  it('filters devices by type correctly (strict classification)', async () => {
+  it('includes automatic HA switches with explicit light names and excludes unrelated switches', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
     const devices = [
-      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }), // Should be excluded from 'luces' bulk
-      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1' })     // Type match
+      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }),
+      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1' }),
+      createTestDevice({ id: 's1', name: 'Ventilador', type: 'switch', roomId: 'r1' })
     ];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
@@ -180,8 +181,10 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga luces de la sala', userId: 'u1' }, 'es');
 
-    // Only 1 device (the 'light' one) should be found when asking for 'luces'
-    expect(res.message).toContain('Encontré 1 luces');
+    expect(res.message).toContain('Encontré 2 luces');
+    const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
+    expect(saveCall.pendingBulkAction.deviceIds).toEqual(expect.arrayContaining(['l1', 'l2']));
+    expect(saveCall.pendingBulkAction.deviceIds).not.toContain('s1');
   });
 
   it('includes both devices when using "todo" in the room', async () => {

@@ -6,8 +6,9 @@ import { playWakeAcknowledgementSound } from '../lib/wakeAcknowledgementSound';
 import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
 const MAX_WAKE_RECORDING_MS = 9000;
-const MIN_WAKE_RECORDING_MS = 900;
-const STOP_WAKE_DETECTION_AFTER_SILENCE_MS = 900;
+const MIN_WAKE_DETECTION_RECORDING_MS = 350;
+const MIN_COMMAND_RECORDING_MS = 900;
+const STOP_WAKE_DETECTION_AFTER_SILENCE_MS = 350;
 const START_COMMAND_CAPTURE_TIMEOUT_MS = 2000;
 const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 2000;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
@@ -126,6 +127,9 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       const volume = Math.sqrt(sum / samples.length);
       const now = Date.now();
       const elapsed = now - recordingStartedAtRef.current;
+      const minimumRecordingMs = captureCommand
+        ? MIN_COMMAND_RECORDING_MS
+        : MIN_WAKE_DETECTION_RECORDING_MS;
 
       if (volume >= WAKE_SPEECH_LEVEL_THRESHOLD) {
         speechDetectedRef.current = true;
@@ -133,7 +137,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       } else if (captureCommand && !speechDetectedRef.current && elapsed >= START_COMMAND_CAPTURE_TIMEOUT_MS) {
         stopRecording();
         return;
-      } else if (speechDetectedRef.current && elapsed >= MIN_WAKE_RECORDING_MS) {
+      } else if (speechDetectedRef.current && elapsed >= minimumRecordingMs) {
         silenceStartedAtRef.current ??= now;
         const silenceTimeout = captureCommand
           ? STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS

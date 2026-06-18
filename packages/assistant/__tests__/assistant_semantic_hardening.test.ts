@@ -332,6 +332,41 @@ describe('Assistant Semantic Hardening', () => {
   });
 
   describe('Semantic Type Classification (Fix 1)', () => {
+    it('automatic HA switch named as a light is included in light state queries', async () => {
+      const haLight = createTestDevice({
+        id: 'ha-sw-light',
+        name: 'Luz Sala',
+        type: 'switch',
+        semanticType: null,
+        lastKnownState: { state: 'off' }
+      });
+      mockDeviceRepo.findAll.mockResolvedValue([haLight]);
+      mockRoomRepo.findAll.mockResolvedValue([]);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const res = await service.converse({ prompt: 'qué luces están apagadas', userId: 'u1' }, 'es');
+
+      expect(res.message).toContain('Luz Sala');
+      expect(res.message).not.toContain('No hay luces apagadas');
+    });
+
+    it('manual switch classification overrides a light-like device name', async () => {
+      const explicitSwitch = createTestDevice({
+        id: 'ha-sw-explicit',
+        name: 'Luz Decorativa',
+        type: 'switch',
+        semanticType: 'switch',
+        lastKnownState: { state: 'off' }
+      });
+      mockDeviceRepo.findAll.mockResolvedValue([explicitSwitch]);
+      mockRoomRepo.findAll.mockResolvedValue([]);
+      mockMemory.getAliases.mockResolvedValue({});
+
+      const res = await service.converse({ prompt: 'qué luces están apagadas', userId: 'u1' }, 'es');
+
+      expect(res.message).not.toContain('Luz Decorativa');
+    });
+
     it('switch device with semanticType=light is included in "apaga todas las luces"', async () => {
       // HA may report a physical light as type: 'switch'. semanticType overrides.
       const haLight = createTestDevice({
