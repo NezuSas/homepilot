@@ -89,6 +89,37 @@ describe('HomeAssistantDeviceDriver', () => {
     expect(result.newState?.state).toBe('closed');
   });
 
+  it('should translate semantic cover commands once when state is inverted', async () => {
+    const invertedCover = { ...mockCoverDevice, invertState: true };
+
+    const openResult = await driver.executeCommand(
+      invertedCover,
+      { name: 'open' },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+    const closeResult = await driver.executeCommand(
+      invertedCover,
+      { name: 'close' },
+      { userId: 'u1', correlationId: 'c2' }
+    );
+
+    expect(mockClient.callService).toHaveBeenNthCalledWith(1, 'cover', 'close_cover', 'cover.test', undefined);
+    expect(mockClient.callService).toHaveBeenNthCalledWith(2, 'cover', 'open_cover', 'cover.test', undefined);
+    expect(openResult.newState).toMatchObject({ state: 'closed', current_position: 0 });
+    expect(closeResult.newState).toMatchObject({ state: 'open', current_position: 100 });
+  });
+
+  it('should invert cover position only at the Home Assistant boundary', async () => {
+    const result = await driver.executeCommand(
+      { ...mockCoverDevice, invertState: true },
+      { name: 'set_position', params: { position: 25 } },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(mockClient.callService).toHaveBeenCalledWith('cover', 'set_cover_position', 'cover.test', { position: 75 });
+    expect(result.newState).toMatchObject({ state: 'open', current_position: 75, position: 75 });
+  });
+
   it('should reject set_position without position param', async () => {
     const result = await driver.executeCommand(
       mockCoverDevice,

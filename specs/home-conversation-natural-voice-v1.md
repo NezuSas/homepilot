@@ -93,6 +93,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
 - Órdenes como `abre la cortina de la sala` y `cierra la cortina de la sala` deben resolverse por ruta determinística hacia los comandos `open` y `close`; nunca deben degradarse a `turn_on` o `turn_off`.
+- Si `la cortina` identifica un único dispositivo `cover` disponible, `abre la cortina` y `cierra la cortina` deben resolverse por la misma ruta determinística; si hay más de uno disponible, el asistente debe pedir contexto en vez de elegir uno.
+- `open`, `close` y `set_position` representan siempre la intención funcional del usuario. Para dispositivos Home Assistant con `invertState`, la inversión del servicio y de la posición debe aplicarse una sola vez en el driver, de forma uniforme para UI, asistente, escenas y automatizaciones.
 - Las consultas `qué luces están apagadas` deben incluir dispositivos HA de tipo `switch` cuyo nombre indique explícitamente que son luces cuando no exista una clasificación semántica manual; una clasificación manual distinta de `light` siempre prevalece.
 - El endpoint TTS acepta respuestas residenciales extensas, incluida la guía completa de capacidades, sin devolver `VALIDATION_ERROR` por el límite anterior de 1200 caracteres.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-sharvard-medium` por defecto, configurable por `PIPER_VOICE_ES`.

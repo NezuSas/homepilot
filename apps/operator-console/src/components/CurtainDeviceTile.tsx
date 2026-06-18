@@ -122,11 +122,8 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const canStop = !!onCommand && canExecuteCommand(device, 'stop');
   const canSetPosition = !!onCommand && canExecuteCommand(device, 'set_position');
   const desiredCoverCommand = isOpen ? 'close' : 'open';
-  const executableCoverCommand = device.invertState
-    ? (desiredCoverCommand === 'open' ? 'close' : 'open')
-    : desiredCoverCommand;
-  const canExecutePrimary = executableCoverCommand === 'open' ? canOpen : canClose;
-  const primaryCoverCommand = canExecutePrimary ? executableCoverCommand : null;
+  const canExecutePrimary = desiredCoverCommand === 'open' ? canOpen : canClose;
+  const primaryCoverCommand = canExecutePrimary ? desiredCoverCommand : null;
   const primaryCoverLabel = t(`common.actions.${desiredCoverCommand}`);
 
   return (
@@ -231,7 +228,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
           {canSetPosition && (
             <CoverPositionControl 
               initialPosition={position}
-              onPositionChange={(nextPosition) => handlePositionChange(device.invertState ? 100 - nextPosition : nextPosition)}
+              onPositionChange={handlePositionChange}
               disabled={!!isProcessing}
               ariaLabel={t('common.cover.position', { defaultValue: 'Posición de cortina' })}
             />

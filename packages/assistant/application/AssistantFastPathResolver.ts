@@ -199,7 +199,28 @@ export class AssistantFastPathResolver {
     if (concreteTokens.length === 0) return skip('memory_reference_target');
     
     const cleanedTarget = this.cleanTypos(concreteTokens.join(' '));
-    if (this.GENERIC_TARGETS.has(cleanedTarget)) return skip('generic_target_without_context');
+    if (this.GENERIC_TARGETS.has(cleanedTarget)) {
+      const availableMatches = devices.filter(device => {
+        const state = device.lastKnownState?.state;
+        if (state === 'unavailable') return false;
+
+        const type = device.type.toLowerCase();
+        if (['blind', 'cortina', 'curtain', 'cover', 'persiana'].includes(cleanedTarget)) {
+          return type === 'cover' && ['open', 'close'].includes(commandMatch.command);
+        }
+        return false;
+      });
+
+      if (availableMatches.length !== 1) return skip('generic_target_without_unique_available_device');
+
+      const device = availableMatches[0];
+      return {
+        deviceId: device.id,
+        deviceName: device.name,
+        command: commandMatch.command,
+        confidence: 1.0
+      };
+    }
 
     // 3. Score devices
     const scoredDevices = devices.map(device => {

@@ -201,7 +201,7 @@ useEffect(() => {
     const executableCommands = devicesToTurnOff
       .map((device) => {
         if (hasCapability(device, 'cover')) {
-          const command = device.invertState ? 'open' : 'close';
+          const command = 'close';
           return canExecuteCommand(device, command) ? { deviceId: device.id, command } : null;
         }
 

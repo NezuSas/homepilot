@@ -42,33 +42,43 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     let data: Record<string, unknown> | undefined = undefined;
 
     const cmdName = command.name;
+    let dispatchedCommand = cmdName;
+    let dispatchedParams = command.params;
 
-    if (cmdName === 'turn_on') service = 'turn_on';
-    else if (cmdName === 'turn_off') service = 'turn_off';
-    else if (cmdName === 'toggle') service = 'toggle';
-    else if (cmdName === 'open' && haDomain === 'cover') {
+    if (haDomain === 'cover' && device.invertState) {
+      if (cmdName === 'open') dispatchedCommand = 'close';
+      else if (cmdName === 'close') dispatchedCommand = 'open';
+      else if (cmdName === 'set_position' && typeof command.params?.position === 'number') {
+        dispatchedParams = { ...command.params, position: 100 - command.params.position };
+      }
+    }
+
+    if (dispatchedCommand === 'turn_on') service = 'turn_on';
+    else if (dispatchedCommand === 'turn_off') service = 'turn_off';
+    else if (dispatchedCommand === 'toggle') service = 'toggle';
+    else if (dispatchedCommand === 'open' && haDomain === 'cover') {
       domain = 'cover';
       service = 'open_cover';
-    } else if (cmdName === 'close' && haDomain === 'cover') {
+    } else if (dispatchedCommand === 'close' && haDomain === 'cover') {
       domain = 'cover';
       service = 'close_cover';
-    } else if (cmdName === 'stop' && haDomain === 'cover') {
+    } else if (dispatchedCommand === 'stop' && haDomain === 'cover') {
       domain = 'cover';
       service = 'stop_cover';
-    } else if (cmdName === 'set_position' && haDomain === 'cover') {
-      const position = command.params?.position;
+    } else if (dispatchedCommand === 'set_position' && haDomain === 'cover') {
+      const requestedPosition = command.params?.position;
       
       // Validación estricta de parámetros
-      if (position === undefined || position === null) {
+      if (requestedPosition === undefined || requestedPosition === null) {
         return { success: false, error: 'Parámetro position es requerido para set_position' };
       }
-      if (typeof position !== 'number' || position < 0 || position > 100) {
+      if (typeof requestedPosition !== 'number' || requestedPosition < 0 || requestedPosition > 100) {
         return { success: false, error: 'Parámetro position debe ser un número entre 0 y 100' };
       }
 
       domain = 'cover';
       service = 'set_cover_position';
-      data = { position };
+      data = { position: dispatchedParams?.position };
     }
 
     if (!service) {
@@ -87,7 +97,7 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       }
 
       // Cálculo de estado optimista
-      const newState = this.calculateOptimisticState(device, cmdName, command.params);
+      const newState = this.calculateOptimisticState(device, dispatchedCommand, dispatchedParams);
 
       return {
         success: true,
@@ -132,6 +142,14 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       } else {
         newState.state = 'open';
       }
+    } else if (command === 'open') {
+      newState.state = 'open';
+      newState.current_position = 100;
+      newState.position = 100;
+    } else if (command === 'close') {
+      newState.state = 'closed';
+      newState.current_position = 0;
+      newState.position = 0;
     }
 
     return newState;

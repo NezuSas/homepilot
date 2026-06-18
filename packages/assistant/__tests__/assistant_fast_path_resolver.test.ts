@@ -119,6 +119,29 @@ describe('AssistantFastPathResolver', () => {
     });
   });
 
+  it('resolves a generic curtain command when exactly one cover is available', () => {
+    const result = resolver.resolve('cierra la cortina', [
+      ...mockDevices,
+      { ...mockDevices[4], id: 'd6', name: 'Cortina Master', roomId: 'r1', lastKnownState: { state: 'unavailable' } }
+    ]);
+
+    expect(result).toEqual({
+      deviceId: 'd5',
+      deviceName: 'Cortina Sala Curtain',
+      command: 'close',
+      confidence: 1.0
+    });
+  });
+
+  it('keeps a generic curtain command unresolved when multiple covers are available', () => {
+    const result = resolver.resolve('abre la cortina', [
+      ...mockDevices,
+      { ...mockDevices[4], id: 'd6', name: 'Cortina Master', roomId: 'r1', lastKnownState: { state: 'closed' } }
+    ]);
+
+    expect(result).toBeNull();
+  });
+
   it('returns null for ambiguous target "enciende luz"', () => {
     const result = resolver.resolve('enciende luz', mockDevices);
     expect(result).toBeNull();
