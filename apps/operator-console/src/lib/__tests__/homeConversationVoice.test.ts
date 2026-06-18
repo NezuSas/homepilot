@@ -17,6 +17,27 @@ describe('homeConversationVoice', () => {
     });
   });
 
+  it.each([
+    '¡Hombalot! ¿Qué hora es?',
+    '¡Han Pilot! ¿Qué hora es?',
+    '¡HOMBILOT! ¿Qué hora es?',
+    '¡Hambailot! ¿Qué hora es?',
+    '¡Hambailo! ¿Qué hora es?',
+    '¡Compa y lot! ¿Qué hora es?'
+  ])('accepts observed Whisper wake transcription "%s"', transcript => {
+    expect(extractWakeCommand(transcript)).toEqual({
+      activated: true,
+      command: 'que hora es'
+    });
+  });
+
+  it.each([
+    '¡Suscríbete!',
+    '¿O qué dijo un pilot? ¿Qué hora es?'
+  ])('rejects unrelated Whisper transcription "%s"', transcript => {
+    expect(extractWakeCommand(transcript)).toEqual({ activated: false, command: '' });
+  });
+
   it('accepts accented wellness prompts after wake word extraction', () => {
     const wake = extractWakeCommand('ok jompailot, cómo estás');
 

@@ -7,7 +7,8 @@ import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
 const MAX_WAKE_RECORDING_MS = 9000;
 const MIN_WAKE_RECORDING_MS = 900;
-const STOP_WAKE_AFTER_SILENCE_MS = 1900;
+const STOP_WAKE_DETECTION_AFTER_SILENCE_MS = 900;
+const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 1900;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 
 interface GlobalWakeListenerProps {
@@ -98,7 +99,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     }, delayMs);
   };
 
-  const startSilenceDetection = (stream: MediaStream) => {
+  const startSilenceDetection = (stream: MediaStream, captureCommand: boolean) => {
     stopSilenceDetection();
 
     const browserWindow = window as Window & { webkitAudioContext?: typeof AudioContext };
@@ -130,7 +131,10 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         silenceStartedAtRef.current = null;
       } else if (speechDetectedRef.current && elapsed >= MIN_WAKE_RECORDING_MS) {
         silenceStartedAtRef.current ??= now;
-        if (now - silenceStartedAtRef.current >= STOP_WAKE_AFTER_SILENCE_MS) {
+        const silenceTimeout = captureCommand
+          ? STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS
+          : STOP_WAKE_DETECTION_AFTER_SILENCE_MS;
+        if (now - silenceStartedAtRef.current >= silenceTimeout) {
           stopRecording();
           return;
         }
@@ -269,7 +273,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       recordingStartedAtRef.current = Date.now();
       silenceStartedAtRef.current = null;
       recorder.start();
-      startSilenceDetection(stream);
+      startSilenceDetection(stream, captureCommand);
       recordingTimeoutRef.current = window.setTimeout(() => stopRecording(), MAX_WAKE_RECORDING_MS);
     } catch {
       isRecordingRef.current = false;
