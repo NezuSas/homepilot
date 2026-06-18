@@ -27,6 +27,7 @@ import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
 import { AssistantQuickResponseService } from './AssistantQuickResponseService';
 import { extractHomePilotWakeCommand } from '../../shared/domain/homePilotWakePhrases';
+import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -354,6 +355,9 @@ export class AssistantConversationService {
       if (isIntent(pronounIntent)) return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
     }
 
+    // Date and time questions must be resolved before generic alias syntax such as "X es Y".
+    if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
+
     // --- 3. ALIAS MANAGEMENT ---
     if (this.isAliasListQuery(normalized)) return await this.handleAliasList(userId, language);
     const meaningAlias = this.extractAliasMeaningQuery(normalized);
@@ -387,12 +391,14 @@ export class AssistantConversationService {
     if (deviceAliasFastPath) return deviceAliasFastPath;
 
     // --- DETERMINISTIC GENERAL ROUTES ---
+    if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language);
+    if (this.isRecentActivityQuery(normalized)) return await this.handleRecentActivity(language);
+    if (this.isConversationContextQuery(normalized)) return this.handleConversationContext(memory, language);
     if (this.isGreeting(normalized)) return AssistantQuickResponseService.format('greeting', language, userName);
     if (this.isWellnessQuery(normalized)) return AssistantQuickResponseService.format('wellness', language, userName);
     if (this.isNameQuery(normalized)) return AssistantQuickResponseService.format('name', language, userName);
     if (this.isCompanyQuery(normalized)) return this.handleCompanyInfoQuery(language);
     if (this.isHelpQuery(normalized) || this.isPresentation(normalized) || this.isScopeQuery(normalized)) return await this.handleCapabilitiesGuide(userId, language);
-    if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
 
     // --- 8. CONTEXT ROOM FAST-PATH ---
     const contextRoomFastPath = await this.attemptContextRoomFastPathExecution(activePrompt, request.sourceRoomId, userId, userName, language, aliases);
@@ -1908,10 +1914,101 @@ export class AssistantConversationService {
 
   private isDateTimeQuery(normalized: string): boolean {
     const triggers = [
-      "qué fecha es hoy", "que fecha es hoy", "qué hora es", "que hora es",
-      "what date is today", "what time is it"
+      "que fecha es hoy", "cual es la fecha", "dime la fecha", "que dia es hoy", "en que dia estamos",
+      "que hora es", "dime la hora", "me dices la hora", "puedes decirme la hora", "tienes la hora",
+      "es de manana", "estamos en la manana", "es de tarde", "estamos en la tarde",
+      "ya es de noche", "es de noche", "estamos en la noche", "es de madrugada",
+      "what date is today", "what day is it", "what time is it", "tell me the time"
     ];
     return triggers.some(t => normalized.includes(t));
+  }
+
+  private isHomeSummaryQuery(normalized: string): boolean {
+    return [
+      'como esta la casa',
+      'esta todo bien',
+      'esta el sistema estable',
+      'dame un resumen de la casa',
+      'resumen de la casa',
+      'estado general de la casa'
+    ].some(trigger => normalized.includes(trigger));
+  }
+
+  private async handleHomeSummary(language: string): Promise<AssistantConversationResponse> {
+    const devices = await this.deviceRepository.findAll();
+    const active = devices.filter(device => device.lastKnownState?.on === true || device.lastKnownState?.state === 'on').length;
+    const unavailable = devices.filter(device => !this.isDeviceAvailable(device)).length;
+
+    if (language === 'en') {
+      return {
+        type: 'answer',
+        message: devices.length === 0
+          ? 'The residence is stable, but no devices are registered yet.'
+          : `The residence is stable. ${active} of ${devices.length} devices are active${unavailable > 0 ? `, and ${unavailable} require attention` : ', with none requiring attention'}.`
+      };
+    }
+
+    return {
+      type: 'answer',
+      message: devices.length === 0
+        ? 'La casa está estable, aunque todavía no hay dispositivos registrados.'
+        : `La casa está estable. Hay ${active} de ${devices.length} dispositivos activos${unavailable > 0 ? ` y ${unavailable} requieren atención` : ' y ninguno requiere atención'}.`
+    };
+  }
+
+  private isRecentActivityQuery(normalized: string): boolean {
+    return [
+      'que cambio recientemente',
+      'cuando se ejecuto por ultima vez',
+      'que acciones automaticas se ejecutaron hoy'
+    ].some(trigger => normalized.includes(trigger));
+  }
+
+  private async handleRecentActivity(language: string): Promise<AssistantConversationResponse> {
+    const records = await this.executionRecordRepository.findRecent(5);
+    if (records.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? 'There are no recent residential executions to report.'
+          : 'No tengo ejecuciones residenciales recientes que reportar.'
+      };
+    }
+
+    const latest = records[0];
+    const description = latest.summary || `${latest.sourceType} ${latest.sourceId}`;
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? `The latest execution was ${description}, with status ${latest.status}.`
+        : `La ejecución más reciente fue ${description}, con estado ${latest.status}.`
+    };
+  }
+
+  private isConversationContextQuery(normalized: string): boolean {
+    return [
+      'que fue lo ultimo que te pedi',
+      'repite tu ultima respuesta',
+      'repetir tu ultima respuesta'
+    ].some(trigger => normalized.includes(trigger));
+  }
+
+  private handleConversationContext(memory: AssistantMemoryState | null, language: string): AssistantConversationResponse {
+    if (memory?.originalPrompt) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `Your previous request was: ${memory.originalPrompt}.`
+          : `Tu solicitud anterior fue: ${memory.originalPrompt}.`
+      };
+    }
+
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? 'I do not have a previous request available in this conversation.'
+        : 'No tengo una solicitud anterior disponible en esta conversación.'
+    };
   }
 
   private async handleRoomSelectionForLight(roomId: string, command: DeviceCommandV1, userId: string, language: string, originalPrompt: string, correlationId: string): Promise<AssistantConversationResponse> {
@@ -2005,10 +2102,27 @@ export class AssistantConversationService {
     });
 
     let message = "";
-    if (prompt.includes('fecha') || prompt.includes('date')) {
+    if (prompt.includes('fecha') || prompt.includes(' dia ') || prompt.startsWith('que dia') || prompt.includes(' day ') || prompt.includes('date')) {
       message = language === 'en' ? `Today is ${dateStr}. Residential schedule remains available.` : `Hoy es ${dateStr}. La agenda residencial queda disponible.`;
+    } else if (language === 'es' && (prompt.includes('manana') || prompt.includes('tarde') || prompt.includes('noche') || prompt.includes('madrugada'))) {
+      const hourPart = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', hourCycle: 'h23', timeZone })
+        .formatToParts(now)
+        .find(part => part.type === 'hour')?.value;
+      const currentPeriod = getSpanishDayPeriod(Number(hourPart ?? 0));
+      const requestedPeriod = prompt.includes('madrugada')
+        ? 'madrugada'
+        : prompt.includes('manana')
+          ? 'mañana'
+          : prompt.includes('tarde')
+            ? 'tarde'
+            : 'noche';
+      message = currentPeriod === requestedPeriod
+        ? `Sí. Es de ${currentPeriod}. ${formatNaturalSpanishTime(now, timeZone)}.`
+        : `No. En este momento es de ${currentPeriod}. ${formatNaturalSpanishTime(now, timeZone)}.`;
     } else {
-      message = language === 'en' ? `It is ${timeStr}. Home systems remain attentive.` : `Son las ${timeStr}. La casa permanece atenta.`;
+      message = language === 'en'
+        ? `It is ${timeStr}. Home systems remain attentive.`
+        : `${formatNaturalSpanishTime(now, timeZone)}. La casa permanece atenta.`;
     }
 
     return {
@@ -2028,6 +2142,7 @@ export class AssistantConversationService {
   private isWellnessQuery(normalized: string): boolean {
     const triggers = [
       "como estas", "como stas", "comoe stas", "como te va", "que tal", "q tal", "todo bien", "que tal todo",
+      "estas funcionando correctamente", "funcionas correctamente", "estas listo", "estas lista", "estas ahi", "me escuchas",
       "how are you", "how's it going", "hows it going", "are you ok", "how are u"
     ];
     return triggers.some(t => normalized === t || normalized.startsWith(t + " "));
@@ -2207,7 +2322,8 @@ export class AssistantConversationService {
 
     const triggers = [
       'prende', 'apaga', 'enciende', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'toggle', 'turn on', 'turn off', 'open', 'close',
-      'encendido', 'apagado', 'prendido', 'on', 'off', 'luz', 'luces', 'light', 'lights', 'dispositivos', 'estado',
+      'deten', 'detener', 'deja', 'posicion', 'por ciento',
+      'encendido', 'apagado', 'prendido', 'on', 'off', 'luz', 'luces', 'light', 'lights', 'cortina', 'cortinas', 'dispositivos', 'estado', 'modo',
       'esa', 'eso', 'esas', 'esos', 'that', 'those', 'them',
       'escena', 'rutina', 'automatizacion', 'scene', 'routine', 'automation',
       'cuando diga', 'llama a', 'when i say',

@@ -1,19 +1,32 @@
 const HOME_PILOT_WAKE_NAMES = [
   'homepilot',
   'home pilot',
+  'home pylot',
+  'home paylot',
   'jompailot',
+  'jompilot',
   'jom pailot',
+  'jom paylot',
   'hom pailot',
   'jon pailot',
+  'jonpailot',
+  'jonpilot',
   'home pailot',
   'hom pilot',
+  'hompilot',
   'jom pilot',
   'jon pilot',
+  'on pailot',
+  'onpailot',
+  'onpilot',
   'on pilot',
+  'om pailot',
+  'ompailot',
+  'ompilot',
   'om pilot'
 ] as const;
 
-const HOME_PILOT_WAKE_PREFIXES = ['ok', 'oye', 'hey', 'hola'] as const;
+const HOME_PILOT_WAKE_PREFIXES = ['ok', 'okay', 'okey', 'oye', 'hey', 'ei', 'hola'] as const;
 
 export const HOME_PILOT_WAKE_PHRASES: readonly string[] = [
   ...HOME_PILOT_WAKE_PREFIXES.flatMap(prefix =>

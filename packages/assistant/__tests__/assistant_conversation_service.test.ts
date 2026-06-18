@@ -31,6 +31,7 @@ import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmall
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import type { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
 import { FollowUpResolverPort } from '../application/ports/FollowUpResolverPort';
+import { SUPPORTED_HOME_CONVERSATION_PROMPTS } from './fixtures/supportedHomeConversationPrompts';
 
 describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
@@ -45,6 +46,10 @@ describe('AssistantConversationService', () => {
   let mockSmallTalk: jest.Mocked<AssistantSmallTalkPort>;
   let mockMemory: jest.Mocked<AssistantMemoryPort>;
   let mockFollowUp: jest.Mocked<FollowUpResolverPort>;
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
@@ -243,10 +248,11 @@ describe('AssistantConversationService', () => {
 
   describe('Date and Time', () => {
     it('should respond to "qué hora es" with current time', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-17T14:45:00.000Z'));
       const response = await service.converse({ prompt: 'qué hora es' }, 'es');
       
       expect(response.type).toBe('answer');
-      expect(response.message).toMatch(/Son las \d{2}:\d{2}/);
+      expect(response.message).toContain('Son las nueve y cuarenta y cinco de la mañana');
       expect(response.message).toContain('La casa permanece atenta');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
@@ -263,6 +269,33 @@ describe('AssistantConversationService', () => {
       
       expect(response.type).toBe('answer');
       expect(response.message).toMatch(/It is \d{2}:\d{2}/);
+    });
+
+    it('should answer natural day and day-period questions', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-17T14:45:00.000Z'));
+
+      const day = await service.converse({ prompt: 'Jompailot, qué día es hoy' }, 'es');
+      const morning = await service.converse({ prompt: 'Jompailot, estamos en la mañana' }, 'es');
+      const night = await service.converse({ prompt: 'Jompailot, ya es de noche' }, 'es');
+
+      expect(day.message).toContain('Hoy es miércoles, 17 de junio de 2026');
+      expect(morning.message).toContain('Sí. Es de mañana');
+      expect(night.message).toContain('No. En este momento es de mañana');
+    });
+  });
+
+  describe('Supported residential conversation matrix', () => {
+    it('keeps at least 100 unique supported prompts', () => {
+      expect(SUPPORTED_HOME_CONVERSATION_PROMPTS).toHaveLength(100);
+      expect(new Set(SUPPORTED_HOME_CONVERSATION_PROMPTS).size).toBe(100);
+    });
+
+    it.each(SUPPORTED_HOME_CONVERSATION_PROMPTS)('returns a usable answer for "%s"', async prompt => {
+      const response = await service.converse({ prompt }, 'es');
+
+      expect(response.message.trim().length).toBeGreaterThan(0);
+      expect(response.message).not.toContain('No estoy seguro de lo que quieres hacer');
+      expect(response.message).not.toBe('Friendly fallback');
     });
   });
 

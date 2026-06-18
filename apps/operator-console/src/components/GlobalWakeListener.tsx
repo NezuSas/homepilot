@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { transcribeAssistantSpeech } from '../lib/assistantApi';
 import { blobToBase64, canUseLocalSpeechRecording, getPreferredAudioMimeType } from '../lib/audioRecording';
 import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
+import { playWakeAcknowledgementSound } from '../lib/wakeAcknowledgementSound';
 import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
 const MAX_WAKE_RECORDING_MS = 9000;
@@ -178,6 +179,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         const interruptionWakeResult = extractWakeCommand(spokenText);
         if (interruptionWakeResult.activated) {
           onWakeInterrupt?.();
+          void playWakeAcknowledgementSound();
 
           if (interruptionWakeResult.command && isUsableVoiceTranscript(interruptionWakeResult.command)) {
             onStatusChange?.('processing');
@@ -210,6 +212,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         scheduleWakeCycle(false);
         return;
       }
+
+      void playWakeAcknowledgementSound();
 
       if (wakeResult.command && isUsableVoiceTranscript(wakeResult.command)) {
         onStatusChange?.('processing');

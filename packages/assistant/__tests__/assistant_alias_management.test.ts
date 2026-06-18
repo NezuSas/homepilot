@@ -418,8 +418,7 @@ describe('Assistant Alias Management V1', () => {
   it('29. time query bypasses shadow and uses correct format', async () => {
     const res = await service.converse({ prompt: 'qué hora es', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
-    // Basic check for time format (Son las XX:XX)
-    expect(res.message).toMatch(/Son las \d{2}:\d{2}/);
+    expect(res.message).toMatch(/(Es la|Son las) .+ de la (madrugada|mañana|tarde|noche)/);
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
