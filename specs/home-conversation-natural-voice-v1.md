@@ -50,6 +50,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El activador local debe reconocer `HomePilot`/`oye HomePilot` y variantes fonéticas en español como `ok jompailot`, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
 - Todas las superficies de voz y texto deben consumir un único catálogo canónico de activadores. Una variante aceptada para despertar, interrumpir o silenciar también debe eliminarse del comando antes de resolver cualquier acción o conversación; no puede haber listas divergentes entre frontend, fast path y conversación backend.
 - El catálogo canónico debe cubrir de forma uniforme `HomePilot`, `Home Pilot`, los prefijos conversacionales `ok`, `oye`, `hey` y `hola`, y las variantes fonéticas soportadas (`pome pilot`, `pome pilote`, `jompailot`, `hombalot`, `han pilot`, `hombilot`, `hambailot`, `hambailo`, `compa y lot`, `jom pailot`, `hom pailot`, `jon pailot`, `home pailot`, `hom pilot`, `jom pilot`, `jon pilot`, `on pilot`, `om pilot`).
+- La detección debe aceptar variaciones fonéticas cercanas de `HomePilot` al inicio de la transcripción, con un umbral conservador que no active frases comunes ni coincidencias incrustadas dentro de una oración.
+- Whisper debe recibir vocabulario contextual configurable para favorecer `HomePilot` y sus pronunciaciones observadas cuando transcribe audio en español.
 - La escucha pasiva debe priorizar la confirmación inmediata: después de detectar voz, debe cerrar la muestra del activador tras aproximadamente 350 ms de silencio, sin aplicar ese umbral corto a la captura posterior de la orden.
 - Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
 - Si el activador global abre la vista de conversación con una orden pendiente, la respuesta debe habilitar lectura por voz antes de enviar el prompt.
@@ -70,6 +72,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El activador global muestra un indicador no intrusivo cuando está escuchando, capturando, transcribiendo o respondiendo.
 - Cuando se reconoce cualquier variante canónica del activador y HomePilot comienza a capturar una orden, la consola debe reproducir una confirmación sonora local breve. El sonido también debe emitirse al interrumpir una respuesta para iniciar una nueva captura, sin depender de red ni de TTS.
 - La confirmación sonora debe reproducirse inmediatamente después de que Whisper reconozca el activador, antes de iniciar la captura de la orden.
+- La escucha pasiva debe reanudarse inmediatamente al cerrar cada muestra de audio, incluso mientras la muestra anterior se convierte o transcribe; una llamada STT lenta o fallida no puede crear una zona ciega ni detener permanentemente el activador.
+- El ciclo global debe recuperarse automáticamente si falla `getUserMedia`, `MediaRecorder`, una pista del micrófono o la transcripción, sin requerir recargar la página.
 - Tras la confirmación sonora, si el usuario no comienza una orden en 2 segundos, HomePilot vuelve a la escucha pasiva sin encadenar capturas vacías.
 - Una vez iniciada la orden, HomePilot espera pausas naturales y finaliza la captura después de 2 segundos continuos de silencio.
 - Si una orden hablada no obtiene respuesta en 5 segundos, la UI cancela esa espera y comunica de inmediato que no pudo entender o procesar la solicitud.

@@ -17,4 +17,20 @@ describe('homePilotWakePhrases', () => {
       command: ''
     });
   });
+
+  it.each([
+    'jom paylod apaga la luz',
+    'oye yon pailod abre la cortina',
+    'home pailod que hora es'
+  ])('accepts a close phonetic wake transcription at the beginning: "%s"', transcript => {
+    expect(extractHomePilotWakeCommand(transcript).activated).toBe(true);
+  });
+
+  it.each([
+    'oye un piloto apaga la luz',
+    'mi automatizacion home paylod nocturna',
+    'quiero hablar con el piloto'
+  ])('rejects common or embedded phrases: "%s"', transcript => {
+    expect(extractHomePilotWakeCommand(transcript)).toEqual({ activated: false, command: '' });
+  });
 });

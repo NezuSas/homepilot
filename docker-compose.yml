@@ -126,6 +126,7 @@ services:
       - WHISPER_VAD_MIN_SILENCE_MS=${WHISPER_VAD_MIN_SILENCE_MS:-650}
       - WHISPER_VAD_SPEECH_PAD_MS=${WHISPER_VAD_SPEECH_PAD_MS:-400}
       - WHISPER_MAX_AUDIO_BYTES=${WHISPER_MAX_AUDIO_BYTES:-9000000}
+      - WHISPER_HOTWORDS=${WHISPER_HOTWORDS:-HomePilot, Home Pilot, jompailot, jom pailot, hom pilot, jon pilot, pome pilot, hombalot, hombilot, hambailot}
     ports:
       - "8090:8090"
     healthcheck:
