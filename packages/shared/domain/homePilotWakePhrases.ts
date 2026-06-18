@@ -3,6 +3,8 @@ const HOME_PILOT_WAKE_NAMES = [
   'home pilot',
   'home pylot',
   'home paylot',
+  'pome pilote',
+  'pome pilot',
   'jompailot',
   'jompilot',
   'jom pailot',

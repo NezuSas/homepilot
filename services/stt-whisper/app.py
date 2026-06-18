@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import os
 import tempfile
 from functools import lru_cache
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field
 
 
 MODEL_NAME = os.getenv("WHISPER_MODEL", "small")
+MODEL_PATH = os.getenv("WHISPER_MODEL_PATH", "").strip()
 COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 MAX_AUDIO_BYTES = int(os.getenv("WHISPER_MAX_AUDIO_BYTES", "9000000"))
 BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "3"))
@@ -31,7 +33,36 @@ class SpeechToTextResponse(BaseModel):
 
 @lru_cache(maxsize=1)
 def get_model() -> WhisperModel:
-    return WhisperModel(MODEL_NAME, device="cpu", compute_type=COMPUTE_TYPE)
+    model_source = MODEL_PATH or MODEL_NAME
+    if MODEL_PATH:
+        verify_model_integrity(MODEL_PATH)
+    return WhisperModel(
+        model_source,
+        device="cpu",
+        compute_type=COMPUTE_TYPE,
+        local_files_only=bool(MODEL_PATH)
+    )
+
+
+def verify_model_integrity(model_path: str) -> None:
+    model_file = os.path.join(model_path, "model.bin")
+    manifest_file = os.path.join(model_path, "model.sha256")
+    if not os.path.isfile(model_file) or not os.path.isfile(manifest_file):
+        raise RuntimeError("Whisper model integrity files are missing")
+
+    with open(manifest_file, "r", encoding="ascii") as file:
+        expected_digest = file.read().strip()
+
+    digest = hashlib.sha256()
+    with open(model_file, "rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+
+    actual_digest = digest.hexdigest()
+    if actual_digest != expected_digest:
+        raise RuntimeError(
+            f"Whisper model integrity check failed: expected {expected_digest}, got {actual_digest}"
+        )
 
 
 def suffix_for_content_type(content_type: str) -> str:
@@ -51,7 +82,8 @@ async def preload_model() -> None:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok", "provider": "whisper-local", "model": MODEL_NAME}
+    get_model()
+    return {"status": "ok", "provider": "whisper-local", "model": MODEL_NAME, "ready": "true"}
 
 
 @app.post("/api/stt", response_model=SpeechToTextResponse)

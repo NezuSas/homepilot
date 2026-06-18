@@ -2,6 +2,7 @@ import { AssistantRoutes } from '../routes/AssistantRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
+import { AssistantSpeechToTextUnavailableError } from '../../../packages/assistant/application/AssistantSpeechToTextService';
 
 describe('AssistantRoutes', () => {
   let routes: AssistantRoutes;
@@ -132,5 +133,32 @@ describe('AssistantRoutes', () => {
       provider: 'whisper-local',
       transcript: 'enciende la sala'
     }));
+  });
+
+  it('POST /api/v1/assistant/stt returns a safe error when local speech is unavailable', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    mockAssistantSpeechToTextService.transcribe.mockRejectedValue(
+      new AssistantSpeechToTextUnavailableError('fetch failed')
+    );
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({
+      audioBase64: 'YWJj',
+      audioContentType: 'audio/webm'
+    });
+
+    try {
+      await routes.handle(
+        mockReq as HomePilotRequest,
+        mockRes as http.ServerResponse,
+        '/api/v1/assistant/stt',
+        'POST',
+        mockContainer as BootstrapContainer
+      );
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    expect(mockRes.writeHead).toHaveBeenCalledWith(409, { 'Content-Type': 'application/json' });
+    expect(mockRes.end).toHaveBeenCalledWith(expect.stringContaining('La transcripción de voz local no está disponible.'));
   });
 });

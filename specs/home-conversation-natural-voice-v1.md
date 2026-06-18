@@ -46,7 +46,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Frases cortas de cortesía como `hola` no deben descartarse por tener una sola palabra.
 - El activador local debe reconocer `HomePilot`/`oye HomePilot` y variantes fonéticas en español como `ok jompailot`, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
 - Todas las superficies de voz y texto deben consumir un único catálogo canónico de activadores. Una variante aceptada para despertar, interrumpir o silenciar también debe eliminarse del comando antes de resolver cualquier acción o conversación; no puede haber listas divergentes entre frontend, fast path y conversación backend.
-- El catálogo canónico debe cubrir de forma uniforme `HomePilot`, `Home Pilot`, los prefijos conversacionales `ok`, `oye`, `hey` y `hola`, y las variantes fonéticas españolas soportadas (`jompailot`, `jom pailot`, `hom pailot`, `jon pailot`, `home pailot`, `hom pilot`, `jom pilot`, `jon pilot`, `on pilot`, `om pilot`).
+- El catálogo canónico debe cubrir de forma uniforme `HomePilot`, `Home Pilot`, los prefijos conversacionales `ok`, `oye`, `hey` y `hola`, y las variantes fonéticas soportadas (`pome pilot`, `pome pilote`, `jompailot`, `jom pailot`, `hom pailot`, `jon pailot`, `home pailot`, `hom pilot`, `jom pilot`, `jon pilot`, `on pilot`, `om pilot`).
 - Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
 - Si el activador global abre la vista de conversación con una orden pendiente, la respuesta debe habilitar lectura por voz antes de enviar el prompt.
 - La captura global debe tolerar aproximadamente un segundo adicional de silencio final para evitar cortar frases habladas con pausas naturales.
@@ -79,6 +79,8 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Al terminar la grabación, el audio se transcribe en el servicio local `homepilot-stt` y el texto resultante se envía al asistente como un prompt normal.
 - El servicio local de STT debe usar un perfil balanceado por defecto: `WHISPER_MODEL=small`, `WHISPER_COMPUTE_TYPE=int8`, `WHISPER_BEAM_SIZE=3` y VAD configurable para mejorar comprensión natural sin abandonar ejecución local.
 - El modelo de STT debe permanecer configurable por variables de entorno para permitir perfiles `tiny/base` en hardware limitado o modelos superiores en equipos más potentes.
+- La imagen STT debe descargar el modelo en una ruta dedicada, verificar su integridad antes de cargarlo y fallar con un diagnóstico explícito si el binario no coincide con el manifiesto generado durante el build.
+- El healthcheck de STT solo debe responder correctamente después de que el modelo haya superado la verificación de integridad y esté cargado en memoria.
 - La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
