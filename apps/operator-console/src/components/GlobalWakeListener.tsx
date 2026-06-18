@@ -258,6 +258,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         return;
       }
 
+      onWakeInterruptRef.current?.();
       void playWakeAcknowledgementSound();
 
       if (wakeResult.command && isUsableVoiceTranscript(wakeResult.command)) {

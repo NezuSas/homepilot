@@ -16,6 +16,7 @@ const ASSISTANT_VOICE_TIMEOUT_MESSAGE = 'No pude entenderte a tiempo. Inténtalo
 
 interface AssistantConversationOptions {
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 function getAssistantErrorMessage(value: unknown, status: number): string {
@@ -34,9 +35,16 @@ export async function converseWithAssistant(
   request: AssistantConverseRequest,
   options: AssistantConversationOptions = {}
 ): Promise<AssistantConversationResponse> {
-  const controller = options.timeoutMs ? new AbortController() : null;
+  const controller = options.timeoutMs || options.signal ? new AbortController() : null;
+  let timedOut = false;
+  const abortFromCaller = () => controller?.abort();
+  options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (options.signal?.aborted) abortFromCaller();
   const timeoutId = options.timeoutMs
-    ? globalThis.setTimeout(() => controller?.abort(), options.timeoutMs)
+    ? globalThis.setTimeout(() => {
+      timedOut = true;
+      controller?.abort();
+    }, options.timeoutMs)
     : null;
 
   try {
@@ -56,12 +64,13 @@ export async function converseWithAssistant(
 
     return response.json();
   } catch (error: unknown) {
-    if (controller?.signal.aborted) {
+    if (timedOut) {
       throw new Error(ASSISTANT_VOICE_TIMEOUT_MESSAGE);
     }
     throw error;
   } finally {
     if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', abortFromCaller);
   }
 }
 

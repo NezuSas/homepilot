@@ -164,6 +164,8 @@ function App() {
   const globalWakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const globalWakeAudioUrlRef = useRef<string | null>(null);
   const globalWakeRequestIdRef = useRef(0);
+  const globalWakeConversationAbortRef = useRef<AbortController | null>(null);
+  const globalWakeConversationIdRef = useRef(0);
   const globalWakeStartedAtRef = useRef(0);
 
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
@@ -305,6 +307,8 @@ function App() {
     pulseSyncStatus();
     const REFRESH_TRIGGER_EVENTS = [
       'DeviceDiscoveredEvent',
+      'DeviceCommandDispatchedEvent',
+      'DeviceStateUpdatedEvent',
       'HomeCreatedEvent',
       'RoomCreatedEvent',
       'DeviceAssignedToRoomEvent'
@@ -382,6 +386,9 @@ function App() {
   }, [stopGlobalWakeSpeech]);
 
   useEffect(() => () => {
+    globalWakeConversationIdRef.current += 1;
+    globalWakeConversationAbortRef.current?.abort();
+    globalWakeConversationAbortRef.current = null;
     globalWakeRequestIdRef.current += 1;
     stopGlobalWakeSpeech();
   }, [stopGlobalWakeSpeech]);
@@ -422,6 +429,10 @@ function App() {
   }, []);
 
   const handleGlobalWakeInterrupt = useCallback(() => {
+    globalWakeConversationIdRef.current += 1;
+    globalWakeConversationAbortRef.current?.abort();
+    globalWakeConversationAbortRef.current = null;
+    globalWakeRequestIdRef.current += 1;
     setGlobalWakeNotice(null);
     setIsGlobalWakeProcessing(false);
     stopGlobalWakeSpeech();
@@ -521,6 +532,11 @@ function App() {
 
     if (currentView !== 'home-conversation') {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      globalWakeConversationAbortRef.current?.abort();
+      const conversationController = new AbortController();
+      globalWakeConversationAbortRef.current = conversationController;
+      globalWakeConversationIdRef.current += 1;
+      const conversationId = globalWakeConversationIdRef.current;
       globalWakeStartedAtRef.current = Date.now();
       recordHomeConversationTelemetry('global_wake_detected', {
         sourceView: currentView,
@@ -532,7 +548,11 @@ function App() {
       void converseWithAssistant({
         prompt: text,
         userName: user?.displayName || user?.username
-      }, { timeoutMs: ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS }).then(response => {
+      }, {
+        timeoutMs: ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS,
+        signal: conversationController.signal
+      }).then(response => {
+        if (conversationId !== globalWakeConversationIdRef.current) return;
         recordHomeConversationTelemetry('global_wake_processed', {
           sourceView: currentView,
           responseType: response.type,
@@ -546,8 +566,12 @@ function App() {
             status: 'idle'
           });
         }
+        if (response.type === 'execution' && response.execution?.status !== 'failed') {
+          void refreshDeviceSnapshot();
+        }
         void speakGlobalWakeResponse(response.message);
       }).catch((error: unknown) => {
+        if (conversationId !== globalWakeConversationIdRef.current || conversationController.signal.aborted) return;
         const message = error instanceof Error && error.message
           ? error.message
           : 'No pude procesar el comando de voz.';
@@ -558,7 +582,10 @@ function App() {
         setGlobalWakeNotice({ id, message, tone: 'error', status: 'idle' });
         void speakGlobalWakeResponse(message);
       }).finally(() => {
-        setIsGlobalWakeProcessing(false);
+        if (conversationId === globalWakeConversationIdRef.current) {
+          globalWakeConversationAbortRef.current = null;
+          setIsGlobalWakeProcessing(false);
+        }
       });
       return;
     }

@@ -4,6 +4,7 @@ import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeA
 import { blobToBase64, canUseLocalSpeechRecording, createSpeechAudioUrl, getPreferredAudioMimeType } from '../lib/audioRecording';
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { AssistantConversationResponse, AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
 import { HomeConversationEmptyState } from '../components/HomeConversationEmptyState';
@@ -58,7 +59,10 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
   const speechRequestIdRef = useRef(0);
+  const conversationAbortRef = useRef<AbortController | null>(null);
+  const conversationRequestIdRef = useRef(0);
   const consumedPendingPromptIdRef = useRef<string | null>(null);
+  const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
   useEffect(() => {
     setSpeechSupport({
@@ -106,6 +110,9 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     mediaStreamRef.current?.getTracks().forEach(track => track.stop());
     mediaStreamRef.current = null;
     speechRequestIdRef.current += 1;
+    conversationRequestIdRef.current += 1;
+    conversationAbortRef.current?.abort();
+    conversationAbortRef.current = null;
     stopProfessionalSpeech();
   }, []);
 
@@ -142,6 +149,10 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   useEffect(() => {
     const handleStopSpeech = () => {
       speechRequestIdRef.current += 1;
+      conversationRequestIdRef.current += 1;
+      conversationAbortRef.current?.abort();
+      conversationAbortRef.current = null;
+      setIsLoading(false);
       stopProfessionalSpeech();
     };
 
@@ -186,6 +197,9 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       execution: response.execution,
       pendingAction: response.clarification?.pendingAction
     });
+    if (response.type === 'execution' && response.execution?.status !== 'failed') {
+      void refreshDeviceSnapshot();
+    }
     void speakAssistantResponse(response.message);
   };
 
@@ -200,10 +214,15 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     return resolvedMessage;
   };
 
-  const handleSend = async (text: string = input, responseTimeoutMs?: number) => {
-    if (!text.trim() || isLoading) return;
+  const handleSend = async (text: string = input, responseTimeoutMs?: number, replaceActive = false) => {
+    if (!text.trim() || (isLoading && !replaceActive)) return;
 
     const userText = text.trim();
+    if (replaceActive) conversationAbortRef.current?.abort();
+    const conversationController = new AbortController();
+    conversationAbortRef.current = conversationController;
+    conversationRequestIdRef.current += 1;
+    const requestId = conversationRequestIdRef.current;
     setSpeechNotice('');
     setInput('');
     addMessage({ role: 'user', content: userText });
@@ -213,18 +232,23 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const response = await converseWithAssistant({
         prompt: userText,
         userName: user?.displayName || user?.username
-      }, { timeoutMs: responseTimeoutMs });
+      }, { timeoutMs: responseTimeoutMs, signal: conversationController.signal });
+      if (requestId !== conversationRequestIdRef.current) return;
       handleResponse(response);
     } catch (error: unknown) {
+      if (requestId !== conversationRequestIdRef.current || conversationController.signal.aborted) return;
       const errorMessage = addErrorMessage(error);
       if (responseTimeoutMs) void speakAssistantResponse(errorMessage);
     } finally {
-      setIsLoading(false);
+      if (requestId === conversationRequestIdRef.current) {
+        conversationAbortRef.current = null;
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (!pendingPrompt || isLoading || consumedPendingPromptIdRef.current === pendingPrompt.id) return;
+    if (!pendingPrompt || consumedPendingPromptIdRef.current === pendingPrompt.id) return;
 
     consumedPendingPromptIdRef.current = pendingPrompt.id;
     if (typeof Audio !== 'undefined') {
@@ -232,10 +256,10 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       setIsSpeechEnabled(true);
     }
     setInput(pendingPrompt.text);
-    void handleSend(pendingPrompt.text, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS).then(() => {
+    void handleSend(pendingPrompt.text, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, true).then(() => {
       onPendingPromptConsumed?.(pendingPrompt.id);
     });
-  }, [pendingPrompt, isLoading, onPendingPromptConsumed]);
+  }, [pendingPrompt, onPendingPromptConsumed]);
 
   const stopSilenceDetection = () => {
     if (silenceAnimationFrameRef.current !== null) {
@@ -454,6 +478,10 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       role: 'user',
       content: t('assistant.conversation.selected_option', { label })
     });
+    const conversationController = new AbortController();
+    conversationAbortRef.current = conversationController;
+    conversationRequestIdRef.current += 1;
+    const requestId = conversationRequestIdRef.current;
     setIsLoading(true);
 
     try {
@@ -463,12 +491,17 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         selectedOptionId: optionId,
         pendingAction,
         confirmed: optionId === 'confirm'
-      });
+      }, { signal: conversationController.signal });
+      if (requestId !== conversationRequestIdRef.current) return;
       handleResponse(response);
     } catch (error: unknown) {
+      if (requestId !== conversationRequestIdRef.current || conversationController.signal.aborted) return;
       addErrorMessage(error);
     } finally {
-      setIsLoading(false);
+      if (requestId === conversationRequestIdRef.current) {
+        conversationAbortRef.current = null;
+        setIsLoading(false);
+      }
     }
   };
 

@@ -94,4 +94,16 @@ describe('assistantApi', () => {
     await expect(request).rejects.toThrow('No pude entenderte a tiempo. Inténtalo de nuevo.');
     jest.useRealTimers();
   });
+
+  it('converseWithAssistant preserves caller cancellation without converting it to a timeout', async () => {
+    const controller = new AbortController();
+    mockApiFetch.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+
+    const request = converseWithAssistant({ prompt: 'orden anterior' }, { signal: controller.signal });
+    controller.abort();
+
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });
