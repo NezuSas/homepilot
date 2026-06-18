@@ -54,6 +54,28 @@ describe('AssistantTextToSpeechService', () => {
     );
   });
 
+  it('accepts capability responses longer than the previous 1200 character limit', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        provider: 'piper',
+        audioContentType: 'audio/wav',
+        audioBase64: 'YWJj'
+      })
+    });
+    global.fetch = fetchMock;
+    const service = new AssistantTextToSpeechService('piper', 'http://tts.local', 1000);
+    const text = 'a'.repeat(1500);
+
+    await expect(service.synthesize({ text, language: 'es' })).resolves.toEqual(
+      expect.objectContaining({ provider: 'piper' })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://tts.local/api/tts',
+      expect.objectContaining({ body: JSON.stringify({ text, language: 'es' }) })
+    );
+  });
+
   it('rejects invalid tts payloads', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,

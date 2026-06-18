@@ -10,7 +10,7 @@ from piper.voice import PiperVoice
 from pydantic import BaseModel, Field
 
 
-MAX_TEXT_LENGTH = 1200
+MAX_TEXT_LENGTH = 4000
 MODEL_DIR = Path(os.getenv("PIPER_MODEL_DIR", "/models"))
 VOICE_CACHE: dict[str, PiperVoice] = {}
 

@@ -8,7 +8,8 @@ import type { GlobalWakeStatus } from './GlobalWakeNotice';
 const MAX_WAKE_RECORDING_MS = 9000;
 const MIN_WAKE_RECORDING_MS = 900;
 const STOP_WAKE_DETECTION_AFTER_SILENCE_MS = 900;
-const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 1900;
+const START_COMMAND_CAPTURE_TIMEOUT_MS = 2000;
+const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 2000;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 
 interface GlobalWakeListenerProps {
@@ -129,6 +130,9 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       if (volume >= WAKE_SPEECH_LEVEL_THRESHOLD) {
         speechDetectedRef.current = true;
         silenceStartedAtRef.current = null;
+      } else if (captureCommand && !speechDetectedRef.current && elapsed >= START_COMMAND_CAPTURE_TIMEOUT_MS) {
+        stopRecording();
+        return;
       } else if (speechDetectedRef.current && elapsed >= MIN_WAKE_RECORDING_MS) {
         silenceStartedAtRef.current ??= now;
         const silenceTimeout = captureCommand
@@ -153,7 +157,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     if (!enabledRef.current) return;
 
     if (!hadSpeech || audioBlob.size === 0) {
-      scheduleWakeCycle(captureCommand);
+      scheduleWakeCycle(false);
       return;
     }
 
@@ -164,7 +168,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
 
       if (!spokenText) {
-        scheduleWakeCycle(captureCommand);
+        scheduleWakeCycle(false);
         return;
       }
 

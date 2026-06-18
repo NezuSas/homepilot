@@ -69,4 +69,29 @@ describe('assistantApi', () => {
       'Assistant conversation failed (503)'
     );
   });
+
+  it('converseWithAssistant reads the standard nested API error message', async () => {
+    mockApiFetch.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: { message: 'Los datos proporcionados no son válidos.' } }),
+    });
+
+    await expect(converseWithAssistant({ prompt: 'haz algo' })).rejects.toThrow(
+      'Los datos proporcionados no son válidos.'
+    );
+  });
+
+  it('converseWithAssistant aborts voice requests after the configured timeout', async () => {
+    jest.useFakeTimers();
+    mockApiFetch.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+
+    const request = converseWithAssistant({ prompt: 'orden confusa' }, { timeoutMs: 5000 });
+    jest.advanceTimersByTime(5000);
+
+    await expect(request).rejects.toThrow('No pude entenderte a tiempo. Inténtalo de nuevo.');
+    jest.useRealTimers();
+  });
 });

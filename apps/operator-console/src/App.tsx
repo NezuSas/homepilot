@@ -29,7 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
-import { converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
+import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { createSpeechAudioUrl } from './lib/audioRecording';
 import { HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
@@ -532,7 +532,7 @@ function App() {
       void converseWithAssistant({
         prompt: text,
         userName: user?.displayName || user?.username
-      }).then(response => {
+      }, { timeoutMs: ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS }).then(response => {
         recordHomeConversationTelemetry('global_wake_processed', {
           sourceView: currentView,
           responseType: response.type,

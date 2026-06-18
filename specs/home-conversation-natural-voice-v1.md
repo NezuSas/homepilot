@@ -13,6 +13,9 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La UI debe permitir elegir el dispositivo de entrada cuando el navegador reporte más de un micrófono.
 - El selector de micrófono debe ser un componente modular propio, consistente en modo claro y oscuro, sin depender del menú nativo del sistema operativo.
 - La UI debe cortar la grabación automáticamente después de detectar voz y silencio para reducir latencia.
+- Después de reconocer el activador, la captura de la orden debe volver a escucha pasiva si no detecta voz durante 2 segundos.
+- Después de detectar voz en una orden iniciada por activador, la captura debe cerrarse tras 2 segundos continuos de silencio.
+- Las órdenes habladas deben dejar de esperar al asistente después de 5 segundos y responder con un mensaje breve de incomprensión o indisponibilidad.
 - La UI debe permitir un modo de activador local `HomePilot` mientras la consola esté abierta y tenga permiso de micrófono.
 - La UI no debe bloquear frases naturales de varias palabras por no coincidir con una lista rígida de keywords; el backend conserva la responsabilidad de resolver intención o responder que no entendió.
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
@@ -66,6 +69,9 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La grabación manual y la escucha global usan la misma implementación base para soporte de `MediaRecorder`, selección de MIME y conversión base64.
 - El activador global muestra un indicador no intrusivo cuando está escuchando, capturando, transcribiendo o respondiendo.
 - Cuando se reconoce cualquier variante canónica del activador y HomePilot comienza a capturar una orden, la consola debe reproducir una confirmación sonora local breve. El sonido también debe emitirse al interrumpir una respuesta para iniciar una nueva captura, sin depender de red ni de TTS.
+- Tras la confirmación sonora, si el usuario no comienza una orden en 2 segundos, HomePilot vuelve a la escucha pasiva sin encadenar capturas vacías.
+- Una vez iniciada la orden, HomePilot espera pausas naturales y finaliza la captura después de 2 segundos continuos de silencio.
+- Si una orden hablada no obtiene respuesta en 5 segundos, la UI cancela esa espera y comunica de inmediato que no pudo entender o procesar la solicitud.
 - El flujo global registra tiempos de detección, resolución y reproducción para diagnosticar latencia de voz local.
 - Si el usuario dice `ok jompailot callate`, `ok jompailot silencio` o `ok jompailot deja de hablar`, HomePilot detiene de inmediato cualquier respuesta en reproducción y responde con una confirmación corta.
 - Si el usuario dice solo `ok jompailot` mientras HomePilot está hablando, HomePilot detiene la respuesta actual y abre una nueva captura de orden.
@@ -85,6 +91,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
+- El endpoint TTS acepta respuestas residenciales extensas, incluida la guía completa de capacidades, sin devolver `VALIDATION_ERROR` por el límite anterior de 1200 caracteres.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz oficial `es_ES-sharvard-medium` por defecto, configurable por `PIPER_VOICE_ES`.
 - El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.
 - Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.

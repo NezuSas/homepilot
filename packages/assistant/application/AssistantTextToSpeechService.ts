@@ -13,7 +13,7 @@ export class AssistantTextToSpeechValidationError extends Error {}
 
 export class AssistantTextToSpeechUnavailableError extends Error {}
 
-const MAX_TEXT_LENGTH = 1200;
+const MAX_TEXT_LENGTH = 4000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { converseWithAssistant, synthesizeAssistantSpeech, transcribeAssistantSpeech } from '../lib/assistantApi';
+import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech, transcribeAssistantSpeech } from '../lib/assistantApi';
 import { blobToBase64, canUseLocalSpeechRecording, createSpeechAudioUrl, getPreferredAudioMimeType } from '../lib/audioRecording';
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
@@ -191,14 +191,16 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
 
   const addErrorMessage = (error: unknown) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const resolvedMessage = errorMessage || t('assistant.conversation.unknown_error');
     addMessage({
       role: 'assistant',
-      content: errorMessage || t('assistant.conversation.unknown_error'),
+      content: resolvedMessage,
       responseType: 'error'
     });
+    return resolvedMessage;
   };
 
-  const handleSend = async (text: string = input) => {
+  const handleSend = async (text: string = input, responseTimeoutMs?: number) => {
     if (!text.trim() || isLoading) return;
 
     const userText = text.trim();
@@ -211,10 +213,11 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const response = await converseWithAssistant({
         prompt: userText,
         userName: user?.displayName || user?.username
-      });
+      }, { timeoutMs: responseTimeoutMs });
       handleResponse(response);
     } catch (error: unknown) {
-      addErrorMessage(error);
+      const errorMessage = addErrorMessage(error);
+      if (responseTimeoutMs) void speakAssistantResponse(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -229,7 +232,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       setIsSpeechEnabled(true);
     }
     setInput(pendingPrompt.text);
-    void handleSend(pendingPrompt.text).then(() => {
+    void handleSend(pendingPrompt.text, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS).then(() => {
       onPendingPromptConsumed?.(pendingPrompt.id);
     });
   }, [pendingPrompt, isLoading, onPendingPromptConsumed]);
@@ -352,7 +355,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       }
 
       setInput(spokenText);
-      await handleSend(spokenText);
+      await handleSend(spokenText, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS);
     } catch {
       setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
     }

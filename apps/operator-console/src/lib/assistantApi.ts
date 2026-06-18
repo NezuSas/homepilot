@@ -11,21 +11,58 @@ import type {
  * Assistant API helper
  */
 
-export async function converseWithAssistant(request: AssistantConverseRequest): Promise<AssistantConversationResponse> {
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/assistant/converse`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  });
+export const ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS = 5000;
+const ASSISTANT_VOICE_TIMEOUT_MESSAGE = 'No pude entenderte a tiempo. Inténtalo de nuevo.';
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Assistant conversation failed (${response.status})`);
+interface AssistantConversationOptions {
+  timeoutMs?: number;
+}
+
+function getAssistantErrorMessage(value: unknown, status: number): string {
+  if (typeof value === 'object' && value !== null) {
+    const payload = value as Record<string, unknown>;
+    if (typeof payload.message === 'string' && payload.message) return payload.message;
+    if (typeof payload.error === 'object' && payload.error !== null) {
+      const error = payload.error as Record<string, unknown>;
+      if (typeof error.message === 'string' && error.message) return error.message;
+    }
   }
+  return `Assistant conversation failed (${status})`;
+}
 
-  return response.json();
+export async function converseWithAssistant(
+  request: AssistantConverseRequest,
+  options: AssistantConversationOptions = {}
+): Promise<AssistantConversationResponse> {
+  const controller = options.timeoutMs ? new AbortController() : null;
+  const timeoutId = options.timeoutMs
+    ? globalThis.setTimeout(() => controller?.abort(), options.timeoutMs)
+    : null;
+
+  try {
+    const response = await apiFetch(`${API_BASE_URL}/api/v1/assistant/converse`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+      ...(controller ? { signal: controller.signal } : {})
+    });
+
+    if (!response.ok) {
+      const errorData: unknown = await response.json().catch(() => null);
+      throw new Error(getAssistantErrorMessage(errorData, response.status));
+    }
+
+    return response.json();
+  } catch (error: unknown) {
+    if (controller?.signal.aborted) {
+      throw new Error(ASSISTANT_VOICE_TIMEOUT_MESSAGE);
+    }
+    throw error;
+  } finally {
+    if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
+  }
 }
 
 function isAssistantTextToSpeechResponse(value: unknown): value is AssistantTextToSpeechResponse {
