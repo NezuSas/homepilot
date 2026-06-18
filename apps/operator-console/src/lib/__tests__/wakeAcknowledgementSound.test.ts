@@ -48,6 +48,7 @@ describe('playWakeAcknowledgementSound', () => {
 
     expect(audioContext).toHaveBeenCalledTimes(1);
     expect(context.createOscillator).toHaveBeenCalledTimes(2);
+    expect(gain.gain.exponentialRampToValueAtTime).toHaveBeenNthCalledWith(1, 0.28, 0.012);
     expect(firstTone.frequency.setValueAtTime).toHaveBeenCalledWith(660, 0);
     expect(secondTone.frequency.setValueAtTime).toHaveBeenCalledWith(880, 0.075);
     expect(context.close).toHaveBeenCalledTimes(1);

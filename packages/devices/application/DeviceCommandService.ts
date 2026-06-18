@@ -65,23 +65,25 @@ export class DeviceCommandService implements DeviceCommandDispatcherPort {
       throw new Error(result.error || `Error desconocido al ejecutar ${normalizedCommand.name} en ${device.integrationSource}`);
     }
 
-    // 6. Sincronización optimista si el driver devuelve un nuevo estado (Fire-and-forget)
+    // 6. Sincronización optimista si el driver devuelve un nuevo estado.
+    // Esperamos su finalización para que la respuesta del comando nunca anteceda al snapshot persistido.
     if (result.newState) {
       const t_sync = Date.now();
-      syncDeviceStateUseCase(
-        deviceId, 
-        result.newState, 
-        'device-command-service', 
-        this.syncDeps
-      ).then(() => {
+      try {
+        await syncDeviceStateUseCase(
+          deviceId,
+          result.newState,
+          'device-command-service',
+          this.syncDeps
+        );
         if (process.env.NODE_ENV !== 'production') {
           console.debug(`[DeviceCommandService] syncDeviceStateUseCase took ${Date.now() - t_sync}ms`);
         }
-      }).catch(err => {
+      } catch (err: unknown) {
         if (process.env.NODE_ENV !== 'production') {
           console.warn('[DeviceCommandService] syncDeviceStateUseCase failed:', err instanceof Error ? err.message : String(err));
         }
-      });
+      }
     }
   }
 }

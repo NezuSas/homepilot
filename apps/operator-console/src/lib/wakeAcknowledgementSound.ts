@@ -2,6 +2,8 @@ type BrowserWindowWithAudio = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+const WAKE_ACKNOWLEDGEMENT_PEAK_GAIN = 0.28;
+
 export async function playWakeAcknowledgementSound(): Promise<void> {
   const browserWindow = window as BrowserWindowWithAudio;
   const AudioContextConstructor = window.AudioContext || browserWindow.webkitAudioContext;
@@ -15,7 +17,7 @@ export async function playWakeAcknowledgementSound(): Promise<void> {
     const start = context.currentTime;
     const gain = context.createGain();
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(WAKE_ACKNOWLEDGEMENT_PEAK_GAIN, start + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.19);
     gain.connect(context.destination);
 

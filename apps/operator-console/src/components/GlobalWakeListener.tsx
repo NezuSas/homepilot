@@ -13,6 +13,11 @@ const START_COMMAND_CAPTURE_TIMEOUT_MS = 2000;
 const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 2000;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 
+interface QueuedPassiveRecording {
+  audioBlob: Blob;
+  generation: number;
+}
+
 interface GlobalWakeListenerProps {
   enabled: boolean;
   interruptOnly?: boolean;
@@ -39,6 +44,9 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
   const discardCurrentRecordingRef = useRef(false);
   const pendingCaptureModeRef = useRef<boolean | null>(null);
   const pendingCaptureDelayRef = useRef(0);
+  const passiveTranscriptionInFlightRef = useRef(false);
+  const queuedPassiveRecordingRef = useRef<QueuedPassiveRecording | null>(null);
+  const wakeGenerationRef = useRef(0);
   const onCommandRef = useRef(onCommand);
   const onWakeInterruptRef = useRef(onWakeInterrupt);
   const onStatusChangeRef = useRef(onStatusChange);
@@ -69,6 +77,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
 
     return () => {
       enabledRef.current = false;
+      wakeGenerationRef.current += 1;
+      queuedPassiveRecordingRef.current = null;
       clearWakeCycleTimeout();
       stopRecording();
     };
@@ -193,23 +203,14 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     silenceAnimationFrameRef.current = window.requestAnimationFrame(detectSilence);
   };
 
-  const handleRecordingComplete = async (audioBlob: Blob, hadSpeech: boolean, captureCommand: boolean) => {
-    isRecordingRef.current = false;
-    stopMediaStream();
-
-    if (!enabledRef.current) return;
-
-    // Reinicia la escucha antes de esperar a Whisper para evitar zonas ciegas.
-    scheduleWakeCycle(false, 0);
-
-    if (!hadSpeech || audioBlob.size === 0) {
-      return;
-    }
-
+  const transcribeRecording = async (audioBlob: Blob, captureCommand: boolean, generation: number) => {
+    if (!captureCommand) passiveTranscriptionInFlightRef.current = true;
     try {
       onStatusChangeRef.current?.('transcribing');
       const audioBase64 = await blobToBase64(audioBlob);
       const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm');
+      if (!enabledRef.current || (!captureCommand && generation !== wakeGenerationRef.current)) return;
+
       const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
 
       if (!spokenText) {
@@ -228,6 +229,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
 
         const interruptionWakeResult = extractWakeCommand(spokenText);
         if (interruptionWakeResult.activated) {
+          wakeGenerationRef.current += 1;
+          queuedPassiveRecordingRef.current = null;
           onWakeInterruptRef.current?.();
           void playWakeAcknowledgementSound();
 
@@ -258,6 +261,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         return;
       }
 
+      wakeGenerationRef.current += 1;
+      queuedPassiveRecordingRef.current = null;
       onWakeInterruptRef.current?.();
       void playWakeAcknowledgementSound();
 
@@ -269,6 +274,41 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
 
       switchWakeCycle(true, 150);
     } catch { /* La escucha pasiva ya fue reanudada antes de transcribir. */ }
+    finally {
+      if (!captureCommand) {
+        passiveTranscriptionInFlightRef.current = false;
+        const queuedRecording = queuedPassiveRecordingRef.current;
+        queuedPassiveRecordingRef.current = null;
+        if (
+          queuedRecording
+          && enabledRef.current
+          && queuedRecording.generation === wakeGenerationRef.current
+        ) {
+          void transcribeRecording(queuedRecording.audioBlob, false, queuedRecording.generation);
+        }
+      }
+    }
+  };
+
+  const handleRecordingComplete = (audioBlob: Blob, hadSpeech: boolean, captureCommand: boolean) => {
+    isRecordingRef.current = false;
+    stopMediaStream();
+
+    if (!enabledRef.current) return;
+
+    // Reinicia la escucha antes de esperar a Whisper para evitar zonas ciegas.
+    scheduleWakeCycle(false, 0);
+
+    if (!hadSpeech || audioBlob.size === 0) return;
+
+    const generation = wakeGenerationRef.current;
+    if (!captureCommand && passiveTranscriptionInFlightRef.current) {
+      // Conserva solo la muestra más reciente mientras Whisper resuelve la anterior.
+      queuedPassiveRecordingRef.current = { audioBlob, generation };
+      return;
+    }
+
+    void transcribeRecording(audioBlob, captureCommand, generation);
   };
 
   const startWakeCycle = async (captureCommand: boolean) => {
@@ -344,7 +384,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         const hadSpeech = speechDetectedRef.current;
         const audioBlob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         mediaChunksRef.current = [];
-        void handleRecordingComplete(audioBlob, hadSpeech, isCapturingCommandRef.current);
+        handleRecordingComplete(audioBlob, hadSpeech, isCapturingCommandRef.current);
       };
 
       recordingStartedAtRef.current = Date.now();

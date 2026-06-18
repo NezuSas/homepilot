@@ -37,6 +37,7 @@ describe('DeviceCommandService with Validation', () => {
   };
 
   beforeEach(() => {
+    (syncDeviceStateUseCase as jest.Mock).mockResolvedValue(undefined);
     mockRepo = {
       findDeviceById: jest.fn().mockResolvedValue(mockDevice)
     } as unknown as jest.Mocked<DeviceRepository>;
@@ -60,6 +61,32 @@ describe('DeviceCommandService with Validation', () => {
     await service.dispatch('d1', 'turn_on');
 
     expect(mockDriver.executeCommand).toHaveBeenCalled();
+  });
+
+  it('waits for optimistic state persistence before confirming dispatch', async () => {
+    let resolveSync!: () => void;
+    (syncDeviceStateUseCase as jest.Mock).mockImplementation(() => new Promise<void>((resolve) => {
+      resolveSync = resolve;
+    }));
+
+    let dispatchCompleted = false;
+    const dispatchPromise = service.dispatch('d1', 'turn_on').then(() => {
+      dispatchCompleted = true;
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(syncDeviceStateUseCase).toHaveBeenCalledWith(
+      'd1',
+      { on: true },
+      'device-command-service',
+      mockSyncDeps
+    );
+    expect(dispatchCompleted).toBe(false);
+
+    resolveSync();
+    await dispatchPromise;
+    expect(dispatchCompleted).toBe(true);
   });
 
   it('should throw error and NOT call driver if validation fails', async () => {
