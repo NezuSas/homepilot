@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { converseWithAssistant } from '../assistantApi';
+import { converseWithAssistant, transcribeAssistantSpeech } from '../assistantApi';
 import { apiFetch } from '../apiClient';
 
 jest.mock('../apiClient');
@@ -105,5 +105,18 @@ describe('assistantApi', () => {
     controller.abort();
 
     await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('transcribeAssistantSpeech releases a passive request after its timeout', async () => {
+    jest.useFakeTimers();
+    mockApiFetch.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+
+    const request = transcribeAssistantSpeech('YWJj', 'audio/webm', { timeoutMs: 8000 });
+    jest.advanceTimersByTime(8000);
+
+    await expect(request).resolves.toBeNull();
+    jest.useRealTimers();
   });
 });

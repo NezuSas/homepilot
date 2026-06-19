@@ -123,15 +123,22 @@ export class DeviceRoutes extends ApiRoutes {
         const haState = await container.adapters.homeAssistantClient.getEntityState(entityId);
 
         if (!haState) {
-          container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
-          return this.sendError(res, 502, 'HA_UNREACHABLE', 'Could not retrieve state from Home Assistant'), true;
+          return this.sendError(res, 404, 'HA_ENTITY_NOT_FOUND', 'Home Assistant entity not found'), true;
         }
 
         container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
 
-        const newState: Record<string, unknown> = { ...device.lastKnownState as Record<string, unknown> };
-        if (haState.state === 'on') newState.on = true;
-        else if (haState.state === 'off') newState.on = false;
+        const newState: Record<string, unknown> = {
+          ...device.lastKnownState as Record<string, unknown>,
+          state: haState.state,
+          attributes: haState.attributes,
+        };
+        if (haState.state === 'on' || haState.state === 'open') newState.on = true;
+        else if (haState.state === 'off' || haState.state === 'closed') newState.on = false;
+
+        if (haState.attributes.current_position !== undefined) {
+          newState.current_position = haState.attributes.current_position;
+        }
 
         await syncDeviceStateUseCase(deviceId, newState, req.user!.id, {
           deviceRepository: container.repositories.deviceRepository,

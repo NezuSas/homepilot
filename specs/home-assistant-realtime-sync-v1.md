@@ -53,3 +53,16 @@ Pese a no tener cobertura infinita, se implementarán los siguientes Unit/Integr
 1. **Test Procesamiento de Evento**: Probar invocación dummy del `state_changed` y validar el mapeo del objeto en `DeviceRepository`.
 2. **Test Change Config Disconnects**: Probar que durante un Hot Swap se invoque efectivamente el teardown (`.close()`) explícito del WebSocket antiguo y reconecte o avise lo esperado sin causar solapamientos.
 
+## 5. Sincronización Manual de una Entidad
+
+El endpoint `POST /api/v1/devices/:id/refresh` debe aplicar el mismo contrato de estado agnóstico utilizado por la sincronización en tiempo real:
+
+- Persistir `lastKnownState.state` y `lastKnownState.attributes` completos.
+- Mantener los campos de compatibilidad `on` para estados `on/off/open/closed` y `current_position` cuando Home Assistant lo reporte.
+- Si Home Assistant responde `404` para la entidad, devolver `404 HA_ENTITY_NOT_FOUND` sin marcar la conexión global como `unreachable`.
+- Marcar `unreachable` únicamente cuando la consulta falle por comunicación, timeout o error HTTP distinto de entidad inexistente.
+
+### Criterios de aceptación
+
+- **AC3 — Covers:** al refrescar un `cover` abierto con posición reportada, el dispositivo local conserva `state: "open"`, sus atributos y `current_position`.
+- **AC4 — Entidad eliminada:** una entidad ausente devuelve `404 HA_ENTITY_NOT_FOUND` y no degrada el estado global de conectividad de Home Assistant.

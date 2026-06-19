@@ -5,7 +5,8 @@ import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript }
 import { playWakeAcknowledgementSound } from '../lib/wakeAcknowledgementSound';
 import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
-const MAX_WAKE_RECORDING_MS = 9000;
+const MAX_PASSIVE_WAKE_RECORDING_MS = 3000;
+const MAX_COMMAND_RECORDING_MS = 9000;
 const MIN_WAKE_DETECTION_RECORDING_MS = 350;
 const MIN_COMMAND_RECORDING_MS = 900;
 const STOP_WAKE_DETECTION_AFTER_SILENCE_MS = 350;
@@ -13,6 +14,9 @@ const START_COMMAND_CAPTURE_TIMEOUT_MS = 2000;
 const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 2000;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 const WAKE_SPEECH_CONFIRMATION_MS = 120;
+const WAKE_NOISE_CALIBRATION_MS = 300;
+const WAKE_NOISE_FLOOR_MULTIPLIER = 1.6;
+const PASSIVE_STT_TIMEOUT_MS = 8000;
 const PASSIVE_STT_RETRY_DELAY_MS = 1500;
 const GLOBAL_WAKE_LOCK_NAME = 'homepilot-global-wake-listener';
 
@@ -41,6 +45,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
   const recordingStartedAtRef = useRef(0);
   const silenceStartedAtRef = useRef<number | null>(null);
   const speechCandidateStartedAtRef = useRef<number | null>(null);
+  const noiseFloorRef = useRef(0.008);
+  const noiseFloorCalibratedRef = useRef(false);
   const speechDetectedRef = useRef(false);
   const silenceAnimationFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -106,6 +112,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       enabledRef.current = false;
       wakeGenerationRef.current += 1;
       queuedPassiveRecordingRef.current = null;
+      noiseFloorRef.current = 0.008;
+      noiseFloorCalibratedRef.current = false;
       releaseWakeOwnershipRef.current?.();
       releaseWakeOwnershipRef.current = null;
       clearWakeCycleTimeout();
@@ -206,11 +214,25 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       const volume = Math.sqrt(sum / samples.length);
       const now = Date.now();
       const elapsed = now - recordingStartedAtRef.current;
+      const adaptiveSpeechThreshold = Math.max(
+        WAKE_SPEECH_LEVEL_THRESHOLD,
+        noiseFloorRef.current * WAKE_NOISE_FLOOR_MULTIPLIER
+      );
       const minimumRecordingMs = captureCommand
         ? MIN_COMMAND_RECORDING_MS
         : MIN_WAKE_DETECTION_RECORDING_MS;
+      const isCalibratingNoiseFloor = !captureCommand
+        && !speechDetectedRef.current
+        && !noiseFloorCalibratedRef.current
+        && elapsed < WAKE_NOISE_CALIBRATION_MS;
+      if (!captureCommand && !noiseFloorCalibratedRef.current && elapsed >= WAKE_NOISE_CALIBRATION_MS) {
+        noiseFloorCalibratedRef.current = true;
+      }
 
-      if (volume >= WAKE_SPEECH_LEVEL_THRESHOLD) {
+      if (isCalibratingNoiseFloor) {
+        noiseFloorRef.current = (noiseFloorRef.current * 0.8) + (volume * 0.2);
+        speechCandidateStartedAtRef.current = null;
+      } else if (volume >= adaptiveSpeechThreshold) {
         speechCandidateStartedAtRef.current ??= now;
         if (now - speechCandidateStartedAtRef.current >= WAKE_SPEECH_CONFIRMATION_MS) {
           speechDetectedRef.current = true;
@@ -232,6 +254,9 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         }
       } else {
         speechCandidateStartedAtRef.current = null;
+        if (!captureCommand && !speechDetectedRef.current) {
+          noiseFloorRef.current = (noiseFloorRef.current * 0.95) + (volume * 0.05);
+        }
       }
 
       silenceAnimationFrameRef.current = window.requestAnimationFrame(detectSilence);
@@ -245,7 +270,11 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     try {
       onStatusChangeRef.current?.('transcribing');
       const audioBase64 = await blobToBase64(audioBlob);
-      const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm');
+      const transcription = await transcribeAssistantSpeech(
+        audioBase64,
+        audioBlob.type || 'audio/webm',
+        captureCommand ? {} : { timeoutMs: PASSIVE_STT_TIMEOUT_MS }
+      );
       if (!enabledRef.current || (!captureCommand && generation !== wakeGenerationRef.current)) return;
       if (!transcription) {
         if (!captureCommand) {
@@ -437,7 +466,10 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       silenceStartedAtRef.current = null;
       recorder.start();
       startSilenceDetection(stream, captureCommand);
-      recordingTimeoutRef.current = window.setTimeout(() => stopRecording(), MAX_WAKE_RECORDING_MS);
+      const maximumRecordingMs = captureCommand
+        ? MAX_COMMAND_RECORDING_MS
+        : MAX_PASSIVE_WAKE_RECORDING_MS;
+      recordingTimeoutRef.current = window.setTimeout(() => stopRecording(), maximumRecordingMs);
     } catch {
       isRecordingRef.current = false;
       stopMediaStream();
