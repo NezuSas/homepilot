@@ -68,10 +68,15 @@ HomePilot compite contra sistemas residenciales premium, no contra un dashboard 
 - `rounded-pill`: pills y avatares circulares.
 
 ### Tipografia
-- `text-micro`: indicadores muy compactos.
-- `text-label`: labels uppercase y chips.
-- `text-caption`: metadatos.
-- `text-body`: texto de controles.
+- `text-micro`: indicadores técnicos muy compactos (10 px).
+- `text-label`: labels uppercase y chips (11 px).
+- `text-caption`: metadatos y texto secundario (12 px).
+- `text-body`: texto normal y de controles (14 px).
+- `text-card-title`: títulos de tarjetas (15 px).
+- `text-section-title`: títulos internos de sección (18 px).
+- `text-view-title`: títulos principales de pantalla (24 px).
+
+Los tamaños arbitrarios `text-[Npx]` no deben usarse para roles cubiertos por esta escala. Las excepciones se reservan para visualizaciones de datos cuyo tamaño sea parte del componente.
 
 ## Componentes Base
 

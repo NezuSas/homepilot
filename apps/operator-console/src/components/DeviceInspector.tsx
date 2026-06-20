@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Settings,
   Terminal,
+  Trash2,
   X,
   Zap,
 } from 'lucide-react';
@@ -40,11 +41,12 @@ interface DeviceInspectorProps {
   rooms: Room[];
   onClose: () => void;
   onUpdate: (updated: Device) => void;
+  onDeleted: (deviceId: string) => void;
 }
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
-export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, rooms, onClose, onUpdate }) => {
+export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, rooms, onClose, onUpdate, onDeleted }) => {
   const { t } = useTranslation();
   const [device, setDevice] = useState<InspectableDevice | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -56,6 +58,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState('');
   const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchDetails = useCallback(async (isInitial = false) => {
     try {
@@ -240,6 +243,28 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
       setError(msg);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!device || isActionLoading) return;
+    setIsActionLoading(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`${API_URL}/devices/${device.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json() as { error?: { message?: string } };
+        throw new Error(data.error?.message || t('inbox.inspector.delete_failed'));
+      }
+
+      setShowDeleteConfirm(false);
+      onDeleted(device.id);
+      onClose();
+    } catch (deleteError: unknown) {
+      setError(deleteError instanceof Error ? deleteError.message : t('inbox.inspector.delete_failed'));
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -440,13 +465,13 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                 {device.type === 'cover' && (
                   <div className="flex gap-4">
-                    <Button onClick={() => handleCommand(device.invertState ? 'close' : 'open')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
+                    <Button onClick={() => handleCommand('open')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.open')}
                     </Button>
-                    <Button variant="secondary" onClick={() => handleCommand('stop')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
+                    <Button variant="secondary" onClick={() => handleCommand('stop')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.stop')}
                     </Button>
-                    <Button variant="outline" onClick={() => handleCommand(device.invertState ? 'open' : 'close')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
+                    <Button variant="outline" onClick={() => handleCommand('close')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.close')}
                     </Button>
                   </div>
@@ -546,6 +571,30 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   </div>
                 </div>
               </div>
+
+              {device.externalId.startsWith('ha:') && (
+                <div className="rounded-panel border border-destructive/20 bg-destructive/5 p-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-card-title font-black text-destructive">
+                        {t('inbox.inspector.remove_import_title')}
+                      </h3>
+                      <p className="mt-1 text-body text-muted-foreground">
+                        {t('inbox.inspector.remove_import_description')}
+                      </p>
+                    </div>
+                    <Button
+                      variant="danger"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isActionLoading}
+                      className="shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {t('common.delete')}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -598,6 +647,16 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         title={t('inbox.inspector.actions.unassign')}
         description={t('inbox.inspector.actions.unassign_confirm')}
         variant="warning"
+        isSubmitting={isActionLoading}
+      />
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title={t('inbox.inspector.remove_import_title')}
+        description={t('inbox.inspector.remove_import_confirm', { name: device.name })}
+        confirmText={t('common.delete')}
+        variant="danger"
         isSubmitting={isActionLoading}
       />
     </div>

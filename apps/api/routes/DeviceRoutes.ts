@@ -11,6 +11,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { resolveCapabilitiesForDevice } from '../../../packages/devices/domain/CapabilityResolver';
 import { Device } from '../../../packages/devices/domain/types';
 import { CAPABILITY_DEFINITIONS } from '../../../packages/devices/domain/capabilities';
+import { removeDeviceUseCase } from '../../../packages/devices/application/removeDeviceUseCase';
 
 /**
  * Device routes: /api/v1/devices/*, /api/v1/activity-logs, /api/v1/ha/*
@@ -187,6 +188,40 @@ export class DeviceRoutes extends ApiRoutes {
         if (name === 'DeviceNotFoundError' || msg.includes('not found')) { status = 404; code = 'DEVICE_NOT_FOUND'; }
         else if (name === 'DeviceAlreadyAssignedError' || msg.includes('already assigned')) { status = 409; code = 'ALREADY_ASSIGNED'; }
         this.sendError(res, status, code, msg);
+      }
+      return true;
+    }
+
+    // DELETE /api/v1/devices/:id
+    const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)$/);
+    if (deleteMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const deviceId = deleteMatch[1];
+        const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+
+        const home = await container.repositories.homeRepository.findHomeById(device.homeId);
+        if (!home || home.ownerId !== req.user!.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
+        }
+
+        await removeDeviceUseCase(deviceId, {
+          deviceRepository: container.repositories.deviceRepository,
+          sceneRepository: container.repositories.sceneRepository,
+          automationRuleRepository: container.repositories.automationRuleRepository,
+        });
+
+        this.sendJson(res, { deleted: true, deviceId });
+      } catch (error: unknown) {
+        const name = error instanceof Error ? error.constructor.name : 'Error';
+        if (name === 'DeviceNotFoundError') {
+          return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+        }
+        if (name === 'DeviceInUseError') {
+          return this.sendError(res, 409, 'DEVICE_IN_USE', 'Device is referenced by a scene or automation'), true;
+        }
+        this.sendError(res, 500, 'DELETE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }

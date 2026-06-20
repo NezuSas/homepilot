@@ -9,6 +9,7 @@ import { canExecuteCommand } from '../lib/deviceCapabilities';
 import { CoverPositionControl } from './CoverPositionControl';
 import { Button } from './ui/Button';
 import { DeviceTileShell } from './ui/DeviceTileShell';
+import { CurtainPositionVisual } from './CurtainPositionVisual';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
 interface DeviceState {
@@ -71,6 +72,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
     : position !== undefined
       ? (position > 0 ? 'open' : 'closed')
       : state;
+  const visualPosition = position ?? (displayState === 'open' ? 100 : 0);
 
   const displayName = isDuplicateName 
     ? disambiguate(humanize(device.id, device.name), roomName)
@@ -137,18 +139,6 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow pointer-events-none z-0" />
       )}
 
-      <div 
-        className={cn(
-          "absolute inset-0 pointer-events-none transition-transform [transition-duration:1500ms] ease-in-out z-0 opacity-40",
-          isOpen ? "-translate-y-full" : "translate-y-0"
-        )}
-        style={{
-          background: "repeating-linear-gradient(to bottom, rgba(0,0,0,0.8) 0px, rgba(0,0,0,0.8) 12px, rgba(255,255,255,0.05) 13px, rgba(0,0,0,0.8) 14px)"
-        }}
-      >
-        <div className="absolute bottom-0 left-0 right-0 h-[8px] bg-white/10 border-t border-white/20 shadow-[0_-4px_12px_rgba(0,0,0,0.5)]" />
-      </div>
-
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex justify-between items-start">
           <div className={cn(
@@ -164,23 +154,28 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
           <div className="flex flex-col items-end gap-1">
              {isSonoff && (
-               <span className="text-[7px] font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded shadow-sm">{t('dashboards.status.local')}</span>
+               <span className="text-micro font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded shadow-sm">{t('dashboards.status.local')}</span>
              )}
              <div className="flex items-center gap-1.5">
                 <div className={cn(
                   "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
                   isMoving ? "status-dot-updating animate-ping" : (isOpen ? "bg-primary/80" : "bg-muted-foreground/40")
                 )} />
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                <span className="text-label font-black uppercase tracking-widest text-muted-foreground">
                    {localizedState}
                 </span>
              </div>
           </div>
         </div>
 
+        <CurtainPositionVisual
+          position={visualPosition}
+          movement={isOpening ? 'opening' : isClosing ? 'closing' : null}
+        />
+
         <div className="flex flex-col gap-1 overflow-hidden">
-           <h4 className="text-xs font-bold truncate tracking-tight text-foreground">{displayName}</h4>
-            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">
+           <h4 className="text-card-title font-bold truncate tracking-tight text-foreground">{displayName}</h4>
+            <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/60">
               {roomName || t('common.unassigned')}
             </span>
         </div>
@@ -197,7 +192,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
                   onClick={(e) => { e.stopPropagation(); handleCommand(primaryCoverCommand); }}
                   disabled={!!isProcessing || isMoving}
                   className={cn(
-                    "flex-1 h-9 rounded-xl text-[9px] font-black uppercase tracking-widest",
+                    "flex-1 h-9 rounded-xl text-label font-black uppercase tracking-widest",
                     isOpen && "bg-background"
                   )}
                 >
@@ -236,14 +231,6 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         </div>
       </div>
 
-      {position !== undefined && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/20 overflow-hidden">
-          <div 
-            className="h-full bg-primary/40 transition-all duration-1000 ease-out" 
-            style={{ width: `${position}%` }}
-          />
-        </div>
-      )}
     </DeviceTileShell>
   );
 };

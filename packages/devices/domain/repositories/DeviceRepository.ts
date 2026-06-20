@@ -10,6 +10,12 @@ export interface DeviceRepository {
   saveDevice(device: Device): Promise<void>;
 
   /**
+   * Elimina exclusivamente la representación local del dispositivo.
+   * La integración física externa permanece intacta y puede reimportarse.
+   */
+  deleteDevice(deviceId: string): Promise<void>;
+
+  /**
    * Recupera un dispositivo por su identificador interno único.
    */
   findDeviceById(deviceId: string): Promise<Device | null>;

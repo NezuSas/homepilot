@@ -27,6 +27,12 @@ export class DeviceConflictError extends DeviceApplicationError {
   }
 }
 
+export class DeviceInUseError extends DeviceApplicationError {
+  constructor(deviceId: string) {
+    super(`Device ${deviceId} is referenced by a scene or automation.`);
+  }
+}
+
 export class TopologyResourceNotFoundError extends DeviceApplicationError {
   constructor(resourceType: string, resourceId: string) {
     super(`Topology resource ${resourceType} with id ${resourceId} was not found.`);

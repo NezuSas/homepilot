@@ -91,6 +91,10 @@ export class SQLiteDeviceRepository implements DeviceRepository {
     );
   }
 
+  public async deleteDevice(deviceId: string): Promise<void> {
+    this.db.prepare('DELETE FROM devices WHERE id = ?').run(deviceId);
+  }
+
   /**
    * Recupera un dispositivo por su identificador interno único.
    */

@@ -84,6 +84,9 @@ Ambos heredarán campos core (`eventId`, `timestamp`, `schemaVersion`, `source`,
 - **AC3:** Un `GET /homes/:homeId/inbox` emitido maliciosamente por un atacante o usuario interceptado (`userId` distinto al `owner` del parent) blindará el proceso arrojando de raíz HTTP `403 Forbidden`.
 - **AC4:** Proyectar la tarea `POST /devices/:deviceId/assign` indicando un `roomId` en posesión validada en el backend alterará permanentemente el enumerado del Entity a `ASSIGNED`, adscribirá en firme el ID y devovlerá HTTP `200` y subsecuentemente la respuesta GET extraída en AC2 estará vacía u omitirá a dicho Device explícitamente.
 - **AC5:** Intentar la sobre-escritura `POST /devices/:deviceId/assign` utilizando un target `roomId` verificado como propiedad de un Hogar Secundario `B`, mientras que la petición original (y el Device pre-anclado en Home `A`) pertenecen al primero, bloqueará matemáticamente la base abortando en un HTTP `403 Forbidden`.
+- **AC6:** Un administrador propietario puede eliminar del inventario local un dispositivo importado mediante `DELETE /api/v1/devices/:id`. La operación no elimina la entidad física de Home Assistant y permite volver a importarla.
+- **AC7:** La eliminación devuelve `409 DEVICE_IN_USE` si el dispositivo participa en una escena o automatización, preservando la integridad de las configuraciones existentes.
+- **AC8:** Eliminar un identificador desconocido devuelve `404 DEVICE_NOT_FOUND` sin efectos secundarios.
 
 ## 10. Notas Técnicas y Arquitectura
 - **Inyección Trans-Módulo Segura:** Para validar de manera correcta la integridad solicitada en AC5 y repeler la inyección transversal, el Orquestador o Caso de Uso implementado demandará que verifiquemos a través de un puerto perimetral (Ej. `TopologyService`) que el identificador intermedio (ID de Room) esté formalmente enrastrado por debajo del `homeId` matriz registrado tras el Discovery original.
@@ -91,5 +94,4 @@ Ambos heredarán campos core (`eventId`, `timestamp`, `schemaVersion`, `source`,
 - **Idempotencia Transaccional Constante:** La colisión (AC1) por rebotes físicos de red (El Hub expulsa 3 UDP packets de Discovery en cascada de un mismo Sensor) se neutralizará a nivel de restricción relacional persistente usando una clave compuesta híbrida `(homeId, externalId)`. Dejándose absorber sin crear múltiples instancias derivando de ser necesario en un simple 200/409 aséptico al integrador.
 
 ## 11. Preguntas Abiertas / TODOs
-- **[TODO: Roadmap V2 - Release Cycle Tracker]:** ¿Integraremos de forma colindante un endpoint semántico de des-asignación (ej. retornar lógicamente a PENDING) o será suficiente dictaminar el borrado duro por comando "Eliminar Dispositivo" obligando al redescubrimiento total si un usuario se equivoca de habitación?.
 - **[TODO: Stack Architecture Review]:** Se requiere evaluación inmediata sobre si la ingesta proveniente del Local Gateway / MQTT Broker deberá llamar a este spec REST vía HTTP Loopback (`/integrations/discovery`) o será inyectado de forma agnóstica a la web bypassando los controllers nativos e interfiriendo de manera directa al *Application Service* en capas internas Edge.

@@ -55,6 +55,7 @@ import { GlobalWakeListener } from './components/GlobalWakeListener';
 import { GlobalWakeNotice, type GlobalWakeNoticeModel, type GlobalWakeStatus } from './components/GlobalWakeNotice';
 
 const DashboardView = lazy(() => import('./views/DashboardView').then(module => ({ default: module.DashboardView })));
+const HOME_MODE_STORAGE_KEY = 'homepilot:home-mode';
 const TopologyView = lazy(() => import('./views/TopologyView').then(module => ({ default: module.TopologyView })));
 const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
 const AutomationsView = lazy(() => import('./views/AutomationsView'));
@@ -148,7 +149,13 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isBackendOffline, setIsBackendOffline] = useState(false);
-  const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
+  const [currentMode, setCurrentMode] = useState<HomeMode>(() => {
+    try {
+      return getSafeHomeMode(localStorage.getItem(HOME_MODE_STORAGE_KEY));
+    } catch {
+      return DEFAULT_HOME_MODE;
+    }
+  });
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [localProfile, setLocalProfile] = useState<{ displayName: string | null; avatarDataUri: string | null }>(() => {
@@ -1013,7 +1020,14 @@ function App() {
              <Suspense fallback={<ViewLoadingState />}>
                {currentView === 'dashboard' && (
                   <DashboardView
-                    onModeChange={(m) => setCurrentMode(getSafeHomeMode(m))}
+                    currentMode={currentMode}
+                    onModeChange={(mode) => {
+                      const safeMode = getSafeHomeMode(mode);
+                      setCurrentMode(safeMode);
+                      try {
+                        localStorage.setItem(HOME_MODE_STORAGE_KEY, safeMode);
+                      } catch { /* El modo sigue activo durante la sesión. */ }
+                    }}
                     onActionExecute={() => {
                       pulseSyncStatus();
                     }}

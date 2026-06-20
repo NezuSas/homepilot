@@ -49,6 +49,7 @@ describe('Assistant Execution Integration', () => {
       findAll: jest.fn(),
       findDeviceById: jest.fn(),
       saveDevice: jest.fn(),
+      deleteDevice: jest.fn(),
       findInboxByHomeId: jest.fn(),
       findByExternalIdAndHomeId: jest.fn(),
       findByExternalId: jest.fn(),

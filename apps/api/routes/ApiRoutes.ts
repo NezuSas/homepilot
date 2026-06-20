@@ -23,6 +23,7 @@ const SAFE_MESSAGES: Record<string, string> = {
   'HA_DISCOVERY_ERROR': 'No se pudo consultar Home Assistant. Verifica la conexión y la configuración.',
   'ALREADY_ASSIGNED': 'El dispositivo ya tiene una habitación asignada.',
   'DEVICE_NOT_FOUND': 'Dispositivo no encontrado.',
+  'DEVICE_IN_USE': 'El dispositivo está siendo utilizado por una escena o automatización.',
   'INVALID_TYPE': 'Tipo de dispositivo no compatible para esta operación.',
   'INVALID_COMMAND': 'Comando no válido para este dispositivo.',
   'AUTOMATION_ERROR': 'Error en la gestión de automatizaciones.',

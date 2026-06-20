@@ -97,6 +97,10 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
           rooms={roomsFlattened}
           onClose={() => setInspectingDeviceId(null)} 
           onUpdate={(updated) => handleDeviceUpdate(inspectingDeviceId, updated)}
+          onDeleted={() => {
+            setInspectingDeviceId(null);
+            void fetchData();
+          }}
         />
       )}
 

@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { humanize } from '../lib/naming-utils';
 import { hasCapability } from '../lib/deviceCapabilities';
 import type { SnapshotDevice, SnapshotRoom } from '../stores/useDeviceSnapshotStore';
+import type { HomeMode } from '../types';
 import { Button } from './ui/Button';
 import { CurtainDeviceTile } from './CurtainDeviceTile';
 import { DashDeviceTile } from './DashDeviceTile';
@@ -21,6 +22,7 @@ interface DeviceState {
 
 interface DashboardRoomsSectionProps {
   activeRooms: SnapshotRoom[];
+  mode: HomeMode;
   devices: SnapshotDevice[];
   duplicateNames: Map<string, number>;
   roomProcessing: string | null;
@@ -61,6 +63,7 @@ const isDeviceActive = (device: SnapshotDevice): boolean => {
 
 export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
   activeRooms,
+  mode,
   devices,
   duplicateNames,
   roomProcessing,
@@ -84,6 +87,9 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
     <div className="space-y-12">
       {activeRooms.map((room) => {
         const roomDevices = devices.filter((device) => device.roomId === room.id);
+        const orderedRoomDevices = mode === 'relax'
+          ? roomDevices
+          : [...roomDevices].sort((left, right) => Number(isDeviceActive(right)) - Number(isDeviceActive(left)));
         const onCount = roomDevices.filter(isDeviceActive).length;
 
         return (
@@ -97,9 +103,9 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
                   <Cpu className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                <h3 className="truncate text-2xl font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
+                <h3 className="truncate text-view-title font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
                 <span className={cn(
-                  'text-[10px] font-black uppercase tracking-widest transition-colors',
+                  'text-label font-black uppercase tracking-widest transition-colors',
                   onCount > 0 ? 'text-warning' : 'text-muted-foreground/40',
                 )}>
                   {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
@@ -112,7 +118,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
                   variant="outline"
                   isLoading={roomProcessing === room.id}
                   onClick={() => onRoomTurnOff(room.id)}
-                  className="text-[9px] uppercase tracking-widest px-4 py-2 bg-background/30 hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
+                  className="text-label uppercase tracking-widest px-4 py-2 bg-background/30 hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
                 >
                   {!roomProcessing && t('common.turn_off_all')}
                 </Button>
@@ -120,7 +126,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
-              {roomDevices.map((device) => {
+              {orderedRoomDevices.map((device) => {
                 const isCover = hasCapability(device, 'cover');
                 const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;
 

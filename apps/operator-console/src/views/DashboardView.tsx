@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize } from '../lib/naming-utils';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
-import { DEFAULT_HOME_MODE, getSafeHomeMode } from '../types';
+import { getSafeHomeMode } from '../types';
 import type { HomeMode, View } from '../types';
 import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
 import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
@@ -92,16 +92,16 @@ const isDeviceActive = (device: SnapshotDevice): boolean => {
 };
 
 export const DashboardView: React.FC<{ 
+  currentMode: HomeMode;
   onModeChange?: (mode: HomeMode) => void;
   onActionExecute?: (label: string) => void;
   onNavigate?: (view: View, params?: unknown) => void;
-}> = ({ onModeChange, onActionExecute, onNavigate }) => {
+}> = ({ currentMode, onModeChange, onActionExecute, onNavigate }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const [roomProcessing, setRoomProcessing] = useState<string | null>(null);
   const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
-  const [currentMode, setCurrentMode] = useState<HomeMode>(DEFAULT_HOME_MODE);
   const [luxuryRipple, setLuxuryRipple] = useState(false);
   const allDevices = useDeviceSnapshotStore((state) => state.devices);
   const devices = useMemo(() => allDevices.filter((device) => device.status === 'ASSIGNED'), [allDevices]);
@@ -280,6 +280,22 @@ useEffect(() => {
     localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
   [localDevices]);
   const activeDeviceCount = useMemo(() => devices.filter(isDeviceActive).length, [devices]);
+  const modeScene = useMemo(() => {
+    const normalizedModeNames: Record<HomeMode, string[]> = {
+      relax: ['relax'],
+      away: ['away', 'fuera'],
+      night: ['night', 'noche'],
+      energy: ['energy', 'eco'],
+    };
+    return scenes.find((scene) => normalizedModeNames[currentMode].includes(scene.name.trim().toLowerCase())) || null;
+  }, [currentMode, scenes]);
+  const orderedActiveRooms = useMemo(() => {
+    if (currentMode === 'relax') return activeRooms;
+    return [...activeRooms].sort((left, right) => {
+      const activeInRoom = (roomId: string) => devices.filter((device) => device.roomId === roomId && isDeviceActive(device)).length;
+      return activeInRoom(right.id) - activeInRoom(left.id);
+    });
+  }, [activeRooms, currentMode, devices]);
 
   const hasInitialData = (Array.isArray(devices) ? devices : []).length > 0;
   if (snapshotLoading && !hasInitialData) {
@@ -293,11 +309,10 @@ useEffect(() => {
       {/* LEVEL 1: Master State (Home Mode) */}
       <HomeModeSelector 
         currentMode={getSafeHomeMode(currentMode)} 
-        onModeChange={(m) => {
-          const safeM = getSafeHomeMode(m);
-          setCurrentMode(safeM);
-          if (onModeChange) onModeChange(safeM);
-        }} 
+        onModeChange={(mode) => onModeChange?.(getSafeHomeMode(mode))}
+        linkedSceneName={modeScene?.name}
+        isExecutingScene={modeScene ? roomProcessing === `scene_${modeScene.id}` : false}
+        onExecuteLinkedScene={modeScene ? () => handleSceneExecute(modeScene) : undefined}
       />
 
       <HomeCommandCenter
@@ -326,7 +341,8 @@ useEffect(() => {
       />
 
       <DashboardRoomsSection
-        activeRooms={activeRooms}
+        activeRooms={orderedActiveRooms}
+        mode={currentMode}
         devices={devices}
         duplicateNames={duplicateNames}
         roomProcessing={roomProcessing}

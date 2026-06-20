@@ -86,16 +86,16 @@ export const HomeCommandCenter: React.FC<HomeCommandCenterProps> = ({
               <Home className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-muted-foreground">
+              <p className="text-label font-black uppercase tracking-[0.28em] text-muted-foreground">
                 {t('dashboard.command_center.label', { defaultValue: 'Centro de mando residencial' })}
               </p>
-              <h2 className="text-2xl font-black tracking-tight luxury-text-gradient md:text-3xl">
+              <h2 className="text-view-title font-black tracking-tight luxury-text-gradient">
                 {t('dashboard.command_center.title', { defaultValue: 'Tu casa esta bajo control' })}
               </h2>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+          <div className="flex flex-wrap items-center gap-2 text-label font-black uppercase tracking-widest">
             <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-primary">
               {t(`modes.${currentMode}`)}
             </span>
@@ -117,12 +117,12 @@ export const HomeCommandCenter: React.FC<HomeCommandCenterProps> = ({
                 <div className={cn('mb-4 flex h-9 w-9 items-center justify-center rounded-xl border', metric.tone)}>
                   <Icon className="h-4 w-4" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-label font-black uppercase tracking-[0.18em] text-muted-foreground">
                   {metric.label}
                 </p>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-2xl font-black tracking-tight text-foreground">{metric.value}</span>
-                  <span className="min-w-0 truncate text-[10px] font-bold text-muted-foreground">{metric.detail}</span>
+                  <span className="min-w-0 truncate text-caption font-bold text-muted-foreground">{metric.detail}</span>
                 </div>
               </div>
             );
@@ -130,7 +130,7 @@ export const HomeCommandCenter: React.FC<HomeCommandCenterProps> = ({
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-2 rounded-full border border-border/50 bg-background/30 px-3 py-2 text-[9px] font-black uppercase tracking-[0.24em] text-muted-foreground backdrop-blur-md">
+      <div className="mt-5 flex items-center gap-2 rounded-full border border-border/50 bg-background/30 px-3 py-2 text-label font-black uppercase tracking-[0.24em] text-muted-foreground backdrop-blur-md">
         <Activity className="h-3.5 w-3.5 text-success" />
         <span>{t('dashboard.command_center.runtime', { defaultValue: 'Operando con estado local, escenas y asistencia proactiva' })}</span>
         <Gauge className="ml-auto h-3.5 w-3.5 text-primary" />

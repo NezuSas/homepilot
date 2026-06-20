@@ -24,6 +24,7 @@ describe('HomeAssistantImportService', () => {
   beforeEach(() => {
     mockDeviceRepo = {
       saveDevice: jest.fn().mockResolvedValue(undefined),
+      deleteDevice: jest.fn().mockResolvedValue(undefined),
       findDeviceById: jest.fn(),
       findInboxByHomeId: jest.fn(),
       findAll: jest.fn(),

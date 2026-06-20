@@ -70,6 +70,10 @@ Se propone una consola de administración pragmática:
 - [ ] AC2: Un dispositivo ubicado en el Inbox puede ser seleccionado y asignado a una Room existente, removiéndose de la vista Inbox de inmediato.
 - [ ] AC3: El switch de Enabled/Disabled de una Regla cambia su base de datos local visiblemente (reflejado de persistencia).
 - [ ] AC4: Al encender una luz desde "Device Manager", el Activity Log plasma el evento `COMMAND_DISPATCHED`.
+- [ ] AC5: La escala tipográfica se consume desde tokens semánticos (`micro`, `label`, `caption`, `body` y jerarquías de encabezado) en componentes compartidos y superficies de dispositivos, evitando tamaños arbitrarios para el mismo rol visual.
+- [ ] AC6: El inspector permite eliminar una importación local mediante confirmación explícita, refresca el inventario sin recargar y comunica si el dispositivo está en uso.
+- [ ] AC7: El componente de cortina representa posición y movimiento con contraste suficiente en modo claro y oscuro. La UI siempre envía la intención `open`/`close`; la inversión física se aplica una sola vez en el driver.
+- [ ] AC8: Relax, Fuera, Noche y Eco persisten localmente y cambian visiblemente el foco operativo de Inicio. No ejecutan comandos físicos implícitos; cuando existe una escena con el mismo nombre, el modo la ofrece como acción explícita.
 
 ## 9. Notas Técnicas y Arquitectura
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).

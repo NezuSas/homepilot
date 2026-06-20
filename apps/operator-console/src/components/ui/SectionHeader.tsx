@@ -33,7 +33,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
         <div className="flex flex-col">
           {/* Eyebrow — only for section level with subtitle */}
           {subtitle && level !== 'group' && (
-            <span className="text-[9px] font-black uppercase tracking-[0.22em] text-muted-foreground/50 mb-1.5">
+            <span className="text-label font-black uppercase tracking-[0.22em] text-muted-foreground/60 mb-1.5">
               {subtitle}
             </span>
           )}
@@ -61,15 +61,15 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
             )}
 
             {level === 'view' ? (
-              <h2 className="text-2xl font-black tracking-tighter luxury-text-gradient leading-none">
+              <h2 className="text-view-title font-black tracking-tighter luxury-text-gradient">
                 {title}
               </h2>
             ) : level === 'section' ? (
-              <h3 className="text-lg font-bold tracking-tight text-foreground/85 leading-none">
+              <h3 className="text-section-title font-bold tracking-tight text-foreground/85">
                 {title}
               </h3>
             ) : (
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/45">
+              <span className="text-label font-black uppercase tracking-[0.2em] text-muted-foreground/55">
                 {title}
               </span>
             )}
@@ -77,7 +77,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
 
           {/* Subtitle — inline for group level */}
           {subtitle && level === 'group' && (
-            <span className="text-[10px] font-medium text-muted-foreground/40 mt-0.5 ml-5">
+            <span className="text-caption font-medium text-muted-foreground/60 mt-0.5 ml-5">
               {subtitle}
             </span>
           )}

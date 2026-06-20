@@ -14,6 +14,10 @@ export class InMemoryDeviceRepository implements DeviceRepository {
     this.devices.set(device.id, frozenDevice);
   }
 
+  async deleteDevice(deviceId: string): Promise<void> {
+    this.devices.delete(deviceId);
+  }
+
   async findDeviceById(deviceId: string): Promise<Device | null> {
     const device = this.devices.get(deviceId);
     if (!device) return null;

@@ -69,10 +69,13 @@ export default {
         pill: 'var(--radius-pill)'
       },
       fontSize: {
-        micro: ['0.5625rem', { lineHeight: '0.75rem' }],
-        label: ['0.625rem', { lineHeight: '0.875rem' }],
-        caption: ['0.6875rem', { lineHeight: '1rem' }],
-        body: ['0.8125rem', { lineHeight: '1.125rem' }]
+        micro: ['0.625rem', { lineHeight: '0.875rem' }],
+        label: ['0.6875rem', { lineHeight: '1rem' }],
+        caption: ['0.75rem', { lineHeight: '1.125rem' }],
+        body: ['0.875rem', { lineHeight: '1.375rem' }],
+        'card-title': ['0.9375rem', { lineHeight: '1.25rem' }],
+        'section-title': ['1.125rem', { lineHeight: '1.5rem' }],
+        'view-title': ['1.5rem', { lineHeight: '1.875rem' }]
       },
       transitionDuration: {
         fast: 'var(--duration-fast)',

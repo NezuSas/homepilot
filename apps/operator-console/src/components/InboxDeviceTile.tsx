@@ -161,10 +161,10 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
       {error && !isProcessing && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-[1px] rounded-2xl p-2 text-center">
           <AlertCircle className="w-5 h-5 text-destructive mb-1" />
-          <span className="text-[8px] font-black uppercase text-destructive leading-tight">{error}</span>
+          <span className="text-micro font-black uppercase text-destructive leading-tight">{error}</span>
           <button
             onClick={(e) => { e.stopPropagation(); setError(null); }}
-            className="mt-1 text-[7px] font-black uppercase text-muted-foreground border-b border-muted-foreground/30"
+            className="mt-1 text-micro font-black uppercase text-muted-foreground border-b border-muted-foreground/30"
           >
             {t('common.cancel')}
           </button>
@@ -173,14 +173,14 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
 
       <div className={cn('flex flex-col gap-1 overflow-hidden transition-opacity', (isProcessing || error) && 'opacity-30')}>
         <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-xs font-black uppercase tracking-tighter truncate opacity-50">{device.type}</span>
+          <span className="text-caption font-black uppercase tracking-tighter truncate opacity-60">{device.type}</span>
           {isSonoff && (
-            <span className="text-[7px] font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">{t('inbox.native_local')}</span>
+            <span className="text-micro font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">{t('inbox.native_local')}</span>
           )}
         </div>
-        <h4 className="text-sm font-bold leading-tight truncate">{device.name}</h4>
+        <h4 className="text-card-title font-bold truncate">{device.name}</h4>
         {!isAssigned && isSonoff && (
-          <span className="text-[7px] font-black uppercase tracking-widest text-success/60 mt-0.5 animate-pulse">
+          <span className="text-micro font-black uppercase tracking-widest text-success/70 mt-0.5 animate-pulse">
             {t('inbox.discovered_locally')}
           </span>
         )}
@@ -188,13 +188,13 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         {isAssigned ? (
           <div className="flex items-center gap-1.5 mt-1">
             <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', isOn ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30')} />
-            <span className={cn('text-[9px] font-black uppercase tracking-widest min-w-0 truncate', isOn ? 'text-primary' : 'text-muted-foreground')}>
+            <span className={cn('text-label font-black uppercase tracking-widest min-w-0 truncate', isOn ? 'text-primary' : 'text-muted-foreground')}>
               {isOn ? t('device_states.on') : t('device_states.off')}
             </span>
             {isSonoff && (
               <>
                 <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                <span className={cn('text-[8px] font-black uppercase tracking-widest shrink-0', isOnline ? 'text-success' : 'text-destructive opacity-80')}>
+                <span className={cn('text-micro font-black uppercase tracking-widest shrink-0', isOnline ? 'text-success' : 'text-destructive opacity-80')}>
                   {isOnline ? t('common.online') : t('common.offline')}
                 </span>
               </>
@@ -217,7 +217,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
               onClick={handleAssign}
               disabled={!selectedRoomId || isProcessing}
               className={cn(
-                'w-full text-[8px] py-1 h-auto font-black uppercase tracking-widest shadow-sm transition-all',
+                'w-full text-label py-1 h-auto font-black uppercase tracking-widest shadow-sm transition-all',
                 isSonoff ? 'bg-success text-success-foreground hover:bg-success/90 shadow-success/10' : '',
               )}
               isLoading={isProcessing}

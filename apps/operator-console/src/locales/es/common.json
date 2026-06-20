@@ -437,6 +437,10 @@
     "edge_mode_active": "Modo Edge Activo",
     "edge_hint": "Capacidades de control local activadas. Independencia de red activa.",
     "inspector": {
+      "remove_import_title": "Eliminar importación local",
+      "remove_import_description": "Quita este dispositivo de HomePilot sin eliminarlo de Home Assistant. Podrás importarlo nuevamente.",
+      "remove_import_confirm": "¿Eliminar {{name}} del inventario local? Esta acción no afecta al dispositivo físico ni a Home Assistant.",
+      "delete_failed": "No se pudo eliminar el dispositivo. Puede estar en uso por una escena o automatización.",
       "title": "Inspector Técnico",
       "no_logs": "No hay registros grabados",
       "tabs": {
@@ -800,7 +804,14 @@
     "relax": "Relax",
     "away": "Fuera",
     "night": "Noche",
-    "energy": "Eco"
+    "energy": "Eco",
+    "execute_scene": "Ejecutar {{name}}",
+    "descriptions": {
+      "relax": "Vista equilibrada de toda la casa para el uso cotidiano.",
+      "away": "Prioriza habitaciones con dispositivos activos para revisar lo que quedó encendido.",
+      "night": "Lleva primero los espacios con luces o cortinas activas para preparar el descanso.",
+      "energy": "Ordena el hogar por actividad para localizar rápidamente consumos evitables."
+    }
   },
   "system": {
     "advanced": "Avanzado del Sistema",
