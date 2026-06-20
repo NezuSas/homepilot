@@ -196,7 +196,7 @@ describe('AssistantConversationService', () => {
     });
 
     it('should answer capabilities when the wake word reaches the backend', async () => {
-      const response = await service.converse({ prompt: 'HomePilot qué puedes hacer' }, 'es');
+      const response = await service.converse({ prompt: 'Ok Nezu qué puedes hacer' }, 'es');
 
       expect(response.type).toBe('answer');
       expect(response.message).toContain('Puedes pedirme:');
@@ -274,9 +274,9 @@ describe('AssistantConversationService', () => {
     it('should answer natural day and day-period questions', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-06-17T14:45:00.000Z'));
 
-      const day = await service.converse({ prompt: 'Jompailot, qué día es hoy' }, 'es');
-      const morning = await service.converse({ prompt: 'Jompailot, estamos en la mañana' }, 'es');
-      const night = await service.converse({ prompt: 'Jompailot, ya es de noche' }, 'es');
+      const day = await service.converse({ prompt: 'Ok Nezu, qué día es hoy' }, 'es');
+      const morning = await service.converse({ prompt: 'Ok Nezu, estamos en la mañana' }, 'es');
+      const night = await service.converse({ prompt: 'Ok Nezu, ya es de noche' }, 'es');
 
       expect(day.message).toContain('Hoy es miércoles, 17 de junio de 2026');
       expect(morning.message).toContain('Sí. Es de mañana');
@@ -448,7 +448,7 @@ describe('AssistantConversationService', () => {
       ]);
 
       const response = await service.converse({
-        prompt: 'oye HomePilot me puedes decir qué luces están encendidas por favor'
+        prompt: 'Ok Nezu me puedes decir qué luces están encendidas por favor'
       }, 'es');
 
       expect(response.type).toBe('answer');
@@ -466,7 +466,7 @@ describe('AssistantConversationService', () => {
       );
 
       const response = await service.converse({
-        prompt: 'oye HomePilot me puedes apagar luz sala porfa'
+        prompt: 'Ok Nezu me puedes apagar luz sala porfa'
       }, 'es');
 
       expect(response.type).toBe('execution');

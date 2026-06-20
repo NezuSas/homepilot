@@ -5,7 +5,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
-- El backend debe ignorar prefijos de activación si llegan dentro del texto final, como `HomePilot`, `ok jompailot`, `home pilot` u `oye HomePilot`.
+- El backend debe eliminar el activador canónico `Ok Nezu` y sus variantes fonéticas admitidas si llegan dentro del texto final.
 - El backend debe detectar comandos aunque el verbo no sea la primera palabra de la frase.
 - La UI debe permitir dictar una instrucción con micrófono grabando audio local con `MediaRecorder`.
 - La UI debe enviar el audio al backend para transcripción local y no depender de Web Speech API.
@@ -16,7 +16,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Después de reconocer el activador, la captura de la orden debe volver a escucha pasiva si no detecta voz durante 2 segundos.
 - Después de detectar voz en una orden iniciada por activador, la captura debe cerrarse tras 2 segundos continuos de silencio.
 - Las órdenes habladas deben dejar de esperar al asistente después de 5 segundos y responder con un mensaje breve de incomprensión o indisponibilidad.
-- La UI debe permitir un modo de activador local `HomePilot` mientras la consola esté abierta y tenga permiso de micrófono.
+- La UI debe permitir un modo de activador local `Ok Nezu` mientras la consola esté abierta y tenga permiso de micrófono.
 - La UI no debe bloquear frases naturales de varias palabras por no coincidir con una lista rígida de keywords; el backend conserva la responsabilidad de resolver intención o responder que no entendió.
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
 - La UI debe mostrar estado global discreto de escucha, captura, transcripción, procesamiento y respuesta cuando el activador esté disponible.
@@ -45,26 +45,27 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - No se cambian contratos de dispositivos, escenas, automatizaciones ni API.
 
 ## Acceptance Criteria
-- Frases como `oye homepilot me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
+- Frases como `Ok Nezu me puedes apagar la luz de la sala por favor` se normalizan hacia la intención central sin requerir forma exacta.
 - Frases cortas de cortesía como `hola` no deben descartarse por tener una sola palabra.
-- El activador local debe reconocer `HomePilot`/`oye HomePilot` y variantes fonéticas en español como `ok jompailot`, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
+- El activador local debe reconocer exclusivamente `Ok Nezu` y sus variantes fonéticas controladas, comenzando captura de orden sin requerir presionar el botón de micrófono cada vez.
 - Todas las superficies de voz y texto deben consumir un único catálogo canónico de activadores. Una variante aceptada para despertar, interrumpir o silenciar también debe eliminarse del comando antes de resolver cualquier acción o conversación; no puede haber listas divergentes entre frontend, fast path y conversación backend.
-- El catálogo canónico debe cubrir de forma uniforme `HomePilot`, `Home Pilot`, los prefijos conversacionales `ok`, `oye`, `hey` y `hola`, y las variantes fonéticas soportadas (`pome pilot`, `pome pilote`, `jompailot`, `hombalot`, `han pilot`, `hombilot`, `hambailot`, `hambailo`, `compa y lot`, `jom pailot`, `hom pailot`, `jon pailot`, `home pailot`, `hom pilot`, `jom pilot`, `jon pilot`, `on pilot`, `om pilot`).
-- La detección debe aceptar variaciones fonéticas cercanas de `HomePilot` al inicio de la transcripción, con un umbral conservador que no active frases comunes ni coincidencias incrustadas dentro de una oración.
-- Whisper debe recibir vocabulario contextual configurable para favorecer `HomePilot` y sus pronunciaciones observadas cuando transcribe audio en español.
+- El catálogo canónico debe exigir un prefijo equivalente a `ok` (`ok`, `okay`, `okey`, `okei`) seguido de `Nezu` o una variante fonética controlada (`nesu`, `ne su`, `nezo`, `neso`).
+- La detección aproximada debe ejecutarse únicamente después del prefijo obligatorio, aceptar como máximo una edición y mantener una razón de distancia máxima de 0.25.
+- `Nezu` solo, `oye Nezu`, `hey Nezu`, cualquier activador histórico basado en `HomePilot` y coincidencias incrustadas dentro de una oración no deben activar el asistente.
+- Whisper debe recibir vocabulario contextual configurable para favorecer `Ok Nezu` y sus pronunciaciones admitidas cuando transcribe audio en español.
 - La escucha pasiva debe priorizar la confirmación inmediata: después de detectar voz, debe cerrar la muestra del activador tras aproximadamente 350 ms de silencio, sin aplicar ese umbral corto a la captura posterior de la orden.
-- Si el activador recibe una frase completa, como `HomePilot apaga la luz de la sala`, debe enviar directamente la orden normalizada.
+- Si el activador recibe una frase completa, como `Ok Nezu apaga la luz de la sala`, debe enviar directamente la orden normalizada.
 - Si el activador global abre la vista de conversación con una orden pendiente, la respuesta debe habilitar lectura por voz antes de enviar el prompt.
 - La captura global de la orden debe tolerar 2 segundos continuos de silencio final para evitar cortar frases habladas con pausas naturales.
 - Si el activador global se usa desde otra pantalla, HomePilot no debe forzar navegación al chat; debe procesar la orden en segundo plano, mostrar una respuesta discreta y reproducir voz si el navegador lo permite.
-- Frases con activador fonético o separado, como `ok jompailot apaga la luz de la sala` u `ok home pilot apaga el territorio`, deben normalizar el prefijo antes de evaluar la intención.
+- Frases con activador fonético o separado, como `ok nesu apaga la luz de la sala` u `ok ne su abre la cortina`, deben normalizar el prefijo antes de evaluar la intención.
 - Comandos de control con verbo claro pero destino inexistente deben responder por ruta determinística rápida, sin esperar interpretación pesada.
 - Las respuestas de ejecución, error, objetivo no encontrado, aclaración y bloqueo de seguridad deben poder adjuntar metadato opcional `responseStyle` y formatearse con tono residencial tipo Jarvis sin afirmar acciones no confirmadas.
 - El tono tipo Jarvis debe sonar como un operador residencial premium: natural, breve, sereno y seguro, evitando lenguaje técnico como "dispositivo ha sido..." cuando pueda expresarse como una acción humana.
-- Preguntas conversacionales cortas como `ok jompailot cómo estás` o `ok jompailot qué hora es` deben responder de forma útil y enfocada en la casa, no como charla genérica desconectada del sistema residencial.
+- Preguntas conversacionales cortas como `Ok Nezu cómo estás` o `Ok Nezu qué hora es` deben responder de forma útil y enfocada en la casa, no como charla genérica desconectada del sistema residencial.
 - El contrato conversacional debe mantener al menos 100 expresiones representativas verificadas por tests, distribuidas entre conversación, fecha y hora, estado general, luces, cortinas, estancias, escenas, automatizaciones, ayuda y contexto.
 - Las consultas de hora deben responder en lenguaje hablado y con franja del día, por ejemplo `Son las nueve y cuarenta y cinco de la mañana`, respetando la zona horaria configurada. Las consultas `qué día es hoy`, `cuál es la fecha`, `es de mañana`, `es de tarde` y `ya es de noche` deben resolverse de forma determinista.
-- Preguntas de capacidad como `HomePilot qué puedes hacer`, `qué te puedo pedir`, `cómo me ayudas con la casa`, `qué comandos entiendes` o `qué puedes controlar` deben responder con una guía residencial concreta, sin caer en aclaración genérica.
+- Preguntas de capacidad como `Ok Nezu qué puedes hacer`, `qué te puedo pedir`, `cómo me ayudas con la casa`, `qué comandos entiendes` o `qué puedes controlar` deben responder con una guía residencial concreta, sin caer en aclaración genérica.
 - La guía de capacidades debe cubrir escenarios humanos de uso: estado, control por estancia, luces, cortinas, escenas, automatizaciones, alias, confirmaciones, recuperación de fallos, límites y ejemplos disponibles del hogar actual.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - Frases naturales de varias palabras deben llegar al backend aunque no contengan una keyword exacta conocida; solo deben descartarse capturas vacías o de bajo valor como ruido.
@@ -78,9 +79,9 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Una vez iniciada la orden, HomePilot espera pausas naturales y finaliza la captura después de 2 segundos continuos de silencio.
 - Si una orden hablada no obtiene respuesta en 5 segundos, la UI cancela esa espera y comunica de inmediato que no pudo entender o procesar la solicitud.
 - El flujo global registra tiempos de detección, resolución y reproducción para diagnosticar latencia de voz local.
-- Si el usuario dice `ok jompailot callate`, `ok jompailot silencio` o `ok jompailot deja de hablar`, HomePilot detiene de inmediato cualquier respuesta en reproducción y responde con una confirmación corta.
-- Si el usuario dice solo `ok jompailot` mientras HomePilot está hablando, HomePilot detiene la respuesta actual y abre una nueva captura de orden.
-- Si el usuario dice `ok jompailot apaga la sala` mientras HomePilot está hablando, HomePilot detiene la respuesta actual y procesa esa orden nueva.
+- Si el usuario dice `Ok Nezu callate`, `Ok Nezu silencio` o `Ok Nezu deja de hablar`, HomePilot detiene de inmediato cualquier respuesta en reproducción y responde con una confirmación corta.
+- Si el usuario dice solo `Ok Nezu` mientras HomePilot está hablando, HomePilot detiene la respuesta actual y abre una nueva captura de orden.
+- Si el usuario dice `Ok Nezu apaga la sala` mientras HomePilot está hablando, HomePilot detiene la respuesta actual y procesa esa orden nueva.
 - Si el micrófono captura eco, ruido o texto no accionable mientras HomePilot está hablando, no debe reenviarlo al backend ni producir respuestas repetidas de aclaración.
 - El shell carga vistas por demanda con `React.lazy`/`Suspense` sin cambiar rutas ni contratos.
 - Las respuestas rápidas de saludo, estado del asistente y nombre se delegan a un helper modular testeado.

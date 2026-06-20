@@ -104,7 +104,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
     mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
 
-    const response = await service.converse({ prompt: 'oye HomePilot me puedes encender la luz de cocina por favor', userId: 'u1' }, 'es');
+    const response = await service.converse({ prompt: 'Ok Nezu me puedes encender la luz de cocina por favor', userId: 'u1' }, 'es');
 
     expect(response.type).toBe('execution');
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
     mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
 
-    const response = await service.converse({ prompt: 'ok home pilot apaga la luz sala', userId: 'u1' }, 'es');
+    const response = await service.converse({ prompt: 'ok ne su apaga la luz sala', userId: 'u1' }, 'es');
 
     expect(response.type).toBe('execution');
     expect(response.message).toContain('Luz Sala');
@@ -154,7 +154,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
     mockRoomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Sala' }]);
 
-    const response = await service.converse({ prompt: 'ok home pilot apaga el territorio', userId: 'u1' }, 'es');
+    const response = await service.converse({ prompt: 'ok ne su apaga el territorio', userId: 'u1' }, 'es');
 
     expect(response.type).toBe('answer');
     expect(response.message).toContain("No encontré un dispositivo llamado 'el territorio'");

@@ -1,9 +1,9 @@
 /// <reference types="jest" />
 import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript } from '../homeConversationVoice';
-import { HOME_PILOT_WAKE_PHRASES } from '../../../../../packages/shared/domain/homePilotWakePhrases';
+import { NEZU_WAKE_PHRASES } from '../../../../../packages/shared/domain/nezuWakePhrases';
 
 describe('homeConversationVoice', () => {
-  it.each(HOME_PILOT_WAKE_PHRASES)('uses the canonical wake phrase "%s" for every voice action', phrase => {
+  it.each(NEZU_WAKE_PHRASES)('uses the canonical wake phrase "%s" for every voice action', phrase => {
     expect(extractWakeCommand(`${phrase}, apaga la luz de la sala`)).toEqual({
       activated: true,
       command: 'apaga la luz de la sala'
@@ -11,19 +11,17 @@ describe('homeConversationVoice', () => {
   });
 
   it('does not activate when a wake phrase is embedded inside another sentence', () => {
-    expect(extractWakeCommand('mi automatizacion se llama homepilot nocturno')).toEqual({
+    expect(extractWakeCommand('mi automatizacion se llama ok nezu nocturno')).toEqual({
       activated: false,
       command: ''
     });
   });
 
   it.each([
-    '¡Hombalot! ¿Qué hora es?',
-    '¡Han Pilot! ¿Qué hora es?',
-    '¡HOMBILOT! ¿Qué hora es?',
-    '¡Hambailot! ¿Qué hora es?',
-    '¡Hambailo! ¿Qué hora es?',
-    '¡Compa y lot! ¿Qué hora es?'
+    '¡Ok Nesu! ¿Qué hora es?',
+    '¡Okey Ne Su! ¿Qué hora es?',
+    '¡Okay Nezo! ¿Qué hora es?',
+    '¡Okei Neso! ¿Qué hora es?'
   ])('accepts observed Whisper wake transcription "%s"', transcript => {
     expect(extractWakeCommand(transcript)).toEqual({
       activated: true,
@@ -33,13 +31,15 @@ describe('homeConversationVoice', () => {
 
   it.each([
     '¡Suscríbete!',
-    '¿O qué dijo un pilot? ¿Qué hora es?'
+    '¡Nezu! ¿Qué hora es?',
+    '¡Oye Nezu! ¿Qué hora es?',
+    '¡Ok HomePilot! ¿Qué hora es?'
   ])('rejects unrelated Whisper transcription "%s"', transcript => {
     expect(extractWakeCommand(transcript)).toEqual({ activated: false, command: '' });
   });
 
   it('accepts accented wellness prompts after wake word extraction', () => {
-    const wake = extractWakeCommand('ok jompailot, cómo estás');
+    const wake = extractWakeCommand('ok nezu, cómo estás');
 
     expect(wake).toEqual({ activated: true, command: 'como estas' });
     expect(isUsableVoiceTranscript(wake.command)).toBe(true);
@@ -66,7 +66,7 @@ describe('homeConversationVoice', () => {
   });
 
   it('detects voice interruption commands after wake word extraction', () => {
-    const wake = extractWakeCommand('ok jompailot, cállate');
+    const wake = extractWakeCommand('ok nezu, cállate');
 
     expect(wake).toEqual({ activated: true, command: 'callate' });
     expect(isSilenceVoiceCommand(wake.command)).toBe(true);

@@ -1,7 +1,7 @@
 import {
-  extractHomePilotWakeCommand,
-  normalizeHomePilotWakeText
-} from '../../../../packages/shared/domain/homePilotWakePhrases';
+  extractNezuWakeCommand,
+  normalizeNezuWakeText
+} from '../../../../packages/shared/domain/nezuWakePhrases';
 
 export const HOME_CONVERSATION_STOP_SPEECH_EVENT = 'homepilot:stop-home-conversation-speech';
 export const HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT = 'homepilot:home-conversation-speech-activity';
@@ -32,7 +32,7 @@ export function isUsableVoiceTranscript(transcript: string): boolean {
   if (isSilenceVoiceCommand(normalized)) return true;
 
   if (tokens.length < 2) {
-    return ['hola', 'hello', 'hi', 'hey', 'gracias', 'thanks', 'homepilot', 'si', 'no'].includes(normalized);
+    return ['hola', 'hello', 'hi', 'hey', 'gracias', 'thanks', 'nezu', 'si', 'no'].includes(normalized);
   }
 
   const lowValueTranscripts = [
@@ -47,7 +47,7 @@ export function isUsableVoiceTranscript(transcript: string): boolean {
 }
 
 export function normalizeWakeText(text: string): string {
-  return normalizeHomePilotWakeText(text);
+  return normalizeNezuWakeText(text);
 }
 
 export function isSilenceVoiceCommand(transcript: string): boolean {
@@ -80,5 +80,5 @@ export function isSilenceVoiceCommand(transcript: string): boolean {
 }
 
 export function extractWakeCommand(transcript: string): { activated: boolean; command: string } {
-  return extractHomePilotWakeCommand(transcript);
+  return extractNezuWakeCommand(transcript);
 }

@@ -50,7 +50,7 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="text-[0.62rem] font-black uppercase tracking-[0.24em] text-muted-foreground">
-          HomePilot Voice
+          Nezu Voice
         </span>
         <span
           className={cn(

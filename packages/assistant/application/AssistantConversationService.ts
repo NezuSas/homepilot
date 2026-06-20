@@ -26,7 +26,7 @@ import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowServi
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
 import { AssistantQuickResponseService } from './AssistantQuickResponseService';
-import { extractHomePilotWakeCommand } from '../../shared/domain/homePilotWakePhrases';
+import { extractNezuWakeCommand } from '../../shared/domain/nezuWakePhrases';
 import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
 
 export interface AssistantConversationResponse {
@@ -1743,7 +1743,7 @@ export class AssistantConversationService {
       .replace(/\bcierres\b/g, "cierra")
       .replace(/\babras\b/g, "abre");
 
-    const wakeCommand = extractHomePilotWakeCommand(normalized);
+    const wakeCommand = extractNezuWakeCommand(normalized);
     if (wakeCommand.activated) {
       normalized = wakeCommand.command;
     }

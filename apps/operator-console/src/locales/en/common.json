@@ -132,7 +132,7 @@
       "placeholder": "Tell me something, e.g. what lights are on?",
       "send": "Send",
       "sending": "Sending...",
-      "voice_start": "Talk to HomePilot",
+      "voice_start": "Talk to Nezu",
       "voice_listening": "Recording...",
       "voice_permission_error": "Microphone permission denied",
       "voice_no_speech": "I did not hear anything",

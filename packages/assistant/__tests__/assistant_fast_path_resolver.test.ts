@@ -53,7 +53,7 @@ describe('AssistantFastPathResolver', () => {
   });
 
   it('resolves natural Spanish phrases without requiring the verb at the start', () => {
-    const result = resolver.resolve('oye HomePilot me puedes apagar la luz de la sala por favor', mockDevices);
+    const result = resolver.resolve('Ok Nezu me puedes apagar la luz de la sala por favor', mockDevices);
     expect(result).toEqual({
       deviceId: 'd2',
       deviceName: 'Luz Sala',
@@ -88,7 +88,7 @@ describe('AssistantFastPathResolver', () => {
   });
 
   it('resolves English natural phrases through the same safe path', () => {
-    const result = resolver.resolve('hey HomePilot could you turn on the kitchen light please', [
+    const result = resolver.resolve('Ok Nezu could you turn on the kitchen light please', [
       { id: 'd1', name: 'Kitchen Light', type: 'light', roomId: 'r1' } as Device
     ]);
     expect(result).toEqual({

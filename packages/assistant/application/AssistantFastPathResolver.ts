@@ -35,7 +35,6 @@ export class AssistantFastPathResolver {
     'favorcito',
     'for',
     'hey',
-    'homepilot',
     'la',
     'las',
     'los',
@@ -181,7 +180,7 @@ export class AssistantFastPathResolver {
     if (normPrompt.split(/\s+/).some(token => this.MANAGEMENT_TERMS.has(token))) return skip('management_prompt');
     if (this.PERSONAL_ROOM_PHRASES.some(phrase => normPrompt.includes(phrase))) return skip('personal_room_alias_required');
 
-    // 1. Extract command from natural phrases like "oye homepilot me puedes apagar..."
+    // 1. Extract the command verb from the already normalized conversational prompt.
     const commandMatch = this.findCommandMatch(normPrompt);
 
     if (!commandMatch) return skip('no_command_verb_found');

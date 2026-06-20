@@ -18,7 +18,7 @@ VAD_MIN_SILENCE_MS = int(os.getenv("WHISPER_VAD_MIN_SILENCE_MS", "650"))
 VAD_SPEECH_PAD_MS = int(os.getenv("WHISPER_VAD_SPEECH_PAD_MS", "400"))
 HOTWORDS = os.getenv(
     "WHISPER_HOTWORDS",
-    "HomePilot, Home Pilot, jompailot, jom pailot, hom pilot, jon pilot, pome pilot, hombalot, hombilot, hambailot"
+    "Ok Nezu, OK Nezu, Okey Nezu, Okay Nezu, Okei Nezu, ok Nesu, ok Ne Su, ok Nezo, ok Neso"
 ).strip()
 
 app = FastAPI(title="HomePilot STT Whisper", version="1.0.0")
