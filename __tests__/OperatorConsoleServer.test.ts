@@ -225,15 +225,21 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(inDb?.lastKnownState?.on).toBe(true);
     });
 
-    it('POST /api/v1/devices/:refresh: 404 when the HA entity does not exist', async () => {
+    it('POST /api/v1/devices/:refresh: marks a missing HA entity unavailable', async () => {
       (container.adapters.homeAssistantClient.getEntityState as jest.Mock) = jest.fn().mockResolvedValueOnce(null);
       const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
         method: 'POST',
         headers: { 'x-hp-test-bypass': 'true' }
       });
-      expect(res.status).toBe(404);
-      const data = await res.json() as { error: { code: string } };
-      expect(data.error.code).toBe('HA_ENTITY_NOT_FOUND');
+      expect(res.status).toBe(200);
+      const data = await res.json() as Device;
+      expect(data.lastKnownState).toEqual(expect.objectContaining({
+        state: 'unavailable',
+        availabilityReason: 'entity_missing',
+      }));
+
+      const inDb = await container.repositories.deviceRepository.findDeviceById('d-ha');
+      expect(inDb?.lastKnownState?.state).toBe('unavailable');
     });
   });
 

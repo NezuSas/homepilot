@@ -74,6 +74,8 @@ Se propone una consola de administración pragmática:
 - [ ] AC6: El inspector permite eliminar una importación local mediante confirmación explícita, refresca el inventario sin recargar y comunica si el dispositivo está en uso.
 - [ ] AC7: El componente de cortina representa posición y movimiento con contraste suficiente en modo claro y oscuro. La UI siempre envía la intención `open`/`close`; la inversión física se aplica una sola vez en el driver.
 - [ ] AC8: Relax, Fuera, Noche y Eco persisten localmente y cambian visiblemente el foco operativo de Inicio. No ejecutan comandos físicos implícitos; cuando existe una escena con el mismo nombre, el modo la ofrece como acción explícita.
+- [ ] AC9: Las tarjetas de Inicio distinguen explícitamente un dispositivo con `lastKnownState.state = "unavailable"`, mantienen sus datos visibles y bloquean sus controles hasta que Home Assistant vuelva a reportarlo.
+- [ ] AC10: La cortina conserva la animación de persiana vertical existente y utiliza colores semánticos del tema para mantener contraste en modo claro y oscuro, sin sustituirla por una representación visual diferente.
 
 ## 9. Notas Técnicas y Arquitectura
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).

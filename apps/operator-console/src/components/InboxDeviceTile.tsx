@@ -12,6 +12,7 @@ import {
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
 import { SelectField } from './ui/SelectField';
@@ -47,6 +48,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
   const { t } = useTranslation();
   const isAssigned = device.status === 'ASSIGNED';
   const isPending = device.status === 'PENDING';
+  const unavailable = isDeviceUnavailable(device);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState('');
@@ -70,7 +72,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isProcessing || !supportsCommands) return;
+    if (isProcessing || unavailable || !supportsCommands) return;
 
     setIsProcessing(true);
     setError(null);
@@ -128,7 +130,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         'relative group cursor-pointer transition-all duration-500',
         'aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2 hover:-translate-y-1 hover:shadow-xl',
         'bg-card hover:border-border',
-        isOn && isAssigned ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20' : 'border-border shadow-md',
+        isOn && isAssigned && !unavailable ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20' : 'border-border shadow-md',
         (!isAssigned && isSonoff) ? 'border-success/30 bg-success/5 shadow-lg shadow-success/10 animate-in fade-in zoom-in-95 duration-700' : '',
         isProcessing && 'opacity-70 scale-[0.98] bg-muted/50 hover:translate-y-0 hover:shadow-none',
         error && 'border-destructive/40 bg-destructive/5 hover:translate-y-0',
@@ -143,7 +145,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
           <Icon className="w-5 h-5" />
         </div>
 
-        {supportsCommands && isAssigned && !hideControls && (
+        {supportsCommands && isAssigned && !unavailable && !hideControls && (
           <button
             onClick={handleToggle}
             disabled={isProcessing}
@@ -176,6 +178,11 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
           <span className="text-caption font-black uppercase tracking-tighter truncate opacity-60">{device.type}</span>
           {isSonoff && (
             <span className="text-micro font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">{t('inbox.native_local')}</span>
+          )}
+          {unavailable && (
+            <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-micro font-black uppercase tracking-[0.1em] text-danger">
+              {t('device_states.unavailable')}
+            </span>
           )}
         </div>
         <h4 className="text-card-title font-bold truncate">{device.name}</h4>

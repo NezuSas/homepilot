@@ -618,6 +618,8 @@
     "on": "Encendido",
     "off": "Apagado",
     "error": "Sin conexión",
+    "unavailable": "No disponible",
+    "device_unavailable_hint": "Home Assistant ya no reporta esta entidad. Puedes refrescarla, eliminar la importación local o esperar a que reaparezca; al recuperarse se actualizará automáticamente.",
     "updating": "Actualizando"
   },
   "audit_logs": {
@@ -1060,6 +1062,7 @@
     "password_mask": "••••••••",
     "online": "En línea",
     "offline": "Fuera de línea",
+    "unavailable": "No disponible",
     "enable": "Activar",
     "disable": "Desactivar",
     "edit": "Editar",
@@ -1116,6 +1119,7 @@
       "closed": "Cerrada",
       "opening": "Abriendo",
       "closing": "Cerrando",
+      "unavailable": "No disponible",
       "unknown": "Desconocido"
     },
     "events": {

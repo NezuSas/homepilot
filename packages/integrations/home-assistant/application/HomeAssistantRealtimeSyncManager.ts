@@ -5,6 +5,7 @@ import { ActivityLogRepository } from '../../../devices/domain/repositories/Acti
 import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 import { HomeAssistantClient } from '../../../devices/infrastructure/adapters/HomeAssistantClient';
 import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
+import { buildUnavailableDeviceState } from '../../../devices/application/deviceAvailability';
 
 export interface SystemStateChangeEvent {
   eventId: string;
@@ -312,27 +313,36 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
         return;
       }
 
+      const localHaDevices = (await this.deviceRepository.findAll())
+        .filter((device) => device.integrationSource === 'ha' && device.externalId.startsWith('ha:'));
+      const statesByExternalId = new Map<string, (typeof allStates)[number]>(
+        allStates
+          .filter((state) => state.entity_id && state.state !== null && state.state !== undefined)
+          .map((state) => [`ha:${state.entity_id}`, state] as const),
+      );
+
       let reconciledCount = 0;
-      let skippedCount = 0;
+      let unavailableCount = 0;
+      let skippedCount = allStates.length - statesByExternalId.size;
 
-      for (const haState of allStates) {
+      for (const device of localHaDevices) {
         try {
-          // Ignorar entidades con state nulo o raro
-          if (!haState.entity_id || haState.state === null || haState.state === undefined) {
-            skippedCount++;
+          const haState = statesByExternalId.get(device.externalId);
+          if (!haState) {
+            if (device.lastKnownState?.state === 'unavailable') {
+              skippedCount++;
+              continue;
+            }
+
+            await this.deviceRepository.saveDevice({
+              ...device,
+              lastKnownState: buildUnavailableDeviceState(device.lastKnownState),
+              updatedAt: new Date().toISOString(),
+            });
+            unavailableCount++;
             continue;
           }
 
-          const externalId = `ha:${haState.entity_id}`;
-          const device = await this.deviceRepository.findByExternalId(externalId);
-
-          if (!device) {
-            // Entidad no registrada localmente: ignorar, no crear nuevos devices.
-            skippedCount++;
-            continue;
-          }
-
-          // SILENT APPLY: actualizar lastKnownState y updatedAt sin emitir system_event.
           await this.deviceRepository.saveDevice({
             ...device,
             lastKnownState: {
@@ -345,14 +355,14 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           reconciledCount++;
         } catch (entityErr: any) {
           skippedCount++;
-          console.warn(`[HA-Sync] Reconciliation: error parcheando ${haState.entity_id}:`, entityErr.message);
+          console.warn(`[HA-Sync] Reconciliation: error parcheando ${device.externalId}:`, entityErr.message);
         }
       }
 
-      console.log(`[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${skippedCount} omitidos.`);
+      console.log(`[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${unavailableCount} no disponibles, ${skippedCount} omitidos.`);
       this.lastReconciliationAt = new Date().toISOString();
       this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
-        `State reconciliation completed: ${reconciledCount} updated, ${skippedCount} skipped`, reconciledCount, skippedCount);
+        `State reconciliation completed: ${reconciledCount} updated, ${unavailableCount} unavailable, ${skippedCount} skipped`, reconciledCount, skippedCount);
 
     } finally {
       this.isReconciling = false;

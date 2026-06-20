@@ -100,7 +100,7 @@ describe('DeviceRoutes - Home Assistant device refresh', () => {
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
   });
 
-  it('returns HA_ENTITY_NOT_FOUND without marking Home Assistant unreachable', async () => {
+  it('marks a missing Home Assistant entity unavailable without marking HA unreachable', async () => {
     const { container, saveDevice, updateStatusFromOperation } = createContainer(jest.fn().mockResolvedValue(null));
     const response = createResponse();
 
@@ -112,9 +112,14 @@ describe('DeviceRoutes - Home Assistant device refresh', () => {
       container,
     );
 
-    expect(saveDevice).not.toHaveBeenCalled();
+    expect(saveDevice).toHaveBeenCalledWith(expect.objectContaining({
+      lastKnownState: expect.objectContaining({
+        state: 'unavailable',
+        availabilityReason: 'entity_missing',
+      }),
+      entityVersion: 2,
+    }));
     expect(updateStatusFromOperation).not.toHaveBeenCalled();
-    expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
-    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('HA_ENTITY_NOT_FOUND'));
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
   });
 });

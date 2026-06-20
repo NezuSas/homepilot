@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import { humanize } from '../lib/naming-utils';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import { getSafeHomeMode } from '../types';
 import type { HomeMode, View } from '../types';
 import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
@@ -69,6 +70,7 @@ const parseCoverPosition = (value: unknown): number | undefined => {
 };
 
 const isDeviceActive = (device: SnapshotDevice): boolean => {
+  if (isDeviceUnavailable(device)) return false;
   const state = (device.lastKnownState || {}) as DeviceActivityState;
 
   if (hasCapability(device, 'cover')) {

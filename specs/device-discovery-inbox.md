@@ -87,6 +87,8 @@ Ambos heredarán campos core (`eventId`, `timestamp`, `schemaVersion`, `source`,
 - **AC6:** Un administrador propietario puede eliminar del inventario local un dispositivo importado mediante `DELETE /api/v1/devices/:id`. La operación no elimina la entidad física de Home Assistant y permite volver a importarla.
 - **AC7:** La eliminación devuelve `409 DEVICE_IN_USE` si el dispositivo participa en una escena o automatización, preservando la integridad de las configuraciones existentes.
 - **AC8:** Eliminar un identificador desconocido devuelve `404 DEVICE_NOT_FOUND` sin efectos secundarios.
+- **AC9:** Después de una reconciliación exitosa con Home Assistant, toda importación local cuya `externalId` ya no aparezca en el inventario remoto conserva su registro pero expone `lastKnownState.state = "unavailable"`. Si la misma entidad reaparece, la siguiente reconciliación reemplaza automáticamente ese estado por el estado remoto vigente.
+- **AC10:** Un dispositivo no disponible permanece visible para diagnóstico y eliminación, pero no permite ejecutar comandos desde Inicio. Su eliminación local sigue las mismas validaciones de referencias de AC7.
 
 ## 10. Notas Técnicas y Arquitectura
 - **Inyección Trans-Módulo Segura:** Para validar de manera correcta la integridad solicitada en AC5 y repeler la inyección transversal, el Orquestador o Caso de Uso implementado demandará que verifiquemos a través de un puerto perimetral (Ej. `TopologyService`) que el identificador intermedio (ID de Room) esté formalmente enrastrado por debajo del `homeId` matriz registrado tras el Discovery original.

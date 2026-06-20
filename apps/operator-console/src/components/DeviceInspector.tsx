@@ -19,6 +19,7 @@ import {
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from './ConfirmModal';
 import { Button } from './ui/Button';
@@ -160,7 +161,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   };
 
   const handleCommand = async (command: 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop') => {
-    if (!device || isActionLoading) return;
+    if (!device || isDeviceUnavailable(device) || isActionLoading) return;
     setIsActionLoading(true);
     try {
       const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
@@ -279,6 +280,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   if (!device) return null;
 
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
+  const unavailable = isDeviceUnavailable(device);
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end animate-in fade-in duration-300">
@@ -356,6 +358,15 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {activeTab === 'info' && (
             <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-4 duration-500">
+              {unavailable && (
+                <div className="flex items-start gap-3 rounded-panel border border-danger/30 bg-danger/10 p-4 text-danger">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div>
+                    <p className="text-label font-black uppercase tracking-widest">{t('common.unavailable')}</p>
+                    <p className="mt-1 text-caption text-foreground/75">{t('common.device_unavailable_hint')}</p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
                   <div className="flex items-center justify-between">
@@ -451,13 +462,13 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                 {(device.type === 'light' || device.type === 'switch') && (
                   <div className="flex gap-4">
-                    <Button onClick={() => handleCommand('turn_on')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
+                    <Button disabled={unavailable || isActionLoading} onClick={() => handleCommand('turn_on')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.force_on')}
                     </Button>
-                    <Button variant="secondary" onClick={() => handleCommand('turn_off')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
+                    <Button disabled={unavailable || isActionLoading} variant="secondary" onClick={() => handleCommand('turn_off')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.force_off')}
                     </Button>
-                    <Button variant="outline" onClick={() => handleCommand('toggle')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
+                    <Button disabled={unavailable || isActionLoading} variant="outline" onClick={() => handleCommand('toggle')} className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.toggle')}
                     </Button>
                   </div>
@@ -465,13 +476,13 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                 {device.type === 'cover' && (
                   <div className="flex gap-4">
-                    <Button onClick={() => handleCommand('open')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
+                    <Button disabled={unavailable || isActionLoading} onClick={() => handleCommand('open')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.open')}
                     </Button>
-                    <Button variant="secondary" onClick={() => handleCommand('stop')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
+                    <Button disabled={unavailable || isActionLoading} variant="secondary" onClick={() => handleCommand('stop')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.stop')}
                     </Button>
-                    <Button variant="outline" onClick={() => handleCommand('close')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
+                    <Button disabled={unavailable || isActionLoading} variant="outline" onClick={() => handleCommand('close')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.close')}
                     </Button>
                   </div>

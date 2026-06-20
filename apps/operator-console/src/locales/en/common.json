@@ -618,6 +618,8 @@
     "on": "On",
     "off": "Off",
     "error": "Disconnected",
+    "unavailable": "Unavailable",
+    "device_unavailable_hint": "Home Assistant no longer reports this entity. You can refresh it, remove the local import, or wait for it to return; it will update automatically when recovered.",
     "updating": "Updating"
   },
   "audit_logs": {
@@ -1060,6 +1062,7 @@
     "password_mask": "••••••••",
     "online": "Online",
     "offline": "Offline",
+    "unavailable": "Unavailable",
     "unknown": "Unknown",
     "unknown_scene": "Unknown Scene",
     "system": "System",
@@ -1116,6 +1119,7 @@
       "closed": "Closed",
       "opening": "Opening",
       "closing": "Closing",
+      "unavailable": "Unavailable",
       "unknown": "Unknown"
     },
     "events": {

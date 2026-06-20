@@ -6,14 +6,14 @@ import {
 import { cn } from '../lib/utils';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { canExecuteCommand } from '../lib/deviceCapabilities';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import { CoverPositionControl } from './CoverPositionControl';
 import { Button } from './ui/Button';
 import { DeviceTileShell } from './ui/DeviceTileShell';
-import { CurtainPositionVisual } from './CurtainPositionVisual';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 
 interface DeviceState {
-  state?: 'open' | 'closed' | 'opening' | 'closing' | 'unknown';
+  state?: 'open' | 'closed' | 'opening' | 'closing' | 'unknown' | 'unavailable';
   current_position?: unknown;
   position?: unknown;
   attributes?: Record<string, unknown>;
@@ -38,6 +38,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   const lastState = (device.lastKnownState || {}) as DeviceState;
   const rawState = lastState.state || 'unknown';
+  const unavailable = isDeviceUnavailable(device);
   
   const getFunctionalState = (s: string) => {
     if (!device.invertState) return s;
@@ -66,8 +67,10 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';
   const isMoving = isOpening || isClosing;
-  const isOpen = position !== undefined ? position > 0 : state === 'open';
-  const displayState = isMoving
+  const isOpen = !unavailable && (position !== undefined ? position > 0 : state === 'open');
+  const displayState = unavailable
+    ? 'unavailable'
+    : isMoving
     ? state
     : position !== undefined
       ? (position > 0 ? 'open' : 'closed')
@@ -81,7 +84,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const isSonoff = device.integrationSource === 'sonoff';
 
   const handleCommand = async (command: string, params?: Record<string, unknown>) => {
-    if (isProcessing || !onCommand) return;
+    if (isProcessing || unavailable || !onCommand) return;
     
     if (!canExecuteCommand(device, command)) {
       console.warn(`[UI] Command ${command} not allowed for device ${device.id}`);
@@ -119,10 +122,10 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   const localizedState = t(`common.cover.${displayState}`, { defaultValue: displayState });
 
-  const canOpen = !!onCommand && canExecuteCommand(device, 'open');
-  const canClose = !!onCommand && canExecuteCommand(device, 'close');
-  const canStop = !!onCommand && canExecuteCommand(device, 'stop');
-  const canSetPosition = !!onCommand && canExecuteCommand(device, 'set_position');
+  const canOpen = !unavailable && !!onCommand && canExecuteCommand(device, 'open');
+  const canClose = !unavailable && !!onCommand && canExecuteCommand(device, 'close');
+  const canStop = !unavailable && !!onCommand && canExecuteCommand(device, 'stop');
+  const canSetPosition = !unavailable && !!onCommand && canExecuteCommand(device, 'set_position');
   const desiredCoverCommand = isOpen ? 'close' : 'open';
   const canExecutePrimary = desiredCoverCommand === 'open' ? canOpen : canClose;
   const primaryCoverCommand = canExecutePrimary ? desiredCoverCommand : null;
@@ -131,13 +134,26 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   return (
     <DeviceTileShell
       active={isMoving || isOpen}
-      disabled={device.status === 'PENDING'}
+      disabled={device.status === 'PENDING' || unavailable}
       syncing={isMoving}
     >
       
       {isMoving && (
         <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow pointer-events-none z-0" />
       )}
+
+      <div
+        className={cn(
+          'absolute inset-0 z-0 pointer-events-none opacity-45 transition-transform [transition-duration:1500ms] ease-in-out',
+          isOpen ? '-translate-y-full' : 'translate-y-0',
+        )}
+        style={{
+          background: 'repeating-linear-gradient(to bottom, hsl(var(--foreground) / 0.32) 0px, hsl(var(--foreground) / 0.32) 12px, hsl(var(--background) / 0.18) 13px, hsl(var(--foreground) / 0.32) 14px)',
+        }}
+        aria-hidden="true"
+      >
+        <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-[0_-4px_12px_hsl(var(--foreground)/0.18)]" />
+      </div>
 
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex justify-between items-start">
@@ -167,11 +183,6 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
              </div>
           </div>
         </div>
-
-        <CurtainPositionVisual
-          position={visualPosition}
-          movement={isOpening ? 'opening' : isClosing ? 'closing' : null}
-        />
 
         <div className="flex flex-col gap-1 overflow-hidden">
            <h4 className="text-card-title font-bold truncate tracking-tight text-foreground">{displayName}</h4>
@@ -230,6 +241,15 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
           )}
         </div>
       </div>
+
+      {position !== undefined && !unavailable && (
+        <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-muted/20">
+          <div
+            className="h-full bg-primary/50 transition-all duration-1000 ease-out"
+            style={{ width: `${visualPosition}%` }}
+          />
+        </div>
+      )}
 
     </DeviceTileShell>
   );

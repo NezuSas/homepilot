@@ -12,6 +12,7 @@ import { resolveCapabilitiesForDevice } from '../../../packages/devices/domain/C
 import { Device } from '../../../packages/devices/domain/types';
 import { CAPABILITY_DEFINITIONS } from '../../../packages/devices/domain/capabilities';
 import { removeDeviceUseCase } from '../../../packages/devices/application/removeDeviceUseCase';
+import { buildUnavailableDeviceState } from '../../../packages/devices/application/deviceAvailability';
 
 /**
  * Device routes: /api/v1/devices/*, /api/v1/activity-logs, /api/v1/ha/*
@@ -124,7 +125,15 @@ export class DeviceRoutes extends ApiRoutes {
         const haState = await container.adapters.homeAssistantClient.getEntityState(entityId);
 
         if (!haState) {
-          return this.sendError(res, 404, 'HA_ENTITY_NOT_FOUND', 'Home Assistant entity not found'), true;
+          const unavailableDevice = {
+            ...device,
+            lastKnownState: buildUnavailableDeviceState(device.lastKnownState),
+            updatedAt: new Date().toISOString(),
+            entityVersion: device.entityVersion + 1,
+          };
+          await container.repositories.deviceRepository.saveDevice(unavailableDevice);
+          this.sendJson(res, this.enrichDevice(unavailableDevice));
+          return true;
         }
 
         container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');

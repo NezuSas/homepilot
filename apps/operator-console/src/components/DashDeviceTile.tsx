@@ -6,6 +6,7 @@ import {
 import { cn } from '../lib/utils';
 import { humanize, disambiguate } from '../lib/naming-utils';
 import { hasCapability, canExecuteCommand } from '../lib/deviceCapabilities';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device } from '../stores/useDeviceSnapshotStore';
 import { DeviceTileShell } from './ui/DeviceTileShell';
 
@@ -32,7 +33,7 @@ export const DashDeviceTile: React.FC<{
   const lastState = (device.lastKnownState || {}) as DeviceState;
   const actualIsOn = lastState.on === true || lastState.state === 'on' || (Number(lastState.brightness) > 0) || (Number(lastState.power) > 0);
   const isOn = optimisticState !== null ? optimisticState : actualIsOn;
-  const isOffline = device.status === 'PENDING';
+  const isOffline = device.status === 'PENDING' || isDeviceUnavailable(device);
   
   const isSonoff = device.integrationSource === 'sonoff';
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
@@ -83,20 +84,22 @@ export const DashDeviceTile: React.FC<{
 
   const Icon = isLight ? Lightbulb : (isSwitch ? ToggleRight : Cpu);
 
-  const localizedState = isOffline 
-    ? t('device_states.error') 
+  const localizedState = isOffline
+    ? t('device_states.unavailable')
     : (isOn ? t('device_states.on') : t('device_states.off'));
   const brightness = Number(lastState.brightness);
   const power = Number(lastState.power);
-  const primaryMetric = Number.isFinite(brightness) && brightness > 0
-    ? `${Math.round(brightness)}%`
-    : (Number.isFinite(power) && power > 0 ? `${power.toFixed(power >= 10 ? 0 : 1)}W` : localizedState);
+  const primaryMetric = isOffline
+    ? localizedState
+    : Number.isFinite(brightness) && brightness > 0
+      ? `${Math.round(brightness)}%`
+      : (Number.isFinite(power) && power > 0 ? `${power.toFixed(power >= 10 ? 0 : 1)}W` : localizedState);
 
   return (
     <DeviceTileShell
       onClick={handleToggle}
       data-demo="device-tile"
-      active={isOn}
+      active={isOn && !isOffline}
       interactive={canToggle && !isOffline}
       disabled={isOffline}
       syncing={isProcessing}
