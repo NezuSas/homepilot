@@ -22,8 +22,10 @@ El design system de HomePilot mantiene una interfaz premium, local-first y opera
 - `border` / `border-subtle`: lineas de separacion.
 
 ### Estados
-- `primary`: accion principal e identidad HomePilot.
-- `accent`: acento premium tipo champagne/brass para momentos residenciales de lujo.
+- `primary`: naranja Nezu `#D9542B`, reservado para identidad, foco y acciones principales.
+- `accent`: lima Nezu `#C9DF38`, reservado para Eco, ahorro y eficiencia.
+- `light-active`: ámbar cálido para luminarias físicamente encendidas.
+- `mode-night`: violeta tenue para el modo Noche.
 - `success`: online, sincronizado o completado.
 - `warning`: atencion o estado intermedio.
 - `danger` / `destructive`: error, riesgo o accion destructiva.
@@ -31,31 +33,34 @@ El design system de HomePilot mantiene una interfaz premium, local-first y opera
 
 ## Estrategia de Color
 
-HomePilot compite contra sistemas residenciales premium, no contra un dashboard SaaS generico. La paleta debe comunicar control profesional, confianza local y lujo discreto.
+HomePilot compite contra sistemas residenciales premium, no contra un dashboard SaaS generico. La paleta Nezu debe comunicar control profesional, calidez doméstica y una identidad propia reconocible.
 
 ### Modo Oscuro
 - Base: grafito calido y profundo, no negro plano.
 - Superficies: escalera de elevacion `background -> card -> popover`.
-- Accion primaria: azul control refinado, usado para interaccion y navegacion activa.
-- Acento premium: champagne/brass reservado para energia, iluminacion, escenas y momentos de valor residencial.
+- Accion primaria: naranja Nezu, usado para interaccion, foco y navegacion activa.
+- Eco: lima Nezu reservado para ahorro, eficiencia y estados energéticos saludables.
+- Iluminación: ámbar cálido para representar luz física, sin confundirla con la marca.
 - Estados: verdes, amarillos y rojos sobrios, evitando tonos neon.
 
 ### Modo Claro
 - Base: canvas claro profesional con suficiente contraste contra tarjetas y sidebar.
 - Superficies: tarjetas porcelana con bordes mas visibles y sombras suaves.
-- Accion primaria: azul mas serio y profundo que en el modo oscuro para mantener contraste.
-- Acento premium: brass mas contenido para no convertir la UI en beige.
+- Accion primaria: derivado oscuro del naranja Nezu para mantener contraste con texto blanco.
+- Eco: lima más profundo sobre superficies claras, conservando el mismo significado.
 - Estados: mismos significados semanticos que en modo oscuro, ajustados para legibilidad.
 
 ### Criterio Visual
 - El modo claro no debe verse lavado ni como plantilla blanca generica.
 - El modo oscuro no debe perder separacion entre canvas, sidebar y cards.
 - Las cards de dispositivos deben tener presencia suficiente para una consola residencial premium.
-- Los estados activos pueden mezclar `primary` con una presencia minima de `accent` para sentirse mas HomePilot y menos dashboard generico.
+- Los estados activos usan un solo color semántico. No se mezclan naranja y lima como decoración.
+- El azul/cian no representa identidad, selección ni dispositivo activo.
+- Las habitaciones agrupan sus dispositivos dentro de una única superficie calmada; se evita el efecto de “mosaico SaaS”.
 
 ### Uso
 - `primary`: acciones principales, seleccion activa, navegacion y controles.
-- `accent`: detalles premium y contextos de hogar, nunca como color dominante.
+- `accent`: Eco, ahorro y eficiencia, nunca como color de selección general.
 - `warning`: informacion energetica o atencion operativa.
 - `success`: salud, conexion y sincronizacion.
 - `danger` / `destructive`: errores, riesgos o eliminacion.

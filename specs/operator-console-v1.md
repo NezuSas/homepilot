@@ -76,6 +76,10 @@ Se propone una consola de administración pragmática:
 - [ ] AC8: Relax, Fuera, Noche y Eco persisten localmente y cambian visiblemente el foco operativo de Inicio. No ejecutan comandos físicos implícitos; cuando existe una escena con el mismo nombre, el modo la ofrece como acción explícita.
 - [ ] AC9: Las tarjetas de Inicio distinguen explícitamente un dispositivo con `lastKnownState.state = "unavailable"`, mantienen sus datos visibles y bloquean sus controles hasta que Home Assistant vuelva a reportarlo.
 - [ ] AC10: La cortina conserva la animación de persiana vertical existente y utiliza colores semánticos del tema para mantener contraste en modo claro y oscuro, sin sustituirla por una representación visual diferente.
+- [ ] AC11: Inicio adopta una jerarquía residencial calmada inspirada en Apple Home: encabezado personal, modos visibles, escenas rápidas compactas y habitaciones agrupadas como unidades coherentes, sin alterar contratos ni comandos existentes.
+- [ ] AC12: La identidad visual Nezu utiliza `#D9542B` como color primario, `#C9DF38` exclusivamente para Eco/eficiencia y `#1A1A1A` como ancla neutra. El azul deja de representar marca o estado activo.
+- [ ] AC13: Los estados físicos se distinguen por significado: iluminación activa en ámbar cálido, cortinas y acciones de marca en naranja Nezu, Noche en violeta tenue, Eco en lima y apagado/no disponible en neutros accesibles.
+- [ ] AC14: Inicio evita analítica decorativa, microtexto técnico y efectos visuales excesivos. La información operativa existente permanece disponible mediante composición clara y controles con contraste equivalente en modo claro y oscuro.
 
 ## 9. Notas Técnicas y Arquitectura
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).

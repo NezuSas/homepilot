@@ -3,6 +3,7 @@ import { cn } from '../../lib/utils';
 
 export interface DeviceTileShellProps extends React.HTMLAttributes<HTMLDivElement> {
   active?: boolean;
+  tone?: 'brand' | 'light';
   disabled?: boolean;
   interactive?: boolean;
   syncing?: boolean;
@@ -13,6 +14,7 @@ export const DeviceTileShell = React.forwardRef<HTMLDivElement, DeviceTileShellP
   (
     {
       active = false,
+      tone = 'brand',
       disabled = false,
       interactive = false,
       syncing = false,
@@ -43,9 +45,10 @@ export const DeviceTileShell = React.forwardRef<HTMLDivElement, DeviceTileShellP
         tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
         onKeyDown={handleKeyDown}
         className={cn(
-          'surface-transition relative flex h-full min-h-[10.5rem] flex-col justify-between overflow-hidden rounded-panel border p-4 group',
+          'surface-transition relative flex h-full min-h-[9rem] flex-col justify-between overflow-hidden rounded-card border p-4 group',
           isInteractive ? 'interactive-lift cursor-pointer' : 'cursor-default',
           active ? 'device-state-on' : 'device-state-off',
+          tone === 'light' && 'device-tone-light',
           syncing && 'ring-1 ring-primary/15',
           disabled && 'pointer-events-none select-none opacity-30 grayscale',
           className

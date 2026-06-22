@@ -136,6 +136,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       active={isMoving || isOpen}
       disabled={device.status === 'PENDING' || unavailable}
       syncing={isMoving}
+      className="min-h-[13rem]"
     >
       
       {isMoving && (
@@ -144,7 +145,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
       <div
         className={cn(
-          'absolute inset-0 z-0 pointer-events-none opacity-45 transition-transform [transition-duration:1500ms] ease-in-out',
+          'absolute inset-0 z-0 pointer-events-none opacity-25 transition-transform [transition-duration:1500ms] ease-in-out',
           isOpen ? '-translate-y-full' : 'translate-y-0',
         )}
         style={{
@@ -158,8 +159,8 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex justify-between items-start">
           <div className={cn(
-            "surface-transition w-10 h-10 rounded-xl flex items-center justify-center",
-            (isMoving || isOpen) ? "bg-primary text-primary-foreground shadow-lg" : "bg-muted text-muted-foreground/40"
+            "surface-transition flex h-12 w-12 items-center justify-center rounded-card border",
+            (isMoving || isOpen) ? "border-primary/25 bg-primary/15 text-primary" : "border-border/60 bg-muted/60 text-muted-foreground"
           )}>
             {isMoving ? (
               isOpening ? <ArrowUp className="w-5 h-5 animate-pulse" /> : <ArrowDown className="w-5 h-5 animate-pulse" />
@@ -170,14 +171,14 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
           <div className="flex flex-col items-end gap-1">
              {isSonoff && (
-               <span className="text-micro font-black uppercase tracking-widest bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded shadow-sm">{t('dashboards.status.local')}</span>
+               <span className="rounded-pill border border-success/20 bg-success/10 px-2 py-0.5 text-micro font-semibold text-success">{t('dashboards.status.local')}</span>
              )}
              <div className="flex items-center gap-1.5">
                 <div className={cn(
                   "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
                   isMoving ? "status-dot-updating animate-ping" : (isOpen ? "bg-primary/80" : "bg-muted-foreground/40")
                 )} />
-                <span className="text-label font-black uppercase tracking-widest text-muted-foreground">
+                <span className="text-caption font-medium text-muted-foreground">
                    {localizedState}
                 </span>
              </div>
@@ -186,7 +187,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
         <div className="flex flex-col gap-1 overflow-hidden">
            <h4 className="text-card-title font-bold truncate tracking-tight text-foreground">{displayName}</h4>
-            <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/60">
+            <span className="text-caption text-muted-foreground">
               {roomName || t('common.unassigned')}
             </span>
         </div>

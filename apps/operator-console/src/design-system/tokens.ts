@@ -14,16 +14,16 @@
 
 export const colors = {
   /** Page / app background — deepest surface */
-  background: '#0B0F14',
+  background: '#111111',
 
   /** Default surface (cards, sidebars) */
-  surface: '#0F141A',
+  surface: '#1A1A1A',
 
   /** Elevated surfaces (modals, popovers) */
-  elevated: '#151B22',
+  elevated: '#232220',
 
   /** Subtle UI borders */
-  border: '#1F2A35',
+  border: '#34312E',
 
   /** Primary readable text */
   textPrimary: '#E6EDF3',
@@ -35,7 +35,16 @@ export const colors = {
   textMuted: '#6B7682',
 
   /** Brand accent — interactions, links, primary actions */
-  primary: '#3AA0FF',
+  primary: '#D9542B',
+
+  /** Nezu Eco accent — efficiency only */
+  eco: '#C9DF38',
+
+  /** Physical light ON state */
+  lightActive: '#FFB454',
+
+  /** Night mode */
+  night: '#8F88C9',
 
   /** Semantic: success, ON state, healthy status */
   success: '#22C55E',

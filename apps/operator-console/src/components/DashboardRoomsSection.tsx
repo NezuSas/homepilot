@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cpu } from 'lucide-react';
+import { House, Power } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { humanize } from '../lib/naming-utils';
 import { hasCapability } from '../lib/deviceCapabilities';
@@ -76,15 +76,15 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
 
   if (activeRooms.length === 0) {
     return (
-      <div className="py-24 border-2 border-dashed border-border rounded-[3rem] flex flex-col items-center justify-center text-center opacity-40">
-        <Cpu className="w-12 h-12 mb-4 text-muted-foreground" />
-        <p className="text-sm font-black uppercase tracking-widest">{t('inbox.empty_state')}</p>
+      <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-border py-20 text-center text-muted-foreground">
+        <House className="mb-4 h-10 w-10" />
+        <p className="text-body font-semibold">{t('inbox.empty_state')}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-4">
       {activeRooms.map((room) => {
         const roomDevices = devices.filter((device) => device.roomId === room.id);
         const orderedRoomDevices = mode === 'relax'
@@ -93,20 +93,20 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
         const onCount = roomDevices.filter(isDeviceActive).length;
 
         return (
-          <div key={room.id} className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-            <div className="mb-4 flex flex-col gap-3 border-b border-border/45 pb-4 md:flex-row md:items-center md:justify-between">
+          <section key={room.id} className="animate-in fade-in slide-in-from-bottom-6 rounded-panel border border-border/65 bg-card/70 p-4 shadow-depth-1 duration-500 sm:p-5">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-pill border',
                   onCount > 0 ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border/60 bg-muted/40 text-muted-foreground',
                 )}>
-                  <Cpu className="h-4 w-4" />
+                  <House className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                <h3 className="truncate text-view-title font-black tracking-tighter luxury-text-gradient">{room.name}</h3>
+                <h3 className="truncate text-section-title font-semibold tracking-tight text-foreground">{room.name}</h3>
                 <span className={cn(
-                  'text-label font-black uppercase tracking-widest transition-colors',
-                  onCount > 0 ? 'text-warning' : 'text-muted-foreground/40',
+                  'text-caption font-medium transition-colors',
+                  onCount > 0 ? 'text-primary' : 'text-muted-foreground',
                 )}>
                   {onCount > 0 ? t('dashboard.active_units', { count: onCount }) : t('dashboard.all_off')}
                 </span>
@@ -118,14 +118,15 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
                   variant="outline"
                   isLoading={roomProcessing === room.id}
                   onClick={() => onRoomTurnOff(room.id)}
-                  className="text-label uppercase tracking-widest px-4 py-2 bg-background/30 hover:bg-danger/10 hover:text-danger border-border hover:border-danger/30 rounded-xl"
+                  className="gap-2 rounded-pill border-border bg-background/25 px-4 text-caption font-semibold hover:border-danger/30 hover:bg-danger/10 hover:text-danger"
                 >
+                  {!roomProcessing && <Power className="h-3.5 w-3.5" />}
                   {!roomProcessing && t('common.turn_off_all')}
                 </Button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {orderedRoomDevices.map((device) => {
                 const isCover = hasCapability(device, 'cover');
                 const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;
@@ -153,7 +154,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
                 );
               })}
             </div>
-          </div>
+          </section>
         );
       })}
     </div>

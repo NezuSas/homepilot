@@ -18,34 +18,39 @@
 @layer base {
   :root {
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
-    --background:          220 18% 5%;       /* deep graphite canvas */
-    --card:                218 18% 10%;      /* visible graphite panels */
-    --card-foreground:     218 18% 92%;
-    --popover:             216 16% 14%;      /* elevated graphite */
-    --popover-foreground:  218 18% 92%;
+    --background:          0 0% 6.7%;        /* warm near-black canvas */
+    --card:                0 0% 10.2%;       /* Nezu black #1A1A1A */
+    --card-foreground:     30 16% 94%;
+    --popover:             30 5% 14%;        /* elevated warm graphite */
+    --popover-foreground:  30 16% 94%;
 
     /* ── Text ───────────────────────────────────────────────── */
-    --foreground:           218 24% 93%;     /* soft porcelain text */
+    --foreground:           30 16% 94%;      /* soft porcelain text */
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              216 16% 21%;
-    --border-subtle:       216 14% 16%;
-    --input:               216 16% 21%;
-    --ring:                204 82% 54%;
+    --border:              30 7% 22%;
+    --border-subtle:       30 5% 16%;
+    --input:               30 7% 22%;
+    --ring:                14 69% 51%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             204 82% 54%;      /* refined control blue */
-    --primary-foreground:  214 48% 8%;
+    --primary:             14 69% 51%;       /* Nezu orange #D9542B */
+    --primary-foreground:  30 20% 98%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           218 14% 15%;
-    --secondary-foreground: 218 24% 92%;
-    --muted:               218 14% 15%;
-    --muted-foreground:    218 11% 66%;
+    --secondary:           30 5% 15%;
+    --secondary-foreground: 30 16% 92%;
+    --muted:               30 5% 15%;
+    --muted-foreground:    28 7% 65%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              39 52% 58%;       /* restrained champagne/brass */
-    --accent-foreground:   38 46% 10%;
+    --accent:              69 72% 55%;       /* Nezu lime #C9DF38 */
+    --accent-foreground:   72 70% 8%;
+
+    --light-active:        36 100% 66%;      /* physical light warmth */
+    --light-active-foreground: 30 60% 10%;
+    --mode-night:          246 32% 65%;
+    --mode-night-foreground: 248 45% 12%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
     --destructive:         358 70% 57%;
@@ -87,15 +92,15 @@
     --premium-glow-warning:   0 0 20px -7px hsl(var(--warning) / 0.38);
 
     /* Device tile specific */
-    --device-on-glow:    0 0 24px -5px hsl(var(--primary) / 0.34), inset 0 1px 0 hsl(var(--accent) / 0.16);
+    --device-on-glow:    0 12px 32px -22px hsl(var(--primary) / 0.72), inset 0 1px 0 hsl(var(--foreground) / 0.04);
     --device-off-shadow: 0 8px 24px -18px hsl(220 28% 1% / 0.9), inset 0 1px 0 hsl(218 22% 100% / 0.03);
   }
 
   .light {
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
-    --background:          214 24% 95%;      /* clean residential canvas */
-    --card:                210 30% 99%;      /* porcelain panels */
-    --card-foreground:     218 18% 15%;
+    --background:          36 24% 96%;       /* warm residential canvas */
+    --card:                36 24% 99%;       /* porcelain panels */
+    --card-foreground:     24 12% 13%;
     --popover:             0 0% 100%;
     --popover-foreground:  218 18% 16%;
 
@@ -106,10 +111,10 @@
     --border:              215 22% 80%;
     --border-subtle:       215 24% 88%;
     --input:               215 22% 80%;
-    --ring:                205 82% 42%;
+    --ring:                14 69% 43%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             205 82% 42%;
+    --primary:             14 69% 43%;
     --primary-foreground:  0 0% 100%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
@@ -119,8 +124,13 @@
     --muted-foreground:    218 13% 38%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              38 42% 43%;
-    --accent-foreground:   0 0% 100%;
+    --accent:              69 65% 42%;
+    --accent-foreground:   72 70% 8%;
+
+    --light-active:        34 90% 48%;
+    --light-active-foreground: 30 60% 10%;
+    --mode-night:          246 34% 52%;
+    --mode-night-foreground: 0 0% 100%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
     --destructive:         358 70% 50%;
@@ -156,10 +166,7 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image:
-      linear-gradient(180deg, hsl(var(--popover) / 0.14), transparent 260px),
-      radial-gradient(hsl(210 30% 100% / 0.018) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-image: radial-gradient(circle at 72% -12%, hsl(var(--primary) / 0.06), transparent 34rem);
     background-attachment: fixed;
   }
 
@@ -169,9 +176,7 @@
   }
 
   .light body {
-    background-image:
-      linear-gradient(180deg, hsl(var(--card) / 0.9), transparent 320px),
-      radial-gradient(hsl(218 24% 20% / 0.035) 1px, transparent 1px);
+    background-image: radial-gradient(circle at 72% -12%, hsl(var(--primary) / 0.055), transparent 34rem);
   }
 
   /* ── Focus rings ─────────────────────────────────────────── */
@@ -303,9 +308,18 @@
   /* ── Device state utilities ───────────────────────────────── */
   /* ON state: radiant, alive */
   .device-state-on {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.11) 0%, hsl(var(--accent) / 0.045) 44%, hsl(var(--card)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--card)) 68%);
     border-color: hsl(var(--primary) / 0.35);
     box-shadow: var(--device-on-glow);
+  }
+  .device-tone-light.device-state-on {
+    background: linear-gradient(135deg, hsl(var(--light-active) / 0.16) 0%, hsl(var(--card)) 70%);
+    border-color: hsl(var(--light-active) / 0.38);
+    box-shadow: 0 12px 34px -24px hsl(var(--light-active) / 0.8), inset 0 1px 0 hsl(var(--light-active) / 0.08);
+  }
+  .device-tone-light.device-state-on:hover {
+    border-color: hsl(var(--light-active) / 0.55);
+    box-shadow: 0 14px 38px -24px hsl(var(--light-active) / 0.9), inset 0 1px 0 hsl(var(--light-active) / 0.12);
   }
   .device-state-on:hover {
     border-color: hsl(var(--primary) / 0.55);

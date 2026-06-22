@@ -57,6 +57,14 @@ export default {
           DEFAULT: 'hsl(var(--danger))',
           foreground: 'hsl(var(--danger-foreground))'
         },
+        'light-active': {
+          DEFAULT: 'hsl(var(--light-active))',
+          foreground: 'hsl(var(--light-active-foreground))'
+        },
+        'mode-night': {
+          DEFAULT: 'hsl(var(--mode-night))',
+          foreground: 'hsl(var(--mode-night-foreground))'
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

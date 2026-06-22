@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cpu, Plus, Zap } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
@@ -38,18 +38,10 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
 
   if (scenes.length === 0) {
     return (
-      <div
-        className="py-12 px-6 rounded-[2.5rem] border-2 border-dashed border-border/40 flex flex-col items-center justify-center text-center bg-card/5"
-        data-demo="dashboard-scenes"
-      >
-        <Zap className="w-12 h-12 text-primary opacity-20 mb-4" />
-        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">{t('scenes.empty_title')}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onCreateScene}
-          className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary/60"
-        >
+      <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-border/60 bg-card/35 px-6 py-10 text-center" data-demo="dashboard-scenes">
+        <Sparkles className="mb-3 h-8 w-8 text-primary/40" />
+        <p className="text-body font-semibold text-muted-foreground">{t('scenes.empty_title')}</p>
+        <Button variant="ghost" size="sm" onClick={onCreateScene} className="mt-3 text-caption font-semibold text-primary">
           {t('dashboard.scene_create')}
         </Button>
       </div>
@@ -57,29 +49,22 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-scenes">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30">{t('dashboard.atmosphere_recipes')}</h2>
-        <Button
-          variant="ghost"
-          onClick={onCreateScene}
-          className="group gap-2 text-xs font-black text-primary/60 hover:text-primary px-0 h-auto uppercase tracking-wider"
-        >
-          <Plus className="w-3.5 h-3.5 stroke-[3] group-hover:rotate-90 transition-transform duration-500" />
+    <section className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-scenes">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-section-title font-semibold tracking-tight text-foreground">
+          {t('dashboard.quick_scenes', { defaultValue: 'Escenas rápidas' })}
+        </h2>
+        <Button variant="ghost" onClick={onCreateScene} className="group h-auto gap-2 px-0 text-caption font-semibold text-primary">
+          <Plus className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />
           {t('dashboard.new_scene')}
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {scenes.map((scene) => {
           const sceneActions = scene.actions || [];
-          const localActions = sceneActions.filter((action) => {
-            const device = allDevices.find((candidate) => candidate.id === action.deviceId);
-            return device?.integrationSource === 'sonoff';
-          });
-          const isEdgeResilient = localActions.length > 0;
-          const isFullyAutonomous = localActions.length === sceneActions.length && sceneActions.length > 0;
-          const isProcessingThis = roomProcessing === `scene_${scene.id}`;
+          const localActionCount = sceneActions.filter((action) => allDevices.find((device) => device.id === action.deviceId)?.integrationSource === 'sonoff').length;
+          const isProcessing = roomProcessing === `scene_${scene.id}`;
 
           return (
             <button
@@ -87,61 +72,24 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
               onClick={() => onSceneExecute(scene)}
               disabled={!!roomProcessing}
               className={cn(
-                'group relative flex min-h-[8rem] items-stretch gap-5 overflow-hidden rounded-[2rem] border p-5 text-left transition-all duration-500 active:scale-95 disabled:opacity-50 hover:-translate-y-1 hover:shadow-xl',
-                isProcessingThis
-                  ? 'bg-primary border-primary text-primary-foreground shadow-2xl'
-                  : 'bg-card/80 border-border shadow-depth-1 hover:border-primary/40',
-                (isEdgeResilient && !isProcessingThis) && 'hover:border-success/30',
+                'group relative flex min-h-[6.5rem] items-center gap-4 overflow-hidden rounded-card border p-4 text-left surface-transition interactive-lift active:scale-[0.98] disabled:opacity-50',
+                isProcessing ? 'border-primary bg-primary text-primary-foreground shadow-depth-2' : 'border-border/65 bg-card shadow-depth-1 hover:border-primary/35',
               )}
             >
-              {isEdgeResilient && isProcessingThis && (
-                <div className="absolute inset-0 bg-success/10 animate-atmospheric-glow pointer-events-none" />
-              )}
-
-              <div className={cn(
-                'z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-700',
-                isProcessingThis ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary',
-                (isEdgeResilient && isProcessingThis) && 'bg-success shadow-lg shadow-success/40 scale-110',
-              )}>
-                {isEdgeResilient && isProcessingThis ? <Cpu className="w-5 h-5 animate-pulse" /> : <Zap className="w-5 h-5" />}
-              </div>
-              <div className="z-10 flex min-w-0 flex-1 flex-col justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="mb-1 flex items-center gap-2">
-                  <h3 className="truncate text-base font-black tracking-tight">{scene.name}</h3>
-                  {isEdgeResilient && (
-                    <span className={cn(
-                      'text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0',
-                      isProcessingThis
-                        ? 'bg-primary-foreground/20 border-primary-foreground/40 text-primary-foreground'
-                        : 'bg-success/5 border-success/20 text-success/80',
-                    )}>
-                      {isFullyAutonomous ? t('dashboards.status.autonomous') : t('dashboards.status.edge')}
-                    </span>
-                  )}
-                </div>
-                <p className={cn(
-                  'truncate text-[10px] font-medium italic opacity-60',
-                  isProcessingThis ? 'text-primary-foreground' : 'text-muted-foreground',
-                )}>
-                  {isFullyAutonomous ? t('dashboards.status.hardware_execution') : (scene.description || t('dashboard.experience'))}
-                </p>
-                </div>
-
-                <div className={cn(
-                  'flex items-center justify-between rounded-full border px-3 py-2 text-[8px] font-black uppercase tracking-widest',
-                  isProcessingThis
-                    ? 'border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground/80'
-                    : 'border-border/50 bg-background/25 text-muted-foreground',
-                )}>
-                  <span>{sceneActions.length} {t('dashboard.command_center.devices', { defaultValue: 'dispositivos' })}</span>
-                  <span>{localActions.length} {t('dashboards.status.local')}</span>
-                </div>
-              </div>
+              <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-pill border surface-transition', isProcessing ? 'border-primary-foreground/20 bg-primary-foreground/15' : 'border-primary/15 bg-primary/10 text-primary')}>
+                <Sparkles className={cn('h-5 w-5', isProcessing && 'animate-pulse')} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-card-title font-semibold tracking-tight">{scene.name}</span>
+                <span className={cn('mt-1 block truncate text-caption', isProcessing ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+                  {scene.description || `${sceneActions.length} ${t('dashboard.command_center.devices', { defaultValue: 'dispositivos' })}`}
+                </span>
+                {localActionCount > 0 && <span className={cn('mt-1.5 block text-micro font-semibold', isProcessing ? 'text-primary-foreground/70' : 'text-success')}>{t('dashboards.status.local')}</span>}
+              </span>
             </button>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 };

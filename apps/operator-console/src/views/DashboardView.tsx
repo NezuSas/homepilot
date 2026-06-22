@@ -13,7 +13,6 @@ import { DashboardInsightsSection } from '../components/DashboardInsightsSection
 import { DashboardLoadingState } from '../components/DashboardLoadingState';
 import { DashboardRoomsSection } from '../components/DashboardRoomsSection';
 import { DashboardScenesSection } from '../components/DashboardScenesSection';
-import { HomeCommandCenter } from '../components/HomeCommandCenter';
 import { HomeModeSelector } from '../components/HomeModeSelector';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { useAssistantStore } from '../stores/useAssistantStore';
@@ -98,7 +97,8 @@ export const DashboardView: React.FC<{
   onModeChange?: (mode: HomeMode) => void;
   onActionExecute?: (label: string) => void;
   onNavigate?: (view: View, params?: unknown) => void;
-}> = ({ currentMode, onModeChange, onActionExecute, onNavigate }) => {
+  displayName?: string | null;
+}> = ({ currentMode, onModeChange, onActionExecute, onNavigate, displayName }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
@@ -276,12 +276,13 @@ useEffect(() => {
   }, [findings]);
 
   const activeRooms = useMemo(() => (Array.isArray(rooms) ? rooms : []).filter(r => (Array.isArray(devices) ? devices : []).some(d => d.roomId === r.id)), [rooms, devices]);
-  const localDevices = useMemo(() => (Array.isArray(devices) ? devices : []).filter(d => d.integrationSource === 'sonoff'), [devices]);
-  const bridgedCount = (Array.isArray(devices) ? devices : []).length - localDevices.length;
-  const onlineLocalCount = useMemo(() => 
-    localDevices.filter(d => Date.now() - new Date(d.updatedAt || 0).getTime() < 300000).length,
-  [localDevices]);
   const activeDeviceCount = useMemo(() => devices.filter(isDeviceActive).length, [devices]);
+  const greetingKey = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'morning';
+    if (hour < 19) return 'afternoon';
+    return 'evening';
+  }, []);
   const modeScene = useMemo(() => {
     const normalizedModeNames: Record<HomeMode, string[]> = {
       relax: ['relax'],
@@ -305,8 +306,22 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-12 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-7 pb-12 animate-in fade-in duration-500">
       <DashboardAtmosphereRipple active={luxuryRipple} />
+
+      <header className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-caption font-semibold text-primary">{t('dashboard.home_label', { defaultValue: 'Mi hogar' })}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
+            {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident', { defaultValue: 'Oscar' }) })}
+          </h1>
+          <p className="mt-2 text-body text-muted-foreground">{t('dashboard.home_calm', { defaultValue: 'Todo está bajo control.' })}</p>
+        </div>
+        <div className="flex items-center gap-2 text-caption text-muted-foreground">
+          <span className="h-2 w-2 rounded-pill bg-success" />
+          {t('dashboard.active_summary', { active: activeDeviceCount, total: devices.length, defaultValue: `${activeDeviceCount} de ${devices.length} dispositivos activos` })}
+        </div>
+      </header>
 
       {/* LEVEL 1: Master State (Home Mode) */}
       <HomeModeSelector 
@@ -315,18 +330,6 @@ useEffect(() => {
         linkedSceneName={modeScene?.name}
         isExecutingScene={modeScene ? roomProcessing === `scene_${modeScene.id}` : false}
         onExecuteLinkedScene={modeScene ? () => handleSceneExecute(modeScene) : undefined}
-      />
-
-      <HomeCommandCenter
-        currentMode={getSafeHomeMode(currentMode)}
-        roomCount={activeRooms.length}
-        deviceCount={devices.length}
-        activeDeviceCount={activeDeviceCount}
-        localDeviceCount={localDevices.length}
-        onlineLocalCount={onlineLocalCount}
-        bridgedCount={bridgedCount}
-        sceneCount={scenes.length}
-        findingCount={prioritizedFindings.length}
       />
 
       <DashboardInsightsSection

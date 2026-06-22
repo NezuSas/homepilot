@@ -1032,6 +1032,7 @@ function App() {
                       pulseSyncStatus();
                     }}
                     onNavigate={navigateTo}
+                    displayName={localProfile.displayName || user?.username || null}
                   />
                 )}
                {/* Spaces = TopologyView (user-facing room management) */}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Moon, Home, Leaf, Coffee, Play } from 'lucide-react';
+import { Moon, BriefcaseBusiness, Leaf, Armchair, Play } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 
@@ -15,10 +15,10 @@ interface HomeModeSelectorProps {
 }
 
 const MODES = [
-  { id: 'relax', label: 'Relax', icon: Coffee, color: 'from-primary/20 to-accent/10', activeColor: 'text-primary border-primary/50 bg-primary/10 shadow-depth-1' },
-  { id: 'away', label: 'Fuera', icon: Home, color: 'from-muted/40 to-success/10', activeColor: 'text-primary border-primary/50 bg-primary/10 shadow-depth-1' },
-  { id: 'night', label: 'Noche', icon: Moon, color: 'from-primary/20 to-background', activeColor: 'text-primary border-primary/50 bg-primary/10 shadow-depth-1' },
-  { id: 'energy', label: 'Eco', icon: Leaf, color: 'from-success/20 to-success/5', activeColor: 'text-success border-success/50 bg-success/10' },
+  { id: 'relax', icon: Armchair, activeColor: 'border-primary/55 bg-primary/12 text-primary shadow-depth-1' },
+  { id: 'away', icon: BriefcaseBusiness, activeColor: 'border-primary/45 bg-primary/10 text-primary shadow-depth-1' },
+  { id: 'night', icon: Moon, activeColor: 'border-mode-night/50 bg-mode-night/12 text-mode-night shadow-depth-1' },
+  { id: 'energy', icon: Leaf, activeColor: 'border-accent/55 bg-accent/12 text-accent shadow-depth-1' },
 ] as const;
 
 export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
@@ -31,11 +31,13 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   const { t } = useTranslation();
   return (
     <section
-      className="w-full mb-2 animate-in fade-in slide-in-from-top-4 duration-1000"
+      className="w-full animate-in fade-in slide-in-from-top-4 duration-700"
       data-demo="home-mode-selector"
     >
-      <div className="overflow-x-auto no-scrollbar">
-      <div className="flex items-center gap-3 p-2 bg-muted/20 backdrop-blur-xl rounded-panel border border-border/40 w-fit min-w-full md:min-w-0 mx-auto px-4 sm:px-2">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-section-title font-semibold tracking-tight text-foreground">{t('dashboard.modes_title', { defaultValue: 'Modos del hogar' })}</h2>
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {MODES.map((mode) => {
           const isActive = currentMode === mode.id;
           const Icon = mode.icon;
@@ -45,26 +47,25 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
               key={mode.id}
               onClick={() => onModeChange(mode.id as HomeMode)}
               className={cn(
-                "flex items-center gap-3 px-6 py-3 rounded-[2rem] transition-all duration-500 group relative overflow-hidden border-2 border-transparent whitespace-nowrap shrink-0",
-                isActive ? mode.activeColor : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                "group relative flex min-h-[6.25rem] items-center gap-4 overflow-hidden rounded-card border px-5 py-4 text-left surface-transition interactive-lift",
+                isActive ? mode.activeColor : "border-border/60 bg-card text-muted-foreground hover:border-primary/25 hover:text-foreground"
               )}
             >
-              {isActive && (
-                 <div className={cn("absolute inset-0 bg-gradient-to-br opacity-20 animate-pulse", mode.color)} />
-              )}
-              <Icon className={cn("w-4 h-4 transition-transform duration-500", isActive ? "scale-110" : "group-hover:scale-110")} />
-              <span className="text-label font-black uppercase tracking-widest relative z-10">
-              {t(`modes.${mode.id}`)}
-            </span>
+              <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-pill border surface-transition', isActive ? 'border-current/20 bg-current/10' : 'border-border/60 bg-muted/60')}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="relative z-10 min-w-0">
+                <span className="block text-card-title font-semibold text-current">{t(`modes.${mode.id}`)}</span>
+                <span className="mt-1 block text-caption text-muted-foreground">{isActive ? t('dashboard.mode_active', { defaultValue: 'Activo' }) : t('device_states.off')}</span>
+              </span>
             </button>
           );
         })}
       </div>
-      </div>
-      <div className="mt-3 flex flex-col gap-3 rounded-card border border-border/50 bg-card/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-3 flex flex-col gap-3 rounded-card border border-border/50 bg-card/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-label font-black uppercase tracking-widest text-primary">{t(`modes.${currentMode}`)}</p>
-          <p className="mt-1 text-body text-muted-foreground">{t(`modes.descriptions.${currentMode}`)}</p>
+          <p className="text-body font-semibold text-foreground">{t(`modes.${currentMode}`)}</p>
+          <p className="mt-0.5 text-caption text-muted-foreground">{t(`modes.descriptions.${currentMode}`)}</p>
         </div>
         {linkedSceneName && onExecuteLinkedScene && (
           <Button
