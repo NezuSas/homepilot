@@ -104,6 +104,8 @@ El backend aplica una regla critica: siempre debe existir al menos un administra
 
 ### Por que existe `admin/admin`
 
+`admin/admin` existe unicamente como atajo de desarrollo local. No es una estrategia aceptable para entregar el producto a un cliente final.
+
 En desarrollo local se puede activar:
 
 ```bash
@@ -117,9 +119,18 @@ usuario: admin
 password: admin
 ```
 
-Esto existe solo para acelerar pruebas locales en Docker/WSL sin depender de copiar una clave generada desde logs. El propio backend emite una advertencia indicando que no es seguro para produccion.
+Esto existe para acelerar pruebas locales en Docker/WSL, reiniciar bases de datos, validar pantallas y evitar depender de una clave aleatoria impresa una sola vez en logs. El propio backend emite una advertencia indicando que no es seguro para produccion.
 
 Cuando `HOMEPILOT_DEV_BOOTSTRAP` no esta en `true`, si la DB esta vacia el sistema genera una contrasena segura aleatoria para el primer admin, la imprime una sola vez en logs y no vuelve a mostrarla.
+
+Estado actual importante:
+
+- Para desarrollo propio, `HOMEPILOT_DEV_BOOTSTRAP=true` es practico porque permite entrar con `admin/admin`.
+- Para produccion real, `admin/admin` no debe usarse.
+- El mecanismo actual de produccion genera una clave unica en logs. Eso protege mejor que una clave fija, pero no es una experiencia final correcta para cliente si el cliente no tiene acceso claro a esos logs.
+- La experiencia final esperada para cliente debe ser un flujo de primer arranque/onboarding donde el usuario cree su administrador desde la interfaz, o un mecanismo de provisionamiento controlado por instalador. Mientras ese flujo no exista completo, `HOMEPILOT_DEV_BOOTSTRAP=false` debe entenderse como modo seguro tecnico/instalador, no como onboarding perfecto para consumidor final.
+
+En resumen: hoy se usa `admin/admin` porque el entorno de Oscar es desarrollo local y se necesita entrar facil para probar. No se debe vender ni desplegar asi a cliente.
 
 ## Integracion con Home Assistant
 
@@ -185,15 +196,20 @@ Variables relevantes en Docker Compose:
 
 | Variable | Uso |
 |---|---|
-| `ASSISTANT_PROVIDER` | Proveedor de razonamiento, por ejemplo `ollama` |
+| `OLLAMA_ENABLED` | Activa o desactiva integracion LLM con Ollama |
 | `OLLAMA_BASE_URL` | URL interna de Ollama desde API |
 | `OLLAMA_MODEL` | Modelo usado por el asistente |
+| `OLLAMA_TIMEOUT_MS` | Timeout de llamadas al modelo |
+| `ASSISTANT_PLANNER_V2_SHADOW` | Ejecuta planner V2 en modo sombra para comparar resultados |
+| `ASSISTANT_PLANNER_V2_EXECUTION` | Permite que planner V2 ejecute acciones cuando esta habilitado |
 | `STT_PROVIDER` | Proveedor STT, por ejemplo `whisper-local` |
-| `WHISPER_BASE_URL` | URL interna del servicio STT |
+| `STT_BASE_URL` | URL interna del servicio STT |
+| `STT_TIMEOUT_MS` | Timeout de transcripcion |
 | `WHISPER_HOTWORDS` | Pistas de activador, incluye variantes de `Ok Nezu` |
 | `TTS_PROVIDER` | Proveedor TTS, por ejemplo `piper` |
-| `PIPER_BASE_URL` | URL interna del servicio TTS |
-| `TTS_VOICE` | Voz usada por TTS |
+| `TTS_BASE_URL` | URL interna del servicio TTS |
+| `PIPER_VOICE_ES` | Voz Piper en espanol |
+| `PIPER_VOICE_EN` | Voz Piper en ingles |
 
 ## Frontend
 
@@ -285,21 +301,82 @@ Las migraciones se guardan en `migrations/` y se registran en `_migrations`. No 
 
 ## Variables de entorno relevantes
 
+Estas son las variables que Oscar usa actualmente en WSL para desarrollo local. Deben estar visibles porque explican como se levanta el runtime real de pruebas:
+
+```bash
+HOMEPILOT_DEV_BOOTSTRAP=true
+HOMEPILOT_DB_PATH=./data/homepilot.db
+
+OLLAMA_ENABLED=true
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=phi3
+OLLAMA_TIMEOUT_MS=30000
+
+ASSISTANT_PLANNER_V2_SHADOW=true
+ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE=1
+ASSISTANT_PLANNER_V2_SHADOW_FORCE=true
+ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT=true
+ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT=true
+ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS=20000
+ASSISTANT_PLANNER_V2_EXECUTION=true
+ASSISTANT_PLANNER_V2_SHADOW_MODEL=qwen2.5:1.5b
+
+TTS_PROVIDER=piper
+TTS_BASE_URL=http://homepilot-tts:8088
+PIPER_VOICE_ES=es_ES-sharvard-medium
+PIPER_VOICE_EN=en_US-lessac-medium
+PIPER_SYNTHESIS_TIMEOUT_SECONDS=20
+
+STT_PROVIDER=whisper-local
+STT_BASE_URL=http://homepilot-stt:8090
+STT_TIMEOUT_MS=30000
+WHISPER_MODEL=small
+WHISPER_COMPUTE_TYPE=int8
+WHISPER_BEAM_SIZE=3
+WHISPER_VAD_MIN_SILENCE_MS=650
+WHISPER_VAD_SPEECH_PAD_MS=400
+WHISPER_MAX_AUDIO_BYTES=9000000
+```
+
+Detalle de uso:
+
+| Variable | Valor WSL actual | Descripcion |
+|---|---|---|
+| `HOMEPILOT_DEV_BOOTSTRAP` | `true` | Crea `admin/admin` si la DB esta vacia. Solo desarrollo local. |
+| `HOMEPILOT_DB_PATH` | `./data/homepilot.db` | Ruta SQLite cuando se corre fuera del contenedor o desde entorno WSL local. En contenedor normalmente se usa `/app/data/homepilot.db`. |
+| `OLLAMA_ENABLED` | `true` | Activa llamadas del asistente a Ollama. |
+| `OLLAMA_BASE_URL` | `http://ollama:11434` | URL interna Docker para el servicio Ollama. |
+| `OLLAMA_MODEL` | `phi3` | Modelo principal del asistente. |
+| `OLLAMA_TIMEOUT_MS` | `30000` | Tiempo maximo de espera para respuesta del modelo. |
+| `ASSISTANT_PLANNER_V2_SHADOW` | `true` | Activa planner V2 en modo sombra para comparar/validar comportamiento. |
+| `ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE` | `1` | Ejecuta shadow en el 100% de los casos elegibles. |
+| `ASSISTANT_PLANNER_V2_SHADOW_FORCE` | `true` | Fuerza ejecucion del shadow aunque el muestreo normal no lo elija. |
+| `ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT` | `true` | Usa prompt liviano como fallback del planner shadow. |
+| `ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT` | `true` | Usa prompt ultra liviano para reducir latencia/costo local. |
+| `ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS` | `20000` | Timeout del planner V2 shadow. |
+| `ASSISTANT_PLANNER_V2_EXECUTION` | `true` | Permite ejecutar acciones con planner V2. Debe usarse con cuidado porque puede accionar dispositivos. |
+| `ASSISTANT_PLANNER_V2_SHADOW_MODEL` | `qwen2.5:1.5b` | Modelo alterno para shadow planner. |
+| `TTS_PROVIDER` | `piper` | Motor de sintesis de voz. |
+| `TTS_BASE_URL` | `http://homepilot-tts:8088` | URL interna Docker del servicio TTS. |
+| `PIPER_VOICE_ES` | `es_ES-sharvard-medium` | Voz Piper para respuestas en espanol. |
+| `PIPER_VOICE_EN` | `en_US-lessac-medium` | Voz Piper para respuestas en ingles. |
+| `PIPER_SYNTHESIS_TIMEOUT_SECONDS` | `20` | Timeout de generacion TTS. |
+| `STT_PROVIDER` | `whisper-local` | Motor de transcripcion. |
+| `STT_BASE_URL` | `http://homepilot-stt:8090` | URL interna Docker del servicio STT. |
+| `STT_TIMEOUT_MS` | `30000` | Timeout de transcripcion desde API. |
+| `WHISPER_MODEL` | `small` | Modelo Whisper usado por STT. |
+| `WHISPER_COMPUTE_TYPE` | `int8` | Tipo de computo para optimizar rendimiento local. |
+| `WHISPER_BEAM_SIZE` | `3` | Beam size de decodificacion Whisper. |
+| `WHISPER_VAD_MIN_SILENCE_MS` | `650` | Silencio minimo para cortar segmentos de voz. |
+| `WHISPER_VAD_SPEECH_PAD_MS` | `400` | Margen agregado alrededor de voz detectada. |
+| `WHISPER_MAX_AUDIO_BYTES` | `9000000` | Tamano maximo permitido del audio enviado a STT. |
+
+Variables adicionales del contenedor:
+
 | Variable | Valor local tipico | Descripcion |
 |---|---|---|
-| `NODE_ENV` | `production` en contenedor | Modo Node |
-| `HOMEPILOT_DB_PATH` | `/app/data/homepilot.db` | Ruta SQLite dentro del contenedor |
+| `NODE_ENV` | `production` en contenedor | Modo Node dentro de la imagen Docker |
 | `INTERNAL_HA_URL` | `http://homeassistant:8123` | URL interna para hablar con Home Assistant |
-| `HOMEPILOT_DEV_BOOTSTRAP` | `false` por defecto | Si es `true`, usa `admin/admin` en DB vacia |
-| `ASSISTANT_PROVIDER` | `ollama` | Proveedor de razonamiento |
-| `OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama desde API |
-| `OLLAMA_MODEL` | `llama3.2:3b-instruct-q4_K_M` | Modelo configurado |
-| `STT_PROVIDER` | `whisper-local` | Proveedor de transcripcion |
-| `WHISPER_BASE_URL` | `http://homepilot-stt:8090` | STT desde API |
-| `WHISPER_HOTWORDS` | Variantes de `Ok Nezu` | Pistas para activador |
-| `TTS_PROVIDER` | `piper` | Proveedor TTS |
-| `PIPER_BASE_URL` | `http://homepilot-tts:8088` | TTS desde API |
-| `TTS_VOICE` | Voz configurada | Voz de respuesta |
 | `VITE_API_URL` | `http://localhost:3000` | API usada por el frontend |
 
 ## Flujo de trabajo con Windows y WSL
