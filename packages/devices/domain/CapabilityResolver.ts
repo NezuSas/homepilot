@@ -1,5 +1,6 @@
 import { Device } from './types';
 import { DeviceCapability, CapabilityType } from './capabilities';
+import { getDeviceProfileCapabilities, getDeviceProfileForDevice } from './deviceProfiles';
 
 /**
  * resolveCapabilitiesForDevice
@@ -14,10 +15,10 @@ export function resolveCapabilitiesForDevice(device: Device): DeviceCapability[]
     return [...device.capabilities];
   }
 
-  // 2. Inferencia por ExternalId de Home Assistant (ha:domain.entity_id)
-  const haCapability = inferFromHomeAssistantId(device.externalId);
-  if (haCapability) {
-    return [haCapability];
+  // 2. Perfil modular por integración/tipo. Home Assistant se resuelve por dominio HA.
+  const profileCapabilities = getDeviceProfileCapabilities(getDeviceProfileForDevice(device));
+  if (profileCapabilities.length > 0) {
+    return profileCapabilities;
   }
 
   // 3. Fallback por device.type (Normalización obligatoria a lowercase)
@@ -31,36 +32,6 @@ export function resolveCapabilitiesForDevice(device: Device): DeviceCapability[]
 
   // Si no se puede inferir nada, se retorna array vacío (el validador decidirá si bloquea o permite)
   return [];
-}
-
-/**
- * inferFromHomeAssistantId
- * Extrae la capacidad basándose en el dominio de la entidad de Home Assistant.
- */
-function inferFromHomeAssistantId(externalId: string): DeviceCapability | null {
-  if (!externalId.startsWith('ha:')) return null;
-  
-  // Extraer el dominio antes del punto (ej: ha:light.office_lamp -> light)
-  const match = externalId.match(/^ha:([^.]+)\./);
-  if (!match) return null;
-
-  const haDomain = match[1];
-  const typeMap: Record<string, CapabilityType> = {
-    'light': 'light',
-    'switch': 'switch',
-    'cover': 'cover',
-    'sensor': 'sensor',
-    'binary_sensor': 'binary_sensor',
-    'climate': 'climate',
-    'media_player': 'media_player'
-  };
-
-  const type = typeMap[haDomain];
-  if (type) {
-    return { type, name: haDomain };
-  }
-
-  return null;
 }
 
 /**

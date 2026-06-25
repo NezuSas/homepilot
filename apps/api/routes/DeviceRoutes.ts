@@ -11,6 +11,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { resolveCapabilitiesForDevice } from '../../../packages/devices/domain/CapabilityResolver';
 import { Device } from '../../../packages/devices/domain/types';
 import { CAPABILITY_DEFINITIONS } from '../../../packages/devices/domain/capabilities';
+import { getDeviceProfileForDevice, getHomeAssistantDeviceProfile, listSupportedHomeAssistantDomains } from '../../../packages/devices/domain/deviceProfiles';
 import { removeDeviceUseCase } from '../../../packages/devices/application/removeDeviceUseCase';
 import { buildUnavailableDeviceState } from '../../../packages/devices/application/deviceAvailability';
 
@@ -27,6 +28,7 @@ export class DeviceRoutes extends ApiRoutes {
    * Incluye la definición completa de comandos y esquemas de parámetros.
    */
   private enrichDevice(device: Device): any {
+    const profile = getDeviceProfileForDevice(device);
     const resolvedCapabilities = resolveCapabilitiesForDevice(device);
     const enrichedCapabilities = resolvedCapabilities.map(cap => ({
       ...cap,
@@ -35,7 +37,8 @@ export class DeviceRoutes extends ApiRoutes {
 
     return {
       ...device,
-      capabilities: enrichedCapabilities
+      capabilities: enrichedCapabilities,
+      profile
     };
   }
 
@@ -416,7 +419,7 @@ export class DeviceRoutes extends ApiRoutes {
       const existingEntityIds = await container.repositories.deviceRepository.findAllExternalIdsByPrefix('ha:');
       const existingEntityIdsSet = new Set(existingEntityIds.map(id => id.replace('ha:', '')));
 
-      const supportedDomains = ['light', 'switch', 'sensor', 'binary_sensor', 'cover'];
+      const supportedDomains = listSupportedHomeAssistantDomains();
 
       const entities = allStates
         .filter((s) => {
@@ -427,6 +430,7 @@ export class DeviceRoutes extends ApiRoutes {
           return supportedDomains.includes(domain);
         })
         .map((s) => ({
+          profile: getHomeAssistantDeviceProfile(s.entity_id),
           entityId: s.entity_id,
           state: s.state,
           friendlyName: (s.attributes.friendly_name as string) || s.entity_id,

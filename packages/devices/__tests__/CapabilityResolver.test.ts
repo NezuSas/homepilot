@@ -57,6 +57,12 @@ describe('CapabilityResolver', () => {
     expect(caps[0].type).toBe('cover');
   });
 
+  it('should resolve Home Assistant media players as read-only media profile', () => {
+    const device: Device = { ...baseDevice, externalId: 'ha:media_player.tv', type: 'unknown' };
+    const caps = resolveCapabilitiesForDevice(device);
+    expect(caps[0].type).toBe('media_player');
+  });
+
   it('should infer sensor from Home Assistant (ha:sensor.xxx)', () => {
     const device: Device = { ...baseDevice, externalId: 'ha:sensor.temp' };
     const caps = resolveCapabilitiesForDevice(device);

@@ -20,6 +20,21 @@ export interface SnapshotDeviceCapability {
   }>;
 }
 
+export interface SnapshotDeviceProfile {
+  source: string;
+  domain: string;
+  type: string;
+  semanticType?: SnapshotDevice['semanticType'];
+  displayName: string;
+  category: string;
+  supportedCommands: string[];
+  configurationSections: Array<{
+    id: string;
+    label: string;
+    description: string;
+  }>;
+}
+
 export interface SnapshotDevice {
   id: string;
   homeId: string;
@@ -37,6 +52,7 @@ export interface SnapshotDevice {
   updatedAt?: string;
   integrationSource?: string;
   capabilities?: SnapshotDeviceCapability[];
+  profile?: SnapshotDeviceProfile;
 }
 
 export interface SnapshotRoom {

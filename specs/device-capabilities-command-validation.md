@@ -82,3 +82,24 @@ Si el comando no es soportado:
 
 ## 9. Preguntas Abiertas / TODOs
 - Ninguna. Spec listo para implementación.
+
+## 10. Extensión V2: Perfiles Modulares de Dispositivo
+
+### 10.1 Objetivo
+Centralizar la adaptación de dispositivos importados desde integraciones externas para evitar lógica dispersa por tipo o marca. Cada dispositivo debe resolverse contra un perfil determinista que defina:
+- tipo operativo (`light`, `switch`, `cover`, `sensor`, etc.)
+- semántica opcional para asistentes y UI
+- capacidades y comandos disponibles
+- secciones de configuración que la consola puede mostrar
+
+### 10.2 Alcance
+- Home Assistant debe mapear sus dominios conocidos (`light`, `switch`, `cover`, `sensor`, `binary_sensor`, `climate`, `media_player`) a perfiles explícitos.
+- Las marcas no deben introducir lógica especial si reportan dominios compatibles; la compatibilidad se hereda del perfil operativo.
+- Los perfiles deben exponerse como metadata adicional en endpoints de dispositivos y descubrimiento sin romper el contrato existente.
+- Dominios no reconocidos quedan en perfil `unknown` y no deben recibir comandos por inferencia.
+
+### 10.3 Criterios de Aceptación
+- **AC5:** Un `ha:cover.*` resuelve perfil de cortina/persiana, capacidad `cover` y comandos `open`, `close`, `stop`, `set_position`.
+- **AC6:** Un `ha:switch.*` resuelve perfil de interruptor sin reclasificarse automáticamente como luz por nombre.
+- **AC7:** La lista de dominios soportados por descubrimiento se deriva del catálogo de perfiles, no de arrays locales duplicados.
+- **AC8:** La UI puede mostrar el perfil y configuración aplicable usando metadata opcional sin depender de `if` por marca.

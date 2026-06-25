@@ -256,9 +256,11 @@ describe('OperatorConsoleServer Integration Tests', () => {
       });
       expect(res.status).toBe(200);
       const data = await res.json() as any[];
-      expect(data.length).toBe(2);
+      expect(data.length).toBe(3);
       expect(data[0].entityId).toBe('light.living');
-      expect(data[1].entityId).toBe('sensor.temp');
+      expect(data[1].entityId).toBe('media_player.tv');
+      expect(data[1].profile.type).toBe('media_player');
+      expect(data[2].entityId).toBe('sensor.temp');
     });
 
     it('POST /api/v1/ha/import: success and duplicate prevention', async () => {

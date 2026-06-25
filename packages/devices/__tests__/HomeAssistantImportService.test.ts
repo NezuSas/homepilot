@@ -107,4 +107,21 @@ describe('HomeAssistantImportService', () => {
     expect(device.semanticType).toBe('sensor');
     expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
   });
+
+  it('HA entity cover.master imports as cover with cover semantic profile', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'cover.master',
+      state: 'closed',
+      attributes: { friendly_name: 'Cortina Master', current_position: 0 },
+      last_changed: '2026-01-01T00:00:00Z',
+      last_updated: '2026-01-01T00:00:00Z'
+    });
+
+    const device = await service.importDevice('cover.master', 'user-1');
+
+    expect(device.type).toBe('cover');
+    expect(device.semanticType).toBe('cover');
+    expect(device.lastKnownState.current_position).toBe(0);
+    expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
+  });
 });

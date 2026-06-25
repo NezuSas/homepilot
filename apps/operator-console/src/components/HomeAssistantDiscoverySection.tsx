@@ -11,6 +11,16 @@ interface HaEntityCandidate {
   state: string;
   friendlyName: string;
   domain: string;
+  profile?: {
+    displayName: string;
+    category: string;
+    supportedCommands: string[];
+    configurationSections: Array<{
+      id: string;
+      label: string;
+      description: string;
+    }>;
+  };
 }
 
 interface HomeAssistantDiscoverySectionProps {
@@ -131,6 +141,11 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] font-mono opacity-40 uppercase truncate" title={entity.entityId}>{entity.entityId}</span>
                   <span className="text-xs font-black truncate" title={entity.friendlyName}>{entity.friendlyName}</span>
+                  {entity.profile && (
+                    <span className="text-[10px] text-muted-foreground truncate" title={entity.profile.configurationSections.map((section) => section.label).join(' · ')}>
+                      {entity.profile.displayName} · {entity.profile.supportedCommands.length > 0 ? `${entity.profile.supportedCommands.length} comandos` : 'solo lectura'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/20">
                   <span className="px-2 py-0.5 bg-muted rounded text-[9px] font-bold uppercase">{entity.domain}</span>

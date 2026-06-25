@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import { DeviceRepository } from '../domain/repositories/DeviceRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { HomeAssistantConnectionProvider } from '../../integrations/home-assistant/application/HomeAssistantConnectionProvider';
+import { getHomeAssistantDeviceProfile } from '../domain/deviceProfiles';
 
 export interface HomeAssistantImportServiceDependencies {
   deviceRepository: DeviceRepository;
@@ -38,43 +39,9 @@ export class HomeAssistantImportService {
     const deviceId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    // Mapping type and semanticType
-    let deviceType = 'sensor';
-    let semanticType: 'light' | 'switch' | 'cover' | 'sensor' | 'unknown' | undefined = undefined;
-
-    if (domain === 'light') {
-      deviceType = 'light';
-      semanticType = 'light';
-    } else if (domain === 'switch') {
-      deviceType = 'switch';
-      // Do NOT automatically guess it's a light even if name says "luz"
-      semanticType = undefined;
-    } else if (domain === 'binary_sensor') {
-      deviceType = 'binary_sensor';
-      semanticType = 'sensor';
-    } else if (domain === 'sensor') {
-      deviceType = 'sensor';
-      semanticType = 'sensor';
-    } else if (domain === 'cover') {
-      deviceType = 'cover';
-      semanticType = 'cover';
-    }
-
-    /*
-     * TODO: UI Implementation Plan for Semantic Classification
-     * The operator-console DeviceDetail panel needs a new dropdown control:
-     * "Clasificación Semántica" (semanticType)
-     * Options:
-     * - Automático (undefined)
-     * - Luz (light)
-     * - Interruptor (switch)
-     * - Enchufe (outlet)
-     * - Cortina/Persiana (cover)
-     * - Sensor (sensor)
-     * 
-     * This is critical for Sonoff/HA switches that physically control lights.
-     * Persistence will require updating DeviceRepository.saveDevice to store the semanticType column.
-     */
+    const profile = getHomeAssistantDeviceProfile(domain);
+    const deviceType = profile.type === 'unknown' ? 'sensor' : profile.type;
+    const semanticType = profile.semanticType === 'unknown' ? undefined : profile.semanticType;
 
     const device = {
       id: deviceId,
