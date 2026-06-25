@@ -306,20 +306,22 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex flex-col gap-7 pb-12 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-5 pb-10 animate-in fade-in duration-500 sm:gap-7 sm:pb-12">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
-      <header className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <header className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-end sm:justify-between sm:pt-2">
+        <div className="min-w-0">
           <p className="text-caption font-semibold text-primary">{t('dashboard.home_label', { defaultValue: 'Mi hogar' })}</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
+          <h1 className="mt-1 text-2xl font-semibold tracking-[-0.035em] text-foreground min-[380px]:text-3xl sm:text-4xl">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident', { defaultValue: 'Oscar' }) })}
           </h1>
           <p className="mt-2 text-body text-muted-foreground">{t('dashboard.home_calm', { defaultValue: 'Todo está bajo control.' })}</p>
         </div>
-        <div className="flex items-center gap-2 text-caption text-muted-foreground">
+        <div className="flex w-fit max-w-full items-center gap-2 rounded-pill border border-border/50 bg-card/45 px-3 py-2 text-caption text-muted-foreground">
           <span className="h-2 w-2 rounded-pill bg-success" />
-          {t('dashboard.active_summary', { active: activeDeviceCount, total: devices.length, defaultValue: `${activeDeviceCount} de ${devices.length} dispositivos activos` })}
+          <span className="min-w-0 truncate">
+            {t('dashboard.active_summary', { active: activeDeviceCount, total: devices.length, defaultValue: `${activeDeviceCount} de ${devices.length} dispositivos activos` })}
+          </span>
         </div>
       </header>
 

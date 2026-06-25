@@ -136,7 +136,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       active={isMoving || isOpen}
       disabled={device.status === 'PENDING' || unavailable}
       syncing={isMoving}
-      className="min-h-[13rem]"
+      className="min-h-[12rem] sm:min-h-[13rem]"
     >
       
       {isMoving && (
@@ -157,9 +157,9 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       </div>
 
       <div className="relative z-10 flex flex-col h-full justify-between">
-        <div className="flex justify-between items-start">
+        <div className="flex items-start justify-between gap-3">
           <div className={cn(
-            "surface-transition flex h-12 w-12 items-center justify-center rounded-card border",
+            "surface-transition flex h-10 w-10 shrink-0 items-center justify-center rounded-card border sm:h-12 sm:w-12",
             (isMoving || isOpen) ? "border-primary/25 bg-primary/15 text-primary" : "border-border/60 bg-muted/60 text-muted-foreground"
           )}>
             {isMoving ? (
@@ -169,7 +169,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
             )}
           </div>
 
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex min-w-0 flex-col items-end gap-1">
              {isSonoff && (
                <span className="rounded-pill border border-success/20 bg-success/10 px-2 py-0.5 text-micro font-semibold text-success">{t('dashboards.status.local')}</span>
              )}
@@ -178,7 +178,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
                   "w-1.5 h-1.5 rounded-full transition-colors duration-500", 
                   isMoving ? "status-dot-updating animate-ping" : (isOpen ? "bg-primary/80" : "bg-muted-foreground/40")
                 )} />
-                <span className="text-caption font-medium text-muted-foreground">
+                <span className="truncate text-caption font-medium text-muted-foreground">
                    {localizedState}
                 </span>
              </div>
@@ -195,7 +195,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         {/* Dynamic Action Strip based on capabilities */}
         <div className="flex flex-col gap-3 mt-4">
           {(primaryCoverCommand || canStop) && (
-            <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-2xl border border-border/20 backdrop-blur-md shadow-inner">
+            <div className="flex items-center gap-1.5 rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner backdrop-blur-md">
               {primaryCoverCommand && (
                 <Button
                   type="button"
@@ -204,12 +204,12 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
                   onClick={(e) => { e.stopPropagation(); handleCommand(primaryCoverCommand); }}
                   disabled={!!isProcessing || isMoving}
                   className={cn(
-                    "flex-1 h-9 rounded-xl text-label font-black uppercase tracking-widest",
+                    "h-9 min-w-0 flex-1 rounded-xl text-label font-black uppercase tracking-widest",
                     isOpen && "bg-background"
                   )}
                 >
                   {isOpen ? <ArrowDown className="w-3 h-3 opacity-60" /> : <ArrowUp className="w-3 h-3 opacity-60" />}
-                  <span>{primaryCoverLabel}</span>
+                  <span className="truncate">{primaryCoverLabel}</span>
                 </Button>
               )}
 

@@ -15,14 +15,14 @@ export const SystemStatusBar: React.FC<SystemStatusBarProps> = ({ currentMode, i
   const safeMode = getSafeHomeMode(currentMode);
 
   return (
-    <div className="w-full shrink-0 px-4 md:px-8 py-3 flex items-center justify-between border-t border-border/40 text-[10px] font-black uppercase tracking-[0.2em] bg-card/20 backdrop-blur-xl">
+    <div className="relative flex w-full shrink-0 items-center justify-between gap-3 border-t border-border/40 bg-card/20 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] backdrop-blur-xl sm:px-4 sm:py-3 sm:text-[10px] sm:tracking-[0.2em] md:px-8">
       {/* Left: Mode Context */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <div className={cn(
           "w-2 h-2 rounded-full animate-pulse",
           isAllSynced ? "status-dot-synced" : "status-dot-warning"
         )} />
-        <span className="text-foreground/60">
+        <span className="min-w-0 truncate text-foreground/60">
           {t('shell.status.mode_label', { 
             mode: t(`modes.${safeMode}`, { defaultValue: safeMode.toUpperCase() }) 
           })}
@@ -30,7 +30,7 @@ export const SystemStatusBar: React.FC<SystemStatusBarProps> = ({ currentMode, i
       </div>
 
       {/* Center: System Confidence (Responsive) */}
-      <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 items-center gap-4 bg-muted/20 px-6 py-1.5 rounded-full border border-border/40">
+      <div className="hidden items-center gap-3 rounded-full border border-border/40 bg-muted/20 px-4 py-1.5 sm:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-4 lg:px-6">
         {isAllSynced ? (
           <>
             <ShieldCheck className="w-3 h-3 text-primary" />
@@ -45,7 +45,7 @@ export const SystemStatusBar: React.FC<SystemStatusBarProps> = ({ currentMode, i
       </div>
 
       {/* Right: Temporal Context (Responsive) */}
-      <div className="flex items-center gap-6 text-foreground/40">
+      <div className="flex shrink-0 items-center gap-3 text-foreground/40 sm:gap-6">
         <div className="flex items-center gap-2">
           <Clock className="w-3 h-3" />
           <span className="hidden xs:inline">{t('shell.status.updated_now')}</span>

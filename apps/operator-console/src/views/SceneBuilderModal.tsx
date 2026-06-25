@@ -114,27 +114,27 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
       
-      <div className="relative w-full max-w-2xl bg-card/60 backdrop-blur-2xl border-2 border-border/40 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-500 flex flex-col max-h-[90vh]">
+      <div className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border-2 border-border/40 bg-card/60 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] backdrop-blur-2xl animate-in zoom-in-95 duration-500 sm:max-h-[90vh] sm:rounded-[3rem]">
         
         {/* Header */}
-        <div className="px-8 pt-8 pb-4 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-2xl font-black tracking-tighter">
+        <div className="flex shrink-0 items-center justify-between gap-4 px-5 pb-3 pt-5 sm:px-8 sm:pb-4 sm:pt-8">
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-black tracking-tighter sm:text-2xl">
               {existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
             </h2>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">
               {t('scenes.builder.subtitle')}
             </p>
           </div>
-          <button onClick={onClose} className="p-3 bg-muted/40 hover:bg-muted rounded-xl transition-all">
+          <button onClick={onClose} className="shrink-0 rounded-xl bg-muted/40 p-3 transition-all hover:bg-muted">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
-        <div className="p-8 pt-2 overflow-y-auto custom-scrollbar space-y-6 flex-1">
+        <div className="flex-1 space-y-5 overflow-y-auto p-5 pt-2 custom-scrollbar sm:space-y-6 sm:p-8 sm:pt-2">
           {error && (
             <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive animate-shake">
               <X className="w-4 h-4 shrink-0" />
@@ -143,7 +143,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           )}
 
           {/* Identity Section */}
-          <div className="space-y-4 p-6 rounded-[2rem] bg-muted/10 border border-border/10 relative">
+          <div className="relative space-y-4 rounded-[1.5rem] border border-border/10 bg-muted/10 p-4 sm:rounded-[2rem] sm:p-6">
              <div className="flex items-center gap-3 mb-2">
                 <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0">
                   <Settings className="w-3 h-3 text-foreground/40" />
@@ -194,9 +194,9 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           </div>
 
           {/* Device Selection Section */}
-          <div className="space-y-4 p-6 rounded-[2rem] bg-primary/[0.02] border border-primary/10 relative">
-             <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
+          <div className="relative space-y-4 rounded-[1.5rem] border border-primary/10 bg-primary/[0.02] p-4 sm:rounded-[2rem] sm:p-6">
+             <div className="mb-2 flex flex-col gap-3 min-[460px]:flex-row min-[460px]:items-center min-[460px]:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
                     <List className="w-3 h-3" />
                   </div>
@@ -204,14 +204,14 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                     {t('scenes.builder.select_units', { count: actions.length })}
                   </label>
                 </div>
-                <div className="relative">
+                <div className="relative w-full min-[460px]:w-auto">
                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-primary/40" />
                    <input 
                     type="text"
                     value={deviceSearch}
                     onChange={(e) => setDeviceSearch(e.target.value)}
                     placeholder="Search..."
-                    className="bg-primary/5 border-none rounded-lg pl-8 pr-3 py-1.5 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 w-32 transition-all focus:w-48 outline-none"
+                    className="w-full rounded-lg border-none bg-primary/5 py-1.5 pl-8 pr-3 text-[10px] font-black uppercase tracking-widest outline-none transition-all focus:ring-1 focus:ring-primary/20 min-[460px]:w-32 min-[460px]:focus:w-48"
                    />
                 </div>
              </div>
@@ -228,7 +228,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                     
                     return (
                       <div key={d.id} className={cn(
-                        "group p-3 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4 cursor-pointer",
+                        "group flex cursor-pointer flex-col gap-3 rounded-2xl border p-3 transition-all duration-300 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between min-[520px]:gap-4",
                         isSelected ? "bg-primary/10 border-primary/30 shadow-lg" : "bg-foreground/[0.02] border-foreground/5 hover:border-primary/20"
                       )} onClick={() => toggleDevice(d.id)}>
                         <div className="flex items-center gap-4 min-w-0">
@@ -247,7 +247,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                         </div>
 
                         {isSelected && (
-                          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                          <div className="grid w-full grid-cols-2 gap-1 min-[520px]:w-auto" onClick={e => e.stopPropagation()}>
                             <button 
                               onClick={() => setCommand(d.id, d.type === 'cover' ? 'open' : 'turn_on')}
                               className={cn(

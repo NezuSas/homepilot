@@ -50,7 +50,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
 
   return (
     <section className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-scenes">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         <h2 className="text-section-title font-semibold tracking-tight text-foreground">
           {t('dashboard.quick_scenes', { defaultValue: 'Escenas rápidas' })}
         </h2>
@@ -60,7 +60,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
         {scenes.map((scene) => {
           const sceneActions = scene.actions || [];
           const localActionCount = sceneActions.filter((action) => allDevices.find((device) => device.id === action.deviceId)?.integrationSource === 'sonoff').length;
@@ -72,11 +72,11 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
               onClick={() => onSceneExecute(scene)}
               disabled={!!roomProcessing}
               className={cn(
-                'group relative flex min-h-[6.5rem] items-center gap-4 overflow-hidden rounded-card border p-4 text-left surface-transition interactive-lift active:scale-[0.98] disabled:opacity-50',
+                'group relative flex min-h-[5.75rem] items-center gap-3 overflow-hidden rounded-card border p-3 text-left surface-transition interactive-lift active:scale-[0.98] disabled:opacity-50 sm:min-h-[6.5rem] sm:gap-4 sm:p-4',
                 isProcessing ? 'border-primary bg-primary text-primary-foreground shadow-depth-2' : 'border-border/65 bg-card shadow-depth-1 hover:border-primary/35',
               )}
             >
-              <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-pill border surface-transition', isProcessing ? 'border-primary-foreground/20 bg-primary-foreground/15' : 'border-primary/15 bg-primary/10 text-primary')}>
+              <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-pill border surface-transition sm:h-11 sm:w-11', isProcessing ? 'border-primary-foreground/20 bg-primary-foreground/15' : 'border-primary/15 bg-primary/10 text-primary')}>
                 <Sparkles className={cn('h-5 w-5', isProcessing && 'animate-pulse')} />
               </span>
               <span className="min-w-0 flex-1">

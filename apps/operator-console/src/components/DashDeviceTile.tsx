@@ -84,19 +84,19 @@ export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate
       disabled={isOffline}
       syncing={isProcessing}
       aria-label={`${displayName}: ${localizedState}`}
-      className="min-h-[8.25rem]"
+      className="min-h-[7.75rem] sm:min-h-[8.25rem]"
     >
-      <div className="relative z-10 flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3.5">
+      <div className="relative z-10 flex items-start justify-between gap-3 sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
           <span className={cn(
-            'flex h-12 w-12 shrink-0 items-center justify-center rounded-card border surface-transition',
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-card border surface-transition sm:h-12 sm:w-12',
             isOn && !isOffline
               ? isLight ? 'border-light-active/25 bg-light-active/15 text-light-active' : 'border-primary/25 bg-primary/15 text-primary'
               : 'border-border/60 bg-muted/60 text-muted-foreground',
           )}>
             <Icon className={cn('h-5 w-5', isProcessing && 'animate-pulse')} />
           </span>
-          <span className="min-w-0">
+          <span className="min-w-0 flex-1">
             <span className="block truncate text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
             <span className={cn('mt-1 block text-caption font-medium', isOn && !isOffline ? isLight ? 'text-light-active' : 'text-primary' : 'text-muted-foreground')}>
               {detail}
@@ -105,7 +105,7 @@ export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate
         </div>
         {canToggle && !isOffline && (
           <span className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-pill border surface-transition',
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-pill border surface-transition sm:h-10 sm:w-10',
             isOn ? isLight ? 'border-light-active/30 bg-light-active text-light-active-foreground' : 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background/35 text-muted-foreground',
           )}>
             <Power className="h-4 w-4" />

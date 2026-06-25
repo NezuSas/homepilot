@@ -93,7 +93,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
         const onCount = roomDevices.filter(isDeviceActive).length;
 
         return (
-          <section key={room.id} className="animate-in fade-in slide-in-from-bottom-6 rounded-panel border border-border/65 bg-card/70 p-4 shadow-depth-1 duration-500 sm:p-5">
+          <section key={room.id} className="animate-in fade-in slide-in-from-bottom-6 rounded-panel border border-border/60 bg-card/70 p-3 shadow-depth-1 duration-500 sm:p-5">
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div className={cn(
@@ -118,7 +118,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
                   variant="outline"
                   isLoading={roomProcessing === room.id}
                   onClick={() => onRoomTurnOff(room.id)}
-                  className="gap-2 rounded-pill border-border bg-background/25 px-4 text-caption font-semibold hover:border-danger/30 hover:bg-danger/10 hover:text-danger"
+                  className="w-full gap-2 rounded-pill border-border bg-background/25 px-4 text-caption font-semibold hover:border-danger/30 hover:bg-danger/10 hover:text-danger md:w-auto"
                 >
                   {!roomProcessing && <Power className="h-3.5 w-3.5" />}
                   {!roomProcessing && t('common.turn_off_all')}
@@ -126,7 +126,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
               {orderedRoomDevices.map((device) => {
                 const isCover = hasCapability(device, 'cover');
                 const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;

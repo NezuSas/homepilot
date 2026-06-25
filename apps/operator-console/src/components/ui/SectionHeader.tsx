@@ -30,7 +30,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
         )}
         {...props}
       >
-        <div className="flex flex-col">
+        <div className="min-w-0 flex flex-col">
           {/* Eyebrow — only for section level with subtitle */}
           {subtitle && level !== 'group' && (
             <span className="text-label font-black uppercase tracking-[0.22em] text-muted-foreground/60 mb-1.5">
@@ -39,7 +39,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
           )}
 
           {/* Heading */}
-          <div className={cn('flex items-center gap-2.5', level === 'group' ? 'gap-2' : '')}>
+          <div className={cn('flex min-w-0 items-center gap-2.5', level === 'group' ? 'gap-2' : '')}>
             {Icon && (
               <span
                 className={cn(
@@ -61,11 +61,11 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
             )}
 
             {level === 'view' ? (
-              <h2 className="text-view-title font-black tracking-tighter luxury-text-gradient">
+              <h2 className="min-w-0 break-words text-view-title font-black tracking-tighter luxury-text-gradient">
                 {title}
               </h2>
             ) : level === 'section' ? (
-              <h3 className="text-section-title font-bold tracking-tight text-foreground/85">
+              <h3 className="min-w-0 break-words text-section-title font-bold tracking-tight text-foreground/85">
                 {title}
               </h3>
             ) : (
@@ -84,7 +84,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
         </div>
 
         {action && (
-          <div className="flex shrink-0">
+          <div className="flex w-full shrink-0 sm:w-auto">
             {action}
           </div>
         )}

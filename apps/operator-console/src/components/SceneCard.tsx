@@ -76,24 +76,24 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     <div
       onClick={() => onExecute(scene)}
       className={cn(
-        'group relative bg-card/40 backdrop-blur-2xl border-2 rounded-[3.5rem] p-8 transition-all duration-700 cursor-pointer overflow-hidden',
+        'group relative bg-card/40 backdrop-blur-2xl border-2 rounded-[2rem] p-4 transition-all duration-700 cursor-pointer overflow-hidden sm:rounded-[3rem] sm:p-6 lg:rounded-[3.5rem] lg:p-8',
         isSuccessful ? 'border-primary bg-primary/5 premium-glow shadow-primary/10 scale-[1.02]' : 'border-border/40 hover:border-primary/40',
         isExecuting && 'animate-premium-pulse'
       )}
     >
-      <div className="flex items-start gap-8 relative z-10">
+      <div className="relative z-10 flex items-start gap-4 sm:gap-6 lg:gap-8">
         <div className={cn(
-          'p-6 rounded-[2.5rem] transition-all duration-700 transform group-hover:scale-110',
+          'rounded-[1.5rem] p-4 transition-all duration-700 transform group-hover:scale-110 sm:rounded-[2rem] sm:p-5 lg:rounded-[2.5rem] lg:p-6',
           isSuccessful ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/40' : 'bg-primary/10 text-primary group-hover:bg-primary/20'
         )}>
-          {isExecuting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Icon className="w-8 h-8" />}
+          {isExecuting ? <Loader2 className="h-6 w-6 animate-spin sm:h-8 sm:w-8" /> : <Icon className="h-6 w-6 sm:h-8 sm:w-8" />}
         </div>
         <div className="flex-1 flex flex-col gap-2 min-w-0 pt-1">
-          <h4 className="text-2xl font-black tracking-tighter truncate luxury-text-gradient">{scene.name}</h4>
-          <p className="text-sm font-medium text-muted-foreground opacity-60 leading-tight">
+          <h4 className="truncate text-xl font-black tracking-tighter luxury-text-gradient sm:text-2xl">{scene.name}</h4>
+          <p className="line-clamp-2 text-sm font-medium leading-tight text-muted-foreground opacity-60">
             {description}
           </p>
-          <div className="flex items-center gap-3 mt-4">
+          <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4 sm:gap-3">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
               {roomName || t('common.unknown')}
             </span>
@@ -108,14 +108,14 @@ export const SceneCard: React.FC<SceneCardProps> = ({
       <button
         onClick={(event) => onToggleFavorite(scene.id, event)}
         className={cn(
-          'absolute top-8 right-8 p-3 rounded-full transition-all duration-300 z-20',
+          'absolute right-4 top-4 z-20 rounded-full p-2.5 transition-all duration-300 sm:right-6 sm:top-6 sm:p-3 lg:right-8 lg:top-8',
           isFavorite ? 'text-danger bg-danger/10 shadow-lg shadow-danger/20' : 'text-muted-foreground/40 hover:bg-muted hover:text-danger'
         )}
       >
         <Heart className={cn('w-5 h-5', isFavorite && 'fill-current')} />
       </button>
 
-      <div className="absolute bottom-6 right-8 flex gap-2 transition-all z-20">
+      <div className="absolute bottom-4 right-4 z-20 flex gap-2 transition-all sm:bottom-6 sm:right-6 lg:right-8">
         <button
           onClick={(event) => onEdit(scene, event)}
           className="p-3 bg-muted/40 hover:bg-muted border border-border/40 rounded-2xl hover:text-primary transition-all"

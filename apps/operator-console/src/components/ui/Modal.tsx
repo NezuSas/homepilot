@@ -48,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
   const Icon = variantConfig[variant].icon;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-base"
@@ -63,10 +63,10 @@ export const Modal: React.FC<ModalProps> = ({
         )}
       >
         <div className="overflow-y-auto w-full custom-scrollbar">
-            {(title || description || variant !== 'default') && <div className={cn("p-8 pb-6 flex flex-col items-center text-center")}>
+            {(title || description || variant !== 'default') && <div className={cn("flex flex-col items-center p-5 pb-4 text-center sm:p-8 sm:pb-6")}>
                 {variant !== 'default' && (
-                    <div className={cn("p-4 rounded-2xl mb-6", variantConfig[variant].colorClass)}>
-                        <Icon className="w-8 h-8" />
+                    <div className={cn("mb-4 rounded-2xl p-3 sm:mb-6 sm:p-4", variantConfig[variant].colorClass)}>
+                        <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
                     </div>
                 )}
                 {title && <h2 className="text-xl font-black text-foreground mb-2">{title}</h2>}
@@ -75,7 +75,7 @@ export const Modal: React.FC<ModalProps> = ({
                 </p>}
             </div>}
 
-            <div className={cn("px-8 pb-8", !title && !description && variant === 'default' && "pt-8")}>
+            <div className={cn("px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8")}>
                 {children}
             </div>
         </div>
@@ -86,7 +86,7 @@ export const Modal: React.FC<ModalProps> = ({
             label="Close modal"
             onClick={onClose}
             variant="ghost"
-            className="absolute top-6 right-6 z-10 rounded-pill"
+            className="absolute right-4 top-4 z-10 rounded-pill sm:right-6 sm:top-6"
           />
         )}
       </div>
