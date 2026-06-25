@@ -13,6 +13,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 
 interface SetupStatus {
@@ -75,7 +76,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setTestResult('idle');
     setErrorMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/settings/test-ha-connection`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/settings/test-ha-connection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl: trimmedHaUrl, accessToken: trimmedHaToken })
@@ -100,7 +101,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/settings/home-assistant`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/settings/home-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl: trimmedHaUrl, accessToken: trimmedHaToken })
@@ -118,7 +119,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/system/setup-status/complete`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/system/setup-status/complete`, {
         method: 'POST'
       });
       

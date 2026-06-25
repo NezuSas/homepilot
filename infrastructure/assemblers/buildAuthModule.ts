@@ -56,24 +56,12 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
 
   if (isDevBootstrap) {
     console.warn('[Bootstrap] ⚠️  [DEV BOOTSTRAP ENABLED] admin/admin will be used — NOT safe for production.');
-  } else {
-    console.log('[Bootstrap] [PRODUCTION BOOTSTRAP] Secure random password will be generated if DB is empty.');
-  }
-
-  const adminHook = await authService.getBootstrapAdmin(isDevBootstrap);
-
-  if (adminHook) {
-    if (adminHook.generatedPlaintext) {
-      console.log('\n===============================================================');
-      console.log(' [SECURITY] FIRST BOOT: DEFAULT SYSTEM ADMINISTRATOR GENERATED');
-      console.log(` -> Username: ${adminHook.admin.username}`);
-      console.log(` -> Password: ${adminHook.generatedPlaintext}`);
-      console.log(' => PLEASE COPY AND SAFEGUARD THIS PASSWORD.');
-      console.log(' => IT WILL NEVER BE DISPLAYED AGAIN.');
-      console.log('===============================================================\n');
-    } else {
-      console.log(`[Auth] Bootstrap: Admin user created with development credentials (admin/admin).`);
+    const adminHook = await authService.getBootstrapAdmin(true);
+    if (adminHook) {
+      console.log('[Auth] Bootstrap: Admin user created with development credentials (admin/admin).');
     }
+  } else {
+    console.log('[Bootstrap] First admin will be created through the UI if the users table is empty.');
   }
 
   // -- INIT SYSTEM SETUP V1 --

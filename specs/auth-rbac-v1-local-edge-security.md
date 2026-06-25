@@ -31,15 +31,24 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 *Note*: Admin actions strictly require the `admin` role. `Operator` has expansive read permission and can execute live telemetry operations (commands), but cannot modify infrastructure arrays or sensitive credentials.
 
 ## 4. Bootstrapping Strategy
-**Safe Bootstrap Execution:** 
-Upon system startup (`bootstrap()`), if the `users` table is entirely empty, the system will create an `admin` user with a **strong generated random password** (e.g. 16 chars). 
-- This password will be printed **once** to the terminal securely and visibly (e.g. `[SECURITY] Initial admin password generated: Yt6&Gk...`). 
-- No hardcoded `admin/admin` logic will exist in the final codebase. 
-- It guarantees the system is never unrecoverably locked out while maintaining zero guessability.
+**First-Admin Setup Execution:**
+Upon system startup (`bootstrap()`), if the `users` table is entirely empty, production-like runtime must **not** create an invisible administrator automatically and must **not** print a customer credential to logs.
+
+Instead:
+- `GET /api/v1/system/setup-status` may be read without authentication only while no users exist, so the UI can detect factory state.
+- `POST /api/v1/system/bootstrap-admin` creates the first local `admin` account only while `users.count() === 0`.
+- The first-admin endpoint returns a normal session token so the UI can continue into the protected onboarding flow immediately.
+- Once any user exists, the first-admin endpoint must reject further calls.
+
+Development exception:
+- If `HOMEPILOT_DEV_BOOTSTRAP=true`, the backend may create `admin/admin` on an empty DB for local developer speed only.
+- This development path is forbidden for customer/production delivery.
+- No generated production password should be printed to logs as the customer-facing setup mechanism.
 
 ## 5. Endpoints & Context Injection
 ### Auth Endpoints
 - `POST /api/v1/auth/login` (body: `{ username, password }`)
+- `POST /api/v1/system/bootstrap-admin` (public only while no users exist; body: `{ username, password, displayName? }`)
 - `POST /api/v1/auth/logout` 
 - `GET /api/v1/auth/me`
 - `POST /api/v1/auth/change-password` (body: `{ currentPassword, newPassword }`)

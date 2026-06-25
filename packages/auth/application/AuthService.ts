@@ -14,6 +14,24 @@ export class AuthService {
     private cryptoService: CryptoService
   ) {}
 
+  private async createSessionForUser(user: User): Promise<{ token: string; user: User }> {
+    const token = this.cryptoService.generateSessionToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + AuthService.SESSION_LIFESPAN_MS);
+
+    const session: Session = {
+      id: token,
+      token,
+      userId: user.id,
+      expiresAt: expiresAt.toISOString(),
+      createdAt: now.toISOString()
+    };
+
+    await this.sessionRepository.createSession(session);
+
+    return { token, user };
+  }
+
   public async login(username: string, passwordPlain: string): Promise<{ token: string; user: User } | null> {
     const isDev = process.env.NODE_ENV !== 'production';
     if (isDev) {
@@ -41,21 +59,7 @@ export class AuthService {
       return null;
     }
 
-    const token = this.cryptoService.generateSessionToken();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + AuthService.SESSION_LIFESPAN_MS);
-
-    const session: Session = {
-      id: token,
-      token,
-      userId: user.id,
-      expiresAt: expiresAt.toISOString(),
-      createdAt: now.toISOString()
-    };
-
-    await this.sessionRepository.createSession(session);
-
-    return { token, user };
+    return this.createSessionForUser(user);
   }
 
   public async logout(token: string): Promise<void> {
@@ -140,5 +144,51 @@ export class AuthService {
     await this.userRepository.seedInitialAdmin(admin);
 
     return { admin, generatedPlaintext };
+  }
+
+  public async bootstrapFirstAdmin(payload: {
+    username: string;
+    password: string;
+    displayName?: string | null;
+  }): Promise<{ token: string; user: User } | null> {
+    const count = await this.userRepository.count();
+    if (count > 0) {
+      return null;
+    }
+
+    const username = payload.username.trim();
+    const password = payload.password;
+    const displayName = payload.displayName?.trim() || null;
+
+    if (username.length < 3 || username.length > 40) {
+      throw new Error('INVALID_USERNAME');
+    }
+
+    if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+      throw new Error('INVALID_USERNAME');
+    }
+
+    if (password.length < 10) {
+      throw new Error('WEAK_PASSWORD');
+    }
+
+    const passwordHash = await this.cryptoService.hashPassword(password);
+    const now = new Date().toISOString();
+
+    const admin: User = {
+      id: this.cryptoService.generateId(),
+      username,
+      passwordHash,
+      role: 'admin',
+      isActive: true,
+      displayName,
+      avatarDataUri: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    await this.userRepository.seedInitialAdmin(admin);
+
+    return this.createSessionForUser(admin);
   }
 }

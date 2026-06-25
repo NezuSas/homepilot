@@ -6,6 +6,7 @@ Transformar a HomePilot Edge en un appliance realmente instalable y operable de 
 ## Alcance V1
 - Sistema persistente en SQLite para registrar inicialización global del sistema.
 - Endpoint de System Status para discernir en qué etapa del First-Run estamos.
+- Creación segura del primer administrador desde UI cuando no existe ningún usuario local.
 - Flujo interactivo que verifica credenciales de HA y responde una validación estricta de conexión **viva** al completarse.
 - Trazabilidad y Observabilidad con activity_logs sobre las transiciones del Setup con estructuras limpias `ONBOARDING_STARTED`, `ONBOARDING_COMPLETED`.
 - Barreras de usabilidad y seguridad: El Auth jamás se salta.
@@ -14,6 +15,7 @@ Transformar a HomePilot Edge en un appliance realmente instalable y operable de 
 - Descubrimiento mDNS / ZeroConf dinámico de Home Assistant.
 - Manejo de redes locales Wi-Fi, Ethernet, IP Estáticas (Instalación de SO está fuera de scope).
 - Múltiples tenants en la Edge (onboarding cloud).
+- Entrega de credenciales de cliente mediante logs de backend.
 
 ---
 
@@ -43,6 +45,7 @@ Se integra reciclando lógica existente (sin copypaste):
 
 Casos de Uso:
 - `getSetupStatus()`: Devuelve el estado calculando `requiresOnboarding` (!isInitialized).
+- `bootstrapFirstAdmin(payload)`: Crea el primer usuario `admin` solamente si no existe ningún usuario local. Devuelve sesión autenticada para continuar onboarding.
 - `completeOnboarding(userId: string)`: 
   - **REGLA ESTRICTA 1:** Ejecuta una **validación viva obligatoria** a Home Assistant empleando el setting persistido. No se aceptan cacheos de test previos.
   - **REGLA ESTRICTA 2:** Si el sistema **ya está inicializado**, la llamada debe ser puramente idempotente, no lanzará error y devolverá un `HTTP 200 OK` limpio sin reimprimir nuevos instantes en memoria ni mutar `initializedAt`.
@@ -52,9 +55,11 @@ Casos de Uso:
 - `hasAdminUser`, `hasHAConfig`, `haConnectionValid` **no disparan bloqueos por sí solos**, son puramente *señales auxiliares informativas*.
 
 ### 4. Endpoints Protegidos e Interpretación Dinámica
-Restricción Global: Nada aquí esquiva Auth/RBAC. Un Operador genérico puede consultar estatus `GET`, pero el `POST` es territorio exclusivamente de Admin.
+Restricción Global: Nada aquí esquiva Auth/RBAC salvo el estado de fábrica sin usuarios. Un Operador genérico puede consultar estatus `GET`, pero el `POST /complete` es territorio exclusivamente de Admin.
 
 `GET /api/v1/system/setup-status` (Rol: Operador o Admin)
+- Excepción: si no existe ningún usuario local (`hasAdminUser=false`), responde público para permitir que la UI muestre el setup del primer administrador.
+
 ```json
 {
   "isInitialized": false,
@@ -64,6 +69,12 @@ Restricción Global: Nada aquí esquiva Auth/RBAC. Un Operador genérico puede c
   "haConnectionValid": false // Se asume el último caché conocido de HA connectivity, de ser útil. NO es una prueba viva.
 }
 ```
+
+`POST /api/v1/system/bootstrap-admin` (Público solo si `users.count() === 0`)
+- Crea el primer `admin` con usuario/contraseña introducidos desde la UI.
+- Devuelve `{ token, user }` para iniciar sesión inmediatamente.
+- Si ya existe un usuario, responde error y no muta estado.
+- No marca `system_setup.is_initialized`; eso sigue ocurriendo únicamente al completar HA onboarding.
 
 `POST /api/v1/system/setup-status/complete` (Rol: Admin ONLY)
 - Ejecuta el test VIVO de HA.
@@ -75,6 +86,7 @@ El onboarding redirecciona la UI preexistente obligando foco si `requiresOnboard
 **Si isInitialized === true, el onboarding abandona su flujo obligatorio pero permanece en Settings/Sistema como consulta o reevaluación técnica mediante la entrada "Asistente de Instalación".**
 
 Flujo:
+- **Paso 0: Crear Administrador Local**. Si no existe ningún usuario, la UI bloquea login normal y muestra un formulario para crear el primer administrador. Al completarlo, inicia sesión automáticamente.
 - **Paso 1: Diagnóstico Integral**. La presentación ya no será apenas "Admin Check". Incluirá: Estado del sistema Edge, Nombre/Rol del usuario montado, Status de HA Config crudo, Status de HA connectivity persistente.
 - **Paso 2: Gateway Integration**. Ingesta / Cambio de Home Assistant URL y Long-Lived Token. Prueba remota asíncrona local (Reaprovechando `testConnection`).
 - **Paso 3: Certificación y Commit**. Reuniendo lo anterior, invoca el `POST /complete`. Si hay timeout en red o credencial desactualizada el servidor abortará `HTTP 400`. Si procede, la redirección es universal y reactiva a Topology.

@@ -35,6 +35,7 @@ import { HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { useSession } from './lib/useSession';
 import { LoginView } from './views/LoginView';
+import { FirstAdminSetupView } from './views/FirstAdminSetupView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
 import { SystemStatusBar } from './components/SystemStatusBar';
@@ -280,6 +281,38 @@ function App() {
     i18n.changeLanguage(nextLang);
   };
 
+  // Check setup status before login only to detect factory state without users.
+  useEffect(() => {
+    if (status !== 'unauthenticated') {
+      return;
+    }
+
+    setLoadingSetup(true);
+    fetch(API_ENDPOINTS.system.setupStatus)
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          setSetupStatus(null);
+          setIsBackendOffline(false);
+          return null;
+        }
+        const contentType = res.headers.get('content-type');
+        if (!res.ok || !contentType || !contentType.includes('application/json')) {
+          throw new Error('BACKEND_ERROR');
+        }
+        return res.json() as Promise<SetupStatus>;
+      })
+      .then(data => {
+        if (data) {
+          setSetupStatus(data);
+          setIsBackendOffline(false);
+        }
+      })
+      .catch(() => {
+        setIsBackendOffline(true);
+      })
+      .finally(() => setLoadingSetup(false));
+  }, [status]);
+
   // Check setup status once authenticated
   useEffect(() => {
     if (status === 'authenticated') {
@@ -479,6 +512,18 @@ function App() {
   }
 
   if (status === 'unauthenticated') {
+    if (loadingSetup) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Monitor className="w-8 h-8 animate-pulse text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (setupStatus && !setupStatus.hasAdminUser) {
+      return <FirstAdminSetupView onCompleted={handleLoginSuccess} />;
+    }
+
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 

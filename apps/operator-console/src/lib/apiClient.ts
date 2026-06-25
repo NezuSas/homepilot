@@ -15,7 +15,7 @@
  *  - Configurable una sola vez al inicio. Seguro ante hot-module-replacement.
  */
 
-const AUTH_WHITELISTED = ['/api/v1/auth/login', '/health'];
+const AUTH_WHITELISTED = ['/api/v1/auth/login', '/api/v1/system/bootstrap-admin', '/health'];
 
 type TokenGetter = () => string | null;
 type UnauthorizedCallback = () => void;

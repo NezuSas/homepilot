@@ -121,14 +121,15 @@ password: admin
 
 Esto existe para acelerar pruebas locales en Docker/WSL, reiniciar bases de datos, validar pantallas y evitar depender de una clave aleatoria impresa una sola vez en logs. El propio backend emite una advertencia indicando que no es seguro para produccion.
 
-Cuando `HOMEPILOT_DEV_BOOTSTRAP` no esta en `true`, si la DB esta vacia el sistema genera una contrasena segura aleatoria para el primer admin, la imprime una sola vez en logs y no vuelve a mostrarla.
+Cuando `HOMEPILOT_DEV_BOOTSTRAP` no esta en `true` y la DB esta vacia, el sistema no crea un admin oculto ni imprime claves de cliente en logs. La UI detecta que no hay usuarios y muestra el flujo de primer arranque para crear el administrador local.
 
 Estado actual importante:
 
 - Para desarrollo propio, `HOMEPILOT_DEV_BOOTSTRAP=true` es practico porque permite entrar con `admin/admin`.
 - Para produccion real, `admin/admin` no debe usarse.
-- El mecanismo actual de produccion genera una clave unica en logs. Eso protege mejor que una clave fija, pero no es una experiencia final correcta para cliente si el cliente no tiene acceso claro a esos logs.
-- La experiencia final esperada para cliente debe ser un flujo de primer arranque/onboarding donde el usuario cree su administrador desde la interfaz, o un mecanismo de provisionamiento controlado por instalador. Mientras ese flujo no exista completo, `HOMEPILOT_DEV_BOOTSTRAP=false` debe entenderse como modo seguro tecnico/instalador, no como onboarding perfecto para consumidor final.
+- El flujo de cliente/instalador crea el primer admin desde la UI.
+- El endpoint de bootstrap del primer admin solo funciona cuando `users.count() === 0`; despues queda cerrado.
+- La UI inicia sesion automaticamente tras crear el primer admin y continua al onboarding protegido de Home Assistant.
 
 En resumen: hoy se usa `admin/admin` porque el entorno de Oscar es desarrollo local y se necesita entrar facil para probar. No se debe vender ni desplegar asi a cliente.
 

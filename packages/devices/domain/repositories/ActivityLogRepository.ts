@@ -15,7 +15,10 @@ export type ActivityType =
   | 'USER_DEACTIVATED'
   | 'USER_ACTIVATED'
   | 'USER_ROLE_CHANGED'
-  | 'USER_SESSIONS_REVOKED';
+  | 'USER_SESSIONS_REVOKED'
+  | 'ONBOARDING_STARTED'
+  | 'ONBOARDING_HA_TESTED'
+  | 'ONBOARDING_COMPLETED';
 
 /**
  * Registro de actividad atómico para persistencia derivada (Read Model).

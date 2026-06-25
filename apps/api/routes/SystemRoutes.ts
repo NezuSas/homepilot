@@ -22,15 +22,70 @@ export class SystemRoutes extends ApiRoutes {
 
     // GET /api/v1/system/setup-status
     if (method === 'GET' && pathname === '/api/v1/system/setup-status') {
-      const isProtected = await container.guards.authGuard.protect(req, res, true);
-      if (!isProtected) return true;
-      if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
-
       try {
         const status = await container.services.systemSetupService.getSetupStatus();
+        if (status.hasAdminUser) {
+          const isProtected = await container.guards.authGuard.protect(req, res, true);
+          if (!isProtected) return true;
+          if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
+        }
         this.sendJson(res, status);
       } catch (e: any) {
         this.sendError(res, 500, 'SETUP_STATUS_ERROR', e.message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/system/bootstrap-admin
+    if (method === 'POST' && pathname === '/api/v1/system/bootstrap-admin') {
+      try {
+        const payload = await this.parseBody<{ username?: string; password?: string; displayName?: string | null }>(req);
+        if (!payload.username || !payload.password) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Missing admin username or password'), true;
+        }
+
+        const result = await container.services.authService.bootstrapFirstAdmin({
+          username: payload.username,
+          password: payload.password,
+          displayName: payload.displayName
+        });
+
+        if (!result) {
+          return this.sendError(res, 409, 'ADMIN_ALREADY_EXISTS', 'Initial administrator already exists'), true;
+        }
+
+        try {
+          await container.repositories.activityLogRepository.saveActivity({
+            deviceId: 'system-setup',
+            type: 'ONBOARDING_STARTED',
+            timestamp: new Date().toISOString(),
+            description: 'Initial administrator created from first-run setup',
+            data: { userId: result.user.id, username: result.user.username }
+          });
+        } catch {
+          /* ignore activity log failures during first-run auth */
+        }
+
+        this.sendJson(res, {
+          token: result.token,
+          user: {
+            id: result.user.id,
+            username: result.user.username,
+            displayName: result.user.displayName,
+            avatarDataUri: result.user.avatarDataUri,
+            role: result.user.role,
+            isActive: result.user.isActive
+          }
+        });
+      } catch (e: any) {
+        const msg = e.message;
+        if (msg === 'INVALID_USERNAME') {
+          return this.sendError(res, 400, 'INVALID_USERNAME', 'Username must be 3-40 characters and use letters, numbers, dots, hyphens or underscores'), true;
+        }
+        if (msg === 'WEAK_PASSWORD') {
+          return this.sendError(res, 400, 'WEAK_PASSWORD', 'Password must contain at least 10 characters'), true;
+        }
+        this.sendError(res, 500, 'BOOTSTRAP_ADMIN_ERROR', msg);
       }
       return true;
     }

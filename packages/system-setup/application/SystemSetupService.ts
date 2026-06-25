@@ -59,7 +59,7 @@ export class SystemSetupService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'system-setup',
-      type: 'ONBOARDING_STARTED' as any,
+      type: 'ONBOARDING_STARTED',
       timestamp: new Date().toISOString(),
       description: 'System Onboarding Finalization Requested',
       data: { userId }
@@ -77,7 +77,7 @@ export class SystemSetupService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'system-setup',
-      type: 'ONBOARDING_HA_TESTED' as any,
+      type: 'ONBOARDING_HA_TESTED',
       timestamp: new Date().toISOString(),
       description: 'System Onboarding: Home Assistant connection tested',
       data: { userId, success: testResult.success, endpoint: haSettings.baseUrl, apiStatus: testResult.status }
@@ -104,7 +104,7 @@ export class SystemSetupService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'system-setup',
-      type: 'ONBOARDING_COMPLETED' as any,
+      type: 'ONBOARDING_COMPLETED',
       timestamp: new Date().toISOString(),
       description: 'System Onboarding Completed Successfully',
       data: { completedByUserId: userId, result: 'success', homeId: 'local-home' }
