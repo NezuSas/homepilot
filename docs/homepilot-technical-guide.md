@@ -1,0 +1,450 @@
+# HomePilot — Guia tecnica y operativa
+
+## Proposito de la aplicacion
+
+HomePilot es la consola local de Nezu para operar una casa inteligente desde un miniPC/edge local. La aplicacion integra dispositivos traidos desde Home Assistant, permite organizarlos por hogar y habitacion, controlarlos desde una interfaz web, ejecutar escenas y automatizaciones, y usar un asistente de voz local activado por `Ok Nezu`.
+
+El objetivo actual del producto es que el control principal de la casa sea local, modular y mantenible:
+
+- La UI corre como consola web responsive.
+- El backend expone una API local en Fastify.
+- La persistencia usa SQLite local.
+- Home Assistant actua como puente de integracion con dispositivos reales.
+- STT, TTS y LLM pueden correr localmente mediante servicios separados.
+- Docker Compose levanta el stack completo para desarrollo y validacion local.
+
+## Resumen del runtime local
+
+| Servicio | Contenedor | Puerto host | Rol |
+|---|---:|---:|---|
+| API HomePilot | `homepilot-api` | `3000` | API HTTP, WebSocket, auth, dispositivos, escenas, automatizaciones, asistente |
+| UI HomePilot | `homepilot-ui` | `80` | Consola web de operador |
+| Home Assistant | `homeassistant` | `18123` | Bridge local con dispositivos reales |
+| Ollama | `ollama` | `11434` | Modelo local para razonamiento del asistente |
+| TTS Piper | `homepilot-tts` | `8088` | Sintesis de voz local |
+| STT Whisper | `homepilot-stt` | `8090` | Transcripcion local de audio |
+
+URLs utiles en local:
+
+```bash
+http://localhost
+http://localhost:3000/health
+http://localhost:18123
+http://localhost:11434
+http://localhost:8088/health
+http://localhost:8090/health
+```
+
+## Estructura principal del repositorio
+
+| Ruta | Uso |
+|---|---|
+| `apps/api` | Gateway HTTP, rutas API y handlers Fastify-compatible |
+| `apps/operator-console` | Frontend React/Vite de la consola |
+| `packages/auth` | Usuarios, sesiones, roles, guardias de acceso |
+| `packages/devices` | Dominio de dispositivos, escenas, automatizaciones y ejecuciones |
+| `packages/integrations/home-assistant` | Cliente, configuracion y sync con Home Assistant |
+| `packages/topology` | Hogares, habitaciones y dashboards |
+| `packages/assistant` | Hallazgos, memoria, feedback y aprendizaje del asistente |
+| `packages/system-vars` | Variables persistentes para automatizaciones/contexto |
+| `packages/shared` | Infraestructura comun: DB, migraciones, eventos, errores |
+| `infrastructure/assemblers` | Ensamble de modulos e inyeccion de dependencias |
+| `migrations` | Evolucion de esquema SQLite |
+| `services/stt-whisper` | Servicio STT local |
+| `services/tts-piper` | Servicio TTS local |
+| `docker` | Dockerfiles de API/UI/servicios |
+| `docs` | Documentacion tecnica y operativa |
+| `specs` | Especificaciones funcionales y criterios de aceptacion |
+
+## Backend
+
+El backend corre en Node.js con TypeScript y Fastify v5. El gateway principal monta handlers de rutas en `apps/api/routes` sin registrar logica de dominio directamente en `ApiGateway.ts`.
+
+Flujo general de una solicitud:
+
+1. La UI llama un endpoint `/api/v1/*`.
+2. El gateway aplica CORS, parseo y dispatch al `RouteHandler` correspondiente.
+3. La ruta valida metodo, path, payload y permisos.
+4. El caso de uso o servicio de aplicacion ejecuta la accion.
+5. Los repositorios persisten o consultan SQLite.
+6. Si aplica, se llama un driver/integracion externa, por ejemplo Home Assistant.
+7. La respuesta vuelve a la UI con estado actualizado o error normalizado.
+
+Rutas principales:
+
+| Ruta | Archivo | Responsabilidad |
+|---|---|---|
+| `/api/v1/auth/*` | `AuthRoutes.ts` | Login, logout, sesion actual y cambio de password |
+| `/api/v1/admin/users/*` | `AdminRoutes.ts` | Gestion de usuarios y roles admin |
+| `/api/v1/devices/*` | `DeviceRoutes.ts` | Inventario, importacion, refresh, control, eliminacion |
+| `/api/v1/scenes/*` | `SceneRoutes.ts` | Crear, listar y ejecutar escenas |
+| `/api/v1/automations/*` | `AutomationRoutes.ts` | Reglas de automatizacion |
+| `/api/v1/executions/*` | `ExecutionRoutes.ts` | Historial de ejecuciones |
+| `/api/v1/topology/*` | `TopologyRoutes.ts` | Hogares y habitaciones |
+| `/api/v1/dashboards/*` | `DashboardRoutes.ts` | Dashboards configurables |
+| `/api/v1/settings/*` | `SettingsRoutes.ts` | Configuracion de Home Assistant |
+| `/api/v1/system/*` | `SystemRoutes.ts` | Estado operativo, onboarding y diagnostico |
+| `/api/v1/system-variables/*` | `SystemVariableRoutes.ts` | Variables persistentes globales o por hogar |
+| `/api/v1/assistant/*` | `AssistantRoutes.ts` | Chat, STT, TTS, hallazgos y acciones del asistente |
+| `/api/v1/media/*` | `MediaRoutes.ts` | Recursos multimedia servidos por API |
+
+## Autenticacion y roles
+
+La autenticacion usa usuarios locales en SQLite y sesiones opacas. Los roles vigentes son:
+
+| Rol | Uso |
+|---|---|
+| `admin` | Superusuario tecnico con acceso completo |
+| `operator` | Rol legacy/soporte con permisos equivalentes a admin para compatibilidad |
+| `parent` | Dueno del hogar; administra funciones del hogar sin configuracion tecnica completa |
+| `child` | Miembro familiar con control de dispositivos y dashboards |
+| `guest` | Invitado con acceso limitado |
+
+El backend aplica una regla critica: siempre debe existir al menos un administrador activo. No se permite degradar o desactivar el ultimo admin porque eso podria bloquear el acceso al sistema.
+
+### Por que existe `admin/admin`
+
+En desarrollo local se puede activar:
+
+```bash
+HOMEPILOT_DEV_BOOTSTRAP=true
+```
+
+Cuando esa variable esta en `true` y la base de datos esta vacia, el bootstrap crea el usuario:
+
+```text
+usuario: admin
+password: admin
+```
+
+Esto existe solo para acelerar pruebas locales en Docker/WSL sin depender de copiar una clave generada desde logs. El propio backend emite una advertencia indicando que no es seguro para produccion.
+
+Cuando `HOMEPILOT_DEV_BOOTSTRAP` no esta en `true`, si la DB esta vacia el sistema genera una contrasena segura aleatoria para el primer admin, la imprime una sola vez en logs y no vuelve a mostrarla.
+
+## Integracion con Home Assistant
+
+Home Assistant es el bridge local para hablar con dispositivos reales. En Docker Compose el backend usa:
+
+```bash
+INTERNAL_HA_URL=http://homeassistant:8123
+```
+
+Desde el navegador o Windows se entra a Home Assistant por:
+
+```bash
+http://localhost:18123
+```
+
+El flujo esperado para dispositivos importados es:
+
+1. Configurar URL y token de Home Assistant en ajustes.
+2. Descubrir entidades disponibles.
+3. Importar la entidad como device HomePilot.
+4. Asignarla a una habitacion o dejarla en inbox.
+5. Controlarla desde dashboard, detalle, escenas, automatizaciones o voz.
+6. Si el dispositivo se rompe o desaparece en Home Assistant, HomePilot debe reflejarlo como no disponible y permitir refresh o eliminacion cuando aplique.
+
+Campos importantes de `devices`:
+
+- `external_id`: entidad o identificador externo de Home Assistant.
+- `integration_source`: fuente de integracion; hoy por defecto `ha`.
+- `last_known_state`: estado JSON persistido.
+- `invert_state`: permite corregir dispositivos que reportan logica invertida, por ejemplo cortinas.
+- `semantic_type`: ayuda a interpretar el dispositivo de forma modular, por ejemplo interruptor, cortina, luz u otra categoria.
+
+## Dispositivos y modularidad
+
+La UI y el backend no deben asumir que todos los dispositivos son iguales. La direccion actual del codigo es tratar cada device segun sus capacidades y su perfil:
+
+- Interruptores inteligentes: encendido/apagado.
+- Luces: encendido/apagado y, cuando exista soporte, intensidad/color.
+- Cortinas/covers: abrir, cerrar, detener, posicion y posible inversion de estado.
+- Otros dispositivos futuros: deben agregarse como perfiles/capacidades sin romper los existentes.
+
+Buenas reglas para extender devices:
+
+- No codificar reglas por marca directamente en una pantalla.
+- Preferir capacidades normalizadas.
+- Mantener el estado crudo de Home Assistant en `last_known_state`.
+- Mapear diferencias de marca en adaptadores o perfiles, no en componentes visuales generales.
+- Si un dispositivo deja de responder, mostrar estado no disponible en vez de esconderlo.
+
+## Asistente de voz
+
+El asistente esta pensado para escuchar el activador `Ok Nezu` y despues procesar la orden. El stack local relacionado es:
+
+| Pieza | Servicio | Funcion |
+|---|---|---|
+| Wake/listener UI | `GlobalWakeListener.tsx` | Captura activador y audio desde navegador |
+| STT | `homepilot-stt` | Convierte audio a texto con Whisper local |
+| Assistant API | `AssistantRoutes.ts` | Orquesta transcripcion, intencion, respuesta y acciones |
+| LLM | `ollama` | Razonamiento local si esta habilitado |
+| TTS | `homepilot-tts` | Respuesta de voz con Piper |
+
+Variables relevantes en Docker Compose:
+
+| Variable | Uso |
+|---|---|
+| `ASSISTANT_PROVIDER` | Proveedor de razonamiento, por ejemplo `ollama` |
+| `OLLAMA_BASE_URL` | URL interna de Ollama desde API |
+| `OLLAMA_MODEL` | Modelo usado por el asistente |
+| `STT_PROVIDER` | Proveedor STT, por ejemplo `whisper-local` |
+| `WHISPER_BASE_URL` | URL interna del servicio STT |
+| `WHISPER_HOTWORDS` | Pistas de activador, incluye variantes de `Ok Nezu` |
+| `TTS_PROVIDER` | Proveedor TTS, por ejemplo `piper` |
+| `PIPER_BASE_URL` | URL interna del servicio TTS |
+| `TTS_VOICE` | Voz usada por TTS |
+
+## Frontend
+
+La consola esta en `apps/operator-console` y usa React, TypeScript y Vite. La UI se organiza por vistas, componentes reutilizables, tokens de diseno y llamadas API centralizadas.
+
+Piezas principales:
+
+| Area | Ruta | Uso |
+|---|---|---|
+| App shell | `App.tsx` | Layout global, navegacion y gates por rol |
+| Config API | `config.ts` | URLs de endpoints |
+| Design tokens | `design-system/tokens.ts` | Colores, radios, sombras y escalas |
+| Componentes base | `components/ui` | Botones, cards, inputs, modales, selects |
+| Dashboard inicio | `views/DashboardView.tsx` y componentes dashboard | Habitaciones, modos, escenas rapidas, devices |
+| Devices/inbox | `views/InboxView.tsx` | Importacion y gestion de devices |
+| Home Assistant | `views/HomeAssistantSettingsView.tsx` | Configurar bridge y discovery |
+| Escenas | `views/ScenesView.tsx` | Listado y ejecucion de escenas |
+| Automatizaciones | `views/AutomationsView.tsx` y workbench | Reglas y builder |
+| Asistente | `views/AssistantView.tsx` | Chat/acciones del asistente |
+| Usuarios | `views/UsersView.tsx` | Gestion RBAC |
+| Diagnostico | `views/DiagnosticsView.tsx` | Salud del sistema |
+
+Reglas actuales de UI:
+
+- Mantener datos visibles durante refresh.
+- No mostrar skeletons despues de la primera carga.
+- Evitar dependencias inestables en `useEffect`.
+- Evitar selectores Zustand que devuelvan arrays/objetos nuevos en cada render.
+- Mantener componentes responsive para celular, tablet y escritorio.
+- Usar tokens del design system en vez de colores sueltos.
+
+## Base de datos
+
+La base de datos es SQLite local. En Docker:
+
+```bash
+HOMEPILOT_DB_PATH=/app/data/homepilot.db
+```
+
+Ese archivo vive en el volumen montado:
+
+```bash
+./data:/app/data
+```
+
+Por eso, en el host queda en:
+
+```bash
+data/homepilot.db
+```
+
+Las migraciones se guardan en `migrations/` y se registran en `_migrations`. No se debe editar la base manualmente para cambios de esquema; los cambios deben entrar como migraciones.
+
+### Tablas principales
+
+| Tabla | Proposito |
+|---|---|
+| `_migrations` | Registro interno de migraciones aplicadas |
+| `homes` | Hogares definidos en el edge |
+| `rooms` | Habitaciones asociadas a un hogar |
+| `devices` | Inventario de dispositivos, estado persistido, habitacion y metadata de integracion |
+| `automation_rules` | Reglas de automatizacion con trigger/action JSON |
+| `activity_logs` | Auditoria append-only de eventos y acciones |
+| `ha_settings` | Configuracion singleton de Home Assistant |
+| `users` | Usuarios locales, rol, hash de password y estado activo |
+| `sessions` | Sesiones opacas por token |
+| `system_setup` | Estado de inicializacion/onboarding del edge |
+| `scenes` | Escenas con arreglo JSON de acciones |
+| `dashboards` | Dashboards configurables por usuario |
+| `assistant_findings` | Hallazgos/sugerencias proactivas del asistente |
+| `assistant_feedback_events` | Feedback para mejorar hallazgos del asistente |
+| `assistant_drafts` | Drafts estabilizados por fingerprint |
+| `system_variables` | Variables globales o por hogar para automatizacion/contexto |
+| `execution_records` | Resultado historico de ejecuciones manuales, escenas o automatizaciones |
+| `assistant_memory` | Memoria conversacional y preferencias por usuario |
+| `assistant_learning_events` | Eventos de aprendizaje/correccion del asistente |
+
+### Columnas clave por dominio
+
+| Dominio | Tablas | Notas |
+|---|---|---|
+| Topologia | `homes`, `rooms` | `rooms.home_id` depende de `homes.id` |
+| Devices | `devices` | `UNIQUE(home_id, external_id)` evita duplicados por discovery |
+| Automatizacion | `automation_rules`, `system_variables`, `execution_records` | Triggers/actions/acciones se guardan como JSON |
+| Auditoria | `activity_logs`, `execution_records` | Permite investigar cambios y ejecuciones |
+| Auth | `users`, `sessions` | RBAC local con sesiones opacas |
+| Home Assistant | `ha_settings`, `devices` | `ha_settings` guarda bridge; `devices.external_id` apunta a entidades |
+| Asistente | `assistant_findings`, `assistant_feedback_events`, `assistant_drafts`, `assistant_memory`, `assistant_learning_events` | Persisten sugerencias, feedback, memoria y aprendizaje |
+
+## Variables de entorno relevantes
+
+| Variable | Valor local tipico | Descripcion |
+|---|---|---|
+| `NODE_ENV` | `production` en contenedor | Modo Node |
+| `HOMEPILOT_DB_PATH` | `/app/data/homepilot.db` | Ruta SQLite dentro del contenedor |
+| `INTERNAL_HA_URL` | `http://homeassistant:8123` | URL interna para hablar con Home Assistant |
+| `HOMEPILOT_DEV_BOOTSTRAP` | `false` por defecto | Si es `true`, usa `admin/admin` en DB vacia |
+| `ASSISTANT_PROVIDER` | `ollama` | Proveedor de razonamiento |
+| `OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama desde API |
+| `OLLAMA_MODEL` | `llama3.2:3b-instruct-q4_K_M` | Modelo configurado |
+| `STT_PROVIDER` | `whisper-local` | Proveedor de transcripcion |
+| `WHISPER_BASE_URL` | `http://homepilot-stt:8090` | STT desde API |
+| `WHISPER_HOTWORDS` | Variantes de `Ok Nezu` | Pistas para activador |
+| `TTS_PROVIDER` | `piper` | Proveedor TTS |
+| `PIPER_BASE_URL` | `http://homepilot-tts:8088` | TTS desde API |
+| `TTS_VOICE` | Voz configurada | Voz de respuesta |
+| `VITE_API_URL` | `http://localhost:3000` | API usada por el frontend |
+
+## Flujo de trabajo con Windows y WSL
+
+En este proyecto se edita el codigo en Windows:
+
+```bash
+C:\Users\ocuen\Developer\Nezu\homepilot
+```
+
+El entorno donde Oscar corre la app esta en WSL:
+
+```bash
+/home/oscar/homepilot
+```
+
+Flujo recomendado cuando se termina una mejora:
+
+1. Validar en Windows.
+2. Hacer commit.
+3. Hacer push a `main`.
+4. En WSL, traer cambios.
+5. Levantar o reconstruir Docker Compose.
+
+Comandos en Windows:
+
+```bash
+npm run typecheck
+npm run build
+npm run build --prefix apps/operator-console
+git status
+git add .
+git commit -m "Descripcion corta"
+git push
+```
+
+Comandos en WSL:
+
+```bash
+cd /home/oscar/homepilot
+git pull --ff-only
+docker compose up --build -d
+docker compose ps
+curl -fsS http://localhost:3000/health
+```
+
+Si solo cambiaron archivos de documentacion, no hace falta reconstruir contenedores para ver cambios en runtime. Basta con:
+
+```bash
+cd /home/oscar/homepilot
+git pull --ff-only
+```
+
+Si se cambia frontend o backend, reconstruir:
+
+```bash
+docker compose up --build -d homepilot-api homepilot-ui
+```
+
+Si se toca STT, TTS, Home Assistant o dependencias de imagen:
+
+```bash
+docker compose up --build -d
+```
+
+## Comandos de validacion obligatorios
+
+Para cambios frontend o full-stack:
+
+```bash
+npm run typecheck
+npm run build
+npm run build --prefix apps/operator-console
+```
+
+Para cambios backend, API, runtime, auth, automatizacion o bootstrap:
+
+```bash
+npm run test
+```
+
+Para validar despliegue real:
+
+```bash
+docker compose up --build
+docker compose ps
+```
+
+## Operacion diaria
+
+### Levantar todo el stack
+
+```bash
+docker compose up --build -d
+```
+
+### Ver estado
+
+```bash
+docker compose ps
+```
+
+### Ver logs de API
+
+```bash
+docker compose logs homepilot-api
+```
+
+### Ver logs de UI
+
+```bash
+docker compose logs homepilot-ui
+```
+
+### Ver logs de Home Assistant
+
+```bash
+docker compose logs homeassistant
+```
+
+### Validar API
+
+```bash
+curl -fsS http://localhost:3000/health
+```
+
+## Troubleshooting
+
+| Sintoma | Revision recomendada |
+|---|---|
+| `HA_UNREACHABLE` al refrescar device | Verificar que `homeassistant` este healthy, que `INTERNAL_HA_URL` sea `http://homeassistant:8123` y que el token HA siga vigente |
+| Device duplicado despues de reimportar | Revisar `devices.external_id`; la restriccion unica aplica por `home_id + external_id` |
+| Cortina reporta invertido | Revisar `devices.invert_state` y el perfil/capacidad aplicado a cover |
+| Device no cambia en inicio | Revisar refresh de estado, eventos realtime y `last_known_state` persistido |
+| Login `admin/admin` no funciona | Confirmar que la DB estaba vacia al arrancar y que `HOMEPILOT_DEV_BOOTSTRAP=true` estaba activo |
+| STT devuelve transcript vacio | Revisar audio enviado, salud de `homepilot-stt` y que no existan llamadas concurrentes bloqueando la cola |
+| UI no conecta API | Revisar `VITE_API_URL=http://localhost:3000` y salud de `homepilot-api` |
+| Cambios no aparecen en WSL | Hacer `git pull --ff-only` dentro de `/home/oscar/homepilot` |
+
+## Reglas de mantenimiento
+
+- No documentar comportamientos que el codigo no implemente.
+- No cambiar contratos API sin actualizar consumidores.
+- No guardar secretos reales en git.
+- No manipular `data/homepilot.db` a mano para cambios de esquema.
+- Agregar migraciones para cambios persistentes.
+- Mantener `docs/documentation-index.md` actualizado cuando se agregue documentacion importante.
+- Para nuevas marcas o nuevos tipos de devices, mapear capacidades de forma modular y evitar logica especial en componentes genericos.

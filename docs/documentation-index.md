@@ -12,6 +12,7 @@ La documentacion principal ya cubre vision, arquitectura, frontend modular, vali
 | `AGENTS.md` | Reglas estrictas para agentes y cambios asistidos | Fuente normativa |
 | `docs/project-overview.md` | Vision de producto, principios y no-objetivos | Actualizado |
 | `docs/architecture.md` | Arquitectura Edge/Cloud, runtime actual y limites | Actualizado |
+| `docs/homepilot-technical-guide.md` | Guia tecnica completa: backend, frontend, DB, Docker, Home Assistant y WSL | Actualizado |
 | `docs/design-system.md` | Tokens visuales, primitives UI y reglas de uso | Actualizado |
 | `docs/operator-console-frontend.md` | Modularidad UI, patrones y checklist frontend | Actualizado |
 | `docs/local-wsl-workflow.md` | Flujo Windows local, push a main y pull en WSL | Actualizado |
