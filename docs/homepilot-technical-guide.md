@@ -157,7 +157,7 @@ Flujo de medios:
 1. La UI solicita `GET /api/v1/devices/:id/camera/session` usando la sesion HomePilot.
 2. `CameraRoutes` valida que el dispositivo corresponda a `ha:camera.*` y consulta su estado actual.
 3. HomePilot obtiene el token limitado de la entidad desde `entity_picture`; el token de larga duracion de Home Assistant permanece en el backend.
-4. La tarjeta consume el stream MJPEG desde `/api/v1/devices/:id/camera/stream` a traves del proxy local.
+4. La tarjeta consume el stream MJPEG desde `/api/v1/devices/:id/camera/stream`; el proxy valida el token limitado con comparacion constante y consulta Home Assistant usando su credencial interna.
 5. El visor ampliado reemplaza temporalmente el stream de la tarjeta para no mantener dos conexiones simultaneas.
 6. Snapshot y stream usan `Cache-Control: no-store` y se cancelan cuando el navegador cierra la conexion.
 

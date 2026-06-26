@@ -107,16 +107,15 @@ export class HomeAssistantClient {
   public async getCameraMedia(
     entityId: string,
     kind: HomeAssistantCameraMediaKind,
-    cameraAccessToken: string,
     signal?: AbortSignal,
   ): Promise<Response> {
     const endpoint = kind === 'stream' ? 'camera_proxy_stream' : 'camera_proxy';
-    const url = new URL(`${this.baseUrl}/api/${endpoint}/${encodeURIComponent(entityId)}`);
-    url.searchParams.set('token', cameraAccessToken);
+    const url = `${this.baseUrl}/api/${endpoint}/${encodeURIComponent(entityId)}`;
 
     return fetch(url, {
       signal,
       headers: {
+        Authorization: `Bearer ${this.token}`,
         Accept: kind === 'stream' ? 'multipart/x-mixed-replace,image/jpeg' : 'image/jpeg',
       },
     });

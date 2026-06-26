@@ -1,4 +1,5 @@
 import * as http from 'http';
+import * as crypto from 'crypto';
 import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -92,6 +93,19 @@ export class CameraRoutes extends ApiRoutes {
       return;
     }
 
+    let expectedToken: string | null;
+    try {
+      const state = await container.adapters.homeAssistantClient.getEntityState(entityId);
+      expectedToken = state ? this.extractCameraAccessToken(state.attributes.entity_picture) : null;
+    } catch (error: unknown) {
+      this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera token validation failed');
+      return;
+    }
+    if (!expectedToken || !this.tokensMatch(cameraAccessToken, expectedToken)) {
+      this.sendError(res, 401, 'UNAUTHORIZED', 'Invalid camera access token');
+      return;
+    }
+
     const abortController = new AbortController();
     const abortUpstream = () => abortController.abort();
     res.once('close', abortUpstream);
@@ -100,7 +114,6 @@ export class CameraRoutes extends ApiRoutes {
       const upstream = await container.adapters.homeAssistantClient.getCameraMedia(
         entityId,
         kind,
-        cameraAccessToken,
         abortController.signal,
       );
 
@@ -156,6 +169,12 @@ export class CameraRoutes extends ApiRoutes {
     } catch {
       return null;
     }
+  }
+
+  private tokensMatch(providedToken: string, expectedToken: string): boolean {
+    const provided = Buffer.from(providedToken);
+    const expected = Buffer.from(expectedToken);
+    return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
   }
 }
 

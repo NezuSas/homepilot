@@ -126,7 +126,6 @@ describe('CameraRoutes', () => {
     expect(container.adapters.homeAssistantClient.getCameraMedia).toHaveBeenCalledWith(
       'camera.ingreso',
       'snapshot',
-      'camera-token',
       expect.any(AbortSignal),
     );
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({
