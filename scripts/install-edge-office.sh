@@ -185,26 +185,27 @@ wait_for_runtime_ready() {
 }
 
 show_runtime_status() {
-  local api_port ui_port tts_port stt_port
+  local api_port ui_port ollama_port tts_port stt_port
   api_port="$(env_value HOMEPILOT_API_PORT 3000)"
   ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
+  ollama_port="$(env_value HOMEPILOT_OLLAMA_PORT 11434)"
   tts_port="$(env_value HOMEPILOT_TTS_PORT 8088)"
   stt_port="$(env_value HOMEPILOT_STT_PORT 8090)"
 
   runtime_failures=0
   section "Estado operativo de servicios"
-  check_container "homepilot-api" "API HomePilot" true
-  check_container "homepilot-ui" "UI HomePilot" false
-  check_container "homepilot-ollama" "Ollama" false
-  check_container "homepilot-stt" "STT Whisper" true
-  check_container "homepilot-tts" "TTS Piper" true
+  check_container "homepilot-api" "API HomePilot · puerto ${api_port}" true
+  check_container "homepilot-ui" "UI HomePilot · puerto ${ui_port}" false
+  check_container "homepilot-ollama" "Ollama · puerto ${ollama_port}" false
+  check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
+  check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
 
   section "Conectividad de servicios"
-  check_endpoint "API HomePilot" "http://127.0.0.1:${api_port}/health" "200"
-  check_endpoint "UI HomePilot" "http://127.0.0.1:${ui_port}" "200"
-  check_endpoint "STT Whisper" "http://127.0.0.1:${stt_port}/health" "200"
-  check_endpoint "TTS Piper" "http://127.0.0.1:${tts_port}/health" "200"
-  check_endpoint "Home Assistant existente" "http://127.0.0.1:8123/" "200,301,302,401,403"
+  check_endpoint "API HomePilot · puerto ${api_port}" "http://127.0.0.1:${api_port}/health" "200"
+  check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
+  check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
+  check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+  check_endpoint "Home Assistant existente · puerto 8123" "http://127.0.0.1:8123/" "200,301,302,401,403"
 
   if (( runtime_failures == 0 )); then
     ok "Sistema operativo: todos los servicios verificados correctamente."

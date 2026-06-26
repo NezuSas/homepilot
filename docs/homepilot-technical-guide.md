@@ -228,6 +228,35 @@ bash scripts/install-edge-office.sh --clean --start --api-url http://localhost:1
 
 El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
 
+#### Diagnostico operativo con `--status`
+
+La opcion `--status` sirve para revisar una instalacion existente sin modificarla:
+
+```bash
+bash scripts/install-edge-office.sh --status
+```
+
+Esta opcion no limpia Docker, no construye imagenes, no crea archivos y no inicia ni reinicia contenedores. Comprueba:
+
+- Estado de los contenedores de API, UI, Ollama, STT y TTS.
+- Puerto host configurado para API, UI, Ollama, STT y TTS, y puerto comprobado para Home Assistant.
+- Healthchecks disponibles para API, STT y TTS.
+- Respuesta HTTP de API, UI, STT y TTS.
+- Conectividad con el Home Assistant existente configurado para el cliente.
+
+Si todos los componentes responden correctamente, el script termina con codigo de salida `0`. Si falta un servicio, un healthcheck falla o un endpoint no responde, termina con un codigo distinto de `0`; esto permite usarlo tanto de forma manual como en monitoreo o automatizacion.
+
+`--status` no debe combinarse con `--clean`, `--start` ni `--api-url`. Para instalar o reconstruir el sistema se usa `--start`; para consultar su salud sin hacer cambios se usa `--status`.
+
+Despues de conceder permiso de ejecucion, ambos formatos son equivalentes:
+
+```bash
+chmod +x scripts/install-edge-office.sh
+./scripts/install-edge-office.sh --status
+```
+
+El prefijo `bash` solo es necesario cuando el archivo todavia no tiene permiso de ejecucion o cuando se desea indicar explicitamente el interprete.
+
 La plantilla `.env.office.example` contiene todas las variables operativas. Sus campos que deben verificarse por instalacion son:
 
 | Variable | Uso |
