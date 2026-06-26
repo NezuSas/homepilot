@@ -147,6 +147,76 @@ Desde el navegador o Windows se entra a Home Assistant por:
 http://localhost:18123
 ```
 
+### Cliente con Home Assistant existente
+
+En instalaciones reales de cliente, HomePilot no debe crear ni reemplazar el Home Assistant del cliente si ya existe uno operativo. El appliance debe desplegar solamente HomePilot API, UI, STT, TTS y Ollama, y enlazarse al Home Assistant existente mediante URL local y token de larga duracion.
+
+Patron recomendado cuando Home Assistant corre en el host o en otro contenedor ya existente de la miniPC:
+
+```bash
+INTERNAL_HA_URL=http://host.docker.internal:8123
+```
+
+El `docker compose` usado para cliente debe incluir `extra_hosts: host.docker.internal:host-gateway` en `homepilot-api`. No debe incluir un servicio `homeassistant` nuevo si el cliente ya tiene el suyo.
+
+En el onboarding de HomePilot se debe usar:
+
+```text
+URL local: http://host.docker.internal:8123
+Token: token de acceso de larga duracion creado en el Home Assistant del cliente
+```
+
+Si Home Assistant esta en la misma red Docker y su contenedor se llama `homeassistant`, tambien se puede validar:
+
+```text
+http://homeassistant:8123
+```
+
+La URL publica o de Cloudflare del cliente sirve para que el instalador entre a Home Assistant y cree el token, pero HomePilot debe preferir la ruta local de baja latencia desde la miniPC.
+
+### Acceso por SSH/Cloudflare y puertos
+
+Cuando se accede a una miniPC remota por Cloudflare SSH, no se debe asumir que `localhost:3000` o `localhost:8123` en la laptop pertenecen a la miniPC. Pueden estar ocupados por servicios locales del instalador.
+
+Puertos recomendados para tunel:
+
+| Servicio remoto | Puerto remoto | Puerto local recomendado | URL local del instalador |
+|---|---:|---:|---|
+| HomePilot UI | `8080` | `8080` | `http://localhost:8080` |
+| HomePilot API | `3000` | `13000` | `http://localhost:13000` |
+| Home Assistant existente | `8123` | `18123` | `http://localhost:18123` |
+
+Tunel recomendado para HomePilot:
+
+```bash
+ssh -i ~/.ssh/codex_nezu_tmp \
+  -o ProxyCommand="cloudflared access ssh --hostname %h" \
+  -L 8080:127.0.0.1:8080 \
+  -L 13000:127.0.0.1:3000 \
+  nezu@ssh.nezuecuador.com
+```
+
+Tunel recomendado para Home Assistant del cliente:
+
+```bash
+ssh -i ~/.ssh/codex_nezu_tmp \
+  -o ProxyCommand="cloudflared access ssh --hostname %h" \
+  -L 18123:127.0.0.1:8123 \
+  nezu@ssh.nezuecuador.com
+```
+
+Si se usa `13000` para la API en la laptop, la UI debe estar compilada con:
+
+```bash
+VITE_API_URL=http://localhost:13000
+```
+
+Para validar la instalacion desde la miniPC:
+
+```bash
+bash scripts/check-edge-install.sh docker-compose.office.yml
+```
+
 El flujo esperado para dispositivos importados es:
 
 1. Configurar URL y token de Home Assistant en ajustes.
@@ -377,8 +447,8 @@ Variables adicionales del contenedor:
 | Variable | Valor local tipico | Descripcion |
 |---|---|---|
 | `NODE_ENV` | `production` en contenedor | Modo Node dentro de la imagen Docker |
-| `INTERNAL_HA_URL` | `http://homeassistant:8123` | URL interna para hablar con Home Assistant |
-| `VITE_API_URL` | `http://localhost:3000` | API usada por el frontend |
+| `INTERNAL_HA_URL` | `http://homeassistant:8123` o `http://host.docker.internal:8123` | URL interna para hablar con Home Assistant. Usar `host.docker.internal` cuando el cliente ya tiene su propio HA fuera del compose de HomePilot. |
+| `VITE_API_URL` | `http://localhost:3000` o `http://localhost:13000` | API usada por el frontend. Usar `13000` cuando el instalador accede por tunel y su puerto local `3000` ya esta ocupado. |
 
 ## Flujo de trabajo con Windows y WSL
 
@@ -508,13 +578,14 @@ curl -fsS http://localhost:3000/health
 
 | Sintoma | Revision recomendada |
 |---|---|
-| `HA_UNREACHABLE` al refrescar device | Verificar que `homeassistant` este healthy, que `INTERNAL_HA_URL` sea `http://homeassistant:8123` y que el token HA siga vigente |
+| `HA_UNREACHABLE` al refrescar device | Verificar que Home Assistant este healthy, que `INTERNAL_HA_URL` sea `http://homeassistant:8123` o `http://host.docker.internal:8123` segun el despliegue, y que el token HA siga vigente |
 | Device duplicado despues de reimportar | Revisar `devices.external_id`; la restriccion unica aplica por `home_id + external_id` |
 | Cortina reporta invertido | Revisar `devices.invert_state` y el perfil/capacidad aplicado a cover |
 | Device no cambia en inicio | Revisar refresh de estado, eventos realtime y `last_known_state` persistido |
 | Login `admin/admin` no funciona | Confirmar que la DB estaba vacia al arrancar y que `HOMEPILOT_DEV_BOOTSTRAP=true` estaba activo |
 | STT devuelve transcript vacio | Revisar audio enviado, salud de `homepilot-stt` y que no existan llamadas concurrentes bloqueando la cola |
 | UI no conecta API | Revisar `VITE_API_URL=http://localhost:3000` y salud de `homepilot-api` |
+| UI por Cloudflare SSH pega a una API local equivocada | Usar tunel `-L 13000:127.0.0.1:3000` y compilar UI con `VITE_API_URL=http://localhost:13000` |
 | Cambios no aparecen en WSL | Hacer `git pull --ff-only` dentro de `/home/oscar/homepilot` |
 
 ## Reglas de mantenimiento

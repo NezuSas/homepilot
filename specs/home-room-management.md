@@ -31,6 +31,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - **REQ-07 (Contexto Requerido)**: La API requiere `userId` en cada operación. Si no está presente, la petición se rechaza estructuralmente.
 - **REQ-08 (Propiedad de Home)**: Durante la creación de un `Home`, el campo `ownerId` se asigna con el valor del `userId` activo.
 - **REQ-09 (Propiedad de Room)**: La entidad `Room` no contiene un campo `ownerId`. Su acceso se autoriza verificando que el `userId` actual coincida con el `ownerId` de su `Home` padre.
+- **REQ-10 (Detalle Operativo en Consola)**: La consola de operador debe permitir seleccionar una `Room` listada y mostrar sus detalles operativos sin cambiar contratos API: nombre, identificador, cantidad de dispositivos asignados, cantidad de dispositivos activos y lista resumida de dispositivos.
 
 ## 5. Requisitos No Funcionales
 - **NFR-01 (Latencia Edge)**: Las operaciones de lectura y escritura en BD local deben tardar menos de 20ms bajo carga normal.
@@ -58,6 +59,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC4**: Dado el `userId` "U-1" dueño de "H-1", al enviar `POST /rooms` con `{"homeId": "H-1", "name": "Salón"}`, persiste el registro BD, retorna `201 Created` y emite `RoomCreatedEvent`.
 - [ ] **AC5**: Dado el `userId` "U-2", al enviar `POST /rooms` referenciando "H-1" (propiedad de U-1), el sistema retorna `403 Forbidden` sin guardar datos ni emitir eventos.
 - [ ] **AC6**: Dado un `userId` "U-1", al enviar `POST /rooms` referenciando un id "H-99" inexistente, el sistema retorna `404 Not Found` sin guardar datos ni emitir eventos.
+- [ ] **AC7**: Dado un usuario autenticado con Rooms y Devices asignados, al seleccionar una Room en la vista de espacios, la consola muestra un panel de detalle con conteos y dispositivos de esa Room manteniendo visible la lista de Rooms.
 
 ## 8. Notas Técnicas y Arquitectura
 

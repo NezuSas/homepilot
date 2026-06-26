@@ -8,7 +8,7 @@ HomePilot Edge is a local-first smart home appliance platform. It runs the API, 
 |---|---|---|
 | API | Fastify v5 + TypeScript | Route logic lives in `RouteHandler` implementations. |
 | UI | React + Vite + TypeScript | App located in `apps/operator-console`. |
-| Runtime | Docker Compose | Runs API, UI, Home Assistant, and Ollama service when enabled. |
+| Runtime | Docker Compose | Runs API, UI, Ollama, STT and TTS. Customer deployments can link to an existing Home Assistant instead of creating a new one. |
 | Persistence | Local durable data directory | `data/` is ignored by Git and mounted by Docker. |
 | Validation | npm scripts + Docker | Typecheck/build plus runtime compose validation. |
 

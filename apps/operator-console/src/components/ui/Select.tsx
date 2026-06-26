@@ -35,6 +35,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               variant === 'small' && "h-8 rounded-lg border border-border/50 bg-muted/20 px-2 py-0.5 text-[11px] focus:ring-primary/40 focus:bg-background",
               variant === 'primary' && "h-14 rounded-2xl bg-primary text-primary-foreground px-6 py-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 border-none active:scale-95 text-center",
               variant === 'ghost' && "bg-transparent border border-transparent hover:border-border/40 focus:border-primary/40 px-2 py-1 text-sm focus:ring-0",
+              "[&>option]:bg-popover [&>option]:text-popover-foreground",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
               error && "border-danger/50 focus:ring-danger/40 focus:border-danger bg-danger/5",
               className

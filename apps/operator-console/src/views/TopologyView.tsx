@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -17,49 +17,87 @@ interface Room {
   homeId: string;
 }
 
+interface Device {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  roomId: string | null;
+  lastKnownState?: Record<string, unknown> | null;
+}
+
+const API_URL = `${API_BASE_URL}/api/v1`;
+
+const isActiveDevice = (device: Device) => {
+  const state = device.lastKnownState || {};
+  return state.on === true
+    || state.state === 'on'
+    || Number(state.brightness) > 0
+    || Number(state.power) > 0;
+};
+
 export const TopologyView: React.FC = () => {
   const { t } = useTranslation();
   const [homes, setHomes] = useState<Home[]>([]);
   const [selectedHome, setSelectedHome] = useState<Home | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [loadingHomes, setLoadingHomes] = useState(true);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
-  // En entorno Local/Edge, la API v1 expuesta en el puerto contiguo soluciona el binding
-  const API_URL = `${API_BASE_URL}/api/v1`;
-
   useEffect(() => {
-    apiFetch(`${API_URL}/homes`)
-      .then((res) => res.json())
-      .then((data: Home[]) => {
-        const homes = Array.isArray(data) ? data : [];
-        setHomes(homes);
-        if (homes.length > 0) {
-          handleSelectHome(homes[0]);
+    let isMounted = true;
+
+    const loadInitialData = async () => {
+      try {
+        const [homesRes, devicesRes] = await Promise.all([
+          apiFetch(`${API_URL}/homes`),
+          apiFetch(`${API_URL}/devices`),
+        ]);
+
+        const homesData = await homesRes.json();
+        const deviceData = devicesRes.ok ? await devicesRes.json() : [];
+        if (!isMounted) return;
+
+        const nextHomes = Array.isArray(homesData) ? homesData : [];
+        setHomes(nextHomes);
+        setDevices(Array.isArray(deviceData) ? deviceData : []);
+
+        if (nextHomes.length > 0) {
+          void handleSelectHome(nextHomes[0]);
         }
-        setLoadingHomes(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching homes:', err);
-        setLoadingHomes(false);
-      });
+      } catch (err) {
+        console.error('Error fetching topology:', err);
+      } finally {
+        if (isMounted) setLoadingHomes(false);
+      }
+    };
+
+    void loadInitialData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleSelectHome = (home: Home) => {
+  const handleSelectHome = async (home: Home) => {
     setSelectedHome(home);
+    setSelectedRoomId(null);
     setLoadingRooms(true);
-    apiFetch(`${API_URL}/homes/${home.id}/rooms`)
-      .then((res) => res.json())
-      .then((data) => {
-        setRooms(Array.isArray(data) ? data : []);
-        setLoadingRooms(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching rooms:', err);
-        setLoadingRooms(false);
-      });
+    try {
+      const res = await apiFetch(`${API_URL}/homes/${home.id}/rooms`);
+      const data = await res.json();
+      const nextRooms = Array.isArray(data) ? data : [];
+      setRooms(nextRooms);
+      setSelectedRoomId(nextRooms[0]?.id ?? null);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+      setRooms([]);
+    } finally {
+      setLoadingRooms(false);
+    }
   };
 
   const handleAddRoom = async () => {
@@ -73,7 +111,7 @@ export const TopologyView: React.FC = () => {
       });
       if (res.ok) {
         setNewRoomName('');
-        handleSelectHome(selectedHome); // Refresh
+        void handleSelectHome(selectedHome);
       }
     } catch (err) {
       console.error('Error creating room:', err);
@@ -81,6 +119,26 @@ export const TopologyView: React.FC = () => {
       setIsCreatingRoom(false);
     }
   };
+
+  const selectedRoom = useMemo(
+    () => rooms.find((room) => room.id === selectedRoomId) || null,
+    [rooms, selectedRoomId],
+  );
+
+  const selectedHomeDevices = useMemo(
+    () => devices.filter((device) => device.roomId && rooms.some((room) => room.id === device.roomId)),
+    [devices, rooms],
+  );
+
+  const selectedRoomDevices = useMemo(
+    () => selectedRoom ? devices.filter((device) => device.roomId === selectedRoom.id) : [],
+    [devices, selectedRoom],
+  );
+
+  const activeRoomDeviceCount = useMemo(
+    () => selectedRoomDevices.filter(isActiveDevice).length,
+    [selectedRoomDevices],
+  );
 
   if (loadingHomes) {
     return (
@@ -117,7 +175,7 @@ export const TopologyView: React.FC = () => {
                 return (
                   <li 
                     key={home.id}
-                    onClick={() => handleSelectHome(home)}
+                    onClick={() => { void handleSelectHome(home); }}
                     className={cn(
                       "group flex flex-col p-4 cursor-pointer transition-all border-l-[4px] relative",
                       isSelected 
@@ -204,31 +262,129 @@ export const TopologyView: React.FC = () => {
                 <p className="text-sm">{t('common.loading')}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] gap-4">
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-sm italic">
                     {t('topology.no_rooms', { defaultValue: 'No rooms associated with this environment.' })}
                   </div>
                 ) : (
-                  Array.isArray(rooms) && rooms.map((room) => (
-                    <div 
-                      key={room.id} 
-                      className="flex flex-col p-5 border border-border rounded-xl bg-card shadow-sm hover:border-primary/50 hover:shadow-md transition-all group"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          <Box className="w-5 h-5" />
-                        </div>
-                        <span className="font-semibold text-foreground">{room.name}</span>
-                      </div>
-                      <div className="mt-auto pt-4 border-t border-border/50 flex justify-between items-center">
-                         <span className="text-xs text-muted-foreground font-medium">{t('inbox.inspector.room_label')}</span>
-                         <span className="text-[11px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded truncate max-w-[140px]" title={room.id}>
-                           {room.id}
-                         </span>
-                      </div>
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {Array.isArray(rooms) && rooms.map((room) => {
+                        const isRoomSelected = selectedRoomId === room.id;
+                        const roomDevices = devices.filter((device) => device.roomId === room.id);
+                        const activeCount = roomDevices.filter(isActiveDevice).length;
+
+                        return (
+                          <button
+                            key={room.id}
+                            type="button"
+                            onClick={() => setSelectedRoomId(room.id)}
+                            className={cn(
+                              "flex flex-col p-5 border rounded-xl bg-card shadow-sm hover:border-primary/50 hover:shadow-md transition-all group text-left",
+                              isRoomSelected ? "border-primary bg-primary/5 shadow-primary/10" : "border-border",
+                            )}
+                          >
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className={cn(
+                                "p-2.5 rounded-lg transition-colors",
+                                isRoomSelected ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground",
+                              )}>
+                                <Box className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="block truncate font-semibold text-foreground">{room.name}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                  {t('topology.room_device_count', { count: roomDevices.length, defaultValue: `${roomDevices.length} devices` })}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-auto pt-4 border-t border-border/50 flex justify-between items-center gap-3">
+                              <span className="text-xs text-muted-foreground font-medium">{t('inbox.inspector.room_label')}</span>
+                              <span className="text-[11px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded truncate max-w-[140px]" title={room.id}>
+                                {room.id}
+                              </span>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between gap-2">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                <PlugZap className="h-3 w-3" />
+                                {activeCount}/{roomDevices.length}
+                              </span>
+                              {isRoomSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  ))
+
+                    <aside className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                            {t('topology.room_details', { defaultValue: 'Room details' })}
+                          </p>
+                          <h4 className="mt-1 truncate text-lg font-black tracking-tight text-foreground">
+                            {selectedRoom?.name || t('topology.select_room_hint', { defaultValue: 'Select a room' })}
+                          </h4>
+                        </div>
+                        <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                          <Layers3 className="h-5 w-5" />
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                            {t('topology.devices_total', { defaultValue: 'Devices' })}
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-foreground">{selectedRoomDevices.length}</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                            {t('topology.devices_active', { defaultValue: 'Active' })}
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-primary">{activeRoomDeviceCount}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 border-t border-border/50 pt-5">
+                        <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                          {t('topology.devices_in_room', { defaultValue: 'Devices in room' })}
+                        </p>
+                        {selectedRoomDevices.length === 0 ? (
+                          <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
+                            {t('topology.no_devices_in_room', { defaultValue: 'No devices assigned to this room yet.' })}
+                          </p>
+                        ) : (
+                          <div className="flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+                            {selectedRoomDevices.map((device) => (
+                              <div key={device.id} className="rounded-2xl border border-border/60 bg-background/60 p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-bold text-foreground">{device.name}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">{device.type}</p>
+                                  </div>
+                                  <span className={cn(
+                                    "shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-widest",
+                                    isActiveDevice(device) ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                                  )}>
+                                    {isActiveDevice(device) ? t('device_states.on') : t('device_states.off')}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-5 border-t border-border/50 pt-4">
+                        <div className="flex justify-between gap-3 text-[10px] font-mono text-muted-foreground">
+                          <span>{t('inbox.inspector.home_cluster')}</span>
+                          <span className="truncate" title={selectedHome.id}>{selectedHomeDevices.length} / {selectedHome.id}</span>
+                        </div>
+                      </div>
+                    </aside>
+                  </>
                 )}
               </div>
             )}

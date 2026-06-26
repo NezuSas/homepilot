@@ -208,7 +208,11 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
             )}
           </div>
         ) : (
-          <div className="mt-2 flex flex-col gap-2">
+          <div
+            className="mt-2 flex flex-col gap-2"
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <SelectField
               variant="small"
               fullWidth
