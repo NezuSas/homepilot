@@ -34,6 +34,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - **REQ-06:** El script debe validar el compose, crear directorios persistentes requeridos y opcionalmente iniciar HomePilot con `--start`.
 - **REQ-07:** El script debe presentar una cabecera profesional `NEZU / HOMEPILOT EDGE` y estados visuales, sin codigos ANSI cuando la salida no sea una terminal interactiva.
 - **REQ-08:** El script debe ofrecer `--status` para verificar contenedores, healthchecks y endpoints sin crear archivos, limpiar ni iniciar servicios.
+- **REQ-09:** Cuando se use `--start`, el script debe esperar hasta un timeout explicito a que API, UI, Ollama, STT y TTS queden operativos antes de reportar el resultado final.
 
 ## 5. Requisitos No Funcionales
 
@@ -50,6 +51,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC5: El script falla antes de arrancar cuando Docker, Compose o el compose de cliente no estan disponibles.
 - [x] AC6: El script muestra la cabecera de Nezu/HomePilot y conserva salida legible si se redirige a un archivo.
 - [x] AC7: `--status` indica el estado de API, UI, Ollama, STT, TTS y Home Assistant; devuelve un codigo distinto de cero si algun componente esperado no esta sano.
+- [x] AC8: `--start` no declara el sistema listo mientras existan servicios HomePilot en arranque; si el timeout vence, reporta la falla y termina con codigo distinto de cero.
 
 ## 7. Notas Tecnicas y Arquitectura
 

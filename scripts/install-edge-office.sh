@@ -11,6 +11,7 @@ assume_yes=false
 api_url=""
 status_only=false
 runtime_failures=0
+startup_failed=false
 
 if [[ -t 1 ]]; then
   RED='\033[0;31m'
@@ -135,6 +136,52 @@ check_endpoint() {
     warn "$label: sin respuesta válida en $url (HTTP ${status_code:-000})."
     runtime_failures=$((runtime_failures + 1))
   fi
+}
+
+container_ready() {
+  local container="$1"
+  local expects_healthcheck="$2"
+  local state health
+
+  if ! docker inspect "$container" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  IFS='|' read -r state health <<< "$(docker inspect --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container")"
+  [[ "$state" == "running" ]] || return 1
+
+  if [[ "$expects_healthcheck" == true ]]; then
+    [[ "$health" == "healthy" ]] || return 1
+  fi
+
+  return 0
+}
+
+wait_for_runtime_ready() {
+  local timeout_seconds interval_seconds elapsed
+  timeout_seconds="$(env_value HOMEPILOT_STARTUP_TIMEOUT_SECONDS 180)"
+  interval_seconds=5
+  elapsed=0
+
+  section "Espera de salud de HomePilot"
+  info "Esperando servicios saludables hasta ${timeout_seconds}s..."
+
+  while (( elapsed <= timeout_seconds )); do
+    if container_ready "homepilot-api" true \
+      && container_ready "homepilot-ui" false \
+      && container_ready "homepilot-ollama" false \
+      && container_ready "homepilot-stt" true \
+      && container_ready "homepilot-tts" true; then
+      ok "Servicios HomePilot listos."
+      return 0
+    fi
+
+    sleep "$interval_seconds"
+    elapsed=$((elapsed + interval_seconds))
+  done
+
+  warn "Timeout esperando servicios saludables. Revisa el detalle con docker compose logs."
+  return 1
 }
 
 show_runtime_status() {
@@ -282,6 +329,9 @@ if [[ "$start" == true ]]; then
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
     docker compose -f "$COMPOSE_FILE" up --build -d
     docker compose -f "$COMPOSE_FILE" ps
+    if ! wait_for_runtime_ready; then
+      startup_failed=true
+    fi
   else
     warn "Inicio omitido por el operador."
   fi
@@ -298,3 +348,7 @@ printf '%b\n' "${BOLD}  Home Assistant${NC}     http://127.0.0.1:8123 ${DIM}(exi
 printf '%b\n' "${BOLD}  Compose${NC}            ${COMPOSE_FILE} ${DIM}(sin servicio homeassistant)${NC}"
 printf '%b\n' "${DIM}  Inicio manual: docker compose -f ${COMPOSE_FILE} up --build -d${NC}"
 divider
+
+if [[ "$start" == true && ( "$startup_failed" == true || "$runtime_failures" -gt 0 ) ]]; then
+  exit 1
+fi
