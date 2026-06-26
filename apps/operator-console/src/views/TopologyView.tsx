@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap } from 'lucide-react';
+import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface Home {
   id: string;
@@ -47,6 +48,8 @@ export const TopologyView: React.FC = () => {
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [roomPendingDelete, setRoomPendingDelete] = useState<Room | null>(null);
+  const [isDeletingRoom, setIsDeletingRoom] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,6 +120,34 @@ export const TopologyView: React.FC = () => {
       console.error('Error creating room:', err);
     } finally {
       setIsCreatingRoom(false);
+    }
+  };
+
+  const handleDeleteRoom = async () => {
+    if (!roomPendingDelete) return;
+
+    setIsDeletingRoom(true);
+    try {
+      const res = await apiFetch(`${API_URL}/rooms/${roomPendingDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) return;
+
+      const deletedRoomId = roomPendingDelete.id;
+      const nextRooms = rooms.filter((room) => room.id !== deletedRoomId);
+      setRooms(nextRooms);
+      setDevices((currentDevices) => currentDevices.map((device) => (
+        device.roomId === deletedRoomId ? { ...device, roomId: null, status: 'PENDING' } : device
+      )));
+      setSelectedRoomId((currentRoomId) => (
+        currentRoomId === deletedRoomId ? nextRooms[0]?.id ?? null : currentRoomId
+      ));
+      setRoomPendingDelete(null);
+    } catch (err) {
+      console.error('Error deleting room:', err);
+    } finally {
+      setIsDeletingRoom(false);
     }
   };
 
@@ -383,6 +414,18 @@ export const TopologyView: React.FC = () => {
                           <span className="truncate" title={selectedHome.id}>{selectedHomeDevices.length} / {selectedHome.id}</span>
                         </div>
                       </div>
+
+                      {selectedRoom && (
+                        <button
+                          type="button"
+                          onClick={() => setRoomPendingDelete(selectedRoom)}
+                          disabled={isDeletingRoom}
+                          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-danger transition-all hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {t('topology.delete_room', { defaultValue: 'Delete room' })}
+                        </button>
+                      )}
                     </aside>
                   </>
                 )}
@@ -399,6 +442,22 @@ export const TopologyView: React.FC = () => {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!roomPendingDelete}
+        onClose={() => {
+          if (!isDeletingRoom) setRoomPendingDelete(null);
+        }}
+        onConfirm={handleDeleteRoom}
+        title={t('topology.delete_room_title', { defaultValue: 'Delete room?' })}
+        description={t('topology.delete_room_description', {
+          defaultValue: 'This removes the room only. Assigned devices will remain in HomePilot as unassigned and can be placed again later.',
+        })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="danger"
+        isSubmitting={isDeletingRoom}
+      />
       
     </div>
   );

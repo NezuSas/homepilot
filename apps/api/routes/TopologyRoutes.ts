@@ -41,6 +41,13 @@ interface LocalHomeRow {
   updated_at: string;
 }
 
+interface LocalRoomOwnershipRow {
+  room_id: string;
+  home_id: string;
+  owner_id: string;
+  room_name: string;
+}
+
 /**
  * Topology routes: /api/v1/homes, /api/v1/rooms, /api/v1/homes/:id/rooms
  */
@@ -156,6 +163,64 @@ export class TopologyRoutes extends ApiRoutes {
         this.sendJson(res, room, 201);
       } catch (error: any) {
         this.sendError(res, 500, 'ROOM_CREATE_ERROR', error.message);
+      }
+      return true;
+    }
+
+    // DELETE /api/v1/rooms/:id
+    const deleteRoomMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/rooms\/([^\/]+)$/);
+    if (deleteRoomMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const roomId = deleteRoomMatch[1];
+        const ownership = db
+          .prepare(`
+            SELECT rooms.id AS room_id, rooms.home_id, rooms.name AS room_name, homes.owner_id
+            FROM rooms
+            INNER JOIN homes ON homes.id = rooms.home_id
+            WHERE rooms.id = ?
+          `)
+          .get(roomId) as LocalRoomOwnershipRow | undefined;
+
+        if (!ownership) {
+          this.sendError(res, 404, 'ROOM_NOT_FOUND', 'Room not found');
+          return true;
+        }
+
+        if (ownership.owner_id !== req.user!.id) {
+          this.sendError(res, 403, 'FORBIDDEN', 'Room does not belong to current user');
+          return true;
+        }
+
+        const deletedAt = new Date().toISOString();
+        const deleteRoom = db.transaction(() => {
+          const deviceCount = (db
+            .prepare('SELECT COUNT(*) AS count FROM devices WHERE room_id = ?')
+            .get(roomId) as { count: number }).count;
+
+          db.prepare(`
+            UPDATE devices
+            SET room_id = NULL,
+                status = 'PENDING',
+                entity_version = entity_version + 1,
+                updated_at = ?
+            WHERE room_id = ?
+          `).run(deletedAt, roomId);
+
+          db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
+          return deviceCount;
+        });
+
+        const unassignedDevices = deleteRoom();
+        this.sendJson(res, {
+          deleted: true,
+          roomId,
+          homeId: ownership.home_id,
+          name: ownership.room_name,
+          unassignedDevices,
+        });
+      } catch (error: any) {
+        this.sendError(res, 500, 'ROOM_DELETE_ERROR', error.message);
       }
       return true;
     }
