@@ -16,6 +16,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - Plantilla de variables de entorno completa para una instalacion de cliente.
 - Documentacion de ejecucion, acceso LAN y acceso por tunel Cloudflare SSH.
 - Salida de consola con identidad visual Nezu/HomePilot, secciones y estados legibles.
+- Modo de estado operativo no destructivo para diagnosticar servicios y endpoints de la instalacion.
 
 ## 3. Fuera de Alcance
 
@@ -32,6 +33,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - **REQ-05:** Si falta `.env`, el script debe crearla desde una plantilla de cliente sin sobrescribir una existente.
 - **REQ-06:** El script debe validar el compose, crear directorios persistentes requeridos y opcionalmente iniciar HomePilot con `--start`.
 - **REQ-07:** El script debe presentar una cabecera profesional `NEZU / HOMEPILOT EDGE` y estados visuales, sin codigos ANSI cuando la salida no sea una terminal interactiva.
+- **REQ-08:** El script debe ofrecer `--status` para verificar contenedores, healthchecks y endpoints sin crear archivos, limpiar ni iniciar servicios.
 
 ## 5. Requisitos No Funcionales
 
@@ -47,6 +49,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC4: Sin `--clean`, el script solicita confirmacion antes de limpiar; con `--clean --yes`, ejecuta solo la limpieza permitida.
 - [x] AC5: El script falla antes de arrancar cuando Docker, Compose o el compose de cliente no estan disponibles.
 - [x] AC6: El script muestra la cabecera de Nezu/HomePilot y conserva salida legible si se redirige a un archivo.
+- [x] AC7: `--status` indica el estado de API, UI, Ollama, STT, TTS y Home Assistant; devuelve un codigo distinto de cero si algun componente esperado no esta sano.
 
 ## 7. Notas Tecnicas y Arquitectura
 
