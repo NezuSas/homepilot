@@ -632,6 +632,19 @@
     "device_unavailable_hint": "Home Assistant no longer reports this entity. You can refresh it, remove the local import, or wait for it to return; it will update automatically when recovered.",
     "updating": "Updating"
   },
+  "camera": {
+    "live": "Live",
+    "connecting": "Connecting video",
+    "unavailable": "Camera unavailable",
+    "connection_error": "Video could not be loaded",
+    "stream_error": "The stream was interrupted",
+    "retry": "Retry connection",
+    "open_viewer": "Open {{name}} full screen",
+    "close_viewer": "Close camera",
+    "viewer_label": "Live view of {{name}}",
+    "feed_alt": "Live video from {{name}}",
+    "fullscreen_hint": "Expanded camera view · Press Escape to close"
+  },
   "audit_logs": {
     "loading": "Retrieving security logs...",
     "fetch_error": "Failed to synchronize technical history",

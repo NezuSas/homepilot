@@ -36,6 +36,15 @@ describe('DeviceProfiles', () => {
       'binary_sensor',
       'climate',
       'media_player',
+      'camera',
     ]);
+  });
+
+  it('defines Home Assistant cameras as read-only media devices', () => {
+    const profile = getHomeAssistantDeviceProfile('camera.ingreso');
+
+    expect(profile.type).toBe('camera');
+    expect(profile.category).toBe('media');
+    expect(profile.supportedCommands).toEqual([]);
   });
 });

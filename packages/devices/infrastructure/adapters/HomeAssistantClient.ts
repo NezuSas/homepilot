@@ -10,6 +10,8 @@ export interface HomeAssistantState {
   readonly last_updated: string;
 }
 
+export type HomeAssistantCameraMediaKind = 'snapshot' | 'stream';
+
 /**
  * HomeAssistantClient
  * 
@@ -96,6 +98,28 @@ export class HomeAssistantClient {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  /**
+   * Obtiene medios de una entidad camera usando su token limitado de acceso.
+   * El token administrativo de Home Assistant nunca se entrega al navegador.
+   */
+  public async getCameraMedia(
+    entityId: string,
+    kind: HomeAssistantCameraMediaKind,
+    cameraAccessToken: string,
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    const endpoint = kind === 'stream' ? 'camera_proxy_stream' : 'camera_proxy';
+    const url = new URL(`${this.baseUrl}/api/${endpoint}/${encodeURIComponent(entityId)}`);
+    url.searchParams.set('token', cameraAccessToken);
+
+    return fetch(url, {
+      signal,
+      headers: {
+        Accept: kind === 'stream' ? 'multipart/x-mixed-replace,image/jpeg' : 'image/jpeg',
+      },
+    });
   }
 
   /**

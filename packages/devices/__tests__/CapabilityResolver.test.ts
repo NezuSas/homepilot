@@ -63,6 +63,12 @@ describe('CapabilityResolver', () => {
     expect(caps[0].type).toBe('media_player');
   });
 
+  it('should resolve legacy imported Home Assistant cameras from externalId', () => {
+    const device: Device = { ...baseDevice, externalId: 'ha:camera.garden', type: 'sensor' };
+    const caps = resolveCapabilitiesForDevice(device);
+    expect(caps[0].type).toBe('camera');
+  });
+
   it('should infer sensor from Home Assistant (ha:sensor.xxx)', () => {
     const device: Device = { ...baseDevice, externalId: 'ha:sensor.temp' };
     const caps = resolveCapabilitiesForDevice(device);

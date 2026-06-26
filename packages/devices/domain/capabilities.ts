@@ -12,7 +12,8 @@ export type CapabilityType =
   | 'binary_sensor' 
   | 'cover' 
   | 'climate' 
-  | 'media_player';
+  | 'media_player'
+  | 'camera';
 
 /**
  * CapabilityCommandParamSchema
@@ -67,7 +68,8 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
     { name: 'toggle' }
   ],
   'climate': [],
-  'media_player': []
+  'media_player': [],
+  'camera': []
 };
 
 /**

@@ -632,6 +632,19 @@
     "device_unavailable_hint": "Home Assistant ya no reporta esta entidad. Puedes refrescarla, eliminar la importación local o esperar a que reaparezca; al recuperarse se actualizará automáticamente.",
     "updating": "Actualizando"
   },
+  "camera": {
+    "live": "En vivo",
+    "connecting": "Conectando video",
+    "unavailable": "Cámara no disponible",
+    "connection_error": "No se pudo cargar el video",
+    "stream_error": "La transmisión se interrumpió",
+    "retry": "Reintentar conexión",
+    "open_viewer": "Abrir {{name}} en pantalla completa",
+    "close_viewer": "Cerrar cámara",
+    "viewer_label": "Vista en vivo de {{name}}",
+    "feed_alt": "Video en vivo de {{name}}",
+    "fullscreen_hint": "Vista ampliada de la cámara · Presiona Escape para cerrar"
+  },
   "audit_logs": {
     "loading": "Recuperando registros de seguridad...",
     "fetch_error": "Error al sincronizar el historial técnico",

@@ -9,6 +9,7 @@ import type { HomeMode } from '../types';
 import { Button } from './ui/Button';
 import { CurtainDeviceTile } from './CurtainDeviceTile';
 import { DashDeviceTile } from './DashDeviceTile';
+import { CameraDeviceTile } from './CameraDeviceTile';
 
 interface DeviceState {
   on?: boolean;
@@ -129,9 +130,17 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
               {orderedRoomDevices.map((device) => {
                 const isCover = hasCapability(device, 'cover');
+                const isCamera = hasCapability(device, 'camera');
                 const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;
 
-                return isCover ? (
+                return isCamera ? (
+                  <CameraDeviceTile
+                    key={device.id}
+                    device={device}
+                    roomName={room.name}
+                    isDuplicateName={isDuplicateName}
+                  />
+                ) : isCover ? (
                   <CurtainDeviceTile
                     key={device.id}
                     device={device}

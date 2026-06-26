@@ -16,6 +16,7 @@ import { DashboardRoutes } from './routes/DashboardRoutes';
 
 import { MediaRoutes } from './routes/MediaRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
+import { CameraRoutes } from './routes/CameraRoutes';
 
 /**
  * OperatorConsoleServer — backward-compatible wrapper around ApiGateway.
@@ -40,6 +41,7 @@ export class OperatorConsoleServer {
       new TopologyRoutes(dbPath),
       new SceneRoutes(),
       new AutomationRoutes(dbPath),
+      new CameraRoutes(),
       new DeviceRoutes(dbPath),
       new DashboardRoutes(),
       new ExecutionRoutes(),

@@ -33,6 +33,8 @@ const SAFE_MESSAGES: Record<string, string> = {
   'STT_UNAVAILABLE': 'La transcripción de voz local no está disponible.',
   'HOME_NOT_FOUND': 'Hogar no encontrado.',
   'HA_ENTITY_NOT_FOUND': 'Entidad de Home Assistant no encontrada.',
+  'CAMERA_UNAVAILABLE': 'La camara no esta disponible en este momento.',
+  'CAMERA_MEDIA_ERROR': 'No se pudo obtener el video de la camara.',
   'AUTOMATIONLOOPERROR': 'Se detectó un bucle infinito en la automatización.',
   'INVALIDAUTOMATIONRULEERROR': 'Regla de automatización inválida.',
 };

@@ -77,6 +77,7 @@ Rutas principales:
 | `/api/v1/auth/*` | `AuthRoutes.ts` | Login, logout, sesion actual y cambio de password |
 | `/api/v1/admin/users/*` | `AdminRoutes.ts` | Gestion de usuarios y roles admin |
 | `/api/v1/devices/*` | `DeviceRoutes.ts` | Inventario, importacion, refresh, control, eliminacion |
+| `/api/v1/devices/:id/camera/*` | `CameraRoutes.ts` | Sesion autenticada y proxy local de snapshot/stream de camaras HA |
 | `/api/v1/scenes/*` | `SceneRoutes.ts` | Crear, listar y ejecutar escenas |
 | `/api/v1/automations/*` | `AutomationRoutes.ts` | Reglas de automatizacion |
 | `/api/v1/executions/*` | `ExecutionRoutes.ts` | Historial de ejecuciones |
@@ -146,6 +147,21 @@ Desde el navegador o Windows se entra a Home Assistant por:
 ```bash
 http://localhost:18123
 ```
+
+### Camaras Home Assistant
+
+Las entidades con dominio `camera.*` se resuelven mediante el perfil modular `camera`, incluso si fueron importadas antes de que existiera ese perfil y su `type` persistido era generico. El dashboard selecciona `CameraDeviceTile` por capability, no por marca ni por un nombre concreto.
+
+Flujo de medios:
+
+1. La UI solicita `GET /api/v1/devices/:id/camera/session` usando la sesion HomePilot.
+2. `CameraRoutes` valida que el dispositivo corresponda a `ha:camera.*` y consulta su estado actual.
+3. HomePilot obtiene el token limitado de la entidad desde `entity_picture`; el token de larga duracion de Home Assistant permanece en el backend.
+4. La tarjeta consume el stream MJPEG desde `/api/v1/devices/:id/camera/stream` a traves del proxy local.
+5. El visor ampliado reemplaza temporalmente el stream de la tarjeta para no mantener dos conexiones simultaneas.
+6. Snapshot y stream usan `Cache-Control: no-store` y se cancelan cuando el navegador cierra la conexion.
+
+La UI representa carga, error e indisponibilidad sin convertir la camara en un interruptor. Presionar una camara disponible abre el visor responsive de pantalla completa y `Escape` lo cierra.
 
 ### Cliente con Home Assistant existente
 

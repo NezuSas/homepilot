@@ -132,6 +132,15 @@ const HOME_ASSISTANT_DEVICE_PROFILES: Record<string, DeviceProfile> = {
     capabilityTypes: ['media_player'],
     configurationSections: [ASSIGNMENT_SECTION, READ_ONLY_SECTION, STATE_SYNC_SECTION],
   }),
+  camera: createProfile({
+    source: 'home_assistant',
+    domain: 'camera',
+    type: 'camera',
+    displayName: 'Camara de seguridad',
+    category: 'media',
+    capabilityTypes: ['camera'],
+    configurationSections: [ASSIGNMENT_SECTION, READ_ONLY_SECTION, STATE_SYNC_SECTION],
+  }),
 };
 
 function createUnknownProfile(source: DeviceProfileSource, domain: string): DeviceProfile {

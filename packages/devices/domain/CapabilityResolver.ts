@@ -40,7 +40,7 @@ export function resolveCapabilitiesForDevice(device: Device): DeviceCapability[]
  */
 function isValidCapabilityType(type: string): type is CapabilityType {
   const validTypes: string[] = [
-    'switch', 'light', 'dimmer', 'sensor', 'binary_sensor', 'cover', 'climate', 'media_player'
+    'switch', 'light', 'dimmer', 'sensor', 'binary_sensor', 'cover', 'climate', 'media_player', 'camera'
   ];
   return validTypes.includes(type);
 }

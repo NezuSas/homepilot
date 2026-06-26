@@ -124,4 +124,20 @@ describe('HomeAssistantImportService', () => {
     expect(device.lastKnownState.current_position).toBe(0);
     expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
   });
+
+  it('HA entity camera.ingreso imports as a read-only camera', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'camera.ingreso',
+      state: 'idle',
+      attributes: { friendly_name: 'Camara de ingreso', supported_features: 2 },
+      last_changed: '2026-01-01T00:00:00Z',
+      last_updated: '2026-01-01T00:00:00Z'
+    });
+
+    const device = await service.importDevice('camera.ingreso', 'user-1');
+
+    expect(device.type).toBe('camera');
+    expect(device.semanticType).toBeUndefined();
+    expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
+  });
 });
