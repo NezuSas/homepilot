@@ -1,0 +1,122 @@
+services:
+  homepilot-api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    container_name: homepilot-api
+    ports:
+      - "${HOMEPILOT_API_PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOMEPILOT_DB_PATH: ${HOMEPILOT_DB_PATH:-/app/data/homepilot.db}
+      HOMEPILOT_BACKUP_DIR: ${HOMEPILOT_BACKUP_DIR:-/app/backups}
+      INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://host.docker.internal:8123}
+      HOMEPILOT_DEV_BOOTSTRAP: ${HOMEPILOT_DEV_BOOTSTRAP:-false}
+      CORS_ORIGIN: ${HOMEPILOT_CORS_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-true}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi3}
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-30000}
+      ASSISTANT_PLANNER_V2_EXECUTION: ${ASSISTANT_PLANNER_V2_EXECUTION:-true}
+      ASSISTANT_PLANNER_V2_SHADOW: ${ASSISTANT_PLANNER_V2_SHADOW:-true}
+      ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE: ${ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE:-1}
+      ASSISTANT_PLANNER_V2_SHADOW_FORCE: ${ASSISTANT_PLANNER_V2_SHADOW_FORCE:-true}
+      ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT: ${ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT:-true}
+      ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT: ${ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT:-true}
+      ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS: ${ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS:-20000}
+      ASSISTANT_PLANNER_V2_SHADOW_MODEL: ${ASSISTANT_PLANNER_V2_SHADOW_MODEL:-qwen2.5:1.5b}
+      TTS_PROVIDER: ${TTS_PROVIDER:-piper}
+      TTS_BASE_URL: ${TTS_BASE_URL:-http://homepilot-tts:8088}
+      TTS_TIMEOUT_MS: ${TTS_TIMEOUT_MS:-12000}
+      STT_PROVIDER: ${STT_PROVIDER:-whisper-local}
+      STT_BASE_URL: ${STT_BASE_URL:-http://homepilot-stt:8090}
+      STT_TIMEOUT_MS: ${STT_TIMEOUT_MS:-30000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_started
+      homepilot-tts:
+        condition: service_started
+      homepilot-stt:
+        condition: service_started
+
+  homepilot-ui:
+    build:
+      context: .
+      dockerfile: docker/ui/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:13000}
+    container_name: homepilot-ui
+    ports:
+      - "${HOMEPILOT_UI_PORT:-8080}:80"
+    restart: unless-stopped
+    depends_on:
+      - homepilot-api
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: homepilot-ollama
+    ports:
+      - "${HOMEPILOT_OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+  homepilot-tts:
+    build:
+      context: .
+      dockerfile: services/tts-piper/Dockerfile
+    container_name: homepilot-tts
+    environment:
+      PIPER_VOICE_ES: ${PIPER_VOICE_ES:-es_ES-sharvard-medium}
+      PIPER_VOICE_EN: ${PIPER_VOICE_EN:-en_US-lessac-medium}
+      PIPER_SYNTHESIS_TIMEOUT_SECONDS: ${PIPER_SYNTHESIS_TIMEOUT_SECONDS:-20}
+    ports:
+      - "${HOMEPILOT_TTS_PORT:-8088}:8088"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  homepilot-stt:
+    build:
+      context: .
+      dockerfile: services/stt-whisper/Dockerfile
+      args:
+        WHISPER_MODEL: ${WHISPER_MODEL:-small}
+        WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+    container_name: homepilot-stt
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-3}
+      WHISPER_VAD_MIN_SILENCE_MS: ${WHISPER_VAD_MIN_SILENCE_MS:-650}
+      WHISPER_VAD_SPEECH_PAD_MS: ${WHISPER_VAD_SPEECH_PAD_MS:-400}
+      WHISPER_MAX_AUDIO_BYTES: ${WHISPER_MAX_AUDIO_BYTES:-9000000}
+      WHISPER_HOTWORDS: ${WHISPER_HOTWORDS:-Ok Nezu,OK Nezu,Okey Nezu,Okay Nezu,Okei Nezu,ok Nesu,ok Ne Su,ok Nezo,ok Neso}
+    ports:
+      - "${HOMEPILOT_STT_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+
+volumes:
+  ollama-data:

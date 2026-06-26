@@ -217,6 +217,32 @@ Para validar la instalacion desde la miniPC:
 bash scripts/check-edge-install.sh docker-compose.office.yml
 ```
 
+### Instalador de cliente con Home Assistant existente
+
+El repositorio incluye un compose separado para cliente: `docker-compose.office.yml`. No declara un servicio `homeassistant`; por ello no crea, actualiza ni reemplaza el Home Assistant existente. La preparacion se hace desde la raiz del repositorio en la miniPC:
+
+```bash
+git pull --ff-only
+bash scripts/install-edge-office.sh --clean --start --api-url http://localhost:13000
+```
+
+El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
+
+La plantilla `.env.office.example` contiene todas las variables operativas. Sus campos que deben verificarse por instalacion son:
+
+| Variable | Uso |
+|---|---|
+| `INTERNAL_HA_URL` | `http://host.docker.internal:8123` si HA esta disponible desde el host de la miniPC. Cambiarla si la topologia del cliente usa otra ruta local. |
+| `VITE_API_URL` | `http://localhost:13000` para el tunel SSH recomendado; para acceso directo LAN, `http://IP_DE_LA_MINIPC:3000`. Cambiarla exige reconstruir `homepilot-ui`. |
+| `HOMEPILOT_*_PORT` | Puertos publicados; ajustarlos solo si el diagnostico indica conflicto. |
+| `HOMEPILOT_DEV_BOOTSTRAP` | Debe permanecer `false` en cliente: el primer administrador se crea en la UI, no existe una clave impresa en logs. |
+
+Si se modifica `VITE_API_URL`, reconstruir la UI:
+
+```bash
+docker compose -f docker-compose.office.yml up --build -d homepilot-ui
+```
+
 El flujo esperado para dispositivos importados es:
 
 1. Configurar URL y token de Home Assistant en ajustes.
