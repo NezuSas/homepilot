@@ -15,6 +15,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - Limpieza segura y opcional de cache de build e imagenes Docker colgantes.
 - Plantilla de variables de entorno completa para una instalacion de cliente.
 - Documentacion de ejecucion, acceso LAN y acceso por tunel Cloudflare SSH.
+- Salida de consola con identidad visual Nezu/HomePilot, secciones y estados legibles.
 
 ## 3. Fuera de Alcance
 
@@ -30,6 +31,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - **REQ-04:** La limpieza solo debe ejecutarse por confirmacion explicita o con `--clean`; debe limitarse a `docker builder prune` e `docker image prune`.
 - **REQ-05:** Si falta `.env`, el script debe crearla desde una plantilla de cliente sin sobrescribir una existente.
 - **REQ-06:** El script debe validar el compose, crear directorios persistentes requeridos y opcionalmente iniciar HomePilot con `--start`.
+- **REQ-07:** El script debe presentar una cabecera profesional `NEZU / HOMEPILOT EDGE` y estados visuales, sin codigos ANSI cuando la salida no sea una terminal interactiva.
 
 ## 5. Requisitos No Funcionales
 
@@ -44,6 +46,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC3: Sin `.env`, el script crea una copia de `.env.office.example`; con `.env`, la conserva.
 - [x] AC4: Sin `--clean`, el script solicita confirmacion antes de limpiar; con `--clean --yes`, ejecuta solo la limpieza permitida.
 - [x] AC5: El script falla antes de arrancar cuando Docker, Compose o el compose de cliente no estan disponibles.
+- [x] AC6: El script muestra la cabecera de Nezu/HomePilot y conserva salida legible si se redirige a un archivo.
 
 ## 7. Notas Tecnicas y Arquitectura
 

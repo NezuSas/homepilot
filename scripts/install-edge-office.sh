@@ -10,6 +10,46 @@ start=false
 assume_yes=false
 api_url=""
 
+if [[ -t 1 ]]; then
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[1;33m'
+  BLUE='\033[0;34m'
+  CYAN='\033[0;36m'
+  BOLD='\033[1m'
+  DIM='\033[2m'
+  NC='\033[0m'
+else
+  RED=''
+  GREEN=''
+  YELLOW=''
+  BLUE=''
+  CYAN=''
+  BOLD=''
+  DIM=''
+  NC=''
+fi
+
+divider() {
+  printf '%b\n' "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
+}
+
+banner() {
+  if [[ -t 1 ]]; then
+    clear
+  fi
+  printf '%b\n' "${CYAN}${BOLD}"
+  printf '%s\n' '   ███╗   ██╗███████╗███████╗██╗   ██╗'
+  printf '%s\n' '   ████╗  ██║██╔════╝╚══███╔╝██║   ██║'
+  printf '%s\n' '   ██╔██╗ ██║█████╗    ███╔╝ ██║   ██║'
+  printf '%s\n' '   ██║╚██╗██║██╔══╝   ███╔╝  ██║   ██║'
+  printf '%s\n' '   ██║ ╚████║███████╗███████╗╚██████╔╝'
+  printf '%s\n' '   ╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝ '
+  printf '%b\n' "${NC}${BOLD}   H O M E P I L O T   E D G E${NC}"
+  printf '%b\n' "${BLUE}   Consola de instalación · Home Assistant existente${NC}"
+  divider
+}
+
 usage() {
   cat <<'EOF'
 Uso: bash scripts/install-edge-office.sh [opciones]
@@ -28,10 +68,14 @@ Opciones:
 EOF
 }
 
-log() { printf '\n== %s ==\n' "$1"; }
-ok() { printf 'OK   %s\n' "$1"; }
-warn() { printf 'WARN %s\n' "$1"; }
-fail() { printf 'ERROR %s\n' "$1" >&2; exit 1; }
+section() {
+  printf '\n%b\n' "${CYAN}${BOLD}▸ $1${NC}"
+  divider
+}
+ok() { printf '%b\n' "${GREEN}●${NC}  $1"; }
+warn() { printf '%b\n' "${YELLOW}●${NC}  $1"; }
+info() { printf '%b\n' "${BLUE}●${NC}  $1"; }
+fail() { printf '%b\n' "${RED}● Error:${NC} $1" >&2; exit 1; }
 
 confirm() {
   local prompt="$1"
@@ -64,11 +108,15 @@ done
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta disponible para este usuario."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta disponible."
 
-log "Diagnostico de espacio"
+banner
+info "Directorio de instalación: $(pwd)"
+info "Compose de cliente: $COMPOSE_FILE · Home Assistant no se gestiona aquí"
+
+section "Diagnóstico de espacio"
 df -h .
 docker system df || warn "No se pudo consultar el uso de Docker."
 
-log "Home Assistant del cliente (solo lectura)"
+section "Home Assistant del cliente · solo lectura"
 ha_container="$(docker ps -a --format '{{.Names}}' | grep -Fx 'homeassistant' || true)"
 if [[ -n "$ha_container" ]]; then
   ha_status="$(docker inspect --format '{{.State.Status}}' homeassistant 2>/dev/null || true)"
@@ -84,7 +132,7 @@ else
   warn "No hubo respuesta HTTP en 127.0.0.1:8123. Verifica la URL local antes del onboarding."
 fi
 
-log "Puertos requeridos por HomePilot"
+section "Puertos requeridos por HomePilot"
 for port in 3000 8080 8088 8090 11434; do
   if ss -ltn 2>/dev/null | grep -q ":${port} "; then
     warn "Puerto ${port} ya esta ocupado; ajusta HOMEPILOT_*_PORT en .env si no pertenece a HomePilot."
@@ -94,7 +142,7 @@ for port in 3000 8080 8088 8090 11434; do
 done
 
 if [[ "$clean" == true ]]; then
-  log "Limpieza segura de Docker"
+  section "Limpieza segura de Docker"
   if confirm "Se eliminaran solo cache de build e imagenes colgantes. Continuar?"; then
     docker builder prune -f
     docker image prune -f
@@ -107,7 +155,7 @@ else
   warn "Limpieza no ejecutada. Usa --clean para habilitarla."
 fi
 
-log "Configuracion de entorno"
+section "Configuración de entorno"
 if [[ -f "$ENV_FILE" ]]; then
   ok ".env ya existe y se conserva sin cambios."
 else
@@ -135,7 +183,7 @@ env_value() {
 }
 
 if [[ "$start" == true ]]; then
-  log "Inicio de HomePilot"
+  section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
     docker compose -f "$COMPOSE_FILE" up --build -d
     docker compose -f "$COMPOSE_FILE" ps
@@ -144,11 +192,12 @@ if [[ "$start" == true ]]; then
   fi
 fi
 
-log "Resumen"
+section "Instalación preparada"
 ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
 api_port="$(env_value HOMEPILOT_API_PORT 3000)"
-echo "HomePilot UI:  http://127.0.0.1:${ui_port}"
-echo "HomePilot API: http://127.0.0.1:${api_port}/health"
-echo "Home Assistant del cliente: http://127.0.0.1:8123"
-echo "Compose: $COMPOSE_FILE (sin servicio homeassistant)"
-echo "Para arrancar: docker compose -f $COMPOSE_FILE up --build -d"
+printf '%b\n' "${BOLD}  HomePilot UI${NC}       http://127.0.0.1:${ui_port}"
+printf '%b\n' "${BOLD}  HomePilot API${NC}      http://127.0.0.1:${api_port}/health"
+printf '%b\n' "${BOLD}  Home Assistant${NC}     http://127.0.0.1:8123 ${DIM}(existente, preservado)${NC}"
+printf '%b\n' "${BOLD}  Compose${NC}            ${COMPOSE_FILE} ${DIM}(sin servicio homeassistant)${NC}"
+printf '%b\n' "${DIM}  Inicio manual: docker compose -f ${COMPOSE_FILE} up --build -d${NC}"
+divider
