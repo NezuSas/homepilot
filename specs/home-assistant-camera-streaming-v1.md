@@ -21,7 +21,7 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - **REQ-01:** `camera.*` debe resolverse como capability `camera`, sin comandos de encendido o apagado.
 - **REQ-02:** La UI debe seleccionar una tarjeta especializada cuando el dispositivo tenga capability `camera`.
 - **REQ-03:** El backend debe consultar el estado actual de la entidad antes de entregar una sesion de medios.
-- **REQ-04:** El navegador no debe recibir el token de acceso de larga duracion de Home Assistant; el proxy debe validar el token limitado de la entidad antes de usar su credencial interna.
+- **REQ-04:** El navegador no debe recibir el token de acceso de larga duracion de Home Assistant; el proxy debe validar un token corto firmado por HomePilot antes de usar su credencial interna.
 - **REQ-05:** El stream debe pasar por HomePilot y conservar el `Content-Type` entregado por Home Assistant.
 - **REQ-06:** Una camara `unavailable` debe conservar una tarjeta legible y permitir reintentar sin ocultar el resto del dashboard.
 - **REQ-07:** Al abrir el visor, la tarjeta debe liberar su stream para evitar dos conexiones simultaneas a la misma camara.

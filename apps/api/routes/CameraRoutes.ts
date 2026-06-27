@@ -12,6 +12,13 @@ interface CameraSessionResponse {
   readonly streamPath: string;
 }
 
+interface CameraProxyTokenPayload {
+  readonly deviceId: string;
+  readonly expiresAt: number;
+}
+
+const CAMERA_PROXY_TOKEN_TTL_MS = 5 * 60 * 1000;
+
 export class CameraRoutes extends ApiRoutes {
   async handle(
     req: HomePilotRequest,
@@ -52,14 +59,8 @@ export class CameraRoutes extends ApiRoutes {
         return true;
       }
 
-      const cameraAccessToken = this.extractCameraAccessToken(state.attributes.entity_picture);
-      if (!cameraAccessToken) {
-        this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', `Camera ${entityId} has no entity access token`);
-        return true;
-      }
-
       const encodedDeviceId = encodeURIComponent(device.id);
-      const encodedToken = encodeURIComponent(cameraAccessToken);
+      const encodedToken = encodeURIComponent(this.createCameraProxyToken(device.id));
       const response: CameraSessionResponse = {
         snapshotPath: `/api/v1/devices/${encodedDeviceId}/camera/snapshot?token=${encodedToken}`,
         streamPath: `/api/v1/devices/${encodedDeviceId}/camera/stream?token=${encodedToken}`,
@@ -80,9 +81,14 @@ export class CameraRoutes extends ApiRoutes {
     kind: CameraMediaKind,
   ): Promise<void> {
     const requestUrl = new URL(req.url || pathnameFallback(kind, deviceId), 'http://localhost');
-    const cameraAccessToken = requestUrl.searchParams.get('token');
-    if (!cameraAccessToken) {
+    const cameraProxyToken = requestUrl.searchParams.get('token');
+    if (!cameraProxyToken) {
       this.sendError(res, 401, 'UNAUTHORIZED', 'Missing camera access token');
+      return;
+    }
+
+    if (!this.verifyCameraProxyToken(cameraProxyToken, deviceId)) {
+      this.sendError(res, 401, 'UNAUTHORIZED', 'Invalid camera access token');
       return;
     }
 
@@ -90,19 +96,6 @@ export class CameraRoutes extends ApiRoutes {
     const entityId = this.resolveCameraEntityId(device);
     if (!entityId) {
       this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Camera device not found');
-      return;
-    }
-
-    let expectedToken: string | null;
-    try {
-      const state = await container.adapters.homeAssistantClient.getEntityState(entityId);
-      expectedToken = state ? this.extractCameraAccessToken(state.attributes.entity_picture) : null;
-    } catch (error: unknown) {
-      this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera token validation failed');
-      return;
-    }
-    if (!expectedToken || !this.tokensMatch(cameraAccessToken, expectedToken)) {
-      this.sendError(res, 401, 'UNAUTHORIZED', 'Invalid camera access token');
       return;
     }
 
@@ -162,13 +155,36 @@ export class CameraRoutes extends ApiRoutes {
     return device.externalId.slice(3);
   }
 
-  private extractCameraAccessToken(entityPicture: unknown): string | null {
-    if (typeof entityPicture !== 'string') return null;
+  private createCameraProxyToken(deviceId: string): string {
+    const payload: CameraProxyTokenPayload = {
+      deviceId,
+      expiresAt: Date.now() + CAMERA_PROXY_TOKEN_TTL_MS,
+    };
+    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = this.signCameraProxyPayload(encodedPayload);
+    return `${encodedPayload}.${signature}`;
+  }
+
+  private verifyCameraProxyToken(token: string, deviceId: string): boolean {
+    const [encodedPayload, providedSignature] = token.split('.');
+    if (!encodedPayload || !providedSignature) return false;
+
+    const expectedSignature = this.signCameraProxyPayload(encodedPayload);
+    if (!this.tokensMatch(providedSignature, expectedSignature)) return false;
+
     try {
-      return new URL(entityPicture, 'http://homeassistant.local').searchParams.get('token');
+      const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as CameraProxyTokenPayload;
+      return payload.deviceId === deviceId && Number.isFinite(payload.expiresAt) && payload.expiresAt > Date.now();
     } catch {
-      return null;
+      return false;
     }
+  }
+
+  private signCameraProxyPayload(encodedPayload: string): string {
+    const secret = process.env.CAMERA_PROXY_SIGNING_SECRET
+      || process.env.HOME_ASSISTANT_TOKEN
+      || 'homepilot-camera-proxy-development-secret';
+    return crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
   }
 
   private tokensMatch(providedToken: string, expectedToken: string): boolean {

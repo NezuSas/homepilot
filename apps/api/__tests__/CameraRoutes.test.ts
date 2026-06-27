@@ -92,8 +92,10 @@ describe('CameraRoutes', () => {
     expect(container.guards.authGuard.protect).toHaveBeenCalled();
     expect(response.writeHead).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
     const payload = JSON.parse(response.end.mock.calls[0][0] as string) as Record<string, string>;
-    expect(payload.streamPath).toContain('/camera/stream?token=camera-token');
-    expect(payload.snapshotPath).toContain('/camera/snapshot?token=camera-token');
+    expect(payload.streamPath).toContain('/camera/stream?token=');
+    expect(payload.snapshotPath).toContain('/camera/snapshot?token=');
+    expect(payload.streamPath).not.toContain('camera-token');
+    expect(payload.snapshotPath).not.toContain('camera-token');
   });
 
   it('returns a camera unavailable response when Home Assistant reports unavailable', async () => {
@@ -111,9 +113,20 @@ describe('CameraRoutes', () => {
   });
 
   it('proxies camera bytes and preserves the upstream content type', async () => {
+    const sessionResponse = new MockResponse();
     const response = new MockResponse();
     const container = createContainer();
-    const url = '/api/v1/devices/camera-1/camera/snapshot?token=camera-token';
+
+    await routes.handle(
+      createRequest('/api/v1/devices/camera-1/camera/session'),
+      sessionResponse as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/session',
+      'GET',
+      container,
+    );
+
+    const payload = JSON.parse(sessionResponse.end.mock.calls[0][0] as string) as Record<string, string>;
+    const url = payload.snapshotPath;
 
     await routes.handle(
       createRequest(url),
