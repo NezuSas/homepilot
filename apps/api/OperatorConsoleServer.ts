@@ -31,20 +31,20 @@ export class OperatorConsoleServer {
   private gateway: ApiGateway;
 
   constructor(container: BootstrapContainer, dbPath: string, port: number = 3000) {
-    const handlers: RouteHandler[] = [
-      new MediaRoutes(),
-      new SystemRoutes(),
-      new AuthRoutes(),
-      new AdminRoutes(),
+      const handlers: RouteHandler[] = [
+        new MediaRoutes(),
+        new CameraRoutes(),
+        new SystemRoutes(),
+        new AuthRoutes(),
+        new AdminRoutes(),
       new AssistantRoutes(),
       new SettingsRoutes(),
-      new TopologyRoutes(dbPath),
-      new SceneRoutes(),
-      new AutomationRoutes(dbPath),
-      new CameraRoutes(),
-      new DeviceRoutes(dbPath),
-      new DashboardRoutes(),
-      new ExecutionRoutes(),
+        new TopologyRoutes(dbPath),
+        new SceneRoutes(),
+        new AutomationRoutes(dbPath),
+        new DeviceRoutes(dbPath),
+        new DashboardRoutes(),
+        new ExecutionRoutes(),
     ];
 
     this.gateway = new ApiGateway(container, dbPath, handlers, port);
