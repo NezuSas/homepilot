@@ -64,7 +64,11 @@ export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): P
     getAllStates: () =>
       connectionProvider.hasClient()
         ? connectionProvider.getClient().getAllStates()
-        : Promise.resolve([])
+        : Promise.resolve([]),
+    getCameraMedia: (entityId, kind, signal) =>
+      connectionProvider.hasClient()
+        ? connectionProvider.getClient().getCameraMedia(entityId, kind, signal)
+        : Promise.resolve(new Response(null, { status: 503 }))
   } as HomeAssistantClient;
 
   const syncManager = new HomeAssistantRealtimeSyncManager(
