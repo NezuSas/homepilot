@@ -13,6 +13,7 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - Compatibilidad con camaras importadas antes de esta version mediante el dominio de `externalId`.
 - Sesion de medios autenticada para obtener URLs limitadas a una camara.
 - Proxy local de snapshot JPEG y stream MJPEG sin exponer el token administrativo de Home Assistant.
+- Fallback automatico a snapshots periodicos para camaras que entregan imagen pero no un stream utilizable.
 - Tarjeta responsive con estados de conexion, error e indisponibilidad.
 - Visor de camara en pantalla completa con cierre por boton, fondo o tecla Escape.
 
@@ -25,6 +26,8 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - **REQ-05:** El stream debe pasar por HomePilot y conservar el `Content-Type` entregado por Home Assistant.
 - **REQ-06:** Una camara `unavailable` debe conservar una tarjeta legible y permitir reintentar sin ocultar el resto del dashboard.
 - **REQ-07:** Al abrir el visor, la tarjeta debe liberar su stream para evitar dos conexiones simultaneas a la misma camara.
+- **REQ-08:** Si el stream termina sin entregar imagen, la UI debe cambiar automaticamente al snapshot y actualizarlo periodicamente sin mostrar la camara como averiada.
+- **REQ-09:** La UI debe identificar visualmente una vista por snapshots como actualizada, sin etiquetarla como video en vivo.
 
 ## 4. Requisitos no funcionales
 
@@ -32,6 +35,7 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - **NFR-02:** Debe funcionar en celular, tablet y escritorio con una relacion visual `16:9`.
 - **NFR-03:** El proxy debe cancelar la solicitud upstream cuando el navegador cierre la conexion.
 - **NFR-04:** Las respuestas de camara deben usar `Cache-Control: no-store`.
+- **NFR-05:** El fallback debe conservar la ultima imagen valida durante cada actualizacion para evitar parpadeos.
 
 ## 5. Criterios de aceptacion
 
@@ -41,3 +45,5 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - [x] AC4: Presionar la tarjeta abre un visor completo y accesible.
 - [x] AC5: Error, carga e indisponibilidad se representan sin romper el layout.
 - [x] AC6: El token administrativo de Home Assistant permanece solamente en el backend.
+- [x] AC7: Una camara sin stream utilizable pero con snapshot valido permanece operativa mediante actualizaciones periodicas.
+- [x] AC8: El visor completo utiliza el mismo fallback modular que la tarjeta.

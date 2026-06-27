@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Maximize2, VideoOff, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
 import { IconButton } from './ui/IconButton';
 
 interface CameraViewerModalProps {
@@ -10,6 +11,8 @@ interface CameraViewerModalProps {
   name: string;
   roomName?: string;
   streamUrl: string;
+  snapshotUrl: string;
+  preferredMode: CameraFeedMode;
   onClose: () => void;
 }
 
@@ -18,11 +21,14 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   name,
   roomName,
   streamUrl,
+  snapshotUrl,
+  preferredMode,
   onClose,
 }) => {
   const { t } = useTranslation();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [feedMode, setFeedMode] = useState<CameraFeedMode>(preferredMode);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -42,8 +48,9 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
     if (!isOpen) {
       setHasLoaded(false);
       setHasError(false);
+      setFeedMode(preferredMode);
     }
-  }, [isOpen]);
+  }, [isOpen, preferredMode]);
 
   if (!isOpen) return null;
 
@@ -53,9 +60,9 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
       <section className="relative z-10 flex h-[calc(100dvh-1rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-modal border border-border/70 bg-card shadow-depth-3 sm:h-[calc(100dvh-2rem)]">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.18em] text-success">
-              <span className="status-dot-synced" aria-hidden="true" />
-              {t('camera.live')}
+            <div className={cn('flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.18em]', feedMode === 'snapshot' ? 'text-warning' : 'text-success')}>
+              <span className={feedMode === 'snapshot' ? 'status-dot-warning' : 'status-dot-synced'} aria-hidden="true" />
+              {feedMode === 'snapshot' ? t('camera.snapshot') : t('camera.live')}
             </div>
             <h2 className="mt-1 truncate text-section-title font-semibold tracking-tight text-foreground">{name}</h2>
             {roomName && <p className="truncate text-caption text-muted-foreground">{roomName}</p>}
@@ -75,20 +82,30 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
               <p className="text-body font-semibold">{t('camera.stream_error')}</p>
             </div>
           ) : (
-            <img
-              src={streamUrl}
+            <CameraMediaFrame
+              active={isOpen}
+              streamUrl={streamUrl}
+              snapshotUrl={snapshotUrl}
+              preferredMode={preferredMode}
               alt={t('camera.feed_alt', { name })}
               className={cn('h-full w-full object-contain transition-opacity duration-base', hasLoaded ? 'opacity-100' : 'opacity-0')}
-              referrerPolicy="no-referrer"
-              onLoad={() => setHasLoaded(true)}
-              onError={() => setHasError(true)}
+              onModeChange={(mode) => {
+                setFeedMode(mode);
+                setHasLoaded(false);
+                setHasError(false);
+              }}
+              onReady={() => {
+                setHasLoaded(true);
+                setHasError(false);
+              }}
+              onFailure={() => setHasError(true)}
             />
           )}
         </div>
 
         <footer className="flex shrink-0 items-center gap-2 border-t border-border/60 px-4 py-3 text-caption text-muted-foreground sm:px-6">
           <Maximize2 className="h-3.5 w-3.5" />
-          {t('camera.fullscreen_hint')}
+          {feedMode === 'snapshot' ? t('camera.snapshot_hint') : t('camera.fullscreen_hint')}
         </footer>
       </section>
     </div>,

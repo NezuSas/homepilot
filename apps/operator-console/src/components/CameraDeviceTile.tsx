@@ -7,6 +7,7 @@ import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import { disambiguate, humanize } from '../lib/naming-utils';
 import { cn } from '../lib/utils';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
 import { CameraViewerModal } from './CameraViewerModal';
 import { Button } from './ui/Button';
 import { DeviceTileShell } from './ui/DeviceTileShell';
@@ -40,6 +41,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
+  const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
   const displayName = isDuplicateName
     ? disambiguate(humanize(device.id, device.name), roomName)
     : humanize(device.id, device.name);
@@ -67,6 +69,12 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
     return () => controller.abort();
   }, [device.id, reportedUnavailable, retryVersion]);
 
+  useEffect(() => {
+    if (feedMode !== 'snapshot' || !media) return;
+    const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 4 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [feedMode, media]);
+
   const unavailable = reportedUnavailable && !media;
 
   const openViewer = useCallback(() => {
@@ -74,6 +82,19 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, [hasFeedError, media, unavailable]);
 
   const closeViewer = useCallback(() => setIsViewerOpen(false), []);
+  const handleFeedModeChange = useCallback((mode: CameraFeedMode) => {
+    setFeedMode(mode);
+    setIsConnecting(true);
+    setHasFeedError(false);
+  }, []);
+  const handleFeedReady = useCallback(() => {
+    setIsConnecting(false);
+    setHasFeedError(false);
+  }, []);
+  const handleFeedFailure = useCallback(() => {
+    setIsConnecting(false);
+    setHasFeedError(true);
+  }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     setRetryVersion((version) => version + 1);
@@ -81,14 +102,15 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
   const streamUrl = media ? absoluteApiUrl(media.streamPath) : '';
   const snapshotUrl = media ? absoluteApiUrl(media.snapshotPath) : '';
-  const tileImageUrl = isViewerOpen ? snapshotUrl : streamUrl;
   const statusLabel = unavailable
     ? t('camera.unavailable')
     : hasFeedError
       ? t('camera.connection_error')
       : isConnecting || !media
         ? t('camera.connecting')
-        : t('camera.live');
+        : feedMode === 'snapshot'
+          ? t('camera.snapshot')
+          : t('camera.live');
 
   return (
     <>
@@ -100,27 +122,28 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
         className="min-h-0 p-0"
       >
         <div className="relative aspect-video w-full overflow-hidden bg-muted/70">
-          {tileImageUrl && !hasFeedError && !unavailable ? (
-            <img
-              src={tileImageUrl}
+          {media && !hasFeedError && !unavailable && (
+            <CameraMediaFrame
+              active={!isViewerOpen}
+              streamUrl={streamUrl}
+              snapshotUrl={snapshotUrl}
+              preferredMode={feedMode}
               alt={t('camera.feed_alt', { name: displayName })}
               className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-              onLoad={() => setIsConnecting(false)}
-              onError={() => {
-                setIsConnecting(false);
-                setHasFeedError(true);
-              }}
+              onModeChange={handleFeedModeChange}
+              onReady={handleFeedReady}
+              onFailure={handleFeedFailure}
             />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+          )}
+          {(!media || hasFeedError || unavailable || isConnecting) && (
+            <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/70 text-muted-foreground">
               {isConnecting ? <Camera className="h-7 w-7 animate-pulse" /> : <VideoOff className="h-7 w-7" />}
               <span className="text-caption font-medium">{statusLabel}</span>
             </div>
           )}
 
           <div className="absolute left-3 top-3 flex items-center gap-2 rounded-pill border border-white/15 bg-black/65 px-2.5 py-1 text-micro font-semibold text-white backdrop-blur-md">
-            <span className={cn('h-1.5 w-1.5 rounded-full', unavailable || hasFeedError ? 'bg-danger' : media ? 'animate-pulse bg-success' : 'bg-warning')} />
+            <span className={cn('h-1.5 w-1.5 rounded-full', unavailable || hasFeedError ? 'bg-danger' : feedMode === 'snapshot' ? 'bg-warning' : media ? 'animate-pulse bg-success' : 'bg-warning')} />
             {statusLabel}
           </div>
 
@@ -150,6 +173,8 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           name={displayName}
           roomName={roomName}
           streamUrl={streamUrl}
+          snapshotUrl={snapshotUrl}
+          preferredMode={feedMode}
           onClose={closeViewer}
         />
       )}

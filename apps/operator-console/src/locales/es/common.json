@@ -634,15 +634,17 @@
   },
   "camera": {
     "live": "En vivo",
-    "connecting": "Conectando video",
+    "snapshot": "Imagen actualizada",
+    "snapshot_hint": "Vista ampliada con actualización periódica · Presiona Escape para cerrar",
+    "connecting": "Conectando cámara",
     "unavailable": "Cámara no disponible",
     "connection_error": "No se pudo cargar el video",
     "stream_error": "La transmisión se interrumpió",
     "retry": "Reintentar conexión",
     "open_viewer": "Abrir {{name}} en pantalla completa",
     "close_viewer": "Cerrar cámara",
-    "viewer_label": "Vista en vivo de {{name}}",
-    "feed_alt": "Video en vivo de {{name}}",
+    "viewer_label": "Vista de cámara de {{name}}",
+    "feed_alt": "Imagen de {{name}}",
     "fullscreen_hint": "Vista ampliada de la cámara · Presiona Escape para cerrar"
   },
   "audit_logs": {

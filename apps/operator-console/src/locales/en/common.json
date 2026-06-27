@@ -634,15 +634,17 @@
   },
   "camera": {
     "live": "Live",
-    "connecting": "Connecting video",
+    "snapshot": "Updated image",
+    "snapshot_hint": "Expanded view with periodic updates · Press Escape to close",
+    "connecting": "Connecting camera",
     "unavailable": "Camera unavailable",
     "connection_error": "Video could not be loaded",
     "stream_error": "The stream was interrupted",
     "retry": "Retry connection",
     "open_viewer": "Open {{name}} full screen",
     "close_viewer": "Close camera",
-    "viewer_label": "Live view of {{name}}",
-    "feed_alt": "Live video from {{name}}",
+    "viewer_label": "Camera view of {{name}}",
+    "feed_alt": "Image from {{name}}",
     "fullscreen_hint": "Expanded camera view · Press Escape to close"
   },
   "audit_logs": {
