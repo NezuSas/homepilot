@@ -91,4 +91,24 @@ describe('SQLite Topology Persistence Integration', () => {
     expect(homeRooms[0].id).toBe('room-1');
     expect(homeRooms[0].homeId).toBe(room.homeId);
   });
+
+  it('debe actualizar el nombre de una Room sin cambiar su identidad ni su Home', async () => {
+    const current = await roomRepo.findRoomById('room-1');
+    expect(current).not.toBeNull();
+
+    await roomRepo.saveRoom({
+      ...current!,
+      name: 'Sala principal',
+      entityVersion: current!.entityVersion + 1,
+      updatedAt: new Date().toISOString(),
+    });
+
+    const renamed = await roomRepo.findRoomById('room-1');
+    expect(renamed).toEqual(expect.objectContaining({
+      id: 'room-1',
+      homeId: 'home-1',
+      name: 'Sala principal',
+      entityVersion: 2,
+    }));
+  });
 });

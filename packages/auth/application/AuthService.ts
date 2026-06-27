@@ -94,6 +94,7 @@ export class AuthService {
    * Post-login explicit change password capability
    */
   public async changePassword(userId: string, currentPasswordPlain: string, newPasswordPlain: string): Promise<{ success: boolean }> {
+    if (newPasswordPlain.length < 8) return { success: false };
     const user = await this.userRepository.findById(userId);
     if (!user) return { success: false };
 

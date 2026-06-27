@@ -5,5 +5,6 @@ export * from './types';
 export * from './errors';
 export * from './createHome';
 export * from './createRoom';
+export * from './renameRoom';
 export * from './events';
 export * from './repositories';

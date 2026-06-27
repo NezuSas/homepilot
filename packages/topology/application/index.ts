@@ -7,3 +7,4 @@ export * from './createHomeUseCase';
 export * from './listHomesUseCase';
 export * from './createRoomUseCase';
 export * from './listRoomsUseCase';
+export * from './renameRoomUseCase';

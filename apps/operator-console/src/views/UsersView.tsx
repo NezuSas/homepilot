@@ -8,10 +8,15 @@ import { UsersHeader } from '../components/UsersHeader';
 import { UsersLoadingState } from '../components/UsersLoadingState';
 import { UsersProtectionNote } from '../components/UsersProtectionNote';
 import { UsersTable, type PublicUserDto } from '../components/UsersTable';
+import { ResetUserPasswordModal } from '../components/ResetUserPasswordModal';
 
 const ROLE_VALUES: UserRole[] = ['admin', 'parent', 'child', 'guest', 'operator'];
 
-export function UsersView() {
+interface UsersViewProps {
+  currentUserId: string | null;
+}
+
+export function UsersView({ currentUserId }: UsersViewProps) {
   const { t } = useTranslation();
   const [users, setUsers] = useState<PublicUserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +26,7 @@ export function UsersView() {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('operator');
   const [createError, setCreateError] = useState('');
+  const [passwordResetUser, setPasswordResetUser] = useState<PublicUserDto | null>(null);
 
   const roleOptions = ROLE_VALUES.map(role => ({ value: role, label: t(`users.roles.${role}`) }));
 
@@ -176,6 +182,7 @@ export function UsersView() {
           suspendTitle: t('users.actions.suspend_title'),
           restoreTitle: t('users.actions.restore_title'),
           revokeTitle: t('users.actions.revoke_title'),
+          resetPasswordTitle: t('users.actions.reset_password_title'),
           swapRoleTitle: (role) => t('users.actions.swap_role_title', { role: t(`users.roles.${role}`) })
         }}
         roleOptions={roleOptions}
@@ -183,9 +190,17 @@ export function UsersView() {
         onToggleActive={handleToggleActive}
         onChangeRole={handleChangeRole}
         onRevokeSessions={handleRevokeSessions}
+        onResetPassword={setPasswordResetUser}
+        currentUserId={currentUserId}
       />
 
       <UsersProtectionNote message={t('users.protection_rule')} />
+
+      <ResetUserPasswordModal
+        user={passwordResetUser}
+        onClose={() => setPasswordResetUser(null)}
+        onSaved={fetchUsers}
+      />
     </div>
   );
 }

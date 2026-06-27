@@ -16,7 +16,8 @@ Implementar la infraestructura API y la interfaz de usuario en la consola para l
 3. **`updateUserRole`**: Modifica el rol a una cuenta existente (`admin` <-> `operator`).
 4. **`setUserActiveState`**: Modifica la condición `isActive`. Desactivar usuarios fuerza automáticamente una revocación total sobre sus sesiones vivas simultáneamente.
 5. **`revokeUserSessions`**: Invalida prematuramente TODAS las sesiones activas atadas al `targetUserId`. Aplica inmeditamente, incluyendo la sesión actual del administrador si `targetUserId === adminActorUserId`.
-*(El reset admin-driven de contraseñas de terceros se deja explícitamente fuera de alcance en V2 para proteger la simplicidad local).*
+6. **`changeOwnPassword`**: Todo usuario autenticado puede cambiar únicamente su propia contraseña validando primero su contraseña actual. La operación revoca todas sus sesiones.
+7. **`resetUserPassword`**: Solo un administrador puede definir una nueva contraseña para otro usuario. No exige conocer la contraseña anterior, exige mínimo 8 caracteres, revoca todas las sesiones del usuario objetivo y registra auditoría sin almacenar la contraseña.
 
 ## Sanitización y Shape Público de Usuario
 La sanitización en la capa de Domain/Application no es opcional. El servicio SIEMPRE construirá y devolverá mediante su contrato público un Entity DTO exacto.
@@ -50,6 +51,7 @@ A lo largo de las validaciones, el capa de Servicio arrojará los siguientes Err
 - `CANNOT_DEACTIVATE_SELF_LAST_ADMIN`: Variación explicita para UX.
 - `INVALID_ROLE`: El Payload falló Type-check estricto.
 - `INVALID_INPUT`: Validaciones miscelaneas (ej. Passwords muy cortas, formato inaceptable).
+- `SELF_PASSWORD_CHANGE_REQUIRED`: Un administrador intentó usar el reset de terceros sobre su propia cuenta; debe usar el flujo autenticado de cambio propio.
 
 ## Observabilidad y Trazas
 Se inyectarán logs pre-estructurados con tipos fijos al Activity Log principal. Nunca se guardan tokens.
@@ -59,5 +61,6 @@ El payload serializado en el bloque `data` contendrá siempre que aplique: `{ ad
 - `USER_DEACTIVATED`
 - `USER_ACTIVATED`
 - `USER_SESSIONS_REVOKED`
+- `USER_PASSWORD_RESET`
 
 ---

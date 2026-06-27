@@ -127,7 +127,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 2xl:grid-cols-3">
               {orderedRoomDevices.map((device) => {
                 const isCover = hasCapability(device, 'cover');
                 const isCamera = hasCapability(device, 'camera');

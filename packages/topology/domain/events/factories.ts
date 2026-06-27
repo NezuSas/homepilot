@@ -1,4 +1,11 @@
-import { HomeCreatedEvent, RoomCreatedEvent, HomeCreatedEventPayload, RoomCreatedEventPayload } from './types';
+import {
+  HomeCreatedEvent,
+  HomeCreatedEventPayload,
+  RoomCreatedEvent,
+  RoomCreatedEventPayload,
+  RoomRenamedEvent,
+  RoomRenamedEventPayload,
+} from './types';
 import { IdGenerator, Clock } from '../types';
 
 /**
@@ -55,5 +62,21 @@ export function createRoomCreatedEvent(
     timestamp: dependencies.clock.now(),
     correlationId,
     payload: Object.freeze({ ...payload })
+  });
+}
+
+export function createRoomRenamedEvent(
+  correlationId: string,
+  payload: RoomRenamedEventPayload,
+  dependencies: EventFactoryDependencies
+): RoomRenamedEvent {
+  return Object.freeze({
+    eventId: dependencies.idGenerator.generate(),
+    eventType: 'RoomRenamedEvent',
+    schemaVersion: '1.0',
+    source: 'domain:topology:edge',
+    timestamp: dependencies.clock.now(),
+    correlationId,
+    payload: Object.freeze({ ...payload }),
   });
 }

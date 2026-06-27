@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Power, Shield, ShieldCheck, UserMinus } from 'lucide-react';
+import { Activity, KeyRound, Power, Shield, ShieldCheck, UserMinus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { Card } from './ui/Card';
 import { SelectField } from './ui/SelectField';
@@ -28,6 +28,7 @@ interface UsersTableLabels {
   suspendTitle: string;
   restoreTitle: string;
   revokeTitle: string;
+  resetPasswordTitle: string;
   swapRoleTitle: (role: UserRole) => string;
 }
 
@@ -39,6 +40,8 @@ interface UsersTableProps {
   onToggleActive: (user: PublicUserDto) => void;
   onChangeRole: (user: PublicUserDto, role: UserRole) => void;
   onRevokeSessions: (user: PublicUserDto) => void;
+  onResetPassword: (user: PublicUserDto) => void;
+  currentUserId: string | null;
 }
 
 const getRoleClassName = (role: UserRole) => {
@@ -63,11 +66,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   getRoleLabel,
   onToggleActive,
   onChangeRole,
-  onRevokeSessions
+  onRevokeSessions,
+  onResetPassword,
+  currentUserId,
 }) => (
   <Card className="rounded-panel">
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm whitespace-nowrap">
+      <table className="w-full min-w-[760px] whitespace-nowrap text-left text-sm">
         <thead className="bg-muted/50 border-b">
           <tr>
             <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{labels.identity}</th>
@@ -117,7 +122,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 </div>
               </td>
               <td className="px-5 py-4 text-right">
-                <div className="flex items-center justify-end gap-2 transition-all">
+                <div className="flex flex-wrap items-center justify-end gap-2 transition-all">
                   <button
                     onClick={() => onToggleActive(user)}
                     className={`p-2 rounded-lg border transition-all ${
@@ -151,6 +156,16 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   >
                     <UserMinus className="w-4 h-4" />
                   </button>
+
+                  {user.id !== currentUserId && (
+                    <button
+                      onClick={() => onResetPassword(user)}
+                      className="rounded-lg border border-border bg-background p-2 text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                      title={labels.resetPasswordTitle}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

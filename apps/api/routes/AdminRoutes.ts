@@ -91,6 +91,32 @@ export class AdminRoutes extends ApiRoutes {
       return true;
     }
 
+    // PATCH /api/v1/admin/users/:id/password
+    const passwordMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/password$/);
+    if (passwordMatch) {
+      const targetId = passwordMatch[1];
+      try {
+        const payload = await this.parseBody<{ newPassword?: string }>(req);
+        if (typeof payload.newPassword !== 'string') {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'New password is required'), true;
+        }
+        await container.services.userManagementService.resetUserPassword(req.user!.id, targetId, payload.newPassword);
+        this.sendJson(res, { success: true });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Password reset failed';
+        if (message.includes('USER_NOT_FOUND')) {
+          this.sendError(res, 404, 'USER_NOT_FOUND', message);
+        } else if (message.includes('SELF_PASSWORD_CHANGE_REQUIRED')) {
+          this.sendError(res, 400, 'SELF_PASSWORD_CHANGE_REQUIRED', message);
+        } else if (message.includes('INVALID_INPUT')) {
+          this.sendError(res, 400, 'INVALID_INPUT', message);
+        } else {
+          this.sendError(res, 500, 'USER_PASSWORD_RESET_ERROR', message);
+        }
+      }
+      return true;
+    }
+
     // POST /api/v1/admin/users/:id/revoke-sessions
     const revokeMatch = method === 'POST' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/revoke-sessions$/);
     if (revokeMatch) {

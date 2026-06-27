@@ -16,6 +16,7 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
       countActiveAdmins: jest.fn(),
       updateRoleAtomic: jest.fn(),
       updateActiveStateAtomic: jest.fn(),
+      updatePassword: jest.fn(),
       seedInitialAdmin: jest.fn(),
     };
     mockSessionRepo = {
@@ -45,6 +46,8 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
     expect(result[0]).toEqual({
       id: '1',
       username: 'admin',
+      displayName: null,
+      avatarDataUri: null,
       role: 'admin',
       isActive: true,
       createdAt: '...',
@@ -109,5 +112,31 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
     // Other revocation
     await service.revokeUserSessions('admin1', 'other');
     expect(mockSessionRepo.deleteAllUserSessions).toHaveBeenCalledWith('other');
+  });
+
+  test('resetUserPassword() hashes the new password, revokes sessions and writes a safe audit record', async () => {
+    mockUserRepo.findById.mockResolvedValue({ id: 'operator-1', username: 'operator' });
+
+    await service.resetUserPassword('admin-1', 'operator-1', 'secure-password');
+
+    expect(mockCrypto.hashPassword).toHaveBeenCalledWith('secure-password');
+    expect(mockUserRepo.updatePassword).toHaveBeenCalledWith('operator-1', 'hashed_pwd');
+    expect(mockSessionRepo.deleteAllUserSessions).toHaveBeenCalledWith('operator-1');
+    expect(mockActivityRepo.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'USER_PASSWORD_RESET',
+      data: expect.objectContaining({
+        adminActorUserId: 'admin-1',
+        targetUserId: 'operator-1',
+        revokedSessionsCount: 2,
+      }),
+    }));
+    expect(JSON.stringify(mockActivityRepo.saveActivity.mock.calls[0][0])).not.toContain('secure-password');
+  });
+
+  test('resetUserPassword() rejects self-reset and weak passwords', async () => {
+    await expect(service.resetUserPassword('admin-1', 'admin-1', 'secure-password'))
+      .rejects.toThrow('SELF_PASSWORD_CHANGE_REQUIRED');
+    await expect(service.resetUserPassword('admin-1', 'operator-1', 'short'))
+      .rejects.toThrow('INVALID_INPUT');
   });
 });

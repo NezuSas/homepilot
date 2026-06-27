@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2 } from 'lucide-react';
+import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2, Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -50,6 +50,10 @@ export const TopologyView: React.FC = () => {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomPendingDelete, setRoomPendingDelete] = useState<Room | null>(null);
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [roomNameDraft, setRoomNameDraft] = useState('');
+  const [roomRenameError, setRoomRenameError] = useState('');
+  const [isRenamingRoom, setIsRenamingRoom] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -151,6 +155,48 @@ export const TopologyView: React.FC = () => {
     }
   };
 
+  const beginRoomRename = (room: Room) => {
+    setEditingRoomId(room.id);
+    setRoomNameDraft(room.name);
+    setRoomRenameError('');
+  };
+
+  const cancelRoomRename = () => {
+    if (isRenamingRoom) return;
+    setEditingRoomId(null);
+    setRoomNameDraft('');
+    setRoomRenameError('');
+  };
+
+  const handleRenameRoom = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedRoom || editingRoomId !== selectedRoom.id || !roomNameDraft.trim()) return;
+
+    setIsRenamingRoom(true);
+    setRoomRenameError('');
+    try {
+      const response = await apiFetch(`${API_URL}/rooms/${encodeURIComponent(selectedRoom.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: roomNameDraft.trim() }),
+      });
+      if (!response.ok) {
+        const payload = await response.json() as { error?: { message?: string } };
+        throw new Error(payload.error?.message || t('topology.rename_room_error'));
+      }
+
+      const updatedRoom = await response.json() as Room;
+      setRooms((currentRooms) => currentRooms.map((room) => room.id === updatedRoom.id ? updatedRoom : room));
+      setEditingRoomId(null);
+      setRoomNameDraft('');
+      setRoomRenameError('');
+    } catch (error_: unknown) {
+      setRoomRenameError(error_ instanceof Error ? error_.message : t('topology.rename_room_error'));
+    } finally {
+      setIsRenamingRoom(false);
+    }
+  };
+
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) || null,
     [rooms, selectedRoomId],
@@ -181,10 +227,10 @@ export const TopologyView: React.FC = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-12 2xl:gap-8">
       
       {/* Homes List */}
-      <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-4">
+      <div className="flex flex-col gap-4 2xl:col-span-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
             {t('topology.homes_title')} 
@@ -261,20 +307,20 @@ export const TopologyView: React.FC = () => {
       </div>
 
       {/* Rooms Details */}
-      <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4 2xl:col-span-9">
         {selectedHome ? (
           <>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                 {t('topology.rooms_in')} <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <input 
                   type="text"
                   placeholder={t('topology.placeholder')}
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
-                  className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-primary outline-none transition-all"
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none transition-all focus:ring-1 focus:ring-primary sm:w-52"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
                 />
                 <button 
@@ -293,14 +339,14 @@ export const TopologyView: React.FC = () => {
                 <p className="text-sm">{t('common.loading')}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] gap-4">
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-sm italic">
                     {t('topology.no_rooms', { defaultValue: 'No rooms associated with this environment.' })}
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid self-start grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
                       {Array.isArray(rooms) && rooms.map((room) => {
                         const isRoomSelected = selectedRoomId === room.id;
                         const roomDevices = devices.filter((device) => device.roomId === room.id);
@@ -310,9 +356,12 @@ export const TopologyView: React.FC = () => {
                           <button
                             key={room.id}
                             type="button"
-                            onClick={() => setSelectedRoomId(room.id)}
+                            onClick={() => {
+                              setSelectedRoomId(room.id);
+                              if (editingRoomId !== room.id) cancelRoomRename();
+                            }}
                             className={cn(
-                              "flex flex-col p-5 border rounded-xl bg-card shadow-sm hover:border-primary/50 hover:shadow-md transition-all group text-left",
+                              "group flex self-start flex-col rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md sm:p-5",
                               isRoomSelected ? "border-primary bg-primary/5 shadow-primary/10" : "border-border",
                             )}
                           >
@@ -348,15 +397,58 @@ export const TopologyView: React.FC = () => {
                       })}
                     </div>
 
-                    <aside className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                    <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.room_details', { defaultValue: 'Room details' })}
                           </p>
-                          <h4 className="mt-1 truncate text-lg font-black tracking-tight text-foreground">
-                            {selectedRoom?.name || t('topology.select_room_hint', { defaultValue: 'Select a room' })}
-                          </h4>
+                          {selectedRoom && editingRoomId === selectedRoom.id ? (
+                            <form className="mt-2 flex items-center gap-2" onSubmit={handleRenameRoom}>
+                              <input
+                                autoFocus
+                                className="min-w-0 flex-1 rounded-xl border border-primary/40 bg-background px-3 py-2 text-sm font-bold outline-none ring-2 ring-primary/10"
+                                maxLength={80}
+                                value={roomNameDraft}
+                                onChange={(event) => setRoomNameDraft(event.target.value)}
+                                aria-label={t('topology.rename_room_title')}
+                              />
+                              <button
+                                type="submit"
+                                disabled={isRenamingRoom || !roomNameDraft.trim()}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-50"
+                                title={t('topology.rename_room_save')}
+                              >
+                                {isRenamingRoom ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelRoomRename}
+                                disabled={isRenamingRoom}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground disabled:opacity-50"
+                                title={t('common.cancel')}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="mt-1 flex items-center gap-2">
+                              <h4 className="min-w-0 truncate text-lg font-black tracking-tight text-foreground">
+                                {selectedRoom?.name || t('topology.select_room_hint', { defaultValue: 'Select a room' })}
+                              </h4>
+                              {selectedRoom && (
+                                <button
+                                  type="button"
+                                  onClick={() => beginRoomRename(selectedRoom)}
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                                  title={t('topology.rename_room')}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {roomRenameError && <p className="mt-2 text-xs font-semibold text-danger">{roomRenameError}</p>}
                         </div>
                         <div className="rounded-xl bg-primary/10 p-2 text-primary">
                           <Layers3 className="h-5 w-5" />

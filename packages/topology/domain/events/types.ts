@@ -44,8 +44,20 @@ export interface RoomCreatedEvent extends DomainEvent<RoomCreatedEventPayload> {
   readonly eventType: 'RoomCreatedEvent';
 }
 
+export interface RoomRenamedEventPayload {
+  readonly id: string;
+  readonly homeId: string;
+  readonly previousName: string;
+  readonly name: string;
+  readonly entityVersion: number;
+}
+
+export interface RoomRenamedEvent extends DomainEvent<RoomRenamedEventPayload> {
+  readonly eventType: 'RoomRenamedEvent';
+}
+
 /**
  * Unión explícita cerrada que restringe los tipos de eventos válidos
  * que pueden ser emitidos exclusivamente por el Dominio Topológico.
  */
-export type TopologyDomainEvent = HomeCreatedEvent | RoomCreatedEvent;
+export type TopologyDomainEvent = HomeCreatedEvent | RoomCreatedEvent | RoomRenamedEvent;

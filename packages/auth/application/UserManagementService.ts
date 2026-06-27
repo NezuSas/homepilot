@@ -41,8 +41,8 @@ export class UserManagementService {
       dtos.push({
         id: u.id,
         username: u.username,
-        displayName: u.displayName,
-        avatarDataUri: u.avatarDataUri,
+        displayName: u.displayName ?? null,
+        avatarDataUri: u.avatarDataUri ?? null,
         role: u.role,
         isActive: u.isActive,
         createdAt: u.createdAt,
@@ -197,6 +197,38 @@ export class UserManagementService {
         targetUserId,
         revokedSessionsCount
       }
+    });
+  }
+
+  public async resetUserPassword(
+    adminUserId: string,
+    targetUserId: string,
+    newPasswordPlain: string
+  ): Promise<void> {
+    if (adminUserId === targetUserId) {
+      throw new Error('SELF_PASSWORD_CHANGE_REQUIRED');
+    }
+    if (!newPasswordPlain || newPasswordPlain.length < 8) {
+      throw new Error('INVALID_INPUT: Password must be at least 8 characters long');
+    }
+
+    const target = await this.userRepository.findById(targetUserId);
+    if (!target) throw new Error('USER_NOT_FOUND');
+
+    const passwordHash = await this.cryptoService.hashPassword(newPasswordPlain);
+    await this.userRepository.updatePassword(targetUserId, passwordHash);
+    const revokedSessionsCount = await this.sessionRepository.deleteAllUserSessions(targetUserId);
+
+    await this.activityLogRepository.saveActivity({
+      deviceId: 'user-management',
+      type: 'USER_PASSWORD_RESET',
+      timestamp: new Date().toISOString(),
+      description: 'User password was reset by an administrator',
+      data: {
+        adminActorUserId: adminUserId,
+        targetUserId,
+        revokedSessionsCount,
+      },
     });
   }
 }

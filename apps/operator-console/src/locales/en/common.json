@@ -515,7 +515,11 @@
     "no_rooms": "No rooms associated with this environment.",
     "select_home": "Select a home to manage its spaces.",
     "select_home_hint": "No Home Selected",
-    "room_select": "Select Room"
+    "room_select": "Select Room",
+    "rename_room": "Rename room",
+    "rename_room_title": "Edit name",
+    "rename_room_save": "Save name",
+    "rename_room_error": "The room name could not be updated"
   },
   "automations": {
     "header": {
@@ -721,7 +725,8 @@
       "suspend_title": "Suspend Access",
       "restore_title": "Restore Access",
       "swap_role_title": "Swap Role (Currently {{role}})",
-      "revoke_title": "Revoke Sessions"
+      "revoke_title": "Revoke Sessions",
+      "reset_password_title": "Reset password"
     },
     "errors": {
       "fetch_failed": "Failed to fetch user directory",
@@ -733,6 +738,12 @@
       "parent": "Parent / Owner",
       "child": "Child / Member",
       "guest": "Guest"
+    },
+    "password_reset": {
+      "title": "New password for {{username}}",
+      "description": "The new password replaces the previous one and signs this account out of every active session.",
+      "submit": "Update password",
+      "error": "The password could not be reset"
     },
     "profile": {
       "title": "My Profile",

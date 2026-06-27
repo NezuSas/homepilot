@@ -515,7 +515,11 @@
     "no_rooms": "No hay estancias asociadas a este entorno.",
     "select_home": "Por favor, selecciona un hogar a la izquierda para gestionar sus estancias.",
     "select_home_hint": "Sin Hogar Seleccionado",
-    "room_select": "Seleccionar Estancia"
+    "room_select": "Seleccionar Estancia",
+    "rename_room": "Renombrar estancia",
+    "rename_room_title": "Editar nombre",
+    "rename_room_save": "Guardar nombre",
+    "rename_room_error": "No se pudo actualizar el nombre de la estancia"
   },
   "automations": {
     "header": {
@@ -721,7 +725,8 @@
       "suspend_title": "Suspender Acceso",
       "restore_title": "Restaurar Acceso",
       "swap_role_title": "Cambiar Rol (Actualmente {{role}})",
-      "revoke_title": "Revocar Sesiones"
+      "revoke_title": "Revocar Sesiones",
+      "reset_password_title": "Restablecer contraseña"
     },
     "errors": {
       "fetch_failed": "Error al cargar el directorio de usuarios",
@@ -733,6 +738,12 @@
       "parent": "Padre / Dueño",
       "child": "Hijo / Miembro",
       "guest": "Invitado"
+    },
+    "password_reset": {
+      "title": "Nueva contraseña para {{username}}",
+      "description": "La nueva contraseña reemplaza la anterior y cerrará todas las sesiones activas de esta cuenta.",
+      "submit": "Actualizar contraseña",
+      "error": "No se pudo restablecer la contraseña"
     },
     "profile": {
       "title": "Mi Perfil",

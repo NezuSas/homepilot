@@ -3,6 +3,9 @@ import * as http from 'http';
 import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { BootstrapContainer } from '../../../bootstrap';
 import { createRoomUseCase } from '../../../packages/topology/application/createRoomUseCase';
+import { renameRoomUseCase } from '../../../packages/topology/application/renameRoomUseCase';
+import { ForbiddenError, NotFoundError } from '../../../packages/topology/application/errors';
+import { InvalidRoomNameError } from '../../../packages/topology/domain/errors';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -163,6 +166,44 @@ export class TopologyRoutes extends ApiRoutes {
         this.sendJson(res, room, 201);
       } catch (error: any) {
         this.sendError(res, 500, 'ROOM_CREATE_ERROR', error.message);
+      }
+      return true;
+    }
+
+    // PATCH /api/v1/rooms/:id
+    const renameRoomMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/rooms\/([^\/]+)$/);
+    if (renameRoomMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const payload = await this.parseBody<{ name?: string }>(req);
+        if (typeof payload.name !== 'string') {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Room name is required'), true;
+        }
+
+        const room = await renameRoomUseCase(
+          renameRoomMatch[1],
+          payload.name,
+          req.user!.id,
+          crypto.randomUUID(),
+          {
+            homeRepository: container.repositories.homeRepository,
+            roomRepository: container.repositories.roomRepository,
+            eventPublisher: container.adapters.topologyEventPublisher,
+            idGenerator: { generate: () => crypto.randomUUID() },
+            clock: { now: () => new Date().toISOString() },
+          },
+        );
+        this.sendJson(res, room);
+      } catch (error: unknown) {
+        if (error instanceof InvalidRoomNameError) {
+          this.sendError(res, 400, 'INVALID_INPUT', error.message);
+        } else if (error instanceof NotFoundError) {
+          this.sendError(res, 404, 'ROOM_NOT_FOUND', error.message);
+        } else if (error instanceof ForbiddenError) {
+          this.sendError(res, 403, 'FORBIDDEN', error.message);
+        } else {
+          this.sendError(res, 500, 'ROOM_RENAME_ERROR', error instanceof Error ? error.message : 'Room rename failed');
+        }
       }
       return true;
     }

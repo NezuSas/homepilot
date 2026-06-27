@@ -18,7 +18,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - Integración de hardware y control de dispositivos (Devices).
 - Agrupaciones topológicas lógicas o adicionales (Zonas).
 - Motores de automatización o IA.
-- Actualización (Update) de `Home` y `Room`.
+- Actualización (Update) de `Home`.
 - Eliminación de `Home`.
 - Gestión de autenticación web (el `userId` es inyectado en la API por un middleware previo).
 
@@ -34,6 +34,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - **REQ-09 (Propiedad de Room)**: La entidad `Room` no contiene un campo `ownerId`. Su acceso se autoriza verificando que el `userId` actual coincida con el `ownerId` de su `Home` padre.
 - **REQ-10 (Detalle Operativo en Consola)**: La consola de operador debe permitir seleccionar una `Room` listada y mostrar sus detalles operativos sin cambiar contratos API: nombre, identificador, cantidad de dispositivos asignados, cantidad de dispositivos activos y lista resumida de dispositivos.
 - **REQ-11 (Eliminar Room con desasignación)**: Un administrador propietario debe poder eliminar una `Room`. Los dispositivos asignados a esa `Room` no se eliminan; quedan desasignados (`roomId = null`) para poder reasignarse luego desde la consola.
+- **REQ-12 (Renombrar Room sin alterar referencias)**: Un administrador propietario debe poder cambiar el nombre de una `Room`. La operación conserva `id`, `homeId`, dispositivos asignados y automatizaciones referenciadas; incrementa `entityVersion` y publica `RoomRenamedEvent` después de persistir.
 
 ## 5. Requisitos No Funcionales
 - **NFR-01 (Latencia Edge)**: Las operaciones de lectura y escritura en BD local deben tardar menos de 20ms bajo carga normal.
@@ -64,6 +65,8 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC7**: Dado un usuario autenticado con Rooms y Devices asignados, al seleccionar una Room en la vista de espacios, la consola muestra un panel de detalle con conteos y dispositivos de esa Room manteniendo visible la lista de Rooms.
 - [ ] **AC8**: Dado un administrador propietario de una Room con dispositivos asignados, al enviar `DELETE /api/v1/rooms/:id`, el sistema desasigna esos dispositivos (`roomId = null`), elimina la Room y retorna `200 OK` con el conteo de dispositivos desasignados.
 - [ ] **AC9**: Dado un usuario que no es propietario del Home padre de la Room, al enviar `DELETE /api/v1/rooms/:id`, el sistema retorna `403 Forbidden` sin desasignar dispositivos ni eliminar la Room.
+- [ ] **AC10**: Dado un administrador propietario, al enviar `PATCH /api/v1/rooms/:id` con un nombre válido, el sistema retorna la Room actualizada, incrementa `entityVersion` y mantiene intactas las asignaciones por `roomId`.
+- [ ] **AC11**: Dado un usuario que no es propietario, al intentar renombrar una Room el sistema retorna `403 Forbidden` sin modificarla.
 
 ## 8. Notas Técnicas y Arquitectura
 

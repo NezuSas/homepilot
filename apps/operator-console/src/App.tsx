@@ -148,7 +148,9 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => (
+    !window.matchMedia('(pointer: coarse) and (max-width: 1366px)').matches
+  ));
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [currentMode, setCurrentMode] = useState<HomeMode>(() => {
     try {
@@ -1114,7 +1116,7 @@ function App() {
                    onCompleted={() => setSetupStatus((prev) => prev ? { ...prev, requiresOnboarding: false } : null)}
                  />
                )}
-               {currentView === 'system-users' && <UsersView />}
+               {currentView === 'system-users' && <UsersView currentUserId={user?.id ?? null} />}
                {currentView === 'home-conversation' && (
                  <HomeConversationView
                    pendingPrompt={pendingHomeConversationPrompt}

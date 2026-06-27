@@ -97,6 +97,9 @@ export class AuthRoutes extends ApiRoutes {
         if (!payload.currentPassword || !payload.newPassword) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing fields'), true;
         }
+        if (payload.newPassword.length < 8) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Password must be at least 8 characters long'), true;
+        }
 
         const result = await container.services.authService.changePassword(
           req.user!.id,
