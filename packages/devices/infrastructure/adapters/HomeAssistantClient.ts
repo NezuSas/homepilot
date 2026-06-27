@@ -12,10 +12,23 @@ export interface HomeAssistantState {
 
 export type HomeAssistantCameraMediaKind = 'snapshot' | 'stream';
 
+interface HomeAssistantWebSocketMessage {
+  readonly id?: number;
+  readonly type: string;
+  readonly success?: boolean;
+  readonly result?: {
+    readonly url?: string;
+  };
+  readonly error?: {
+    readonly code?: string;
+    readonly message?: string;
+  };
+}
+
 /**
  * HomeAssistantClient
  * 
- * Cliente minimalista para interactuar con la API REST de Home Assistant.
+ * Cliente minimalista para interactuar con las APIs REST y WebSocket de Home Assistant.
  * Diseñado para ser un Bridge táctico (V1) sin dependencias de SDK externas.
  */
 export class HomeAssistantClient {
@@ -122,6 +135,97 @@ export class HomeAssistantClient {
   }
 
   /**
+   * Solicita a Home Assistant el stream HLS que utiliza su propio frontend.
+   */
+  public async getCameraHlsStreamPath(entityId: string): Promise<string | null> {
+    const timeout = parseInt(process.env.HA_CAMERA_STREAM_TIMEOUT_MS || '12000', 10);
+    const websocketUrl = new URL(this.baseUrl);
+    websocketUrl.protocol = websocketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    websocketUrl.pathname = `${websocketUrl.pathname.replace(/\/$/, '')}/api/websocket`;
+    websocketUrl.search = '';
+    websocketUrl.hash = '';
+
+    return new Promise<string | null>((resolve, reject) => {
+      const socket = new WebSocket(websocketUrl);
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout>;
+
+      const finish = (error?: Error, path?: string | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        socket.close();
+        if (error) reject(error);
+        else resolve(path ?? null);
+      };
+
+      timer = setTimeout(() => finish(new Error(`HA_CAMERA_STREAM_TIMEOUT: ${entityId}`)), timeout);
+
+      socket.on('message', (raw: RawData) => {
+        let message: HomeAssistantWebSocketMessage;
+        try {
+          message = JSON.parse(raw.toString()) as HomeAssistantWebSocketMessage;
+        } catch {
+          finish(new Error('HA_CAMERA_STREAM_INVALID_RESPONSE'));
+          return;
+        }
+
+        if (message.type === 'auth_required') {
+          socket.send(JSON.stringify({ type: 'auth', access_token: this.token }));
+          return;
+        }
+
+        if (message.type === 'auth_invalid') {
+          finish(new Error('HA_CAMERA_STREAM_UNAUTHORIZED'));
+          return;
+        }
+
+        if (message.type === 'auth_ok') {
+          socket.send(JSON.stringify({
+            id: 1,
+            type: 'camera/stream',
+            entity_id: entityId,
+            format: 'hls',
+          }));
+          return;
+        }
+
+        if (message.id !== 1) return;
+        if (!message.success) {
+          finish(new Error(`HA_CAMERA_STREAM_FAILED: ${message.error?.code || message.error?.message || 'unknown'}`));
+          return;
+        }
+
+        const path = message.result?.url;
+        finish(undefined, typeof path === 'string' && path.startsWith('/api/hls/') ? path : null);
+      });
+
+      socket.once('error', (error) => finish(new Error(`HA_CAMERA_STREAM_SOCKET_FAILED: ${error.message}`)));
+      socket.once('close', () => {
+        if (!settled) finish(new Error('HA_CAMERA_STREAM_SOCKET_CLOSED'));
+      });
+    });
+  }
+
+  /**
+   * Descarga un manifiesto o segmento HLS previamente emitido por Home Assistant.
+   */
+  public async getCameraHlsMedia(path: string, signal?: AbortSignal): Promise<Response> {
+    if (!path.startsWith('/api/hls/')) throw new Error('HA_CAMERA_HLS_PATH_INVALID');
+    const url = new URL(path, `${this.baseUrl.replace(/\/$/, '')}/`);
+    const expectedOrigin = new URL(this.baseUrl).origin;
+    if (url.origin !== expectedOrigin) throw new Error('HA_CAMERA_HLS_ORIGIN_INVALID');
+
+    return fetch(url, {
+      signal,
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        Accept: 'application/vnd.apple.mpegurl,application/x-mpegURL,video/mp2t,video/mp4,*/*',
+      },
+    });
+  }
+
+  /**
    * Obtiene todos los estados de las entidades de Home Assistant.
    */
   /**
@@ -173,3 +277,4 @@ export class HomeAssistantClient {
     return false;
   }
 }
+import WebSocket, { RawData } from 'ws';

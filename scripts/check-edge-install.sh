@@ -55,9 +55,9 @@ probe "TTS" "http://127.0.0.1:8088/health"
 echo
 echo "Recommended SSH tunnels from the client workstation"
 echo "HomePilot UI/API:"
-echo "ssh -i ~/.ssh/codex_nezu_tmp -o ProxyCommand=\"cloudflared access ssh --hostname %h\" -L 8080:127.0.0.1:8080 -L 13000:127.0.0.1:3000 nezu@ssh.nezuecuador.com"
+echo "ssh -i ~/.ssh/codex_nezu_tmp -o ProxyCommand=\"cloudflared access ssh --hostname %h\" -L 8080:127.0.0.1:8080 nezu@ssh.nezuecuador.com"
 echo
 echo "Existing Home Assistant:"
 echo "ssh -i ~/.ssh/codex_nezu_tmp -o ProxyCommand=\"cloudflared access ssh --hostname %h\" -L 18123:127.0.0.1:8123 nezu@ssh.nezuecuador.com"
 echo
-echo "Use http://localhost:8080 for HomePilot, http://localhost:13000 for the API, and http://localhost:18123 for the customer's existing Home Assistant."
+echo "Use http://localhost:8080 for HomePilot. UI, API and WebSocket share this origin. Use http://localhost:18123 only for the customer's existing Home Assistant."

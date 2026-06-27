@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export type CameraFeedMode = 'stream' | 'snapshot';
+export type CameraFeedMode = 'hls' | 'stream' | 'snapshot';
 
 interface CameraMediaFrameProps {
   active: boolean;
+  hlsUrl?: string;
   streamUrl: string;
   snapshotUrl: string;
   preferredMode: CameraFeedMode;
@@ -24,6 +25,7 @@ function withRefreshMarker(url: string): string {
 
 export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
   active,
+  hlsUrl,
   streamUrl,
   snapshotUrl,
   preferredMode,
@@ -36,6 +38,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
 }) => {
   const [mode, setMode] = useState<CameraFeedMode>(preferredMode);
   const [source, setSource] = useState(preferredMode === 'stream' && active ? streamUrl : '');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const currentObjectUrlRef = useRef<string | null>(null);
   const staleObjectUrlRef = useRef<string | null>(null);
   const hasReadyFrameRef = useRef(false);
@@ -56,6 +59,17 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       return;
     }
 
+    if (preferredMode === 'hls') {
+      if (!hlsUrl) {
+        setMode('stream');
+        setSource(streamUrl);
+        onModeChangeRef.current('stream');
+        return;
+      }
+      setSource('');
+      return;
+    }
+
     if (preferredMode === 'stream') {
       hasReadyFrameRef.current = false;
       setSource(streamUrl);
@@ -63,7 +77,63 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     }
 
     setSource(currentObjectUrlRef.current || '');
-  }, [active, preferredMode, streamUrl]);
+  }, [active, hlsUrl, preferredMode, streamUrl]);
+
+  useEffect(() => {
+    if (!active || mode !== 'hls' || !hlsUrl || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let player: import('hls.js').default | null = null;
+    let cancelled = false;
+    let fallbackTriggered = false;
+    const fallbackToMjpeg = () => {
+      if (fallbackTriggered) return;
+      fallbackTriggered = true;
+      setMode('stream');
+      setSource(streamUrl);
+      onModeChangeRef.current('stream');
+    };
+
+    const initialize = async () => {
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = hlsUrl;
+        await video.play().catch(fallbackToMjpeg);
+        return;
+      }
+
+      const { default: Hls } = await import('hls.js/light');
+      if (cancelled) return;
+      if (!Hls.isSupported()) {
+        fallbackToMjpeg();
+        return;
+      }
+
+      const hlsPlayer = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 30,
+      });
+      player = hlsPlayer;
+      hlsPlayer.attachMedia(video);
+      hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(hlsUrl));
+      hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+        void video.play().catch(fallbackToMjpeg);
+      });
+      hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) fallbackToMjpeg();
+      });
+    };
+
+    void initialize().catch(fallbackToMjpeg);
+
+    return () => {
+      cancelled = true;
+      player?.destroy();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [active, hlsUrl, mode, streamUrl]);
 
   useEffect(() => {
     if (!active || mode !== 'snapshot' || !snapshotUrl) return;
@@ -117,6 +187,23 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     if (currentObjectUrlRef.current) URL.revokeObjectURL(currentObjectUrlRef.current);
     if (staleObjectUrlRef.current) URL.revokeObjectURL(staleObjectUrlRef.current);
   }, []);
+
+  if (mode === 'hls' && active && hlsUrl) {
+    return (
+      <video
+        ref={videoRef}
+        aria-label={alt}
+        className={className}
+        autoPlay
+        muted
+        playsInline
+        onCanPlay={() => {
+          hasReadyFrameRef.current = true;
+          onReadyRef.current();
+        }}
+      />
+    );
+  }
 
   if (!source) return null;
 

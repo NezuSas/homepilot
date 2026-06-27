@@ -64,9 +64,8 @@ Opciones:
   --clean              Limpia solamente cache de build e imagenes Docker colgantes.
   --start              Construye e inicia los servicios de HomePilot al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
-  --api-url URL        Guarda VITE_API_URL en .env si el archivo se crea.
-                       Tunel Cloudflare: http://localhost:13000
-                       Red local:       http://IP_DE_LA_MINIPC:3000
+  --api-url URL        Configuracion avanzada para una API en otro origen.
+                       Por defecto se deja vacia y UI/API usan el mismo dominio.
   --yes                No pide confirmacion para --clean o --start.
   --help               Muestra esta ayuda.
 EOF

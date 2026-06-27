@@ -12,7 +12,7 @@ interface UseRealtimeEventsResult {
 const RECONNECT_DELAY_MS = 3000;
 
 function getRealtimeUrl(token: string | null): string {
-  const apiUrl = new URL(API_BASE_URL);
+  const apiUrl = new URL(API_BASE_URL || window.location.origin, window.location.origin);
   apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
   apiUrl.pathname = '/ws';
   

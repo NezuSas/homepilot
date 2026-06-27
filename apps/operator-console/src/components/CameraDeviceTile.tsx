@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Maximize2, RefreshCw, VideoOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
@@ -21,6 +21,7 @@ interface CameraDeviceTileProps {
 interface CameraMediaSession {
   snapshotPath: string;
   streamPath: string;
+  hlsPath?: string;
 }
 
 function absoluteApiUrl(path: string): string {
@@ -30,13 +31,16 @@ function absoluteApiUrl(path: string): string {
 function isCameraMediaSession(value: unknown): value is CameraMediaSession {
   if (!value || typeof value !== 'object') return false;
   const session = value as Record<string, unknown>;
-  return typeof session.snapshotPath === 'string' && typeof session.streamPath === 'string';
+  return typeof session.snapshotPath === 'string'
+    && typeof session.streamPath === 'string'
+    && (session.hlsPath === undefined || typeof session.hlsPath === 'string');
 }
 
 export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, roomName, isDuplicateName }) => {
   const { t } = useTranslation();
   const reportedUnavailable = isDeviceUnavailable(device);
   const [media, setMedia] = useState<CameraMediaSession | null>(null);
+  const mediaRef = useRef<CameraMediaSession | null>(null);
   const [isConnecting, setIsConnecting] = useState(!reportedUnavailable);
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
@@ -48,8 +52,12 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
   useEffect(() => {
     const controller = new AbortController();
-    setIsConnecting(true);
-    setHasFeedError(false);
+    const isInitialLoad = mediaRef.current === null;
+    let sessionReady = false;
+    if (isInitialLoad) {
+      setIsConnecting(true);
+      setHasFeedError(false);
+    }
 
     void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session`, {
       signal: controller.signal,
@@ -57,23 +65,26 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       if (!response.ok) throw new Error(`CAMERA_SESSION_${response.status}`);
       const payload: unknown = await response.json();
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_SESSION');
+      mediaRef.current = payload;
       setMedia(payload);
+      if (isInitialLoad) setFeedMode(payload.hlsPath ? 'hls' : 'stream');
+      sessionReady = true;
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       if (reportedUnavailable) setMedia(null);
       setHasFeedError(true);
     }).finally(() => {
-      if (!controller.signal.aborted) setIsConnecting(false);
+      if (!controller.signal.aborted && !sessionReady) setIsConnecting(false);
     });
 
     return () => controller.abort();
   }, [device.id, reportedUnavailable, retryVersion]);
 
   useEffect(() => {
-    if (feedMode !== 'snapshot' || !media) return;
+    if (!media) return;
     const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 4 * 60 * 1000);
     return () => window.clearInterval(timer);
-  }, [feedMode, media]);
+  }, [media]);
 
   const unavailable = reportedUnavailable && !media;
 
@@ -97,9 +108,13 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
+    setFeedMode(media?.hlsPath ? 'hls' : 'stream');
+    setIsConnecting(true);
+    setHasFeedError(false);
     setRetryVersion((version) => version + 1);
   };
 
+  const hlsUrl = media?.hlsPath ? absoluteApiUrl(media.hlsPath) : undefined;
   const streamUrl = media ? absoluteApiUrl(media.streamPath) : '';
   const snapshotUrl = media ? absoluteApiUrl(media.snapshotPath) : '';
   const statusLabel = unavailable
@@ -125,6 +140,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           {media && !hasFeedError && !unavailable && (
             <CameraMediaFrame
               active={!isViewerOpen}
+              hlsUrl={hlsUrl}
               streamUrl={streamUrl}
               snapshotUrl={snapshotUrl}
               preferredMode={feedMode}
@@ -173,6 +189,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           name={displayName}
           roomName={roomName}
           streamUrl={streamUrl}
+          hlsUrl={hlsUrl}
           snapshotUrl={snapshotUrl}
           preferredMode={feedMode}
           onClose={closeViewer}

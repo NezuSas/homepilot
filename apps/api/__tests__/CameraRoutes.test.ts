@@ -40,6 +40,8 @@ function createRequest(url: string): HomePilotRequest {
 function createContainer(overrides?: {
   state?: 'idle' | 'unavailable';
   mediaResponse?: Response;
+  hlsStreamPath?: string | null;
+  hlsMediaResponse?: (path: string) => Response;
 }): BootstrapContainer {
   return {
     guards: {
@@ -69,6 +71,18 @@ function createContainer(overrides?: {
             headers: { 'Content-Type': 'image/jpeg' },
           }),
         ),
+        getCameraHlsStreamPath: jest.fn().mockResolvedValue(
+          overrides?.hlsStreamPath === undefined
+            ? '/api/hls/upstream/master_playlist.m3u8'
+            : overrides.hlsStreamPath,
+        ),
+        getCameraHlsMedia: jest.fn().mockImplementation((path: string) => (
+          overrides?.hlsMediaResponse?.(path)
+          || new Response('#EXTM3U\n#EXTINF:2,\nsegment-1.ts\n', {
+            status: 200,
+            headers: { 'Content-Type': 'application/vnd.apple.mpegurl' },
+          })
+        )),
       },
     },
   } as unknown as BootstrapContainer;
@@ -94,8 +108,10 @@ describe('CameraRoutes', () => {
     const payload = JSON.parse(response.end.mock.calls[0][0] as string) as Record<string, string>;
     expect(payload.streamPath).toContain('/camera/stream?token=');
     expect(payload.snapshotPath).toContain('/camera/snapshot?token=');
+    expect(payload.hlsPath).toContain('/camera/hls/master.m3u8?token=');
     expect(payload.streamPath).not.toContain('camera-token');
     expect(payload.snapshotPath).not.toContain('camera-token');
+    expect(payload.hlsPath).not.toContain('/api/hls/upstream/');
   });
 
   it('returns a camera unavailable response when Home Assistant reports unavailable', async () => {
@@ -147,5 +163,62 @@ describe('CameraRoutes', () => {
     }));
     expect(response.write).toHaveBeenCalled();
     expect(response.end).toHaveBeenCalled();
+  });
+
+  it('rewrites HLS manifests and proxies their registered segments', async () => {
+    const sessionResponse = new MockResponse();
+    const manifestResponse = new MockResponse();
+    const segmentResponse = new MockResponse();
+    const container = createContainer({
+      hlsMediaResponse: (path) => path.endsWith('.ts')
+        ? new Response(new Uint8Array([4, 5, 6]), {
+            status: 200,
+            headers: { 'Content-Type': 'video/mp2t' },
+          })
+        : new Response('#EXTM3U\n#EXTINF:2,\nsegment-1.ts\n', {
+            status: 200,
+            headers: { 'Content-Type': 'application/vnd.apple.mpegurl' },
+          }),
+    });
+
+    await routes.handle(
+      createRequest('/api/v1/devices/camera-1/camera/session'),
+      sessionResponse as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/session',
+      'GET',
+      container,
+    );
+
+    const session = JSON.parse(sessionResponse.end.mock.calls[0][0] as string) as Record<string, string>;
+    await routes.handle(
+      createRequest(session.hlsPath),
+      manifestResponse as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/hls/master.m3u8',
+      'GET',
+      container,
+    );
+
+    const manifest = manifestResponse.end.mock.calls[0][0] as string;
+    const segmentPath = manifest.split('\n').find((line) => line.startsWith('/api/v1/devices/'));
+    expect(segmentPath).toContain('/camera/hls/resource/');
+    expect(manifest).not.toContain('/api/hls/upstream/');
+
+    const segmentUrl = new URL(segmentPath as string, 'http://localhost');
+    await routes.handle(
+      createRequest(`${segmentUrl.pathname}${segmentUrl.search}`),
+      segmentResponse as unknown as http.ServerResponse,
+      segmentUrl.pathname,
+      'GET',
+      container,
+    );
+
+    expect(container.adapters.homeAssistantClient.getCameraHlsMedia).toHaveBeenCalledWith(
+      '/api/hls/upstream/segment-1.ts',
+      expect.any(AbortSignal),
+    );
+    expect(segmentResponse.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({
+      'Content-Type': 'video/mp2t',
+    }));
+    expect(segmentResponse.write).toHaveBeenCalled();
   });
 });

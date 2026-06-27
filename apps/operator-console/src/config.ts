@@ -1,8 +1,10 @@
 /**
  * Configuration for HomePilot UI
- * Injects VITE_API_URL from environment or fallbacks to localhost:3000
+ * Uses an explicit VITE_API_URL when configured. Production defaults to the
+ * current origin so Nginx can proxy API and WebSocket traffic internally.
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+export const API_BASE_URL = configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 export const API_ENDPOINTS = {
   auth: {

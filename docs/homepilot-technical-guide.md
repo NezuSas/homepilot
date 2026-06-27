@@ -77,7 +77,7 @@ Rutas principales:
 | `/api/v1/auth/*` | `AuthRoutes.ts` | Login, logout, sesion actual y cambio de password |
 | `/api/v1/admin/users/*` | `AdminRoutes.ts` | Gestion de usuarios y roles admin |
 | `/api/v1/devices/*` | `DeviceRoutes.ts` | Inventario, importacion, refresh, control, eliminacion |
-| `/api/v1/devices/:id/camera/*` | `CameraRoutes.ts` | Sesion autenticada y proxy local de snapshot/stream de camaras HA |
+| `/api/v1/devices/:id/camera/*` | `CameraRoutes.ts` | Sesion autenticada y proxy local de snapshot, MJPEG y HLS de camaras HA |
 | `/api/v1/scenes/*` | `SceneRoutes.ts` | Crear, listar y ejecutar escenas |
 | `/api/v1/automations/*` | `AutomationRoutes.ts` | Reglas de automatizacion |
 | `/api/v1/executions/*` | `ExecutionRoutes.ts` | Historial de ejecuciones |
@@ -157,9 +157,11 @@ Flujo de medios:
 1. La UI solicita `GET /api/v1/devices/:id/camera/session` usando la sesion HomePilot.
 2. `CameraRoutes` valida que el dispositivo corresponda a `ha:camera.*` y consulta su estado actual.
 3. HomePilot emite un token corto firmado para ese dispositivo; el token de larga duracion de Home Assistant permanece en el backend.
-4. La tarjeta consume el stream MJPEG desde `/api/v1/devices/:id/camera/stream`; el proxy valida el token corto de HomePilot con comparacion constante y consulta Home Assistant usando su credencial interna.
-5. El visor ampliado reemplaza temporalmente el stream de la tarjeta para no mantener dos conexiones simultaneas.
-6. Snapshot y stream usan `Cache-Control: no-store` y se cancelan cuando el navegador cierra la conexion.
+4. HomePilot solicita por WebSocket el stream HLS que Home Assistant usa en su propio frontend. Si existe, la sesion incluye una ruta HLS local.
+5. `CameraRoutes` reescribe manifiestos y registra segmentos HLS con identificadores temporales; la URL HLS interna y el token administrativo de Home Assistant no llegan al navegador.
+6. La UI reproduce HLS con soporte nativo o `hls.js`; si falla, intenta MJPEG y finalmente snapshots periodicos.
+7. El visor ampliado reemplaza temporalmente el stream de la tarjeta para no mantener dos conexiones simultaneas.
+8. Snapshot, MJPEG y HLS usan `Cache-Control: no-store` y se cancelan cuando el navegador cierra la conexion.
 
 La UI representa carga, error e indisponibilidad sin convertir la camara en un interruptor. Presionar una camara disponible abre el visor responsive de pantalla completa y `Escape` lo cierra.
 
@@ -199,7 +201,7 @@ Puertos recomendados para tunel:
 | Servicio remoto | Puerto remoto | Puerto local recomendado | URL local del instalador |
 |---|---:|---:|---|
 | HomePilot UI | `8080` | `8080` | `http://localhost:8080` |
-| HomePilot API | `3000` | `13000` | `http://localhost:13000` |
+| HomePilot API directa (solo diagnostico) | `3000` | `13000` | `http://localhost:13000` |
 | Home Assistant existente | `8123` | `18123` | `http://localhost:18123` |
 
 Tunel recomendado para HomePilot:
@@ -208,7 +210,6 @@ Tunel recomendado para HomePilot:
 ssh -i ~/.ssh/codex_nezu_tmp \
   -o ProxyCommand="cloudflared access ssh --hostname %h" \
   -L 8080:127.0.0.1:8080 \
-  -L 13000:127.0.0.1:3000 \
   nezu@ssh.nezuecuador.com
 ```
 
@@ -221,11 +222,25 @@ ssh -i ~/.ssh/codex_nezu_tmp \
   nezu@ssh.nezuecuador.com
 ```
 
-Si se usa `13000` para la API en la laptop, la UI debe estar compilada con:
+La UI de produccion usa el mismo origen para UI, API y WebSocket. Nginx envia `/api/*`, `/health` y `/ws` al contenedor `homepilot-api`, por lo que no se necesita un segundo tunel ni recompilar con una URL local. `VITE_API_URL` debe quedar vacia:
 
 ```bash
-VITE_API_URL=http://localhost:13000
+VITE_API_URL=
 ```
+
+#### Publicacion de HomePilot con Cloudflare Tunnel
+
+En el mismo tunel donde existe `ha-smart.nezuecuador.com`, agrega otra **Published application route** con estos valores:
+
+| Campo Cloudflare | Valor recomendado |
+|---|---|
+| Subdomain | `homepilot` |
+| Domain | `nezuecuador.com` |
+| Path | vacio |
+| Service type | `HTTP` |
+| URL | `127.0.0.1:8080` |
+
+El resultado es `https://homepilot.nezuecuador.com`. No se debe publicar el puerto `3000`: el mismo hostname atiende UI, API, camaras HLS y WebSocket mediante Nginx. Para un sistema residencial se recomienda crear una aplicacion de Cloudflare Access para ese hostname y permitir solamente las identidades autorizadas; el login propio de HomePilot se mantiene como segunda capa.
 
 Para validar la instalacion desde la miniPC:
 
@@ -239,7 +254,7 @@ El repositorio incluye un compose separado para cliente: `docker-compose.office.
 
 ```bash
 git pull --ff-only
-bash scripts/install-edge-office.sh --clean --start --api-url http://localhost:13000
+bash scripts/install-edge-office.sh --clean --start
 ```
 
 El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
@@ -278,7 +293,7 @@ La plantilla `.env.office.example` contiene todas las variables operativas. Sus 
 | Variable | Uso |
 |---|---|
 | `INTERNAL_HA_URL` | `http://host.docker.internal:8123` si HA esta disponible desde el host de la miniPC. Cambiarla si la topologia del cliente usa otra ruta local. |
-| `VITE_API_URL` | `http://localhost:13000` para el tunel SSH recomendado; para acceso directo LAN, `http://IP_DE_LA_MINIPC:3000`. Cambiarla exige reconstruir `homepilot-ui`. |
+| `VITE_API_URL` | Vacia por defecto: UI, API y WebSocket comparten el origen de HomePilot. Definirla solo para una API publicada por separado; cambiarla exige reconstruir `homepilot-ui`. |
 | `HOMEPILOT_*_PORT` | Puertos publicados; ajustarlos solo si el diagnostico indica conflicto. |
 | `HOMEPILOT_DEV_BOOTSTRAP` | Debe permanecer `false` en cliente: el primer administrador se crea en la UI, no existe una clave impresa en logs. |
 
@@ -519,7 +534,7 @@ Variables adicionales del contenedor:
 |---|---|---|
 | `NODE_ENV` | `production` en contenedor | Modo Node dentro de la imagen Docker |
 | `INTERNAL_HA_URL` | `http://homeassistant:8123` o `http://host.docker.internal:8123` | URL interna para hablar con Home Assistant. Usar `host.docker.internal` cuando el cliente ya tiene su propio HA fuera del compose de HomePilot. |
-| `VITE_API_URL` | `http://localhost:3000` o `http://localhost:13000` | API usada por el frontend. Usar `13000` cuando el instalador accede por tunel y su puerto local `3000` ya esta ocupado. |
+| `VITE_API_URL` | Vacia | La UI usa su origen actual y Nginx enruta `/api` y `/ws`. Una URL absoluta queda reservada para despliegues con API separada. |
 
 ## Flujo de trabajo con Windows y WSL
 
@@ -655,8 +670,8 @@ curl -fsS http://localhost:3000/health
 | Device no cambia en inicio | Revisar refresh de estado, eventos realtime y `last_known_state` persistido |
 | Login `admin/admin` no funciona | Confirmar que la DB estaba vacia al arrancar y que `HOMEPILOT_DEV_BOOTSTRAP=true` estaba activo |
 | STT devuelve transcript vacio | Revisar audio enviado, salud de `homepilot-stt` y que no existan llamadas concurrentes bloqueando la cola |
-| UI no conecta API | Revisar `VITE_API_URL=http://localhost:3000` y salud de `homepilot-api` |
-| UI por Cloudflare SSH pega a una API local equivocada | Usar tunel `-L 13000:127.0.0.1:3000` y compilar UI con `VITE_API_URL=http://localhost:13000` |
+| UI no conecta API | Confirmar `VITE_API_URL=` y revisar `http://localhost:8080/health`; Nginx debe alcanzar `homepilot-api:3000` |
+| UI publica intenta conectar a localhost | Reconstruir `homepilot-ui` con `VITE_API_URL=` y publicar solamente `127.0.0.1:8080` en Cloudflare Tunnel |
 | Cambios no aparecen en WSL | Hacer `git pull --ff-only` dentro de `/home/oscar/homepilot` |
 
 ## Reglas de mantenimiento
