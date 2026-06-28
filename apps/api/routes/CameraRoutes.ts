@@ -239,6 +239,7 @@ export class CameraRoutes extends ApiRoutes {
       }
       if (!res.destroyed) res.end();
     } catch (error: unknown) {
+      console.error('[CameraRoutes] proxyCameraHls critical error:', error);
       if (abortController.signal.aborted || res.destroyed) return;
       this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera HLS proxy failed');
     } finally {
@@ -408,7 +409,13 @@ export class CameraRoutes extends ApiRoutes {
     });
 
     this.nativeHlsRuntimes.set(device.id, { process, directory, startedAt: Date.now() });
-    await this.waitForFile(path.join(directory, 'index.m3u8'), 8_000);
+    try {
+      await this.waitForFile(path.join(directory, 'index.m3u8'), 3000);
+    } catch (err) {
+      console.error(`[CameraRoutes] ffmpeg failed to generate HLS playlist within 3s for device ${device.id}. Killing process.`);
+      this.stopNativeHlsRuntime(device.id);
+      throw err;
+    }
     return directory;
   }
 
