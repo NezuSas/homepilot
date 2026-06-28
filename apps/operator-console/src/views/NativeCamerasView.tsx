@@ -34,6 +34,12 @@ export const NativeCamerasView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Discovery State
+  const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveredCameras, setDiscoveredCameras] = useState<any[]>([]);
+  const [selectedDiscoveredCamera, setSelectedDiscoveredCamera] = useState<string>('');
+  
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   
   // Form state
@@ -82,19 +88,60 @@ export const NativeCamerasView: React.FC = () => {
     loadCameras();
   }, [homes]);
 
-  const handleOpenCreateModal = () => {
+  const handleOpenDiscoveryModal = async () => {
+    setIsDiscoveryModalOpen(true);
+    setIsDiscovering(true);
+    setSelectedDiscoveredCamera('');
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras/discover`);
+      if (res.ok) {
+        const data = await res.json();
+        setDiscoveredCameras(data.devices || []);
+      } else {
+        setDiscoveredCameras([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setDiscoveredCameras([]);
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
+
+  const handleDiscoverySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsDiscoveryModalOpen(false);
+
     setEditingDevice(null);
-    setFormData({
-      name: '',
-      host: '',
-      rtspPort: 554,
-      onvifPort: 8000,
-      username: '',
-      password: '',
-      rtspPath: '',
-      homeId: homes[0]?.id || ''
-    });
     setFormError(null);
+
+    if (selectedDiscoveredCamera === 'manual' || !selectedDiscoveredCamera) {
+      setFormData({
+        name: '',
+        host: '',
+        rtspPort: 554,
+        onvifPort: 8000,
+        username: '',
+        password: '',
+        rtspPath: '',
+        homeId: homes[0]?.id || ''
+      });
+    } else {
+      const cam = discoveredCameras.find(c => c.urn === selectedDiscoveredCamera);
+      if (cam) {
+        setFormData({
+          name: cam.name,
+          host: cam.host,
+          rtspPort: 554, // usually ONVIF profile provides RTSP, but we set default
+          onvifPort: cam.onvifPort,
+          username: '',
+          password: '',
+          rtspPath: '',
+          homeId: homes[0]?.id || ''
+        });
+      }
+    }
+    
     setIsModalOpen(true);
   };
 
@@ -203,7 +250,7 @@ export const NativeCamerasView: React.FC = () => {
         />
         <Button 
           variant="primary" 
-          onClick={handleOpenCreateModal}
+          onClick={handleOpenDiscoveryModal}
           disabled={homes.length === 0}
         >
           <Plus size={16} /> {t('native_cameras.add_camera')}
@@ -229,7 +276,7 @@ export const NativeCamerasView: React.FC = () => {
           </div>
           <h3 className="text-xl font-medium text-white mb-2">{t('native_cameras.empty_title')}</h3>
           <p className="text-gray-400 max-w-md mb-8">{t('native_cameras.empty_description')}</p>
-          <Button variant="primary" onClick={handleOpenCreateModal}>
+          <Button variant="primary" onClick={handleOpenDiscoveryModal}>
             <Plus size={16} /> {t('native_cameras.add_camera')}
           </Button>
         </Card>
@@ -289,6 +336,63 @@ export const NativeCamerasView: React.FC = () => {
           ))}
         </div>
       )}
+
+      <Modal
+        isOpen={isDiscoveryModalOpen}
+        onClose={() => !isDiscovering && setIsDiscoveryModalOpen(false)}
+        title={t('native_cameras.discovery.title', 'Seleccionar dispositivo ONVIF')}
+        description={t('native_cameras.discovery.subtitle', 'Seleccione el dispositivo ONVIF descubierto en la red.')}
+      >
+        {isDiscovering ? (
+          <div className="flex flex-col items-center justify-center p-8 space-y-4">
+            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm text-gray-400">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
+          </div>
+        ) : (
+          <form onSubmit={handleDiscoverySubmit} className="space-y-6">
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-dark-700 hover:bg-dark-700/50 cursor-pointer transition-colors">
+                <input 
+                  type="radio" 
+                  name="discovered_camera" 
+                  value="manual"
+                  checked={selectedDiscoveredCamera === 'manual' || discoveredCameras.length === 0}
+                  onChange={() => setSelectedDiscoveredCamera('manual')}
+                  className="w-4 h-4 text-primary bg-dark-800 border-dark-600 focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm font-medium text-white">{t('native_cameras.discovery.manual', 'Configurar dispositivo ONVIF manualmente')}</span>
+              </label>
+
+              {discoveredCameras.map(cam => (
+                <label key={cam.urn} className="flex items-center gap-3 p-3 rounded-lg border border-dark-700 hover:bg-dark-700/50 cursor-pointer transition-colors">
+                  <input 
+                    type="radio" 
+                    name="discovered_camera" 
+                    value={cam.urn}
+                    checked={selectedDiscoveredCamera === cam.urn}
+                    onChange={() => setSelectedDiscoveredCamera(cam.urn)}
+                    className="w-4 h-4 text-primary bg-dark-800 border-dark-600 focus:ring-primary focus:ring-2"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-white">{cam.name}</span>
+                    <span className="text-xs text-gray-500">{cam.host}:{cam.onvifPort}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-dark-700">
+              <Button 
+                type="submit" 
+                variant="primary"
+                disabled={!selectedDiscoveredCamera && discoveredCameras.length > 0}
+              >
+                {t('native_cameras.discovery.submit', 'Enviar')}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       <Modal 
         isOpen={isModalOpen}

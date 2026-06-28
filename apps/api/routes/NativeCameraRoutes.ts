@@ -4,6 +4,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { ApiRoutes } from './ApiRoutes';
+import { OnvifDiscovery } from '../OnvifDiscovery';
 
 interface NativeCameraSourceRow {
   device_id: string;
@@ -75,6 +76,12 @@ export class NativeCameraRoutes extends ApiRoutes {
     method: string,
     container: BootstrapContainer,
   ): Promise<boolean> {
+    // GET /api/v1/native-cameras/discover
+    if (method === 'GET' && pathname === '/api/v1/native-cameras/discover') {
+      await this.discoverCameras(req, res, container);
+      return true;
+    }
+
     // GET /api/v1/native-cameras?homeId=<id>
     if (method === 'GET' && pathname === '/api/v1/native-cameras') {
       await this.listNativeCameras(req, res, container);
@@ -106,6 +113,23 @@ export class NativeCameraRoutes extends ApiRoutes {
     }
 
     return false;
+  }
+
+  private async discoverCameras(
+    req: HomePilotRequest,
+    res: http.ServerResponse,
+    container: BootstrapContainer,
+  ): Promise<void> {
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
+    if (!isProtected) return;
+
+    try {
+      // By default wait 3 seconds
+      const devices = await OnvifDiscovery.discover(3000);
+      this.sendJson(res, { devices });
+    } catch (error: unknown) {
+      this.sendError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to discover cameras');
+    }
   }
 
   private async listNativeCameras(
