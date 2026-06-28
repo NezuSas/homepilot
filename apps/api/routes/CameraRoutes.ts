@@ -151,7 +151,7 @@ export class CameraRoutes extends ApiRoutes {
       console.error('[CAMERA_SESSION_ERROR]', error);
       const errorMessage = error instanceof Error ? error.message : 'Camera session failed';
       if (errorMessage === 'NATIVE_CAMERA_AUTH_FAILED') {
-        this.sendError(res, 401, 'NATIVE_CAMERA_AUTH_FAILED', 'Camera RTSP credentials rejected');
+        this.sendError(res, 400, 'NATIVE_CAMERA_AUTH_FAILED', 'Camera RTSP credentials rejected');
       } else if (errorMessage === 'NATIVE_CAMERA_STREAM_TIMEOUT') {
         this.sendError(res, 502, 'NATIVE_CAMERA_STREAM_TIMEOUT', 'Camera HLS stream timed out');
       } else {
