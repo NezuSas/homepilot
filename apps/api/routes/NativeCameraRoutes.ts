@@ -245,10 +245,42 @@ export class NativeCameraRoutes extends ApiRoutes {
         ? (body.rtspPath || '')
         : `/${body.rtspPath || ''}`;
 
-      const reachable = await this.checkTcpReachable(body.host.trim(), rtspPort, 5000);
-      if (!reachable) {
-        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', `No se pudo alcanzar la cámara en ${body.host.trim()}:${rtspPort}. Verifique la IP, el puerto RTSP y que la cámara esté encendida.`);
-        return;
+      let resolvedRtspPort = rtspPort;
+      let resolvedRtspPath = rtspPath;
+      let onvifSuccess = false;
+
+      try {
+        const onvif = require('node-onvif');
+        const onvifDevice = new onvif.OnvifDevice({
+          xaddr: `http://${body.host.trim()}:${onvifPort}/onvif/device_service`,
+          user: body.username,
+          pass: body.password
+        });
+        await onvifDevice.init();
+        const streamUrl = onvifDevice.getUdpStreamUrl();
+        if (streamUrl) {
+          const match = streamUrl.match(/rtsp:\/\/[^/]+(?::(\d+))?(\/.*)/i);
+          if (match) {
+            resolvedRtspPort = match[1] ? parseInt(match[1], 10) : 554;
+            resolvedRtspPath = match[2];
+            onvifSuccess = true;
+          }
+        }
+      } catch (onvifErr: any) {
+        const errMsg = String(onvifErr?.message || onvifErr || '').toLowerCase();
+        if (errMsg.includes('auth') || errMsg.includes('unauthorized') || errMsg.includes('401')) {
+          this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', 'Credenciales ONVIF/RTSP incorrectas para la cámara.');
+          return;
+        }
+        console.warn('[ONVIF] Negotiation failed, falling back to manual TCP check:', onvifErr);
+      }
+
+      if (!onvifSuccess) {
+        const reachable = await this.checkTcpReachable(body.host.trim(), rtspPort, 5000);
+        if (!reachable) {
+          this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', `No se pudo alcanzar la cámara en ${body.host.trim()}:${rtspPort}. Verifique la IP, el puerto RTSP y que la cámara esté encendida.`);
+          return;
+        }
       }
 
       const db = SqliteDatabaseManager.getInstance(this.dbPath);
@@ -275,7 +307,7 @@ export class NativeCameraRoutes extends ApiRoutes {
       db.prepare(`
         INSERT INTO native_camera_sources (device_id, home_id, name, host, onvif_port, rtsp_port, username, password, rtsp_path, enabled, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `).run(deviceId, body.homeId, body.name.trim(), body.host.trim(), onvifPort, rtspPort, body.username, body.password, rtspPath, now, now);
+      `).run(deviceId, body.homeId, body.name.trim(), body.host.trim(), onvifPort, resolvedRtspPort, body.username, body.password, resolvedRtspPath, now, now);
 
       const created = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow;
 
@@ -326,17 +358,49 @@ export class NativeCameraRoutes extends ApiRoutes {
         return;
       }
 
-      const reachable = await this.checkTcpReachable(newHost, newRtspPort, 5000);
-      if (!reachable) {
-        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', `No se pudo alcanzar la cámara en ${newHost}:${newRtspPort}. Verifique la IP, el puerto RTSP y que la cámara esté encendida.`);
-        return;
+      let resolvedRtspPort = newRtspPort;
+      let resolvedRtspPath = newRtspPath;
+      let onvifSuccess = false;
+
+      try {
+        const onvif = require('node-onvif');
+        const onvifDevice = new onvif.OnvifDevice({
+          xaddr: `http://${newHost}:${newOnvifPort}/onvif/device_service`,
+          user: newUsername,
+          pass: newPassword
+        });
+        await onvifDevice.init();
+        const streamUrl = onvifDevice.getUdpStreamUrl();
+        if (streamUrl) {
+          const match = streamUrl.match(/rtsp:\/\/[^/]+(?::(\d+))?(\/.*)/i);
+          if (match) {
+            resolvedRtspPort = match[1] ? parseInt(match[1], 10) : 554;
+            resolvedRtspPath = match[2];
+            onvifSuccess = true;
+          }
+        }
+      } catch (onvifErr: any) {
+        const errMsg = String(onvifErr?.message || onvifErr || '').toLowerCase();
+        if (errMsg.includes('auth') || errMsg.includes('unauthorized') || errMsg.includes('401')) {
+          this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', 'Credenciales ONVIF/RTSP incorrectas para la cámara.');
+          return;
+        }
+        console.warn('[ONVIF] Negotiation failed, falling back to manual TCP check:', onvifErr);
+      }
+
+      if (!onvifSuccess) {
+        const reachable = await this.checkTcpReachable(newHost, newRtspPort, 5000);
+        if (!reachable) {
+          this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', `No se pudo alcanzar la cámara en ${newHost}:${newRtspPort}. Verifique la IP, el puerto RTSP y que la cámara esté encendida.`);
+          return;
+        }
       }
 
       db.prepare(`
         UPDATE native_camera_sources
         SET name = ?, host = ?, rtsp_port = ?, onvif_port = ?, username = ?, password = ?, rtsp_path = ?, enabled = ?, updated_at = ?
         WHERE device_id = ?
-      `).run(newName, newHost, newRtspPort, newOnvifPort, newUsername, newPassword, newRtspPath, newEnabled, now, deviceId);
+      `).run(newName, newHost, resolvedRtspPort, newOnvifPort, newUsername, newPassword, resolvedRtspPath, newEnabled, now, deviceId);
 
       // Sync device name if changed
       if (newName !== existing.name) {
