@@ -148,6 +148,7 @@ export class CameraRoutes extends ApiRoutes {
       if (hlsMasterPath) this.registerHlsSession(cameraProxyToken, device.id, hlsMasterPath, 'home-assistant');
       this.sendJson(res, response);
     } catch (error: unknown) {
+      console.error('[CAMERA_SESSION_ERROR]', error);
       this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera session failed');
     }
 
