@@ -193,8 +193,9 @@ export class SonoffLanDiscoveryService {
 
       // Extract device type/info if available from TXT
       let deviceType: 'light' | 'switch' | 'sensor' | 'cover' = 'switch';
-      let defaultName = `Sonoff Device (${externalIdMatch})`;
-      
+      let uiid = '';
+      let isPlug = false;
+
       const aRecord = records.find(r => r.type === 'A' && typeof r.name === 'string' && r.name.includes(externalIdMatch));
       const resolvedIp = typeof aRecord?.data === 'string' ? aRecord.data : null;
 
@@ -204,13 +205,41 @@ export class SonoffLanDiscoveryService {
 
       const txtRecord = records.find(r => r.type === 'TXT' && typeof r.name === 'string' && r.name.includes(externalIdMatch));
       if (txtRecord && Array.isArray(txtRecord.data)) {
-         const txtString = txtRecord.data.map((b: Buffer) => b.toString('utf8')).join('');
-         if (txtString.includes('type=plug') || txtString.includes('type=switch')) {
-            deviceType = 'switch';
-         } else if (txtString.includes('type=light')) {
-            deviceType = 'light';
+         for (const item of txtRecord.data) {
+            const str = item.toString('utf8');
+            if (str.startsWith('uiid=')) {
+               uiid = str.split('=')[1];
+            }
+            if (str.startsWith('type=')) {
+               const val = str.split('=')[1];
+               if (val === 'plug') isPlug = true;
+               if (val === 'plug' || val === 'switch') {
+                  deviceType = 'switch';
+               } else if (val === 'light') {
+                  deviceType = 'light';
+               }
+            }
          }
       }
+
+      const uiidInt = parseInt(uiid, 10);
+      let friendlyType = 'Dispositivo';
+      if (isPlug) {
+         friendlyType = 'Tomacorriente';
+      } else if (uiidInt === 1 || uiidInt === 138 || uiidInt === 15) {
+         friendlyType = 'Interruptor';
+      } else if (uiidInt === 2 || uiidInt === 6 || uiidInt === 7 || uiidInt === 8) {
+         friendlyType = 'Interruptor Múltiple';
+      } else if (uiidInt === 4) {
+         friendlyType = 'Interruptor 4CH';
+      } else if (deviceType === 'switch') {
+         friendlyType = 'Interruptor';
+      } else if (deviceType === 'light') {
+         friendlyType = 'Luz';
+      }
+
+      const shortId = externalIdMatch.replace('eWeLink_', '').slice(-6).toUpperCase();
+      const defaultName = `${friendlyType} Sonoff (${shortId})`;
 
       const deviceId = crypto.randomUUID();
       const now = new Date().toISOString();
