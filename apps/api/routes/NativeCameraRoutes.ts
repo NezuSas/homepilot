@@ -255,7 +255,7 @@ export class NativeCameraRoutes extends ApiRoutes {
         name: body.name.trim(),
         type: 'camera',
         vendor: 'onvif',
-        status: 'ASSIGNED',
+        status: 'PENDING',
         integrationSource: 'native-camera',
         invertState: false,
         lastKnownState: {},
