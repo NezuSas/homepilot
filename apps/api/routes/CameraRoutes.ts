@@ -149,7 +149,14 @@ export class CameraRoutes extends ApiRoutes {
       this.sendJson(res, response);
     } catch (error: unknown) {
       console.error('[CAMERA_SESSION_ERROR]', error);
-      this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera session failed');
+      const errorMessage = error instanceof Error ? error.message : 'Camera session failed';
+      if (errorMessage === 'NATIVE_CAMERA_AUTH_FAILED') {
+        this.sendError(res, 401, 'NATIVE_CAMERA_AUTH_FAILED', 'Camera RTSP credentials rejected');
+      } else if (errorMessage === 'NATIVE_CAMERA_STREAM_TIMEOUT') {
+        this.sendError(res, 502, 'NATIVE_CAMERA_STREAM_TIMEOUT', 'Camera HLS stream timed out');
+      } else {
+        this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', errorMessage);
+      }
     }
 
     return true;
@@ -404,6 +411,12 @@ export class CameraRoutes extends ApiRoutes {
       path.join(directory, 'segment-%05d.ts'),
       path.join(directory, 'index.m3u8'),
     ]);
+
+    let ffmpegStderr = '';
+    process.stderr.on('data', (chunk: Buffer) => {
+      ffmpegStderr += chunk.toString();
+    });
+
     process.on('exit', () => {
       const current = this.nativeHlsRuntimes.get(device.id);
       if (current?.process === process) this.nativeHlsRuntimes.delete(device.id);
@@ -411,10 +424,14 @@ export class CameraRoutes extends ApiRoutes {
 
     this.nativeHlsRuntimes.set(device.id, { process, directory, startedAt: Date.now() });
     try {
-      await this.waitForFile(path.join(directory, 'index.m3u8'), 3000);
+      await this.waitForFile(path.join(directory, 'index.m3u8'), 5000);
     } catch (err) {
-      console.error(`[CameraRoutes] ffmpeg failed to generate HLS playlist within 3s for device ${device.id}. Killing process.`);
       this.stopNativeHlsRuntime(device.id);
+      if (ffmpegStderr.includes('401') || ffmpegStderr.toLowerCase().includes('unauthorized') || ffmpegStderr.toLowerCase().includes('authorization failed')) {
+        console.error(`[CameraRoutes] ffmpeg 401 Unauthorized for device ${device.id}. Check camera credentials.`);
+        throw new Error('NATIVE_CAMERA_AUTH_FAILED');
+      }
+      console.error(`[CameraRoutes] ffmpeg failed for device ${device.id}: ${ffmpegStderr.slice(-300)}`);
       throw err;
     }
     return directory;

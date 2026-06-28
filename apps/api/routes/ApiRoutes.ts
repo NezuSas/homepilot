@@ -36,6 +36,8 @@ const SAFE_MESSAGES: Record<string, string> = {
   'CAMERA_UNAVAILABLE': 'La camara no esta disponible en este momento.',
   'CAMERA_MEDIA_ERROR': 'No se pudo obtener el video de la camara.',
   'CAMERA_CONNECTION_FAILED': 'No se pudo conectar a la cámara con las credenciales proporcionadas.',
+  'NATIVE_CAMERA_AUTH_FAILED': 'Las credenciales de la cámara son incorrectas. Verifica usuario y contraseña RTSP.',
+  'NATIVE_CAMERA_STREAM_TIMEOUT': 'La cámara tardó demasiado en responder. Verifica que esté encendida y que el path RTSP sea correcto.',
   'AUTOMATIONLOOPERROR': 'Se detectó un bucle infinito en la automatización.',
   'INVALIDAUTOMATIONRULEERROR': 'Regla de automatización inválida.',
 };
