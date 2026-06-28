@@ -246,11 +246,23 @@ export class NativeCameraRoutes extends ApiRoutes {
 
       const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
-      // Create the device in the devices table
-      db.prepare(`
-        INSERT INTO devices (id, home_id, external_id, name, type, status, capabilities, state, integration_source, created_at, updated_at)
-        VALUES (?, ?, ?, ?, 'camera', 'active', '["camera"]', '{}', 'native-camera', ?, ?)
-      `).run(deviceId, body.homeId, `native:${deviceId}`, body.name.trim(), now, now);
+      // Create the device using the repository to ensure schema constraints are respected
+      await container.repositories.deviceRepository.saveDevice({
+        id: deviceId,
+        homeId: body.homeId,
+        roomId: null,
+        externalId: `native:${deviceId}`,
+        name: body.name.trim(),
+        type: 'camera',
+        vendor: 'onvif',
+        status: 'ASSIGNED',
+        integrationSource: 'native-camera',
+        invertState: false,
+        lastKnownState: {},
+        entityVersion: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       // Create the native camera source record
       db.prepare(`

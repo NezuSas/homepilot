@@ -230,10 +230,11 @@ export const NativeCamerasView: React.FC = () => {
 
       if (res.ok) {
         setIsModalOpen(false);
-        await loadCameras(); // Reload list
+        await loadCameras();
       } else {
         const errData = await res.json().catch(() => ({}));
-        setFormError(errData.error || t('native_cameras.form.errors.save_failed'));
+        const errorMsg = errData?.error?.message || errData?.message || t('native_cameras.form.errors.save_failed');
+        setFormError(errorMsg);
       }
     } catch (err) {
       console.error(err);
