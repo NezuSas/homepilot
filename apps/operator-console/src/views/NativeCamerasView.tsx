@@ -426,42 +426,23 @@ export const NativeCamerasView: React.FC = () => {
             required
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label={t('native_cameras.form.field_host')}
-              value={formData.host}
-              onChange={(e) => setFormData({...formData, host: e.target.value})}
-              placeholder={t('native_cameras.form.field_host_placeholder')}
-              required
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                label={t('native_cameras.form.field_rtsp_port')}
-                value={formData.rtspPort}
-                onChange={(e) => setFormData({...formData, rtspPort: parseInt(e.target.value) || 554})}
-                type="number"
-                min="1"
-                max="65535"
-                required
-              />
-              <Input
-                label={t('native_cameras.form.field_onvif_port')}
-                value={formData.onvifPort}
-                onChange={(e) => setFormData({...formData, onvifPort: parseInt(e.target.value) || 8000})}
-                type="number"
-                min="1"
-                max="65535"
-                required
-              />
-            </div>
-          </div>
+          <Input
+            label={t('native_cameras.form.field_host')}
+            value={formData.host}
+            onChange={(e) => setFormData({...formData, host: e.target.value})}
+            placeholder={t('native_cameras.form.field_host_placeholder')}
+            helperText={t('native_cameras.form.field_host_hint', 'La IP o nombre de host del dispositivo ONVIF.')}
+            required
+          />
 
           <Input
-            label={t('native_cameras.form.field_rtsp_path')}
-            value={formData.rtspPath}
-            onChange={(e) => setFormData({...formData, rtspPath: e.target.value})}
-            placeholder={t('native_cameras.form.field_rtsp_path_placeholder')}
-            helperText={t('native_cameras.form.field_rtsp_path_hint')}
+            label={t('native_cameras.form.field_onvif_port')}
+            value={formData.onvifPort}
+            onChange={(e) => setFormData({...formData, onvifPort: parseInt(e.target.value) || 8000})}
+            type="number"
+            min="1"
+            max="65535"
+            required
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -476,7 +457,7 @@ export const NativeCamerasView: React.FC = () => {
               label={t('native_cameras.form.field_password')}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
-              placeholder={editingDevice ? '********' : t('native_cameras.form.field_password_placeholder')}
+              placeholder={editingDevice ? '••••••••' : t('native_cameras.form.field_password_placeholder')}
               type="password"
               required={!editingDevice}
             />
