@@ -1,8 +1,13 @@
 import * as http from 'http';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { ApiRoutes } from './ApiRoutes';
 
 type CameraMediaKind = 'snapshot' | 'stream';
@@ -21,15 +26,39 @@ interface CameraProxyTokenPayload {
 interface CameraHlsProxySession {
   readonly deviceId: string;
   readonly expiresAt: number;
+  readonly source: 'home-assistant' | 'native';
   readonly masterPath: string;
   readonly resourcesById: Map<string, string>;
   readonly resourceIdsByPath: Map<string, string>;
+  readonly nativeDirectory?: string;
 }
 
 const CAMERA_PROXY_TOKEN_TTL_MS = 5 * 60 * 1000;
+const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
+
+interface NativeCameraSourceRow {
+  device_id: string;
+  host: string;
+  rtsp_port: number;
+  username: string;
+  password: string;
+  rtsp_path: string;
+  enabled: number;
+}
+
+interface NativeHlsRuntime {
+  readonly process: ChildProcessWithoutNullStreams;
+  readonly directory: string;
+  readonly startedAt: number;
+}
 
 export class CameraRoutes extends ApiRoutes {
   private readonly hlsSessions = new Map<string, CameraHlsProxySession>();
+  private readonly nativeHlsRuntimes = new Map<string, NativeHlsRuntime>();
+
+  constructor(private readonly dbPath?: string) {
+    super();
+  }
 
   async handle(
     req: HomePilotRequest,
@@ -73,6 +102,26 @@ export class CameraRoutes extends ApiRoutes {
         return true;
       }
 
+      if (device.integrationSource === 'native-camera') {
+        const nativeSource = this.getNativeCameraSource(device.id);
+        if (!nativeSource || nativeSource.enabled !== 1) {
+          this.sendError(res, 409, 'CAMERA_UNAVAILABLE', 'Native camera is not configured');
+          return true;
+        }
+
+        const encodedDeviceId = encodeURIComponent(device.id);
+        const cameraProxyToken = this.createCameraProxyToken(device.id);
+        const encodedToken = encodeURIComponent(cameraProxyToken);
+        const nativeDirectory = await this.ensureNativeHlsRuntime(device, nativeSource);
+        this.registerHlsSession(cameraProxyToken, device.id, path.join(nativeDirectory, 'index.m3u8'), 'native', nativeDirectory);
+        this.sendJson(res, {
+          snapshotPath: `/api/v1/devices/${encodedDeviceId}/camera/snapshot?token=${encodedToken}`,
+          streamPath: `/api/v1/devices/${encodedDeviceId}/camera/stream?token=${encodedToken}`,
+          hlsPath: `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`,
+        });
+        return true;
+      }
+
       const state = await container.adapters.homeAssistantClient.getEntityState(entityId);
       if (!state || state.state === 'unavailable') {
         this.sendError(res, 409, 'CAMERA_UNAVAILABLE', `Camera ${entityId} is unavailable`);
@@ -96,7 +145,7 @@ export class CameraRoutes extends ApiRoutes {
           ? { hlsPath: `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}` }
           : {}),
       };
-      if (hlsMasterPath) this.registerHlsSession(cameraProxyToken, device.id, hlsMasterPath);
+      if (hlsMasterPath) this.registerHlsSession(cameraProxyToken, device.id, hlsMasterPath, 'home-assistant');
       this.sendJson(res, response);
     } catch (error: unknown) {
       this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera session failed');
@@ -129,6 +178,11 @@ export class CameraRoutes extends ApiRoutes {
     const upstreamPath = resourceId ? session.resourcesById.get(resourceId) : session.masterPath;
     if (!upstreamPath) {
       this.sendError(res, 404, 'CAMERA_HLS_RESOURCE_NOT_FOUND', 'Camera HLS resource not found');
+      return;
+    }
+
+    if (session.source === 'native') {
+      await this.serveNativeHlsResource(res, session, upstreamPath);
       return;
     }
 
@@ -270,7 +324,9 @@ export class CameraRoutes extends ApiRoutes {
   }
 
   private resolveCameraEntityId(device: Device | null): string | null {
-    if (!device?.externalId.startsWith('ha:camera.')) return null;
+    if (!device) return null;
+    if (device.integrationSource === 'native-camera' && device.type === 'camera') return 'native';
+    if (!device.externalId.startsWith('ha:camera.')) return null;
     return device.externalId.slice(3);
   }
 
@@ -284,15 +340,151 @@ export class CameraRoutes extends ApiRoutes {
     return `${encodedPayload}.${signature}`;
   }
 
-  private registerHlsSession(token: string, deviceId: string, masterPath: string): void {
+  private registerHlsSession(
+    token: string,
+    deviceId: string,
+    masterPath: string,
+    source: CameraHlsProxySession['source'],
+    nativeDirectory?: string,
+  ): void {
     this.removeExpiredHlsSessions();
     this.hlsSessions.set(token, {
       deviceId,
       expiresAt: Date.now() + CAMERA_PROXY_TOKEN_TTL_MS,
+      source,
       masterPath,
       resourcesById: new Map<string, string>(),
       resourceIdsByPath: new Map<string, string>(),
+      nativeDirectory,
     });
+  }
+
+  private getNativeCameraSource(deviceId: string): NativeCameraSourceRow | null {
+    if (!this.dbPath) return null;
+    const db = SqliteDatabaseManager.getInstance(this.dbPath);
+    const row = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow | undefined;
+    return row || null;
+  }
+
+  private async ensureNativeHlsRuntime(device: Device, source: NativeCameraSourceRow): Promise<string> {
+    const existing = this.nativeHlsRuntimes.get(device.id);
+    const indexPath = existing ? path.join(existing.directory, 'index.m3u8') : '';
+    if (existing && !existing.process.killed && fs.existsSync(indexPath)) return existing.directory;
+
+    if (existing) this.stopNativeHlsRuntime(device.id);
+
+    const directory = path.join(NATIVE_CAMERA_HLS_ROOT, device.id);
+    fs.mkdirSync(directory, { recursive: true });
+    for (const file of fs.readdirSync(directory)) {
+      fs.unlinkSync(path.join(directory, file));
+    }
+
+    const process = spawn('ffmpeg', [
+      '-hide_banner',
+      '-loglevel',
+      'warning',
+      '-rtsp_transport',
+      'tcp',
+      '-i',
+      this.buildNativeRtspUrl(source),
+      '-an',
+      '-c:v',
+      'copy',
+      '-f',
+      'hls',
+      '-hls_time',
+      '2',
+      '-hls_list_size',
+      '6',
+      '-hls_flags',
+      'delete_segments+append_list',
+      '-hls_segment_filename',
+      path.join(directory, 'segment-%05d.ts'),
+      path.join(directory, 'index.m3u8'),
+    ]);
+    process.on('exit', () => {
+      const current = this.nativeHlsRuntimes.get(device.id);
+      if (current?.process === process) this.nativeHlsRuntimes.delete(device.id);
+    });
+
+    this.nativeHlsRuntimes.set(device.id, { process, directory, startedAt: Date.now() });
+    await this.waitForFile(path.join(directory, 'index.m3u8'), 8_000);
+    return directory;
+  }
+
+  private stopNativeHlsRuntime(deviceId: string): void {
+    const runtime = this.nativeHlsRuntimes.get(deviceId);
+    if (!runtime) return;
+    runtime.process.kill('SIGTERM');
+    this.nativeHlsRuntimes.delete(deviceId);
+  }
+
+  private buildNativeRtspUrl(source: NativeCameraSourceRow): string {
+    const username = encodeURIComponent(source.username);
+    const password = encodeURIComponent(source.password);
+    const rtspPath = source.rtsp_path.startsWith('/') ? source.rtsp_path : `/${source.rtsp_path}`;
+    return `rtsp://${username}:${password}@${source.host}:${source.rtsp_port}${rtspPath}`;
+  }
+
+  private async waitForFile(filePath: string, timeoutMs: number): Promise<void> {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+      if (fs.existsSync(filePath)) return;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    throw new Error('NATIVE_CAMERA_STREAM_TIMEOUT');
+  }
+
+  private async serveNativeHlsResource(
+    res: http.ServerResponse,
+    session: CameraHlsProxySession,
+    filePath: string | undefined,
+  ): Promise<void> {
+    if (!filePath || !session.nativeDirectory) {
+      this.sendError(res, 404, 'CAMERA_HLS_RESOURCE_NOT_FOUND', 'Camera HLS resource not found');
+      return;
+    }
+
+    const resolvedFilePath = path.resolve(filePath);
+    const resolvedDirectory = path.resolve(session.nativeDirectory);
+    if (!resolvedFilePath.startsWith(resolvedDirectory) || !fs.existsSync(resolvedFilePath)) {
+      this.sendError(res, 404, 'CAMERA_HLS_RESOURCE_NOT_FOUND', 'Camera HLS resource not found');
+      return;
+    }
+
+    if (resolvedFilePath.endsWith('.m3u8')) {
+      const manifest = fs.readFileSync(resolvedFilePath, 'utf8')
+        .split(/\r?\n/)
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) return line;
+          const resourceId = path.basename(trimmed);
+          session.resourcesById.set(resourceId, path.join(resolvedDirectory, resourceId));
+          return `/api/v1/devices/${encodeURIComponent(session.deviceId)}/camera/hls/resource/${encodeURIComponent(resourceId)}?token=${this.currentTokenForSession(session)}`;
+        })
+        .join('\n');
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.apple.mpegurl',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      res.end(manifest);
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'video/mp2t',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    fs.createReadStream(resolvedFilePath).pipe(res);
+  }
+
+  private currentTokenForSession(targetSession: CameraHlsProxySession): string {
+    for (const [token, session] of this.hlsSessions) {
+      if (session === targetSession) return encodeURIComponent(token);
+    }
+    return '';
   }
 
   private rewriteHlsManifest(

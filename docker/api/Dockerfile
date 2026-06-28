@@ -13,8 +13,8 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install curl for healthchecks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl for healthchecks and ffmpeg for native camera HLS transcoding
+RUN apt-get update && apt-get install -y curl ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Copy build artifacts and production-only dependencies
 COPY --from=builder /app/dist ./dist

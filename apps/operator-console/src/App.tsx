@@ -23,7 +23,8 @@ import {
   LogOut,
   Sun,
   Moon,
-  MessageSquare
+  MessageSquare,
+  Camera
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
@@ -71,6 +72,7 @@ const ResilienceShowcaseView = lazy(() => import('./views/ResilienceShowcaseView
 const EnergyView = lazy(() => import('./views/EnergyView').then(module => ({ default: module.EnergyView })));
 const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(module => ({ default: module.ExecutionLogsView })));
 const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
+const NativeCamerasView = lazy(() => import('./views/NativeCamerasView').then(module => ({ default: module.NativeCamerasView })));
 const GLOBAL_WAKE_SILENCE_ACKNOWLEDGEMENT = 'De acuerdo, Oscar.';
 
 function ViewLoadingState() {
@@ -120,6 +122,7 @@ function isSystemView(view: View): boolean {
     || view === 'system-executions'
     || view === 'system-users'
     || view === 'system-ha'
+    || view === 'system-cameras'
     || view === 'system-onboarding';
 }
 
@@ -912,6 +915,13 @@ function App() {
                         nested
                       />
                       <SidebarItem
+                        icon={Camera}
+                        label={t('nav.system_cameras', 'Cámaras IP')}
+                        active={currentView === 'system-cameras'}
+                        onClick={() => navigateTo('system-cameras')}
+                        nested
+                      />
+                      <SidebarItem
                         icon={Monitor}
                         label={t('nav.system_onboarding')}
                         active={currentView === 'system-onboarding'}
@@ -1130,6 +1140,7 @@ function App() {
                {currentView === 'system-audit' && <AuditLogsView />}
                {currentView === 'system-executions' && <ExecutionLogsView />}
                {currentView === 'system-ha' && <HomeAssistantSettingsView />}
+               {currentView === 'system-cameras' && <NativeCamerasView />}
                {currentView === 'system-onboarding' && setupStatus && (
                  <OnboardingView
                    statusProvider={setupStatus}

@@ -17,6 +17,7 @@ import { DashboardRoutes } from './routes/DashboardRoutes';
 import { MediaRoutes } from './routes/MediaRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
+import { NativeCameraRoutes } from './routes/NativeCameraRoutes';
 
 /**
  * OperatorConsoleServer — backward-compatible wrapper around ApiGateway.
@@ -33,7 +34,8 @@ export class OperatorConsoleServer {
   constructor(container: BootstrapContainer, dbPath: string, port: number = 3000) {
       const handlers: RouteHandler[] = [
         new MediaRoutes(),
-        new CameraRoutes(),
+        new NativeCameraRoutes(dbPath),
+        new CameraRoutes(dbPath),
         new SystemRoutes(),
         new AuthRoutes(),
         new AdminRoutes(),
