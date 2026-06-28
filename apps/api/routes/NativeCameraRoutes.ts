@@ -244,6 +244,17 @@ export class NativeCameraRoutes extends ApiRoutes {
         ? (body.rtspPath || '')
         : `/${body.rtspPath || ''}`;
 
+      const rtspUrl = `rtsp://${encodeURIComponent(body.username)}:${encodeURIComponent(body.password)}@${body.host.trim()}:${rtspPort}${rtspPath}`;
+      try {
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        await execAsync(`ffprobe -v error -rtsp_transport tcp -i "${rtspUrl}"`, { timeout: 8000 });
+      } catch (err) {
+        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', 'No se pudo conectar a la cámara con las credenciales proporcionadas.');
+        return;
+      }
+
       const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
       // Create the device using the repository to ensure schema constraints are respected
@@ -316,6 +327,17 @@ export class NativeCameraRoutes extends ApiRoutes {
       }
       if (!isValidPort(newOnvifPort)) {
         this.sendError(res, 400, 'VALIDATION_ERROR', 'onvifPort must be between 1 and 65535');
+        return;
+      }
+
+      const rtspUrl = `rtsp://${encodeURIComponent(newUsername)}:${encodeURIComponent(newPassword)}@${newHost}:${newRtspPort}${newRtspPath}`;
+      try {
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        await execAsync(`ffprobe -v error -rtsp_transport tcp -i "${rtspUrl}"`, { timeout: 8000 });
+      } catch (err) {
+        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', 'No se pudo conectar a la cámara con las credenciales proporcionadas.');
         return;
       }
 
