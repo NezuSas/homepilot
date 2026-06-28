@@ -58,14 +58,16 @@ describe('Módulo Devices - Capa de Dominio', () => {
       expect(assignedDevice.entityVersion).toBe(2);
     });
 
-    it('debe lanzar rígidamente DeviceAlreadyAssignedError protegiendo el estado si ya fue asignado previamente', () => {
+    it('debe permitir la reasignación de un dispositivo a otro cuarto', () => {
       const pendingDevice = createDiscoveredDevice(
         { homeId: 'home-1', externalId: 'ext-1', name: 'S', type: 'T', vendor: 'V' },
         mockDeps
       );
       const assignedDevice = assignDeviceToRoom(pendingDevice, 'room-1', mockDeps.clock);
       
-      expect(() => assignDeviceToRoom(assignedDevice, 'room-2', mockDeps.clock)).toThrow(DeviceAlreadyAssignedError);
+      const reassignedDevice = assignDeviceToRoom(assignedDevice, 'room-2', mockDeps.clock);
+      expect(reassignedDevice.roomId).toBe('room-2');
+      expect(reassignedDevice.entityVersion).toBe(3);
     });
   });
 });
