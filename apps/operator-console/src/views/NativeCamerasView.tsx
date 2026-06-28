@@ -62,13 +62,13 @@ export const NativeCamerasView: React.FC = () => {
     }
   }, [homes, formData.homeId]);
 
-  const loadCameras = async () => {
+  const loadCameras = async (showSpinner = true) => {
     if (!homes.length) {
       setIsLoading(false);
       return;
     }
     
-    setIsLoading(true);
+    if (showSpinner) setIsLoading(true);
     try {
       // For now, load for the first home
       const homeId = homes[0].id;
@@ -80,13 +80,14 @@ export const NativeCamerasView: React.FC = () => {
     } catch (err) {
       console.error('Failed to load cameras', err);
     } finally {
-      setIsLoading(false);
+      if (showSpinner) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadCameras();
-  }, [homes]);
+    loadCameras(cameras.length === 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homes[0]?.id]);
 
   const handleOpenDiscoveryModal = async () => {
     setIsDiscoveryModalOpen(true);
@@ -270,12 +271,12 @@ export const NativeCamerasView: React.FC = () => {
           <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : cameras.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-20 px-4 text-center bg-dark-800/30 border-dashed">
-          <div className="w-16 h-16 rounded-full bg-dark-700 flex items-center justify-center mb-6">
-            <Camera size={32} className="text-gray-400" />
+        <Card className="flex flex-col items-center justify-center py-20 px-4 text-center border-dashed border-border/60 bg-muted/20">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6 border border-border/50">
+            <Camera size={32} className="text-muted-foreground" />
           </div>
-          <h3 className="text-xl font-medium text-white mb-2">{t('native_cameras.empty_title')}</h3>
-          <p className="text-gray-400 max-w-md mb-8">{t('native_cameras.empty_description')}</p>
+          <h3 className="text-xl font-medium text-foreground mb-2">{t('native_cameras.empty_title')}</h3>
+          <p className="text-muted-foreground max-w-md mb-8">{t('native_cameras.empty_description')}</p>
           <Button variant="primary" onClick={handleOpenDiscoveryModal}>
             <Plus size={16} /> {t('native_cameras.add_camera')}
           </Button>
@@ -283,15 +284,15 @@ export const NativeCamerasView: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {cameras.map(camera => (
-            <Card key={camera.deviceId} className="flex flex-col h-full bg-dark-800/80 border-dark-700/50 overflow-hidden group">
+            <Card key={camera.deviceId} className="flex flex-col h-full bg-card border-border/50 overflow-hidden group">
               <div className="p-5 flex-1">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-dark-700 flex items-center justify-center">
-                      <Camera size={20} className="text-gray-300" />
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center border border-border/30">
+                      <Camera size={20} className="text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-white truncate max-w-[150px]">{camera.name}</h3>
+                      <h3 className="text-lg font-medium text-foreground truncate max-w-[150px]">{camera.name}</h3>
                       <div className="flex items-center mt-1">
                         <StatusPill 
                           variant={camera.enabled ? 'success' : 'neutral'}
@@ -304,13 +305,13 @@ export const NativeCamerasView: React.FC = () => {
                   <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={() => handleOpenEditModal(camera)}
-                      className="p-2 text-gray-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                      className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button 
                       onClick={() => handleDelete(camera.deviceId)}
-                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors"
+                      className="p-2 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -319,16 +320,16 @@ export const NativeCamerasView: React.FC = () => {
 
                 <div className="space-y-2 mt-6">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">{t('native_cameras.host_label')}</span>
-                    <span className="text-gray-300 font-mono">{camera.host}</span>
+                    <span className="text-muted-foreground">{t('native_cameras.host_label')}</span>
+                    <span className="text-foreground/80 font-mono">{camera.host}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">{t('native_cameras.rtsp_port_label')}</span>
-                    <span className="text-gray-300 font-mono">{camera.rtspPort}</span>
+                    <span className="text-muted-foreground">{t('native_cameras.rtsp_port_label')}</span>
+                    <span className="text-foreground/80 font-mono">{camera.rtspPort}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">{t('native_cameras.rtsp_path_label')}</span>
-                    <span className="text-gray-300 font-mono truncate max-w-[150px]">{camera.rtspPath || '/'}</span>
+                    <span className="text-muted-foreground">{t('native_cameras.rtsp_path_label')}</span>
+                    <span className="text-foreground/80 font-mono truncate max-w-[150px]">{camera.rtspPath || '/'}</span>
                   </div>
                 </div>
               </div>
@@ -345,43 +346,43 @@ export const NativeCamerasView: React.FC = () => {
       >
         {isDiscovering ? (
           <div className="flex flex-col items-center justify-center p-8 space-y-4">
-            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm text-gray-400">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm text-muted-foreground">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
           </div>
         ) : (
           <form onSubmit={handleDiscoverySubmit} className="space-y-6">
             <div className="space-y-3">
-              <label className="flex items-center gap-3 p-3 rounded-lg border border-dark-700 hover:bg-dark-700/50 cursor-pointer transition-colors">
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
                 <input 
                   type="radio" 
                   name="discovered_camera" 
                   value="manual"
                   checked={selectedDiscoveredCamera === 'manual' || discoveredCameras.length === 0}
                   onChange={() => setSelectedDiscoveredCamera('manual')}
-                  className="w-4 h-4 text-primary bg-dark-800 border-dark-600 focus:ring-primary focus:ring-2"
+                  className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
                 />
-                <span className="text-sm font-medium text-white">{t('native_cameras.discovery.manual', 'Configurar dispositivo ONVIF manualmente')}</span>
+                <span className="text-sm font-medium text-foreground">{t('native_cameras.discovery.manual', 'Configurar dispositivo ONVIF manualmente')}</span>
               </label>
 
               {discoveredCameras.map(cam => (
-                <label key={cam.urn} className="flex items-center gap-3 p-3 rounded-lg border border-dark-700 hover:bg-dark-700/50 cursor-pointer transition-colors">
+                <label key={cam.urn} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
                   <input 
                     type="radio" 
                     name="discovered_camera" 
                     value={cam.urn}
                     checked={selectedDiscoveredCamera === cam.urn}
                     onChange={() => setSelectedDiscoveredCamera(cam.urn)}
-                    className="w-4 h-4 text-primary bg-dark-800 border-dark-600 focus:ring-primary focus:ring-2"
+                    className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
                   />
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-white">{cam.name}</span>
-                    <span className="text-xs text-gray-500">{cam.host}:{cam.onvifPort}</span>
+                    <span className="text-sm font-medium text-foreground">{cam.name}</span>
+                    <span className="text-xs text-muted-foreground/80 font-mono">{cam.host}:{cam.onvifPort}</span>
                   </div>
                 </label>
               ))}
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-dark-700">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
               <Button 
                 type="submit" 
                 variant="primary"
@@ -480,7 +481,7 @@ export const NativeCamerasView: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-dark-700">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
             <Button 
               type="button" 
               variant="secondary" 

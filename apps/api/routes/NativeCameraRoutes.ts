@@ -124,8 +124,7 @@ export class NativeCameraRoutes extends ApiRoutes {
     if (!isProtected) return;
 
     try {
-      // By default wait 3 seconds
-      const devices = await OnvifDiscovery.discover(3000);
+      const devices = await OnvifDiscovery.discover();
       this.sendJson(res, { devices });
     } catch (error: unknown) {
       this.sendError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to discover cameras');
