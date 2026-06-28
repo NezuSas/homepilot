@@ -1,5 +1,6 @@
 import * as http from 'http';
 import * as crypto from 'crypto';
+import * as net from 'net';
 import { BootstrapContainer } from '../../../bootstrap';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
@@ -244,14 +245,9 @@ export class NativeCameraRoutes extends ApiRoutes {
         ? (body.rtspPath || '')
         : `/${body.rtspPath || ''}`;
 
-      const rtspUrl = `rtsp://${encodeURIComponent(body.username)}:${encodeURIComponent(body.password)}@${body.host.trim()}:${rtspPort}${rtspPath}`;
-      try {
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execAsync = promisify(exec);
-        await execAsync(`ffprobe -v error -rtsp_transport tcp -i "${rtspUrl}"`, { timeout: 8000 });
-      } catch (err) {
-        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', 'No se pudo conectar a la cámara con las credenciales proporcionadas.');
+      const reachable = await this.checkTcpReachable(body.host.trim(), rtspPort, 5000);
+      if (!reachable) {
+        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', `No se pudo alcanzar la cámara en ${body.host.trim()}:${rtspPort}. Verifique la IP, el puerto RTSP y que la cámara esté encendida.`);
         return;
       }
 
@@ -330,14 +326,9 @@ export class NativeCameraRoutes extends ApiRoutes {
         return;
       }
 
-      const rtspUrl = `rtsp://${encodeURIComponent(newUsername)}:${encodeURIComponent(newPassword)}@${newHost}:${newRtspPort}${newRtspPath}`;
-      try {
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execAsync = promisify(exec);
-        await execAsync(`ffprobe -v error -rtsp_transport tcp -i "${rtspUrl}"`, { timeout: 8000 });
-      } catch (err) {
-        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', 'No se pudo conectar a la cámara con las credenciales proporcionadas.');
+      const reachable = await this.checkTcpReachable(newHost, newRtspPort, 5000);
+      if (!reachable) {
+        this.sendError(res, 400, 'CAMERA_CONNECTION_FAILED', `No se pudo alcanzar la cámara en ${newHost}:${newRtspPort}. Verifique la IP, el puerto RTSP y que la cámara esté encendida.`);
         return;
       }
 
@@ -384,5 +375,25 @@ export class NativeCameraRoutes extends ApiRoutes {
     } catch (error: unknown) {
       this.sendError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to delete camera');
     }
+  }
+
+  private checkTcpReachable(host: string, port: number, timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      let settled = false;
+
+      const done = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        resolve(result);
+      };
+
+      socket.setTimeout(timeoutMs);
+      socket.on('connect', () => done(true));
+      socket.on('timeout', () => done(false));
+      socket.on('error', () => done(false));
+      socket.connect(port, host);
+    });
   }
 }
