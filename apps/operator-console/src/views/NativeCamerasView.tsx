@@ -9,6 +9,7 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { SelectField } from '../components/ui/SelectField';
 import { StatusPill } from '../components/ui/StatusPill';
+import { AlertBanner } from '../components/ui/AlertBanner';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -258,13 +259,13 @@ export const NativeCamerasView: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6 flex items-start gap-3">
-        <ShieldAlert className="text-blue-400 mt-1 flex-shrink-0" size={20} />
-        <div>
-          <h4 className="text-sm font-medium text-blue-100">{t('ha_settings.security.title')}</h4>
-          <p className="text-sm text-blue-200/70 mt-1">{t('native_cameras.security_note')}</p>
-        </div>
-      </div>
+      <AlertBanner
+        variant="info"
+        icon={ShieldAlert}
+        title={t('ha_settings.security.title')}
+        message={t('native_cameras.security_note')}
+        className="mb-6"
+      />
 
       {isLoading ? (
         <div className="flex justify-center p-12">
