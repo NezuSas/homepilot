@@ -445,9 +445,16 @@ export class CameraRoutes extends ApiRoutes {
   }
 
   private buildNativeRtspUrl(source: NativeCameraSourceRow): string {
+    const rtspPath = source.rtsp_path.startsWith('/') ? source.rtsp_path : `/${source.rtsp_path}`;
+    const hasEmbeddedCreds = rtspPath.toLowerCase().includes('username=') || 
+                             rtspPath.toLowerCase().includes('password=') || 
+                             rtspPath.toLowerCase().includes('user=') || 
+                             rtspPath.toLowerCase().includes('pwd=');
+    if (hasEmbeddedCreds) {
+      return `rtsp://${source.host}:${source.rtsp_port}${rtspPath}`;
+    }
     const username = encodeURIComponent(source.username);
     const password = encodeURIComponent(source.password);
-    const rtspPath = source.rtsp_path.startsWith('/') ? source.rtsp_path : `/${source.rtsp_path}`;
     return `rtsp://${username}:${password}@${source.host}:${source.rtsp_port}${rtspPath}`;
   }
 
