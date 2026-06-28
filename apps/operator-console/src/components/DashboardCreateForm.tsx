@@ -7,6 +7,7 @@ interface DashboardCreateFormProps {
   value: string;
   placeholder: string;
   confirmLabel: string;
+  isSubmitting: boolean;
   onValueChange: (value: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -17,6 +18,7 @@ export const DashboardCreateForm: React.FC<DashboardCreateFormProps> = ({
   value,
   placeholder,
   confirmLabel,
+  isSubmitting,
   onValueChange,
   onConfirm,
   onCancel
@@ -30,14 +32,15 @@ export const DashboardCreateForm: React.FC<DashboardCreateFormProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={event => onValueChange(event.target.value)}
+        disabled={isSubmitting}
         onKeyDown={event => {
-          if (event.key === 'Enter') onConfirm();
+          if (event.key === 'Enter' && value.trim()) onConfirm();
           if (event.key === 'Escape') onCancel();
         }}
       />
       <div className="flex items-center gap-3">
-        <Button variant="primary" onClick={onConfirm} className="flex-1 font-black uppercase tracking-widest text-[10px] px-8">{confirmLabel}</Button>
-        <Button variant="secondary" onClick={onCancel} className="p-3"><X className="w-4 h-4" /></Button>
+        <Button variant="primary" onClick={onConfirm} isLoading={isSubmitting} disabled={!value.trim()} className="flex-1 font-black uppercase tracking-widest text-[10px] px-8">{confirmLabel}</Button>
+        <Button variant="secondary" onClick={onCancel} disabled={isSubmitting} className="p-3"><X className="w-4 h-4" /></Button>
       </div>
     </div>
   </div>

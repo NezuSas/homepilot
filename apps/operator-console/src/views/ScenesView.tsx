@@ -2,23 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Clock, LayoutGrid, Loader2, Star } from 'lucide-react';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
+import { apiFetch, readApiError } from '../lib/apiClient';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { ScenesEmptyState } from '../components/ScenesEmptyState';
 import { ScenesGroup } from '../components/ScenesGroup';
 import { ScenesHeader } from '../components/ScenesHeader';
+import { AlertBanner } from '../components/ui/AlertBanner';
+import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface Room {
   id: string;
   name: string;
-}
-
-interface Device {
-  id: string;
-  name: string;
-  type: string;
-  roomId: string | null;
 }
 
 interface SceneAction {
@@ -41,7 +36,7 @@ const ScenesView: React.FC<{
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<SnapshotDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -49,6 +44,7 @@ const ScenesView: React.FC<{
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [homeId, setHomeId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [error, setError] = useState('');
   
   // Local Stats
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -86,6 +82,7 @@ const ScenesView: React.FC<{
     const fetchData = async () => {
       try {
         const homesRes = await apiFetch(`${API_BASE_URL}/api/v1/homes`);
+        if (!homesRes.ok) throw new Error(await readApiError(homesRes, t('scenes.errors.load_failed')));
         const homes = await homesRes.json();
         if (Array.isArray(homes) && homes.length > 0) {
           const hId = homes[0].id;
@@ -97,12 +94,19 @@ const ScenesView: React.FC<{
             apiFetch(`${API_BASE_URL}/api/v1/devices`)
           ]);
 
-          if (scenesRes.ok) { const d = await scenesRes.json(); if (Array.isArray(d)) setScenes(d); }
-          if (roomsRes.ok) { const d = await roomsRes.json(); if (Array.isArray(d)) setRooms(d); }
-          if (devicesRes.ok) { const d = await devicesRes.json(); if (Array.isArray(d)) setDevices(d); }
+          if (!scenesRes.ok) throw new Error(await readApiError(scenesRes, t('scenes.errors.load_failed')));
+          if (!roomsRes.ok) throw new Error(await readApiError(roomsRes, t('scenes.errors.load_failed')));
+          if (!devicesRes.ok) throw new Error(await readApiError(devicesRes, t('scenes.errors.load_failed')));
+          const [sceneData, roomData, deviceData] = await Promise.all([scenesRes.json(), roomsRes.json(), devicesRes.json()]);
+          if (Array.isArray(sceneData)) setScenes(sceneData);
+          if (Array.isArray(roomData)) setRooms(roomData);
+          if (Array.isArray(deviceData)) setDevices(deviceData);
+          setError('');
+        } else {
+          setError(t('scenes.errors.no_home'));
         }
-      } catch (error) {
-        console.error('Failed to fetch scenes data:', error);
+      } catch (error_: unknown) {
+        setError(error_ instanceof Error ? error_.message : t('scenes.errors.load_failed'));
       } finally {
         setLoading(false);
       }
@@ -145,8 +149,12 @@ const ScenesView: React.FC<{
     setShowBuilder(false);
     setEditingScene(null);
     apiFetch(`${API_BASE_URL}/api/v1/scenes`)
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setScenes(data); });
+      .then(async res => {
+        if (!res.ok) throw new Error(await readApiError(res, t('scenes.errors.load_failed')));
+        return res.json();
+      })
+      .then(data => { if (Array.isArray(data)) setScenes(data); })
+      .catch((error_: unknown) => setError(error_ instanceof Error ? error_.message : t('scenes.errors.load_failed')));
   };
 
   if (loading) {
@@ -163,6 +171,10 @@ const ScenesView: React.FC<{
   const otherScenes = scenes.filter(s => !favorites.includes(s.id) && !recents.includes(s.id));
 
   const openCreateScene = () => {
+    if (!homeId) {
+      setError(t('scenes.errors.no_home'));
+      return;
+    }
     setEditingScene(null);
     setShowBuilder(true);
   };
@@ -181,6 +193,8 @@ const ScenesView: React.FC<{
   return (
     <div className="flex flex-col gap-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <ScenesHeader sceneCount={scenes.length} onCreateScene={openCreateScene} />
+
+      {error && <AlertBanner variant="danger" message={error} />}
 
       {scenes.length === 0 ? (
         <ScenesEmptyState onCreateScene={openCreateScene} />

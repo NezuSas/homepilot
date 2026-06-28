@@ -67,6 +67,7 @@ export interface AssistantConverseRequest {
   };
   confirmed?: boolean;
   sourceRoomId?: string;
+  interactionMode?: 'chat' | 'voice';
 }
 
 export interface RoomAliasResolution {
@@ -380,11 +381,11 @@ export class AssistantConversationService {
     }
 
     const roomBulk = this.isRoomBulkFastPath(normalized);
-    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases);
+    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases, request.interactionMode);
 
     // --- 6. GLOBAL BULK FAST-PATH ---
     const globalBulk = this.isBulkFastPath(normalized);
-    if (globalBulk) { const bulkResponse = await this.handleBulkFastPath(normalized, globalBulk.bulkType, globalBulk.command, language, userId); if (bulkResponse) return bulkResponse; }
+    if (globalBulk) { const bulkResponse = await this.handleBulkFastPath(normalized, globalBulk.bulkType, globalBulk.command, language, userId, request.interactionMode); if (bulkResponse) return bulkResponse; }
 
     // --- 7. DEVICE ALIAS FAST-PATH ---
     const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
@@ -2573,10 +2574,6 @@ export class AssistantConversationService {
             : "He creado un borrador de automatización para ti. Puedes revisarlo en tus borradores.";
         }
       }
-    } else if (suggestion.type === 'room_cleanup_suggestion') {
-      message = isEn
-        ? "To organize your devices, go to Settings > Devices and assign a room to those marked as 'Unassigned'."
-        : "Para organizar tus dispositivos, ve a Ajustes > Dispositivos y asigna una estancia a los que aparecen como 'Sin asignar'.";
     }
 
     await this.clearPendingAction(userId);
@@ -4163,7 +4160,8 @@ export class AssistantConversationService {
     roomName: string,
     bulkType: 'all' | 'lights',
     language: string,
-    userAliases: Record<string, string>
+    userAliases: Record<string, string>,
+    interactionMode: 'chat' | 'voice' = 'chat'
   ): Promise<AssistantConversationResponse> {
     const [devices, rooms] = await Promise.all([
       this.deviceRepository.findAll(),
@@ -4215,6 +4213,15 @@ export class AssistantConversationService {
     }
 
     const deviceIds = matchingDevices.map(l => l.id);
+
+    if (interactionMode === 'voice') {
+      return this.handleBulkActionAccept(userId, language, {
+        deviceIds,
+        command,
+        bulkType,
+        originalPrompt: `Voice bulk room action for ${displayRoomName}`,
+      });
+    }
     
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
       source: "room_bulk_fast_path",
@@ -4294,7 +4301,7 @@ export class AssistantConversationService {
     return null;
   }
 
-  private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string): Promise<AssistantConversationResponse | null> {
+  private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string, interactionMode: 'chat' | 'voice' = 'chat'): Promise<AssistantConversationResponse | null> {
     const allDevices = await this.deviceRepository.findAll();
     
     const targetDevices = allDevices.filter(d => {
@@ -4314,6 +4321,14 @@ export class AssistantConversationService {
     }
 
     const deviceIds = targetDevices.map(d => d.id);
+    if (interactionMode === 'voice') {
+      return this.handleBulkActionAccept(userId, language, {
+        deviceIds,
+        command,
+        bulkType,
+        originalPrompt: normalized,
+      });
+    }
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({ 
       source: 'bulk_fast_path', 
       count: targetDevices.length, 

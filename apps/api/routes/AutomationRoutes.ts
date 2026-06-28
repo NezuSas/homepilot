@@ -1,6 +1,5 @@
 import * as crypto from 'crypto';
 import * as http from 'http';
-import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { BootstrapContainer } from '../../../bootstrap';
 import { createAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/CreateAutomationRuleUseCase';
 import { enableAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/EnableAutomationRuleUseCase';
@@ -26,10 +25,6 @@ interface UpdateAutomationPayload {
  * Automation routes: /api/v1/automations/*
  */
 export class AutomationRoutes extends ApiRoutes {
-  constructor(private readonly dbPath: string) {
-    super();
-  }
-
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -58,9 +53,9 @@ export class AutomationRoutes extends ApiRoutes {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const payload = await this.parseBody<CreateAutomationPayload>(req);
-        const db = SqliteDatabaseManager.getInstance(this.dbPath);
-        const home = db.prepare('SELECT id FROM homes LIMIT 1').get() as { id: string } | undefined;
-        if (!home) return this.sendError(res, 500, 'HOME_NOT_FOUND', 'No local home found'), true;
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const home = homes[0];
+        if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'No home belongs to the current user'), true;
 
         const result = await createAutomationRuleUseCase(
           {

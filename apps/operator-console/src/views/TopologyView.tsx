@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2, Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
+import { apiFetch, readApiError } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 import ConfirmModal from '../components/ConfirmModal';
+import { AlertBanner } from '../components/ui/AlertBanner';
+import { SearchInput } from '../components/ui/Input';
 
 interface Home {
   id: string;
@@ -54,6 +56,8 @@ export const TopologyView: React.FC = () => {
   const [roomNameDraft, setRoomNameDraft] = useState('');
   const [roomRenameError, setRoomRenameError] = useState('');
   const [isRenamingRoom, setIsRenamingRoom] = useState(false);
+  const [topologyError, setTopologyError] = useState('');
+  const [roomSearch, setRoomSearch] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -65,19 +69,22 @@ export const TopologyView: React.FC = () => {
           apiFetch(`${API_URL}/devices`),
         ]);
 
+        if (!homesRes.ok) throw new Error(await readApiError(homesRes, t('topology.load_error')));
         const homesData = await homesRes.json();
-        const deviceData = devicesRes.ok ? await devicesRes.json() : [];
+        if (!devicesRes.ok) throw new Error(await readApiError(devicesRes, t('topology.load_error')));
+        const deviceData = await devicesRes.json();
         if (!isMounted) return;
 
         const nextHomes = Array.isArray(homesData) ? homesData : [];
         setHomes(nextHomes);
         setDevices(Array.isArray(deviceData) ? deviceData : []);
+        setTopologyError('');
 
         if (nextHomes.length > 0) {
           void handleSelectHome(nextHomes[0]);
         }
-      } catch (err) {
-        console.error('Error fetching topology:', err);
+      } catch (error_: unknown) {
+        setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
       } finally {
         if (isMounted) setLoadingHomes(false);
       }
@@ -95,13 +102,14 @@ export const TopologyView: React.FC = () => {
     setLoadingRooms(true);
     try {
       const res = await apiFetch(`${API_URL}/homes/${home.id}/rooms`);
+      if (!res.ok) throw new Error(await readApiError(res, t('topology.load_error')));
       const data = await res.json();
       const nextRooms = Array.isArray(data) ? data : [];
       setRooms(nextRooms);
       setSelectedRoomId(nextRooms[0]?.id ?? null);
-    } catch (err) {
-      console.error('Error fetching rooms:', err);
-      setRooms([]);
+      setTopologyError('');
+    } catch (error_: unknown) {
+      setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
     } finally {
       setLoadingRooms(false);
     }
@@ -110,18 +118,20 @@ export const TopologyView: React.FC = () => {
   const handleAddRoom = async () => {
     if (!selectedHome || !newRoomName.trim()) return;
     setIsCreatingRoom(true);
+    setTopologyError('');
     try {
       const res = await apiFetch(`${API_URL}/homes/${selectedHome.id}/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newRoomName.trim() })
       });
-      if (res.ok) {
-        setNewRoomName('');
-        void handleSelectHome(selectedHome);
-      }
-    } catch (err) {
-      console.error('Error creating room:', err);
+      if (!res.ok) throw new Error(await readApiError(res, t('topology.create_room_error')));
+      const room = await res.json() as Room;
+      setRooms((currentRooms) => [...currentRooms, room]);
+      setSelectedRoomId(room.id);
+      setNewRoomName('');
+    } catch (error_: unknown) {
+      setTopologyError(error_ instanceof Error ? error_.message : t('topology.create_room_error'));
     } finally {
       setIsCreatingRoom(false);
     }
@@ -202,6 +212,13 @@ export const TopologyView: React.FC = () => {
     [rooms, selectedRoomId],
   );
 
+  const visibleRooms = useMemo(() => {
+    const normalizedSearch = roomSearch.trim().toLocaleLowerCase();
+    return [...rooms]
+      .filter((room) => !normalizedSearch || room.name.toLocaleLowerCase().includes(normalizedSearch))
+      .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+  }, [rooms, roomSearch]);
+
   const selectedHomeDevices = useMemo(
     () => devices.filter((device) => device.roomId && rooms.some((room) => room.id === device.roomId)),
     [devices, rooms],
@@ -228,6 +245,9 @@ export const TopologyView: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-12 2xl:gap-8">
+      {topologyError && (
+        <AlertBanner className="2xl:col-span-12" variant="danger" message={topologyError} />
+      )}
       
       {/* Homes List */}
       <div className="flex flex-col gap-4 2xl:col-span-3">
@@ -333,21 +353,42 @@ export const TopologyView: React.FC = () => {
               </div>
             </div>
 
+            <SearchInput
+              value={roomSearch}
+              onChange={(event) => setRoomSearch(event.target.value)}
+              placeholder={t('topology.search_rooms')}
+              aria-label={t('topology.search_rooms')}
+              className="max-w-xl"
+            />
+
             {loadingRooms ? (
               <div className="flex flex-col items-center justify-center p-16 border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground">
                 <Loader2 className="w-6 h-6 animate-spin mb-3" />
                 <p className="text-sm">{t('common.loading')}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+              <div className={cn(
+                "grid grid-cols-1 items-start gap-4",
+                selectedRoom && "lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]",
+              )}>
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-sm italic">
                     {t('topology.no_rooms', { defaultValue: 'No rooms associated with this environment.' })}
                   </div>
                 ) : (
                   <>
-                    <div className="grid self-start grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
-                      {Array.isArray(rooms) && rooms.map((room) => {
+                    <div
+                      className="grid self-start grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3"
+                      onClick={(event) => {
+                        if (event.target === event.currentTarget) setSelectedRoomId(null);
+                      }}
+                    >
+                      {visibleRooms.length === 0 && (
+                        <p className="col-span-full rounded-xl border border-dashed border-border bg-muted/10 p-6 text-center text-sm text-muted-foreground">
+                          {t('topology.no_search_results')}
+                        </p>
+                      )}
+                      {visibleRooms.map((room) => {
                         const isRoomSelected = selectedRoomId === room.id;
                         const roomDevices = devices.filter((device) => device.roomId === room.id);
                         const activeCount = roomDevices.filter(isActiveDevice).length;
@@ -357,7 +398,7 @@ export const TopologyView: React.FC = () => {
                             key={room.id}
                             type="button"
                             onClick={() => {
-                              setSelectedRoomId(room.id);
+                              setSelectedRoomId((currentRoomId) => currentRoomId === room.id ? null : room.id);
                               if (editingRoomId !== room.id) cancelRoomRename();
                             }}
                             className={cn(
@@ -397,7 +438,7 @@ export const TopologyView: React.FC = () => {
                       })}
                     </div>
 
-                    <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
@@ -450,8 +491,18 @@ export const TopologyView: React.FC = () => {
                           )}
                           {roomRenameError && <p className="mt-2 text-xs font-semibold text-danger">{roomRenameError}</p>}
                         </div>
-                        <div className="rounded-xl bg-primary/10 p-2 text-primary">
-                          <Layers3 className="h-5 w-5" />
+                        <div className="flex items-center gap-2">
+                          <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                            <Layers3 className="h-5 w-5" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRoomId(null)}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:text-foreground"
+                            title={t('topology.close_details')}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
 
@@ -518,7 +569,7 @@ export const TopologyView: React.FC = () => {
                           {t('topology.delete_room', { defaultValue: 'Delete room' })}
                         </button>
                       )}
-                    </aside>
+                    </aside>}
                   </>
                 )}
               </div>

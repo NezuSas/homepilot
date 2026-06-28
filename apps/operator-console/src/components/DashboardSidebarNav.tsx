@@ -16,8 +16,11 @@ export const DashboardSidebarNav: React.FC<DashboardSidebarNavProps> = ({
   title,
   onSelect
 }) => (
-  <nav className="flex flex-col gap-3">
-    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 px-2 mb-2">{title}</p>
+  <nav className="flex flex-col gap-3 rounded-panel border border-border/60 bg-card/55 p-3 shadow-depth-1 lg:sticky lg:top-4">
+    <div className="flex items-center justify-between gap-3 px-2 py-1">
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground/60">{title}</p>
+      <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">{dashboards.length}</span>
+    </div>
     <div className="flex flex-col gap-2">
       {dashboards.map(dashboard => {
         const isActive = activeDashboardId === dashboard.id;
@@ -26,14 +29,14 @@ export const DashboardSidebarNav: React.FC<DashboardSidebarNavProps> = ({
             key={dashboard.id}
             onClick={() => onSelect(dashboard)}
             className={cn(
-              'group flex items-center gap-4 p-4 rounded-3xl text-left transition-all duration-300 border',
+              'group flex items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-300',
               isActive
                 ? 'bg-primary/5 border-primary/20 shadow-inner'
                 : 'bg-card border-border/40 hover:bg-muted/40 hover:border-border'
             )}
           >
             <div className={cn(
-              'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300',
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300',
               isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-muted text-muted-foreground/30 group-hover:scale-110'
             )}>
               <LayoutDashboard className="w-4 h-4" />

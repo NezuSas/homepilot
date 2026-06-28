@@ -56,6 +56,12 @@ function isWhitelisted(url: string): boolean {
   return AUTH_WHITELISTED.some((path) => url.includes(path));
 }
 
+function getSelectedLanguage(): 'es' | 'en' {
+  if (typeof window === 'undefined') return 'es';
+  const selectedLanguage = window.localStorage.getItem('i18nextLng') || document.documentElement.lang;
+  return selectedLanguage.toLowerCase().startsWith('en') ? 'en' : 'es';
+}
+
 /**
  * Cliente HTTP autenticado. Sustituye a `fetch` en toda la aplicación.
  *
@@ -72,6 +78,7 @@ export async function apiFetch(
   const url = resolveUrl(input);
   const whitelisted = isWhitelisted(url);
   const headers = new Headers(init?.headers);
+  headers.set('Accept-Language', getSelectedLanguage());
 
   if (!whitelisted && config) {
     const token = config.getToken();
@@ -100,4 +107,24 @@ export async function apiFetch(
   }
 
   return response;
+}
+
+interface ApiErrorPayload {
+  error?: string | { message?: string };
+  message?: string;
+}
+
+export async function readApiError(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json() as ApiErrorPayload;
+    if (typeof payload.error === 'string' && payload.error.trim()) return payload.error;
+    if (typeof payload.error === 'object' && payload.error !== null) {
+      const nestedMessage = payload.error.message;
+      if (typeof nestedMessage === 'string' && nestedMessage.trim()) return nestedMessage;
+    }
+    if (typeof payload.message === 'string' && payload.message.trim()) return payload.message;
+  } catch {
+    // The fallback remains the truthful message when the response is not JSON.
+  }
+  return fallback;
 }

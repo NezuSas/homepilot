@@ -223,6 +223,26 @@ useEffect(() => {
     }
   };
 
+  const handleRoomLightsTurnOff = async (roomId: string) => {
+    const processingKey = `room_lights_${roomId}`;
+    setRoomProcessing(processingKey);
+    const lightsToTurnOff = devices.filter((device) => (
+      device.roomId === roomId
+      && isDeviceActive(device)
+      && (device.semanticType === 'light' || device.type === 'light' || hasCapability(device, 'light'))
+      && canExecuteCommand(device, 'turn_off')
+    ));
+
+    try {
+      await Promise.all(lightsToTurnOff.map((device) => executeDeviceCommand(device.id, 'turn_off')));
+      await fetchData();
+    } catch (error: unknown) {
+      console.error('[Dashboard] Failed to turn off room lights:', error);
+    } finally {
+      setRoomProcessing(null);
+    }
+  };
+
   const handleAction = async (finding: AssistantFinding, action: AssistantFindingAction) => {
     if (action.type === 'ignore' || action.type === 'dismiss') {
       try {
@@ -301,6 +321,15 @@ useEffect(() => {
   }, [activeRooms, currentMode, devices]);
 
   const hasInitialData = (Array.isArray(devices) ? devices : []).length > 0;
+  const favoriteSceneIds = useMemo(() => {
+    try {
+      const stored = localStorage.getItem('hp_fav_scenes');
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+    } catch {
+      return [];
+    }
+  }, [scenes]);
   if (snapshotLoading && !hasInitialData) {
     return <DashboardLoadingState />;
   }
@@ -341,9 +370,11 @@ useEffect(() => {
 
       <DashboardScenesSection
         scenes={scenes}
+        favoriteSceneIds={favoriteSceneIds}
         allDevices={allDevices}
         roomProcessing={roomProcessing}
         onCreateScene={() => setIsSceneModalOpen(true)}
+        onManageScenes={() => onNavigate?.('scenes')}
         onSceneExecute={handleSceneExecute}
       />
 
@@ -354,6 +385,7 @@ useEffect(() => {
         duplicateNames={duplicateNames}
         roomProcessing={roomProcessing}
         onRoomTurnOff={handleRoomTurnOff}
+        onRoomLightsTurnOff={handleRoomLightsTurnOff}
         onDeviceUpdate={handleDeviceUpdate}
         onCommand={executeDeviceCommand}
         onActionExecute={onActionExecute}

@@ -75,6 +75,18 @@ describe('AssistantSuggestionService Patterns', () => {
     });
   });
 
+  it('does not turn unassigned devices into a repetitive conversation suggestion', async () => {
+    mockLearning.getRecentCorrections.mockResolvedValue([]);
+    mockLearning.getEventsInTimeRange.mockResolvedValue([]);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'unassigned-1', roomId: null })
+    ]);
+
+    const suggestion = await service.getSuggestion('u1', 'es');
+
+    expect(suggestion).toBeNull();
+  });
+
   describe('Suppression', () => {
     it('should not suggest if recently rejected (24h)', async () => {
       mockLearning.getRecentCorrections.mockResolvedValue([

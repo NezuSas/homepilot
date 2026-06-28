@@ -26,8 +26,8 @@ export const DashboardEditorToolbar: React.FC<DashboardEditorToolbarProps> = ({
   onDone,
   onAddWidget
 }) => (
-  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[250] animate-in slide-in-from-bottom-12 duration-500 w-full max-w-4xl px-4 pointer-events-none">
-    <div className="flex flex-col gap-3 p-4 rounded-[2rem] bg-background/85 backdrop-blur-2xl border border-primary/20 shadow-2xl shadow-primary/10 pointer-events-auto">
+  <div className="mx-auto w-full max-w-4xl animate-in fade-in slide-in-from-top-3 duration-300">
+    <div className="flex flex-col gap-3 rounded-panel border border-primary/20 bg-card/90 p-4 shadow-depth-2 backdrop-blur-xl">
       <div className="flex items-center justify-between px-2">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{title}</p>
         <button
@@ -37,7 +37,7 @@ export const DashboardEditorToolbar: React.FC<DashboardEditorToolbarProps> = ({
           {doneLabel} <Check className="w-3 h-3" />
         </button>
       </div>
-      <div className="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex flex-wrap items-center justify-center gap-2 pb-1">
         {WIDGET_TYPES.map(type => (
           <button
             key={type}

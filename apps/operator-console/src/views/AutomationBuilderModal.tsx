@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
-import { apiFetch } from '../lib/apiClient';
+import { apiFetch, readApiError } from '../lib/apiClient';
 import { AutomationBuilderActionSection } from '../components/AutomationBuilderActionSection';
 import { AutomationBuilderError } from '../components/AutomationBuilderError';
 import { AutomationBuilderIdentityField } from '../components/AutomationBuilderIdentityField';
@@ -88,20 +88,25 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     setIsSubmitting(true);
     setError(null);
 
+    const timeLocal = triggerConfig.timeLocal || triggerConfig.time || '12:00';
     const payload = {
       name: name.trim(),
-      trigger: {
-        type: triggerType,
-        ...triggerConfig,
-        ...(triggerType === 'time' ? {
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          timeLocal: triggerConfig.timeLocal || triggerConfig.time
-        } : {})
-      },
-      action: {
-        type: actionType,
-        ...actionConfig
-      }
+      trigger: triggerType === 'time'
+        ? {
+            type: 'time' as const,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timeLocal,
+            days: triggerConfig.days || [0, 1, 2, 3, 4, 5, 6],
+          }
+        : {
+            type: 'device_state_changed' as const,
+            deviceId: triggerConfig.deviceId || '',
+            stateKey: triggerConfig.stateKey || 'state',
+            expectedValue: triggerConfig.expectedValue || 'on',
+          },
+      action: actionType === 'execute_scene'
+        ? { type: 'execute_scene' as const, sceneId: actionConfig.sceneId || '' }
+        : { type: 'device_command' as const, targetDeviceId: actionConfig.targetDeviceId || '', command: actionConfig.command || 'turn_on' },
     };
 
     try {
@@ -119,8 +124,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         const result = await res.json();
         onCreated(result);
       } else {
-        const errData = await res.json().catch(() => ({}));
-        setError(errData.message || `Server error: ${res.status}`);
+        setError(await readApiError(res, t('automations.builder.errors.sync_failed')));
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('common.errors.connection_error'));
@@ -134,6 +138,23 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     || (triggerType === 'device_state_changed' && !triggerConfig.deviceId)
     || (actionType === 'device_command' && !actionConfig.targetDeviceId)
     || (actionType === 'execute_scene' && !actionConfig.sceneId);
+
+  const handleTriggerTypeChange = (nextType: 'device_state_changed' | 'time') => {
+    setTriggerType(nextType);
+    setError(null);
+    if (nextType === 'time') {
+      setTriggerConfig({
+        timeLocal: triggerConfig.timeLocal || triggerConfig.time || '12:00',
+        days: triggerConfig.days || [0, 1, 2, 3, 4, 5, 6],
+      });
+      return;
+    }
+    setTriggerConfig({
+      deviceId: triggerConfig.deviceId || '',
+      stateKey: triggerConfig.stateKey || 'state',
+      expectedValue: triggerConfig.expectedValue || 'on',
+    });
+  };
 
   return (
     <AutomationBuilderModalFrame
@@ -155,7 +176,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
           triggerConfig={triggerConfig}
           hours={HOURS}
           minutes={MINUTES}
-          onTriggerTypeChange={setTriggerType}
+          onTriggerTypeChange={handleTriggerTypeChange}
           onTriggerConfigChange={setTriggerConfig}
         />
 

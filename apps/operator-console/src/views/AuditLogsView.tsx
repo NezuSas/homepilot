@@ -8,6 +8,8 @@ import { mapActivityType } from '../lib/i18n-mapping-utils';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import { humanize } from '../lib/naming-utils';
 
 /**
  * Registro de actividad atómico para la UI.
@@ -29,6 +31,8 @@ export const AuditLogsView: React.FC = () => {
   const [logs, setLogs] = useState<ActivityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const devices = useDeviceSnapshotStore((state) => state.devices);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -47,7 +51,13 @@ export const AuditLogsView: React.FC = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [fetchLogs]);
+    void refreshSnapshot();
+  }, [fetchLogs, refreshSnapshot]);
+
+  const getDeviceName = (deviceId: string): string => {
+    const device = devices.find((candidate) => candidate.id === deviceId);
+    return device ? humanize(device.id, device.name) : t('common.unknown');
+  };
 
   if (loading) {
     return (
@@ -131,11 +141,13 @@ export const AuditLogsView: React.FC = () => {
                       let key = `audit_logs.messages.${log.type}`;
                       // 1. Parsing robusto de datos (maneja strings, objetos o nulos)
                       const dataRaw = log.data || {};
-                      let data: Record<string, any> = {};
+                      let data: Record<string, unknown> = {};
                       try {
-                        data = typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw;
-                        if (typeof data !== 'object' || data === null) data = {};
-                      } catch (e) {
+                        const parsedData: unknown = typeof dataRaw === 'string' ? JSON.parse(dataRaw) : dataRaw;
+                        data = typeof parsedData === 'object' && parsedData !== null
+                          ? parsedData as Record<string, unknown>
+                          : {};
+                      } catch {
                         data = {};
                       }
                       
@@ -193,7 +205,8 @@ export const AuditLogsView: React.FC = () => {
                   {log.deviceId && (
                     <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
                        <span className="text-[10px] font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
-                       <span className="text-[11px] font-mono font-bold text-foreground/70">{log.deviceId}</span>
+                       <span className="text-[11px] font-bold text-foreground/80">{getDeviceName(log.deviceId)}</span>
+                       <span className="text-[10px] font-mono text-muted-foreground/60">{log.deviceId}</span>
                     </div>
                   )}
                </div>

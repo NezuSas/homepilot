@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
+import { apiFetch, readApiError } from '../lib/apiClient';
 import { DashboardCreateForm } from '../components/DashboardCreateForm';
 import { DashboardEditorToolbar } from '../components/DashboardEditorToolbar';
 import { DashboardSidebarNav } from '../components/DashboardSidebarNav';
@@ -14,6 +14,9 @@ import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } fr
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
 import { WidgetInspector } from './dashboards/WidgetInspector';
 import { generateId } from '../utils/generateId';
+import { AlertBanner } from '../components/ui/AlertBanner';
+import ConfirmModal from '../components/ConfirmModal';
+import { Button } from '../components/ui/Button';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -30,6 +33,11 @@ export function DashboardsView() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle]     = useState('');
   const [addingTab, setAddingTab]       = useState(false);
+  const [error, setError]               = useState('');
+  const [submittingCreate, setSubmittingCreate] = useState(false);
+  const [dashboardPendingDelete, setDashboardPendingDelete] = useState<Dashboard | null>(null);
+  const [tabPendingDelete, setTabPendingDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
@@ -38,56 +46,72 @@ export function DashboardsView() {
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
       const res = await apiFetch(`${API}/dashboards`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setDashboards(data);
-          if (data.length > 0) {
-            if (isInitial) {
-              setActive(data[0]);
-              setActiveTabIdx(0);
-            } else {
-              const current = data.find(d => d.id === active?.id);
-              if (current) setActive(current);
-            }
+      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_load')));
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setDashboards(data);
+        setError('');
+        if (data.length > 0) {
+          if (isInitial) {
+            setActive(data[0]);
+            setActiveTabIdx(0);
+          } else {
+            const current = data.find(d => d.id === active?.id);
+            if (current) setActive(current);
           }
         }
       }
-    } catch { /* silent */ }
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.error_load'));
+    }
     finally { setLoading(false); }
-  }, [active?.id]);
+  }, [active?.id, t]);
 
   useEffect(() => { 
     fetchDashboards(true);
   }, []); // Run ONLY once on mount.
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
-    const res = await apiFetch(`${API}/dashboards/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (res.ok) {
+    try {
+      const res = await apiFetch(`${API}/dashboards/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_save')));
       const updated: Dashboard = await res.json();
       setDashboards(prev => prev.map(d => d.id === updated.id ? updated : d));
       setActive(updated);
+      setError('');
+      return true;
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.error_save'));
+      return false;
     }
   };
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
-    const res = await apiFetch(`${API}/dashboards`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle.trim() })
-    });
-    if (res.ok) {
+    setSubmittingCreate(true);
+    setError('');
+    try {
+      const res = await apiFetch(`${API}/dashboards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle.trim() })
+      });
+      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_create')));
       const created: Dashboard = await res.json();
       setDashboards(prev => [...prev, created]);
       setActive(created);
       setActiveTabIdx(0);
       setNewTitle('');
       setCreating(false);
+      setIsEditing(true);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.error_create'));
+    } finally {
+      setSubmittingCreate(false);
     }
   };
 
@@ -101,16 +125,21 @@ export function DashboardsView() {
     if (!active || !title.trim()) return;
     setAddingTab(false);
     const newTabId = generateId();
-    await patch(active.id, { tabs: [...active.tabs, { id: newTabId, title: title.trim(), widgets: [] }] });
-    setActiveTabIdx(active.tabs.length);
+    const saved = await patch(active.id, { tabs: [...active.tabs, { id: newTabId, title: title.trim(), widgets: [] }] });
+    if (saved) {
+      setActiveTabIdx(active.tabs.length);
+      setIsEditing(true);
+    }
   };
 
   const handleDeleteTab = async (tabIdx: number) => {
     if (!active) return;
-    if (!window.confirm(t('dashboards.delete_tab_confirm'))) return;
     const updatedTabs = active.tabs.filter((_, idx) => idx !== tabIdx);
-    await patch(active.id, { tabs: updatedTabs });
-    setActiveTabIdx(Math.max(0, activeTabIdx - 1));
+    setIsDeleting(true);
+    const saved = await patch(active.id, { tabs: updatedTabs });
+    if (saved) setActiveTabIdx(Math.max(0, activeTabIdx - 1));
+    setTabPendingDelete(null);
+    setIsDeleting(false);
   };
 
   const handleAddWidget = async (type: WidgetType) => {
@@ -126,10 +155,15 @@ export function DashboardsView() {
       visibility: { rules: [], defaultState: 'show' },
       appearance: { variant: 'glass', title: '', showTitle: true }
     };
+    const widgetId = generateId();
     const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: generateId(), type, config: defaultConfig }] }
+      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: widgetId, type, config: defaultConfig }] }
     );
-    await patch(active.id, { tabs: updatedTabs });
+    const saved = await patch(active.id, { tabs: updatedTabs });
+    if (saved) {
+      setSelectedWidgetId(widgetId);
+      setIsInspectorOpen(true);
+    }
   };
 
   const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
@@ -177,12 +211,23 @@ export function DashboardsView() {
     await patch(active.id, { tabs: updatedTabs });
   };
 
-  const handleDelete = async (id: string) => {
-    await apiFetch(`${API}/dashboards/${id}`, { method: 'DELETE' });
-    const remaining = dashboards.filter(d => d.id !== id);
-    setDashboards(remaining);
-    setActive(remaining.length > 0 ? remaining[0] : null);
-    setActiveTabIdx(0);
+  const handleDelete = async () => {
+    if (!dashboardPendingDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await apiFetch(`${API}/dashboards/${dashboardPendingDelete.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_delete')));
+      const remaining = dashboards.filter(d => d.id !== dashboardPendingDelete.id);
+      setDashboards(remaining);
+      setActive(remaining.length > 0 ? remaining[0] : null);
+      setActiveTabIdx(0);
+      setDashboardPendingDelete(null);
+      setError('');
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.error_delete'));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading) {
@@ -214,6 +259,8 @@ export function DashboardsView() {
         onCreate={() => setCreating(true)}
       />
 
+      {error && <AlertBanner variant="danger" message={error} className="mb-6" />}
+
       {/* ── Create Form ──────────────────────────────────────────────── */}
       {creating && (
         <DashboardCreateForm
@@ -221,6 +268,7 @@ export function DashboardsView() {
           value={newTitle}
           placeholder={t('dashboards.placeholder_title')}
           confirmLabel={t('common.confirm')}
+          isSubmitting={submittingCreate}
           onValueChange={setNewTitle}
           onConfirm={handleCreate}
           onCancel={() => { setCreating(false); setNewTitle(''); }}
@@ -231,7 +279,7 @@ export function DashboardsView() {
       {dashboards.length === 0 ? (
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
 
           <DashboardSidebarNav
             dashboards={dashboards}
@@ -247,7 +295,7 @@ export function DashboardsView() {
 
           {/* Dashboard Area */}
           {active && (
-            <div className="flex flex-col gap-8">
+            <div className="flex min-w-0 flex-col gap-6">
               <DashboardTitleBar
                 title={active.title}
                 draftTitle={draftTitle}
@@ -257,7 +305,8 @@ export function DashboardsView() {
                 onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
                 onCancelEditingTitle={() => setEditingTitle(false)}
                 onConfirmTitle={handleRenameConfirm}
-                onDelete={() => handleDelete(active.id)}
+                onDelete={() => setDashboardPendingDelete(active)}
+                deleteLabel={t('dashboards.delete')}
               />
 
               <DashboardTabsNav
@@ -266,12 +315,14 @@ export function DashboardsView() {
                 isEditing={isEditing}
                 isAddingTab={addingTab}
                 placeholder={t('dashboards.placeholder_tab_title')}
+                addLabel={t('dashboards.action_add_tab')}
+                deleteLabel={t('dashboards.delete_tab')}
                 onSelectTab={(index) => {
                   setActiveTabIdx(index);
                   setSelectedWidgetId(null);
                   setIsInspectorOpen(false);
                 }}
-                onDeleteTab={handleDeleteTab}
+                onDeleteTab={setTabPendingDelete}
                 onStartAddingTab={() => setAddingTab(true)}
                 onAddTab={handleAddTab}
                 onCancelAddingTab={() => setAddingTab(false)}
@@ -280,6 +331,23 @@ export function DashboardsView() {
               {/* Canvas Area */}
               {activeTab ? (
                 <div className="relative flex flex-col gap-6">
+                   {isEditing && (
+                     <DashboardEditorToolbar
+                       title={t('dashboards.editor.widget_management')}
+                       doneLabel={t('common.done')}
+                       addWidgetLabel={(type) => t(`dashboards.editor.add_${type}`, { defaultValue: type })}
+                       onDone={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }}
+                       onAddWidget={handleAddWidget}
+                     />
+                   )}
+
+                   {activeTab.widgets.length === 0 && !isEditing ? (
+                     <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
+                       <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>
+                       <p className="mt-2 max-w-lg text-caption text-muted-foreground">{t('dashboards.widgets_empty_hint')}</p>
+                       <Button className="mt-5" onClick={() => setIsEditing(true)}>{t('dashboards.add_first_widget')}</Button>
+                     </div>
+                   ) : (
                    <DashboardCanvas
                       widgets={activeTab.widgets}
                       isEditing={isEditing}
@@ -294,15 +362,6 @@ export function DashboardsView() {
                       }}
                       onLayoutChange={handleLayoutChange}
                    />
-                   
-                   {isEditing && (
-                     <DashboardEditorToolbar
-                       title={t('dashboards.editor.widget_management')}
-                       doneLabel={t('common.done')}
-                       addWidgetLabel={(type) => t(`dashboards.editor.add_${type}`, { defaultValue: type })}
-                       onDone={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }}
-                       onAddWidget={handleAddWidget}
-                     />
                    )}
                 </div>
               ) : (
@@ -322,6 +381,30 @@ export function DashboardsView() {
         onClose={() => setIsInspectorOpen(false)}
         onUpdate={handleUpdateWidgetConfig}
         onRemove={handleRemoveWidget}
+      />
+
+      <ConfirmModal
+        isOpen={dashboardPendingDelete !== null}
+        onClose={() => { if (!isDeleting) setDashboardPendingDelete(null); }}
+        onConfirm={handleDelete}
+        title={t('dashboards.delete_dashboard_title')}
+        description={t('dashboards.delete_dashboard_description', { title: dashboardPendingDelete?.title || '' })}
+        confirmText={t('dashboards.delete')}
+        cancelText={t('common.cancel')}
+        variant="danger"
+        isSubmitting={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={tabPendingDelete !== null}
+        onClose={() => { if (!isDeleting) setTabPendingDelete(null); }}
+        onConfirm={() => { if (tabPendingDelete !== null) void handleDeleteTab(tabPendingDelete); }}
+        title={t('dashboards.delete_tab_title')}
+        description={t('dashboards.delete_tab_confirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="danger"
+        isSubmitting={isDeleting}
       />
     </div>
   );

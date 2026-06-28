@@ -50,7 +50,7 @@ export interface AssistantMemoryState {
   /** Proactive suggestion waiting for user feedback */
   pendingSuggestion?: {
     id: string;
-    type: 'scene_suggestion' | 'automation_suggestion' | 'alias_suggestion' | 'room_cleanup_suggestion';
+    type: 'scene_suggestion' | 'automation_suggestion' | 'alias_suggestion';
     message: string;
     metadata: Record<string, unknown>;
     createdAt: string;

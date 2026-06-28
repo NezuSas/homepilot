@@ -1,4 +1,4 @@
-import { Dashboard, DashboardRepository, DashboardTab } from '../domain/Dashboard';
+import { Dashboard, DashboardRepository, DashboardTab, DashboardVisibility } from '../domain/Dashboard';
 import { HomeRepository } from '../domain/repositories/HomeRepository';
 import { randomUUID } from 'crypto';
 
@@ -15,14 +15,17 @@ export class DashboardService {
   }
 
   public async createDashboard(userId: string, title: string): Promise<Dashboard> {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) throw new Error('DASHBOARD_TITLE_REQUIRED');
+    const now = new Date().toISOString();
     const dashboard: Dashboard = {
       id: randomUUID(),
       ownerId: userId,
-      title,
+      title: normalizedTitle,
       visibility: { roles: ['user', 'admin'], users: [userId], homes: [] },
-      tabs: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      tabs: [{ id: randomUUID(), title: 'Principal', widgets: [] }],
+      createdAt: now,
+      updatedAt: now,
     };
     await this.dashboardRepository.saveDashboard(dashboard);
     return dashboard;
@@ -32,7 +35,7 @@ export class DashboardService {
     userId: string, 
     userRole: string,
     dashboardId: string, 
-    updates: { title?: string; tabs?: DashboardTab[]; visibility?: any }
+    updates: { title?: string; tabs?: DashboardTab[]; visibility?: DashboardVisibility }
   ): Promise<Dashboard> {
     const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
     if (!dashboard) throw new Error('DASHBOARD_NOT_FOUND');

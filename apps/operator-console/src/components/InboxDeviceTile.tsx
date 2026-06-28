@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
@@ -47,7 +47,6 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
 }) => {
   const { t } = useTranslation();
   const isAssigned = device.status === 'ASSIGNED';
-  const isPending = device.status === 'PENDING';
   const unavailable = isDeviceUnavailable(device);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,12 +62,6 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
 
   const isSonoff = device.integrationSource === 'sonoff';
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
-
-  useEffect(() => {
-    if (isPending && rooms.length > 0 && !selectedRoomId) {
-      setSelectedRoomId(rooms[0].id);
-    }
-  }, [rooms, isPending, selectedRoomId]);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();

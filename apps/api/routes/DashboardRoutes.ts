@@ -2,6 +2,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { DashboardTab, DashboardVisibility } from '../../../packages/topology/domain/Dashboard';
 
 /**
  * Dashboard routes: /api/v1/dashboards/*
@@ -27,8 +28,8 @@ export class DashboardRoutes extends ApiRoutes {
           req.user!.role
         );
         this.sendJson(res, dashboards);
-      } catch (e: any) {
-        this.sendError(res, 500, 'DASHBOARD_ERROR', e.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DASHBOARD_ERROR', error instanceof Error ? error.message : 'Failed to load dashboards');
       }
       return true;
     }
@@ -37,11 +38,13 @@ export class DashboardRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/dashboards') {
       try {
         const body = await this.parseBody<{ title?: string }>(req);
-        if (!body.title) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Title is required'), true;
+        if (!body.title?.trim()) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Title is required'), true;
         const dashboard = await container.services.dashboardService.createDashboard(req.user!.id, body.title);
         this.sendJson(res, dashboard, 201);
-      } catch (e: any) {
-        this.sendError(res, 500, 'DASHBOARD_ERROR', e.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to create dashboard';
+        const status = message === 'DASHBOARD_TITLE_REQUIRED' ? 400 : 500;
+        this.sendError(res, status, 'DASHBOARD_ERROR', message);
       }
       return true;
     }
@@ -50,7 +53,11 @@ export class DashboardRoutes extends ApiRoutes {
     const patchMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)$/);
     if (patchMatch) {
       try {
-        const body = await this.parseBody<any>(req);
+        const body = await this.parseBody<{
+          title?: string;
+          tabs?: DashboardTab[];
+          visibility?: DashboardVisibility;
+        }>(req);
         const updated = await container.services.dashboardService.updateDashboard(
           req.user!.id,
           req.user!.role,
@@ -58,9 +65,10 @@ export class DashboardRoutes extends ApiRoutes {
           body
         );
         this.sendJson(res, updated);
-      } catch (e: any) {
-        const status = e.message === 'FORBIDDEN' ? 403 : e.message === 'DASHBOARD_NOT_FOUND' ? 404 : 500;
-        this.sendError(res, status, e.message, e.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to update dashboard';
+        const status = message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_NOT_FOUND' ? 404 : 500;
+        this.sendError(res, status, message, message);
       }
       return true;
     }
@@ -71,9 +79,10 @@ export class DashboardRoutes extends ApiRoutes {
       try {
         await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, deleteMatch[1]);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        const status = e.message === 'FORBIDDEN' ? 403 : 500;
-        this.sendError(res, status, e.message, e.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to delete dashboard';
+        const status = message === 'FORBIDDEN' ? 403 : 500;
+        this.sendError(res, status, message, message);
       }
       return true;
     }

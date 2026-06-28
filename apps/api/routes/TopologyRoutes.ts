@@ -35,15 +35,6 @@ interface LocalDeviceRow {
   updated_at: string;
 }
 
-interface LocalHomeRow {
-  id: string;
-  owner_id: string;
-  name: string;
-  entity_version: number;
-  created_at: string;
-  updated_at: string;
-}
-
 interface LocalRoomOwnershipRow {
   room_id: string;
   home_id: string;
@@ -106,20 +97,10 @@ export class TopologyRoutes extends ApiRoutes {
     // GET /api/v1/homes
     if (method === 'GET' && pathname === '/api/v1/homes') {
       try {
-        const rows = db.prepare('SELECT * FROM homes').all() as LocalHomeRow[];
-        this.sendJson(
-          res,
-          rows.map((r) => ({
-            id: r.id,
-            ownerId: r.owner_id,
-            name: r.name,
-            entityVersion: r.entity_version,
-            createdAt: r.created_at,
-            updatedAt: r.updated_at,
-          }))
-        );
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        this.sendJson(res, homes);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Failed to load homes');
       }
       return true;
     }
@@ -129,20 +110,15 @@ export class TopologyRoutes extends ApiRoutes {
     if (roomsMatch) {
       try {
         const homeId = roomsMatch[1];
-        const rows = db.prepare('SELECT * FROM rooms WHERE home_id = ?').all(homeId) as LocalRoomRow[];
-        this.sendJson(
-          res,
-          rows.map((r) => ({
-            id: r.id,
-            homeId: r.home_id,
-            name: r.name,
-            entityVersion: r.entity_version,
-            createdAt: r.created_at,
-            updatedAt: r.updated_at,
-          }))
-        );
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+        const home = await container.repositories.homeRepository.findHomeById(homeId);
+        if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
+        if (home.ownerId !== req.user!.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+        }
+        const rooms = await container.repositories.roomRepository.findRoomsByHomeId(homeId);
+        this.sendJson(res, rooms);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Failed to load rooms');
       }
       return true;
     }
@@ -164,8 +140,16 @@ export class TopologyRoutes extends ApiRoutes {
           clock: { now: () => new Date().toISOString() },
         });
         this.sendJson(res, room, 201);
-      } catch (error: any) {
-        this.sendError(res, 500, 'ROOM_CREATE_ERROR', error.message);
+      } catch (error: unknown) {
+        if (error instanceof InvalidRoomNameError) {
+          this.sendError(res, 400, 'INVALID_INPUT', error.message);
+        } else if (error instanceof NotFoundError) {
+          this.sendError(res, 404, 'HOME_NOT_FOUND', error.message);
+        } else if (error instanceof ForbiddenError) {
+          this.sendError(res, 403, 'FORBIDDEN', error.message);
+        } else {
+          this.sendError(res, 500, 'ROOM_CREATE_ERROR', error instanceof Error ? error.message : 'Room creation failed');
+        }
       }
       return true;
     }

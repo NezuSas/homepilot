@@ -27,7 +27,7 @@ HomePilot ya permite crear, listar y eliminar reglas de automatización, y un mo
 - Historial de cambios o versionado de reglas.
 - Soft delete / papelera de reciclaje.
 - Pausado automático de reglas por fallos consecutivos (candidato a V2).
-- Programación horaria (schedulers / cron).
+- Expresiones cron arbitrarias distintas del disparador diario/semanal `time` soportado por el motor Edge.
 - Reglas con múltiples acciones o condiciones AND/OR.
 - Plantillas, importación o exportación de reglas.
 - Validación de capacidades durante el update (la validación de capabilities ocurre en el momento de ejecución, no de configuración, siguiendo el patrón de V1).
@@ -49,6 +49,7 @@ HomePilot ya permite crear, listar y eliminar reglas de automatización, y un mo
 - **REQ-06: Validación de ownership en update**: El sistema debe verificar ownership del hogar antes de persistir cualquier cambio.
 - **REQ-07: Revalidación de dispositivos**: Al actualizar `trigger` o `action`, el sistema revalida que los dispositivos referenciados existan y pertenezcan al mismo `homeId` de la regla.
 - **REQ-08: Revalidación de auto-bucle**: Si se actualizan `trigger.deviceId` y/o `action.targetDeviceId`, el sistema debe verificar que no se configura un bucle directo (`trigger.deviceId == action.targetDeviceId`).
+- **REQ-09: Disparador horario completo**: La consola debe enviar siempre `timeLocal`, zona horaria IANA y días seleccionados para reglas `time`, incluso cuando el usuario conserve la hora predeterminada visible.
 - **REQ-09: Regla no encontrada en update**: Si el `ruleId` no existe, se retorna `AutomationRuleNotFoundError`.
 - **REQ-10: Actualización parcial (PATCH semántico)**: Solo se aplican los campos presentes en el payload. Los campos ausentes mantienen su valor anterior.
 
@@ -142,6 +143,7 @@ No se introducen nuevos modelos. Se reutiliza íntegramente la entidad `Automati
 - **AC4: Actualización parcial de nombre**: El dueño envía solo `{ "name": "Nuevo nombre" }` y la regla actualiza únicamente el nombre, preservando `trigger` y `action` intactos.
 - **AC5: Revalidación de dispositivos en update**: Si se actualiza `trigger.deviceId` con un dispositivo que pertenece a otro hogar, el sistema retorna `400 Bad Request`.
 - **AC6: Prevención de bucle en update**: Si el update resulta en `trigger.deviceId == action.targetDeviceId`, el sistema retorna `400 Bad Request`.
+- **AC7: Creación horaria predeterminada**: Al seleccionar el disparador por tiempo y conservar `12:00`, la regla se crea con `timeLocal: "12:00"`, zona horaria válida y los siete días seleccionados.
 - **AC7: Zero-Trust en todas las operaciones**: Un usuario que no es dueño del hogar recibe `403 Forbidden` en cualquier operación de lifecycle (enable, disable, update).
 - **AC8: Regla inexistente**: Cualquier operación sobre un `ruleId` que no existe retorna `404 Not Found`.
 

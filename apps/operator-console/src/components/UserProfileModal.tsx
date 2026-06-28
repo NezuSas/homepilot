@@ -160,19 +160,20 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
         }),
       });
       if (!res.ok) throw new Error(t('common.errors.operation_failed'));
+      const updatedProfile = await res.json() as UserProfile;
       
       const raw = localStorage.getItem('hp_user_ctx');
       if (raw) {
         const ctx = JSON.parse(raw);
-        ctx.displayName = displayName.trim() || null;
-        ctx.avatarDataUri = finalDataUri;
+        ctx.displayName = updatedProfile.displayName;
+        ctx.avatarDataUri = updatedProfile.avatarDataUri;
         localStorage.setItem('hp_user_ctx', JSON.stringify(ctx));
       }
       
-      onSaved({ displayName: displayName.trim() || null, avatarDataUri: finalDataUri });
+      onSaved({ displayName: updatedProfile.displayName, avatarDataUri: updatedProfile.avatarDataUri });
       onClose();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('common.errors.operation_failed'));
     } finally {
       setSaving(false);
     }

@@ -140,7 +140,7 @@ interface SetupStatus {
 function App() {
   const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string } | null>(null);
+  const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string; interactionMode: 'voice' } | null>(null);
   const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNoticeModel | null>(null);
   const [isGlobalWakeProcessing, setIsGlobalWakeProcessing] = useState(false);
   const [isGlobalWakeSpeaking, setIsGlobalWakeSpeaking] = useState(false);
@@ -362,6 +362,23 @@ function App() {
       refreshAssistantSummary();
     }
   }, [status, lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshAssistantSummary, refreshDeviceSnapshot]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    const reconcileVisibleState = () => {
+      if (document.visibilityState === 'visible') void refreshDeviceSnapshot();
+    };
+    const intervalId = window.setInterval(reconcileVisibleState, 10000);
+    document.addEventListener('visibilitychange', reconcileVisibleState);
+    window.addEventListener('focus', reconcileVisibleState);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', reconcileVisibleState);
+      window.removeEventListener('focus', reconcileVisibleState);
+    };
+  }, [status, refreshDeviceSnapshot]);
 
   const onLogout = useCallback(async () => {
     await handleLogout(async () => {
@@ -601,7 +618,8 @@ function App() {
 
       void converseWithAssistant({
         prompt: text,
-        userName: user?.displayName || user?.username
+        userName: user?.displayName || user?.username,
+        interactionMode: 'voice',
       }, {
         timeoutMs: ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS,
         signal: conversationController.signal
@@ -646,7 +664,8 @@ function App() {
 
     setPendingHomeConversationPrompt({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      text
+      text,
+      interactionMode: 'voice',
     });
   };
 
@@ -679,7 +698,7 @@ function App() {
 
   return (
     <div 
-      className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
+      className="flex h-[100dvh] w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
       data-home-mode={currentMode}
     >
       
@@ -1077,6 +1096,7 @@ function App() {
                     }}
                     onActionExecute={() => {
                       pulseSyncStatus();
+                      void refreshDeviceSnapshot();
                     }}
                     onNavigate={navigateTo}
                     displayName={localProfile.displayName || user?.username || null}
@@ -1088,6 +1108,7 @@ function App() {
                   <ScenesView
                     onActionExecute={() => {
                        pulseSyncStatus();
+                       void refreshDeviceSnapshot();
                     }}
                   />
                 )}

@@ -187,6 +187,10 @@
     "scene_create": "Crear Escena",
     "atmosphere_recipes": "Escenas",
     "new_scene": "Nueva Escena",
+    "no_favorite_scenes": "Aún no hay escenas favoritas",
+    "no_favorite_scenes_hint": "Marca una escena como favorita para verla aquí como acceso rápido.",
+    "manage_scenes": "Gestionar escenas",
+    "turn_off_lights": "Apagar luces",
     "active": "Activos",
     "elements": "Elementos",
     "living_space": "Escenas y Espacios",
@@ -235,6 +239,10 @@
     }
   },
   "scenes": {
+    "errors": {
+      "load_failed": "No se pudieron cargar las escenas",
+      "no_home": "No existe un hogar disponible para guardar la escena"
+    },
     "empty_title": "No se encontraron escenas",
     "empty_description": "Crea escenas persistentes para agrupar múltiples acciones de dispositivos en un solo toque.",
     "delete_title": "¿Eliminar Escena?",
@@ -519,7 +527,12 @@
     "rename_room": "Renombrar estancia",
     "rename_room_title": "Editar nombre",
     "rename_room_save": "Guardar nombre",
-    "rename_room_error": "No se pudo actualizar el nombre de la estancia"
+    "rename_room_error": "No se pudo actualizar el nombre de la estancia",
+    "load_error": "No se pudo cargar la estructura del hogar",
+    "create_room_error": "No se pudo crear la estancia"
+    ,"search_rooms": "Buscar estancias por nombre..."
+    ,"no_search_results": "No hay estancias que coincidan con la búsqueda."
+    ,"close_details": "Cerrar detalle de estancia"
   },
   "automations": {
     "header": {
@@ -614,7 +627,8 @@
         "temp": "TEMP"
       },
       "errors": {
-        "no_name": "El nombre es obligatorio"
+        "no_name": "El nombre es obligatorio",
+        "sync_failed": "No se pudo guardar la automatización"
       },
       "actions": {
         "direct_command": "Comando",
@@ -923,11 +937,21 @@
     "list_header": "Tus Paneles",
     "create_tab_placeholder": "Nombre de la pestaña...",
     "delete_tab_confirm": "¿Eliminar esta pestaña y todos sus widgets?",
+    "delete_tab": "Eliminar pestaña",
+    "delete_tab_title": "¿Eliminar esta pestaña?",
+    "delete_dashboard_title": "¿Eliminar este panel?",
+    "delete_dashboard_description": "Se eliminará el panel «{{title}}» con todas sus pestañas y widgets.",
     "widgets_empty": "Esta pestaña está vacía. Añade tu primer widget abajo.",
     "loading": "Cargando tus paneles",
+    "error_load": "No se pudieron cargar los paneles",
+    "error_create": "No se pudo crear el panel",
+    "error_save": "No se pudieron guardar los cambios del panel",
+    "error_delete": "No se pudo eliminar el panel",
     "rename": "Renombrar",
     "delete": "Eliminar panel",
     "remove_widget": "Quitar widget",
+    "widgets_empty_hint": "Activa la edición para elegir y configurar el primer widget de esta pestaña.",
+    "add_first_widget": "Agregar primer widget",
     "status": {
       "edge_active": "Red Edge Activa",
       "local_control": "Control Local Independiente",

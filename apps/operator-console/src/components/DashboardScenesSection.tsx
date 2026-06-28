@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, Star } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
@@ -21,20 +21,25 @@ interface Scene {
 
 interface DashboardScenesSectionProps {
   scenes: Scene[];
+  favoriteSceneIds: string[];
   allDevices: SnapshotDevice[];
   roomProcessing: string | null;
   onCreateScene: () => void;
+  onManageScenes: () => void;
   onSceneExecute: (scene: Scene) => void;
 }
 
 export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
   scenes,
+  favoriteSceneIds,
   allDevices,
   roomProcessing,
   onCreateScene,
+  onManageScenes,
   onSceneExecute,
 }) => {
   const { t } = useTranslation();
+  const favoriteScenes = scenes.filter((scene) => favoriteSceneIds.includes(scene.id));
 
   if (scenes.length === 0) {
     return (
@@ -43,6 +48,19 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
         <p className="text-body font-semibold text-muted-foreground">{t('scenes.empty_title')}</p>
         <Button variant="ghost" size="sm" onClick={onCreateScene} className="mt-3 text-caption font-semibold text-primary">
           {t('dashboard.scene_create')}
+        </Button>
+      </div>
+    );
+  }
+
+  if (favoriteScenes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-border/60 bg-card/35 px-6 py-10 text-center" data-demo="dashboard-scenes">
+        <Star className="mb-3 h-8 w-8 text-primary/40" />
+        <p className="text-body font-semibold text-foreground">{t('dashboard.no_favorite_scenes')}</p>
+        <p className="mt-1 max-w-md text-caption text-muted-foreground">{t('dashboard.no_favorite_scenes_hint')}</p>
+        <Button variant="ghost" size="sm" onClick={onManageScenes} className="mt-3 text-caption font-semibold text-primary">
+          {t('dashboard.manage_scenes')}
         </Button>
       </div>
     );
@@ -61,7 +79,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
-        {scenes.map((scene) => {
+        {favoriteScenes.map((scene) => {
           const sceneActions = scene.actions || [];
           const localActionCount = sceneActions.filter((action) => allDevices.find((device) => device.id === action.deviceId)?.integrationSource === 'sonoff').length;
           const isProcessing = roomProcessing === `scene_${scene.id}`;

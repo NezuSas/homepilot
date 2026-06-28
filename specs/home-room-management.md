@@ -67,6 +67,9 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC9**: Dado un usuario que no es propietario del Home padre de la Room, al enviar `DELETE /api/v1/rooms/:id`, el sistema retorna `403 Forbidden` sin desasignar dispositivos ni eliminar la Room.
 - [ ] **AC10**: Dado un administrador propietario, al enviar `PATCH /api/v1/rooms/:id` con un nombre válido, el sistema retorna la Room actualizada, incrementa `entityVersion` y mantiene intactas las asignaciones por `roomId`.
 - [ ] **AC11**: Dado un usuario que no es propietario, al intentar renombrar una Room el sistema retorna `403 Forbidden` sin modificarla.
+- [ ] **AC12**: La consola muestra únicamente Homes del usuario autenticado, permite crear una Room sobre un Home propio y presenta un error visible si la operación es rechazada.
+- [ ] **AC13**: Las Rooms se ordenan alfabéticamente, pueden buscarse por nombre y el detalle puede cerrarse sin seleccionar otra Room.
+- [ ] **AC14**: Cada Room permite apagar todos sus dispositivos o solamente sus luces mediante acciones independientes.
 
 ## 8. Notas Técnicas y Arquitectura
 

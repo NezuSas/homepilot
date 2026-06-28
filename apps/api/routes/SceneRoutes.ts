@@ -57,6 +57,15 @@ export class SceneRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing name, homeId, or actions array'), true;
         }
 
+        const home = await container.repositories.homeRepository.findHomeById(payload.homeId);
+        if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
+        if (home.ownerId !== req.user!.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+        }
+        if (payload.actions.length === 0) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'At least one scene action is required'), true;
+        }
+
         const newScene: Scene = {
           id: crypto.randomUUID(),
           homeId: payload.homeId,

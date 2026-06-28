@@ -187,6 +187,10 @@
     "scene_create": "Create Scene",
     "atmosphere_recipes": "Scenes",
     "new_scene": "New Scene",
+    "no_favorite_scenes": "No favorite scenes yet",
+    "no_favorite_scenes_hint": "Mark a scene as favorite to show it here as a quick action.",
+    "manage_scenes": "Manage scenes",
+    "turn_off_lights": "Turn off lights",
     "active": "Active",
     "elements": "Elements",
     "living_space": "Scenes & Spaces",
@@ -235,6 +239,10 @@
     }
   },
   "scenes": {
+    "errors": {
+      "load_failed": "Scenes could not be loaded",
+      "no_home": "No home is available for saving the scene"
+    },
     "empty_title": "No scenes found",
     "empty_description": "Create persistent scenes to group multiple device actions into a single tap.",
     "delete_title": "Delete Scene?",
@@ -519,7 +527,12 @@
     "rename_room": "Rename room",
     "rename_room_title": "Edit name",
     "rename_room_save": "Save name",
-    "rename_room_error": "The room name could not be updated"
+    "rename_room_error": "The room name could not be updated",
+    "load_error": "The home structure could not be loaded",
+    "create_room_error": "The room could not be created"
+    ,"search_rooms": "Search rooms by name..."
+    ,"no_search_results": "No rooms match your search."
+    ,"close_details": "Close room details"
   },
   "automations": {
     "header": {
@@ -614,7 +627,8 @@
         "temp": "TEMP"
       },
       "errors": {
-        "no_name": "Name is required"
+        "no_name": "Name is required",
+        "sync_failed": "The automation could not be saved"
       },
       "actions": {
         "direct_command": "Command",
@@ -923,11 +937,21 @@
     "list_header": "Your Dashboards",
     "create_tab_placeholder": "Tab name...",
     "delete_tab_confirm": "Delete this tab and all its widgets?",
+    "delete_tab": "Delete tab",
+    "delete_tab_title": "Delete this tab?",
+    "delete_dashboard_title": "Delete this dashboard?",
+    "delete_dashboard_description": "The dashboard “{{title}}” and all of its tabs and widgets will be deleted.",
     "widgets_empty": "This tab is empty. Add your first widget below.",
     "loading": "Loading your dashboards",
+    "error_load": "Dashboards could not be loaded",
+    "error_create": "The dashboard could not be created",
+    "error_save": "Dashboard changes could not be saved",
+    "error_delete": "The dashboard could not be deleted",
     "rename": "Rename",
     "delete": "Delete panel",
     "remove_widget": "Remove widget",
+    "widgets_empty_hint": "Start editing to choose and configure the first widget on this tab.",
+    "add_first_widget": "Add first widget",
     "status": {
       "edge_active": "Edge Network Active",
       "local_control": "Independent Local Control",

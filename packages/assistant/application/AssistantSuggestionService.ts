@@ -4,8 +4,7 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 export type SuggestionType = 
   | 'scene_suggestion'
   | 'automation_suggestion'
-  | 'alias_suggestion'
-  | 'room_cleanup_suggestion';
+  | 'alias_suggestion';
 
 export interface AssistantSuggestion {
   id: string;
@@ -40,12 +39,6 @@ export class AssistantSuggestionService {
     const automationSuggestion = await this.checkAutomationSuggestion(userId, isEn);
     if (automationSuggestion && !(await this.isSuppressed(userId, automationSuggestion.type, automationSuggestion.id))) {
       return automationSuggestion;
-    }
-
-    // 4. Room Cleanup Suggestion
-    const roomCleanupSuggestion = await this.checkRoomCleanupSuggestion(userId, isEn);
-    if (roomCleanupSuggestion && !(await this.isSuppressed(userId, roomCleanupSuggestion.type, roomCleanupSuggestion.id))) {
-      return roomCleanupSuggestion;
     }
 
     return null;
@@ -199,22 +192,4 @@ export class AssistantSuggestionService {
     return null;
   }
 
-  private async checkRoomCleanupSuggestion(userId: string, isEn: boolean): Promise<AssistantSuggestion | null> {
-    const devices = await this.deviceRepository.findAll();
-    const roomless = devices.filter(d => !d.roomId);
-
-    if (roomless.length > 0) {
-      return {
-        id: 'room_cleanup',
-        type: 'room_cleanup_suggestion',
-        message: isEn
-          ? `I noticed you have ${roomless.length} devices without an assigned room. Would you like to organize them?`
-          : `He notado que tienes ${roomless.length} dispositivos sin estancia asignada. ¿Quieres organizarlos?`,
-        metadata: { count: roomless.length },
-        createdAt: new Date().toISOString()
-      };
-    }
-
-    return null;
-  }
 }

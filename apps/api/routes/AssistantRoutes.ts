@@ -12,6 +12,7 @@ import {
   AssistantSpeechToTextUnavailableError,
   AssistantSpeechToTextValidationError
 } from '../../../packages/assistant/application/AssistantSpeechToTextService';
+import { sanitizeAssistantResponse } from '../../../packages/assistant/application/AssistantResponseSanitizer';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -159,6 +160,7 @@ export class AssistantRoutes extends ApiRoutes {
         const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
         
         const response = await container.services.assistantConversationService.converse(body, language);
+        response.message = sanitizeAssistantResponse(response.message);
         return this.sendJson(res, response), true;
       } catch (e: unknown) {
         this.sendError(res, 500, 'ASSISTANT_CONVERSE_ERROR', e instanceof Error ? e.message : String(e));

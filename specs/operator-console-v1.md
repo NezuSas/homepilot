@@ -77,6 +77,14 @@ Se propone una consola de administración pragmática:
 - [ ] AC9: Las tarjetas de Inicio distinguen explícitamente un dispositivo con `lastKnownState.state = "unavailable"`, mantienen sus datos visibles y bloquean sus controles hasta que Home Assistant vuelva a reportarlo.
 - [ ] AC10: La cortina conserva la animación de persiana vertical existente y utiliza colores semánticos del tema para mantener contraste en modo claro y oscuro, sin sustituirla por una representación visual diferente.
 - [ ] AC11: Inicio adopta una jerarquía residencial calmada inspirada en Apple Home: encabezado personal, modos visibles, escenas rápidas compactas y habitaciones agrupadas como unidades coherentes, sin alterar contratos ni comandos existentes.
+- [ ] AC12: Crear un panel genera una primera pestaña utilizable y cualquier fallo API aparece en la vista sin descartar los datos existentes.
+- [ ] AC13: Crear una escena permite seleccionar dispositivos controlables por capacidades, no solo por el valor literal de `type`, y muestra el error real del API si no puede guardarse.
+- [ ] AC14: El chat mantiene el compositor visible sobre el teclado virtual en tablet y móvil.
+- [ ] AC15: Los cambios de dispositivos se propagan globalmente por eventos en tiempo real y reconciliación periódica sin ocultar datos existentes.
+- [ ] AC16: Inicio muestra únicamente escenas marcadas como favoritas en la sección de escenas rápidas.
+- [ ] AC17: La edición de paneles distingue eliminar panel de eliminar pestaña, confirma ambas acciones, expone claramente el alta de pestañas y mantiene la gestión de widgets centrada dentro del tablero.
+- [ ] AC18: Auditoría presenta el nombre HomePilot del dispositivo junto a su identificador.
+- [ ] AC19: Usuarios y accesos conserva completos rol, estado y controles administrativos en tablet.
 - [ ] AC12: La identidad visual Nezu utiliza `#D9542B` como color primario, `#C9DF38` exclusivamente para Eco/eficiencia y `#1A1A1A` como ancla neutra. El azul deja de representar marca o estado activo.
 - [ ] AC13: Los estados físicos se distinguen por significado: iluminación activa en ámbar cálido, cortinas y acciones de marca en naranja Nezu, Noche en violeta tenue, Eco en lima y apagado/no disponible en neutros accesibles.
 - [ ] AC14: Inicio evita analítica decorativa, microtexto técnico y efectos visuales excesivos. La información operativa existente permanece disponible mediante composición clara y controles con contraste equivalente en modo claro y oscuro.

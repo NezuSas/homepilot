@@ -41,6 +41,7 @@ export interface AssistantConverseRequest {
   };
   confirmed?: boolean;
   sourceRoomId?: string;
+  interactionMode?: 'chat' | 'voice';
 }
 
 export interface AssistantTextToSpeechResponse {

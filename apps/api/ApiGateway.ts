@@ -17,6 +17,9 @@ const BRIDGED_EVENT_TYPES = [
   'HomeCreatedEvent',
   'RoomCreatedEvent',
   'DeviceAssignedToRoomEvent',
+  'DeviceCommandDispatchedEvent',
+  'DeviceCommandFailedEvent',
+  'DeviceStateUpdatedEvent',
 ] as const;
 
 /**

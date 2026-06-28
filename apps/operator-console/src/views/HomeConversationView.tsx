@@ -26,7 +26,7 @@ const STOP_AFTER_SILENCE_MS = 900;
 const SPEECH_LEVEL_THRESHOLD = 0.018;
 
 interface HomeConversationViewProps {
-  pendingPrompt?: { id: string; text: string } | null;
+  pendingPrompt?: { id: string; text: string; interactionMode: 'voice' } | null;
   onPendingPromptConsumed?: (id: string) => void;
 }
 
@@ -39,6 +39,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [speechNotice, setSpeechNotice] = useState('');
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const [speechSupport, setSpeechSupport] = useState({
     recording: false,
     synthesis: false
@@ -62,6 +63,27 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   const conversationAbortRef = useRef<AbortController | null>(null);
   const conversationRequestIdRef = useRef(0);
   const consumedPendingPromptIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateKeyboardInset = () => {
+      const nextInset = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+      setKeyboardInset(nextInset);
+      if (nextInset > 0 && document.activeElement instanceof HTMLTextAreaElement) {
+        window.requestAnimationFrame(() => document.activeElement?.scrollIntoView({ block: 'nearest' }));
+      }
+    };
+
+    updateKeyboardInset();
+    viewport.addEventListener('resize', updateKeyboardInset);
+    viewport.addEventListener('scroll', updateKeyboardInset);
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardInset);
+      viewport.removeEventListener('scroll', updateKeyboardInset);
+    };
+  }, []);
   const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
   useEffect(() => {
@@ -214,7 +236,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     return resolvedMessage;
   };
 
-  const handleSend = async (text: string = input, responseTimeoutMs?: number, replaceActive = false) => {
+  const handleSend = async (text: string = input, responseTimeoutMs?: number, replaceActive = false, interactionMode: 'chat' | 'voice' = 'chat') => {
     if (!text.trim() || (isLoading && !replaceActive)) return;
 
     const userText = text.trim();
@@ -231,7 +253,8 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     try {
       const response = await converseWithAssistant({
         prompt: userText,
-        userName: user?.displayName || user?.username
+        userName: user?.displayName || user?.username,
+        interactionMode,
       }, { timeoutMs: responseTimeoutMs, signal: conversationController.signal });
       if (requestId !== conversationRequestIdRef.current) return;
       handleResponse(response);
@@ -256,7 +279,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       setIsSpeechEnabled(true);
     }
     setInput(pendingPrompt.text);
-    void handleSend(pendingPrompt.text, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, true).then(() => {
+    void handleSend(pendingPrompt.text, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, true, pendingPrompt.interactionMode).then(() => {
       onPendingPromptConsumed?.(pendingPrompt.id);
     });
   }, [pendingPrompt, onPendingPromptConsumed]);
@@ -379,7 +402,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       }
 
       setInput(spokenText);
-      await handleSend(spokenText, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS);
+      await handleSend(spokenText, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, false, 'voice');
     } catch {
       setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
     }
@@ -531,7 +554,10 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   })), [audioInputDevices, t]);
 
   return (
-    <section className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background">
+    <section
+      className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background"
+      style={{ height: keyboardInset > 0 ? `calc(100% - ${keyboardInset}px)` : '100%' }}
+    >
       <HomeConversationHeader
         title={t('assistant.conversation.header_title')}
         subtitle={t('assistant.conversation.header_subtitle')}

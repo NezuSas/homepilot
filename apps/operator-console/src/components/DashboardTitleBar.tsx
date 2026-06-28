@@ -11,6 +11,7 @@ interface DashboardTitleBarProps {
   onCancelEditingTitle: () => void;
   onConfirmTitle: () => void;
   onDelete: () => void;
+  deleteLabel: string;
 }
 
 export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
@@ -22,7 +23,8 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   onStartEditingTitle,
   onCancelEditingTitle,
   onConfirmTitle,
-  onDelete
+  onDelete,
+  deleteLabel,
 }) => (
   <div className="flex items-center justify-between gap-4">
     {isEditingTitle ? (
@@ -47,7 +49,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       </div>
     )}
     {!isEditingDashboard && (
-      <button onClick={onDelete} className="p-3 bg-destructive/5 text-destructive rounded-2xl hover:bg-destructive hover:text-destructive-foreground transition-all"><Trash2 className="w-5 h-5" /></button>
+      <button onClick={onDelete} title={deleteLabel} aria-label={deleteLabel} className="flex items-center gap-2 rounded-2xl bg-destructive/5 p-3 text-destructive transition-all hover:bg-destructive hover:text-destructive-foreground"><Trash2 className="w-5 h-5" /><span className="hidden text-[10px] font-black uppercase tracking-widest sm:inline">{deleteLabel}</span></button>
     )}
   </div>
 );

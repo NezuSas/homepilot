@@ -39,6 +39,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
 
       <div className="flex bg-background/50 p-1.5 rounded-2xl gap-2 border border-border/10">
         <button
+          type="button"
           onClick={() => onTriggerTypeChange('device_state_changed')}
           className={cn(
             "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
@@ -48,6 +49,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           <Zap className="w-3 h-3" /> {t('automations.builder.properties.state')}
         </button>
         <button
+          type="button"
           onClick={() => onTriggerTypeChange('time')}
           className={cn(
             "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
@@ -129,6 +131,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 const isSelected = selectedDays.includes(index);
                 return (
                   <button
+                    type="button"
                     key={index}
                     onClick={() => {
                       const next = isSelected ? selectedDays.filter(dayIndex => dayIndex !== index) : [...selectedDays, index];

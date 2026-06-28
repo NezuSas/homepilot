@@ -3,18 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { X, Save, PlayCircle, Loader2, List, Settings, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
+import { apiFetch, readApiError } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
 import Select from './Select';
+import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
-
-interface Device {
-  id: string;
-  name: string;
-  type: string;
-  roomId: string | null;
-}
 
 interface Room {
   id: string;
@@ -40,7 +35,7 @@ interface SceneBuilderModalProps {
   onSaved: () => void;
   homeId: string;
   rooms: Room[];
-  devices: Device[];
+  devices: SnapshotDevice[];
   initialRoomId?: string | null;
   existingScene?: Scene | null;
 }
@@ -55,7 +50,19 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   const [error, setError] = useState<string | null>(null);
   const [deviceSearch, setDeviceSearch] = useState('');
 
-  const controllableDevices = devices.filter(d => ['light', 'switch', 'cover'].includes(d.type));
+  const isCoverDevice = (device: SnapshotDevice) => hasCapability(device, 'cover') || device.semanticType === 'cover' || device.type === 'cover';
+  const isPowerDevice = (device: SnapshotDevice) => (
+    hasCapability(device, 'light')
+    || hasCapability(device, 'switch')
+    || device.semanticType === 'light'
+    || device.semanticType === 'switch'
+    || device.semanticType === 'outlet'
+    || ['light', 'switch', 'outlet'].includes(device.type)
+  );
+  const controllableDevices = devices.filter(device => (
+    (isCoverDevice(device) && (canExecuteCommand(device, 'open') || canExecuteCommand(device, 'close')))
+    || (isPowerDevice(device) && (canExecuteCommand(device, 'turn_on') || canExecuteCommand(device, 'turn_off')))
+  ));
   let availableDevices = roomId ? controllableDevices.filter(d => d.roomId === roomId) : controllableDevices;
   
   if (deviceSearch) {
@@ -70,8 +77,9 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
       setActions(actions.filter(a => a.deviceId !== deviceId));
     } else {
       const device = devices.find(d => d.id === deviceId);
-      const defaultCommand = device?.type === 'cover' ? 'open' : 'turn_on';
-      setActions([...actions, { deviceId, command: defaultCommand as any }]);
+      if (!device) return;
+      const defaultCommand: SceneAction['command'] = isCoverDevice(device) ? 'open' : 'turn_on';
+      setActions([...actions, { deviceId, command: defaultCommand }]);
     }
   };
 
@@ -104,10 +112,10 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error(t('scenes.builder.errors.sync_failed'));
+      if (!res.ok) throw new Error(await readApiError(res, t('scenes.builder.errors.sync_failed')));
       onSaved();
-    } catch (e: any) {
-      setError(e.message || t('common.errors.operation_failed'));
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('common.errors.operation_failed'));
     } finally {
       setSaving(false);
     }
@@ -241,7 +249,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                           <div className="flex flex-col min-w-0">
                             <span className="text-sm font-black tracking-tighter leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
                             <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
-                               {d.type.toUpperCase()}
+                               {(d.semanticType || d.type).toUpperCase()}
                             </span>
                           </div>
                         </div>
@@ -249,7 +257,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                         {isSelected && (
                           <div className="grid w-full grid-cols-2 gap-1 min-[520px]:w-auto" onClick={e => e.stopPropagation()}>
                             <button 
-                              onClick={() => setCommand(d.id, d.type === 'cover' ? 'open' : 'turn_on')}
+                              onClick={() => setCommand(d.id, isCoverDevice(d) ? 'open' : 'turn_on')}
                               className={cn(
                                 "px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border",
                                 action?.command === 'turn_on' || action?.command === 'open' 
@@ -257,10 +265,10 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                                   : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
                               )}
                             >
-                               {d.type === 'cover' ? t('common.actions.open') : t('common.on')}
+                               {isCoverDevice(d) ? t('common.actions.open') : t('common.on')}
                             </button>
                             <button 
-                              onClick={() => setCommand(d.id, d.type === 'cover' ? 'close' : 'turn_off')}
+                              onClick={() => setCommand(d.id, isCoverDevice(d) ? 'close' : 'turn_off')}
                               className={cn(
                                 "px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border",
                                 action?.command === 'turn_off' || action?.command === 'close' 
@@ -268,7 +276,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                                   : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
                               )}
                             >
-                               {d.type === 'cover' ? t('common.actions.close') : t('common.off')}
+                               {isCoverDevice(d) ? t('common.actions.close') : t('common.off')}
                             </button>
                           </div>
                         )}

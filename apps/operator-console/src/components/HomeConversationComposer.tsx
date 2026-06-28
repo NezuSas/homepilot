@@ -57,7 +57,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   onToggleListening,
   onToggleSpeech
 }) => (
-  <footer className="shrink-0 border-t border-border/60 bg-background/85 px-4 py-4 backdrop-blur-xl md:px-6 md:pb-6">
+  <footer className="shrink-0 border-t border-border/60 bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:px-6 md:pt-4 md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
     <div className="mx-auto max-w-5xl">
       <form
         onSubmit={(event: React.FormEvent<HTMLFormElement>) => {

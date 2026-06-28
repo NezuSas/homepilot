@@ -74,5 +74,9 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - Assistant responses must sound like a professional residential operator: concise, calm, confident, and service-oriented.
 - The assistant may use a subtle "Jarvis-like" tone, but must not become theatrical, verbose, or obscure operational clarity.
 - Device execution responses must stay explicit about what was controlled.
+- Successful command, scene and query responses must not append inventory-maintenance notices about devices without a room. Those notices belong to dedicated diagnostics surfaces, not every conversation turn.
+- Visible and spoken answers must be concise, focused on the current request, and contain no emojis.
+- Conversation, STT, and TTS language must follow the language selected inside HomePilot rather than the browser's original language.
+- Bulk actions requested through voice execute without a second confirmation; the text chat keeps explicit confirmation controls.
 - Ambiguous, unsafe, or unknown commands must be acknowledged immediately and ask for a clearer device/room target.
 - The assistant must not claim that an action was executed unless the execution result confirms it.

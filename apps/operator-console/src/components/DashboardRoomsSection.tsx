@@ -28,6 +28,7 @@ interface DashboardRoomsSectionProps {
   duplicateNames: Map<string, number>;
   roomProcessing: string | null;
   onRoomTurnOff: (roomId: string) => void;
+  onRoomLightsTurnOff: (roomId: string) => void;
   onDeviceUpdate: (updated: SnapshotDevice) => void;
   onCommand: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<SnapshotDevice | null>;
   onActionExecute?: (label: string) => void;
@@ -69,6 +70,7 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
   duplicateNames,
   roomProcessing,
   onRoomTurnOff,
+  onRoomLightsTurnOff,
   onDeviceUpdate,
   onCommand,
   onActionExecute,
@@ -92,6 +94,10 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
           ? roomDevices
           : [...roomDevices].sort((left, right) => Number(isDeviceActive(right)) - Number(isDeviceActive(left)));
         const onCount = roomDevices.filter(isDeviceActive).length;
+        const activeLightCount = roomDevices.filter((device) => (
+          isDeviceActive(device)
+          && (device.semanticType === 'light' || device.type === 'light' || hasCapability(device, 'light'))
+        )).length;
 
         return (
           <section key={room.id} className="animate-in fade-in slide-in-from-bottom-6 rounded-panel border border-border/60 bg-card/70 p-3 shadow-depth-1 duration-500 sm:p-5">
@@ -114,16 +120,30 @@ export const DashboardRoomsSection: React.FC<DashboardRoomsSectionProps> = ({
               </div>
               </div>
               {onCount > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  isLoading={roomProcessing === room.id}
-                  onClick={() => onRoomTurnOff(room.id)}
-                  className="w-full gap-2 rounded-pill border-border bg-background/25 px-4 text-caption font-semibold hover:border-danger/30 hover:bg-danger/10 hover:text-danger md:w-auto"
-                >
-                  {!roomProcessing && <Power className="h-3.5 w-3.5" />}
-                  {!roomProcessing && t('common.turn_off_all')}
-                </Button>
+                <div className="flex w-full flex-col gap-2 min-[420px]:flex-row md:w-auto">
+                  {activeLightCount > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      isLoading={roomProcessing === `room_lights_${room.id}`}
+                      onClick={() => onRoomLightsTurnOff(room.id)}
+                      className="w-full gap-2 rounded-pill border-border bg-background/25 px-4 text-caption font-semibold hover:border-warning/30 hover:bg-warning/10 hover:text-warning md:w-auto"
+                    >
+                      {roomProcessing !== `room_lights_${room.id}` && <Power className="h-3.5 w-3.5" />}
+                      {roomProcessing !== `room_lights_${room.id}` && t('dashboard.turn_off_lights')}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    isLoading={roomProcessing === room.id}
+                    onClick={() => onRoomTurnOff(room.id)}
+                    className="w-full gap-2 rounded-pill border-border bg-background/25 px-4 text-caption font-semibold hover:border-danger/30 hover:bg-danger/10 hover:text-danger md:w-auto"
+                  >
+                    {roomProcessing !== room.id && <Power className="h-3.5 w-3.5" />}
+                    {roomProcessing !== room.id && t('common.turn_off_all')}
+                  </Button>
+                </div>
               )}
             </div>
 
