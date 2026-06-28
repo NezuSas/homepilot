@@ -516,6 +516,11 @@
     "homes_title": "Registered Homes",
     "rooms_in": "Rooms in",
     "rooms": "Rooms",
+    "add_home": "Add home",
+    "home_placeholder": "Home name...",
+    "rename_home": "Rename home",
+    "create_home_error": "The home could not be created",
+    "rename_home_error": "The home name could not be updated",
     "add_room": "Add Room",
     "placeholder": "Room name...",
     "creating": "Creating...",
@@ -529,10 +534,14 @@
     "rename_room_save": "Save name",
     "rename_room_error": "The room name could not be updated",
     "load_error": "The home structure could not be loaded",
-    "create_room_error": "The room could not be created"
-    ,"search_rooms": "Search rooms by name..."
-    ,"no_search_results": "No rooms match your search."
-    ,"close_details": "Close room details"
+    "create_room_error": "The room could not be created",
+    "search_rooms": "Search rooms by name...",
+    "search_devices": "Search devices by name...",
+    "no_search_results": "No rooms match your search.",
+    "no_device_search_results": "No devices match your search.",
+    "close_details": "Close room details",
+    "turn_on_device": "Turn on device",
+    "turn_off_device": "Turn off device"
   },
   "automations": {
     "header": {
@@ -938,6 +947,7 @@
     "create_tab_placeholder": "Tab name...",
     "delete_tab_confirm": "Delete this tab and all its widgets?",
     "delete_tab": "Delete tab",
+    "rename_tab": "Rename tab",
     "delete_tab_title": "Delete this tab?",
     "delete_dashboard_title": "Delete this dashboard?",
     "delete_dashboard_description": "The dashboard “{{title}}” and all of its tabs and widgets will be deleted.",

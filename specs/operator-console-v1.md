@@ -85,6 +85,8 @@ Se propone una consola de administración pragmática:
 - [ ] AC17: La edición de paneles distingue eliminar panel de eliminar pestaña, confirma ambas acciones, expone claramente el alta de pestañas y mantiene la gestión de widgets centrada dentro del tablero.
 - [ ] AC18: Auditoría presenta el nombre HomePilot del dispositivo junto a su identificador.
 - [ ] AC19: Usuarios y accesos conserva completos rol, estado y controles administrativos en tablet.
+- [ ] AC20: Las pestañas/ventanas de panel pueden renombrarse y eliminarse sin eliminar el panel completo.
+- [ ] AC21: Las cámaras importadas desde Home Assistant/ONVIF se renderizan mediante el componente modular de cámara y permanecen sin controles de toggle.
 - [ ] AC12: La identidad visual Nezu utiliza `#D9542B` como color primario, `#C9DF38` exclusivamente para Eco/eficiencia y `#1A1A1A` como ancla neutra. El azul deja de representar marca o estado activo.
 - [ ] AC13: Los estados físicos se distinguen por significado: iluminación activa en ámbar cálido, cortinas y acciones de marca en naranja Nezu, Noche en violeta tenue, Eco en lima y apagado/no disponible en neutros accesibles.
 - [ ] AC14: Inicio evita analítica decorativa, microtexto técnico y efectos visuales excesivos. La información operativa existente permanece disponible mediante composición clara y controles con contraste equivalente en modo claro y oscuro.

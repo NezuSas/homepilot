@@ -516,6 +516,11 @@
     "homes_title": "Hogares Registrados",
     "rooms_in": "Estancias en",
     "rooms": "Estancias",
+    "add_home": "Añadir hogar",
+    "home_placeholder": "Nombre del hogar...",
+    "rename_home": "Renombrar hogar",
+    "create_home_error": "No se pudo crear el hogar",
+    "rename_home_error": "No se pudo actualizar el nombre del hogar",
     "add_room": "Añadir Estancia",
     "placeholder": "Nombre de la estancia...",
     "creating": "Creando...",
@@ -529,10 +534,14 @@
     "rename_room_save": "Guardar nombre",
     "rename_room_error": "No se pudo actualizar el nombre de la estancia",
     "load_error": "No se pudo cargar la estructura del hogar",
-    "create_room_error": "No se pudo crear la estancia"
-    ,"search_rooms": "Buscar estancias por nombre..."
-    ,"no_search_results": "No hay estancias que coincidan con la búsqueda."
-    ,"close_details": "Cerrar detalle de estancia"
+    "create_room_error": "No se pudo crear la estancia",
+    "search_rooms": "Buscar estancias por nombre...",
+    "search_devices": "Buscar dispositivos por nombre...",
+    "no_search_results": "No hay estancias que coincidan con la búsqueda.",
+    "no_device_search_results": "No hay dispositivos que coincidan con la búsqueda.",
+    "close_details": "Cerrar detalle de estancia",
+    "turn_on_device": "Encender dispositivo",
+    "turn_off_device": "Apagar dispositivo"
   },
   "automations": {
     "header": {
@@ -938,6 +947,7 @@
     "create_tab_placeholder": "Nombre de la pestaña...",
     "delete_tab_confirm": "¿Eliminar esta pestaña y todos sus widgets?",
     "delete_tab": "Eliminar pestaña",
+    "rename_tab": "Renombrar pestaña",
     "delete_tab_title": "¿Eliminar esta pestaña?",
     "delete_dashboard_title": "¿Eliminar este panel?",
     "delete_dashboard_description": "Se eliminará el panel «{{title}}» con todas sus pestañas y widgets.",

@@ -132,6 +132,14 @@ export function DashboardsView() {
     }
   };
 
+  const handleRenameTab = async (tabIdx: number, title: string) => {
+    if (!active || !title.trim()) return;
+    const updatedTabs = active.tabs.map((tab, idx) => (
+      idx === tabIdx ? { ...tab, title: title.trim() } : tab
+    ));
+    await patch(active.id, { tabs: updatedTabs });
+  };
+
   const handleDeleteTab = async (tabIdx: number) => {
     if (!active) return;
     const updatedTabs = active.tabs.filter((_, idx) => idx !== tabIdx);
@@ -317,12 +325,14 @@ export function DashboardsView() {
                 placeholder={t('dashboards.placeholder_tab_title')}
                 addLabel={t('dashboards.action_add_tab')}
                 deleteLabel={t('dashboards.delete_tab')}
+                renameLabel={t('dashboards.rename_tab')}
                 onSelectTab={(index) => {
                   setActiveTabIdx(index);
                   setSelectedWidgetId(null);
                   setIsInspectorOpen(false);
                 }}
                 onDeleteTab={setTabPendingDelete}
+                onRenameTab={(index, title) => { void handleRenameTab(index, title); }}
                 onStartAddingTab={() => setAddingTab(true)}
                 onAddTab={handleAddTab}
                 onCancelAddingTab={() => setAddingTab(false)}

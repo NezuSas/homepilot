@@ -2,10 +2,11 @@ import * as crypto from 'crypto';
 import * as http from 'http';
 import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { BootstrapContainer } from '../../../bootstrap';
+import { createHomeUseCase } from '../../../packages/topology/application/createHomeUseCase';
 import { createRoomUseCase } from '../../../packages/topology/application/createRoomUseCase';
 import { renameRoomUseCase } from '../../../packages/topology/application/renameRoomUseCase';
 import { ForbiddenError, NotFoundError } from '../../../packages/topology/application/errors';
-import { InvalidRoomNameError } from '../../../packages/topology/domain/errors';
+import { InvalidHomeNameError, InvalidRoomNameError } from '../../../packages/topology/domain/errors';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -101,6 +102,68 @@ export class TopologyRoutes extends ApiRoutes {
         this.sendJson(res, homes);
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Failed to load homes');
+      }
+      return true;
+    }
+
+    // POST /api/v1/homes
+    if (method === 'POST' && pathname === '/api/v1/homes') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const payload = await this.parseBody<{ name?: string }>(req);
+        if (typeof payload.name !== 'string') {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Home name is required'), true;
+        }
+
+        const home = await createHomeUseCase(
+          payload.name,
+          req.user!.id,
+          crypto.randomUUID(),
+          {
+            homeRepository: container.repositories.homeRepository,
+            eventPublisher: container.adapters.topologyEventPublisher,
+            idGenerator: { generate: () => crypto.randomUUID() },
+            clock: { now: () => new Date().toISOString() },
+          },
+        );
+        this.sendJson(res, home, 201);
+      } catch (error: unknown) {
+        if (error instanceof InvalidHomeNameError) {
+          this.sendError(res, 400, 'INVALID_INPUT', error.message);
+        } else {
+          this.sendError(res, 500, 'HOME_CREATE_ERROR', error instanceof Error ? error.message : 'Home creation failed');
+        }
+      }
+      return true;
+    }
+
+    // PATCH /api/v1/homes/:id
+    const renameHomeMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/homes\/([^\/]+)$/);
+    if (renameHomeMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const payload = await this.parseBody<{ name?: string }>(req);
+        const nextName = typeof payload.name === 'string' ? payload.name.trim() : '';
+        if (!nextName) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Home name is required'), true;
+        }
+
+        const home = await container.repositories.homeRepository.findHomeById(renameHomeMatch[1]);
+        if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
+        if (home.ownerId !== req.user!.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+        }
+
+        const updatedHome = {
+          ...home,
+          name: nextName,
+          entityVersion: home.entityVersion + 1,
+          updatedAt: new Date().toISOString(),
+        };
+        await container.repositories.homeRepository.saveHome(updatedHome);
+        this.sendJson(res, updatedHome);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'HOME_RENAME_ERROR', error instanceof Error ? error.message : 'Home rename failed');
       }
       return true;
     }

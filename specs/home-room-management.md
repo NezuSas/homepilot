@@ -35,6 +35,8 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - **REQ-10 (Detalle Operativo en Consola)**: La consola de operador debe permitir seleccionar una `Room` listada y mostrar sus detalles operativos sin cambiar contratos API: nombre, identificador, cantidad de dispositivos asignados, cantidad de dispositivos activos y lista resumida de dispositivos.
 - **REQ-11 (Eliminar Room con desasignación)**: Un administrador propietario debe poder eliminar una `Room`. Los dispositivos asignados a esa `Room` no se eliminan; quedan desasignados (`roomId = null`) para poder reasignarse luego desde la consola.
 - **REQ-12 (Renombrar Room sin alterar referencias)**: Un administrador propietario debe poder cambiar el nombre de una `Room`. La operación conserva `id`, `homeId`, dispositivos asignados y automatizaciones referenciadas; incrementa `entityVersion` y publica `RoomRenamedEvent` después de persistir.
+- **REQ-13 (Gestionar Homes desde consola)**: Un administrador propietario debe poder crear un nuevo `Home` y renombrar un `Home` existente sin alterar su `id`, propietario ni Rooms asociadas.
+- **REQ-14 (Detalle de dispositivos por Room)**: El detalle de una `Room` debe permitir buscar dispositivos por nombre, ordenarlos con activos primero y luego alfabéticamente, y exponer control directo solo para dispositivos conmutables (`light` y `switch`).
 
 ## 5. Requisitos No Funcionales
 - **NFR-01 (Latencia Edge)**: Las operaciones de lectura y escritura en BD local deben tardar menos de 20ms bajo carga normal.
@@ -70,6 +72,9 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC12**: La consola muestra únicamente Homes del usuario autenticado, permite crear una Room sobre un Home propio y presenta un error visible si la operación es rechazada.
 - [ ] **AC13**: Las Rooms se ordenan alfabéticamente, pueden buscarse por nombre y el detalle puede cerrarse sin seleccionar otra Room.
 - [ ] **AC14**: Cada Room permite apagar todos sus dispositivos o solamente sus luces mediante acciones independientes.
+- [ ] **AC15**: Al seleccionar un Home, la consola carga sus Rooms pero no selecciona automáticamente ninguna Room; el detalle solo aparece tras selección explícita del usuario.
+- [ ] **AC16**: El detalle de Room permite buscar dispositivos por nombre, muestra activos primero y luego orden alfabético, y oculta controles de encendido/apagado en cámaras, sensores u otros tipos no conmutables.
+- [ ] **AC17**: Un administrador puede crear y renombrar Homes propios desde la consola, recibiendo errores visibles si la API rechaza la operación.
 
 ## 8. Notas Técnicas y Arquitectura
 

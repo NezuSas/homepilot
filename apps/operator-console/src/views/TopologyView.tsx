@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2, Pencil, X } from 'lucide-react';
+import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2, Pencil, X, Plus, Power } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -56,6 +56,13 @@ export const TopologyView: React.FC = () => {
   const [roomNameDraft, setRoomNameDraft] = useState('');
   const [roomRenameError, setRoomRenameError] = useState('');
   const [isRenamingRoom, setIsRenamingRoom] = useState(false);
+  const [newHomeName, setNewHomeName] = useState('');
+  const [isCreatingHome, setIsCreatingHome] = useState(false);
+  const [editingHomeId, setEditingHomeId] = useState<string | null>(null);
+  const [homeNameDraft, setHomeNameDraft] = useState('');
+  const [isRenamingHome, setIsRenamingHome] = useState(false);
+  const [deviceSearch, setDeviceSearch] = useState('');
+  const [deviceProcessingId, setDeviceProcessingId] = useState<string | null>(null);
   const [topologyError, setTopologyError] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
 
@@ -106,7 +113,8 @@ export const TopologyView: React.FC = () => {
       const data = await res.json();
       const nextRooms = Array.isArray(data) ? data : [];
       setRooms(nextRooms);
-      setSelectedRoomId(nextRooms[0]?.id ?? null);
+      setSelectedRoomId(null);
+      setDeviceSearch('');
       setTopologyError('');
     } catch (error_: unknown) {
       setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
@@ -155,7 +163,7 @@ export const TopologyView: React.FC = () => {
         device.roomId === deletedRoomId ? { ...device, roomId: null, status: 'PENDING' } : device
       )));
       setSelectedRoomId((currentRoomId) => (
-        currentRoomId === deletedRoomId ? nextRooms[0]?.id ?? null : currentRoomId
+        currentRoomId === deletedRoomId ? null : currentRoomId
       ));
       setRoomPendingDelete(null);
     } catch (err) {
@@ -207,6 +215,84 @@ export const TopologyView: React.FC = () => {
     }
   };
 
+  const handleAddHome = async () => {
+    if (!newHomeName.trim()) return;
+    setIsCreatingHome(true);
+    setTopologyError('');
+    try {
+      const res = await apiFetch(`${API_URL}/homes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newHomeName.trim() }),
+      });
+      if (!res.ok) throw new Error(await readApiError(res, t('topology.create_home_error')));
+      const home = await res.json() as Home;
+      setHomes((currentHomes) => [...currentHomes, home]);
+      setNewHomeName('');
+      await handleSelectHome(home);
+    } catch (error_: unknown) {
+      setTopologyError(error_ instanceof Error ? error_.message : t('topology.create_home_error'));
+    } finally {
+      setIsCreatingHome(false);
+    }
+  };
+
+  const beginHomeRename = (home: Home) => {
+    setEditingHomeId(home.id);
+    setHomeNameDraft(home.name);
+  };
+
+  const cancelHomeRename = () => {
+    if (isRenamingHome) return;
+    setEditingHomeId(null);
+    setHomeNameDraft('');
+  };
+
+  const handleRenameHome = async (event: React.FormEvent, home: Home) => {
+    event.preventDefault();
+    if (!homeNameDraft.trim()) return;
+    setIsRenamingHome(true);
+    setTopologyError('');
+    try {
+      const res = await apiFetch(`${API_URL}/homes/${encodeURIComponent(home.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: homeNameDraft.trim() }),
+      });
+      if (!res.ok) throw new Error(await readApiError(res, t('topology.rename_home_error')));
+      const updatedHome = await res.json() as Home;
+      setHomes((currentHomes) => currentHomes.map((currentHome) => currentHome.id === updatedHome.id ? updatedHome : currentHome));
+      setSelectedHome((currentHome) => currentHome?.id === updatedHome.id ? updatedHome : currentHome);
+      cancelHomeRename();
+    } catch (error_: unknown) {
+      setTopologyError(error_ instanceof Error ? error_.message : t('topology.rename_home_error'));
+    } finally {
+      setIsRenamingHome(false);
+    }
+  };
+
+  const canToggleDevice = (device: Device) => ['light', 'switch'].includes(device.type);
+
+  const handleToggleDevice = async (device: Device) => {
+    if (!canToggleDevice(device) || deviceProcessingId) return;
+    setDeviceProcessingId(device.id);
+    setTopologyError('');
+    try {
+      const res = await apiFetch(`${API_URL}/devices/${encodeURIComponent(device.id)}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: isActiveDevice(device) ? 'turn_off' : 'turn_on' }),
+      });
+      if (!res.ok) throw new Error(await readApiError(res, t('common.errors.operation_failed')));
+      const updatedDevice = await res.json() as Device;
+      setDevices((currentDevices) => currentDevices.map((currentDevice) => currentDevice.id === updatedDevice.id ? updatedDevice : currentDevice));
+    } catch (error_: unknown) {
+      setTopologyError(error_ instanceof Error ? error_.message : t('common.errors.operation_failed'));
+    } finally {
+      setDeviceProcessingId(null);
+    }
+  };
+
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) || null,
     [rooms, selectedRoomId],
@@ -228,6 +314,18 @@ export const TopologyView: React.FC = () => {
     () => selectedRoom ? devices.filter((device) => device.roomId === selectedRoom.id) : [],
     [devices, selectedRoom],
   );
+
+  const visibleSelectedRoomDevices = useMemo(() => {
+    const normalizedSearch = deviceSearch.trim().toLocaleLowerCase();
+    return [...selectedRoomDevices]
+      .filter((device) => !normalizedSearch || device.name.toLocaleLowerCase().includes(normalizedSearch))
+      .sort((left, right) => {
+        const leftActive = isActiveDevice(left);
+        const rightActive = isActiveDevice(right);
+        if (leftActive !== rightActive) return leftActive ? -1 : 1;
+        return left.name.localeCompare(right.name, undefined, { sensitivity: 'base' });
+      });
+  }, [deviceSearch, selectedRoomDevices]);
 
   const activeRoomDeviceCount = useMemo(
     () => selectedRoomDevices.filter(isActiveDevice).length,
@@ -258,6 +356,28 @@ export const TopologyView: React.FC = () => {
               {homes.length}
             </span>
           </h3>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder={t('topology.home_placeholder')}
+              value={newHomeName}
+              onChange={(event) => setNewHomeName(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter') void handleAddHome(); }}
+              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none transition-all focus:ring-1 focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => { void handleAddHome(); }}
+              disabled={isCreatingHome || !newHomeName.trim()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+              title={t('topology.add_home')}
+            >
+              {isCreatingHome ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
         
         <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
@@ -292,16 +412,60 @@ export const TopologyView: React.FC = () => {
                           <HomeIcon className="w-4 h-4" />
                         </div>
                         <div className="flex flex-col">
-                          <span className={cn(
-                            "font-bold text-sm transition-colors",
-                            isSelected ? "text-primary" : "text-foreground"
-                          )}>{home.name}</span>
+                          {editingHomeId === home.id ? (
+                            <form
+                              className="flex items-center gap-1"
+                              onSubmit={(event) => { void handleRenameHome(event, home); }}
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <input
+                                autoFocus
+                                value={homeNameDraft}
+                                onChange={(event) => setHomeNameDraft(event.target.value)}
+                                className="w-36 rounded-lg border border-primary/40 bg-background px-2 py-1 text-xs font-bold text-foreground outline-none"
+                                aria-label={t('topology.rename_home')}
+                              />
+                              <button
+                                type="submit"
+                                disabled={isRenamingHome || !homeNameDraft.trim()}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+                              >
+                                {isRenamingHome ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelHomeRename}
+                                disabled={isRenamingHome}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground disabled:opacity-50"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </form>
+                          ) : (
+                            <span className={cn(
+                              "font-bold text-sm transition-colors",
+                              isSelected ? "text-primary" : "text-foreground"
+                            )}>{home.name}</span>
+                          )}
                           {isSelected && (
                             <span className="text-[9px] font-black tracking-tighter uppercase text-primary/60">{t('inbox.inspector.home_cluster')}</span>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {isSelected && editingHomeId !== home.id && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              beginHomeRename(home);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:text-primary"
+                            title={t('topology.rename_home')}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
                         {isSelected && !loadingRooms && (
                           <CheckCircle2 className="w-3.5 h-3.5 text-primary opacity-50" />
                         )}
@@ -530,8 +694,20 @@ export const TopologyView: React.FC = () => {
                             {t('topology.no_devices_in_room', { defaultValue: 'No devices assigned to this room yet.' })}
                           </p>
                         ) : (
-                          <div className="flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
-                            {selectedRoomDevices.map((device) => (
+                          <div className="flex flex-col gap-3">
+                            <SearchInput
+                              value={deviceSearch}
+                              onChange={(event) => setDeviceSearch(event.target.value)}
+                              placeholder={t('topology.search_devices')}
+                              aria-label={t('topology.search_devices')}
+                            />
+                            <div className="flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+                            {visibleSelectedRoomDevices.length === 0 && (
+                              <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
+                                {t('topology.no_device_search_results')}
+                              </p>
+                            )}
+                            {visibleSelectedRoomDevices.map((device) => (
                               <div key={device.id} className="rounded-2xl border border-border/60 bg-background/60 p-3">
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="min-w-0">
@@ -544,9 +720,27 @@ export const TopologyView: React.FC = () => {
                                   )}>
                                     {isActiveDevice(device) ? t('device_states.on') : t('device_states.off')}
                                   </span>
+                                  {canToggleDevice(device) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => { void handleToggleDevice(device); }}
+                                      disabled={deviceProcessingId !== null}
+                                      className={cn(
+                                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-50",
+                                        isActiveDevice(device)
+                                          ? "border-primary/30 bg-primary text-primary-foreground"
+                                          : "border-border bg-muted/30 text-muted-foreground hover:text-primary",
+                                      )}
+                                      title={isActiveDevice(device) ? t('topology.turn_off_device') : t('topology.turn_on_device')}
+                                      aria-label={isActiveDevice(device) ? t('topology.turn_off_device') : t('topology.turn_on_device')}
+                                    >
+                                      {deviceProcessingId === device.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             ))}
+                            </div>
                           </div>
                         )}
                       </div>
