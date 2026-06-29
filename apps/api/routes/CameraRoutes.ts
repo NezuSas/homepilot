@@ -545,7 +545,14 @@ export class CameraRoutes extends ApiRoutes {
   private async waitForFile(filePath: string, timeoutMs: number): Promise<void> {
     const startedAt = Date.now();
     while (Date.now() - startedAt < timeoutMs) {
-      if (fs.existsSync(filePath)) return;
+      if (fs.existsSync(filePath)) {
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          if (content.includes('.ts')) return;
+        } catch {
+          // Ignore read errors during concurrent write
+        }
+      }
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
     throw new Error('NATIVE_CAMERA_STREAM_TIMEOUT');

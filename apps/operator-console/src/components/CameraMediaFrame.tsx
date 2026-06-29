@@ -113,72 +113,73 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     };
 
     const initialize = async () => {
+      const { default: Hls } = await import('hls.js/light');
+      if (cancelled) return;
+
+      if (Hls.isSupported()) {
+        let retryCount = 0;
+
+        const createPlayer = () => {
+          if (cancelled) return;
+          if (player) player.destroy();
+
+          const hlsPlayer = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 30,
+          });
+          player = hlsPlayer;
+          hlsPlayer.attachMedia(video);
+          
+          // Append a cache-buster so that retries fetch a fresh manifest.
+          // This is crucial because the initial manifest might be empty while ffmpeg starts.
+          const bustUrl = withRefreshMarker(hlsUrl);
+          hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(bustUrl));
+          hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+            void tryPlay();
+          });
+          
+          let watchdog = setTimeout(() => {
+            if (cancelled || hasReadyFrameRef.current) return;
+            console.warn('[CameraMediaFrame] HLS watchdog timeout, retrying...');
+            retryCount += 1;
+            if (retryCount < HLS_MAX_RETRIES && !cancelled) {
+              hlsPlayer.destroy();
+              player = null;
+              setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
+            } else {
+              console.warn('[CameraMediaFrame] HLS max retries reached, falling back to MJPEG.');
+              fallbackToMjpeg();
+            }
+          }, 12000); // 12 seconds is enough for ffmpeg to start up and write first segments
+
+          hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
+            if (!data.fatal) return;
+            console.warn('[CameraMediaFrame] HLS fatal error:', data.type);
+            clearTimeout(watchdog);
+            retryCount += 1;
+            if (retryCount < HLS_MAX_RETRIES && !cancelled) {
+              hlsPlayer.destroy();
+              player = null;
+              setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
+            } else {
+              console.warn('[CameraMediaFrame] HLS fatal error max retries reached, falling back to MJPEG.');
+              fallbackToMjpeg();
+            }
+          });
+        };
+
+        createPlayer();
+        return;
+      }
+
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = hlsUrl;
         await tryPlay();
         return;
       }
 
-      const { default: Hls } = await import('hls.js/light');
-      if (cancelled) return;
-      if (!Hls.isSupported()) {
-        fallbackToMjpeg();
-        return;
-      }
-
-      let retryCount = 0;
-
-      const createPlayer = () => {
-        if (cancelled) return;
-        if (player) player.destroy();
-
-        const hlsPlayer = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 30,
-        });
-        player = hlsPlayer;
-        hlsPlayer.attachMedia(video);
-        
-        // Append a cache-buster so that retries fetch a fresh manifest.
-        // This is crucial because the initial manifest might be empty while ffmpeg starts.
-        const bustUrl = withRefreshMarker(hlsUrl);
-        hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(bustUrl));
-        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-          void tryPlay();
-        });
-        
-        let watchdog = setTimeout(() => {
-          if (cancelled || hasReadyFrameRef.current) return;
-          console.warn('[CameraMediaFrame] HLS watchdog timeout, retrying...');
-          retryCount += 1;
-          if (retryCount < HLS_MAX_RETRIES && !cancelled) {
-            hlsPlayer.destroy();
-            player = null;
-            setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
-          } else {
-            console.warn('[CameraMediaFrame] HLS max retries reached, falling back to MJPEG.');
-            fallbackToMjpeg();
-          }
-        }, 12000); // 12 seconds is enough for ffmpeg to start up and write first segments
-
-        hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
-          if (!data.fatal) return;
-          console.warn('[CameraMediaFrame] HLS fatal error:', data.type);
-          clearTimeout(watchdog);
-          retryCount += 1;
-          if (retryCount < HLS_MAX_RETRIES && !cancelled) {
-            hlsPlayer.destroy();
-            player = null;
-            setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
-          } else {
-            console.warn('[CameraMediaFrame] HLS fatal error max retries reached, falling back to MJPEG.');
-            fallbackToMjpeg();
-          }
-        });
-      };
-
-      createPlayer();
+      fallbackToMjpeg();
     };
 
     void initialize().catch(fallbackToMjpeg);
