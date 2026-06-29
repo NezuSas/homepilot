@@ -394,6 +394,10 @@ export class CameraRoutes extends ApiRoutes {
       'warning',
       '-rtsp_transport',
       'tcp',
+      '-probesize',
+      '32768',
+      '-analyzeduration',
+      '100000',
       '-i',
       this.buildNativeRtspUrl(source),
       '-an',
@@ -424,7 +428,7 @@ export class CameraRoutes extends ApiRoutes {
 
     this.nativeHlsRuntimes.set(device.id, { process, directory, startedAt: Date.now() });
     try {
-      await this.waitForFile(path.join(directory, 'index.m3u8'), 5000);
+      await this.waitForFile(path.join(directory, 'index.m3u8'), 8000);
     } catch (err) {
       this.stopNativeHlsRuntime(device.id);
       if (ffmpegStderr.includes('401') || ffmpegStderr.toLowerCase().includes('unauthorized') || ffmpegStderr.toLowerCase().includes('authorization failed')) {
