@@ -17,8 +17,9 @@ interface CameraMediaFrameProps {
 }
 
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
-const HLS_MAX_RETRIES = 10;
+const HLS_MAX_RETRIES = 3;
 const HLS_RETRY_DELAY_MS = 2_000;
+const HLS_WATCHDOG_MS = 8_000;
 
 function withRefreshMarker(url: string): string {
   const separator = url.includes('?') ? '&' : '?';
@@ -142,16 +143,19 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
           let watchdog = setTimeout(() => {
             if (cancelled || hasReadyFrameRef.current) return;
             console.warn('[CameraMediaFrame] HLS watchdog timeout, retrying...');
+            clearTimeout(watchdog);
             retryCount += 1;
             if (retryCount < HLS_MAX_RETRIES && !cancelled) {
               hlsPlayer.destroy();
               player = null;
               setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
             } else {
-              console.warn('[CameraMediaFrame] HLS max retries reached, falling back to MJPEG.');
-              fallbackToMjpeg();
+              console.warn('[CameraMediaFrame] HLS max retries reached, signalling failure.');
+              hlsPlayer.destroy();
+              player = null;
+              onFailureRef.current();
             }
-          }, 12000); // 12 seconds is enough for ffmpeg to start up and write first segments
+          }, HLS_WATCHDOG_MS);
 
           hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
             if (!data.fatal) return;
@@ -163,8 +167,10 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
               player = null;
               setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
             } else {
-              console.warn('[CameraMediaFrame] HLS fatal error max retries reached, falling back to MJPEG.');
-              fallbackToMjpeg();
+              console.warn('[CameraMediaFrame] HLS fatal error max retries reached, signalling failure.');
+              hlsPlayer.destroy();
+              player = null;
+              onFailureRef.current();
             }
           });
         };

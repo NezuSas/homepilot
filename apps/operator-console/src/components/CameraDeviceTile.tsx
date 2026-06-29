@@ -105,6 +105,17 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   const handleFeedFailure = useCallback(() => {
     setIsConnecting(false);
     setHasFeedError(true);
+    // If the current session had HLS (HA camera), auto-refresh the session
+    // so we get a fresh HA HLS token instead of keeping a dead one.
+    if (mediaRef.current?.hlsPath) {
+      const timer = window.setTimeout(() => {
+        setFeedMode('hls');
+        setIsConnecting(true);
+        setHasFeedError(false);
+        setRetryVersion((v) => v + 1);
+      }, 2_000);
+      return () => window.clearTimeout(timer);
+    }
   }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
