@@ -100,14 +100,16 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
 
     const tryPlay = async () => {
       try {
+        video.muted = true;
+        video.defaultMuted = true;
         await video.play();
       } catch (err: unknown) {
         if (cancelled) return;
         if (err instanceof DOMException && err.name === 'NotAllowedError') {
-          // Browser autoplay policy — retry after a short delay
-          setTimeout(() => {
-            if (!cancelled) void video.play().catch(fallbackToMjpeg);
-          }, 500);
+          // Autoplay policy prevented playback.
+          // DO NOT fallback to MJPEG here. The video has loaded the stream and will fire onCanPlay,
+          // displaying the first frame as a poster. This is perfectly acceptable for a tile.
+          console.warn('[CameraMediaFrame] Autoplay blocked by browser policy. Video will remain paused on first frame.');
         } else {
           fallbackToMjpeg();
         }
