@@ -145,8 +145,23 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
           void tryPlay();
         });
+        
+        let watchdog = setTimeout(() => {
+          if (cancelled || hasReadyFrameRef.current) return;
+          console.warn('[CameraMediaFrame] HLS watchdog timeout, retrying...');
+          retryCount += 1;
+          if (retryCount < HLS_MAX_RETRIES && !cancelled) {
+            hlsPlayer.destroy();
+            player = null;
+            setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
+          } else {
+            fallbackToMjpeg();
+          }
+        }, 8000);
+
         hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal) return;
+          clearTimeout(watchdog);
           retryCount += 1;
           if (retryCount < HLS_MAX_RETRIES && !cancelled) {
             hlsPlayer.destroy();
