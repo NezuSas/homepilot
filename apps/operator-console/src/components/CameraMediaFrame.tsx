@@ -38,7 +38,6 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
 }) => {
   const [mode, setMode] = useState<CameraFeedMode>(preferredMode);
   const [source, setSource] = useState(preferredMode === 'stream' && active ? streamUrl : '');
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const currentObjectUrlRef = useRef<string | null>(null);
   const staleObjectUrlRef = useRef<string | null>(null);
   const hasReadyFrameRef = useRef(false);
@@ -79,10 +78,12 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     setSource(currentObjectUrlRef.current || '');
   }, [active, hlsUrl, preferredMode, streamUrl]);
 
-  useEffect(() => {
-    if (!active || mode !== 'hls' || !hlsUrl || !videoRef.current) return;
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
 
-    const video = videoRef.current;
+  useEffect(() => {
+    if (!active || mode !== 'hls' || !hlsUrl || !videoElement) return;
+
+    const video = videoElement;
     let player: import('hls.js').default | null = null;
     let cancelled = false;
     let fallbackTriggered = false;
@@ -133,7 +134,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       video.removeAttribute('src');
       video.load();
     };
-  }, [active, hlsUrl, mode, streamUrl]);
+  }, [active, hlsUrl, mode, streamUrl, videoElement]);
 
   useEffect(() => {
     if (!active || mode !== 'snapshot' || !snapshotUrl) return;
@@ -191,7 +192,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
   if (mode === 'hls' && active && hlsUrl) {
     return (
       <video
-        ref={videoRef}
+        ref={setVideoElement}
         aria-label={alt}
         className={className}
         autoPlay

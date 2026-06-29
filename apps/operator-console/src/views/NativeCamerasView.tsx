@@ -13,6 +13,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface NativeCamera {
   deviceId: string;
@@ -163,24 +164,30 @@ export const NativeCamerasView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (deviceId: string) => {
-    if (!window.confirm(t('native_cameras.delete_confirm_description'))) {
-      return;
-    }
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
+
+  const handleDelete = (deviceId: string) => {
+    setDeviceToDelete(deviceId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deviceToDelete) return;
 
     try {
-      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras/${deviceId}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras/${deviceToDelete}`, {
         method: 'DELETE'
       });
       
       if (res.ok) {
-        setCameras(prev => prev.filter(c => c.deviceId !== deviceId));
+        setCameras(prev => prev.filter(c => c.deviceId !== deviceToDelete));
       } else {
         alert(t('native_cameras.messages.delete_failed'));
       }
     } catch (err) {
       console.error(err);
       alert(t('native_cameras.messages.delete_failed'));
+    } finally {
+      setDeviceToDelete(null);
     }
   };
 
@@ -484,6 +491,15 @@ export const NativeCamerasView: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        isOpen={!!deviceToDelete}
+        onClose={() => setDeviceToDelete(null)}
+        onConfirm={confirmDelete}
+        title={t('native_cameras.delete_confirm_title', 'Eliminar cámara')}
+        description={t('native_cameras.delete_confirm_description', '¿Está seguro de que desea eliminar esta cámara? Esta acción no se puede deshacer.')}
+        confirmText={t('common.delete', 'Eliminar')}
+      />
     </PageFrame>
   );
 };
