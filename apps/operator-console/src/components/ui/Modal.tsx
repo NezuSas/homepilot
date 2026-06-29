@@ -48,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
   const Icon = variantConfig[variant].icon;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 py-4 sm:items-center sm:p-4 sm:py-6">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-base"
@@ -57,12 +57,12 @@ export const Modal: React.FC<ModalProps> = ({
       
       {/* Modal */}
       <div className={cn(
-          "surface-transition relative w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-[90vh]",
+          "surface-transition relative my-auto w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)]",
           variantConfig[variant].borderClass,
           className
         )}
       >
-        <div className="overflow-y-auto w-full custom-scrollbar">
+        <div className="min-h-0 w-full overflow-y-auto custom-scrollbar">
             {(title || description || variant !== 'default') && <div className={cn("flex flex-col items-center p-5 pb-4 text-center sm:p-8 sm:pb-6")}>
                 {variant !== 'default' && (
                     <div className={cn("mb-4 rounded-2xl p-3 sm:mb-6 sm:p-4", variantConfig[variant].colorClass)}>

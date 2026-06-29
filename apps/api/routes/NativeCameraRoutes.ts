@@ -65,6 +65,10 @@ function normalizeRtspPath(value: string | undefined): string {
   return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
+function sourceTypeRequiresManualRtspPath(sourceType: NativeCameraSourceType): boolean {
+  return sourceType !== 'onvif-ptz';
+}
+
 function toNativeCameraDto(row: NativeCameraSourceRow): Record<string, unknown> {
   return {
     deviceId: row.device_id,
@@ -267,6 +271,10 @@ export class NativeCameraRoutes extends ApiRoutes {
       const now = new Date().toISOString();
       const deviceId = `native-cam-${crypto.randomBytes(8).toString('hex')}`;
       const rtspPath = normalizeRtspPath(body.rtspPath);
+      if (sourceTypeRequiresManualRtspPath(sourceType) && !rtspPath) {
+        this.sendError(res, 400, 'VALIDATION_ERROR', 'rtspPath is required for RTSP/DVR and Sonoff cameras');
+        return;
+      }
 
       let resolvedRtspPort = rtspPort;
       let resolvedRtspPath = rtspPath;
@@ -383,6 +391,10 @@ export class NativeCameraRoutes extends ApiRoutes {
         ? normalizeRtspPath(body.rtspPath)
         : existing.rtsp_path;
       const newEnabled = typeof body.enabled === 'boolean' ? (body.enabled ? 1 : 0) : existing.enabled;
+      if (sourceTypeRequiresManualRtspPath(newSourceType) && !newRtspPath) {
+        this.sendError(res, 400, 'VALIDATION_ERROR', 'rtspPath is required for RTSP/DVR and Sonoff cameras');
+        return;
+      }
 
       if (!isValidPort(newRtspPort)) {
         this.sendError(res, 400, 'VALIDATION_ERROR', 'rtspPort must be between 1 and 65535');

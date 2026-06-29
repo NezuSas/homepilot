@@ -736,14 +736,28 @@
       "field_host": "Host or IP Address",
       "field_host_placeholder": "e.g. 192.168.1.150",
       "field_rtsp_port": "RTSP Port",
+      "field_rtsp_port_hint": "Usually 554. Port 80 is normally HTTP/ONVIF, not RTSP.",
       "field_onvif_port": "ONVIF Port",
       "field_username": "Username",
       "field_username_placeholder": "e.g. admin",
       "field_password": "Password",
       "field_password_placeholder": "Camera password",
       "field_rtsp_path": "RTSP stream path",
-      "field_rtsp_path_placeholder": "e.g. /stream1, /live/ch00_0",
-      "field_rtsp_path_hint": "Check your camera's manual to find the stream path.",
+      "field_host_hints": {
+        "onvif-ptz": "ONVIF camera IP or host. HomePilot will negotiate the video profile automatically.",
+        "rtsp-dvr": "DVR/NVR IP or host. Use the real RTSP port of the device, usually 554.",
+        "sonoff-rtsp": "Local IP of the Sonoff camera with RTSP enabled."
+      },
+      "field_rtsp_path_placeholders": {
+        "onvif-ptz": "Negotiated through ONVIF",
+        "rtsp-dvr": "e.g. /Streaming/Channels/101",
+        "sonoff-rtsp": "e.g. /av_stream/ch0"
+      },
+      "field_rtsp_path_hints": {
+        "onvif-ptz": "HomePilot gets this path from ONVIF when the device exposes it.",
+        "rtsp-dvr": "Required for DVR/NVR. Common examples: /Streaming/Channels/101, /cam/realmonitor?channel=1&subtype=0, or /live/ch00_0.",
+        "sonoff-rtsp": "Required for Sonoff RTSP. Adjust it if your model uses a different path."
+      },
       "field_home": "Home",
       "submit_create": "Save camera",
       "submit_edit": "Update camera",
@@ -755,6 +769,7 @@
         "password_required": "Password is required",
         "port_invalid": "Port must be a number between 1 and 65535",
         "home_required": "You must select a home",
+        "rtsp_path_required": "The RTSP path is required for RTSP/DVR and Sonoff.",
         "save_failed": "Could not save the camera"
       }
     },

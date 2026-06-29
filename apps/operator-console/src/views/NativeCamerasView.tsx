@@ -51,7 +51,7 @@ interface NativeCameraPayload {
 
 const sourceTypeDefaults: Record<NativeCameraSourceType, { rtspPort: number; onvifPort: number; rtspPath: string }> = {
   'onvif-ptz': { rtspPort: 554, onvifPort: 8000, rtspPath: '' },
-  'rtsp-dvr': { rtspPort: 554, onvifPort: 80, rtspPath: '/Streaming/Channels/101' },
+  'rtsp-dvr': { rtspPort: 554, onvifPort: 80, rtspPath: '' },
   'sonoff-rtsp': { rtspPort: 554, onvifPort: 80, rtspPath: '/av_stream/ch0' },
 };
 
@@ -88,6 +88,7 @@ export const NativeCamerasView: React.FC = () => {
 
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ variant: 'success' | 'warning' | 'danger'; message: string } | null>(null);
+  const needsManualRtspPath = formData.sourceType !== 'onvif-ptz';
 
   useEffect(() => {
     if (homes.length > 0 && !formData.homeId) {
@@ -263,6 +264,9 @@ export const NativeCamerasView: React.FC = () => {
     if (!formData.host.trim()) return setFormError(t('native_cameras.form.errors.host_required'));
     if (!editingDevice && !formData.username) return setFormError(t('native_cameras.form.errors.username_required'));
     if (!editingDevice && !formData.password) return setFormError(t('native_cameras.form.errors.password_required'));
+    if (formData.sourceType !== 'onvif-ptz' && !formData.rtspPath.trim()) {
+      return setFormError(t('native_cameras.form.errors.rtsp_path_required'));
+    }
     
     const rtspPortNum = Number(formData.rtspPort);
     const onvifPortNum = Number(formData.onvifPort);
@@ -593,7 +597,7 @@ export const NativeCamerasView: React.FC = () => {
             value={formData.host}
             onChange={(e) => setFormData({...formData, host: e.target.value})}
             placeholder={t('native_cameras.form.field_host_placeholder')}
-            helperText={t('native_cameras.form.field_host_hint', 'La IP o nombre de host del dispositivo ONVIF.')}
+            helperText={t(`native_cameras.form.field_host_hints.${formData.sourceType}`)}
             required
           />
 
@@ -609,26 +613,30 @@ export const NativeCamerasView: React.FC = () => {
             />
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label={t('native_cameras.form.field_rtsp_port')}
-              value={formData.rtspPort}
-              onChange={(e) => setFormData({...formData, rtspPort: parseInt(e.target.value, 10) || 554})}
-              type="number"
-              min="1"
-              max="65535"
-              required
-            />
-            <Input
-              label={t('native_cameras.form.field_rtsp_path')}
-              value={formData.rtspPath}
-              onChange={(e) => setFormData({...formData, rtspPath: e.target.value})}
-              placeholder={t('native_cameras.form.field_rtsp_path_placeholder')}
-              helperText={t('native_cameras.form.field_rtsp_path_hint')}
-            />
-          </div>
+          {needsManualRtspPath && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label={t('native_cameras.form.field_rtsp_port')}
+                value={formData.rtspPort}
+                onChange={(e) => setFormData({...formData, rtspPort: parseInt(e.target.value, 10) || 554})}
+                type="number"
+                min="1"
+                max="65535"
+                helperText={t('native_cameras.form.field_rtsp_port_hint')}
+                required
+              />
+              <Input
+                label={t('native_cameras.form.field_rtsp_path')}
+                value={formData.rtspPath}
+                onChange={(e) => setFormData({...formData, rtspPath: e.target.value})}
+                placeholder={t(`native_cameras.form.field_rtsp_path_placeholders.${formData.sourceType}`)}
+                helperText={t(`native_cameras.form.field_rtsp_path_hints.${formData.sourceType}`)}
+                required
+              />
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label={t('native_cameras.form.field_username')}
               value={formData.username}

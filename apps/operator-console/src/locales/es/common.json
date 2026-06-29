@@ -736,14 +736,28 @@
       "field_host": "Host o Dirección IP",
       "field_host_placeholder": "Ej: 192.168.1.150",
       "field_rtsp_port": "Puerto RTSP",
+      "field_rtsp_port_hint": "Normalmente es 554. El puerto 80 suele ser HTTP/ONVIF, no RTSP.",
       "field_onvif_port": "Puerto ONVIF",
       "field_username": "Usuario",
       "field_username_placeholder": "Ej: admin",
       "field_password": "Contraseña",
       "field_password_placeholder": "Contraseña de la cámara",
       "field_rtsp_path": "Ruta del stream RTSP",
-      "field_rtsp_path_placeholder": "Ej: /stream1, /live/ch00_0",
-      "field_rtsp_path_hint": "Consulta el manual de tu cámara para conocer la ruta del stream.",
+      "field_host_hints": {
+        "onvif-ptz": "IP o host ONVIF de la cámara. HomePilot negociará el perfil de video automáticamente.",
+        "rtsp-dvr": "IP o host del DVR/NVR. Usa el puerto RTSP real del equipo, normalmente 554.",
+        "sonoff-rtsp": "IP local de la cámara Sonoff con RTSP habilitado."
+      },
+      "field_rtsp_path_placeholders": {
+        "onvif-ptz": "Negociado por ONVIF",
+        "rtsp-dvr": "Ej: /Streaming/Channels/101",
+        "sonoff-rtsp": "Ej: /av_stream/ch0"
+      },
+      "field_rtsp_path_hints": {
+        "onvif-ptz": "HomePilot obtiene esta ruta desde ONVIF cuando el dispositivo la expone.",
+        "rtsp-dvr": "Obligatoria para DVR/NVR. Ejemplos comunes: /Streaming/Channels/101, /cam/realmonitor?channel=1&subtype=0 o /live/ch00_0.",
+        "sonoff-rtsp": "Obligatoria para Sonoff RTSP. Ajusta la ruta si tu modelo usa una distinta."
+      },
       "field_home": "Hogar",
       "submit_create": "Guardar cámara",
       "submit_edit": "Actualizar cámara",
@@ -755,6 +769,7 @@
         "password_required": "La contraseña es obligatoria",
         "port_invalid": "El puerto debe ser un número entre 1 y 65535",
         "home_required": "Debes seleccionar un hogar",
+        "rtsp_path_required": "La ruta RTSP es obligatoria para RTSP/DVR y Sonoff.",
         "save_failed": "No se pudo guardar la cámara"
       }
     },
