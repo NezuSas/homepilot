@@ -87,6 +87,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     let player: import('hls.js').default | null = null;
     let cancelled = false;
     let fallbackTriggered = false;
+
     const fallbackToMjpeg = () => {
       if (fallbackTriggered) return;
       fallbackTriggered = true;
@@ -95,10 +96,26 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       onModeChangeRef.current('stream');
     };
 
+    const tryPlay = async () => {
+      try {
+        await video.play();
+      } catch (err: unknown) {
+        if (cancelled) return;
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
+          // Browser autoplay policy — retry after a short delay
+          setTimeout(() => {
+            if (!cancelled) void video.play().catch(fallbackToMjpeg);
+          }, 500);
+        } else {
+          fallbackToMjpeg();
+        }
+      }
+    };
+
     const initialize = async () => {
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = hlsUrl;
-        await video.play().catch(fallbackToMjpeg);
+        await tryPlay();
         return;
       }
 
@@ -118,7 +135,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       hlsPlayer.attachMedia(video);
       hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(hlsUrl));
       hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-        void video.play().catch(fallbackToMjpeg);
+        void tryPlay();
       });
       hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) fallbackToMjpeg();
