@@ -699,6 +699,22 @@
       "rtsp-dvr": "Uses a direct RTSP path from the DVR. Ideal for Hikvision, Dahua, or NVR channels.",
       "sonoff-rtsp": "Uses the local RTSP stream exposed by compatible Sonoff cameras."
     },
+    "discovery": {
+      "title": "Add native camera",
+      "subtitle": "Choose the integration type. HomePilot will discover ONVIF when the protocol supports it; RTSP/DVR and Sonoff are configured with their local URL.",
+      "searching": "Searching ONVIF devices...",
+      "manual": "Configure ONVIF device manually",
+      "submit": "Continue",
+      "profile_hints": {
+        "onvif-ptz": "Discover on the network or manually configure an ONVIF/PTZ camera.",
+        "rtsp-dvr": "Add a DVR/NVR channel using host, port, and RTSP path.",
+        "sonoff-rtsp": "Add a Sonoff camera that exposes local RTSP."
+      },
+      "manual_profile_notes": {
+        "rtsp-dvr": "RTSP/DVR has no universal discovery. Enter the DVR IP and channel path in the next step.",
+        "sonoff-rtsp": "Sonoff is configured through local RTSP. Enter the camera IP and adjust the path if your model uses a different one."
+      }
+    },
     "edit": "Edit",
     "delete": "Delete",
     "delete_confirm_title": "Delete camera?",
