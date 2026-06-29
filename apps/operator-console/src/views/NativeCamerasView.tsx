@@ -445,7 +445,7 @@ export const NativeCamerasView: React.FC = () => {
         onClose={() => !isDiscovering && setIsDiscoveryModalOpen(false)}
         title={t('native_cameras.discovery.title')}
         description={t('native_cameras.discovery.subtitle')}
-        className="max-w-2xl"
+        className="max-w-[min(1120px,calc(100vw-2rem))]"
       >
         {isDiscovering ? (
           <div className="flex flex-col items-center justify-center p-8 space-y-4">
@@ -454,7 +454,7 @@ export const NativeCamerasView: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleDiscoverySubmit} className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               {(['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'] as NativeCameraSourceType[]).map(sourceType => (
                 <label
                   key={sourceType}
@@ -489,7 +489,7 @@ export const NativeCamerasView: React.FC = () => {
                 />
               )}
 
-              <div className="max-h-[320px] space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+              <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1 custom-scrollbar lg:grid-cols-2">
                   <label className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
                     <input
                       type="radio"
@@ -554,7 +554,7 @@ export const NativeCamerasView: React.FC = () => {
         onClose={() => !isSubmitting && setIsModalOpen(false)}
         title={editingDevice ? t('native_cameras.form.title_edit') : t('native_cameras.form.title_create')}
         description={t('native_cameras.form.subtitle')}
-        className="max-w-2xl"
+        className="max-w-[min(960px,calc(100vw-2rem))]"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
