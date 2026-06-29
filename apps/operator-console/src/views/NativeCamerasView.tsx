@@ -126,7 +126,7 @@ export const NativeCamerasView: React.FC = () => {
     setIsDiscoveryModalOpen(true);
     setIsDiscovering(true);
     setSelectedSourceType('onvif-ptz');
-    setSelectedDiscoveredCamera('');
+    setSelectedDiscoveredCamera('manual');
     try {
       const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras/discover`);
       if (res.ok) {
@@ -150,14 +150,16 @@ export const NativeCamerasView: React.FC = () => {
     setEditingDevice(null);
     setFormError(null);
 
+    const selectedCamera = discoveredCameras.find(camera => camera.urn === selectedDiscoveredCamera);
+
     if (selectedSourceType !== 'onvif-ptz') {
       const defaults = sourceTypeDefaults[selectedSourceType];
       setFormData({
-        name: '',
+        name: selectedCamera?.name || '',
         sourceType: selectedSourceType,
-        host: '',
+        host: selectedCamera?.host || '',
         rtspPort: defaults.rtspPort,
-        onvifPort: defaults.onvifPort,
+        onvifPort: selectedCamera?.onvifPort || defaults.onvifPort,
         username: '',
         password: '',
         rtspPath: defaults.rtspPath,
@@ -176,14 +178,13 @@ export const NativeCamerasView: React.FC = () => {
         homeId: homes[0]?.id || ''
       });
     } else {
-      const cam = discoveredCameras.find(c => c.urn === selectedDiscoveredCamera);
-      if (cam) {
+      if (selectedCamera) {
         setFormData({
-          name: cam.name,
+          name: selectedCamera.name,
           sourceType: 'onvif-ptz',
-          host: cam.host,
+          host: selectedCamera.host,
           rtspPort: 554, // usually ONVIF profile provides RTSP, but we set default
-          onvifPort: cam.onvifPort,
+          onvifPort: selectedCamera.onvifPort,
           username: '',
           password: '',
           rtspPath: '',
@@ -440,6 +441,7 @@ export const NativeCamerasView: React.FC = () => {
         onClose={() => !isDiscovering && setIsDiscoveryModalOpen(false)}
         title={t('native_cameras.discovery.title')}
         description={t('native_cameras.discovery.subtitle')}
+        className="max-w-2xl"
       >
         {isDiscovering ? (
           <div className="flex flex-col items-center justify-center p-8 space-y-4">
@@ -448,11 +450,11 @@ export const NativeCamerasView: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleDiscoverySubmit} className="space-y-6">
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3">
               {(['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'] as NativeCameraSourceType[]).map(sourceType => (
                 <label
                   key={sourceType}
-                  className={`flex cursor-pointer flex-col gap-2 rounded-card border p-4 transition-colors ${
+                  className={`flex min-h-[136px] cursor-pointer flex-col gap-2 rounded-card border p-4 transition-colors ${
                     selectedSourceType === sourceType
                       ? 'border-primary/60 bg-primary/10 text-foreground'
                       : 'border-border/50 bg-card hover:bg-muted/30'
@@ -465,7 +467,7 @@ export const NativeCamerasView: React.FC = () => {
                     checked={selectedSourceType === sourceType}
                     onChange={() => {
                       setSelectedSourceType(sourceType);
-                      setSelectedDiscoveredCamera(sourceType === 'onvif-ptz' ? 'manual' : '');
+                      setSelectedDiscoveredCamera('manual');
                     }}
                     className="sr-only"
                   />
@@ -476,8 +478,14 @@ export const NativeCamerasView: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {selectedSourceType === 'onvif-ptz' ? (
-                <>
+              {selectedSourceType !== 'onvif-ptz' && (
+                <AlertBanner
+                  variant="info"
+                  message={t(`native_cameras.discovery.manual_profile_notes.${selectedSourceType}`)}
+                />
+              )}
+
+              <div className="max-h-[320px] space-y-3 overflow-y-auto pr-1 custom-scrollbar">
                   <label className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
                     <input
                       type="radio"
@@ -487,7 +495,18 @@ export const NativeCamerasView: React.FC = () => {
                       onChange={() => setSelectedDiscoveredCamera('manual')}
                       className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
                     />
-                    <span className="text-sm font-medium text-foreground">{t('native_cameras.discovery.manual')}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-foreground">
+                        {selectedSourceType === 'onvif-ptz'
+                          ? t('native_cameras.discovery.manual')
+                          : t('native_cameras.discovery.manual_rtsp')}
+                      </span>
+                      {selectedSourceType !== 'onvif-ptz' && (
+                        <span className="text-xs text-muted-foreground">
+                          {t(`native_cameras.discovery.manual_rtsp_hints.${selectedSourceType}`)}
+                        </span>
+                      )}
+                    </div>
                   </label>
 
                   {discoveredCameras.map(cam => (
@@ -502,24 +521,22 @@ export const NativeCamerasView: React.FC = () => {
                       />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-foreground">{cam.name}</span>
-                        <span className="text-xs text-muted-foreground/80 font-mono">{cam.host}:{cam.onvifPort}</span>
+                        <span className="text-xs text-muted-foreground/80 font-mono">
+                          {selectedSourceType === 'onvif-ptz'
+                            ? `${cam.host}:${cam.onvifPort}`
+                            : `${cam.host} · ${t('native_cameras.discovery.detected_by_onvif')}`}
+                        </span>
                       </div>
                     </label>
                   ))}
-                </>
-              ) : (
-                <AlertBanner
-                  variant="info"
-                  message={t(`native_cameras.discovery.manual_profile_notes.${selectedSourceType}`)}
-                />
-              )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
               <Button 
                 type="submit" 
                 variant="primary"
-                disabled={selectedSourceType === 'onvif-ptz' && !selectedDiscoveredCamera && discoveredCameras.length > 0}
+                disabled={!selectedDiscoveredCamera && discoveredCameras.length > 0}
               >
                 {t('native_cameras.discovery.submit')}
               </Button>
@@ -533,6 +550,7 @@ export const NativeCamerasView: React.FC = () => {
         onClose={() => !isSubmitting && setIsModalOpen(false)}
         title={editingDevice ? t('native_cameras.form.title_edit') : t('native_cameras.form.title_create')}
         description={t('native_cameras.form.subtitle')}
+        className="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (

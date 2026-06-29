@@ -8,6 +8,8 @@ La integración nativa soporta perfiles explícitos:
 - `rtsp-dvr`: cámara o canal proveniente de DVR/NVR por RTSP directo.
 - `sonoff-rtsp`: cámara Sonoff compatible con stream RTSP local.
 
+RTSP puro no define un mecanismo universal de descubrimiento. Si el DVR o cámara aparece por ONVIF/WS-Discovery, HomePilot puede reutilizar ese resultado únicamente como ayuda para prellenar `host` y `name`, pero debe guardar la fuente con el perfil elegido (`rtsp-dvr` o `sonoff-rtsp`) y con puerto RTSP recomendado `554`.
+
 ## Arquitectura
 - **Backend (Storage):** Las credenciales y parámetros de conexión (tipo de fuente, host, puerto RTSP, puerto ONVIF, credenciales) se guardan en una nueva tabla `native_camera_sources`.
 - **Backend (API):** Nuevas rutas CRUD en `NativeCameraRoutes.ts` permiten gestionar estas fuentes.
@@ -47,3 +49,4 @@ No se permite registrar dos cámaras nativas con el mismo `home_id`, `host`, `rt
 7. Para `onvif-ptz`, HomePilot debe intentar negociar el stream por ONVIF antes de caer a validación TCP RTSP.
 8. Para `rtsp-dvr` y `sonoff-rtsp`, HomePilot debe evitar la negociación ONVIF y validar el endpoint RTSP configurado.
 9. Si la cámara ya existe, el backend debe bloquear el duplicado y el frontend debe mostrar un aviso visual consistente con el design system.
+10. En el alta de cámaras, el usuario debe poder seleccionar ONVIF/PTZ, RTSP/DVR o Sonoff/RTSP antes del formulario de conexión. Los resultados descubiertos por ONVIF pueden mostrarse también en RTSP/DVR y Sonoff/RTSP solo como ayuda para prellenar datos.

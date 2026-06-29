@@ -704,6 +704,8 @@
       "subtitle": "Elige el tipo de integración. HomePilot buscará ONVIF cuando el protocolo lo permita; RTSP/DVR y Sonoff se configuran con su URL local.",
       "searching": "Buscando dispositivos ONVIF...",
       "manual": "Configurar dispositivo ONVIF manualmente",
+      "manual_rtsp": "Configurar RTSP manualmente",
+      "detected_by_onvif": "detectado por ONVIF para prellenar IP",
       "submit": "Continuar",
       "profile_hints": {
         "onvif-ptz": "Buscar en red o configurar manualmente una cámara ONVIF/PTZ.",
@@ -711,8 +713,12 @@
         "sonoff-rtsp": "Agregar una cámara Sonoff que expone RTSP local."
       },
       "manual_profile_notes": {
-        "rtsp-dvr": "RTSP/DVR no tiene descubrimiento universal. Ingresa la IP del DVR y la ruta del canal en el siguiente paso.",
-        "sonoff-rtsp": "Sonoff se configura por RTSP local. Ingresa la IP de la cámara y ajusta la ruta si tu modelo usa una distinta."
+        "rtsp-dvr": "RTSP/DVR no tiene descubrimiento universal. Puedes seleccionar un DVR detectado para prellenar la IP; el puerto RTSP recomendado será 554.",
+        "sonoff-rtsp": "Sonoff se configura por RTSP local. Puedes seleccionar una cámara detectada para prellenar la IP y ajustar la ruta si tu modelo usa una distinta."
+      },
+      "manual_rtsp_hints": {
+        "rtsp-dvr": "Usa esta opción si conoces la IP del DVR o si no aparece en la lista.",
+        "sonoff-rtsp": "Usa esta opción si conoces la IP de la cámara Sonoff o si no aparece en la lista."
       }
     },
     "edit": "Editar",
