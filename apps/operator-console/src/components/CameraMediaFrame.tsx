@@ -105,20 +105,10 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         await video.play();
       } catch (err: unknown) {
         if (cancelled) return;
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          // Play promise was interrupted (e.g., watchdog destroyed the player). Ignore to allow retry.
-          return;
-        }
-        if (err instanceof DOMException && err.name === 'NotAllowedError') {
-          // Autoplay policy prevented playback.
-          // DO NOT fallback to MJPEG here. The video has loaded the stream and will fire onCanPlay,
-          // displaying the first frame as a poster. This is perfectly acceptable for a tile.
-          console.warn('[CameraMediaFrame] Autoplay blocked by browser policy. Video will remain paused on first frame.');
-          hasReadyFrameRef.current = true;
-          onReadyRef.current();
-        } else {
-          fallbackToMjpeg();
-        }
+        console.warn('[CameraMediaFrame] video.play() threw an error (likely autoplay blocked or aborted):', err);
+        // DO NOT fallback to MJPEG here!
+        // If autoplay is blocked or aborted, the video will just remain paused, which is fine.
+        // onCanPlay will still fire if the media successfully buffered.
       }
     };
 
@@ -167,12 +157,14 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
             player = null;
             setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
           } else {
+            console.warn('[CameraMediaFrame] HLS max retries reached, falling back to MJPEG.');
             fallbackToMjpeg();
           }
-        }, 8000);
+        }, 12000); // 12 seconds is enough for ffmpeg to start up and write first segments
 
         hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal) return;
+          console.warn('[CameraMediaFrame] HLS fatal error:', data.type);
           clearTimeout(watchdog);
           retryCount += 1;
           if (retryCount < HLS_MAX_RETRIES && !cancelled) {
@@ -180,6 +172,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
             player = null;
             setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
           } else {
+            console.warn('[CameraMediaFrame] HLS fatal error max retries reached, falling back to MJPEG.');
             fallbackToMjpeg();
           }
         });
