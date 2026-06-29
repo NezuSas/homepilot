@@ -17,7 +17,7 @@ interface CameraMediaFrameProps {
 }
 
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
-const HLS_MAX_RETRIES = 3;
+const HLS_MAX_RETRIES = 10;
 const HLS_RETRY_DELAY_MS = 2_000;
 
 function withRefreshMarker(url: string): string {
@@ -149,7 +149,11 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         });
         player = hlsPlayer;
         hlsPlayer.attachMedia(video);
-        hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(hlsUrl));
+        
+        // Append a cache-buster so that retries fetch a fresh manifest.
+        // This is crucial because the initial manifest might be empty while ffmpeg starts.
+        const bustUrl = withRefreshMarker(hlsUrl);
+        hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(bustUrl));
         hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
           void tryPlay();
         });
