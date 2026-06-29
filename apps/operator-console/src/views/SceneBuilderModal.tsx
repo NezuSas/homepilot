@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Save, PlayCircle, Loader2, List, Settings, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -121,7 +122,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
       
@@ -300,6 +301,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

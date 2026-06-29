@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { IconButton } from './ui/IconButton';
 
@@ -14,7 +15,7 @@ export const AutomationBuilderModalFrame: React.FC<AutomationBuilderModalFramePr
   subtitle,
   onClose,
   children
-}) => (
+}) => createPortal(
   <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
     <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
     <div className="relative w-full max-w-3xl bg-card/60 backdrop-blur-2xl border-2 border-border/40 rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 duration-500">
@@ -29,5 +30,6 @@ export const AutomationBuilderModalFrame: React.FC<AutomationBuilderModalFramePr
         {children}
       </div>
     </div>
-  </div>
+  </div>,
+  document.body
 );

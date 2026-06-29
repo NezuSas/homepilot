@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Camera, X, Check, Loader2, UserCircle2, ZoomIn, Move } from 'lucide-react';
 import { API_BASE_URL } from '../config';
@@ -183,7 +184,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
     ? t('users.roles.admin', 'Administrador (Padre)')
     : t('users.roles.operator', 'Estándar (Hijo)');
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -307,6 +308,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

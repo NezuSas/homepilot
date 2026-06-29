@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Activity,
@@ -270,10 +271,11 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   };
 
   if (loading) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-[100] flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -282,7 +284,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
   const unavailable = isDeviceUnavailable(device);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex justify-end animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" onClick={onClose} />
 
@@ -670,6 +672,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         variant="danger"
         isSubmitting={isActionLoading}
       />
-    </div>
+    </div>,
+    document.body
   );
 };

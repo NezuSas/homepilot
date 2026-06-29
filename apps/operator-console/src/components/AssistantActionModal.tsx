@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Check, Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -70,7 +71,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-xl animate-in fade-in duration-300">
       <div className="w-full max-w-md bg-card border border-muted rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         <header className="p-6 border-b border-muted">
@@ -169,6 +170,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

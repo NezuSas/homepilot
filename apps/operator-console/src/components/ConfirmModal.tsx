@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 
@@ -43,7 +44,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     info: 'text-primary bg-primary/10',
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       <div
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-300"
@@ -89,7 +90,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <X className="w-5 h-5 text-foreground/20 group-hover:text-foreground/40" />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
