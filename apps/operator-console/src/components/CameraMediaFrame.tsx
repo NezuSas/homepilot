@@ -17,6 +17,8 @@ interface CameraMediaFrameProps {
 }
 
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
+const HLS_MAX_RETRIES = 3;
+const HLS_RETRY_DELAY_MS = 2_000;
 
 function withRefreshMarker(url: string): string {
   const separator = url.includes('?') ? '&' : '?';
@@ -126,20 +128,37 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         return;
       }
 
-      const hlsPlayer = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 30,
-      });
-      player = hlsPlayer;
-      hlsPlayer.attachMedia(video);
-      hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(hlsUrl));
-      hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-        void tryPlay();
-      });
-      hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) fallbackToMjpeg();
-      });
+      let retryCount = 0;
+
+      const createPlayer = () => {
+        if (cancelled) return;
+        if (player) player.destroy();
+
+        const hlsPlayer = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 30,
+        });
+        player = hlsPlayer;
+        hlsPlayer.attachMedia(video);
+        hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(hlsUrl));
+        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+          void tryPlay();
+        });
+        hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
+          if (!data.fatal) return;
+          retryCount += 1;
+          if (retryCount < HLS_MAX_RETRIES && !cancelled) {
+            hlsPlayer.destroy();
+            player = null;
+            setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
+          } else {
+            fallbackToMjpeg();
+          }
+        });
+      };
+
+      createPlayer();
     };
 
     void initialize().catch(fallbackToMjpeg);
@@ -223,7 +242,14 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     );
   }
 
-  if (!source) return null;
+  if (!source) {
+    // Dead-end: no source available after fallback chain — notify failure
+    if (mode === 'snapshot' && !currentObjectUrlRef.current && hasReadyFrameRef.current === false) {
+      // Schedule onFailure in a microtask to avoid calling during render
+      queueMicrotask(() => onFailureRef.current());
+    }
+    return null;
+  }
 
   return (
     <img
