@@ -33,7 +33,7 @@ interface CameraHlsProxySession {
   readonly nativeDirectory?: string;
 }
 
-const CAMERA_PROXY_TOKEN_TTL_MS = 5 * 60 * 1000;
+const CAMERA_PROXY_TOKEN_TTL_MS = 30 * 60 * 1000;
 const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
 
 interface NativeCameraSourceRow {

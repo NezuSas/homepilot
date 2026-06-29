@@ -82,7 +82,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
   useEffect(() => {
     if (!media) return;
-    const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 4 * 60 * 1000);
+    const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 10 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [media]);
 
