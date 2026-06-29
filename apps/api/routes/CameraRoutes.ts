@@ -276,8 +276,26 @@ export class CameraRoutes extends ApiRoutes {
 
     const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
     const entityId = this.resolveCameraEntityId(device);
-    if (!entityId) {
+    if (!device || !entityId) {
       this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Camera device not found');
+      return;
+    }
+
+    if (device.integrationSource === 'native-camera') {
+      const nativeSource = this.getNativeCameraSource(device.id);
+      if (!nativeSource || nativeSource.enabled !== 1) {
+        this.sendError(res, 409, 'CAMERA_UNAVAILABLE', 'Native camera is not configured');
+        return;
+      }
+      if (kind === 'snapshot') {
+        this.serveNativeCameraSnapshot(res, nativeSource);
+        return;
+      }
+      if (kind === 'stream') {
+        this.serveNativeCameraStream(res, nativeSource);
+        return;
+      }
+      this.sendError(res, 400, 'INVALID_MEDIA_KIND', `Unsupported media kind: ${kind}`);
       return;
     }
 
@@ -460,6 +478,64 @@ export class CameraRoutes extends ApiRoutes {
     const username = encodeURIComponent(source.username);
     const password = encodeURIComponent(source.password);
     return `rtsp://${username}:${password}@${source.host}:${source.rtsp_port}${rtspPath}`;
+  }
+
+  private serveNativeCameraSnapshot(res: http.ServerResponse, source: NativeCameraSourceRow): void {
+    const rtspUrl = this.buildNativeRtspUrl(source);
+    const process = spawn('ffmpeg', [
+      '-hide_banner',
+      '-loglevel',
+      'warning',
+      '-rtsp_transport',
+      'tcp',
+      '-i',
+      rtspUrl,
+      '-vframes',
+      '1',
+      '-f',
+      'image2',
+      '-',
+    ]);
+
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'no-store, max-age=0',
+    });
+
+    process.stdout.pipe(res);
+    process.on('exit', (code) => {
+      if (code !== 0) {
+        console.error(`[CameraRoutes] ffmpeg snapshot exit code ${code}`);
+      }
+    });
+  }
+
+  private serveNativeCameraStream(res: http.ServerResponse, source: NativeCameraSourceRow): void {
+    const rtspUrl = this.buildNativeRtspUrl(source);
+    const process = spawn('ffmpeg', [
+      '-hide_banner',
+      '-loglevel',
+      'warning',
+      '-rtsp_transport',
+      'tcp',
+      '-i',
+      rtspUrl,
+      '-c:v',
+      'mjpeg',
+      '-f',
+      'mpjpeg',
+      '-',
+    ]);
+
+    res.writeHead(200, {
+      'Content-Type': 'multipart/x-mixed-replace; boundary=--ffmpeg',
+      'Cache-Control': 'no-store, max-age=0',
+    });
+
+    process.stdout.pipe(res);
+    res.on('close', () => {
+      process.kill('SIGTERM');
+    });
   }
 
   private async waitForFile(filePath: string, timeoutMs: number): Promise<void> {
