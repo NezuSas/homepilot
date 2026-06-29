@@ -439,7 +439,11 @@ export class CameraRoutes extends ApiRoutes {
       ffmpegStderr += chunk.toString();
     });
 
-    process.on('exit', () => {
+    process.on('exit', (code, signal) => {
+      console.log(`[CameraRoutes] ffmpeg process for device ${device.id} exited with code ${code} and signal ${signal}`);
+      if (code !== 0 && code !== null) {
+        console.error(`[CameraRoutes] ffmpeg stderr: ${ffmpegStderr.slice(-500)}`);
+      }
       const current = this.nativeHlsRuntimes.get(device.id);
       if (current?.process === process) this.nativeHlsRuntimes.delete(device.id);
     });
