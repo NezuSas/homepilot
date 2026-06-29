@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { X, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { IconButton } from './IconButton';
@@ -47,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   const Icon = variantConfig[variant].icon;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 py-4 sm:items-center sm:p-4 sm:py-6">
       {/* Backdrop */}
       <div 
@@ -90,6 +91,7 @@ export const Modal: React.FC<ModalProps> = ({
           />
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
