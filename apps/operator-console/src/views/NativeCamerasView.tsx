@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Camera, Plus, Edit2, Trash2, ShieldAlert } from 'lucide-react';
+import { Camera, Plus, Edit2, Trash2, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { PageFrame } from '../components/ui/PageFrame';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Card } from '../components/ui/Card';
@@ -18,6 +18,7 @@ import ConfirmModal from '../components/ConfirmModal';
 interface NativeCamera {
   deviceId: string;
   homeId: string;
+  sourceType: NativeCameraSourceType;
   name: string;
   host: string;
   onvifPort: number;
@@ -26,6 +27,33 @@ interface NativeCamera {
   enabled: boolean;
   createdAt: string;
 }
+
+type NativeCameraSourceType = 'onvif-ptz' | 'rtsp-dvr' | 'sonoff-rtsp';
+
+interface DiscoveredCamera {
+  urn: string;
+  name: string;
+  host: string;
+  onvifPort: number;
+}
+
+interface NativeCameraPayload {
+  sourceType: NativeCameraSourceType;
+  name: string;
+  host: string;
+  rtspPort: number;
+  onvifPort: number;
+  rtspPath: string;
+  username?: string;
+  password?: string;
+  homeId?: string;
+}
+
+const sourceTypeDefaults: Record<NativeCameraSourceType, { rtspPort: number; onvifPort: number; rtspPath: string }> = {
+  'onvif-ptz': { rtspPort: 554, onvifPort: 8000, rtspPath: '' },
+  'rtsp-dvr': { rtspPort: 554, onvifPort: 80, rtspPath: '/Streaming/Channels/101' },
+  'sonoff-rtsp': { rtspPort: 554, onvifPort: 80, rtspPath: '/av_stream/ch0' },
+};
 
 export const NativeCamerasView: React.FC = () => {
   const { t } = useTranslation();
@@ -39,13 +67,14 @@ export const NativeCamerasView: React.FC = () => {
   // Discovery State
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveredCameras, setDiscoveredCameras] = useState<any[]>([]);
+  const [discoveredCameras, setDiscoveredCameras] = useState<DiscoveredCamera[]>([]);
   const [selectedDiscoveredCamera, setSelectedDiscoveredCamera] = useState<string>('');
   
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
+    sourceType: 'onvif-ptz' as NativeCameraSourceType,
     name: '',
     host: '',
     rtspPort: 554,
@@ -57,6 +86,7 @@ export const NativeCamerasView: React.FC = () => {
   });
 
   const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ variant: 'success' | 'warning' | 'danger'; message: string } | null>(null);
 
   useEffect(() => {
     if (homes.length > 0 && !formData.homeId) {
@@ -121,6 +151,7 @@ export const NativeCamerasView: React.FC = () => {
     if (selectedDiscoveredCamera === 'manual' || !selectedDiscoveredCamera) {
       setFormData({
         name: '',
+        sourceType: 'onvif-ptz',
         host: '',
         rtspPort: 554,
         onvifPort: 8000,
@@ -134,6 +165,7 @@ export const NativeCamerasView: React.FC = () => {
       if (cam) {
         setFormData({
           name: cam.name,
+          sourceType: 'onvif-ptz',
           host: cam.host,
           rtspPort: 554, // usually ONVIF profile provides RTSP, but we set default
           onvifPort: cam.onvifPort,
@@ -152,6 +184,7 @@ export const NativeCamerasView: React.FC = () => {
     setEditingDevice(camera.deviceId);
     setFormData({
       name: camera.name,
+      sourceType: camera.sourceType || 'onvif-ptz',
       host: camera.host,
       rtspPort: camera.rtspPort,
       onvifPort: camera.onvifPort,
@@ -162,6 +195,19 @@ export const NativeCamerasView: React.FC = () => {
     });
     setFormError(null);
     setIsModalOpen(true);
+  };
+
+  const handleSourceTypeChange = (sourceType: string) => {
+    if (!['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'].includes(sourceType)) return;
+    const typedSource = sourceType as NativeCameraSourceType;
+    const defaults = sourceTypeDefaults[typedSource];
+    setFormData(prev => ({
+      ...prev,
+      sourceType: typedSource,
+      rtspPort: defaults.rtspPort,
+      onvifPort: defaults.onvifPort,
+      rtspPath: prev.rtspPath || defaults.rtspPath,
+    }));
   };
 
   const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
@@ -194,6 +240,7 @@ export const NativeCamerasView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setNotice(null);
     
     // Basic validation
     if (!formData.name.trim()) return setFormError(t('native_cameras.form.errors.name_required'));
@@ -211,7 +258,8 @@ export const NativeCamerasView: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const payload: any = {
+      const payload: NativeCameraPayload = {
+        sourceType: formData.sourceType,
         name: formData.name,
         host: formData.host,
         rtspPort: rtspPortNum,
@@ -241,6 +289,9 @@ export const NativeCamerasView: React.FC = () => {
       } else {
         const errData = await res.json().catch(() => ({}));
         const errorMsg = errData?.error?.message || errData?.message || t('native_cameras.form.errors.save_failed');
+        if (errData?.error?.code === 'NATIVE_CAMERA_ALREADY_EXISTS') {
+          setNotice({ variant: 'warning', message: errorMsg || t('native_cameras.messages.already_exists') });
+        }
         setFormError(errorMsg);
       }
     } catch (err) {
@@ -274,6 +325,25 @@ export const NativeCamerasView: React.FC = () => {
         message={t('native_cameras.security_note')}
         className="mb-6"
       />
+
+      {notice && (
+        <div className="fixed right-4 top-4 z-[140] w-[min(420px,calc(100vw-2rem))]">
+          <AlertBanner
+            variant={notice.variant}
+            icon={AlertTriangle}
+            message={notice.message}
+            action={(
+              <button
+                type="button"
+                className="rounded-pill border border-current/20 px-3 py-1 text-xs font-semibold"
+                onClick={() => setNotice(null)}
+              >
+                {t('common.close', 'Cerrar')}
+              </button>
+            )}
+          />
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center p-12">
@@ -309,6 +379,9 @@ export const NativeCamerasView: React.FC = () => {
                           {camera.enabled ? t('native_cameras.status_active') : t('native_cameras.status_inactive')}
                         </StatusPill>
                       </div>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                        {t(`native_cameras.source_types.${camera.sourceType || 'onvif-ptz'}`)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
@@ -421,10 +494,22 @@ export const NativeCamerasView: React.FC = () => {
             <SelectField
               label={t('native_cameras.form.field_home')}
               value={formData.homeId}
-              onChange={(e: any) => setFormData({...formData, homeId: e.target.value})}
+              onChange={(value) => setFormData({...formData, homeId: value})}
               options={homes.map(h => ({ value: h.id, label: h.name || h.id }))}
             />
           )}
+
+          <SelectField
+            label={t('native_cameras.form.field_source_type')}
+            value={formData.sourceType}
+            onChange={handleSourceTypeChange}
+            options={[
+              { value: 'onvif-ptz', label: t('native_cameras.source_types.onvif-ptz') },
+              { value: 'rtsp-dvr', label: t('native_cameras.source_types.rtsp-dvr') },
+              { value: 'sonoff-rtsp', label: t('native_cameras.source_types.sonoff-rtsp') },
+            ]}
+            helperText={t(`native_cameras.source_type_hints.${formData.sourceType}`)}
+          />
 
           <Input
             label={t('native_cameras.form.field_name')}
@@ -443,15 +528,36 @@ export const NativeCamerasView: React.FC = () => {
             required
           />
 
-          <Input
-            label={t('native_cameras.form.field_onvif_port')}
-            value={formData.onvifPort}
-            onChange={(e) => setFormData({...formData, onvifPort: parseInt(e.target.value) || 8000})}
-            type="number"
-            min="1"
-            max="65535"
-            required
-          />
+          {formData.sourceType === 'onvif-ptz' && (
+            <Input
+              label={t('native_cameras.form.field_onvif_port')}
+              value={formData.onvifPort}
+              onChange={(e) => setFormData({...formData, onvifPort: parseInt(e.target.value, 10) || 8000})}
+              type="number"
+              min="1"
+              max="65535"
+              required
+            />
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={t('native_cameras.form.field_rtsp_port')}
+              value={formData.rtspPort}
+              onChange={(e) => setFormData({...formData, rtspPort: parseInt(e.target.value, 10) || 554})}
+              type="number"
+              min="1"
+              max="65535"
+              required
+            />
+            <Input
+              label={t('native_cameras.form.field_rtsp_path')}
+              value={formData.rtspPath}
+              onChange={(e) => setFormData({...formData, rtspPath: e.target.value})}
+              placeholder={t('native_cameras.form.field_rtsp_path_placeholder')}
+              helperText={t('native_cameras.form.field_rtsp_path_hint')}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input

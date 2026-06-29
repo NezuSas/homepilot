@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS native_camera_sources (
   device_id TEXT PRIMARY KEY,
   home_id TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'onvif-ptz',
   name TEXT NOT NULL,
   host TEXT NOT NULL,
   onvif_port INTEGER NOT NULL DEFAULT 8000,

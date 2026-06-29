@@ -689,6 +689,16 @@
     "rtsp_port_label": "Puerto RTSP",
     "rtsp_path_label": "Ruta RTSP",
     "onvif_port_label": "Puerto ONVIF",
+    "source_types": {
+      "onvif-ptz": "ONVIF / PTZ",
+      "rtsp-dvr": "RTSP / DVR",
+      "sonoff-rtsp": "Sonoff / RTSP"
+    },
+    "source_type_hints": {
+      "onvif-ptz": "Usa ONVIF para negociar el perfil de video y deja preparada la cámara PTZ para control local.",
+      "rtsp-dvr": "Usa una ruta RTSP directa del DVR. Ideal para canales como Hikvision, Dahua o grabadores NVR.",
+      "sonoff-rtsp": "Usa el stream RTSP local expuesto por cámaras Sonoff compatibles."
+    },
     "edit": "Editar",
     "delete": "Eliminar",
     "delete_confirm_title": "¿Eliminar cámara?",
@@ -700,6 +710,7 @@
       "subtitle": "Configura la conexión RTSP directa a tu cámara IP",
       "field_name": "Nombre de la cámara",
       "field_name_placeholder": "Ej: Cámara entrada, Jardín...",
+      "field_source_type": "Tipo de integración",
       "field_host": "Host o Dirección IP",
       "field_host_placeholder": "Ej: 192.168.1.150",
       "field_rtsp_port": "Puerto RTSP",
@@ -729,6 +740,7 @@
       "created": "Cámara agregada correctamente",
       "updated": "Cámara actualizada correctamente",
       "deleted": "Cámara eliminada correctamente",
+      "already_exists": "Esta cámara ya existe en HomePilot.",
       "delete_failed": "No se pudo eliminar la cámara",
       "load_failed": "No se pudieron cargar las cámaras"
     }
