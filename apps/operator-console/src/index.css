@@ -49,8 +49,6 @@
 
     --light-active:        36 100% 66%;      /* physical light warmth */
     --light-active-foreground: 30 60% 10%;
-    --mode-night:          246 32% 65%;
-    --mode-night-foreground: 248 45% 12%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
     --destructive:         358 70% 57%;
@@ -129,8 +127,6 @@
 
     --light-active:        34 90% 48%;
     --light-active-foreground: 30 60% 10%;
-    --mode-night:          246 34% 52%;
-    --mode-night-foreground: 0 0% 100%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
     --destructive:         358 70% 50%;

@@ -27,7 +27,10 @@ apps/operator-console/src/
     HomeConversationView.tsx
     UsersView.tsx
   components/
-    DashboardRoomsSection.tsx
+    DashboardScenesSection.tsx
+    DashboardAutomationsSection.tsx
+    DashboardInsightsSection.tsx
+    HomeClimateSummary.tsx
     InboxDeviceTile.tsx
     AutomationRuleCard.tsx
     AutomationBuilderTriggerSection.tsx

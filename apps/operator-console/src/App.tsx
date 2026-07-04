@@ -9,7 +9,6 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
-  Cpu,
   Activity,
   KeyRound,
   Monitor,
@@ -39,13 +38,11 @@ import { LoginView } from './views/LoginView';
 import { FirstAdminSetupView } from './views/FirstAdminSetupView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
-import { SystemStatusBar } from './components/SystemStatusBar';
 import { AlertBanner } from './components/ui/AlertBanner';
 import { Button } from './components/ui/Button';
 import { PageFrame } from './components/ui/PageFrame';
 import { SidebarItem } from './components/ui/SidebarItem';
-import { DEFAULT_HOME_MODE, getSafeHomeMode } from './types';
-import type { HomeMode, View } from './types';
+import type { View } from './types';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
@@ -57,7 +54,6 @@ import { GlobalWakeListener } from './components/GlobalWakeListener';
 import { GlobalWakeNotice, type GlobalWakeNoticeModel, type GlobalWakeStatus } from './components/GlobalWakeNotice';
 
 const DashboardView = lazy(() => import('./views/DashboardView').then(module => ({ default: module.DashboardView })));
-const HOME_MODE_STORAGE_KEY = 'homepilot:home-mode';
 const TopologyView = lazy(() => import('./views/TopologyView').then(module => ({ default: module.TopologyView })));
 const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
 const AutomationsView = lazy(() => import('./views/AutomationsView'));
@@ -155,13 +151,6 @@ function App() {
     !window.matchMedia('(pointer: coarse) and (max-width: 1366px)').matches
   ));
   const [isBackendOffline, setIsBackendOffline] = useState(false);
-  const [currentMode, setCurrentMode] = useState<HomeMode>(() => {
-    try {
-      return getSafeHomeMode(localStorage.getItem(HOME_MODE_STORAGE_KEY));
-    } catch {
-      return DEFAULT_HOME_MODE;
-    }
-  });
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [localProfile, setLocalProfile] = useState<{ displayName: string | null; avatarDataUri: string | null }>(() => {
@@ -215,7 +204,6 @@ function App() {
   // ─── Real-time Integration ───────────────────────────────────────────
   const { lastEvent: lastRealtimeEvent } = useRealtimeEvents(status === 'authenticated');
   const assistantSummary = useAppShellStore((state) => state.assistantSummary);
-  const isAllSynced = useAppShellStore((state) => state.isAllSynced);
   const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
   const pulseSyncStatus = useAppShellStore((state) => state.pulseSyncStatus);
   const refreshAssistantFindings = useAssistantStore((state) => state.refreshFindings);
@@ -231,31 +219,10 @@ function App() {
       view: 'dashboard'
     },
     {
-      id: 'home-modes',
-      target: '[data-demo="home-mode-selector"]',
-      titleKey: 'demo.steps.modes.title',
-      descriptionKey: 'demo.steps.modes.description',
-      view: 'dashboard'
-    },
-    {
-      id: 'command-center',
-      target: '[data-demo="command-center"]',
-      titleKey: 'demo.steps.command_center.title',
-      descriptionKey: 'demo.steps.command_center.description',
-      view: 'dashboard'
-    },
-    {
       id: 'scenes',
       target: '[data-demo="dashboard-scenes"]',
       titleKey: 'demo.steps.scenes.title',
       descriptionKey: 'demo.steps.scenes.description',
-      view: 'dashboard'
-    },
-    {
-      id: 'devices',
-      target: '[data-demo="device-tile"]',
-      titleKey: 'demo.steps.devices.title',
-      descriptionKey: 'demo.steps.devices.description',
       view: 'dashboard'
     },
     {
@@ -675,34 +642,9 @@ function App() {
   const activeSystemSection = isSystemView(currentView);
   const isDesktopSidebarCollapsed = !isDesktopSidebarOpen;
 
-  // ── Header labels ──────────────────────────────────────────────────────
-  const viewTitle = (): string => {
-    switch (currentView) {
-      case 'dashboard':           return t('nav.dashboard');
-      case 'spaces':              return t('nav.spaces');
-      case 'scenes':              return t('nav.scenes');
-      case 'automations':         return t('nav.automations');
-      case 'assistant':           return t('nav.assistant');
-      case 'resilience-showcase': return t('nav.resilience_showcase');
-      case 'dashboards':          return t('nav.dashboards');
-      case 'energy':              return t('nav.energy');
-      case 'system-devices':      return t('nav.system_devices');
-      case 'system-inbox':        return t('nav.system_inbox');
-      case 'system-diagnostics':  return t('nav.system_diagnostics');
-      case 'system-audit':        return t('nav.system_audit');
-      case 'system-executions':   return t('nav.system_executions', 'Historial de Ejecución');
-      case 'system-ha':           return t('nav.system_ha');
-      case 'system-onboarding':   return t('nav.system_onboarding');
-      case 'system-users':        return t('nav.system_users');
-      case 'home-conversation':   return t('nav.talk_to_home');
-      default:                    return t('nav.dashboard');
-    }
-  };
-
   return (
     <div 
       className="flex h-[100dvh] w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
-      data-home-mode={currentMode}
     >
       
       {/* Mobile Drawer Backdrop */}
@@ -722,17 +664,29 @@ function App() {
         isDesktopSidebarOpen ? "lg:w-[15.5rem] lg:translate-x-0" : "lg:w-[4.75rem] lg:translate-x-0 lg:overflow-hidden"
       )}>
         {/* Logo area */}
-        <div className={cn("px-5 pt-5 pb-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", isDesktopSidebarCollapsed && "lg:px-3")}>
+        <div className={cn("px-4 py-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", isDesktopSidebarCollapsed && "lg:px-3")}>
           <div className={cn("flex items-center gap-2.5", isDesktopSidebarCollapsed && "lg:justify-center")}>
-            <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20">
-              <Cpu className="w-4 h-4 text-primary" />
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.matchMedia('(min-width: 1024px)').matches) {
+                  setIsDesktopSidebarOpen((current) => !current);
+                } else {
+                  setIsSidebarOpen(false);
+                }
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={t('shell.toggle_sidebar')}
+              aria-label={t('shell.toggle_sidebar')}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
             <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0")}>
               {t('shell.app_title')}{' '}
               <span className="text-foreground/60 font-semibold">{t('shell.app_edge')}</span>
             </h2>
           </div>
-          <span className={cn("text-[9px] uppercase font-black tracking-[0.22em] text-muted-foreground/35 mt-1 ml-[2.625rem] whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>{t('shell.subtitle')}</span>
+          <span className={cn("text-[9px] uppercase font-black tracking-[0.22em] text-muted-foreground/35 mt-1 ml-[2.875rem] whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>{t('shell.subtitle')}</span>
         </div>
         
         <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isDesktopSidebarCollapsed && "lg:px-2")}>
@@ -1029,53 +983,19 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-background">
         
-        {/* Mobile Header */}
-        <header className="lg:hidden h-16 border-b flex items-center justify-between px-6 bg-card shrink-0 z-[30]">
-          <div className="flex items-center gap-3">
-             <button 
-               onClick={() => setIsSidebarOpen(true)}
-               className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
-             >
-               <Menu className="w-6 h-6" />
-             </button>
-              <h2 className="text-sm font-black uppercase tracking-widest truncate">
-                {viewTitle()}
-              </h2>
-          </div>
-          <div className="flex items-center gap-3">
-             <button
-               onClick={toggleLanguage}
-               className="p-2 text-muted-foreground"
-             >
-               <Globe className="w-5 h-5" />
-             </button>
-             <Cpu className="w-5 h-5 text-primary opacity-50" />
-          </div>
-        </header>
-
-        <header className="hidden lg:flex h-12 view-header-accent pl-6 pr-8 bg-card/70 backdrop-blur-md relative overflow-hidden shrink-0">
-          {/* Online badge */}
-          <div className="absolute inset-y-0 right-0 pr-8 flex items-center gap-3 animate-in fade-in duration-700">
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-success/8 rounded-full border border-success/15">
-              <div className="status-dot-synced" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-success/70">{t('shell.status.online')}</span>
-            </div>
-          </div>
-
-          <div className="max-w-[1600px] mx-auto w-full relative z-10 flex items-center pr-48">
-            <button
-              onClick={() => setIsDesktopSidebarOpen(prev => !prev)}
-              className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 rounded-xl transition-all"
-              title="Toggle Sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed left-3 top-3 z-[35] flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/90 text-muted-foreground shadow-depth-1 backdrop-blur-md transition-colors hover:text-foreground lg:hidden"
+          title={t('shell.toggle_sidebar')}
+          aria-label={t('shell.toggle_sidebar')}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         
         <section className={cn(
           "flex-1 min-h-0 relative scroll-smooth",
-          currentView === 'home-conversation' ? "overflow-hidden" : "overflow-y-auto"
+          currentView === 'home-conversation' ? "overflow-hidden" : "overflow-y-auto pt-14 lg:pt-0"
         )}>
            {isBackendOffline && (
              <PageFrame className="pb-0 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -1096,14 +1016,6 @@ function App() {
              <Suspense fallback={<ViewLoadingState />}>
                {currentView === 'dashboard' && (
                   <DashboardView
-                    currentMode={currentMode}
-                    onModeChange={(mode) => {
-                      const safeMode = getSafeHomeMode(mode);
-                      setCurrentMode(safeMode);
-                      try {
-                        localStorage.setItem(HOME_MODE_STORAGE_KEY, safeMode);
-                      } catch { /* El modo sigue activo durante la sesión. */ }
-                    }}
                     onActionExecute={() => {
                       pulseSyncStatus();
                       void refreshDeviceSnapshot();
@@ -1161,10 +1073,6 @@ function App() {
            </PageFrame>
         </section>
 
-        <SystemStatusBar 
-          currentMode={getSafeHomeMode(currentMode)} 
-          isAllSynced={isAllSynced} 
-        />
       </main>
 
       <ChangePasswordModal 

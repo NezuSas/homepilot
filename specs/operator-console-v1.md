@@ -73,10 +73,10 @@ Se propone una consola de administración pragmática:
 - [ ] AC5: La escala tipográfica se consume desde tokens semánticos (`micro`, `label`, `caption`, `body` y jerarquías de encabezado) en componentes compartidos y superficies de dispositivos, evitando tamaños arbitrarios para el mismo rol visual.
 - [ ] AC6: El inspector permite eliminar una importación local mediante confirmación explícita, refresca el inventario sin recargar y comunica si el dispositivo está en uso.
 - [ ] AC7: El componente de cortina representa posición y movimiento con contraste suficiente en modo claro y oscuro. La UI siempre envía la intención `open`/`close`; la inversión física se aplica una sola vez en el driver.
-- [ ] AC8: Relax, Fuera, Noche y Eco persisten localmente y cambian visiblemente el foco operativo de Inicio. No ejecutan comandos físicos implícitos; cuando existe una escena con el mismo nombre, el modo la ofrece como acción explícita.
+- [ ] AC8: Inicio no mantiene ni presenta modos del hogar. Su jerarquía queda limitada al saludo del hogar, escenas favoritas, automatizaciones favoritas y sugerencias inteligentes.
 - [ ] AC9: Las tarjetas de Inicio distinguen explícitamente un dispositivo con `lastKnownState.state = "unavailable"`, mantienen sus datos visibles y bloquean sus controles hasta que Home Assistant vuelva a reportarlo.
 - [ ] AC10: La cortina conserva la animación de persiana vertical existente y utiliza colores semánticos del tema para mantener contraste en modo claro y oscuro, sin sustituirla por una representación visual diferente.
-- [ ] AC11: Inicio adopta una jerarquía residencial calmada inspirada en Apple Home: encabezado personal, modos visibles, escenas rápidas compactas y habitaciones agrupadas como unidades coherentes, sin alterar contratos ni comandos existentes.
+- [ ] AC11: Inicio adopta una jerarquía residencial calmada: encabezado personal, escenas favoritas, automatizaciones favoritas y sugerencias inteligentes, sin listar habitaciones ni dispositivos.
 - [ ] AC12: Crear un panel genera una primera pestaña utilizable y cualquier fallo API aparece en la vista sin descartar los datos existentes.
 - [ ] AC13: Crear una escena permite seleccionar dispositivos controlables por capacidades, no solo por el valor literal de `type`, y muestra el error real del API si no puede guardarse.
 - [ ] AC14: El chat mantiene el compositor visible sobre el teclado virtual en tablet y móvil.
@@ -87,6 +87,8 @@ Se propone una consola de administración pragmática:
 - [ ] AC19: Usuarios y accesos conserva completos rol, estado y controles administrativos en tablet.
 - [ ] AC20: Las pestañas/ventanas de panel pueden renombrarse y eliminarse sin eliminar el panel completo.
 - [ ] AC21: Las cámaras importadas desde Home Assistant/ONVIF se renderizan mediante el componente modular de cámara y permanecen sin controles de toggle.
+- [ ] AC22: La shell elimina las barras horizontales superior e inferior en escritorio. El control del sidebar vive junto a la marca HomePilot Edge y el encabezado de Inicio muestra ciudad configurada, hora local y la primera temperatura local disponible sin depender de servicios cloud.
+- [ ] AC23: Las automatizaciones pueden marcarse como favoritas y únicamente esas aparecen en Inicio. La preferencia se conserva localmente con el mismo criterio usado por escenas favoritas.
 - [ ] AC12: La identidad visual Nezu utiliza `#D9542B` como color primario, `#C9DF38` exclusivamente para Eco/eficiencia y `#1A1A1A` como ancla neutra. El azul deja de representar marca o estado activo.
 - [ ] AC13: Los estados físicos se distinguen por significado: iluminación activa en ámbar cálido, cortinas y acciones de marca en naranja Nezu, Noche en violeta tenue, Eco en lima y apagado/no disponible en neutros accesibles.
 - [ ] AC14: Inicio evita analítica decorativa, microtexto técnico y efectos visuales excesivos. La información operativa existente permanece disponible mediante composición clara y controles con contraste equivalente en modo claro y oscuro.

@@ -11,6 +11,11 @@ import { AutomationsHeader } from '../components/AutomationsHeader';
 import { AutomationsLoadingState } from '../components/AutomationsLoadingState';
 import ConfirmModal from '../components/ConfirmModal';
 import { humanize } from '../lib/naming-utils';
+import {
+  AUTOMATION_FAVORITES_STORAGE_KEY,
+  readFavoriteIds,
+  writeFavoriteIds,
+} from '../lib/favorites';
 
 interface AutomationRule {
   id: string;
@@ -62,6 +67,11 @@ const AutomationsView: React.FC = () => {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY));
+
+  useEffect(() => {
+    writeFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY, favoriteIds);
+  }, [favoriteIds]);
 
   useEffect(() => {
     if (notification) {
@@ -127,6 +137,7 @@ const AutomationsView: React.FC = () => {
     try {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
       setRules(prev => prev.filter(r => r.id !== id));
+      setFavoriteIds((current) => current.filter((favoriteId) => favoriteId !== id));
       setConfirmDeleteId(null);
       setNotification({ message: t('automations.notifications.deleted'), type: 'success' });
     } catch (err: any) {
@@ -142,6 +153,12 @@ const AutomationsView: React.FC = () => {
     return d ? humanize(d.id, d.name) : (id || t('common.unknown'));
   };
   const getSceneName = (id?: string) => scenes.find(s => s.id === id)?.name || id || t('common.unknown_scene');
+
+  const toggleFavorite = (ruleId: string) => {
+    setFavoriteIds((current) => current.includes(ruleId)
+      ? current.filter((favoriteId) => favoriteId !== ruleId)
+      : [...current, ruleId]);
+  };
 
   if (isLoading && rules.length === 0) {
     return <AutomationsLoadingState label={t('common.loading')} />;
@@ -182,6 +199,8 @@ const AutomationsView: React.FC = () => {
               onToggle={toggleRule}
               onEdit={openEditAutomation}
               onDelete={setConfirmDeleteId}
+              isFavorite={favoriteIds.includes(rule.id)}
+              onToggleFavorite={toggleFavorite}
             />
           ))}
         </div>

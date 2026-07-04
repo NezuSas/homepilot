@@ -55,6 +55,7 @@ services:
       dockerfile: docker/ui/Dockerfile
       args:
         VITE_API_URL: "${VITE_API_URL:-}"
+        VITE_HOME_CITY: "${VITE_HOME_CITY:-Cuenca}"
     container_name: homepilot-ui
     ports:
       - "${HOMEPILOT_UI_PORT:-8080}:80"

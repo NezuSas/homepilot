@@ -182,15 +182,20 @@
     "resident": "Oscar",
     "home_calm": "Todo está bajo control.",
     "active_summary": "{{active}} de {{total}} dispositivos activos",
-    "modes_title": "Modos del hogar",
-    "mode_active": "Activo",
-    "quick_scenes": "Escenas rápidas",
+    "quick_scenes": "Escenas favoritas",
     "scene_create": "Crear Escena",
     "atmosphere_recipes": "Escenas",
     "new_scene": "Nueva Escena",
     "no_favorite_scenes": "Aún no hay escenas favoritas",
     "no_favorite_scenes_hint": "Marca una escena como favorita para verla aquí como acceso rápido.",
     "manage_scenes": "Gestionar escenas",
+    "favorite_automations": "Automatizaciones favoritas",
+    "manage_automations": "Gestionar automatizaciones",
+    "new_automation": "Nueva automatización",
+    "no_favorite_automations": "Aún no hay automatizaciones favoritas",
+    "no_favorite_automations_hint": "Marca una automatización como favorita para verla aquí.",
+    "home_context": "Contexto local del hogar",
+    "temperature_unavailable": "Temperatura no disponible",
     "turn_off_lights": "Apagar luces",
     "active": "Activos",
     "elements": "Elementos",
@@ -417,12 +422,12 @@
     "app_title": "HomePilot",
     "app_edge": "Edge",
     "subtitle": "Control Local Premium",
+    "toggle_sidebar": "Mostrar u ocultar menú",
     "status": {
       "online": "Sistema en línea",
       "stable": "Sistema estable",
       "syncing": "Sincronizando sistema",
       "updated_now": "Actualizado ahora",
-      "mode_label": "Modo {{mode}}",
       "edge_active": "Red Edge Activa",
       "verifying_session": "Verificando Sesión..."
     },
@@ -542,9 +547,19 @@
     "no_device_search_results": "No hay dispositivos que coincidan con la búsqueda.",
     "close_details": "Cerrar detalle de estancia",
     "turn_on_device": "Encender dispositivo",
-    "turn_off_device": "Apagar dispositivo"
+    "turn_off_device": "Apagar dispositivo",
+    "room_device_count_one": "1 dispositivo",
+    "room_device_count_other": "{{count}} dispositivos",
+    "lights_total": "Luces",
+    "lights_on": "Encendidas",
+    "lights_in_room": "Luces en la estancia",
+    "no_lights_in_room": "No hay luces asignadas a esta estancia.",
+    "search_lights": "Buscar luces por nombre...",
+    "no_light_search_results": "No hay luces que coincidan con la búsqueda."
   },
   "automations": {
+    "add_favorite": "Añadir a favoritas",
+    "remove_favorite": "Quitar de favoritas",
     "header": {
       "title": "Automatizaciones",
       "subtitle": "{{count}} Reglas de Inteligencia Activas • Ejecución Local"
@@ -969,19 +984,6 @@
     "error_generic": "Error al cambiar la contraseña",
     "button_tooltip": "Cambiar Contraseña"
   },
-  "modes": {
-    "relax": "Relax",
-    "away": "Fuera",
-    "night": "Noche",
-    "energy": "Eco",
-    "execute_scene": "Ejecutar {{name}}",
-    "descriptions": {
-      "relax": "Vista equilibrada de toda la casa para el uso cotidiano.",
-      "away": "Prioriza habitaciones con dispositivos activos para revisar lo que quedó encendido.",
-      "night": "Lleva primero los espacios con luces o cortinas activas para preparar el descanso.",
-      "energy": "Ordena el hogar por actividad para localizar rápidamente consumos evitables."
-    }
-  },
   "system": {
     "advanced": "Avanzado del Sistema",
     "connection_lost": "Conexión Perdida",
@@ -1196,21 +1198,9 @@
         "title": "Tu hogar, un solo control",
         "description": "HomePilot centraliza espacios, escenas, dispositivos y salud del sistema en una sola consola local, pensada para operar la casa sin saltar entre apps."
       },
-      "modes": {
-        "title": "Modos para cada momento",
-        "description": "Cambia la intención de la casa entre Relax, Fuera, Noche o Eco. Cada modo prepara la interfaz y el contexto para operar más rápido."
-      },
-      "command_center": {
-        "title": "Lectura ejecutiva del hogar",
-        "description": "Este centro resume dispositivos activos, control local, escenas disponibles y alertas. Sirve para saber si todo está bajo control de un vistazo."
-      },
       "scenes": {
         "title": "Escenas listas para ejecutar",
         "description": "Las escenas agrupan comandos de varios dispositivos. HomePilot muestra cuántos puntos toca y si pueden ejecutarse con resiliencia local."
-      },
-      "devices": {
-        "title": "Control fino por dispositivo",
-        "description": "Cada tarjeta permite ver estado, habitación y acciones disponibles. Luces, cortinas y switches mantienen comportamiento consistente en toda la consola."
       },
       "conversation": {
         "title": "Habla con tu casa",

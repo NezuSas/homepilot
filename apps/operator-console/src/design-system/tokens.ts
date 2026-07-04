@@ -43,9 +43,6 @@ export const colors = {
   /** Physical light ON state */
   lightActive: '#FFB454',
 
-  /** Night mode */
-  night: '#8F88C9',
-
   /** Semantic: success, ON state, healthy status */
   success: '#22C55E',
 

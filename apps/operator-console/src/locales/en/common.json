@@ -182,15 +182,20 @@
     "resident": "Oscar",
     "home_calm": "Everything is under control.",
     "active_summary": "{{active}} of {{total}} devices active",
-    "modes_title": "Home modes",
-    "mode_active": "Active",
-    "quick_scenes": "Quick scenes",
+    "quick_scenes": "Favorite scenes",
     "scene_create": "Create Scene",
     "atmosphere_recipes": "Scenes",
     "new_scene": "New Scene",
     "no_favorite_scenes": "No favorite scenes yet",
     "no_favorite_scenes_hint": "Mark a scene as favorite to show it here as a quick action.",
     "manage_scenes": "Manage scenes",
+    "favorite_automations": "Favorite automations",
+    "manage_automations": "Manage automations",
+    "new_automation": "New automation",
+    "no_favorite_automations": "No favorite automations yet",
+    "no_favorite_automations_hint": "Mark an automation as favorite to show it here.",
+    "home_context": "Local home context",
+    "temperature_unavailable": "Temperature unavailable",
     "turn_off_lights": "Turn off lights",
     "active": "Active",
     "elements": "Elements",
@@ -417,12 +422,12 @@
     "app_title": "HomePilot",
     "app_edge": "Edge",
     "subtitle": "Premium Local Control",
+    "toggle_sidebar": "Show or hide menu",
     "status": {
       "online": "System Online",
       "stable": "System stable",
       "syncing": "Synchronizing system",
       "updated_now": "Updated now",
-      "mode_label": "Mode {{mode}}",
       "edge_active": "Edge Network Active",
       "verifying_session": "Verifying Session..."
     },
@@ -542,9 +547,19 @@
     "no_device_search_results": "No devices match your search.",
     "close_details": "Close room details",
     "turn_on_device": "Turn on device",
-    "turn_off_device": "Turn off device"
+    "turn_off_device": "Turn off device",
+    "room_device_count_one": "1 device",
+    "room_device_count_other": "{{count}} devices",
+    "lights_total": "Lights",
+    "lights_on": "On",
+    "lights_in_room": "Lights in room",
+    "no_lights_in_room": "No lights are assigned to this room.",
+    "search_lights": "Search lights by name...",
+    "no_light_search_results": "No lights match your search."
   },
   "automations": {
+    "add_favorite": "Add to favorites",
+    "remove_favorite": "Remove from favorites",
     "header": {
       "title": "Automations",
       "subtitle": "{{count}} Active Intelligence Rules • Local Execution"
@@ -969,19 +984,6 @@
     "error_generic": "Failed to change password",
     "button_tooltip": "Change Password"
   },
-  "modes": {
-    "relax": "Relax",
-    "away": "Away",
-    "night": "Night",
-    "energy": "Eco",
-    "execute_scene": "Run {{name}}",
-    "descriptions": {
-      "relax": "A balanced whole-home view for everyday use.",
-      "away": "Prioritizes rooms with active devices so you can review what was left on.",
-      "night": "Surfaces spaces with active lights or covers first when preparing for rest.",
-      "energy": "Orders the home by activity to quickly locate avoidable consumption."
-    }
-  },
   "system": {
     "advanced": "System Advanced",
     "connection_lost": "System Connection Lost",
@@ -1196,21 +1198,9 @@
         "title": "Your Home, One Control Layer",
         "description": "HomePilot brings spaces, scenes, devices, and system health into one local console, designed to operate the home without jumping between apps."
       },
-      "modes": {
-        "title": "Modes for Every Moment",
-        "description": "Switch the home's intent between Relax, Away, Night, or Eco. Each mode prepares the interface and context for faster operation."
-      },
-      "command_center": {
-        "title": "Executive Home Readout",
-        "description": "This command center summarizes active devices, local control, available scenes, and alerts, so you can read the home's status at a glance."
-      },
       "scenes": {
         "title": "Scenes Ready to Execute",
         "description": "Scenes group commands across devices. HomePilot shows how many endpoints each scene touches and whether it can run with local resilience."
-      },
-      "devices": {
-        "title": "Precise Device Control",
-        "description": "Each tile exposes status, room context, and available actions. Lights, curtains, and switches keep a consistent control model across the console."
       },
       "conversation": {
         "title": "Talk to Your Home",

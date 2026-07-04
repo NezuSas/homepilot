@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Arguments for build-time injection
 ARG VITE_API_URL
+ARG VITE_HOME_CITY
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_HOME_CITY=$VITE_HOME_CITY
 
 COPY . .
 RUN npm install

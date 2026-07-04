@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, Cpu, Loader2, Pencil, Trash2, Zap } from 'lucide-react';
+import { Clock, Cpu, Loader2, Pencil, Star, Trash2, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface AutomationRule {
@@ -42,6 +42,8 @@ interface AutomationRuleCardProps {
   onToggle: (id: string, currentlyEnabled: boolean) => void;
   onEdit: (rule: AutomationRule) => void;
   onDelete: (ruleId: string) => void;
+  isFavorite: boolean;
+  onToggleFavorite: (ruleId: string) => void;
 }
 
 export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
@@ -54,6 +56,8 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
   onToggle,
   onEdit,
   onDelete,
+  isFavorite,
+  onToggleFavorite,
 }) => {
   const { t } = useTranslation();
   const isEnabled = rule.enabled;
@@ -126,6 +130,19 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(rule.id)}
+            className={cn(
+              'flex h-10 w-10 items-center justify-center rounded-xl border transition-colors',
+              isFavorite ? 'border-primary/25 bg-primary/10 text-primary' : 'border-transparent bg-muted/40 text-muted-foreground hover:border-border',
+            )}
+            title={isFavorite ? t('automations.remove_favorite') : t('automations.add_favorite')}
+            aria-label={isFavorite ? t('automations.remove_favorite') : t('automations.add_favorite')}
+            aria-pressed={isFavorite}
+          >
+            <Star className={cn('h-4 w-4', isFavorite && 'fill-current')} />
+          </button>
           <button
             onClick={() => onToggle(rule.id, isEnabled)}
             disabled={isWorking}

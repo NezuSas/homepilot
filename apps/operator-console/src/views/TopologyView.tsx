@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home as HomeIcon, Box, ArrowRight, Loader2, CheckCircle2, Layers3, PlugZap, Trash2, Pencil, X, Plus, Power } from 'lucide-react';
+import { Home as HomeIcon, ArrowRight, Loader2, CheckCircle2, Layers3, Lightbulb, Trash2, Pencil, X, Plus, Power } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -24,6 +24,7 @@ interface Device {
   id: string;
   name: string;
   type: string;
+  semanticType?: string | null;
   status: string;
   roomId: string | null;
   lastKnownState?: Record<string, unknown> | null;
@@ -38,6 +39,10 @@ const isActiveDevice = (device: Device) => {
     || Number(state.brightness) > 0
     || Number(state.power) > 0;
 };
+
+const isLightDevice = (device: Device): boolean => (
+  device.semanticType?.toLowerCase() === 'light' || device.type.toLowerCase() === 'light'
+);
 
 export const TopologyView: React.FC = () => {
   const { t } = useTranslation();
@@ -271,7 +276,7 @@ export const TopologyView: React.FC = () => {
     }
   };
 
-  const canToggleDevice = (device: Device) => ['light', 'switch'].includes(device.type);
+  const canToggleDevice = (device: Device) => isLightDevice(device);
 
   const handleToggleDevice = async (device: Device) => {
     if (!canToggleDevice(device) || deviceProcessingId) return;
@@ -305,19 +310,14 @@ export const TopologyView: React.FC = () => {
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
   }, [rooms, roomSearch]);
 
-  const selectedHomeDevices = useMemo(
-    () => devices.filter((device) => device.roomId && rooms.some((room) => room.id === device.roomId)),
-    [devices, rooms],
-  );
-
-  const selectedRoomDevices = useMemo(
-    () => selectedRoom ? devices.filter((device) => device.roomId === selectedRoom.id) : [],
+  const selectedRoomLights = useMemo(
+    () => selectedRoom ? devices.filter((device) => device.roomId === selectedRoom.id && isLightDevice(device)) : [],
     [devices, selectedRoom],
   );
 
   const visibleSelectedRoomDevices = useMemo(() => {
     const normalizedSearch = deviceSearch.trim().toLocaleLowerCase();
-    return [...selectedRoomDevices]
+    return [...selectedRoomLights]
       .filter((device) => !normalizedSearch || device.name.toLocaleLowerCase().includes(normalizedSearch))
       .sort((left, right) => {
         const leftActive = isActiveDevice(left);
@@ -325,11 +325,11 @@ export const TopologyView: React.FC = () => {
         if (leftActive !== rightActive) return leftActive ? -1 : 1;
         return left.name.localeCompare(right.name, undefined, { sensitivity: 'base' });
       });
-  }, [deviceSearch, selectedRoomDevices]);
+  }, [deviceSearch, selectedRoomLights]);
 
   const activeRoomDeviceCount = useMemo(
-    () => selectedRoomDevices.filter(isActiveDevice).length,
-    [selectedRoomDevices],
+    () => selectedRoomLights.filter(isActiveDevice).length,
+    [selectedRoomLights],
   );
 
   if (loadingHomes) {
@@ -342,13 +342,13 @@ export const TopologyView: React.FC = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-12 2xl:gap-8">
+    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)] xl:gap-8">
       {topologyError && (
-        <AlertBanner className="2xl:col-span-12" variant="danger" message={topologyError} />
+        <AlertBanner className="xl:col-span-2" variant="danger" message={topologyError} />
       )}
       
       {/* Homes List */}
-      <div className="flex flex-col gap-4 2xl:col-span-3">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
             {t('topology.homes_title')} 
@@ -491,7 +491,7 @@ export const TopologyView: React.FC = () => {
       </div>
 
       {/* Rooms Details */}
-      <div className="flex min-w-0 flex-col gap-4 2xl:col-span-9">
+      <div className="flex min-w-0 flex-col gap-4">
         {selectedHome ? (
           <>
             <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -533,7 +533,7 @@ export const TopologyView: React.FC = () => {
             ) : (
               <div className={cn(
                 "grid grid-cols-1 items-start gap-4",
-                selectedRoom && "lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]",
+                selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]",
               )}>
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-sm italic">
@@ -542,7 +542,7 @@ export const TopologyView: React.FC = () => {
                 ) : (
                   <>
                     <div
-                      className="grid self-start grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3"
+                      className="grid self-start grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3"
                       onClick={(event) => {
                         if (event.target === event.currentTarget) setSelectedRoomId(null);
                       }}
@@ -555,7 +555,7 @@ export const TopologyView: React.FC = () => {
                       {visibleRooms.map((room) => {
                         const isRoomSelected = selectedRoomId === room.id;
                         const roomDevices = devices.filter((device) => device.roomId === room.id);
-                        const activeCount = roomDevices.filter(isActiveDevice).length;
+                        const hasActiveLight = roomDevices.some((device) => isLightDevice(device) && isActiveDevice(device));
 
                         return (
                           <button
@@ -566,35 +566,27 @@ export const TopologyView: React.FC = () => {
                               if (editingRoomId !== room.id) cancelRoomRename();
                             }}
                             className={cn(
-                              "group flex self-start flex-col rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md sm:p-5",
+                              "group flex min-h-28 self-start items-stretch rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md sm:p-5",
                               isRoomSelected ? "border-primary bg-primary/5 shadow-primary/10" : "border-border",
                             )}
                           >
-                            <div className="flex items-center gap-3 mb-4">
+                            <div className="flex items-center gap-3">
                               <div className={cn(
-                                "p-2.5 rounded-lg transition-colors",
-                                isRoomSelected ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground",
+                                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors",
+                                hasActiveLight
+                                  ? "bg-warning/15 text-warning shadow-[0_0_18px_hsl(var(--warning)/0.18)]"
+                                  : isRoomSelected
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
                               )}>
-                                <Box className="w-5 h-5" />
+                                <Lightbulb className={cn("h-5 w-5", hasActiveLight && "fill-current")} />
                               </div>
-                              <div className="min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <span className="block truncate font-semibold text-foreground">{room.name}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
                                   {t('topology.room_device_count', { count: roomDevices.length, defaultValue: `${roomDevices.length} devices` })}
                                 </span>
                               </div>
-                            </div>
-                            <div className="mt-auto pt-4 border-t border-border/50 flex justify-between items-center gap-3">
-                              <span className="text-xs text-muted-foreground font-medium">{t('inbox.inspector.room_label')}</span>
-                              <span className="text-[11px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded truncate max-w-[140px]" title={room.id}>
-                                {room.id}
-                              </span>
-                            </div>
-                            <div className="mt-3 flex items-center justify-between gap-2">
-                              <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                <PlugZap className="h-3 w-3" />
-                                {activeCount}/{roomDevices.length}
-                              </span>
                               {isRoomSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
                             </div>
                           </button>
@@ -673,13 +665,13 @@ export const TopologyView: React.FC = () => {
                       <div className="mt-5 grid grid-cols-2 gap-3">
                         <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
                           <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
-                            {t('topology.devices_total', { defaultValue: 'Devices' })}
+                            {t('topology.lights_total')}
                           </p>
-                          <p className="mt-1 text-2xl font-black text-foreground">{selectedRoomDevices.length}</p>
+                          <p className="mt-1 text-2xl font-black text-foreground">{selectedRoomLights.length}</p>
                         </div>
                         <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
                           <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
-                            {t('topology.devices_active', { defaultValue: 'Active' })}
+                            {t('topology.lights_on')}
                           </p>
                           <p className="mt-1 text-2xl font-black text-primary">{activeRoomDeviceCount}</p>
                         </div>
@@ -687,24 +679,24 @@ export const TopologyView: React.FC = () => {
 
                       <div className="mt-5 border-t border-border/50 pt-5">
                         <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                          {t('topology.devices_in_room', { defaultValue: 'Devices in room' })}
+                          {t('topology.lights_in_room')}
                         </p>
-                        {selectedRoomDevices.length === 0 ? (
+                        {selectedRoomLights.length === 0 ? (
                           <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
-                            {t('topology.no_devices_in_room', { defaultValue: 'No devices assigned to this room yet.' })}
+                            {t('topology.no_lights_in_room')}
                           </p>
                         ) : (
                           <div className="flex flex-col gap-3">
                             <SearchInput
                               value={deviceSearch}
                               onChange={(event) => setDeviceSearch(event.target.value)}
-                              placeholder={t('topology.search_devices')}
-                              aria-label={t('topology.search_devices')}
+                              placeholder={t('topology.search_lights')}
+                              aria-label={t('topology.search_lights')}
                             />
                             <div className="flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                             {visibleSelectedRoomDevices.length === 0 && (
                               <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
-                                {t('topology.no_device_search_results')}
+                                {t('topology.no_light_search_results')}
                               </p>
                             )}
                             {visibleSelectedRoomDevices.map((device) => (
@@ -743,13 +735,6 @@ export const TopologyView: React.FC = () => {
                             </div>
                           </div>
                         )}
-                      </div>
-
-                      <div className="mt-5 border-t border-border/50 pt-4">
-                        <div className="flex justify-between gap-3 text-[10px] font-mono text-muted-foreground">
-                          <span>{t('inbox.inspector.home_cluster')}</span>
-                          <span className="truncate" title={selectedHome.id}>{selectedHomeDevices.length} / {selectedHome.id}</span>
-                        </div>
                       </div>
 
                       {selectedRoom && (

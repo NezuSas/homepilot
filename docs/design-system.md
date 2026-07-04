@@ -25,7 +25,6 @@ El design system de HomePilot mantiene una interfaz premium, local-first y opera
 - `primary`: naranja Nezu `#D9542B`, reservado para identidad, foco y acciones principales.
 - `accent`: lima Nezu `#C9DF38`, reservado para Eco, ahorro y eficiencia.
 - `light-active`: ámbar cálido para luminarias físicamente encendidas.
-- `mode-night`: violeta tenue para el modo Noche.
 - `success`: online, sincronizado o completado.
 - `warning`: atencion o estado intermedio.
 - `danger` / `destructive`: error, riesgo o accion destructiva.
