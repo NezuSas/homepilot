@@ -152,6 +152,9 @@ function App() {
   ));
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
+  const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
+  const [sidebarDashboards, setSidebarDashboards] = useState<Array<{ id: string; ownerId: string; title: string }>>([]);
+  const [selectedSidebarDashboardId, setSelectedSidebarDashboardId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [localProfile, setLocalProfile] = useState<{ displayName: string | null; avatarDataUri: string | null }>(() => {
     try {
@@ -253,6 +256,31 @@ function App() {
     i18n.changeLanguage(nextLang);
   };
 
+  const canAccessDashboards = user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child';
+
+  const refreshSidebarDashboards = useCallback(async () => {
+    if (!canAccessDashboards) {
+      setSidebarDashboards([]);
+      setSelectedSidebarDashboardId(null);
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/dashboards`);
+      if (!response.ok) return;
+      const data = await response.json() as Array<{ id: string; ownerId: string; title: string }>;
+      if (!Array.isArray(data)) return;
+      setSidebarDashboards(data.map(dashboard => ({
+        id: dashboard.id,
+        ownerId: dashboard.ownerId,
+        title: dashboard.title
+      })));
+      setSelectedSidebarDashboardId(current => current ?? data[0]?.id ?? null);
+    } catch {
+      setSidebarDashboards([]);
+    }
+  }, [canAccessDashboards]);
+
   // Check setup status before login only to detect factory state without users.
   useEffect(() => {
     if (status !== 'unauthenticated') {
@@ -308,8 +336,9 @@ function App() {
 
       // Fetch assistant summary
       refreshAssistantSummary();
+      void refreshSidebarDashboards();
     }
-  }, [status, refreshAssistantSummary]);
+  }, [status, refreshAssistantSummary, refreshSidebarDashboards]);
 
   useEffect(() => {
     if (status !== 'authenticated' || !lastRealtimeEvent) {
@@ -551,6 +580,10 @@ function App() {
     if (isSystemView(resolved)) {
       setIsSystemExpanded(true);
     }
+    if (resolved === 'dashboards') {
+      setIsDashboardsExpanded(true);
+      void refreshSidebarDashboards();
+    }
   };
 
   const handleGlobalWakeCommand = (command: string) => {
@@ -640,6 +673,7 @@ function App() {
   };
 
   const activeSystemSection = isSystemView(currentView);
+  const activeDashboardsSection = currentView === 'dashboards';
   const isDesktopSidebarCollapsed = !isDesktopSidebarOpen;
 
   return (
@@ -765,13 +799,48 @@ function App() {
                 <span className="text-[8.5px] font-black uppercase tracking-[0.22em] text-muted-foreground/30">{t('nav.group_personalization')}</span>
               </div>
               <div className="flex flex-col gap-0.5">
-                 <SidebarItem 
-                   icon={BarChart2} 
-                   label={t('nav.dashboards')} 
-                   active={currentView === 'dashboards'}
-                   onClick={() => navigateTo('dashboards')}
-                   collapsedOnDesktop={isDesktopSidebarCollapsed}
-                 />
+                 <button
+                    onClick={() => {
+                      setIsDashboardsExpanded(prev => !prev);
+                      navigateTo('dashboards');
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition-all w-full text-left",
+                      activeDashboardsSection
+                        ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
+                        : 'text-muted-foreground hover:bg-muted/80',
+                      isDesktopSidebarCollapsed && "lg:justify-center lg:px-2"
+                    )}
+                    title={isDesktopSidebarCollapsed ? t('nav.dashboards') : undefined}
+                  >
+                    <div className={cn("p-2 rounded-xl transition-all duration-300", activeDashboardsSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted")}>
+                        <BarChart2 className="w-4 h-4 shrink-0" />
+                    </div>
+                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.dashboards')}</span>
+                    {!isDesktopSidebarCollapsed && (isDashboardsExpanded
+                      ? <ChevronDown className="w-4 h-4 opacity-60" />
+                      : <ChevronRight className="w-4 h-4 opacity-60" />
+                    )}
+                 </button>
+                 {isDashboardsExpanded && !isDesktopSidebarCollapsed && (
+                   <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
+                     {sidebarDashboards.length === 0 ? (
+                       <span className="px-3 py-2 text-[0.72rem] font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
+                     ) : sidebarDashboards.map(dashboard => (
+                       <SidebarItem
+                         key={dashboard.id}
+                         icon={LayoutDashboard}
+                         label={dashboard.title}
+                         active={currentView === 'dashboards' && selectedSidebarDashboardId === dashboard.id}
+                         onClick={() => {
+                           setSelectedSidebarDashboardId(dashboard.id);
+                           navigateTo('dashboards');
+                         }}
+                         nested
+                       />
+                     ))}
+                   </div>
+                 )}
                  {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent') && (
                    <SidebarItem 
                      icon={Zap} 
@@ -1039,7 +1108,22 @@ function App() {
                {currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
 
                 {/* Custom Dashboards */}
-                 {currentView === 'dashboards' && <DashboardsView />}
+                 {currentView === 'dashboards' && (
+                  <DashboardsView
+                    initialDashboardId={selectedSidebarDashboardId}
+                    onDashboardCatalogChange={(dashboards) => {
+                      setSidebarDashboards(dashboards.map(dashboard => ({
+                        id: dashboard.id,
+                        ownerId: dashboard.ownerId,
+                        title: dashboard.title
+                      })));
+                      setSelectedSidebarDashboardId(current => {
+                        if (current && dashboards.some(dashboard => dashboard.id === current)) return current;
+                        return dashboards[0]?.id ?? null;
+                      });
+                    }}
+                  />
+                )}
 
                 {currentView === 'energy' && (
                   <EnergyView onNavigate={navigateTo} />

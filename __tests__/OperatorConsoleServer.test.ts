@@ -25,6 +25,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
       DELETE FROM rooms;
       DELETE FROM homes;
       DELETE FROM activity_logs;
+      DELETE FROM dashboards;
       DELETE FROM sessions;
       DELETE FROM users;
     `);
@@ -240,6 +241,22 @@ describe('OperatorConsoleServer Integration Tests', () => {
 
       const inDb = await container.repositories.deviceRepository.findDeviceById('d-ha');
       expect(inDb?.lastKnownState?.state).toBe('unavailable');
+    });
+  });
+
+  describe('Dashboard API', () => {
+    it('GET /api/v1/dashboards: creates a base dashboard for the authenticated user', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/dashboards`, {
+        headers: { 'x-hp-test-bypass': 'true' }
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json() as Array<{ ownerId: string; title: string; tabs: unknown[] }>;
+      const dashboard = data.find(item => item.ownerId === 'u-01');
+
+      expect(dashboard).toBeDefined();
+      expect(dashboard?.title).toBe('Test Admin');
+      expect(dashboard?.tabs).toHaveLength(1);
     });
   });
 

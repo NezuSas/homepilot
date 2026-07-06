@@ -4,7 +4,6 @@ import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
 import { DashboardCreateForm } from '../components/DashboardCreateForm';
 import { DashboardEditorToolbar } from '../components/DashboardEditorToolbar';
-import { DashboardSidebarNav } from '../components/DashboardSidebarNav';
 import { DashboardTabsNav } from '../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../components/DashboardTitleBar';
 import { DashboardsHero } from '../components/DashboardsHero';
@@ -22,7 +21,12 @@ const API = `${API_BASE_URL}/api/v1`;
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
-export function DashboardsView() {
+interface DashboardsViewProps {
+  initialDashboardId?: string | null;
+  onDashboardCatalogChange?: (dashboards: Dashboard[]) => void;
+}
+
+export function DashboardsView({ initialDashboardId = null, onDashboardCatalogChange }: DashboardsViewProps) {
   const { t } = useTranslation();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const [active, setActive]             = useState<Dashboard | null>(null);
@@ -50,10 +54,11 @@ export function DashboardsView() {
       const data = await res.json();
       if (Array.isArray(data)) {
         setDashboards(data);
+        onDashboardCatalogChange?.(data);
         setError('');
         if (data.length > 0) {
           if (isInitial) {
-            setActive(data[0]);
+            setActive(data.find(dashboard => dashboard.id === initialDashboardId) ?? data[0]);
             setActiveTabIdx(0);
           } else {
             const current = data.find(d => d.id === active?.id);
@@ -65,11 +70,22 @@ export function DashboardsView() {
       setError(error_ instanceof Error ? error_.message : t('dashboards.error_load'));
     }
     finally { setLoading(false); }
-  }, [active?.id, t]);
+  }, [active?.id, initialDashboardId, onDashboardCatalogChange, t]);
 
   useEffect(() => { 
     fetchDashboards(true);
   }, []); // Run ONLY once on mount.
+
+  useEffect(() => {
+    if (!initialDashboardId || active?.id === initialDashboardId) return;
+    const selected = dashboards.find(dashboard => dashboard.id === initialDashboardId);
+    if (!selected) return;
+    setActive(selected);
+    setActiveTabIdx(0);
+    setEditingTitle(false);
+    setSelectedWidgetId(null);
+    setIsInspectorOpen(false);
+  }, [active?.id, dashboards, initialDashboardId]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     try {
@@ -102,7 +118,11 @@ export function DashboardsView() {
       });
       if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_create')));
       const created: Dashboard = await res.json();
-      setDashboards(prev => [...prev, created]);
+      setDashboards(prev => {
+        const next = [...prev, created];
+        onDashboardCatalogChange?.(next);
+        return next;
+      });
       setActive(created);
       setActiveTabIdx(0);
       setNewTitle('');
@@ -287,20 +307,7 @@ export function DashboardsView() {
       {dashboards.length === 0 ? (
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-
-          <DashboardSidebarNav
-            dashboards={dashboards}
-            activeDashboardId={active?.id}
-            title={t('dashboards.list_header')}
-            onSelect={(dashboard) => {
-              setActive(dashboard);
-              setActiveTabIdx(0);
-              setEditingTitle(false);
-              setIsEditing(false);
-            }}
-          />
-
+        <div className="grid grid-cols-1 gap-6">
           {/* Dashboard Area */}
           {active && (
             <div className="flex min-w-0 flex-col gap-6">

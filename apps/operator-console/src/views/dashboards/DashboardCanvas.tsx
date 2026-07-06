@@ -155,7 +155,7 @@ export function DashboardCanvas({
       <div 
         ref={containerRef}
         className={cn(
-          "relative w-full grid grid-cols-12 gap-4 p-4 transition-all duration-500",
+          "relative w-full grid grid-cols-12 gap-3 rounded-[2rem] border border-border/45 bg-card/20 p-3 transition-all duration-500 sm:gap-4 sm:p-4",
           isEditing && "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] min-h-[800px] rounded-[3rem] border-2 border-dashed border-primary/10 shadow-2xl shadow-primary/5"
         )}
         style={{

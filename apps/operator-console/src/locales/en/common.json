@@ -1048,10 +1048,11 @@
     "no_data": "No energy data available from Home Assistant"
   },
   "dashboards": {
-    "title": "My Spaces",
+    "title": "Dashboards",
     "category": "Personal Dashboards",
     "intro_subtitle": "Personalized control surfaces for every context.",
     "personal_label": "Workspace Library",
+    "sidebar_empty": "No dashboards",
     "empty_title": "Your Space, Your Way",
     "empty_description": "Create personalized dashboards with the devices, rooms, and insights that matter to you.",
     "empty_value_hint": "Combine any devices, rooms, and automations into a focused personal view.",

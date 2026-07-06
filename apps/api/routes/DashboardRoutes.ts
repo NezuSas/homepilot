@@ -4,6 +4,13 @@ import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { DashboardTab, DashboardVisibility } from '../../../packages/topology/domain/Dashboard';
 
+interface DashboardOwnerSeed {
+  id: string;
+  username: string;
+  displayName: string | null;
+  isActive: boolean;
+}
+
 /**
  * Dashboard routes: /api/v1/dashboards/*
  */
@@ -23,7 +30,36 @@ export class DashboardRoutes extends ApiRoutes {
     // GET /api/v1/dashboards
     if (method === 'GET' && pathname === '/api/v1/dashboards') {
       try {
-        const dashboards = await container.services.dashboardService.getDashboardsForUser(
+        let dashboards = await container.services.dashboardService.getDashboardsForUser(
+          req.user!.id,
+          req.user!.role
+        );
+        const usersRequiringDashboards: DashboardOwnerSeed[] = req.user!.role === 'admin'
+          ? (await container.services.userManagementService.listUsers()).filter(user => user.isActive)
+          : [{
+              id: req.user!.id,
+              username: req.user!.username,
+              displayName: req.user!.displayName ?? null,
+              isActive: true
+            }];
+        if (!usersRequiringDashboards.some(user => user.id === req.user!.id)) {
+          usersRequiringDashboards.push({
+            id: req.user!.id,
+            username: req.user!.username,
+            displayName: req.user!.displayName ?? null,
+            isActive: true
+          });
+        }
+
+        for (const user of usersRequiringDashboards) {
+          const hasDashboard = dashboards.some(dashboard => dashboard.ownerId === user.id);
+          if (!hasDashboard) {
+            const title = user.displayName?.trim() || user.username;
+            await container.services.dashboardService.createDashboard(user.id, title);
+          }
+        }
+
+        dashboards = await container.services.dashboardService.getDashboardsForUser(
           req.user!.id,
           req.user!.role
         );
