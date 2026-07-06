@@ -30,8 +30,8 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   className
 }) => {
   return (
-    <div className={cn("flex flex-col sm:flex-row gap-3 w-full items-start sm:items-center", className)}>
-      <div className="flex-1 w-full sm:max-w-xs">
+    <div className={cn("flex w-full flex-col items-stretch gap-3 xl:flex-row xl:items-center", className)}>
+      <div className="w-full shrink-0 xl:w-[22rem]">
         <SearchInput 
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -44,7 +44,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           value={activeFilter || options[0]?.value || ''}
           options={options}
           onChange={onFilterChange}
-          className="max-w-full overflow-x-auto no-scrollbar"
+          className="w-full min-w-0 flex-1 overflow-x-auto no-scrollbar"
           optionClassName="whitespace-nowrap flex-none"
         />
       )}

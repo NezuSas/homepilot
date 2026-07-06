@@ -263,6 +263,42 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(data[2].entityId).toBe('sensor.temp');
     });
 
+    it('GET /api/v1/ha/entities summary: omits heavy state attributes', async () => {
+      (container.adapters.homeAssistantClient.getAllStates as jest.Mock) = jest.fn().mockResolvedValueOnce([
+        {
+          entity_id: 'camera.garden',
+          state: 'streaming',
+          attributes: {
+            friendly_name: 'Garden Camera',
+            entity_picture: '/api/camera_proxy/camera.garden?token=large-secret-token',
+            supported_features: 2,
+          },
+          last_changed: '',
+          last_updated: '',
+        },
+      ]);
+
+      const res = await fetch(`http://localhost:${PORT}/api/v1/ha/entities?mode=all&view=summary`, {
+        headers: { 'x-hp-test-bypass': 'true' },
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json() as Array<Record<string, unknown>>;
+      expect(data).toHaveLength(1);
+      expect(data[0]).toMatchObject({
+        entityId: 'camera.garden',
+        friendlyName: 'Garden Camera',
+        domain: 'camera',
+        profile: {
+          displayName: 'Camara de seguridad',
+          category: 'media',
+          supportedCommandCount: 0,
+        },
+      });
+      expect(data[0]).not.toHaveProperty('attributes');
+      expect(data[0]).not.toHaveProperty('state');
+      expect((data[0].profile as Record<string, unknown>)).not.toHaveProperty('configurationSections');
+    });
+
     it('POST /api/v1/ha/import: success and duplicate prevention', async () => {
       const entityId = 'switch.coffee';
       const clientMock = container.adapters.homeAssistantConnectionProvider.getClient();

@@ -61,6 +61,7 @@ apps/operator-console/src/
 7. No crear stores globales nuevos sin autorización explícita.
 8. `devicePresentation.ts` resuelve la categoría por capabilities/semantic type y `ManagedDeviceTile` selecciona la tarjeta visual correspondiente sin depender de la marca.
 9. `InboxDeviceTile` se utiliza únicamente para dispositivos pendientes que requieren asignación.
+10. Descubrimiento solicita `view=summary`, difiere el filtrado de texto y monta entidades en lotes de 48; nunca debe transferir `attributes` completos ni desmontar resultados existentes durante una actualización.
 8. No mover llamadas API a componentes puramente visuales salvo que el componente sea dueño real del flujo.
 9. No dejar estados, handlers, imports o helpers sin usar.
 10. Todo componente nuevo debe quedar integrado y validado.

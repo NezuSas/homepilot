@@ -99,7 +99,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     return acc;
   }, {} as Record<string, { name: string, devices: Device[] }>);
 
-  if (loading) {
+  if (loading && devices.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
         <Loader2 className="w-10 h-10 animate-spin text-primary opacity-20" />
@@ -135,7 +135,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       )}
 
       {/* Discovery Layer: Hidden in Manager mode */}
-      {mode === 'discovery' && <HomeAssistantDiscoverySection onImported={fetchData} />}
+      {mode === 'discovery' && <HomeAssistantDiscoverySection onImported={upsertDevice} />}
 
       {/* Control Bar */}
       <SectionHeader 

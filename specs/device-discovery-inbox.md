@@ -22,6 +22,7 @@ Este documento especifica:
 2. **Listado de Bandeja (Inbox):** Un usuario debe poder obtener una vista consolidada de los dispositivos pendientes, siempre sujeta a una validación estricta de *ownership* territorial (Hogar Padre).
 3. **Asignación a Habitación (Assign):** Un usuario debe poder trasladar un dispositivo del *Inbox* a una ubicación topológica final, adjuntando e instruyendo un `roomId` de destino.
 4. **Validación de Propiedad Estricta:** La asignación requerirá que el repositorio cruce verificaciones demostrando que el `roomId` pertenece a un Hogar (`homeId`) del cual el usuario emisor sea propietario.
+5. **Descubrimiento Resumido:** La consola puede solicitar una proyección resumida de entidades Home Assistant que incluya solo identidad, nombre, dominio y resumen del perfil, sin transferir atributos de estado no utilizados por el listado.
 
 ## 5. Requisitos No Funcionales (NFRs)
 - **NFR-01 (Inmutabilidad del Identificador Origen):** El string de hardware provisto por la capa Edge (`externalId` o equivalente de `macAddress`) será preservado inmutablemente como llave única externa, independientemente de que el módulo asigne un UUID v4 de dominio al Device interno.
@@ -29,6 +30,7 @@ Este documento especifica:
 - **NFR-03 (Consistencia de Estados):** Un dispositivo asignado ya no puede reaparecer dentro de los listados de respuestas dirigidos a obtener el Inbox transitorio. Su migración es atómica.
 - **NFR-04 (Eventos de Dominio):** Todo dispositivo descubierto topológicamente o asignado por el usuario debe emitir un Evento estructurado propagando el identificador originario de correlación y la firma temporal.
 - **NFR-05 (Dependencias de Módulo Limpias):** El contexto lógico de *Device* opera sobre su propia agregación; no obstante, dependerá arquitectónicamente del módulo de *Topología* como proveedor de verdad (Source of Truth) para la verificación y autorización de los IDs habitacionales involucrados en la traslación de estado.
+- **NFR-06 (Render Progresivo):** La consola debe conservar resultados existentes durante una actualización y limitar el montaje inicial de tarjetas, permitiendo cargar lotes adicionales sin bloquear el hilo principal.
 
 ## 6. Semántica HTTP
 
@@ -90,6 +92,8 @@ Ambos heredarán campos core (`eventId`, `timestamp`, `schemaVersion`, `source`,
 - **AC8:** Eliminar un identificador desconocido devuelve `404 DEVICE_NOT_FOUND` sin efectos secundarios.
 - **AC9:** Después de una reconciliación exitosa con Home Assistant, toda importación local cuya `externalId` ya no aparezca en el inventario remoto conserva su registro pero expone `lastKnownState.state = "unavailable"`. Si la misma entidad reaparece, la siguiente reconciliación reemplaza automáticamente ese estado por el estado remoto vigente.
 - **AC10:** Un dispositivo no disponible permanece visible para diagnóstico y eliminación, pero no permite ejecutar comandos desde Inicio. Su eliminación local sigue las mismas validaciones de referencias de AC7.
+- **AC11:** `GET /api/v1/ha/entities?mode=all&view=summary` no incluye `attributes` ni secciones completas de configuración; devuelve únicamente los campos requeridos por el listado de descubrimiento.
+- **AC12:** Al iniciar descubrimiento, la sección se abre inmediatamente con un estado de carga; el buscador conserva un ancho utilizable y el listado monta resultados por lotes, manteniendo visibles los datos anteriores durante una recarga.
 
 ## 10. Notas Técnicas y Arquitectura
 - **Inyección Trans-Módulo Segura:** Para validar de manera correcta la integridad solicitada en AC5 y repeler la inyección transversal, el Orquestador o Caso de Uso implementado demandará que verifiquemos a través de un puerto perimetral (Ej. `TopologyService`) que el identificador intermedio (ID de Room) esté formalmente enrastrado por debajo del `homeId` matriz registrado tras el Discovery original.

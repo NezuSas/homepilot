@@ -414,7 +414,9 @@ export class DeviceRoutes extends ApiRoutes {
     }
 
     try {
-      const isModeAll = req.url?.includes('mode=all');
+      const searchParams = new URL(req.url || '/', 'http://homepilot.local').searchParams;
+      const isModeAll = searchParams.get('mode') === 'all';
+      const isSummaryView = searchParams.get('view') === 'summary';
 
       const existingEntityIds = await container.repositories.deviceRepository.findAllExternalIdsByPrefix('ha:');
       const existingEntityIdsSet = new Set(existingEntityIds.map(id => id.replace('ha:', '')));
@@ -429,15 +431,30 @@ export class DeviceRoutes extends ApiRoutes {
           if (isModeAll) return true;
           return supportedDomains.includes(domain);
         })
-        .map((s) => ({
-          profile: getHomeAssistantDeviceProfile(s.entity_id),
-          entityId: s.entity_id,
-          state: s.state,
-          friendlyName: (s.attributes.friendly_name as string) || s.entity_id,
-          domain: s.entity_id.split('.')[0],
-          invertState: 0,
-          attributes: s.attributes,
-        }));
+        .map((s) => {
+          const profile = getHomeAssistantDeviceProfile(s.entity_id);
+          const baseEntity = {
+            entityId: s.entity_id,
+            friendlyName: (s.attributes.friendly_name as string) || s.entity_id,
+            domain: s.entity_id.split('.')[0],
+            profile: isSummaryView
+              ? {
+                  displayName: profile.displayName,
+                  category: profile.category,
+                  supportedCommandCount: profile.supportedCommands.length,
+                }
+              : profile,
+          };
+
+          return isSummaryView
+            ? baseEntity
+            : {
+                ...baseEntity,
+                state: s.state,
+                invertState: 0,
+                attributes: s.attributes,
+              };
+        });
 
       this.sendJson(res, entities);
     } catch (error: unknown) {

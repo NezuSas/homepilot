@@ -517,7 +517,14 @@
       "discovery_error": "Discovery Error",
       "already_imported": "Device already imported",
       "import_failed": "Import failed",
-      "refresh_failed": "Failed to refresh state from Home Assistant"
+      "refresh_failed": "Failed to refresh state from Home Assistant",
+      "loading_entities": "Loading Home Assistant entities...",
+      "refresh_results": "Refresh results",
+      "result_count": "Showing {{visible}} of {{total}} entities",
+      "command_count_one": "1 command",
+      "command_count_other": "{{count}} commands",
+      "read_only": "read only",
+      "load_more": "Show {{count}} more"
     }
   },
   "topology": {

@@ -1,33 +1,37 @@
-import React, { useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Loader2, RadioTower, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
 import { SearchFilterBar } from './ui/SearchFilterBar';
+import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface HaEntityCandidate {
   entityId: string;
-  state: string;
   friendlyName: string;
   domain: string;
   profile?: {
     displayName: string;
     category: string;
-    supportedCommands: string[];
-    configurationSections: Array<{
-      id: string;
-      label: string;
-      description: string;
-    }>;
+    supportedCommandCount: number;
   };
 }
 
 interface HomeAssistantDiscoverySectionProps {
-  onImported: () => void;
+  onImported: (device: SnapshotDevice) => void;
 }
 
 const API_URL = `${API_BASE_URL}/api/v1`;
+const INITIAL_RESULT_LIMIT = 48;
+
+const isHaEntityCandidate = (value: unknown): value is HaEntityCandidate => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.entityId === 'string'
+    && typeof candidate.friendlyName === 'string'
+    && typeof candidate.domain === 'string';
+};
 
 export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySectionProps> = ({ onImported }) => {
   const { t } = useTranslation();
@@ -38,38 +42,79 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
   const [importingId, setImportingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [domainFilter, setDomainFilter] = useState('all');
+  const [visibleLimit, setVisibleLimit] = useState(INITIAL_RESULT_LIMIT);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLocaleLowerCase());
 
-  const uniqueDomains = Array.from(new Set(entities.map((entity) => entity.domain))).sort();
-  const domainOptions = [
-    { value: 'all', label: t('inbox.filters.all', { defaultValue: 'Todos' }) },
-    ...uniqueDomains.map((domain) => ({ value: domain, label: domain })),
-  ];
+  useEffect(() => () => requestControllerRef.current?.abort(), []);
 
-  const filteredEntities = entities.filter((entity) => {
-    const normalizedQuery = searchQuery.toLowerCase();
-    const matchesSearch = entity.friendlyName.toLowerCase().includes(normalizedQuery)
-      || entity.entityId.toLowerCase().includes(normalizedQuery);
+  useEffect(() => {
+    setVisibleLimit(INITIAL_RESULT_LIMIT);
+  }, [deferredSearchQuery, domainFilter]);
+
+  const domainOptions = useMemo(() => {
+    const uniqueDomains = Array.from(new Set(entities.map((entity) => entity.domain))).sort();
+    return [
+      { value: 'all', label: t('inbox.filters.all') },
+      ...uniqueDomains.map((domain) => ({ value: domain, label: domain.replaceAll('_', ' ') })),
+    ];
+  }, [entities, t]);
+
+  const filteredEntities = useMemo(() => entities.filter((entity) => {
+    const matchesSearch = !deferredSearchQuery
+      || entity.friendlyName.toLocaleLowerCase().includes(deferredSearchQuery)
+      || entity.entityId.toLocaleLowerCase().includes(deferredSearchQuery);
     const matchesDomain = domainFilter === 'all' || entity.domain === domainFilter;
     return matchesSearch && matchesDomain;
-  });
+  }), [deferredSearchQuery, domainFilter, entities]);
+
+  const visibleEntities = useMemo(
+    () => filteredEntities.slice(0, visibleLimit),
+    [filteredEntities, visibleLimit],
+  );
 
   const fetchCandidates = async () => {
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    setShowDiscovery(true);
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(`${API_URL}/ha/entities?mode=all`);
+      const res = await apiFetch(`${API_URL}/ha/entities?mode=all&view=summary`, { signal: controller.signal });
       if (!res.ok) throw new Error(t('inbox.discovery.fetch_failed'));
-      setEntities(await res.json());
-      setShowDiscovery(true);
-    } catch (err) {
+      const payload = await res.json() as unknown;
+      setEntities(Array.isArray(payload) ? payload.filter(isHaEntityCandidate) : []);
+      setVisibleLimit(INITIAL_RESULT_LIMIT);
+    } catch (err: unknown) {
+      if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : t('inbox.discovery.discovery_error'));
     } finally {
-      setLoading(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+        setLoading(false);
+      }
     }
+  };
+
+  const toggleDiscovery = () => {
+    if (showDiscovery) {
+      requestControllerRef.current?.abort();
+      requestControllerRef.current = null;
+      setLoading(false);
+      setShowDiscovery(false);
+      return;
+    }
+    if (entities.length > 0) {
+      setShowDiscovery(true);
+      return;
+    }
+    void fetchCandidates();
   };
 
   const handleImport = async (entity: HaEntityCandidate) => {
     setImportingId(entity.entityId);
+    setError(null);
     try {
       const res = await apiFetch(`${API_URL}/ha/import`, {
         method: 'POST',
@@ -77,15 +122,16 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
         body: JSON.stringify({ entityId: entity.entityId }),
       });
       if (res.ok) {
-        onImported();
-        setEntities((prev) => prev.filter((current) => current.entityId !== entity.entityId));
+        const importedDevice = await res.json() as SnapshotDevice;
+        onImported(importedDevice);
+        setEntities((current) => current.filter((candidate) => candidate.entityId !== entity.entityId));
       } else if (res.status === 409) {
         setError(t('inbox.discovery.already_imported'));
-        setEntities((prev) => prev.filter((current) => current.entityId !== entity.entityId));
+        setEntities((current) => current.filter((candidate) => candidate.entityId !== entity.entityId));
       } else {
-        const data = await res.json();
-        const msg = data.error?.message || (typeof data.error === 'string' ? data.error : 'Import failed');
-        setError(`Error: ${msg}`);
+        const data = await res.json() as { error?: { message?: string } | string };
+        const message = typeof data.error === 'string' ? data.error : data.error?.message;
+        setError(message || t('inbox.discovery.import_failed'));
       }
     } catch {
       setError(t('inbox.discovery.import_failed'));
@@ -95,80 +141,98 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-          <RadioTower className="w-4 h-4" /> {t('inbox.discovery.bridge_title')}
+    <section className="flex flex-col gap-4" aria-labelledby="ha-discovery-title">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 id="ha-discovery-title" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <RadioTower className="h-4 w-4" /> {t('inbox.discovery.bridge_title')}
         </h3>
         <Button
           variant="secondary"
-          onClick={showDiscovery ? () => setShowDiscovery(false) : fetchCandidates}
-          disabled={loading}
-          className="text-[10px] font-black uppercase tracking-widest px-4 h-9"
-          isLoading={loading}
+          onClick={toggleDiscovery}
+          className="h-10 w-full px-4 text-label font-black uppercase tracking-widest sm:w-auto"
         >
-          {showDiscovery ? (
-            <>
-              <RefreshCw className="w-3.5 h-3.5 rotate-180" /> {t('inbox.discovery.close_button', { defaultValue: 'Close Discovery' })}
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-3.5 h-3.5" /> {t('inbox.discovery.discover_button')}
-            </>
-          )}
+          <RefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
+          {showDiscovery ? t('inbox.discovery.close_button') : t('inbox.discovery.discover_button')}
         </Button>
       </div>
 
       {showDiscovery && (
         <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
-          {entities.length > 0 && (
-            <SearchFilterBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              searchPlaceholder={t('inbox.discovery.search_placeholder', 'Buscar entidades...')}
-              activeFilter={domainFilter}
-              onFilterChange={setDomainFilter}
-              options={domainOptions}
-            />
-          )}
+          {loading && entities.length === 0 ? (
+            <div className="flex min-h-36 items-center justify-center gap-3 rounded-panel border border-border/60 bg-card/35 text-sm text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              {t('inbox.discovery.loading_entities')}
+            </div>
+          ) : (
+            <>
+              <SearchFilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                searchPlaceholder={t('inbox.discovery.search_placeholder')}
+                activeFilter={domainFilter}
+                onFilterChange={setDomainFilter}
+                options={domainOptions}
+              />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredEntities.map((entity) => (
-              <div key={entity.entityId} className="p-4 bg-card border border-border rounded-xl flex flex-col gap-3 group relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-5">
-                  <RadioTower className="w-8 h-8" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-mono opacity-40 uppercase truncate" title={entity.entityId}>{entity.entityId}</span>
-                  <span className="text-xs font-black truncate" title={entity.friendlyName}>{entity.friendlyName}</span>
-                  {entity.profile && (
-                    <span className="text-[10px] text-muted-foreground truncate" title={entity.profile.configurationSections.map((section) => section.label).join(' · ')}>
-                      {entity.profile.displayName} · {entity.profile.supportedCommands.length > 0 ? `${entity.profile.supportedCommands.length} comandos` : 'solo lectura'}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/20">
-                  <span className="px-2 py-0.5 bg-muted rounded text-[9px] font-bold uppercase">{entity.domain}</span>
-                  <button
-                    onClick={() => handleImport(entity)}
-                    disabled={importingId === entity.entityId}
-                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-1.5 rounded disabled:opacity-50 transition-all hover:bg-primary/20"
-                  >
-                    {importingId === entity.entityId ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                    {t('common.import')}
-                  </button>
-                </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-muted-foreground">
+                <span>{t('inbox.discovery.result_count', { visible: visibleEntities.length, total: filteredEntities.length })}</span>
+                <Button variant="ghost" size="sm" onClick={() => { void fetchCandidates(); }} disabled={loading} className="gap-2">
+                  <RefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
+                  {t('inbox.discovery.refresh_results')}
+                </Button>
               </div>
-            ))}
-            {filteredEntities.length === 0 && !loading && (
-              <div className="col-span-full py-8 text-center border-2 border-dashed rounded-xl opacity-40">
-                <p className="text-[10px] font-black uppercase tracking-widest">{t('inbox.discovery.no_entities', { defaultValue: 'No entities found' })}</p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {visibleEntities.map((entity) => (
+                  <article key={entity.entityId} className="group relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4">
+                    <RadioTower className="absolute right-2 top-2 h-8 w-8 opacity-5" aria-hidden="true" />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-mono text-micro uppercase text-muted-foreground" title={entity.entityId}>{entity.entityId}</span>
+                      <span className="truncate text-body font-bold" title={entity.friendlyName}>{entity.friendlyName}</span>
+                      {entity.profile && (
+                        <span className="truncate text-caption text-muted-foreground">
+                          {entity.profile.displayName} · {entity.profile.supportedCommandCount > 0
+                            ? t('inbox.discovery.command_count', { count: entity.profile.supportedCommandCount })
+                            : t('inbox.discovery.read_only')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/20 pt-2">
+                      <span className="rounded bg-muted px-2 py-0.5 text-micro font-bold uppercase">{entity.domain.replaceAll('_', ' ')}</span>
+                      <button
+                        type="button"
+                        onClick={() => { void handleImport(entity); }}
+                        disabled={importingId !== null}
+                        className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1.5 text-label font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                      >
+                        {importingId === entity.entityId ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
+                        {t('common.import')}
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
-            )}
-          </div>
+
+              {visibleEntities.length < filteredEntities.length && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setVisibleLimit((current) => current + INITIAL_RESULT_LIMIT)}
+                  className="mx-auto min-w-48"
+                >
+                  {t('inbox.discovery.load_more', { count: Math.min(INITIAL_RESULT_LIMIT, filteredEntities.length - visibleEntities.length) })}
+                </Button>
+              )}
+
+              {filteredEntities.length === 0 && (
+                <div className="rounded-xl border-2 border-dashed border-border/60 py-8 text-center text-caption text-muted-foreground">
+                  {t('inbox.discovery.no_entities')}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
-      {error && <p className="text-[10px] text-destructive bg-destructive/5 p-2 rounded-lg border border-destructive/20 text-center uppercase font-bold">{error}</p>}
-    </div>
+      {error && <p className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-center text-caption font-bold text-destructive">{error}</p>}
+    </section>
   );
 };

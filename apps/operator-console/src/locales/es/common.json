@@ -517,7 +517,14 @@
       "discovery_error": "Error de descubrimiento",
       "already_imported": "Dispositivo ya importado",
       "import_failed": "Fallo al importar",
-      "refresh_failed": "Fallo al refrescar estado desde Home Assistant"
+      "refresh_failed": "Fallo al refrescar estado desde Home Assistant",
+      "loading_entities": "Consultando entidades de Home Assistant...",
+      "refresh_results": "Actualizar resultados",
+      "result_count": "Mostrando {{visible}} de {{total}} entidades",
+      "command_count_one": "1 comando",
+      "command_count_other": "{{count}} comandos",
+      "read_only": "solo lectura",
+      "load_more": "Mostrar {{count}} más"
     }
   },
   "topology": {
