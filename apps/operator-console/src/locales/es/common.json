@@ -440,6 +440,7 @@
     "subtitle": "Centro de Control Unificado",
     "discovery_subtitle": "Cola de incorporación para nuevas unidades de hardware detectadas en el Edge.",
     "manager_subtitle": "Supervisión operativa y control directo de las unidades de hardware asignadas.",
+    "manage_device": "Gestionar dispositivo",
     "no_rooms": "Sin Habitaciones",
     "empty_state": "No hay dispositivos conectados",
     "native_local": "Local Nativo",
@@ -448,6 +449,8 @@
       "all": "Todo",
       "light": "Luces",
       "switch": "Interruptores",
+      "cover": "Cortinas",
+      "camera": "Cámaras",
       "sensor": "Sensores",
       "local": "Local",
       "bridged": "Puenteado"

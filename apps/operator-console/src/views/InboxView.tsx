@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Inbox,
@@ -12,8 +12,15 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { DeviceInspector } from '../components/DeviceInspector';
 import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscoverySection';
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
+import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
+import { API_BASE_URL } from '../config';
+import { apiFetch } from '../lib/apiClient';
+import { humanize } from '../lib/naming-utils';
+import { resolveManagedDeviceKind, type ManagedDeviceKind } from '../lib/devicePresentation';
+
+const API_URL = `${API_BASE_URL}/api/v1`;
 
 /**
  * Vista de Inbox principal para la Operator Console.
@@ -23,10 +30,12 @@ export interface InboxViewProps {
   mode?: 'manager' | 'discovery';
 }
 
+type DeviceFilter = 'all' | Exclude<ManagedDeviceKind, 'other'>;
+
 export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const { t } = useTranslation();
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'light' | 'switch' | 'sensor'>('all');
+  const [filter, setFilter] = useState<DeviceFilter>('all');
   const [originFilter, setOriginFilter] = useState<'all' | 'local' | 'bridged'>('all');
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
@@ -44,19 +53,40 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     upsertDevice(updated);
   };
 
+  const executeDeviceCommand = useCallback(async (
+    deviceId: string,
+    command: string,
+    params?: Record<string, unknown>,
+  ): Promise<Device | null> => {
+    const response = await apiFetch(`${API_URL}/devices/${encodeURIComponent(deviceId)}/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: params ? { name: command, params } : command }),
+    });
+
+    return response.ok ? await response.json() as Device : null;
+  }, []);
+
   // Grouping logic with strict mode filtering
-  const filtered = devices.filter((d: Device) => {
-    // Strict status filtering based on view mode
+  const filtered = useMemo(() => devices.filter((d: Device) => {
     if (mode === 'manager' && d.status !== 'ASSIGNED') return false;
     if (mode === 'discovery' && d.status !== 'PENDING') return false;
 
-    const matchesType = filter === 'all' || d.type === filter;
+    const matchesType = filter === 'all' || resolveManagedDeviceKind(d) === filter;
     const isLocal = d.integrationSource === 'sonoff';
-    const matchesOrigin = originFilter === 'all' || (originFilter === 'local' ? isLocal : (originFilter === 'bridged' ? !isLocal : true));
+    const matchesOrigin = originFilter === 'all' || (originFilter === 'local' ? isLocal : !isLocal);
     return matchesType && matchesOrigin;
-  });
+  }), [devices, filter, mode, originFilter]);
 
   const roomsFlattened = Object.values(roomsByHome).flat();
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    filtered.forEach((device) => {
+      const name = humanize(device.id, device.name);
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return counts;
+  }, [filtered]);
   
   const grouped = filtered.reduce((acc: Record<string, { name: string, devices: Device[] }>, dev: Device) => {
     const isPending = dev.status === 'PENDING';
@@ -133,7 +163,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
             {/* Type Filter */}
             <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
-              {(['all', 'light', 'switch', 'sensor'] as const).map(f => (
+              {(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -167,17 +197,37 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
-              {Array.isArray(group.devices) && group.devices.map(device => (
-                <InboxDeviceTile 
-                  key={device.id} 
-                  device={device} 
-                  rooms={roomsByHome[device.homeId] || []}
-                  onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
-                  onInspect={() => setInspectingDeviceId(device.id)}
-                  hideControls={mode === 'discovery'}
-                />
-              ))}
+            <div className={cn(
+              'grid gap-4 sm:gap-6',
+              mode === 'manager'
+                ? 'grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]'
+                : 'grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
+            )}>
+              {Array.isArray(group.devices) && group.devices.map((device) => {
+                const roomName = roomsFlattened.find((room) => room.id === device.roomId)?.name;
+                const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;
+
+                return mode === 'manager' ? (
+                  <ManagedDeviceTile
+                    key={device.id}
+                    device={device}
+                    roomName={roomName}
+                    isDuplicateName={isDuplicateName}
+                    onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
+                    onInspect={() => setInspectingDeviceId(device.id)}
+                    onCommand={executeDeviceCommand}
+                  />
+                ) : (
+                  <InboxDeviceTile
+                    key={device.id}
+                    device={device}
+                    rooms={roomsByHome[device.homeId] || []}
+                    onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
+                    onInspect={() => setInspectingDeviceId(device.id)}
+                    hideControls
+                  />
+                );
+              })}
             </div>
           </section>
         ))}

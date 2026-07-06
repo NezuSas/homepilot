@@ -440,6 +440,7 @@
     "subtitle": "Unified Device Management",
     "discovery_subtitle": "Onboarding queue for new hardware units detected in the Edge.",
     "manager_subtitle": "Operational supervision and direct control of assigned hardware units.",
+    "manage_device": "Manage device",
     "edge_mode_active": "Edge Mode Active",
     "edge_hint": "Local control capabilities enabled. Network independence active.",
     "no_rooms": "No Rooms",
@@ -450,6 +451,8 @@
       "all": "All",
       "light": "Lights",
       "switch": "Switches",
+      "cover": "Covers",
+      "camera": "Cameras",
       "sensor": "Sensors",
       "local": "Local",
       "bridged": "Bridged"
