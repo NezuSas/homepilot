@@ -40,8 +40,8 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   };
 
   return (
-    <div className="border-b border-border/60 bg-card/80 shadow-depth-1">
-      <div className="flex min-h-14 items-center gap-1 overflow-x-auto no-scrollbar px-3">
+    <div className="border-b border-border/60">
+      <div className="flex min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
         {tabs.map((tab, index) => {
           const Icon = iconForIndex(index);
           const isActive = activeTabIdx === index;

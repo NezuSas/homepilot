@@ -3,15 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { sanitizeWidget } from './dashboardUtils';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
-import { 
-  X, Layout, Link2, Eye, Palette, 
-  Settings2, Box, Zap
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { SelectField } from '../../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
+import type { ClockStyle } from './widgets/ClockWidget';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -22,6 +20,26 @@ interface WidgetInspectorProps {
   onUpdate: (id: string, config: Partial<DashboardWidgetConfig>) => void;
   onRemove: (id: string) => void;
 }
+
+const SIZE_PRESETS = [
+  { label: 'S',  w: 2, h: 3 },
+  { label: 'M',  w: 4, h: 4 },
+  { label: 'L',  w: 6, h: 5 },
+  { label: 'XL', w: 8, h: 6 },
+] as const;
+
+const ACCENT_COLORS = [
+  null,
+  '#ef4444', '#f97316', '#eab308',
+  '#22c55e', '#3b82f6', '#8b5cf6',
+  '#ec4899', '#14b8a6',
+];
+
+const CLOCK_STYLES: { value: ClockStyle; label: string }[] = [
+  { value: 'minimal',  label: 'Minimal'  },
+  { value: 'digital',  label: 'Digital'  },
+  { value: 'elegant',  label: 'Elegante' },
+];
 
 export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }: WidgetInspectorProps) {
   const { t } = useTranslation();
@@ -37,345 +55,248 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
       setLoadingScenes(true);
       apiFetch(`${API}/scenes`)
         .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setScenes(data);
-        })
+        .then(data => { if (Array.isArray(data)) setScenes(data); })
         .finally(() => setLoadingScenes(false));
     }
   }, [isOpen, widget?.type]);
 
   const safeWidget = useMemo(() => widget ? sanitizeWidget(widget) : null, [widget]);
 
-  if (!widget || !safeWidget) return null;
+  if (!isOpen || !widget || !safeWidget) return null;
 
-  const currentLayout = safeWidget.config.layout;
-  const currentBinding = safeWidget.config.binding;
-  const currentAppearance = safeWidget.config.appearance;
-  const currentVisibility = safeWidget.config.visibility;
+  const layout     = safeWidget.config.layout;
+  const binding    = safeWidget.config.binding;
+  const appearance = safeWidget.config.appearance;
+  const extra      = safeWidget.config.extra ?? {};
+  const isSection  = safeWidget.type === 'section';
+  const isClock    = safeWidget.type === 'clock_display';
 
   return (
-    <div className={cn(
-      "fixed top-0 right-0 h-full w-[400px] bg-card/80 backdrop-blur-3xl border-l border-border/40 shadow-2xl z-[300] transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) transform flex flex-col",
-      isOpen ? "translate-x-0" : "translate-x-full"
-    )}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-8 border-b border-border/10">
-        <div className="flex flex-col">
-           <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('dashboards.inspector.title')}</span>
-           </div>
-           <h3 className="text-2xl font-black tracking-tighter text-foreground">
-             {currentAppearance.title || safeWidget.type.replace('_', ' ')}
-           </h3>
-        </div>
-        <button onClick={onClose} className="p-3 hover:bg-muted/50 rounded-2xl transition-all active:scale-95">
-          <X className="w-6 h-6 text-muted-foreground/40" />
-        </button>
-      </div>
+    /* Backdrop */
+    <div
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Blur backdrop */}
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
-      {/* Content */}
-      <div className="flex-1 p-8 space-y-10 overflow-y-auto no-scrollbar">
-        
-        {/* Section: Identidad */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-muted-foreground/60 px-1">
-             <Settings2 className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">{t('dashboards.inspector.identity')}</span>
+      {/* Modal card */}
+      <div
+        className="relative z-10 w-full max-w-sm rounded-3xl bg-card/95 border border-border/40 shadow-2xl backdrop-blur-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border/20">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/70 mb-0.5">
+              {t('dashboards.inspector.title')}
+            </p>
+            <h3 className="text-lg font-black tracking-tight text-foreground leading-none">
+              {appearance.title || safeWidget.type.replace('_', ' ')}
+            </h3>
           </div>
-          <div className="space-y-2">
-             <input 
-               placeholder={t('dashboards.inspector.custom_title_placeholder')}
-               value={currentAppearance.title || ''}
-               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, title: e.target.value } })}
-               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none focus:border-primary/50 transition-all shadow-inner"
-             />
-             <p className="text-[9px] text-muted-foreground/40 px-2 leading-relaxed">{t('dashboards.inspector.custom_title_hint')}</p>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-muted/60 rounded-2xl transition-all active:scale-95"
+          >
+            <X className="w-5 h-5 text-muted-foreground/50" />
+          </button>
         </div>
 
-        {/* Section: Dimensiones */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-muted-foreground/60 px-1">
-             <Layout className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">{t('dashboards.inspector.dimensions')}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-2">
-                <SelectField
-                  label={t('dashboards.inspector.width_label')}
-                  value={String(currentLayout.w)}
-                  onChange={(val) => onUpdate(safeWidget.id, { layout: { ...currentLayout, w: parseInt(val) } })}
-                  options={[2, 3, 4, 6, 8, 12].map(val => ({ value: String(val), label: `${val} ${t('dashboards.inspector.cols')}` }))}
-                />
-             </div>
-             <div className="space-y-2">
-                <SelectField
-                  label={t('dashboards.inspector.height_label')}
-                  value={String(currentLayout.h)}
-                  onChange={(val) => onUpdate(safeWidget.id, { layout: { ...currentLayout, h: parseInt(val) } })}
-                  options={[2, 3, 4, 5, 6, 8, 10, 12].map(val => ({ value: String(val), label: `${val} ${t('dashboards.inspector.units')}` }))}
-                />
-             </div>
-          </div>
-        </div>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
 
-        {/* Section: Binding (Real data) */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-muted-foreground/60 px-1">
-             <Link2 className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">{t('dashboards.inspector.binding')}</span>
+          {/* Title */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+              {isSection ? 'Título de sección' : t('dashboards.inspector.custom_title_placeholder')}
+            </label>
+            <input
+              placeholder={isSection ? 'Mi Sección' : t('dashboards.inspector.custom_title_placeholder')}
+              value={appearance.title || ''}
+              onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
+              className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
+            />
           </div>
-          
-          <div className="space-y-3">
-              {/* Guided Configuration Steps */}
-              <div className="p-5 rounded-3xl bg-primary/5 border border-primary/20 space-y-4">
-                 <div className="flex items-center gap-2">
-                    <Settings2 className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('dashboards.inspector.guided_config')}</span>
-                 </div>
-                 <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                       <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", currentAppearance.title ? "bg-primary border-primary" : "border-muted")}>
-                          {currentAppearance.title && <Box className="w-2 h-2 text-primary-foreground" />}
-                       </div>
-                       <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight">{t('dashboards.inspector.step_name')}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                       <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", currentBinding.entityId ? "bg-primary border-primary" : "border-muted")}>
-                          {currentBinding.entityId && <Box className="w-2 h-2 text-primary-foreground" />}
-                       </div>
-                       <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight">{t('dashboards.inspector.step_bind')}</span>
-                    </div>
-                 </div>
+
+          {/* Size presets (not for section) */}
+          {!isSection && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Tamaño</label>
+              <div className="grid grid-cols-4 gap-2">
+                {SIZE_PRESETS.map(preset => {
+                  const isActive = layout.w === preset.w && layout.h === preset.h;
+                  return (
+                    <button
+                      key={preset.label}
+                      onClick={() => onUpdate(safeWidget.id, { layout: { ...layout, w: preset.w, h: preset.h } })}
+                      className={cn(
+                        "flex flex-col items-center gap-0.5 py-2.5 rounded-2xl border transition-all text-center",
+                        isActive
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                      )}
+                    >
+                      <span className="text-[11px] font-black uppercase">{preset.label}</span>
+                      <span className="text-[8px] opacity-50 tabular-nums">{preset.w}×{preset.h}</span>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+          )}
 
-              {/* Energy Selector */}
-              {widget.type === 'energy_snapshot' && (
-                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-2">
-                   <div className="flex items-center gap-2 text-primary">
-                      <Zap className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{t('dashboards.inspector.auto_monitor')}</span>
-                   </div>
-                   <p className="text-[9px] text-muted-foreground leading-relaxed">
-                      {t('dashboards.inspector.auto_monitor_desc')}
-                   </p>
-                </div>
-              )}
+          {/* Clock style picker */}
+          {isClock && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Diseño de reloj</label>
+              <div className="grid grid-cols-3 gap-2">
+                {CLOCK_STYLES.map(style => {
+                  const isActive = (extra.clockStyle ?? 'minimal') === style.value;
+                  return (
+                    <button
+                      key={style.value}
+                      onClick={() => onUpdate(safeWidget.id, { extra: { ...extra, clockStyle: style.value } })}
+                      className={cn(
+                        "py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-wide transition-all",
+                        isActive
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/30"
+                      )}
+                    >
+                      {style.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-              {/* Device Selector */}
-              {(widget.type === 'device_control') && (
-                 <div className="space-y-2">
-                  <SelectField
-                    label={t('dashboards.inspector.target_device')}
-                    value={currentBinding.entityId || ''}
-                    placeholder={t('dashboards.inspector.select_device_placeholder')}
-                    onChange={(val) => onUpdate(safeWidget.id, { 
-                      binding: { ...currentBinding, entityId: val, entityType: 'device' } 
-                    })}
-                    options={devices.map(d => ({ 
-                      value: d.id, 
-                      label: `${d.name} (${t(`device_types.${d.type}`, { defaultValue: d.type })})` 
-                    }))}
-                  />
-               </div>
-             )}
+          {/* Device / Room / Scene binding */}
+          {widget.type === 'device_control' && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                {t('dashboards.inspector.target_device')}
+              </label>
+              <SelectField
+                label=""
+                value={binding.entityId || ''}
+                placeholder={t('dashboards.inspector.select_device_placeholder')}
+                onChange={(val) => onUpdate(safeWidget.id, { binding: { ...binding, entityId: val, entityType: 'device' } })}
+                options={devices.map(d => ({ value: d.id, label: `${d.name} (${t(`device_types.${d.type}`, { defaultValue: d.type })})` }))}
+              />
+            </div>
+          )}
 
-              {/* Room Selector */}
-              {(widget.type === 'room_overview' || widget.type === 'room_summary') && (
-                 <div className="space-y-2">
-                  <SelectField
-                    label={t('dashboards.inspector.reference_room')}
-                    value={currentBinding.entityId || ''}
-                    placeholder={t('dashboards.inspector.select_room_placeholder')}
-                    onChange={(val) => onUpdate(safeWidget.id, { 
-                      binding: { ...currentBinding, entityId: val, entityType: 'room' } 
-                    })}
-                    options={rooms.map(r => ({ value: r.id, label: r.name }))}
-                  />
-               </div>
-             )}
+          {(widget.type === 'room_overview' || widget.type === 'room_summary') && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                {t('dashboards.inspector.reference_room')}
+              </label>
+              <SelectField
+                label=""
+                value={binding.entityId || ''}
+                placeholder={t('dashboards.inspector.select_room_placeholder')}
+                onChange={(val) => onUpdate(safeWidget.id, { binding: { ...binding, entityId: val, entityType: 'room' } })}
+                options={rooms.map(r => ({ value: r.id, label: r.name }))}
+              />
+            </div>
+          )}
 
-              {/* Scene Selector */}
-              {widget.type === 'scene_shortcut' && (
-                <div className="space-y-2">
-                  <SelectField
-                    label={t('dashboards.inspector.scene_to_trigger')}
-                    value={currentBinding.entityId || ''}
-                    loading={loadingScenes}
-                    placeholder={loadingScenes ? t('dashboards.inspector.loading_scenes') : t('dashboards.inspector.select_scene_placeholder')}
-                    onChange={(val) => onUpdate(safeWidget.id, { 
-                      binding: { ...currentBinding, entityId: val, entityType: 'scene' } 
-                    })}
-                    options={scenes.map(s => ({ value: s.id, label: s.name }))}
-                  />
-               </div>
-             )}
-          </div>
-        </div>
+          {widget.type === 'scene_shortcut' && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                {t('dashboards.inspector.scene_to_trigger')}
+              </label>
+              <SelectField
+                label=""
+                value={binding.entityId || ''}
+                loading={loadingScenes}
+                placeholder={loadingScenes ? t('dashboards.inspector.loading_scenes') : t('dashboards.inspector.select_scene_placeholder')}
+                onChange={(val) => onUpdate(safeWidget.id, { binding: { ...binding, entityId: val, entityType: 'scene' } })}
+                options={scenes.map(s => ({ value: s.id, label: s.name }))}
+              />
+            </div>
+          )}
 
-        {/* Section: Visibility Rules (Simplified) */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-muted-foreground/60 px-1">
-             <Eye className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">{t('dashboards.visibility.label')}</span>
-          </div>
-          
-          <div className="space-y-3">
-             <div className="flex flex-col gap-2">
-                <SelectField
-                  label={t('dashboards.inspector.condition_label')}
-                  value={currentVisibility.rules[0]?.type || 'always'}
-                  onChange={(val) => {
-                    const type = val as any;
-                    onUpdate(safeWidget.id, { 
-                      visibility: { 
-                        ...currentVisibility,
-                        rules: [{ id: 'r1', type, action: 'show', value: '' }] 
-                      } 
-                    });
-                  }}
-                  options={[
-                    { value: 'always', label: t('dashboards.visibility.always') },
-                    { value: 'device_on', label: t('dashboards.visibility.device_on') },
-                    { value: 'has_alerts', label: t('dashboards.visibility.has_alerts') },
-                    { value: 'time_range', label: t('dashboards.visibility.time_range') }
-                  ]}
-                />
-             </div>
-
-             {/* Rule Contextual Values */}
-             {currentVisibility.rules[0]?.type === 'device_on' && (
-                <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
-                   <SelectField
-                     label="Seleccionar Sensor/Luz"
-                     value={currentVisibility.rules[0].value || ''}
-                     placeholder="Seleccionar..."
-                     onChange={(val) => {
-                       const rules = [...currentVisibility.rules];
-                       rules[0] = { ...rules[0], value: val };
-                       onUpdate(safeWidget.id, { visibility: { ...currentVisibility, rules } });
-                     }}
-                     options={devices.map(d => ({ value: d.id, label: d.name }))}
-                   />
-               </div>
-             )}
-
-              {currentVisibility.rules[0]?.type === 'time_range' && (
-                <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 space-y-3 animate-in slide-in-from-top-2">
-                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Rango (HH:mm-HH:mm)</label>
-                   <input 
-                     type="text"
-                     placeholder="08:00-22:00"
-                     value={currentVisibility.rules[0].value || ''}
-                     onChange={(e) => {
-                       const rules = [...currentVisibility.rules];
-                       rules[0] = { ...rules[0], value: e.target.value };
-                       onUpdate(safeWidget.id, { visibility: { ...currentVisibility, rules } });
-                     }}
-                    className="w-full bg-background border border-border/40 rounded-xl px-3 py-2 text-[10px] font-bold"
-                  />
-               </div>
-             )}
-          </div>
-        </div>
-
-        {/* Section: Appearance */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-muted-foreground/60 px-1">
-             <Palette className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">{t('dashboards.inspector.appearance')}</span>
-          </div>
-          <div className="space-y-5">
-             <div className="grid grid-cols-2 gap-3">
+          {/* Variant (not for section) */}
+          {!isSection && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Fondo</label>
+              <div className="grid grid-cols-3 gap-2">
                 {(['glass', 'solid', 'radiant', 'outline', 'flat'] as const).map(v => (
                   <button
                     key={v}
-                    onClick={() => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, variant: v } })}
+                    onClick={() => onUpdate(safeWidget.id, { appearance: { ...appearance, variant: v } })}
                     className={cn(
-                      "group flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-300",
-                      currentAppearance.variant === v 
-                        ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5" 
+                      "py-2 rounded-2xl border text-[9px] font-black uppercase tracking-widest transition-all",
+                      appearance.variant === v
+                        ? "bg-primary/10 border-primary text-primary"
                         : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/20"
                     )}
                   >
-                    <span className="text-[10px] font-black uppercase tracking-widest">{v}</span>
-                    <Box className={cn("w-3.5 h-3.5 transition-transform duration-500", currentAppearance.variant === v && "scale-110")} />
+                    {v}
                   </button>
                 ))}
-             </div>
-             
-             {/* Accent color picker */}
-             <div className="space-y-2">
-               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1 block">Color de acento</span>
-               <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-muted/10 border border-border/40">
-                 {[
-                   null,
-                   '#ef4444', '#f97316', '#eab308',
-                   '#22c55e', '#3b82f6', '#8b5cf6',
-                   '#ec4899', '#14b8a6',
-                 ].map((color) => (
-                   <button
-                     key={color ?? 'none'}
-                     onClick={() => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, accentColor: color ?? undefined } })}
-                     title={color ?? 'Sin acento'}
-                     className={cn(
-                       "w-6 h-6 rounded-full border-2 transition-all active:scale-90 flex-shrink-0",
-                       (currentAppearance.accentColor ?? null) === color
-                         ? "border-foreground scale-110 shadow-md"
-                         : "border-transparent hover:scale-105"
-                     )}
-                     style={{ background: color ?? 'transparent', outline: !color ? '2px dashed hsl(var(--border))' : undefined }}
-                   />
-                 ))}
-                 <input
-                   type="color"
-                   value={currentAppearance.accentColor ?? '#3b82f6'}
-                   onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, accentColor: e.target.value } })}
-                   title="Color personalizado"
-                   className="w-6 h-6 rounded-full cursor-pointer border-0 bg-transparent p-0 overflow-hidden"
-                   style={{ appearance: 'none' }}
-                 />
-               </div>
-             </div>
-             
-             <div className="p-5 rounded-3xl bg-muted/10 border border-border/40 space-y-3">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                      <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Mostrar Título</span>
-                   </div>
-                    <button 
-                      onClick={() => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, showTitle: !currentAppearance.showTitle } })}
-                      className={cn(
-                        "w-10 h-5 rounded-full transition-all duration-300 relative border",
-                        currentAppearance.showTitle ? "bg-primary border-primary" : "bg-muted border-border/60"
-                      )}
-                    >
-                       <div className={cn(
-                         "absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all shadow-sm",
-                         currentAppearance?.showTitle ? "left-[22px]" : "left-1"
-                       )} />
-                   </button>
-                </div>
-             </div>
+              </div>
+            </div>
+          )}
+
+          {/* Accent color */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Color de acento</label>
+            <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-muted/10 border border-border/40">
+              {ACCENT_COLORS.map(color => (
+                <button
+                  key={color ?? 'none'}
+                  onClick={() => onUpdate(safeWidget.id, { appearance: { ...appearance, accentColor: color ?? undefined } })}
+                  title={color ?? 'Sin acento'}
+                  className={cn(
+                    "w-7 h-7 rounded-full border-2 transition-all active:scale-90",
+                    (appearance.accentColor ?? null) === color
+                      ? "border-foreground scale-110 shadow-md"
+                      : "border-transparent hover:scale-105"
+                  )}
+                  style={{
+                    background: color ?? 'transparent',
+                    outline: !color ? '2px dashed hsl(var(--border))' : undefined,
+                  }}
+                />
+              ))}
+              <input
+                type="color"
+                value={appearance.accentColor ?? '#3b82f6'}
+                onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, accentColor: e.target.value } })}
+                title="Color personalizado"
+                className="w-7 h-7 rounded-full cursor-pointer border border-border/40 bg-transparent p-0"
+              />
+            </div>
           </div>
+
         </div>
 
-      </div>
-
-      {/* Footer Actions */}
-      <div className="w-full shrink-0 p-8 border-t border-border/10 bg-card/40 flex flex-col gap-3">
-         <Button 
-           variant="secondary" 
-           className="w-full font-black uppercase tracking-[0.2em] text-[10px] text-destructive hover:bg-destructive/10 border-destructive/20 py-4 rounded-2xl" 
-           onClick={() => { if (window.confirm(t('common.confirm_action'))) { onRemove(safeWidget.id); onClose(); } }}
-         >
+        {/* Footer */}
+        <div className="px-6 pb-6 pt-4 border-t border-border/10 flex gap-3">
+          <Button
+            variant="secondary"
+            className="flex-1 text-destructive hover:bg-destructive/10 border-destructive/20 rounded-2xl py-2.5 text-[10px] font-black uppercase tracking-wider"
+            onClick={() => {
+              if (window.confirm(t('common.confirm_action'))) {
+                onRemove(safeWidget.id);
+                onClose();
+              }
+            }}
+          >
             {t('dashboards.inspector.delete_widget')}
-         </Button>
-         <Button variant="primary" className="w-full font-black uppercase tracking-[0.2em] text-[11px] py-4 rounded-2xl shadow-2xl shadow-primary/20" onClick={onClose}>
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1 rounded-2xl py-2.5 text-[10px] font-black uppercase tracking-wider shadow-lg shadow-primary/20"
+            onClick={onClose}
+          >
             {t('dashboards.inspector.finish')}
-         </Button>
+          </Button>
+        </div>
       </div>
     </div>
   );

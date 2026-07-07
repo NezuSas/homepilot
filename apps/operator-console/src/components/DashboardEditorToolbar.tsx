@@ -33,6 +33,7 @@ const WIDGET_DEFS: WidgetDef[] = [
   { type: 'assistant_insight',icon: '🤖', defaultSize: { w: 6, h: 4 } },
   { type: 'system_status',    icon: '📡', defaultSize: { w: 4, h: 4 } },
   { type: 'clock_display',    icon: '🕐', defaultSize: { w: 4, h: 4 } },
+  { type: 'section',          icon: '─',  defaultSize: { w: 12, h: 2 } },
 ];
 
 export const DashboardEditorToolbar: React.FC<DashboardEditorToolbarProps> = ({

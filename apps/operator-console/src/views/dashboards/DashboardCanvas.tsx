@@ -10,7 +10,7 @@ import type { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core'
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
-import { DashboardWidgetNode } from './DashboardWidget';
+import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { useAssistantStore } from '../../stores/useAssistantStore';
 import { isDeviceActive, sanitizeWidget } from './dashboardUtils';
@@ -191,7 +191,7 @@ export function DashboardCanvas({
       <div 
         ref={containerRef}
         className={cn(
-          "relative w-full overflow-hidden grid grid-cols-12 gap-3 rounded-[2rem] border border-border/45 bg-card/20 p-3 transition-all duration-500 sm:gap-4 sm:p-4",
+          "relative w-full grid grid-cols-12 gap-3 rounded-[2rem] border border-border/45 bg-card/20 p-3 transition-all duration-500 sm:gap-4 sm:p-4",
           isEditing && "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] rounded-[3rem] border-2 border-dashed border-primary/10 shadow-2xl shadow-primary/5"
         )}
         style={{
@@ -270,14 +270,16 @@ export function DashboardCanvas({
           }),
         }}>
           {activeWidget && colWidth > 0 ? (
-            <div style={{
-              width: colWidth * activeWidget.config.layout.w - 16,
-              height: rowHeight * activeWidget.config.layout.h - 16,
-            }}>
-              <DashboardWidgetNode
+            <div
+              className="rounded-[2rem] shadow-2xl opacity-80 border border-primary/20 bg-card/80 backdrop-blur-xl"
+              style={{
+                width: colWidth * activeWidget.config.layout.w - 16,
+                height: rowHeight * activeWidget.config.layout.h - 16,
+              }}
+            >
+              <WidgetContent
                 widget={activeWidget}
-                isEditing={true}
-                isSelected={true}
+                isEditing={false}
                 onClick={() => {}}
               />
             </div>

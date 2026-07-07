@@ -9,7 +9,8 @@ export type WidgetType =
   | 'assistant_insight' 
   | 'system_status' 
   | 'energy_snapshot'
-  | 'clock_display';
+  | 'clock_display'
+  | 'section';
 
 export interface WidgetLayout {
   x: number;

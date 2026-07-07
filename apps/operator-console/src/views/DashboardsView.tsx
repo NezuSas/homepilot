@@ -178,8 +178,8 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     const currentTab = active.tabs[activeTabIdx];
     const maxY = currentTab.widgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
 
-    const widgetW = size?.w ?? 4;
-    const widgetH = size?.h ?? 4;
+    const widgetW = type === 'section' ? 12 : (size?.w ?? 4);
+    const widgetH = type === 'section' ? 2  : (size?.h ?? 4);
 
     const defaultConfig: DashboardWidgetConfig = {
       layout: { x: 0, y: maxY, w: widgetW, h: widgetH },
@@ -343,7 +343,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className="relative flex flex-col gap-4 p-4 sm:p-6">
+                <div className="relative flex flex-col gap-4 p-3 sm:p-4">
                    {isEditing && (
                      <DashboardEditorToolbar
                        title={t('dashboards.editor.widget_management')}
