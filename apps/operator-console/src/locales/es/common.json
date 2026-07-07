@@ -872,7 +872,7 @@
       "suspended": "CUENTA SUSPENDIDA",
       "live": "TELEMETRÍA EN VIVO / SESIÓN"
     },
-    "protection_rule": "Regla de Protección del Sistema: HomePilot Edge requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
+    "protection_rule": "Regla de Protección del Sistema: HomePilot requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
     "actions": {
       "confirm_suspend": "¿Está seguro de que desea SUSPENDER a este usuario? La suspensión matará instantáneamente todas las sesiones activas.",
       "confirm_restore": "¿Está seguro de que desea RESTAURAR a este usuario?",
@@ -913,7 +913,7 @@
     }
   },
   "login": {
-    "title": "HomePilot Edge",
+    "title": "HomePilot",
     "subtitle": "Inicia sesión para acceder a la Consola de Operador",
     "username": "Usuario",
     "password": "Contraseña",
@@ -923,7 +923,7 @@
   },
   "onboarding": {
     "kicker": "Instalador residencial",
-    "title": "Activación de HomePilot Edge",
+    "title": "Activación de HomePilot",
     "subtitle": "Conecta el appliance con Home Assistant y deja la consola lista para operar en red local.",
     "error_save": "Error al guardar la conexión",
     "error_complete": "Error al finalizar la configuración inicial",
@@ -968,13 +968,13 @@
       "token_placeholder": "Token de acceso de larga duración...",
       "token_help_title": "Cómo obtener el token",
       "token_help_1": "1. En Home Assistant abre tu perfil de usuario.",
-      "token_help_2": "2. Crea un token de larga duración para HomePilot Edge.",
+      "token_help_2": "2. Crea un token de larga duración para HomePilot.",
       "token_help_3": "3. Pégalo aquí, prueba la conexión y guarda solo si el enlace responde."
     },
     "step3": {
       "kicker": "Bridge confirmado",
       "title": "Sistema Listo",
-      "subtitle": "Tu appliance HomePilot Edge está configurado y vinculado de forma segura con tu red de Home Assistant.",
+      "subtitle": "Tu appliance HomePilot está configurado y vinculado de forma segura con tu red de Home Assistant.",
       "next_1": "Importar dispositivos",
       "next_2": "Asignar espacios",
       "next_3": "Probar escenas",
@@ -1010,7 +1010,7 @@
     "edge_native": "Nativo del Edge",
     "hero_title_p1": "Inteligencia Local",
     "hero_title_p2": "Blindada",
-    "hero_description": "La lógica de HomePilot Edge y el hardware crítico funcionan independientemente de redes externas. Este entorno está optimizado para confiabilidad, privacidad y ejecución de baja latencia.",
+    "hero_description": "La lógica de HomePilot y el hardware crítico funcionan independientemente de redes externas. Este entorno está optimizado para confiabilidad, privacidad y ejecución de baja latencia.",
     "autonomy_score": "Puntaje de Autonomía",
     "infrastructure_title": "Infraestructura",
     "infrastructure_subtitle": "Núcleo Local vs Malla Externa",

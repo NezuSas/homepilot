@@ -709,11 +709,11 @@ function App() {
                   setIsSidebarOpen(false);
                 }
               }}
-              className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-opacity hover:opacity-75"
+              className="flex h-14 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-opacity hover:opacity-75"
               title={t('shell.toggle_sidebar')}
               aria-label={t('shell.toggle_sidebar')}
             >
-              <img src="/nezu.png" alt="Nezu" className={cn("h-12 w-12 object-contain transition-opacity", isDesktopSidebarCollapsed && "lg:opacity-100")} />
+              <img src="/nezu.png" alt="Nezu" className={cn("h-10 w-auto object-contain transition-opacity", isDesktopSidebarCollapsed && "lg:opacity-100")} />
             </button>
             <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0")}>
               {t('shell.app_title')}

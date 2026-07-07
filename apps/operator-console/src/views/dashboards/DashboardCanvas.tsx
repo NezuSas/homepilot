@@ -21,6 +21,8 @@ interface DashboardCanvasProps {
   onWidgetClick: (id: string) => void;
   selectedWidgetId: string | null;
   onLayoutChange: (widgets: DashboardWidget[]) => void;
+  onAddCardClick?: (x: number, y: number) => void;
+  onAddSectionClick?: (y: number) => void;
 }
 
 const GRID_COLS = 12;
@@ -34,7 +36,9 @@ export function DashboardCanvas({
   isEditing, 
   onWidgetClick, 
   selectedWidgetId,
-  onLayoutChange
+  onLayoutChange,
+  onAddCardClick,
+  onAddSectionClick
 }: DashboardCanvasProps) {
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const [snapPreview, setSnapPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -61,13 +65,10 @@ export function DashboardCanvas({
     return () => observer.disconnect();
   }, []);
 
+
+
   const sanitizedWidgets = useMemo(() => widgets.map(sanitizeWidget), [widgets]);
 
-  // Compute the minimum canvas height from the lowest widget bottom edge.
-  const canvasMinRows = useMemo(() => {
-    if (sanitizedWidgets.length === 0) return 10;
-    return sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0) + 2;
-  }, [sanitizedWidgets]);
   
   const evaluateVisibility = useCallback((widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
@@ -112,7 +113,81 @@ export function DashboardCanvas({
     sanitizedWidgets.filter(evaluateVisibility),
     [sanitizedWidgets, evaluateVisibility]
   );
-  
+
+  // Compute virtual placeholders for HASS-style add-card and add-section buttons
+  const virtualPlaceholders = useMemo(() => {
+    if (!isEditing) return [];
+
+    const sections = sanitizedWidgets.filter(w => w.type === 'section');
+    const placeholders: { key: string; x: number; y: number; w: number; h: number; type: 'add_card' | 'add_section' }[] = [];
+
+    // 1. Group widgets and place an "add card" block under each section
+    if (sections.length === 0) {
+      const bottomY = sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
+      placeholders.push({
+        key: 'add_card_root',
+        x: 0,
+        y: bottomY,
+        w: 4,
+        h: 2,
+        type: 'add_card'
+      });
+    } else {
+      const sortedSections = [...sections].sort((a, b) => a.config.layout.y - b.config.layout.y);
+      
+      // Before first section
+      const firstSecY = sortedSections[0].config.layout.y;
+      const preWidgets = sanitizedWidgets.filter(w => w.config.layout.y < firstSecY);
+      if (preWidgets.length > 0) {
+        const bottomY = preWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
+        placeholders.push({
+          key: 'add_card_pre',
+          x: 0,
+          y: bottomY,
+          w: 4,
+          h: 2,
+          type: 'add_card'
+        });
+      }
+
+      // Inside each section
+      sortedSections.forEach((section, idx) => {
+        const secY = section.config.layout.y;
+        const nextSec = sortedSections[idx + 1];
+        const nextSecY = nextSec ? nextSec.config.layout.y : Infinity;
+
+        const secWidgets = sanitizedWidgets.filter(w => w.id !== section.id && w.config.layout.y > secY && w.config.layout.y < nextSecY);
+        const bottomY = secWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), secY + section.config.layout.h);
+        placeholders.push({
+          key: `add_card_${section.id}`,
+          x: 0,
+          y: bottomY,
+          w: 4,
+          h: 2,
+          type: 'add_card'
+        });
+      });
+    }
+
+    // 2. Section placeholder at the absolute bottom
+    const absoluteMaxY = sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
+    placeholders.push({
+      key: 'add_section_final',
+      x: 0,
+      y: absoluteMaxY + (placeholders.length > 0 ? 3 : 1),
+      w: 12,
+      h: 2,
+      type: 'add_section'
+    });
+
+    return placeholders;
+  }, [sanitizedWidgets, isEditing]);
+
+  const canvasMinRows = useMemo(() => {
+    const bottomY = sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
+    return Math.max(8, bottomY + (isEditing ? 6 : 2));
+  }, [sanitizedWidgets, isEditing]);
+
   const sensorOptions = useMemo(() => ({
     activationConstraint: {
       distance: 8,
@@ -191,8 +266,10 @@ export function DashboardCanvas({
       <div 
         ref={containerRef}
         className={cn(
-          "relative w-full grid grid-cols-12 gap-3 rounded-[2rem] border border-border/45 bg-card/20 p-3 transition-all duration-500 sm:gap-4 sm:p-4",
-          isEditing && "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] rounded-[3rem] border-2 border-dashed border-primary/10 shadow-2xl shadow-primary/5"
+          "relative w-full grid grid-cols-12 gap-3 transition-all duration-500 sm:gap-4",
+          isEditing
+            ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 rounded-[3rem] bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] shadow-2xl shadow-primary/5"
+            : "border-transparent bg-transparent p-0"
         )}
         style={{
           gridAutoRows: `${rowHeight}px`,
@@ -246,6 +323,41 @@ export function DashboardCanvas({
               }}
             />
           </div>
+        ))}
+
+        {/* Home Assistant style virtual placeholders */}
+        {isEditing && virtualPlaceholders.map((placeholder) => (
+          <button
+            key={placeholder.key}
+            type="button"
+            style={{
+              gridColumn: `${placeholder.x + 1} / span ${placeholder.w}`,
+              gridRow: `${placeholder.y + 1} / span ${placeholder.h}`,
+            }}
+            className={cn(
+              "flex flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-primary/20 hover:border-primary/50 bg-primary/[0.01] hover:bg-primary/[0.04] transition-all group/placeholder outline-none",
+              placeholder.type === 'add_section' && "w-full border-border/40 hover:border-primary/40 bg-muted/5 hover:bg-primary/[0.02]"
+            )}
+            onClick={() => {
+              if (placeholder.type === 'add_card') {
+                onAddCardClick?.(placeholder.x, placeholder.y);
+              } else {
+                onAddSectionClick?.(placeholder.y);
+              }
+            }}
+          >
+            {placeholder.type === 'add_card' ? (
+              <div className="flex flex-col items-center gap-1.5 text-muted-foreground/30 group-hover/placeholder:text-primary transition-colors">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full border border-dashed border-muted-foreground/30 group-hover/placeholder:border-primary/50">
+                  <span className="text-lg font-black leading-none">+</span>
+                </div>
+              </div>
+            ) : (
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 group-hover/placeholder:text-primary transition-colors">
+                + Nueva Sección
+              </span>
+            )}
+          </button>
         ))}
 
         {/* Snap drop preview */}

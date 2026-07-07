@@ -872,7 +872,7 @@
       "suspended": "ACCOUNT SUSPENDED",
       "live": "LIVE TELEMETRY / SESSION"
     },
-    "protection_rule": "System Protection Rule: HomePilot Edge requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout.",
+    "protection_rule": "System Protection Rule: HomePilot requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout.",
     "actions": {
       "confirm_suspend": "WARNING: Are you sure you want to SUSPEND this user? Suspension instantly kills all active sessions.",
       "confirm_restore": "Are you sure you want to RESTORE this user?",
@@ -913,7 +913,7 @@
     }
   },
   "login": {
-    "title": "HomePilot Edge",
+    "title": "HomePilot",
     "subtitle": "Sign in to access Operator Console",
     "username": "Username",
     "password": "Password",
@@ -923,7 +923,7 @@
   },
   "onboarding": {
     "kicker": "Residential installer",
-    "title": "Activate HomePilot Edge",
+    "title": "Activate HomePilot",
     "subtitle": "Connect the appliance to Home Assistant and prepare the console for local-network operation.",
     "error_save": "Failed to save connection",
     "error_complete": "Failed to complete onboarding",
@@ -968,13 +968,13 @@
       "token_placeholder": "Long-lived access token...",
       "token_help_title": "How to get the token",
       "token_help_1": "1. In Home Assistant, open your user profile.",
-      "token_help_2": "2. Create a long-lived access token for HomePilot Edge.",
+      "token_help_2": "2. Create a long-lived access token for HomePilot.",
       "token_help_3": "3. Paste it here, test the connection, and save only after the bridge responds."
     },
     "step3": {
       "kicker": "Bridge confirmed",
       "title": "System Ready",
-      "subtitle": "Your HomePilot Edge appliance is configured and securely bonded with your Home Assistant network.",
+      "subtitle": "Your HomePilot appliance is configured and securely bonded with your Home Assistant network.",
       "next_1": "Import devices",
       "next_2": "Assign spaces",
       "next_3": "Test scenes",
@@ -1010,7 +1010,7 @@
     "edge_native": "Edge Native",
     "hero_title_p1": "Hardened",
     "hero_title_p2": "Local Intelligence",
-    "hero_description": "HomePilot Edge logic and critical hardware function independently of external networks. This environment is optimized for reliability, privacy, and low-latency execution.",
+    "hero_description": "HomePilot logic and critical hardware function independently of external networks. This environment is optimized for reliability, privacy, and low-latency execution.",
     "autonomy_score": "Autonomy Score",
     "infrastructure_title": "Infrastructure",
     "infrastructure_subtitle": "Local Core vs External Mesh",

@@ -48,6 +48,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
   const [isEditing, setIsEditing] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
 
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
@@ -235,7 +236,8 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
               appearance: { ...w.config.appearance, ...(newConfig.appearance || {}) },
               visibility: { ...w.config.visibility, ...(newConfig.visibility || {}) },
               binding: { ...w.config.binding, ...(newConfig.binding || {}) },
-              layout: { ...w.config.layout, ...(newConfig.layout || {}) }
+              layout: { ...w.config.layout, ...(newConfig.layout || {}) },
+              extra: { ...w.config.extra, ...(newConfig.extra || {}) }
             }
           };
         })
@@ -296,32 +298,34 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
           {/* Dashboard Area */}
           {active && (
             <div className="flex min-w-0 flex-col">
-              <DashboardTitleBar
-                title={active.title}
-                draftTitle={draftTitle}
-                isEditingTitle={editingTitle}
-                isEditingDashboard={isEditing}
-                onDraftTitleChange={setDraftTitle}
-                onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
-                onCancelEditingTitle={() => setEditingTitle(false)}
-                onConfirmTitle={handleRenameConfirm}
-                onDelete={() => setDashboardPendingDelete(active)}
-                deleteLabel={t('dashboards.delete')}
-                editLabel={t('dashboards.action_edit')}
-                doneLabel={t('common.done')}
-                newLabel={t('dashboards.action_new')}
-                helpLabel={t('common.help')}
-                moreLabel={t('common.more')}
-                onToggleEditing={() => {
-                  setIsEditing(!isEditing);
-                  if (isEditing) {
-                    setIsInspectorOpen(false);
-                    setSelectedWidgetId(null);
-                    setTabConfigIdx(null);
-                  }
-                }}
-                onCreate={() => setCreating(true)}
-              />
+              {isEditing && (
+                <DashboardTitleBar
+                  title={active.title}
+                  draftTitle={draftTitle}
+                  isEditingTitle={editingTitle}
+                  isEditingDashboard={isEditing}
+                  onDraftTitleChange={setDraftTitle}
+                  onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
+                  onCancelEditingTitle={() => setEditingTitle(false)}
+                  onConfirmTitle={handleRenameConfirm}
+                  onDelete={() => setDashboardPendingDelete(active)}
+                  deleteLabel={t('dashboards.delete')}
+                  editLabel={t('dashboards.action_edit')}
+                  doneLabel={t('common.done')}
+                  newLabel={t('dashboards.action_new')}
+                  helpLabel={t('common.help')}
+                  moreLabel={t('common.more')}
+                  onToggleEditing={() => {
+                    setIsEditing(!isEditing);
+                    if (isEditing) {
+                      setIsInspectorOpen(false);
+                      setSelectedWidgetId(null);
+                      setTabConfigIdx(null);
+                    }
+                  }}
+                  onCreate={() => setCreating(true)}
+                />
+              )}
 
               <DashboardTabsNav
                 tabs={active.tabs}
@@ -347,11 +351,12 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                 <div className={cn("relative flex flex-col gap-4 w-full", isEditing ? "p-3 sm:p-4" : "p-0 py-3 sm:py-4")}>
                    {isEditing && (
                      <DashboardEditorToolbar
-                       title={t('dashboards.editor.widget_management')}
-                       doneLabel={t('common.done')}
-                       addWidgetLabel={(type) => t(`dashboards.editor.add_${type}`, { defaultValue: type })}
-                       onDone={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }}
-                       onAddWidget={(type, size) => void handleAddWidget(type, size)}
+                       isOpen={isCatalogModalOpen}
+                       onClose={() => setIsCatalogModalOpen(false)}
+                       onAddWidget={(type, size) => {
+                          void handleAddWidget(type, size);
+                          setIsCatalogModalOpen(false);
+                       }}
                      />
                    )}
 
@@ -375,6 +380,13 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                         setIsInspectorOpen(true); 
                       }}
                       onLayoutChange={handleLayoutChange}
+                      onAddCardClick={() => {
+                         // We could use x, y for placement, but for now we just open catalog
+                         setIsCatalogModalOpen(true);
+                      }}
+                      onAddSectionClick={() => {
+                         void handleAddWidget('section');
+                      }}
                    />
                    )}
                 </div>

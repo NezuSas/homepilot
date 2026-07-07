@@ -10,6 +10,7 @@ import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
 import type { ClockStyle } from './widgets/ClockWidget';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -49,6 +50,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
   const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
   const rooms = useMemo(() => Object.values(roomsByHome).flat(), [roomsByHome]);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && widget?.type === 'scene_shortcut') {
@@ -280,12 +282,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           <Button
             variant="secondary"
             className="flex-1 text-destructive hover:bg-destructive/10 border-destructive/20 rounded-2xl py-2.5 text-[10px] font-black uppercase tracking-wider"
-            onClick={() => {
-              if (window.confirm(t('common.confirm_action'))) {
-                onRemove(safeWidget.id);
-                onClose();
-              }
-            }}
+            onClick={() => setIsConfirmDeleteOpen(true)}
           >
             {t('dashboards.inspector.delete_widget')}
           </Button>
@@ -298,6 +295,21 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           </Button>
         </div>
       </div>
+      
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          onRemove(safeWidget.id);
+          setIsConfirmDeleteOpen(false);
+          onClose();
+        }}
+        title={t('dashboards.inspector.delete_widget')}
+        description={t('common.confirm_action')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="danger"
+      />
     </div>
   );
 }
