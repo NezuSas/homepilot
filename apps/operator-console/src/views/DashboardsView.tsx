@@ -344,6 +344,8 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                 onStartAddingTab={() => setAddingTab(true)}
                 onAddTab={handleAddTab}
                 onCancelAddingTab={() => setAddingTab(false)}
+                onToggleEditing={() => setIsEditing(!isEditing)}
+                editLabel={t('dashboards.action_edit')}
               />
 
               {/* Canvas Area */}

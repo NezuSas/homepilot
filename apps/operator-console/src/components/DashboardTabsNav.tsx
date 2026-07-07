@@ -17,6 +17,8 @@ interface DashboardTabsNavProps {
   onStartAddingTab: () => void;
   onAddTab: (title: string) => void;
   onCancelAddingTab: () => void;
+  onToggleEditing?: () => void;
+  editLabel?: string;
 }
 
 export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
@@ -31,7 +33,9 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   onConfigureTab,
   onStartAddingTab,
   onAddTab,
-  onCancelAddingTab
+  onCancelAddingTab,
+  onToggleEditing,
+  editLabel
 }) => {
   const iconForIndex = (index: number) => {
     if (index === 0) return Home;
@@ -98,6 +102,22 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{addLabel}</span>
+          </button>
+        )}
+        
+        {/* Fill available space to push the edit button to the right */}
+        <div className="flex-1" />
+
+        {/* Edit Button (HA Style) when not editing */}
+        {!isEditing && onToggleEditing && (
+          <button
+            type="button"
+            onClick={onToggleEditing}
+            className="ml-auto mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-muted hover:text-primary"
+            title={editLabel}
+            aria-label={editLabel}
+          >
+            <Pencil className="h-5 w-5" />
           </button>
         )}
       </div>
