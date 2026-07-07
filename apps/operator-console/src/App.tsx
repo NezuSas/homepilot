@@ -709,15 +709,14 @@ function App() {
                   setIsSidebarOpen(false);
                 }
               }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 text-muted-foreground shadow-sm shadow-primary/10 transition-colors hover:bg-primary/15 hover:text-foreground"
+              className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-opacity hover:opacity-75"
               title={t('shell.toggle_sidebar')}
               aria-label={t('shell.toggle_sidebar')}
             >
-              <img src="/nezu.png" alt="Nezu" className={cn("h-7 w-7 object-contain transition-opacity", isDesktopSidebarCollapsed && "lg:opacity-100")} />
+              <img src="/nezu.png" alt="Nezu" className={cn("h-12 w-12 object-contain transition-opacity", isDesktopSidebarCollapsed && "lg:opacity-100")} />
             </button>
             <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0")}>
-              {t('shell.app_title')}{' '}
-              <span className="text-foreground/60 font-semibold">{t('shell.app_edge')}</span>
+              {t('shell.app_title')}
             </h2>
           </div>
           <div className={cn("mt-1 ml-[2.875rem] flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>

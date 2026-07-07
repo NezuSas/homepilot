@@ -7,7 +7,7 @@ import {
   defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
 import { DashboardWidgetNode } from './DashboardWidget';
@@ -24,7 +24,10 @@ interface DashboardCanvasProps {
 }
 
 const GRID_COLS = 12;
-const ROW_HEIGHT = 40;
+// Minimum row height in pixels. The actual rowHeight is derived from colWidth
+// so the grid stays proportional at any screen size.
+const MIN_ROW_HEIGHT = 40;
+const MAX_ROW_HEIGHT = 80;
 
 export function DashboardCanvas({ 
   widgets, 
@@ -38,7 +41,32 @@ export function DashboardCanvas({
   const { devices } = useDeviceSnapshotStore();
   const { findings } = useAssistantStore();
 
+  // Track live column width so drag calculations and DragOverlay stay accurate.
+  const [colWidth, setColWidth] = useState(0);
+  const rowHeight = colWidth > 0
+    ? Math.min(MAX_ROW_HEIGHT, Math.max(MIN_ROW_HEIGHT, Math.round(colWidth * 0.7)))
+    : MIN_ROW_HEIGHT;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      if (width > 0) setColWidth(width / GRID_COLS);
+    });
+    observer.observe(el);
+    // Set immediately on mount
+    setColWidth(el.getBoundingClientRect().width / GRID_COLS);
+    return () => observer.disconnect();
+  }, []);
+
   const sanitizedWidgets = useMemo(() => widgets.map(sanitizeWidget), [widgets]);
+
+  // Compute the minimum canvas height from the lowest widget bottom edge.
+  const canvasMinRows = useMemo(() => {
+    if (sanitizedWidgets.length === 0) return 10;
+    return sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0) + 2;
+  }, [sanitizedWidgets]);
   
   const evaluateVisibility = useCallback((widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
@@ -104,23 +132,19 @@ export function DashboardCanvas({
     setActiveWidget(null);
     const { active, delta } = event;
     
-    if (!isEditing || !containerRef.current) return;
+    if (!isEditing || colWidth === 0) return;
 
     const widget = sanitizedWidgets.find((w) => w.id === active.id);
     if (!widget) return;
 
-    // Calculate grid cell dimensions from container
-    const rect = containerRef.current.getBoundingClientRect();
-    const colWidth = rect.width / GRID_COLS;
-    
-    // Calculate new x, y based on delta
     const dx = Math.round(delta.x / colWidth);
-    const dy = Math.round(delta.y / ROW_HEIGHT);
+    const dy = Math.round(delta.y / rowHeight);
 
-    let newX = Math.max(0, Math.min(GRID_COLS - widget.config.layout.w, widget.config.layout.x + dx));
-    let newY = Math.max(0, widget.config.layout.y + dy);
+    // Clamp so widget never exits the grid horizontally
+    const newX = Math.max(0, Math.min(GRID_COLS - widget.config.layout.w, widget.config.layout.x + dx));
+    const newY = Math.max(0, widget.config.layout.y + dy);
 
-    // Collision Detection Logic
+    // Block if overlapping another widget
     const hasCollision = sanitizedWidgets.some(w => {
        if (w.id === widget.id) return false;
        return (
@@ -131,12 +155,7 @@ export function DashboardCanvas({
        );
     });
 
-    // If collision, block or find next spot? User said "block or reorder". 
-    // Blocking is cleaner for "serious control surface".
-    if (hasCollision) {
-      newX = widget.config.layout.x;
-      newY = widget.config.layout.y;
-    }
+    if (hasCollision) return; // Don't update if blocked
 
     if (newX !== widget.config.layout.x || newY !== widget.config.layout.y) {
       const updatedWidgets = sanitizedWidgets.map(w => 
@@ -155,11 +174,12 @@ export function DashboardCanvas({
       <div 
         ref={containerRef}
         className={cn(
-          "relative w-full grid grid-cols-12 gap-3 rounded-[2rem] border border-border/45 bg-card/20 p-3 transition-all duration-500 sm:gap-4 sm:p-4",
-          isEditing && "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] min-h-[800px] rounded-[3rem] border-2 border-dashed border-primary/10 shadow-2xl shadow-primary/5"
+          "relative w-full overflow-hidden grid grid-cols-12 gap-3 rounded-[2rem] border border-border/45 bg-card/20 p-3 transition-all duration-500 sm:gap-4 sm:p-4",
+          isEditing && "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] rounded-[3rem] border-2 border-dashed border-primary/10 shadow-2xl shadow-primary/5"
         )}
         style={{
-          gridAutoRows: `${ROW_HEIGHT}px`,
+          gridAutoRows: `${rowHeight}px`,
+          minHeight: `${canvasMinRows * rowHeight}px`,
         }}
       >
         {visibleWidgets.map((widget) => (
@@ -167,12 +187,12 @@ export function DashboardCanvas({
             key={widget.id}
             id={widget.id}
             style={{
-              gridColumn: `${widget.config.layout.x + 1} / span ${widget.config.layout.w}`,
+              gridColumn: `${widget.config.layout.x + 1} / span ${Math.min(widget.config.layout.w, GRID_COLS - widget.config.layout.x)}`,
               gridRow: `${widget.config.layout.y + 1} / span ${widget.config.layout.h}`,
               opacity: activeWidget?.id === widget.id ? 0.3 : 1,
             }}
             className={cn(
-              "select-none transition-all duration-300 relative rounded-[2.5rem]",
+              "min-w-0 select-none transition-all duration-300 relative rounded-[2.5rem]",
               isEditing && "cursor-grab active:cursor-grabbing hover:z-10",
               selectedWidgetId === widget.id && isEditing && "z-[200] ring-4 ring-primary ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(var(--primary),0.3)]"
             )}
@@ -183,23 +203,26 @@ export function DashboardCanvas({
               isSelected={selectedWidgetId === widget.id}
               onClick={() => onWidgetClick(widget.id)}
               onResizeEnd={(id, w, h) => {
-                 // Collision Detection for Resize
+                 // Clamp width so widget never exits the grid
+                 const layout = widget.config.layout;
+                 const clampedW = Math.min(w, GRID_COLS - layout.x);
+                 const clampedH = Math.max(1, h);
+
+                 // Collision check with clamped dimensions
                  const hasCollision = sanitizedWidgets.some(other => {
                     if (other.id === id) return false;
-                    const layout = widget.config.layout;
                     const otherLayout = other.config.layout;
-                    
                     return (
                       layout.x < otherLayout.x + otherLayout.w &&
-                      layout.x + w > otherLayout.x &&
+                      layout.x + clampedW > otherLayout.x &&
                       layout.y < otherLayout.y + otherLayout.h &&
-                      layout.y + h > otherLayout.y
+                      layout.y + clampedH > otherLayout.y
                     );
                  });
 
                  if (!hasCollision) {
                     const updatedWidgets = sanitizedWidgets.map(wgt => 
-                       wgt.id === id ? { ...wgt, config: { ...wgt.config, layout: { ...wgt.config.layout, w, h } } } : wgt
+                       wgt.id === id ? { ...wgt, config: { ...wgt.config, layout: { ...wgt.config.layout, w: clampedW, h: clampedH } } } : wgt
                     );
                     onLayoutChange(updatedWidgets);
                  }
@@ -208,7 +231,7 @@ export function DashboardCanvas({
           </div>
         ))}
 
-        {/* Drag Overlay for smooth movement */}
+        {/* Drag Overlay: ghost using live colWidth so size matches the grid exactly */}
         <DragOverlay dropAnimation={{
           sideEffects: defaultDropAnimationSideEffects({
             styles: {
@@ -218,10 +241,10 @@ export function DashboardCanvas({
             },
           }),
         }}>
-          {activeWidget ? (
+          {activeWidget && colWidth > 0 ? (
             <div style={{
-              width: containerRef.current ? (containerRef.current.getBoundingClientRect().width / GRID_COLS) * activeWidget.config.layout.w - 16 : 'auto',
-              height: activeWidget.config.layout.h * ROW_HEIGHT - 16,
+              width: colWidth * activeWidget.config.layout.w - 16,
+              height: rowHeight * activeWidget.config.layout.h - 16,
             }}>
               <DashboardWidgetNode
                 widget={activeWidget}

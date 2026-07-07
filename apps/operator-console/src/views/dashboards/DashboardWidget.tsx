@@ -143,11 +143,13 @@ export function DashboardWidgetNode({
               const startW = widget.config.layout.w;
               const startH = widget.config.layout.h;
 
-              // Find colWidth from parent
+              // Find colWidth and rowHeight from parent grid
               const parent = (e.currentTarget.closest('.grid') as HTMLElement);
               if (!parent) return;
               const colWidth = parent.getBoundingClientRect().width / 12;
-              const rowHeight = 40; // ROW_HEIGHT constant
+              // Read the live rowHeight from the grid's auto-rows style
+              const gridAutoRows = getComputedStyle(parent).gridAutoRows;
+              const rowHeight = parseFloat(gridAutoRows) || 40;
 
               const onMouseMove = (moveEvent: MouseEvent) => {
                 const dw = Math.round((moveEvent.clientX - startX) / colWidth);
