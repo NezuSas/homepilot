@@ -7,6 +7,8 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - Cambiar la etiqueta visible de `Paneles` a `Tableros` en español y mantener `Dashboards` en inglés.
 - Mostrar `Tableros/Dashboards` como un grupo colapsable del sidebar.
 - Listar debajo los tableros disponibles para el usuario autenticado.
+- Mostrar el logo visual de Nezu en la cabecera del sidebar.
+- Mostrar las pestañas de cada tablero como una barra horizontal superior similar al patrón de Home Assistant.
 - Crear automáticamente un tablero base por usuario activo cuando no exista.
 - Mantener la pantalla de tablero minimalista, responsiva y alineada al design system de HomePilot.
 
@@ -30,3 +32,5 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC4:** La pantalla de dashboards no muestra una segunda lista lateral de tableros dentro del contenido.
 - **AC5:** Seleccionar un tablero hijo desde el sidebar abre la vista `dashboards` y muestra ese tablero.
 - **AC6:** La UI conserva comportamiento responsive en móvil, tablet y escritorio sin crear stores globales nuevos.
+- **AC7:** El sidebar muestra el logo de Nezu sin depender de rutas absolutas del sistema operativo.
+- **AC8:** Las pestañas del tablero se muestran como navegación horizontal con acciones de edición visibles cuando el tablero está en modo edición.

@@ -709,18 +709,35 @@ function App() {
                   setIsSidebarOpen(false);
                 }
               }}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 text-muted-foreground shadow-sm shadow-primary/10 transition-colors hover:bg-primary/15 hover:text-foreground"
               title={t('shell.toggle_sidebar')}
               aria-label={t('shell.toggle_sidebar')}
             >
-              <Menu className="h-5 w-5" />
+              <img src="/nezu.png" alt="Nezu" className={cn("h-7 w-7 object-contain transition-opacity", isDesktopSidebarCollapsed && "lg:opacity-100")} />
             </button>
             <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:opacity-0")}>
               {t('shell.app_title')}{' '}
               <span className="text-foreground/60 font-semibold">{t('shell.app_edge')}</span>
             </h2>
           </div>
-          <span className={cn("text-[9px] uppercase font-black tracking-[0.22em] text-muted-foreground/35 mt-1 ml-[2.875rem] whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>{t('shell.subtitle')}</span>
+          <div className={cn("mt-1 ml-[2.875rem] flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isDesktopSidebarCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.matchMedia('(min-width: 1024px)').matches) {
+                  setIsDesktopSidebarOpen((current) => !current);
+                } else {
+                  setIsSidebarOpen(false);
+                }
+              }}
+              className="rounded-lg p-1 text-muted-foreground/45 transition-colors hover:bg-muted hover:text-foreground"
+              title={t('shell.toggle_sidebar')}
+              aria-label={t('shell.toggle_sidebar')}
+            >
+              <Menu className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-[9px] uppercase font-black tracking-[0.22em] text-muted-foreground/35">{t('shell.subtitle')}</span>
+          </div>
         </div>
         
         <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isDesktopSidebarCollapsed && "lg:px-2")}>
