@@ -23,6 +23,7 @@ interface WidgetInspectorProps {
 }
 
 const SIZE_PRESETS = [
+  { label: 'XS', w: 2, h: 2 },
   { label: 'S',  w: 2, h: 3 },
   { label: 'M',  w: 4, h: 4 },
   { label: 'L',  w: 6, h: 5 },
@@ -118,27 +119,55 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
           {/* Size presets (not for section) */}
           {!isSection && (
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Tamaño</label>
-              <div className="grid grid-cols-4 gap-2">
-                {SIZE_PRESETS.map(preset => {
-                  const isActive = layout.w === preset.w && layout.h === preset.h;
-                  return (
-                    <button
-                      key={preset.label}
-                      onClick={() => onUpdate(safeWidget.id, { layout: { ...layout, w: preset.w, h: preset.h } })}
-                      className={cn(
-                        "flex flex-col items-center gap-0.5 py-2.5 rounded-2xl border transition-all text-center",
-                        isActive
-                          ? "bg-primary/10 border-primary text-primary"
-                          : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
-                      )}
-                    >
-                      <span className="text-[11px] font-black uppercase">{preset.label}</span>
-                      <span className="text-[8px] opacity-50 tabular-nums">{preset.w}×{preset.h}</span>
-                    </button>
-                  );
-                })}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Tamaño Rápido</label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {SIZE_PRESETS.map(preset => {
+                    const isActive = layout.w === preset.w && layout.h === preset.h;
+                    return (
+                      <button
+                        key={preset.label}
+                        onClick={() => onUpdate(safeWidget.id, { layout: { ...layout, w: preset.w, h: preset.h } })}
+                        className={cn(
+                          "flex flex-col items-center gap-0.5 py-2.5 rounded-2xl border transition-all text-center",
+                          isActive
+                            ? "bg-primary/10 border-primary text-primary"
+                            : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                        )}
+                      >
+                        <span className="text-[10px] font-black uppercase">{preset.label}</span>
+                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}×{preset.h}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Custom sizing inputs (HA style precision) */}
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/10">
+                <div>
+                  <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Ancho (Columnas)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all"
+                    value={layout.w}
+                    onChange={(e) => onUpdate(safeWidget.id, { layout: { ...layout, w: Math.max(1, Math.min(12, parseInt(e.target.value) || 1)) } })}
+                  />
+                </div>
+                <div>
+                  <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Alto (Filas)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all"
+                    value={layout.h}
+                    onChange={(e) => onUpdate(safeWidget.id, { layout: { ...layout, h: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) } })}
+                  />
+                </div>
               </div>
             </div>
           )}

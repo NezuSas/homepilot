@@ -108,7 +108,7 @@ export function DashboardWidgetNode({
     <div 
       ref={setNodeRef}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{ ...transformStyle, ...accentStyle }}
+      style={{ ...transformStyle, ...accentStyle, containerType: 'inline-size' }}
       className={cn(
         "relative h-full w-full overflow-hidden transition-all duration-300 group @container",
         // Section widgets and cameras are transparent shell-wise (camera handles its own rounded borders)

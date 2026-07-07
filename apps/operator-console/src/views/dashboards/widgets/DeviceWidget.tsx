@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import * as Icons from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { Power, Lightbulb, Cpu, Loader2, Tv, Fan, Speaker, Zap, Flame, Droplets, Thermometer, Wind, Monitor, Music, Shield, Lock, Unlock } from 'lucide-react';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
@@ -11,26 +11,6 @@ import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
 
 const API = `${API_BASE_URL}/api/v1`;
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  power: Power,
-  lightbulb: Lightbulb,
-  light: Lightbulb,
-  cpu: Cpu,
-  tv: Tv,
-  fan: Fan,
-  speaker: Speaker,
-  zap: Zap,
-  flame: Flame,
-  droplets: Droplets,
-  thermometer: Thermometer,
-  wind: Wind,
-  monitor: Monitor,
-  music: Music,
-  shield: Shield,
-  lock: Lock,
-  unlock: Unlock
-};
 
 export function DeviceWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
@@ -42,7 +22,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
     return (
       <DormantWidgetPlaceholder
         title={t('dashboards.widgets.selected_device.label')}
-        icon={Cpu}
+        icon={Icons.Cpu}
         message={t('dashboards.widgets.selected_device.placeholder')}
         isEditing={isEditing}
         onConfigure={onConfigure}
@@ -77,16 +57,47 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
     }
   };
 
-  const getIcon = () => {
+  const getIcon = (): React.ElementType => {
     if (config.appearance.icon) {
-      const searchKey = config.appearance.icon.toLowerCase().replace('mdi:', '').replace(/[^a-z]/g, '');
-      const match = Object.keys(ICON_MAP).find(k => searchKey.includes(k) || k.includes(searchKey));
-      if (match) return ICON_MAP[match];
+      let name = config.appearance.icon.trim();
+      
+      // Remove mdi: prefix
+      if (name.toLowerCase().startsWith('mdi:')) {
+        name = name.substring(4);
+      }
+      
+      const customMap: Record<string, string> = {
+        gata: 'Cat',
+        cat: 'Cat',
+        luz: 'Lightbulb',
+        interruptor: 'Power',
+        enchuf: 'Plug',
+        enchufe: 'Plug',
+        camera: 'Camera',
+        camara: 'Camera',
+        recessed: 'Lightbulb',
+        'light-recessed': 'Lightbulb'
+      };
+      
+      const lower = name.toLowerCase();
+      let pascalName = '';
+      if (customMap[lower]) {
+        pascalName = customMap[lower];
+      } else {
+        // Convert kebab-case or snake_case to PascalCase
+        pascalName = name
+          .replace(/[-_]([a-z])/g, (_, g) => g.toUpperCase())
+          .replace(/^\w/, (c) => c.toUpperCase());
+      }
+
+      const ResolvedIcon = (Icons as any)[pascalName];
+      if (ResolvedIcon) return ResolvedIcon;
     }
+
     switch (device.type) {
-      case 'light': return Lightbulb;
-      case 'switch': return Power;
-      default: return Power;
+      case 'light': return Icons.Lightbulb;
+      case 'switch': return Icons.Power;
+      default: return Icons.Power;
     }
   };
   
@@ -123,7 +134,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       {/* Loading state overlay */}
       {isProcessing && (
         <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center rounded-[inherit] z-10">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Icons.Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       )}
     </button>
