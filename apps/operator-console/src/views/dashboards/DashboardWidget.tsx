@@ -7,6 +7,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import React from 'react';
+import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 
 // Sub-widgets
 import { DeviceWidget } from './widgets/DeviceWidget';
@@ -71,8 +72,13 @@ export function DashboardWidgetNode({
   const [isResizing, setIsResizing] = React.useState(false);
   const [resizeOffset, setResizeOffset] = React.useState({ w: 0, h: 0 });
 
+  const devices = useDeviceSnapshotStore(state => state.devices);
+  const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
+  const isCamera = widget.type === 'device_control' && boundDevice?.type === 'camera';
+  const isSection = widget.type === 'section';
+
   // Never register dnd for section widgets or when rendering inside DragOverlay
-  const isDndDisabled = !isEditing || isOverlay || widget.type === 'section';
+  const isDndDisabled = !isEditing || isOverlay || isSection;
   
   const {
     attributes,
@@ -88,15 +94,15 @@ export function DashboardWidgetNode({
   // Only apply transform when actively dragging (not in overlay)
   const transformStyle = !isOverlay && transform ? { transform: CSS.Translate.toString(transform) } : {};
 
-  const accentStyle = widget.config.appearance?.accentColor
+  const accentColor = widget.config.appearance?.accentColor;
+  const accentStyle = accentColor
     ? {
-        borderTopColor: widget.config.appearance.accentColor,
-        borderTopWidth: '3px',
-        borderTopStyle: 'solid' as const,
+        borderColor: accentColor,
+        backgroundColor: `${accentColor}12`, // 7% opacity tint
+        borderWidth: '2px',
+        borderStyle: 'solid' as const,
       }
     : {};
-
-  const isSection = widget.type === 'section';
 
   return (
     <div 
@@ -105,17 +111,17 @@ export function DashboardWidgetNode({
       style={{ ...transformStyle, ...accentStyle }}
       className={cn(
         "relative h-full w-full overflow-hidden transition-all duration-300 group",
-        // Section widgets are transparent dividers, no rounded border styling
-        isSection
-          ? "rounded-2xl bg-transparent"
+        // Section widgets and cameras are transparent shell-wise (camera handles its own rounded borders)
+        isSection || isCamera
+          ? "rounded-2xl bg-transparent border-transparent shadow-none"
           : "rounded-[2rem]",
         
-        // --- Variant Application (non-section) ---
-        !isSection && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
-        !isSection && (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
-        !isSection && widget.config.appearance?.variant === 'radiant' && "bg-gradient-to-br from-card to-primary/5 border border-primary/20 shadow-lg shadow-primary/5",
-        !isSection && widget.config.appearance?.variant === 'outline' && "bg-transparent border-2 border-border/60",
-        !isSection && widget.config.appearance?.variant === 'flat' && "bg-muted/30 border-transparent",
+        // --- Variant Application (non-section, non-camera) ---
+        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
+        !isSection && !isCamera && !accentColor && (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
+        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'radiant' && "bg-gradient-to-br from-card to-primary/5 border border-primary/20 shadow-lg shadow-primary/5",
+        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'outline' && "bg-transparent border-2 border-border/60",
+        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'flat' && "bg-muted/30 border-transparent",
         // ---------------------------
         
         isEditing && !isSection && "ring-2 ring-transparent hover:ring-primary/20",

@@ -16,6 +16,7 @@ import { generateId } from '../utils/generateId';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import ConfirmModal from '../components/ConfirmModal';
 import { Button } from '../components/ui/Button';
+import { cn } from '../lib/utils';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -343,7 +344,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className="relative flex flex-col gap-4 p-3 sm:p-4">
+                <div className={cn("relative flex flex-col gap-4 w-full", isEditing ? "p-3 sm:p-4" : "p-0 py-3 sm:py-4")}>
                    {isEditing && (
                      <DashboardEditorToolbar
                        title={t('dashboards.editor.widget_management')}

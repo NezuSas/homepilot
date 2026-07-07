@@ -9,16 +9,15 @@ export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
   const title = config.appearance?.title || 'Sección';
 
   return (
-    <div className="flex h-full w-full items-end pb-2 px-1">
-      <div className="flex w-full items-center gap-3">
+    <div className="flex h-full w-full items-end pb-3 px-2 select-none">
+      <div className="flex w-full items-center justify-between">
         <span
-          className="text-xs font-black uppercase tracking-[0.2em] text-foreground/70 whitespace-nowrap"
+          className="text-[13px] font-black uppercase tracking-[0.25em] text-foreground/80 whitespace-nowrap"
         >
           {title}
         </span>
-        <div className="h-px flex-1 bg-border/50" />
         {isEditing && (
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/30 shrink-0">
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/35 shrink-0 bg-muted/30 px-2 py-0.5 rounded-md">
             sección
           </span>
         )}

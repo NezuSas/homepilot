@@ -8,6 +8,7 @@ import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
+import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -27,6 +28,14 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         onConfigure={onConfigure}
         variant={config.appearance.variant}
       />
+    );
+  }
+
+  if (device.type === 'camera') {
+    return (
+      <div className="h-full w-full overflow-hidden rounded-[2rem]">
+        <CameraDeviceTile device={device} />
+      </div>
     );
   }
 
