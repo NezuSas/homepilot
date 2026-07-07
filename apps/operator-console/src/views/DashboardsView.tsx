@@ -6,7 +6,7 @@ import { DashboardCreateForm } from '../components/DashboardCreateForm';
 import { DashboardEditorToolbar } from '../components/DashboardEditorToolbar';
 import { DashboardTabsNav } from '../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../components/DashboardTitleBar';
-import { DashboardsHero } from '../components/DashboardsHero';
+import { DashboardViewConfigModal } from '../components/DashboardViewConfigModal';
 import { DashboardsLoadingState } from '../components/DashboardsLoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
@@ -41,6 +41,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
   const [submittingCreate, setSubmittingCreate] = useState(false);
   const [dashboardPendingDelete, setDashboardPendingDelete] = useState<Dashboard | null>(null);
   const [tabPendingDelete, setTabPendingDelete] = useState<number | null>(null);
+  const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -265,29 +266,9 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
   const activeTab = active?.tabs[activeTabIdx];
 
   return (
-    <div className="flex flex-col gap-0 animate-in fade-in duration-700 min-h-full pb-20">
+    <div className="relative flex min-h-full flex-col gap-0 animate-in fade-in duration-700">
 
-      <DashboardsHero
-        category={t('dashboards.category')}
-        title={t('dashboards.title')}
-        subtitle={t('dashboards.intro_subtitle')}
-        canEdit={Boolean(active)}
-        isEditing={isEditing}
-        isCreating={creating}
-        editLabel={t('dashboards.action_edit')}
-        doneLabel={t('common.done')}
-        newLabel={t('dashboards.action_new')}
-        onToggleEditing={() => {
-          setIsEditing(!isEditing);
-          if (isEditing) {
-            setIsInspectorOpen(false);
-            setSelectedWidgetId(null);
-          }
-        }}
-        onCreate={() => setCreating(true)}
-      />
-
-      {error && <AlertBanner variant="danger" message={error} className="mb-6" />}
+      {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
 
       {/* ── Create Form ──────────────────────────────────────────────── */}
       {creating && (
@@ -307,10 +288,10 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       {dashboards.length === 0 ? (
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1">
           {/* Dashboard Area */}
           {active && (
-            <div className="flex min-w-0 flex-col gap-6">
+            <div className="flex min-w-0 flex-col">
               <DashboardTitleBar
                 title={active.title}
                 draftTitle={draftTitle}
@@ -322,6 +303,20 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                 onConfirmTitle={handleRenameConfirm}
                 onDelete={() => setDashboardPendingDelete(active)}
                 deleteLabel={t('dashboards.delete')}
+                editLabel={t('dashboards.action_edit')}
+                doneLabel={t('common.done')}
+                newLabel={t('dashboards.action_new')}
+                helpLabel={t('common.help')}
+                moreLabel={t('common.more')}
+                onToggleEditing={() => {
+                  setIsEditing(!isEditing);
+                  if (isEditing) {
+                    setIsInspectorOpen(false);
+                    setSelectedWidgetId(null);
+                    setTabConfigIdx(null);
+                  }
+                }}
+                onCreate={() => setCreating(true)}
               />
 
               <DashboardTabsNav
@@ -331,15 +326,13 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                 isAddingTab={addingTab}
                 placeholder={t('dashboards.placeholder_tab_title')}
                 addLabel={t('dashboards.action_add_tab')}
-                deleteLabel={t('dashboards.delete_tab')}
-                renameLabel={t('dashboards.rename_tab')}
+                configureLabel={t('dashboards.view_config.configure_view')}
                 onSelectTab={(index) => {
                   setActiveTabIdx(index);
                   setSelectedWidgetId(null);
                   setIsInspectorOpen(false);
                 }}
-                onDeleteTab={setTabPendingDelete}
-                onRenameTab={(index, title) => { void handleRenameTab(index, title); }}
+                onConfigureTab={setTabConfigIdx}
                 onStartAddingTab={() => setAddingTab(true)}
                 onAddTab={handleAddTab}
                 onCancelAddingTab={() => setAddingTab(false)}
@@ -347,7 +340,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className="relative flex flex-col gap-6">
+                <div className="relative flex flex-col gap-4 p-4 sm:p-6">
                    {isEditing && (
                      <DashboardEditorToolbar
                        title={t('dashboards.editor.widget_management')}
@@ -398,6 +391,22 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
         onClose={() => setIsInspectorOpen(false)}
         onUpdate={handleUpdateWidgetConfig}
         onRemove={handleRemoveWidget}
+      />
+
+      <DashboardViewConfigModal
+        isOpen={tabConfigIdx !== null && Boolean(active?.tabs[tabConfigIdx ?? 0])}
+        title={active?.tabs[tabConfigIdx ?? 0]?.title ?? ''}
+        onClose={() => setTabConfigIdx(null)}
+        onSave={(title) => {
+          if (tabConfigIdx === null) return;
+          void handleRenameTab(tabConfigIdx, title);
+          setTabConfigIdx(null);
+        }}
+        onDelete={() => {
+          if (tabConfigIdx === null) return;
+          setTabPendingDelete(tabConfigIdx);
+          setTabConfigIdx(null);
+        }}
       />
 
       <ConfirmModal

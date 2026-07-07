@@ -9,6 +9,9 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - Listar debajo los tableros disponibles para el usuario autenticado.
 - Mostrar el logo visual de Nezu en la cabecera del sidebar.
 - Mostrar las pestañas de cada tablero como una barra horizontal superior similar al patrón de Home Assistant.
+- La pantalla de tableros no debe mostrar hero/banner grande permanente; la navegación y edición deben vivir en una barra superior compacta.
+- El lápiz de una vista debe abrir un modal de configuración con secciones `Configuraciones`, `Fondo` y `Visibilidad`.
+- La sección de `Tableros` en el sidebar debe poder abrirse/cerrarse sin forzar navegación al dashboard.
 - Crear automáticamente un tablero base por usuario activo cuando no exista.
 - Mantener la pantalla de tablero minimalista, responsiva y alineada al design system de HomePilot.
 
@@ -34,3 +37,6 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC6:** La UI conserva comportamiento responsive en móvil, tablet y escritorio sin crear stores globales nuevos.
 - **AC7:** El sidebar muestra el logo de Nezu sin depender de rutas absolutas del sistema operativo.
 - **AC8:** Las pestañas del tablero se muestran como navegación horizontal con acciones de edición visibles cuando el tablero está en modo edición.
+- **AC9:** El sidebar no muestra separadores ni encabezados de grupo para `Personalización`; los accesos se listan como items normales.
+- **AC10:** Presionar la flecha del grupo `Tableros` abre o cierra sus hijos sin bloquearse por la navegación.
+- **AC11:** Presionar el lápiz de una vista abre un modal de configuración con pestañas internas de configuración, fondo y visibilidad.

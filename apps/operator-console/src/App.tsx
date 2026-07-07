@@ -809,17 +809,15 @@ function App() {
             />
           </div>
 
-          {/* ── PERSONALIZATION ────────────────────────────────────── */}
           {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
-            <>
-              <div className={cn("mt-3 mb-1 px-2 transition-[opacity,height,margin] duration-200", isDesktopSidebarCollapsed && "lg:h-0 lg:my-0 lg:opacity-0 lg:overflow-hidden")}>
-                <span className="text-[8.5px] font-black uppercase tracking-[0.22em] text-muted-foreground/30">{t('nav.group_personalization')}</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5">
                  <button
                     onClick={() => {
-                      setIsDashboardsExpanded(prev => !prev);
-                      navigateTo('dashboards');
+                      setIsDashboardsExpanded(prev => {
+                        const next = !prev;
+                        if (next) void refreshSidebarDashboards();
+                        return next;
+                      });
                     }}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition-all w-full text-left",
@@ -865,18 +863,13 @@ function App() {
                      active={currentView === 'energy'}
                      onClick={() => navigateTo('energy')}
                      collapsedOnDesktop={isDesktopSidebarCollapsed}
-                   />
+                  />
                  )}
-              </div>
-            </>
+            </div>
           )}
 
-          {/* ── DIVIDER ────────────────────────────────────────────── */}
           {(user?.role === 'admin' || user?.role === 'operator') && (
             <>
-              <div className={cn("mx-2 my-3 border-t border-border/30 transition-all duration-200", isDesktopSidebarCollapsed && "lg:mx-1 lg:my-2")} />
-
-              {/* ── SYSTEM ─────────────────────────────────────────────── */}
               <div className="flex flex-col gap-0.5">
                 <button
                     onClick={() => setIsSystemExpanded(prev => !prev)}
