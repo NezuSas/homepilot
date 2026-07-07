@@ -8,7 +8,8 @@ export type WidgetType =
   | 'activity_feed' 
   | 'assistant_insight' 
   | 'system_status' 
-  | 'energy_snapshot';
+  | 'energy_snapshot'
+  | 'clock_display';
 
 export interface WidgetLayout {
   x: number;
@@ -40,6 +41,7 @@ export interface DashboardWidgetConfig {
     icon?: string;
     title?: string;
     showTitle?: boolean;
+    accentColor?: string;
     colors?: { primary?: string; accent?: string };
   };
   extra?: Record<string, unknown>;

@@ -6,7 +6,7 @@ import {
   DragOverlay,
   defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
@@ -37,6 +37,7 @@ export function DashboardCanvas({
   onLayoutChange
 }: DashboardCanvasProps) {
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
+  const [snapPreview, setSnapPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { devices } = useDeviceSnapshotStore();
   const { findings } = useAssistantStore();
@@ -125,11 +126,26 @@ export function DashboardCanvas({
   const handleDragStart = (event: DragStartEvent) => {
     if (!isEditing) return;
     const widget = sanitizedWidgets.find((w) => w.id === event.active.id);
-    if (widget) setActiveWidget(widget);
+    if (widget) {
+      setActiveWidget(widget);
+      setSnapPreview({ x: widget.config.layout.x, y: widget.config.layout.y, w: widget.config.layout.w, h: widget.config.layout.h });
+    }
   };
+
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    if (!isEditing || colWidth === 0) return;
+    const widget = sanitizedWidgets.find((w) => w.id === event.active.id);
+    if (!widget) return;
+    const dx = Math.round(event.delta.x / colWidth);
+    const dy = Math.round(event.delta.y / rowHeight);
+    const newX = Math.max(0, Math.min(GRID_COLS - widget.config.layout.w, widget.config.layout.x + dx));
+    const newY = Math.max(0, widget.config.layout.y + dy);
+    setSnapPreview({ x: newX, y: newY, w: widget.config.layout.w, h: widget.config.layout.h });
+  }, [isEditing, colWidth, rowHeight, sanitizedWidgets]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveWidget(null);
+    setSnapPreview(null);
     const { active, delta } = event;
     
     if (!isEditing || colWidth === 0) return;
@@ -169,6 +185,7 @@ export function DashboardCanvas({
     <DndContext 
       sensors={sensors}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
       <div 
@@ -231,7 +248,18 @@ export function DashboardCanvas({
           </div>
         ))}
 
-        {/* Drag Overlay: ghost using live colWidth so size matches the grid exactly */}
+        {/* Snap drop preview */}
+        {isEditing && snapPreview && activeWidget && (
+          <div
+            aria-hidden="true"
+            style={{
+              gridColumn: `${snapPreview.x + 1} / span ${Math.min(snapPreview.w, GRID_COLS - snapPreview.x)}`,
+              gridRow: `${snapPreview.y + 1} / span ${snapPreview.h}`,
+              pointerEvents: 'none',
+            }}
+            className="rounded-[2.5rem] border-2 border-dashed border-primary/40 bg-primary/5 transition-all duration-100"
+          />
+        )}
         <DragOverlay dropAnimation={{
           sideEffects: defaultDropAnimationSideEffects({
             styles: {

@@ -305,6 +305,40 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 ))}
              </div>
              
+             {/* Accent color picker */}
+             <div className="space-y-2">
+               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 px-1 block">Color de acento</span>
+               <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-muted/10 border border-border/40">
+                 {[
+                   null,
+                   '#ef4444', '#f97316', '#eab308',
+                   '#22c55e', '#3b82f6', '#8b5cf6',
+                   '#ec4899', '#14b8a6',
+                 ].map((color) => (
+                   <button
+                     key={color ?? 'none'}
+                     onClick={() => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, accentColor: color ?? undefined } })}
+                     title={color ?? 'Sin acento'}
+                     className={cn(
+                       "w-6 h-6 rounded-full border-2 transition-all active:scale-90 flex-shrink-0",
+                       (currentAppearance.accentColor ?? null) === color
+                         ? "border-foreground scale-110 shadow-md"
+                         : "border-transparent hover:scale-105"
+                     )}
+                     style={{ background: color ?? 'transparent', outline: !color ? '2px dashed hsl(var(--border))' : undefined }}
+                   />
+                 ))}
+                 <input
+                   type="color"
+                   value={currentAppearance.accentColor ?? '#3b82f6'}
+                   onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...currentAppearance, accentColor: e.target.value } })}
+                   title="Color personalizado"
+                   className="w-6 h-6 rounded-full cursor-pointer border-0 bg-transparent p-0 overflow-hidden"
+                   style={{ appearance: 'none' }}
+                 />
+               </div>
+             </div>
+             
              <div className="p-5 rounded-3xl bg-muted/10 border border-border/40 space-y-3">
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-2">

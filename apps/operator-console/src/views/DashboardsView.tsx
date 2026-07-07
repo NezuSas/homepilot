@@ -171,15 +171,18 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     setIsDeleting(false);
   };
 
-  const handleAddWidget = async (type: WidgetType) => {
+  const handleAddWidget = async (type: WidgetType, size?: { w: number; h: number }) => {
     if (!active || active.tabs.length === 0) return;
     
     // Find a free spot (naive start at bottom)
     const currentTab = active.tabs[activeTabIdx];
     const maxY = currentTab.widgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
 
+    const widgetW = size?.w ?? 4;
+    const widgetH = size?.h ?? 4;
+
     const defaultConfig: DashboardWidgetConfig = {
-      layout: { x: 0, y: maxY, w: 4, h: 4 },
+      layout: { x: 0, y: maxY, w: widgetW, h: widgetH },
       binding: { entityId: '', entityType: 'device' },
       visibility: { rules: [], defaultState: 'show' },
       appearance: { variant: 'glass', title: '', showTitle: true }
@@ -347,7 +350,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                        doneLabel={t('common.done')}
                        addWidgetLabel={(type) => t(`dashboards.editor.add_${type}`, { defaultValue: type })}
                        onDone={() => { setIsEditing(false); setIsInspectorOpen(false); setSelectedWidgetId(null); }}
-                       onAddWidget={handleAddWidget}
+                       onAddWidget={(type, size) => void handleAddWidget(type, size)}
                      />
                    )}
 

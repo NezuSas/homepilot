@@ -17,6 +17,7 @@ import { ActivityFeedWidget } from './widgets/ActivityFeedWidget';
 import { AssistantInsightWidget } from './widgets/AssistantInsightWidget';
 import { SystemStatusWidget } from './widgets/SystemStatusWidget';
 import { EnergySnapshotWidget } from './widgets/EnergySnapshotWidget';
+import { ClockWidget } from './widgets/ClockWidget';
 
 interface DashboardWidgetNodeProps {
   widget: DashboardWidget;
@@ -68,6 +69,8 @@ export function DashboardWidgetNode({
         return <SystemStatusWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
       case 'energy_snapshot':
         return <EnergySnapshotWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
+      case 'clock_display':
+        return <ClockWidget config={widget.config} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full p-4 text-center opacity-40 grayscale">
@@ -81,8 +84,15 @@ export function DashboardWidgetNode({
   return (
     <div 
       ref={setNodeRef}
-      style={style}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{
+        ...style,
+        ...(widget.config.appearance?.accentColor ? {
+          borderTopColor: widget.config.appearance.accentColor,
+          borderTopWidth: '3px',
+          borderTopStyle: 'solid',
+        } : {}),
+      }}
       className={cn(
         "relative h-full w-full rounded-[2.5rem] overflow-hidden transition-all duration-500 group",
         
