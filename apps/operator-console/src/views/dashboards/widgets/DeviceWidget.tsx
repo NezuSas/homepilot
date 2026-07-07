@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { Power, Lightbulb, Cpu, Loader2 } from 'lucide-react';
+import { Power, Lightbulb, Cpu, Loader2, Tv, Fan, Speaker, Zap, Flame, Droplets, Thermometer, Wind, Monitor, Music, Shield, Lock, Unlock } from 'lucide-react';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
@@ -11,6 +11,26 @@ import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
 
 const API = `${API_BASE_URL}/api/v1`;
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  power: Power,
+  lightbulb: Lightbulb,
+  light: Lightbulb,
+  cpu: Cpu,
+  tv: Tv,
+  fan: Fan,
+  speaker: Speaker,
+  zap: Zap,
+  flame: Flame,
+  droplets: Droplets,
+  thermometer: Thermometer,
+  wind: Wind,
+  monitor: Monitor,
+  music: Music,
+  shield: Shield,
+  lock: Lock,
+  unlock: Unlock
+};
 
 export function DeviceWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
@@ -58,6 +78,11 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   };
 
   const getIcon = () => {
+    if (config.appearance.icon) {
+      const searchKey = config.appearance.icon.toLowerCase().replace('mdi:', '').replace(/[^a-z]/g, '');
+      const match = Object.keys(ICON_MAP).find(k => searchKey.includes(k) || k.includes(searchKey));
+      if (match) return ICON_MAP[match];
+    }
     switch (device.type) {
       case 'light': return Lightbulb;
       case 'switch': return Power;

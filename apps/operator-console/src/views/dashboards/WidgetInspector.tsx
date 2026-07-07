@@ -29,12 +29,7 @@ const SIZE_PRESETS = [
   { label: 'XL', w: 8, h: 6 },
 ] as const;
 
-const ACCENT_COLORS = [
-  null,
-  '#ef4444', '#f97316', '#eab308',
-  '#22c55e', '#3b82f6', '#8b5cf6',
-  '#ec4899', '#14b8a6',
-];
+
 
 const CLOCK_STYLES: { value: ClockStyle; label: string }[] = [
   { value: 'minimal',  label: 'Minimal'  },
@@ -76,7 +71,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[50] flex items-center justify-center p-4"
       onClick={onClose}
     >
       {/* Blur backdrop */}
@@ -221,59 +216,19 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
             </div>
           )}
 
-          {/* Variant (not for section) */}
+          {/* Custom Icon (not for section) */}
           {!isSection && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Fondo</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['glass', 'solid', 'radiant', 'outline', 'flat'] as const).map(v => (
-                  <button
-                    key={v}
-                    onClick={() => onUpdate(safeWidget.id, { appearance: { ...appearance, variant: v } })}
-                    className={cn(
-                      "py-2 rounded-2xl border text-[9px] font-black uppercase tracking-widest transition-all",
-                      appearance.variant === v
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/20"
-                    )}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Accent color */}
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Color de acento</label>
-            <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-muted/10 border border-border/40">
-              {ACCENT_COLORS.map(color => (
-                <button
-                  key={color ?? 'none'}
-                  onClick={() => onUpdate(safeWidget.id, { appearance: { ...appearance, accentColor: color ?? undefined } })}
-                  title={color ?? 'Sin acento'}
-                  className={cn(
-                    "w-7 h-7 rounded-full border-2 transition-all active:scale-90",
-                    (appearance.accentColor ?? null) === color
-                      ? "border-foreground scale-110 shadow-md"
-                      : "border-transparent hover:scale-105"
-                  )}
-                  style={{
-                    background: color ?? 'transparent',
-                    outline: !color ? '2px dashed hsl(var(--border))' : undefined,
-                  }}
-                />
-              ))}
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (Opcional)</label>
               <input
-                type="color"
-                value={appearance.accentColor ?? '#3b82f6'}
-                onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, accentColor: e.target.value } })}
-                title="Color personalizado"
-                className="w-7 h-7 rounded-full cursor-pointer border border-border/40 bg-transparent p-0"
+                type="text"
+                className="w-full h-10 px-3 bg-card border border-border/60 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                placeholder="Ej: Lightbulb, Power, Tv"
+                value={appearance.icon || ''}
+                onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, icon: e.target.value } })}
               />
             </div>
-          </div>
+          )}
 
         </div>
 

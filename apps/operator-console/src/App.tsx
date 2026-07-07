@@ -1090,7 +1090,7 @@ function App() {
                />
              </PageFrame>
            )}
-           <PageFrame immersive={currentView === 'home-conversation' || currentView === 'dashboards' || currentView === 'dashboard'}>
+           <PageFrame immersive={currentView === 'home-conversation' || currentView === 'dashboards'}>
              <Suspense fallback={<ViewLoadingState />}>
                {currentView === 'dashboard' && (
                   <DashboardView
