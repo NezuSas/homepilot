@@ -288,7 +288,7 @@ export function DashboardCanvas({
             className={cn(
               "min-w-0 select-none transition-all duration-300 relative rounded-[2.5rem]",
               isEditing && "cursor-grab active:cursor-grabbing hover:z-10",
-              selectedWidgetId === widget.id && isEditing && "z-[200] ring-4 ring-primary ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(var(--primary),0.3)]"
+              selectedWidgetId === widget.id && isEditing && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(var(--primary),0.3)]"
             )}
           >
             <DashboardWidgetNode

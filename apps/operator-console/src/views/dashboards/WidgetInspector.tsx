@@ -11,6 +11,7 @@ import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
 import type { ClockStyle } from './widgets/ClockWidget';
 import ConfirmModal from '../../components/ConfirmModal';
+import * as Icons from 'lucide-react';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -58,7 +59,57 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
     }
   }, [isOpen, widget?.type]);
 
+  const [iconQuery, setIconQuery] = useState('');
+
+  useEffect(() => {
+    if (widget) {
+      setIconQuery(widget.config.appearance?.icon || '');
+    }
+  }, [widget?.id, widget?.config.appearance?.icon]);
+
   const safeWidget = useMemo(() => widget ? sanitizeWidget(widget) : null, [widget]);
+
+  const matchingIcons = useMemo(() => {
+    if (!iconQuery || iconQuery.length < 2) return [];
+    
+    let clean = iconQuery.trim();
+    if (clean.toLowerCase().startsWith('mdi:')) {
+      clean = clean.substring(4);
+    }
+    
+    const translations: Record<string, string> = {
+      gata: 'cat',
+      gato: 'cat',
+      perro: 'dog',
+      perra: 'dog',
+      luz: 'light',
+      foco: 'lightbulb',
+      interruptor: 'power',
+      enchufe: 'plug',
+      camara: 'camera',
+      tv: 'tv',
+      musica: 'music',
+      bocina: 'speaker',
+      parlante: 'speaker',
+      llave: 'key',
+      candado: 'lock',
+      escudo: 'shield',
+      termometro: 'thermometer',
+      aire: 'wind',
+      ventilador: 'fan'
+    };
+    
+    const searchKey = clean.toLowerCase();
+    const translatedSearchKey = translations[searchKey] || searchKey;
+    
+    const allKeys = Object.keys(Icons).filter(key => 
+      typeof (Icons as any)[key] === 'function' && key !== 'createReactComponent'
+    );
+
+    return allKeys
+      .filter(key => key.toLowerCase().includes(translatedSearchKey))
+      .slice(0, 8);
+  }, [iconQuery]);
 
   if (!isOpen || !widget || !safeWidget) return null;
 
@@ -247,15 +298,42 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
           {/* Custom Icon (not for section) */}
           {!isSection && (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 relative">
               <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (Opcional)</label>
               <input
                 type="text"
                 className="w-full h-10 px-3 bg-card border border-border/60 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
-                placeholder="Ej: Lightbulb, Power, Tv"
-                value={appearance.icon || ''}
-                onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, icon: e.target.value } })}
+                placeholder="Ej: Lightbulb, Power, Tv, Gata, Perro"
+                value={iconQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setIconQuery(val);
+                  onUpdate(safeWidget.id, { appearance: { ...appearance, icon: val } });
+                }}
               />
+              
+              {/* Dropdown list of matching icons */}
+              {matchingIcons.length > 0 && (
+                <div className="absolute left-0 right-0 z-[1000] bottom-full mb-1 max-h-48 overflow-y-auto rounded-xl border border-border/60 bg-card p-1.5 shadow-xl space-y-0.5 no-scrollbar">
+                  {matchingIcons.map(iconName => {
+                    const IconComponent = (Icons as any)[iconName];
+                    return (
+                      <button
+                        key={iconName}
+                        type="button"
+                        onClick={() => {
+                          setIconQuery(iconName);
+                          onUpdate(safeWidget.id, { appearance: { ...appearance, icon: iconName } });
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold hover:bg-muted transition-colors text-foreground/80 hover:text-primary"
+                      >
+                        {IconComponent && <IconComponent className="w-4 h-4 shrink-0" />}
+                        <span>{iconName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
