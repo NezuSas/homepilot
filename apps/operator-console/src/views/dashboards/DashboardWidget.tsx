@@ -118,7 +118,8 @@ export function DashboardWidgetNode({
           : "rounded-[2rem]",
         
         // --- Variant Application (non-section, non-camera) ---
-        !isSection && !isCamera && !accentColor && isDevice && "bg-card/95 dark:bg-background/55 backdrop-blur-3xl border border-border/50 shadow-xl",`r`n        !isSection && !isCamera && !accentColor && !isDevice && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
+        !isSection && !isCamera && !accentColor && isDevice && "bg-card/95 dark:bg-background/55 backdrop-blur-3xl border border-border/50 shadow-xl",
+        !isSection && !isCamera && !accentColor && !isDevice && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
         !isSection && !isCamera && !accentColor && !isDevice && (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
         !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'radiant' && "bg-gradient-to-br from-card to-primary/5 border border-primary/20 shadow-lg shadow-primary/5",
         !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'outline' && "bg-transparent border-2 border-border/60",
