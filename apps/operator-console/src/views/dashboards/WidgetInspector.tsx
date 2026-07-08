@@ -10,7 +10,7 @@ import { SelectField } from '../../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
-import type { ClockStyle } from './widgets/ClockWidget';
+import { CLOCK_STYLES, type ClockStyle } from './widgets/clock';
 import ConfirmModal from '../../components/ConfirmModal';
 import * as Icons from 'lucide-react';
 
@@ -31,14 +31,6 @@ const SIZE_PRESETS = [
   { label: 'L',  w: 6, h: 5 },
   { label: 'XL', w: 8, h: 6 },
 ] as const;
-
-
-
-const CLOCK_STYLES: { value: ClockStyle; label: string }[] = [
-  { value: 'minimal',  label: 'Minimal'  },
-  { value: 'digital',  label: 'Digital'  },
-  { value: 'elegant',  label: 'Elegante' },
-];
 
 export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }: WidgetInspectorProps) {
   const { t } = useTranslation();
