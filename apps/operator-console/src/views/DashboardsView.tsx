@@ -291,7 +291,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     <div className="relative flex min-h-full flex-col gap-0 animate-in fade-in duration-700">
       {activeTab?.background && (
         <div 
-          className="absolute inset-0 -z-10 transition-all duration-700 pointer-events-none"
+          className="absolute inset-0 z-0 transition-all duration-700 pointer-events-none"
           style={{
             backgroundImage: `url(${activeTab.background.startsWith('/') ? `${API_BASE_URL}${activeTab.background}` : activeTab.background})`,
             backgroundSize: 'cover',
@@ -323,7 +323,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       {dashboards.length === 0 ? (
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
-        <div className="grid grid-cols-1">
+        <div className="grid grid-cols-1 relative z-10">
           {/* Dashboard Area */}
           {active && (
             <div className="flex min-w-0 flex-col">
