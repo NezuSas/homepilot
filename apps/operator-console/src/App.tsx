@@ -699,8 +699,8 @@ function App() {
         isDesktopSidebarOpen ? "lg:w-[15.5rem] lg:translate-x-0" : "lg:w-[4.75rem] lg:translate-x-0 lg:overflow-hidden"
       )}>
         {/* Logo area */}
-        <div className={cn("px-4 py-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", !isSidebarContentCollapsed && "lg:px-3")}>
-          <div className={cn("flex items-center gap-2.5", !isSidebarContentCollapsed && "lg:justify-center")}>
+        <div className={cn("px-4 py-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "lg:px-3")}>
+          <div className={cn("flex items-center gap-2.5", isSidebarContentCollapsed && "lg:justify-center")}>
             <button
               type="button"
               onClick={() => {
@@ -716,11 +716,11 @@ function App() {
             >
               <img src="/nezu.png" alt="Nezu" className={cn("h-10 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "lg:opacity-100")} />
             </button>
-            <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", !isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
+            <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
               {t('shell.app_title')}
             </h2>
           </div>
-          <div className={cn("mt-1 ml-[2.875rem] flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", !isSidebarContentCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>
+          <div className={cn("mt-1 ml-[2.875rem] flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>
             <button
               type="button"
               onClick={() => {
@@ -740,7 +740,7 @@ function App() {
           </div>
         </div>
         
-        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", !isSidebarContentCollapsed && "lg:px-2")}>
+        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isSidebarContentCollapsed && "lg:px-2")}>
 
           {/* ── PRIMARY ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-0.5">
@@ -751,14 +751,14 @@ function App() {
                onClick={() => navigateTo('dashboard')} 
                id="demo-nav-dashboard"
                data-demo="nav-dashboard"
-               collapsedOnDesktop={!isSidebarContentCollapsed}
+               collapsedOnDesktop={isSidebarContentCollapsed}
              />
              <SidebarItem 
                icon={LayoutDashboard} 
                label={t('nav.spaces')} 
                active={currentView === 'spaces'} 
                onClick={() => navigateTo('spaces')} 
-               collapsedOnDesktop={!isSidebarContentCollapsed}
+               collapsedOnDesktop={isSidebarContentCollapsed}
              />
              {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
                <SidebarItem 
@@ -766,7 +766,7 @@ function App() {
                  label={t('nav.scenes')} 
                  active={currentView === 'scenes'} 
                  onClick={() => navigateTo('scenes')} 
-                 collapsedOnDesktop={!isSidebarContentCollapsed}
+                 collapsedOnDesktop={isSidebarContentCollapsed}
                />
              )}
              {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent') && (
@@ -776,7 +776,7 @@ function App() {
                  active={currentView === 'automations'} 
                  onClick={() => navigateTo('automations')} 
                  data-demo="nav-automations"
-                 collapsedOnDesktop={!isSidebarContentCollapsed}
+                 collapsedOnDesktop={isSidebarContentCollapsed}
                />
              )}
              {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
@@ -788,7 +788,7 @@ function App() {
                  badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0 
                     ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span> 
                     : undefined}
-                 collapsedOnDesktop={!isSidebarContentCollapsed}
+                 collapsedOnDesktop={isSidebarContentCollapsed}
                />
              )}
              <SidebarItem 
@@ -797,14 +797,14 @@ function App() {
                active={currentView === 'resilience-showcase'} 
                onClick={() => navigateTo('resilience-showcase')} 
                data-demo="nav-resilience"
-               collapsedOnDesktop={!isSidebarContentCollapsed}
+               collapsedOnDesktop={isSidebarContentCollapsed}
              />
             <SidebarItem
               icon={MessageSquare}
               label={t('nav.talk_to_home')}
               active={currentView === 'home-conversation'}
               onClick={() => navigateTo('home-conversation')}
-              collapsedOnDesktop={!isSidebarContentCollapsed}
+              collapsedOnDesktop={isSidebarContentCollapsed}
               data-demo="nav-home-conversation"
             />
           </div>
@@ -824,20 +824,20 @@ function App() {
                       activeDashboardsSection
                         ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted/80',
-                      !isSidebarContentCollapsed && "lg:justify-center lg:px-2"
+                      isSidebarContentCollapsed && "lg:justify-center lg:px-2"
                     )}
-                    title={!isSidebarContentCollapsed ? t('nav.dashboards') : undefined}
+                    title={isSidebarContentCollapsed ? t('nav.dashboards') : undefined}
                   >
                     <div className={cn("p-2 rounded-xl transition-all duration-300", activeDashboardsSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted")}>
                         <BarChart2 className="w-4 h-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", !isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.dashboards')}</span>
-                    {!!isSidebarContentCollapsed && (isDashboardsExpanded
+                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.dashboards')}</span>
+                    {!isSidebarContentCollapsed && (isDashboardsExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
                     )}
                  </button>
-                 {isDashboardsExpanded && !!isSidebarContentCollapsed && (
+                 {isDashboardsExpanded && !isSidebarContentCollapsed && (
                    <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
                      {sidebarDashboards.length === 0 ? (
                        <span className="px-3 py-2 text-[0.72rem] font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
@@ -862,7 +862,7 @@ function App() {
                      label={t('nav.energy')} 
                      active={currentView === 'energy'}
                      onClick={() => navigateTo('energy')}
-                     collapsedOnDesktop={!isSidebarContentCollapsed}
+                     collapsedOnDesktop={isSidebarContentCollapsed}
                   />
                  )}
             </div>
@@ -878,15 +878,15 @@ function App() {
                       activeSystemSection
                         ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted/80',
-                      !isSidebarContentCollapsed && "lg:justify-center lg:px-2"
+                      isSidebarContentCollapsed && "lg:justify-center lg:px-2"
                     )}
-                    title={!isSidebarContentCollapsed ? t('nav.system') : undefined}
+                    title={isSidebarContentCollapsed ? t('nav.system') : undefined}
                   >
                     <div className={cn("p-2 rounded-xl transition-all duration-300", activeSystemSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted group-hover:bg-background group-hover:shadow")}>
                         <Settings className="w-4 h-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", !isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.system')}</span>
-                    {!!isSidebarContentCollapsed && (isSystemExpanded
+                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.system')}</span>
+                    {!isSidebarContentCollapsed && (isSystemExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
                     )
@@ -894,7 +894,7 @@ function App() {
                 </button>
 
                 {/* System sub-items — inline collapsible */}
-                {isSystemExpanded && !!isSidebarContentCollapsed && (
+                {isSystemExpanded && !isSidebarContentCollapsed && (
                   <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
                      <SidebarItem
                         icon={Network}
@@ -974,14 +974,14 @@ function App() {
             className={cn(
               "hidden lg:flex items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 control-transition interactive-lift group",
               "hover:bg-primary/15 hover:border-primary/30",
-              !isSidebarContentCollapsed && "lg:justify-center lg:px-2 lg:py-2.5"
+              isSidebarContentCollapsed && "lg:justify-center lg:px-2 lg:py-2.5"
             )}
             title={!isSidebarContentCollapsed ? t('demo.start_button') : undefined}
           >
             <div className="p-2 bg-primary rounded-xl text-primary-foreground group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <div className={cn("flex min-w-0 flex-1 flex-col text-left overflow-hidden transition-[opacity,width] duration-200", !isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>
+            <div className={cn("flex min-w-0 flex-1 flex-col text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>
               <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                 {t('demo.start_button')}
               </span>
@@ -997,7 +997,7 @@ function App() {
               onClick={() => setShowProfileModal(true)}
               className={cn(
                 "flex items-center gap-3 w-full p-2 rounded-2xl bg-muted/30 hover:bg-muted/80 border border-border/40 transition-all group",
-                !isSidebarContentCollapsed && "lg:justify-center"
+                isSidebarContentCollapsed && "lg:justify-center"
               )}
               title={t('users.profile.title', 'Mi Perfil')}
             >
@@ -1011,19 +1011,19 @@ function App() {
                   : <span className="font-black text-xs uppercase">{(user?.username || '?').substring(0, 2)}</span>
                 }
               </div>
-              <div className={cn("flex flex-col min-w-0 text-left overflow-hidden transition-[opacity,width] duration-200", !isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
+              <div className={cn("flex flex-col min-w-0 text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
                 <span className="text-xs font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
                 <span className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-tighter opacity-70">
                    {user?.role ? t(`users.roles.${user.role}`) : 'User'}
                 </span>
               </div>
-              <ChevronRight className={cn("w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors", !isSidebarContentCollapsed && "lg:hidden")} />
+              <ChevronRight className={cn("w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors", isSidebarContentCollapsed && "lg:hidden")} />
             </button>
 
             {/* Quick Actions Row */}
             <div className={cn(
               "flex items-center justify-around px-1 py-1 bg-muted/20 rounded-xl border border-border/30 transition-all duration-300",
-              !isSidebarContentCollapsed && "lg:flex-col lg:gap-1 lg:px-1"
+              isSidebarContentCollapsed && "lg:flex-col lg:gap-1 lg:px-1"
             )}>
               <button 
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -1046,7 +1046,7 @@ function App() {
               >
                 <KeyRound className="w-4 h-4" />
               </button>
-              <div className={cn("w-px h-4 bg-border/40 mx-0.5", !isSidebarContentCollapsed && "lg:w-4 lg:h-px lg:mx-0 lg:my-0.5")} />
+              <div className={cn("w-px h-4 bg-border/40 mx-0.5", isSidebarContentCollapsed && "lg:w-4 lg:h-px lg:mx-0 lg:my-0.5")} />
               <button 
                 onClick={onLogout}
                 className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all p-2 rounded-lg"
