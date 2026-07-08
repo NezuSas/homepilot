@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { DashboardWidgetConfig } from '../types';
+import type { DashboardWidgetConfig } from '../../types';
 import { CLOCK_DESIGN_COMPONENTS } from './clockRegistry';
 import type { ClockStyle } from './clockTypes';
 import { getClockCopy, getClockLocale } from './clockUtils';
