@@ -676,7 +676,6 @@ function App() {
   const activeDashboardsSection = currentView === 'dashboards';
   const isDesktopSidebarCollapsed = !isDesktopSidebarOpen;
   const isSidebarContentCollapsed = isDesktopSidebarCollapsed && !isSidebarOpen;
-  const isSidebarContentCollapsed = !isSidebarContentCollapsed && !isSidebarOpen;
 
   return (
     <div 
