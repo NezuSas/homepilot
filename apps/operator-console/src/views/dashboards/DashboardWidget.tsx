@@ -29,7 +29,7 @@ interface DashboardWidgetNodeProps {
   onResizeEnd?: (id: string, w: number, h: number) => void;
 }
 
-/** Pure content renderer â€” no dnd hooks, safe to use inside DragOverlay */
+/** Pure content renderer ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â no dnd hooks, safe to use inside DragOverlay */
 export function WidgetContent({ widget, isEditing, onClick }: { widget: DashboardWidget; isEditing: boolean; onClick: () => void }) {
   switch (widget.type) {
     case 'device_control':
@@ -55,7 +55,7 @@ export function WidgetContent({ widget, isEditing, onClick }: { widget: Dashboar
       return (
         <div className="flex flex-col items-center justify-center h-full p-4 text-center opacity-40 grayscale">
           <span className="text-[10px] font-black uppercase tracking-widest">{widget.type}</span>
-          <span className="text-[8px] mt-1">PrÃ³ximamente</span>
+          <span className="text-[8px] mt-1">PrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³ximamente</span>
         </div>
       );
   }
@@ -111,11 +111,11 @@ export function DashboardWidgetNode({
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       style={{ ...transformStyle, ...accentStyle, containerType: 'inline-size' }}
       className={cn(
-        "relative h-full w-full overflow-hidden transition-all duration-300 group @container",
+        "relative h-full w-full min-h-0 overflow-hidden transition-all duration-300 group @container touch-manipulation",
         // Section widgets and cameras are transparent shell-wise (camera handles its own rounded borders)
         isSection || isCamera
           ? "rounded-2xl bg-transparent border-transparent shadow-none"
-          : "rounded-[2rem]",
+          : "rounded-[1.5rem] sm:rounded-[2rem]",
         
         // --- Variant Application (non-section, non-camera) ---
         !isSection && !isCamera && !accentColor && isDevice && "bg-card/95 dark:bg-background/55 backdrop-blur-3xl border border-border/50 shadow-xl",
@@ -133,7 +133,7 @@ export function DashboardWidgetNode({
       )}
     >
       {/* Content */}
-      <div className="h-full w-full">
+      <div className="h-full w-full min-h-0">
         <WidgetContent widget={widget} isEditing={isEditing} onClick={onClick} />
       </div>
 
@@ -149,7 +149,7 @@ export function DashboardWidgetNode({
             />
           )}
 
-          {/* Floating control bar â€” appears on hover */}
+          {/* Floating control bar ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â appears on hover */}
           <div className="absolute top-2 right-2 z-30 flex items-center gap-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <div className="flex items-center gap-0.5 px-1.5 py-1 bg-background/90 backdrop-blur-md rounded-xl border border-border/40 shadow-lg">
               <button
@@ -173,7 +173,7 @@ export function DashboardWidgetNode({
           {/* Resize Handle (not for sections) */}
           {!isSection && onResizeEnd && (
             <div 
-              className="absolute bottom-1 right-1 z-40 w-8 h-8 flex items-end justify-end p-2 cursor-nwse-resize group/resize opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"
+              className="absolute bottom-1 right-1 z-40 hidden h-8 w-8 cursor-nwse-resize items-end justify-end p-2 opacity-0 transition-opacity active:scale-95 group-hover:opacity-100 group/resize lg:flex"
               onMouseDown={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -227,7 +227,7 @@ export function DashboardWidgetNode({
           {isResizing && (
             <div className="absolute inset-0 pointer-events-none border-2 border-primary border-dashed rounded-[2rem] bg-primary/5 z-50">
                <div className="absolute bottom-2 right-4 text-[10px] font-black text-primary uppercase">
-                 {widget.config.layout.w + resizeOffset.w} Ã— {widget.config.layout.h + resizeOffset.h}
+                 {widget.config.layout.w + resizeOffset.w} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â {widget.config.layout.h + resizeOffset.h}
                </div>
             </div>
           )}

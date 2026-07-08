@@ -56,15 +56,15 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
 
   return (
     <div className={cn(
-      "flex flex-col h-full rounded-3xl p-5 overflow-hidden transition-all duration-500",
+      "flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 overflow-hidden transition-all duration-500",
       config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
     )}>
-      <div className="flex items-center justify-between mb-4 shrink-0">
+      <div className="flex items-center justify-between gap-2 mb-3 @md:mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20">
             <Activity className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-black text-foreground tracking-tight">
+          <h3 className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate">
             {config.appearance.title || t('dashboards.widgets.activity_feed.label')}
           </h3>
         </div>
@@ -73,7 +73,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2 @md:space-y-3">
         {loading ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map(i => (

@@ -23,15 +23,15 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
 
   return (
     <div className={cn(
-      "flex flex-col h-full rounded-3xl p-5 transition-all duration-500",
+      "flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 transition-all duration-500",
       config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
     )}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 mb-3 @md:mb-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
             <Sparkles className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-black text-foreground tracking-tight">
+          <h3 className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate">
             {config.appearance.title || t('dashboards.widgets.assistant_insights.label')}
           </h3>
         </div>
@@ -60,7 +60,7 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
             
             <div className="space-y-1">
               <h4 className="text-xs sm:text-sm font-black text-foreground leading-tight tracking-tight px-2 line-clamp-1">{topFinding.title}</h4>
-              <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 px-4 italic opacity-80">{topFinding.description}</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 px-2 @md:px-4 italic opacity-80">{topFinding.description}</p>
             </div>
 
             <div className="pt-2">

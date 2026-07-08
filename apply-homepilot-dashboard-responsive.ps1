@@ -1,3 +1,25 @@
+$ErrorActionPreference = "Stop"
+
+function Write-FileUtf8NoBom {
+  param([string]$Path, [string]$Content)
+  $encoding = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $Path), $Content, $encoding)
+}
+
+function Replace-InFile {
+  param([string]$Path, [string]$Old, [string]$New)
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+  $content = Get-Content -LiteralPath $Path -Raw
+  $content = $content.Replace($Old, $New)
+  Write-FileUtf8NoBom -Path $Path -Content $content
+}
+
+$canvasPath = "apps/operator-console/src/views/dashboards/DashboardCanvas.tsx"
+if (-not (Test-Path -LiteralPath $canvasPath)) {
+  throw "No existe $canvasPath. Ejecuta este script desde la raíz de homepilot."
+}
+
+$canvas = @'
 import { 
   DndContext, 
   PointerSensor, 
@@ -525,7 +547,7 @@ export function DashboardCanvas({
               </div>
             ) : (
               <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 group-hover/placeholder:text-primary transition-colors">
-                + Nueva SecciÃ³n
+                + Nueva Sección
               </span>
             )}
           </button>
@@ -572,3 +594,74 @@ export function DashboardCanvas({
     </DndContext>
   );
 }
+'@
+
+Write-FileUtf8NoBom -Path $canvasPath -Content $canvas
+
+# Shell del widget: contenedores con min-height correcto y radios móviles.
+$dashboardWidgetPath = "apps/operator-console/src/views/dashboards/DashboardWidget.tsx"
+Replace-InFile $dashboardWidgetPath '"relative h-full w-full overflow-hidden transition-all duration-300 group @container"' '"relative h-full w-full min-h-0 overflow-hidden transition-all duration-300 group @container touch-manipulation"'
+Replace-InFile $dashboardWidgetPath ' : "rounded-[2rem]",' ' : "rounded-[1.5rem] sm:rounded-[2rem]",'
+Replace-InFile $dashboardWidgetPath '<div className="h-full w-full">' '<div className="h-full w-full min-h-0">'
+Replace-InFile $dashboardWidgetPath 'className="absolute bottom-1 right-1 z-40 w-8 h-8 flex items-end justify-end p-2 cursor-nwse-resize group/resize opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"' 'className="absolute bottom-1 right-1 z-40 hidden h-8 w-8 cursor-nwse-resize items-end justify-end p-2 opacity-0 transition-opacity active:scale-95 group-hover:opacity-100 group/resize lg:flex"'
+
+# Device widget: íconos y padding por container query.
+$devicePath = "apps/operator-console/src/views/dashboards/widgets/DeviceWidget.tsx"
+Replace-InFile $devicePath '"relative h-full w-full flex flex-row items-center gap-3 px-3 py-1.5 transition-all duration-300 select-none group focus:outline-none"' '"relative h-full w-full flex flex-row items-center gap-3 px-3 py-2 @md:px-4 transition-all duration-300 select-none group focus:outline-none"'
+Replace-InFile $devicePath '<IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />' '<IconComponent className="h-[clamp(1.25rem,12cqi,1.75rem)] w-[clamp(1.25rem,12cqi,1.75rem)]" />'
+Replace-InFile $devicePath '"relative h-full w-full flex flex-col items-center justify-center p-3 transition-all duration-300 select-none group focus:outline-none"' '"relative h-full w-full flex flex-col items-center justify-center p-3 @md:p-4 transition-all duration-300 select-none group focus:outline-none"'
+Replace-InFile $devicePath '<IconComponent className="w-[72%] h-[72%] max-w-[7rem] max-h-[7rem]" />' '<IconComponent className="h-[clamp(3rem,38cqi,7rem)] w-[clamp(3rem,38cqi,7rem)]" />'
+Replace-InFile $devicePath '<div className="w-full text-center mt-auto pb-1">' '<div className="w-full min-w-0 text-center mt-auto pb-1">'
+
+# Room widget.
+$roomPath = "apps/operator-console/src/views/dashboards/widgets/RoomWidget.tsx"
+Replace-InFile $roomPath '"relative h-full w-full flex flex-col p-7 transition-all duration-700"' '"relative h-full w-full min-h-0 flex flex-col p-4 @md:p-6 @lg:p-7 transition-all duration-700"'
+Replace-InFile $roomPath 'className="flex items-center justify-between mb-6"' 'className="flex items-center justify-between mb-3 @md:mb-6"'
+Replace-InFile $roomPath '"w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-500"' '"w-10 h-10 @md:w-12 @md:h-12 rounded-2xl flex items-center justify-center border transition-all duration-500"'
+Replace-InFile $roomPath '<Home className={cn("w-6 h-6", onCount > 0 ? "text-primary" : "text-muted-foreground/30")} />' '<Home className={cn("w-5 h-5 @md:w-6 @md:h-6", onCount > 0 ? "text-primary" : "text-muted-foreground/30")} />'
+Replace-InFile $roomPath 'className="text-xl font-black tracking-tight text-foreground truncate"' 'className="text-base @md:text-xl font-black tracking-tight text-foreground truncate"'
+Replace-InFile $roomPath '<div className="flex-1 space-y-4">' '<div className="flex-1 min-h-0 space-y-3 @md:space-y-4">'
+
+# Scene shortcut.
+$scenePath = "apps/operator-console/src/views/dashboards/widgets/SceneShortcutWidget.tsx"
+Replace-InFile $scenePath '"relative h-full w-full flex flex-col justify-center items-center p-6 transition-all duration-500"' '"relative h-full w-full min-h-0 flex flex-col justify-center items-center p-4 @md:p-6 transition-all duration-500"'
+Replace-InFile $scenePath '"w-16 h-16 rounded-[2rem] flex items-center justify-center border transition-all duration-500 mb-4"' '"w-12 h-12 @md:w-16 @md:h-16 rounded-[1.5rem] @md:rounded-[2rem] flex items-center justify-center border transition-all duration-500 mb-2 @md:mb-4"'
+Replace-InFile $scenePath '<Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />' '<Loader2 className="w-6 h-6 @md:w-8 @md:h-8 text-primary-foreground animate-spin" />'
+Replace-InFile $scenePath '<CheckCircle2 className="w-8 h-8" />' '<CheckCircle2 className="w-6 h-6 @md:w-8 @md:h-8" />'
+Replace-InFile $scenePath '<PlaySquare className="w-8 h-8 text-primary" />' '<PlaySquare className="w-6 h-6 @md:w-8 @md:h-8 text-primary" />'
+Replace-InFile $scenePath 'className="text-sm font-black tracking-tight text-foreground line-clamp-2 text-center leading-tight"' 'className="text-xs @md:text-sm font-black tracking-tight text-foreground line-clamp-2 text-center leading-tight"'
+
+# Energy snapshot.
+$energyPath = "apps/operator-console/src/views/dashboards/widgets/EnergySnapshotWidget.tsx"
+Replace-InFile $energyPath '"relative w-full h-full rounded-[2.5rem] overflow-hidden p-6 transition-all duration-700"' '"relative w-full h-full min-h-0 rounded-[1.5rem] @md:rounded-[2.5rem] overflow-hidden p-4 @md:p-6 transition-all duration-700"'
+Replace-InFile $energyPath 'className="flex items-center justify-between mb-6 relative z-10"' 'className="flex items-center justify-between mb-4 @md:mb-6 relative z-10"'
+Replace-InFile $energyPath 'className="grid grid-cols-1 gap-6 relative z-10"' 'className="grid grid-cols-1 gap-4 @md:gap-6 relative z-10"'
+Replace-InFile $energyPath 'className="text-4xl font-black tracking-tighter text-foreground tabular-nums"' 'className="text-[clamp(1.75rem,18cqi,2.25rem)] font-black tracking-tighter text-foreground tabular-nums"'
+Replace-InFile $energyPath 'className="flex items-center justify-between p-4 rounded-3xl bg-muted/20 border border-border/40"' 'className="flex items-center justify-between gap-3 p-3 @md:p-4 rounded-2xl @md:rounded-3xl bg-muted/20 border border-border/40"'
+
+# Assistant, Activity and System widgets.
+$assistantPath = "apps/operator-console/src/views/dashboards/widgets/AssistantInsightWidget.tsx"
+Replace-InFile $assistantPath '"flex flex-col h-full rounded-3xl p-5 transition-all duration-500"' '"flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 transition-all duration-500"'
+Replace-InFile $assistantPath '<div className="flex items-center justify-between mb-4">' '<div className="flex items-center justify-between gap-2 mb-3 @md:mb-4">'
+Replace-InFile $assistantPath 'className="text-sm font-black text-foreground tracking-tight"' 'className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate"'
+Replace-InFile $assistantPath 'className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 px-4 italic opacity-80"' 'className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 px-2 @md:px-4 italic opacity-80"'
+
+$activityPath = "apps/operator-console/src/views/dashboards/widgets/ActivityFeedWidget.tsx"
+Replace-InFile $activityPath '"flex flex-col h-full rounded-3xl p-5 overflow-hidden transition-all duration-500"' '"flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 overflow-hidden transition-all duration-500"'
+Replace-InFile $activityPath '<div className="flex items-center justify-between mb-4 shrink-0">' '<div className="flex items-center justify-between gap-2 mb-3 @md:mb-4 shrink-0">'
+Replace-InFile $activityPath 'className="text-sm font-black text-foreground tracking-tight"' 'className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate"'
+Replace-InFile $activityPath '<div className="flex-1 overflow-y-auto no-scrollbar space-y-3">' '<div className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2 @md:space-y-3">'
+
+$systemPath = "apps/operator-console/src/views/dashboards/widgets/SystemStatusWidget.tsx"
+Replace-InFile $systemPath '"flex flex-col h-full rounded-3xl p-5 overflow-hidden transition-all duration-500"' '"flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 overflow-hidden transition-all duration-500"'
+Replace-InFile $systemPath '<div className="flex items-center justify-between mb-5 shrink-0">' '<div className="flex items-center justify-between gap-2 mb-3 @md:mb-5 shrink-0">'
+Replace-InFile $systemPath 'className="text-sm font-black text-foreground tracking-tight"' 'className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate"'
+Replace-InFile $systemPath '<div className="space-y-5 animate-in fade-in duration-500">' '<div className="space-y-3 @md:space-y-5 animate-in fade-in duration-500">'
+Replace-InFile $systemPath 'className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/10"' 'className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/10 min-w-0"'
+
+# Section widget.
+$sectionPath = "apps/operator-console/src/views/dashboards/widgets/SectionWidget.tsx"
+Replace-InFile $sectionPath 'className="text-[13px] font-black uppercase tracking-[0.25em] text-foreground/80 whitespace-nowrap"' 'className="truncate text-[11px] @md:text-[13px] font-black uppercase tracking-[0.18em] @md:tracking-[0.25em] text-foreground/80 whitespace-nowrap"'
+
+Write-Host "OK: dashboard responsive aplicado." -ForegroundColor Green
+Write-Host "Archivos principales: DashboardCanvas + DashboardWidget + widgets/*" -ForegroundColor Cyan

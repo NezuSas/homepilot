@@ -108,7 +108,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
     return (
       <button
         className={cn(
-          "relative h-full w-full flex flex-row items-center gap-3 px-3 py-1.5 transition-all duration-300 select-none group focus:outline-none"
+          "relative h-full w-full flex flex-row items-center gap-3 px-3 py-2 @md:px-4 transition-all duration-300 select-none group focus:outline-none"
         )}
         onClick={handleToggle}
         disabled={isProcessing}
@@ -121,7 +121,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
               : "text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)] scale-110"
             : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
         )}>
-          <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
+          <IconComponent className="h-[clamp(1.25rem,12cqi,1.75rem)] w-[clamp(1.25rem,12cqi,1.75rem)]" />
         </div>
         <div className="flex-1 min-w-0 text-left">
           <h4 className={cn(
@@ -145,7 +145,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   return (
     <button
       className={cn(
-        "relative h-full w-full flex flex-col items-center justify-center p-3 transition-all duration-300 select-none group focus:outline-none"
+        "relative h-full w-full flex flex-col items-center justify-center p-3 @md:p-4 transition-all duration-300 select-none group focus:outline-none"
       )}
       onClick={handleToggle}
       disabled={isProcessing}
@@ -158,9 +158,9 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
             : "text-primary drop-shadow-[0_0_16px_rgba(var(--primary),0.6)] scale-110"
           : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
       )}>
-        <IconComponent className="w-[72%] h-[72%] max-w-[7rem] max-h-[7rem]" />
+        <IconComponent className="h-[clamp(3rem,38cqi,7rem)] w-[clamp(3rem,38cqi,7rem)]" />
       </div>
-      <div className="w-full text-center mt-auto pb-1">
+      <div className="w-full min-w-0 text-center mt-auto pb-1">
         <h4 className={cn(
           "text-[clamp(0.7rem,3cqi,1rem)] font-bold tracking-tight leading-tight truncate px-1",
           isOn ? "text-foreground" : "text-muted-foreground/80"

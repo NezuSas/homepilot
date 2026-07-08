@@ -61,15 +61,15 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
 
   return (
     <div className={cn(
-      "relative h-full w-full flex flex-col p-7 transition-all duration-700",
+      "relative h-full w-full min-h-0 flex flex-col p-4 @md:p-6 @lg:p-7 transition-all duration-700",
       onCount > 0 && "bg-gradient-to-br from-primary/[0.04] via-transparent to-transparent"
     )}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3 @md:mb-6">
         <div className={cn(
-          "w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-500",
+          "w-10 h-10 @md:w-12 @md:h-12 rounded-2xl flex items-center justify-center border transition-all duration-500",
           onCount > 0 ? "bg-primary/10 border-primary/20 shadow-lg" : "bg-muted border-border/40"
         )}>
-          <Home className={cn("w-6 h-6", onCount > 0 ? "text-primary" : "text-muted-foreground/30")} />
+          <Home className={cn("w-5 h-5 @md:w-6 @md:h-6", onCount > 0 ? "text-primary" : "text-muted-foreground/30")} />
         </div>
         
         <div className="flex items-center gap-2">
@@ -77,9 +77,9 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         </div>
       </div>
 
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 min-h-0 space-y-3 @md:space-y-4">
         <div>
-          <h4 className="text-xl font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
+          <h4 className="text-base @md:text-xl font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
           <div className="flex items-center gap-2 mt-1">
              <span className={cn(
                "text-[10px] font-black uppercase tracking-widest",

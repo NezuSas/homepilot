@@ -41,7 +41,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
 
   return (
     <div className={cn(
-      "relative w-full h-full rounded-[2.5rem] overflow-hidden p-6 transition-all duration-700",
+      "relative w-full h-full min-h-0 rounded-[1.5rem] @md:rounded-[2.5rem] overflow-hidden p-4 @md:p-6 transition-all duration-700",
       config.appearance.variant === 'glass' && "bg-card/40 backdrop-blur-2xl border border-border/40",
       config.appearance.variant === 'solid' && "bg-background border border-border/20",
       config.appearance.variant === 'outline' && "border-2 border-primary/20",
@@ -49,7 +49,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
     )}>
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 animate-pulse" />
 
-      <div className="flex items-center justify-between mb-6 relative z-10">
+      <div className="flex items-center justify-between mb-4 @md:mb-6 relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
             <Zap className="w-5 h-5 fill-primary/20" />
@@ -69,18 +69,18 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
         {isLoading && <RefreshCw className="w-3.5 h-3.5 text-primary/40 animate-spin" />}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 relative z-10">
+      <div className="grid grid-cols-1 gap-4 @md:gap-6 relative z-10">
         <div className="flex flex-col gap-1">
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">{t('dashboards.widgets.energy_insight.current_power')}</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black tracking-tighter text-foreground tabular-nums">
+            <span className="text-[clamp(1.75rem,18cqi,2.25rem)] font-black tracking-tighter text-foreground tabular-nums">
               {power.toLocaleString()}
             </span>
             <span className="text-sm font-black text-primary uppercase tracking-widest">W</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-3xl bg-muted/20 border border-border/40">
+        <div className="flex items-center justify-between gap-3 p-3 @md:p-4 rounded-2xl @md:rounded-3xl bg-muted/20 border border-border/40">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-muted-foreground">
                <Battery className="w-4 h-4" />

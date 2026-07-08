@@ -72,15 +72,15 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
 
   return (
     <div className={cn(
-      "flex flex-col h-full rounded-3xl p-5 overflow-hidden transition-all duration-500",
+      "flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 overflow-hidden transition-all duration-500",
       config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
     )}>
-      <div className="flex items-center justify-between mb-5 shrink-0">
+      <div className="flex items-center justify-between gap-2 mb-3 @md:mb-5 shrink-0">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
             <Cpu className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-black text-foreground tracking-tight">
+          <h3 className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate">
             {config.appearance.title || t('dashboards.widgets.system_status.label')}
           </h3>
         </div>
@@ -109,7 +109,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
             variant={config.appearance.variant}
           />
         ) : (
-          <div className="space-y-5 animate-in fade-in duration-500">
+          <div className="space-y-3 @md:space-y-5 animate-in fade-in duration-500">
             {/* CPU Metric */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest mb-1 px-1">
@@ -146,7 +146,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
             </div>
 
             {/* Uptime Insight */}
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/10">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/10 min-w-0">
                <div className="p-2 rounded-xl bg-background border border-border/30">
                   <Timer className="w-3 h-3 text-muted-foreground" />
                </div>
