@@ -135,6 +135,9 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const extra      = safeWidget.config.extra ?? {};
   const isSection  = safeWidget.type === 'section';
   const isClock    = safeWidget.type === 'clock_display';
+  const boundDevice = safeWidget.type === 'device_control' ? devices.find(d => d.id === binding.entityId) : null;
+  const isCamera   = boundDevice ? (boundDevice.type === 'camera' || boundDevice.semanticType === 'camera') : false;
+  const showIconField = !isSection && !isClock && !isCamera;
 
   return (
     /* Backdrop */
@@ -331,8 +334,8 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
             </div>
           )}
 
-          {/* Custom Icon (not for section) */}
-          {!isSection && (
+          {/* Custom Icon */}
+          {showIconField && (
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (Opcional)</label>
               <input
@@ -390,7 +393,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
       />
 
       {/* Icon suggestions portal — renders outside overflow-hidden containers */}
-      {dropdownPos && matchingIcons.length > 0 && createPortal(
+      {showIconField && dropdownPos && matchingIcons.length > 0 && createPortal(
         <div
           style={{
             position: 'fixed',

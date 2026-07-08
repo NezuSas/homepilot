@@ -310,7 +310,7 @@ export class DeviceRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing semanticType key'), true;
         }
 
-        const validSemanticTypes = ['light', 'switch', 'outlet', 'cover', 'sensor', 'unknown', null];
+        const validSemanticTypes = ['light', 'switch', 'outlet', 'cover', 'camera', 'sensor', 'unknown', null];
         const { semanticType } = payload;
 
         if (!validSemanticTypes.includes(semanticType as any)) {

@@ -6,7 +6,7 @@ import { DeviceCapability } from './capabilities';
 
 export type DeviceStatus = 'PENDING' | 'ASSIGNED';
 
-export type DeviceSemanticType = 'light' | 'switch' | 'outlet' | 'cover' | 'sensor' | 'unknown';
+export type DeviceSemanticType = 'light' | 'switch' | 'outlet' | 'cover' | 'camera' | 'sensor' | 'unknown';
 
 export interface Device {
   readonly id: string;

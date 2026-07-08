@@ -31,7 +31,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
     );
   }
 
-  if (device.type === 'camera') {
+  if (device.type === 'camera' || device.semanticType === 'camera') {
     return (
       <div className="h-full w-full overflow-hidden rounded-[2rem]">
         <CameraDeviceTile device={device} />

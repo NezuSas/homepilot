@@ -74,7 +74,7 @@ export function DashboardWidgetNode({
 
   const devices = useDeviceSnapshotStore(state => state.devices);
   const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
-  const isCamera = widget.type === 'device_control' && boundDevice?.type === 'camera';
+  const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
   const isSection = widget.type === 'section';
 
   // Never register dnd for section widgets or when rendering inside DragOverlay

@@ -7,6 +7,7 @@ export const resolveManagedDeviceKind = (device: SnapshotDevice): ManagedDeviceK
   if (
     hasCapability(device, 'camera')
     || device.type === 'camera'
+    || device.semanticType === 'camera'
     || device.profile?.domain === 'camera'
     || device.externalId?.startsWith('ha:camera.') === true
     || device.integrationSource === 'native-camera'
