@@ -34,9 +34,9 @@ export function normalizeLocale(locale: string): string {
 }
 
 export function getClockCopy(locale: string): ClockCopy {
-  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
+  const isEnglish = locale.toLowerCase().startsWith('en');
 
-  if (language === 'en') {
+  if (isEnglish) {
     return {
       localTime: 'Local time',
       digitalPro: 'Digital pro',
@@ -60,13 +60,13 @@ export function getClockCopy(locale: string): ClockCopy {
     localTime: 'Hora local',
     digitalPro: 'Digital pro',
     homeTime: 'Hora del hogar',
-    analogClassic: 'Analógico clásico',
-    analogOrbit: 'Analógico órbita',
-    analogMinimal: 'Analógico minimal',
+    analogClassic: 'Anal\u00f3gico cl\u00e1sico',
+    analogOrbit: 'Anal\u00f3gico \u00f3rbita',
+    analogMinimal: 'Anal\u00f3gico minimal',
     residentialEdge: 'Residencial',
     sync: 'Sync',
     secondsShort: 'seg',
-    dayProgress: 'Día',
+    dayProgress: 'D\u00eda',
     weatherLoading: 'Cargando clima',
     weatherUnavailable: 'Clima no disponible',
     cuenca: 'Cuenca',
@@ -84,22 +84,22 @@ export function formatMonth(now: Date, locale: string, format: 'short' | 'long' 
 }
 
 export function formatDateLine(now: Date, locale: string): string {
-  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
+  const isEnglish = locale.toLowerCase().startsWith('en');
   const weekday = formatWeekday(now, locale, 'long');
   const month = formatMonth(now, locale, 'short').replace('.', '');
   const day = now.getDate();
   const year = now.getFullYear();
 
-  if (language === 'en') return `${weekday}, ${month} ${day}, ${year}`;
+  if (isEnglish) return `${weekday}, ${month} ${day}, ${year}`;
   return `${weekday}, ${day} ${month} ${year}`;
 }
 
 export function formatCompactDate(now: Date, locale: string): string {
-  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
+  const isEnglish = locale.toLowerCase().startsWith('en');
   const month = formatMonth(now, locale, 'short').replace('.', '').toUpperCase();
   const day = now.getDate();
 
-  if (language === 'en') return `${month} ${day}`;
+  if (isEnglish) return `${month} ${day}`;
   return `${day} ${month}`;
 }
 
@@ -152,5 +152,5 @@ export function formatWeather(
   if (status === 'loading' || status === 'idle') return copy.weatherLoading;
   if (!weather || status === 'error') return copy.weatherUnavailable;
 
-  return `${weather.location} · ${Math.round(weather.temperature)}°C · ${weather.label}`;
+  return `${weather.location} \u2022 ${Math.round(weather.temperature)}\u00b0C \u2022 ${weather.label}`;
 }
