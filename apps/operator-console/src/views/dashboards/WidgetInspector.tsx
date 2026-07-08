@@ -153,6 +153,23 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const extra      = safeWidget.config.extra ?? {};
   const isSection  = safeWidget.type === 'section';
   const isClock    = safeWidget.type === 'clock_display';
+  const isEnglish = (i18n.language || document.documentElement.lang || navigator.language || 'es')
+    .toLowerCase()
+    .startsWith('en');
+
+  const minLayoutW = isClock ? 4 : 1;
+  const minLayoutH = isClock ? 4 : 1;
+
+  const effectiveSizePresets = isClock
+    ? SIZE_PRESETS.filter((preset) => preset.w >= minLayoutW && preset.h >= minLayoutH)
+    : SIZE_PRESETS;
+
+  const quickSizeLabel = isEnglish
+    ? (isClock ? 'Clock size' : 'Quick size')
+    : (isClock ? 'Tamaño de reloj' : 'Tamaño rápido');
+
+  const clockDesignLabel = isEnglish ? 'Clock design' : 'Diseño de reloj';
+
   const boundDevice = safeWidget.type === 'device_control' ? devices.find(d => d.id === binding.entityId) : null;
   const isCamera   = boundDevice ? (boundDevice.type === 'camera' || boundDevice.semanticType === 'camera') : false;
   const showIconField = !isSection && !isClock && !isCamera;
@@ -211,7 +228,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{quickSizeLabel}</label>
                 <div className="grid grid-cols-5 gap-1.5">
-                  {effectiveSizePresets.map(preset => {
+                  {effectiveSizePresets.map((preset) => {
                     const isActive = layout.w === preset.w && layout.h === preset.h;
                     return (
                       <button
@@ -251,10 +268,10 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                     }}
                     onBlur={() => {
                       if (localW === '' || parseInt(localW) < minLayoutW) {
-                        setLocalW('1');
-                        onUpdate(safeWidget.id, { layout: { ...layout, w: 1 } });
+                        setLocalW(String(minLayoutW));
+                        onUpdate(safeWidget.id, { layout: { ...layout, w: minLayoutW } });
                       } else {
-                        const n = Math.max(1, Math.min(12, parseInt(localW)));
+                        const n = Math.max(minLayoutW, Math.min(12, parseInt(localW)));
                         setLocalW(String(n));
                       }
                     }}
@@ -278,10 +295,10 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                     }}
                     onBlur={() => {
                       if (localH === '' || parseInt(localH) < minLayoutH) {
-                        setLocalH('1');
-                        onUpdate(safeWidget.id, { layout: { ...layout, h: 1 } });
+                        setLocalH(String(minLayoutH));
+                        onUpdate(safeWidget.id, { layout: { ...layout, h: minLayoutH } });
                       } else {
-                        const n = Math.max(1, Math.min(20, parseInt(localH)));
+                        const n = Math.max(minLayoutH, Math.min(20, parseInt(localH)));
                         setLocalH(String(n));
                       }
                     }}
