@@ -3,6 +3,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { DashboardTab, DashboardVisibility } from '../../../packages/topology/domain/Dashboard';
+import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 
 interface DashboardOwnerSeed {
   id: string;
@@ -94,6 +95,19 @@ export class DashboardRoutes extends ApiRoutes {
           tabs?: DashboardTab[];
           visibility?: DashboardVisibility;
         }>(req);
+
+        if (body.tabs) {
+          const mediaService = new MediaService();
+          const dashboardId = patchMatch[1];
+          for (const tab of body.tabs) {
+            if (tab.background?.startsWith('data:image/')) {
+              const savedPath = await mediaService.saveTabBackground(dashboardId, tab.id, tab.background);
+              const cacheBuster = Date.now();
+              tab.background = `${savedPath}?v=${cacheBuster}`;
+            }
+          }
+        }
+
         const updated = await container.services.dashboardService.updateDashboard(
           req.user!.id,
           req.user!.role,

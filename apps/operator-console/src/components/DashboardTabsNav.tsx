@@ -1,5 +1,4 @@
-import React from 'react';
-import { BriefcaseBusiness, Home, LayoutGrid, Pencil, Plus } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
 import { InlineTabCreator } from './InlineTabCreator';
@@ -37,17 +36,36 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   onToggleEditing,
   editLabel
 }) => {
-  const iconForIndex = (index: number) => {
-    if (index === 0) return Home;
-    if (index === 1) return LayoutGrid;
-    return BriefcaseBusiness;
+  const getTabIcon = (tab: Dashboard['tabs'][number], index: number) => {
+    if (tab.icon) {
+      let name = tab.icon.trim();
+      if (name.toLowerCase().startsWith('mdi:')) {
+        name = name.substring(4);
+      }
+      const translations: Record<string, string> = {
+        gata: 'Cat', gato: 'Cat', perro: 'Dog', perra: 'Dog',
+        luz: 'Lightbulb', foco: 'Lightbulb', interruptor: 'Power',
+        enchufe: 'Plug', camara: 'Camera', tv: 'Tv', musica: 'Music',
+        bocina: 'Speaker', parlante: 'Speaker', llave: 'Key',
+        candado: 'Lock', escudo: 'Shield', termometro: 'Thermometer',
+        aire: 'Wind', ventilador: 'Fan'
+      };
+      const key = name.toLowerCase();
+      const resolvedName = translations[key] || Object.keys(Icons).find(k => k.toLowerCase() === key) || name;
+      const matchKey = Object.keys(Icons).find(k => k.toLowerCase() === resolvedName.toLowerCase());
+      if (matchKey) return (Icons as any)[matchKey];
+    }
+
+    if (index === 0) return Icons.Home;
+    if (index === 1) return Icons.LayoutGrid;
+    return Icons.BriefcaseBusiness;
   };
 
   return (
     <div className="border-b border-border/60">
       <div className="flex min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
         {tabs.map((tab, index) => {
-          const Icon = iconForIndex(index);
+          const Icon = getTabIcon(tab, index);
           const isActive = activeTabIdx === index;
           return (
             <div key={tab.id} className="group flex shrink-0 items-center">
@@ -78,7 +96,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   aria-label={`${configureLabel}: ${tab.title}`}
                   title={configureLabel}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Icons.Pencil className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -100,7 +118,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
             title={addLabel}
             aria-label={addLabel}
           >
-            <Plus className="h-4 w-4" />
+            <Icons.Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{addLabel}</span>
           </button>
         )}
@@ -117,7 +135,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
             title={editLabel}
             aria-label={editLabel}
           >
-            <Pencil className="h-5 w-5" />
+            <Icons.Pencil className="h-5 w-5" />
           </button>
         )}
       </div>

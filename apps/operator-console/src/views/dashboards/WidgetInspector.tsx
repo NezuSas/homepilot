@@ -64,11 +64,19 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const iconInputRef = useRef<HTMLInputElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
+  // Local string states for dimension inputs — allow empty/in-progress typing
+  const [localW, setLocalW] = useState('');
+  const [localH, setLocalH] = useState('');
+
   useEffect(() => {
     if (widget) {
       setIconQuery(widget.config.appearance?.icon || '');
+      setLocalW(String(widget.config.layout.w));
+      setLocalH(String(widget.config.layout.h));
     }
-  }, [widget?.id, widget?.config.appearance?.icon]);
+  // Only re-sync when the selected widget changes, not on every layout update
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widget?.id]);
 
   const computeDropdownPos = () => {
     if (!iconInputRef.current) return;
@@ -77,6 +85,24 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   };
 
   const safeWidget = useMemo(() => widget ? sanitizeWidget(widget) : null, [widget]);
+
+  const SelectedIconComponent = useMemo(() => {
+    if (!iconQuery) return null;
+    let clean = iconQuery.trim();
+    if (clean.toLowerCase().startsWith('mdi:')) clean = clean.substring(4);
+    const translations: Record<string, string> = {
+      gata: 'Cat', gato: 'Cat', perro: 'Dog', perra: 'Dog',
+      luz: 'Lightbulb', foco: 'Lightbulb', interruptor: 'Power',
+      enchufe: 'Plug', camara: 'Camera', tv: 'Tv', musica: 'Music',
+      bocina: 'Speaker', parlante: 'Speaker', llave: 'Key',
+      candado: 'Lock', escudo: 'Shield', termometro: 'Thermometer',
+      aire: 'Wind', ventilador: 'Fan'
+    };
+    const key = clean.toLowerCase();
+    const resolvedName = translations[key] || Object.keys(Icons).find(k => k.toLowerCase() === key) || clean;
+    const matchKey = Object.keys(Icons).find(k => k.toLowerCase() === resolvedName.toLowerCase());
+    return matchKey ? (Icons as any)[matchKey] : null;
+  }, [iconQuery]);
 
   const matchingIcons = useMemo(() => {
     if (!iconQuery || iconQuery.length < 2) return [];
@@ -222,12 +248,23 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                     inputMode="numeric"
                     pattern="[0-9]*"
                     className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all [appearance:textfield]"
-                    value={layout.w}
+                    value={localW}
                     onChange={(e) => {
                       const v = e.target.value.replace(/\D/g, '');
-                      if (v === '') return;
-                      const n = Math.max(1, Math.min(12, parseInt(v)));
-                      onUpdate(safeWidget.id, { layout: { ...layout, w: n } });
+                      setLocalW(v);
+                      if (v !== '') {
+                        const n = Math.max(1, Math.min(12, parseInt(v)));
+                        onUpdate(safeWidget.id, { layout: { ...layout, w: n } });
+                      }
+                    }}
+                    onBlur={() => {
+                      if (localW === '' || parseInt(localW) < 1) {
+                        setLocalW('1');
+                        onUpdate(safeWidget.id, { layout: { ...layout, w: 1 } });
+                      } else {
+                        const n = Math.max(1, Math.min(12, parseInt(localW)));
+                        setLocalW(String(n));
+                      }
                     }}
                   />
                 </div>
@@ -238,12 +275,23 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                     inputMode="numeric"
                     pattern="[0-9]*"
                     className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all [appearance:textfield]"
-                    value={layout.h}
+                    value={localH}
                     onChange={(e) => {
                       const v = e.target.value.replace(/\D/g, '');
-                      if (v === '') return;
-                      const n = Math.max(1, Math.min(20, parseInt(v)));
-                      onUpdate(safeWidget.id, { layout: { ...layout, h: n } });
+                      setLocalH(v);
+                      if (v !== '') {
+                        const n = Math.max(1, Math.min(20, parseInt(v)));
+                        onUpdate(safeWidget.id, { layout: { ...layout, h: n } });
+                      }
+                    }}
+                    onBlur={() => {
+                      if (localH === '' || parseInt(localH) < 1) {
+                        setLocalH('1');
+                        onUpdate(safeWidget.id, { layout: { ...layout, h: 1 } });
+                      } else {
+                        const n = Math.max(1, Math.min(20, parseInt(localH)));
+                        setLocalH(String(n));
+                      }
                     }}
                   />
                 </div>
@@ -338,21 +386,28 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {showIconField && (
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (Opcional)</label>
-              <input
-                ref={iconInputRef}
-                type="text"
-                className="w-full h-10 px-3 bg-card border border-border/60 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
-                placeholder="Ej: Lightbulb, Power, Tv, Gata, Perro"
-                value={iconQuery}
-                onFocus={computeDropdownPos}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setIconQuery(val);
-                  onUpdate(safeWidget.id, { appearance: { ...appearance, icon: val } });
-                  setTimeout(computeDropdownPos, 0);
-                }}
-                onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
-              />
+              <div className="relative flex items-center">
+                {SelectedIconComponent ? (
+                  <SelectedIconComponent className="absolute left-3 w-5 h-5 text-primary pointer-events-none" />
+                ) : (
+                  <Icons.HelpCircle className="absolute left-3 w-5 h-5 text-muted-foreground/30 pointer-events-none" />
+                )}
+                <input
+                  ref={iconInputRef}
+                  type="text"
+                  className="w-full h-10 pl-10 pr-3 bg-card border border-border/60 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                  placeholder="Ej: Lightbulb, Power, Tv, Gata, Perro"
+                  value={iconQuery}
+                  onFocus={computeDropdownPos}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setIconQuery(val);
+                    onUpdate(safeWidget.id, { appearance: { ...appearance, icon: val } });
+                    setTimeout(computeDropdownPos, 0);
+                  }}
+                  onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
+                />
+              </div>
             </div>
           )}
 

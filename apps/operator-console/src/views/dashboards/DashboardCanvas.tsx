@@ -268,7 +268,7 @@ export function DashboardCanvas({
         className={cn(
           "relative w-full grid grid-cols-12 gap-3 transition-all duration-500 sm:gap-4",
           isEditing
-            ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 rounded-[3rem] bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] shadow-2xl shadow-primary/5"
+            ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] shadow-2xl shadow-primary/5"
             : "border-transparent bg-transparent p-0"
         )}
         style={{

@@ -41,6 +41,44 @@ export class MediaService {
   }
 
   /**
+   * Saves a base64 background image for a specific tab in a dashboard.
+   * Format: /data/media/dashboards/<dashboardId>/<tabId>/background.jpg
+   * Returns the relative REST url path.
+   */
+  public async saveTabBackground(dashboardId: string, tabId: string, dataUri: string): Promise<string> {
+    const matches = dataUri.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error('Invalid Base64 Data URI format');
+    }
+
+    const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const tabDir = path.join(this.baseMediaDir, 'dashboards', dashboardId, tabId);
+    await fs.mkdir(tabDir, { recursive: true });
+
+    // Save with the file extension
+    const fileName = `background.${extension}`;
+    const filePath = path.join(tabDir, fileName);
+
+    await fs.writeFile(filePath, buffer);
+
+    // Return the relative REST path
+    return `/media/dashboards/${dashboardId}/${tabId}/${fileName}`;
+  }
+
+  /**
+   * Deletes the background image for a specific tab in a dashboard.
+   */
+  public async deleteTabBackground(dashboardId: string, tabId: string): Promise<void> {
+    const tabDir = path.join(this.baseMediaDir, 'dashboards', dashboardId, tabId);
+    try {
+      await fs.rm(tabDir, { recursive: true, force: true });
+    } catch {}
+  }
+
+  /**
    * Resolves a relative REST URL to an absolute file system path.
    * e.g., /media/users/cesar/avatar.jpg -> /var/lib/homepilot/data/media/users/cesar/avatar.jpg
    */

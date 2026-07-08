@@ -155,10 +155,26 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     }
   };
 
-  const handleRenameTab = async (tabIdx: number, title: string) => {
-    if (!active || !title.trim()) return;
+
+  const handleSaveTabConfig = async (tabIdx: number, fields: {
+    title: string;
+    layout?: 'sections' | 'masonry' | 'sidebar' | 'panel';
+    icon?: string;
+    background?: string | null;
+    backgroundOpacity?: number;
+    visibility?: { users: string[] };
+  }) => {
+    if (!active) return;
     const updatedTabs = active.tabs.map((tab, idx) => (
-      idx === tabIdx ? { ...tab, title: title.trim() } : tab
+      idx === tabIdx ? {
+        ...tab,
+        title: fields.title.trim(),
+        layout: fields.layout,
+        icon: fields.icon,
+        background: fields.background === null ? undefined : fields.background,
+        backgroundOpacity: fields.backgroundOpacity,
+        visibility: fields.visibility,
+      } : tab
     ));
     await patch(active.id, { tabs: updatedTabs });
   };
@@ -273,6 +289,19 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
   return (
     <div className="relative flex min-h-full flex-col gap-0 animate-in fade-in duration-700">
+      {activeTab?.background && (
+        <div 
+          className="absolute inset-0 -z-10 transition-all duration-700 pointer-events-none"
+          style={{
+            backgroundImage: `url(${activeTab.background.startsWith('/') ? `${API_BASE_URL}${activeTab.background}` : activeTab.background})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
+            opacity: (activeTab.backgroundOpacity ?? 100) / 100,
+          }}
+        />
+      )}
 
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
 
@@ -350,7 +379,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className={cn("relative flex flex-col gap-4 w-full", isEditing ? "p-3 sm:p-4" : "p-0 py-3 sm:py-4")}>
+                <div className={cn("relative flex flex-col gap-4 w-full", isEditing ? "p-3 sm:p-4" : "px-4 sm:px-6 md:px-8 py-3 sm:py-4")}>
                    {isEditing && (
                      <DashboardEditorToolbar
                        isOpen={isCatalogModalOpen}
@@ -413,11 +442,11 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
       <DashboardViewConfigModal
         isOpen={tabConfigIdx !== null && Boolean(active?.tabs[tabConfigIdx ?? 0])}
-        title={active?.tabs[tabConfigIdx ?? 0]?.title ?? ''}
+        tab={active?.tabs[tabConfigIdx ?? 0] ?? { title: '' }}
         onClose={() => setTabConfigIdx(null)}
-        onSave={(title) => {
+        onSave={(fields) => {
           if (tabConfigIdx === null) return;
-          void handleRenameTab(tabConfigIdx, title);
+          void handleSaveTabConfig(tabConfigIdx, fields);
           setTabConfigIdx(null);
         }}
         onDelete={() => {

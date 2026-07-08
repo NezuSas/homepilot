@@ -58,6 +58,11 @@ export interface DashboardTab {
   id: string;
   title: string;
   widgets: DashboardWidget[];
+  layout?: 'sections' | 'masonry' | 'sidebar' | 'panel';
+  icon?: string;
+  background?: string;
+  backgroundOpacity?: number;
+  visibility?: { users: string[] };
 }
 
 export interface Dashboard {
