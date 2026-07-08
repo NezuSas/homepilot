@@ -10,7 +10,7 @@ import { SelectField } from '../../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
-import { CLOCK_STYLES, type ClockStyle } from './widgets/clock';
+import { CLOCK_STYLES } from './widgets/clock';
 import ConfirmModal from '../../components/ConfirmModal';
 import * as Icons from 'lucide-react';
 
