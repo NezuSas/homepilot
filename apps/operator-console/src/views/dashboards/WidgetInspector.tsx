@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { sanitizeWidget } from './dashboardUtils';
 import { cn } from '../../lib/utils';
@@ -60,12 +61,20 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   }, [isOpen, widget?.type]);
 
   const [iconQuery, setIconQuery] = useState('');
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
     if (widget) {
       setIconQuery(widget.config.appearance?.icon || '');
     }
   }, [widget?.id, widget?.config.appearance?.icon]);
+
+  const computeDropdownPos = () => {
+    if (!iconInputRef.current) return;
+    const rect = iconInputRef.current.getBoundingClientRect();
+    setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+  };
 
   const safeWidget = useMemo(() => widget ? sanitizeWidget(widget) : null, [widget]);
 
@@ -259,7 +268,17 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 label=""
                 value={binding.entityId || ''}
                 placeholder={t('dashboards.inspector.select_device_placeholder')}
-                onChange={(val) => onUpdate(safeWidget.id, { binding: { ...binding, entityId: val, entityType: 'device' } })}
+                onChange={(val) => {
+                  const selectedDevice = devices.find(d => d.id === val);
+                  onUpdate(safeWidget.id, {
+                    binding: {
+                      ...binding,
+                      entityId: val,
+                      entityType: 'device',
+                      entityName: selectedDevice?.name,
+                    }
+                  });
+                }}
                 options={devices.map(d => ({ value: d.id, label: `${d.name} (${t(`device_types.${d.type}`, { defaultValue: d.type })})` }))}
               />
             </div>
@@ -298,42 +317,23 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
           {/* Custom Icon (not for section) */}
           {!isSection && (
-            <div className="space-y-1.5 relative">
+            <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (Opcional)</label>
               <input
+                ref={iconInputRef}
                 type="text"
                 className="w-full h-10 px-3 bg-card border border-border/60 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
                 placeholder="Ej: Lightbulb, Power, Tv, Gata, Perro"
                 value={iconQuery}
+                onFocus={computeDropdownPos}
                 onChange={(e) => {
                   const val = e.target.value;
                   setIconQuery(val);
                   onUpdate(safeWidget.id, { appearance: { ...appearance, icon: val } });
+                  setTimeout(computeDropdownPos, 0);
                 }}
+                onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
               />
-              
-              {/* Dropdown list of matching icons */}
-              {matchingIcons.length > 0 && (
-                <div className="absolute left-0 right-0 z-[1000] bottom-full mb-1 max-h-48 overflow-y-auto rounded-xl border border-border/60 bg-card p-1.5 shadow-xl space-y-0.5 no-scrollbar">
-                  {matchingIcons.map(iconName => {
-                    const IconComponent = (Icons as any)[iconName];
-                    return (
-                      <button
-                        key={iconName}
-                        type="button"
-                        onClick={() => {
-                          setIconQuery(iconName);
-                          onUpdate(safeWidget.id, { appearance: { ...appearance, icon: iconName } });
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold hover:bg-muted transition-colors text-foreground/80 hover:text-primary"
-                      >
-                        {IconComponent && <IconComponent className="w-4 h-4 shrink-0" />}
-                        <span>{iconName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           )}
 
@@ -372,6 +372,41 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
         cancelText={t('common.cancel')}
         variant="danger"
       />
+
+      {/* Icon suggestions portal — renders outside overflow-hidden containers */}
+      {dropdownPos && matchingIcons.length > 0 && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+            zIndex: 9999,
+          }}
+          className="max-h-48 overflow-y-auto rounded-xl border border-border/60 bg-card shadow-2xl p-1.5 space-y-0.5"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          {matchingIcons.map(iconName => {
+            const IconComponent = (Icons as any)[iconName];
+            return (
+              <button
+                key={iconName}
+                type="button"
+                onClick={() => {
+                  setIconQuery(iconName);
+                  setDropdownPos(null);
+                  onUpdate(safeWidget.id, { appearance: { ...appearance, icon: iconName } });
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors text-foreground/80"
+              >
+                {IconComponent && <IconComponent className="w-5 h-5 shrink-0" />}
+                <span>{iconName}</span>
+              </button>
+            );
+          })}
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

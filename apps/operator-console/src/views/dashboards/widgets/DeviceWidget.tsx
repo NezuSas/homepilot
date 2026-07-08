@@ -129,7 +129,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
             "text-xs sm:text-sm font-bold tracking-tight leading-none truncate",
             isOn ? "text-foreground" : "text-muted-foreground/80"
           )}>
-            {config.appearance.title || device.name}
+            {config.appearance.title || config.binding.entityName || device.name}
           </h4>
         </div>
 
@@ -160,14 +160,14 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
             : "text-primary drop-shadow-[0_0_16px_rgba(var(--primary),0.6)] scale-110"
           : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
       )}>
-        <IconComponent className="w-[50%] h-[50%] max-w-[5rem] max-h-[5rem]" />
+        <IconComponent className="w-[60%] h-[60%] max-w-[6rem] max-h-[6rem]" />
       </div>
       <div className="w-full text-center mt-auto pb-1">
         <h4 className={cn(
           "text-[clamp(0.7rem,3cqi,1rem)] font-bold tracking-tight leading-tight truncate px-1",
           isOn ? "text-foreground" : "text-muted-foreground/80"
         )}>
-          {config.appearance.title || device.name}
+          {config.appearance.title || config.binding.entityName || device.name}
         </h4>
       </div>
 
