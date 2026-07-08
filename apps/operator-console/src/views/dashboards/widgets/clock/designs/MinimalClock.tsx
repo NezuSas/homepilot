@@ -1,39 +1,34 @@
-﻿import type { ClockDesignProps } from '../clockTypes';
-import { formatDateLine, getDayProgress, getMinuteProgress, pad } from '../clockUtils';
-import { AccentDot, ClockProgress, ClockShell, ResponsiveTime, WeatherPill } from './ClockShared';
+import type { ClockDesignProps } from '../clockTypes';
+import { formatDateLine, getDayProgress, pad } from '../clockUtils';
+import { ClockKicker, ClockShell, LinearProgress, ResponsiveTime, SmallMeta, WeatherPill } from './ClockShared';
 
 export function MinimalClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const hours = pad(now.getHours());
   const minutes = pad(now.getMinutes());
   const seconds = pad(now.getSeconds());
   const blink = now.getSeconds() % 2 === 0;
-  const minuteProgress = getMinuteProgress(now);
-  const dayProgress = getDayProgress(now);
-  const dateLine = formatDateLine(now, locale);
+  const progress = getDayProgress(now);
 
   return (
-    <ClockShell className="text-foreground">
-      <div className="flex h-full min-w-0 flex-col justify-between gap-[clamp(0.6rem,2cqi,1.1rem)] p-[clamp(0.85rem,3cqi,1.45rem)]">
-        <header className="flex min-w-0 items-start justify-between gap-3">
+    <ClockShell>
+      <div className="grid h-full min-h-0 grid-rows-[auto_1fr_auto] gap-[clamp(0.75rem,2.5cqi,1.25rem)] p-[clamp(1rem,3.2cqi,1.6rem)]">
+        <header className="flex min-w-0 items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2 text-[clamp(0.52rem,1.6cqi,0.75rem)] font-black uppercase tracking-[0.34em] text-primary">
-              <AccentDot />
-              <span className="truncate">{copy.localTime}</span>
-            </div>
-            <p className="mt-1 truncate text-[clamp(0.52rem,1.5cqi,0.74rem)] font-semibold text-muted-foreground">{dateLine}</p>
+            <ClockKicker>{copy.localTime}</ClockKicker>
+            <SmallMeta className="mt-2">{formatDateLine(now, locale)}</SmallMeta>
           </div>
-          <div className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[clamp(0.48rem,1.4cqi,0.68rem)] font-black uppercase tracking-[0.16em] text-primary">
+          <div className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[clamp(0.52rem,1.2cqi,0.7rem)] font-black uppercase tracking-[0.14em] text-primary">
             {seconds} {copy.secondsShort}
           </div>
         </header>
 
-        <main className="flex min-h-0 flex-1 items-center justify-center">
+        <main className="flex min-h-0 items-center justify-center">
           <ResponsiveTime hours={hours} minutes={minutes} blink={blink} />
         </main>
 
-        <footer className="grid min-w-0 gap-2">
+        <footer className="min-w-0 space-y-[clamp(0.45rem,1.2cqi,0.75rem)]">
           <WeatherPill weather={weather} status={weatherStatus} copy={copy} />
-          <ClockProgress value={dayProgress || minuteProgress} label={copy.dayProgress} />
+          <LinearProgress value={progress} label={copy.dayProgress} />
         </footer>
       </div>
     </ClockShell>
