@@ -56,7 +56,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const iconInputRef = useRef<HTMLInputElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // Local string states for dimension inputs — allow empty/in-progress typing
+  // Local string states for dimension inputs â€” allow empty/in-progress typing
   const [localW, setLocalW] = useState('');
   const [localH, setLocalH] = useState('');
 
@@ -195,10 +195,10 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {/* Title */}
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
-              {isSection ? 'Título de sección' : t('dashboards.inspector.custom_title_placeholder')}
+              {isSection ? 'TÃ­tulo de secciÃ³n' : t('dashboards.inspector.custom_title_placeholder')}
             </label>
             <input
-              placeholder={isSection ? 'Mi Sección' : t('dashboards.inspector.custom_title_placeholder')}
+              placeholder={isSection ? 'Mi SecciÃ³n' : t('dashboards.inspector.custom_title_placeholder')}
               value={appearance.title || ''}
               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
@@ -209,7 +209,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {!isSection && (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Tamaño Rápido</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">TamaÃ±o RÃ¡pido</label>
                 <div className="grid grid-cols-5 gap-1.5">
                   {SIZE_PRESETS.map(preset => {
                     const isActive = layout.w === preset.w && layout.h === preset.h;
@@ -225,7 +225,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                         )}
                       >
                         <span className="text-[10px] font-black uppercase">{preset.label}</span>
-                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}×{preset.h}</span>
+                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}Ã—{preset.h}</span>
                       </button>
                     );
                   })}
@@ -294,7 +294,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {/* Clock style picker */}
           {isClock && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Diseño de reloj</label>
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">DiseÃ±o de reloj</label>
               <div className="grid grid-cols-3 gap-2">
                 {CLOCK_STYLES.map(style => {
                   const isActive = (extra.clockStyle ?? 'minimal') === style.value;
@@ -439,7 +439,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
         variant="danger"
       />
 
-      {/* Icon suggestions portal — renders outside overflow-hidden containers */}
+      {/* Icon suggestions portal â€” renders outside overflow-hidden containers */}
       {showIconField && dropdownPos && matchingIcons.length > 0 && createPortal(
         <div
           style={{

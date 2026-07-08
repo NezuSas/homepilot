@@ -108,8 +108,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
     return (
       <button
         className={cn(
-          "relative h-full w-full flex flex-row items-center gap-3 px-3 py-1.5 transition-all duration-300 select-none group focus:outline-none",
-          isOn && "bg-primary/5"
+          "relative h-full w-full flex flex-row items-center gap-3 px-3 py-1.5 transition-all duration-300 select-none group focus:outline-none"
         )}
         onClick={handleToggle}
         disabled={isProcessing}
@@ -146,8 +145,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   return (
     <button
       className={cn(
-        "relative h-full w-full flex flex-col items-center justify-center p-3 transition-all duration-300 select-none group focus:outline-none",
-        isOn && "bg-primary/5"
+        "relative h-full w-full flex flex-col items-center justify-center p-3 transition-all duration-300 select-none group focus:outline-none"
       )}
       onClick={handleToggle}
       disabled={isProcessing}

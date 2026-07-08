@@ -29,7 +29,7 @@ interface DashboardWidgetNodeProps {
   onResizeEnd?: (id: string, w: number, h: number) => void;
 }
 
-/** Pure content renderer — no dnd hooks, safe to use inside DragOverlay */
+/** Pure content renderer â€” no dnd hooks, safe to use inside DragOverlay */
 export function WidgetContent({ widget, isEditing, onClick }: { widget: DashboardWidget; isEditing: boolean; onClick: () => void }) {
   switch (widget.type) {
     case 'device_control':
@@ -55,7 +55,7 @@ export function WidgetContent({ widget, isEditing, onClick }: { widget: Dashboar
       return (
         <div className="flex flex-col items-center justify-center h-full p-4 text-center opacity-40 grayscale">
           <span className="text-[10px] font-black uppercase tracking-widest">{widget.type}</span>
-          <span className="text-[8px] mt-1">Próximamente</span>
+          <span className="text-[8px] mt-1">PrÃ³ximamente</span>
         </div>
       );
   }
@@ -75,6 +75,7 @@ export function DashboardWidgetNode({
   const devices = useDeviceSnapshotStore(state => state.devices);
   const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
   const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
+  const isDevice = widget.type === 'device_control' && !isCamera;
   const isSection = widget.type === 'section';
 
   // Never register dnd for section widgets or when rendering inside DragOverlay
@@ -117,8 +118,8 @@ export function DashboardWidgetNode({
           : "rounded-[2rem]",
         
         // --- Variant Application (non-section, non-camera) ---
-        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
-        !isSection && !isCamera && !accentColor && (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
+        !isSection && !isCamera && !accentColor && isDevice && "bg-card/95 dark:bg-background/55 backdrop-blur-3xl border border-border/50 shadow-xl",`r`n        !isSection && !isCamera && !accentColor && !isDevice && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
+        !isSection && !isCamera && !accentColor && !isDevice && (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
         !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'radiant' && "bg-gradient-to-br from-card to-primary/5 border border-primary/20 shadow-lg shadow-primary/5",
         !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'outline' && "bg-transparent border-2 border-border/60",
         !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'flat' && "bg-muted/30 border-transparent",
@@ -147,7 +148,7 @@ export function DashboardWidgetNode({
             />
           )}
 
-          {/* Floating control bar — appears on hover */}
+          {/* Floating control bar â€” appears on hover */}
           <div className="absolute top-2 right-2 z-30 flex items-center gap-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <div className="flex items-center gap-0.5 px-1.5 py-1 bg-background/90 backdrop-blur-md rounded-xl border border-border/40 shadow-lg">
               <button
@@ -225,7 +226,7 @@ export function DashboardWidgetNode({
           {isResizing && (
             <div className="absolute inset-0 pointer-events-none border-2 border-primary border-dashed rounded-[2rem] bg-primary/5 z-50">
                <div className="absolute bottom-2 right-4 text-[10px] font-black text-primary uppercase">
-                 {widget.config.layout.w + resizeOffset.w} × {widget.config.layout.h + resizeOffset.h}
+                 {widget.config.layout.w + resizeOffset.w} Ã— {widget.config.layout.h + resizeOffset.h}
                </div>
             </div>
           )}

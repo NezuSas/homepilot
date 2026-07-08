@@ -1,4 +1,4 @@
-import type { ClockCopy } from './clockTypes';
+import type { ClockCopy, ClockWeather } from './clockTypes';
 
 export function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -41,9 +41,16 @@ export function getClockCopy(locale: string): ClockCopy {
       localTime: 'Local time',
       digitalPro: 'Digital pro',
       homeTime: 'Home time',
+      analogClassic: 'Analog classic',
+      analogOrbit: 'Analog orbit',
+      analogMinimal: 'Analog minimal',
       residentialEdge: 'Residential edge',
       sync: 'Sync',
       secondsShort: 'sec',
+      dayProgress: 'Day',
+      weatherLoading: 'Loading weather',
+      weatherUnavailable: 'Weather unavailable',
+      cuenca: 'Cuenca',
       am: 'AM',
       pm: 'PM',
     };
@@ -53,33 +60,37 @@ export function getClockCopy(locale: string): ClockCopy {
     localTime: 'Hora local',
     digitalPro: 'Digital pro',
     homeTime: 'Hora del hogar',
+    analogClassic: 'AnalÃ³gico clÃ¡sico',
+    analogOrbit: 'AnalÃ³gico Ã³rbita',
+    analogMinimal: 'AnalÃ³gico minimal',
     residentialEdge: 'Residencial',
     sync: 'Sync',
     secondsShort: 'seg',
+    dayProgress: 'DÃ­a',
+    weatherLoading: 'Cargando clima',
+    weatherUnavailable: 'Clima no disponible',
+    cuenca: 'Cuenca',
     am: 'AM',
     pm: 'PM',
   };
 }
 
 export function formatWeekday(now: Date, locale: string, format: 'short' | 'long' = 'short'): string {
-  return new Intl.DateTimeFormat(locale, { weekday: format }).format(now);
+  return titleCase(new Intl.DateTimeFormat(locale, { weekday: format }).format(now));
 }
 
 export function formatMonth(now: Date, locale: string, format: 'short' | 'long' = 'short'): string {
-  return new Intl.DateTimeFormat(locale, { month: format }).format(now);
+  return titleCase(new Intl.DateTimeFormat(locale, { month: format }).format(now));
 }
 
 export function formatDateLine(now: Date, locale: string): string {
   const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
   const weekday = formatWeekday(now, locale, 'long');
-  const month = formatMonth(now, locale, 'short');
+  const month = formatMonth(now, locale, 'short').replace('.', '');
   const day = now.getDate();
   const year = now.getFullYear();
 
-  if (language === 'en') {
-    return `${weekday}, ${month} ${day}, ${year}`;
-  }
-
+  if (language === 'en') return `${weekday}, ${month} ${day}, ${year}`;
   return `${weekday}, ${day} ${month} ${year}`;
 }
 
@@ -94,5 +105,37 @@ export function getDayProgress(now: Date): number {
 
 export function titleCase(value: string): string {
   if (!value) return value;
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  return value.charAt(0).toLocaleUpperCase() + value.slice(1);
+}
+
+export function getHandAngles(now: Date) {
+  const seconds = now.getSeconds();
+  const minutes = now.getMinutes() + seconds / 60;
+  const hours = (now.getHours() % 12) + minutes / 60;
+
+  return {
+    second: seconds * 6,
+    minute: minutes * 6,
+    hour: hours * 30,
+  };
+}
+
+export function getWeatherDescription(code: number, locale: string): string {
+  const isEnglish = locale.toLowerCase().startsWith('en');
+
+  if (code === 0) return isEnglish ? 'Clear' : 'Despejado';
+  if ([1, 2].includes(code)) return isEnglish ? 'Partly cloudy' : 'Parcialmente nublado';
+  if (code === 3) return isEnglish ? 'Cloudy' : 'Nublado';
+  if ([45, 48].includes(code)) return isEnglish ? 'Fog' : 'Neblina';
+  if ([51, 53, 55, 56, 57].includes(code)) return isEnglish ? 'Drizzle' : 'Llovizna';
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return isEnglish ? 'Rain' : 'Lluvia';
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return isEnglish ? 'Snow' : 'Nieve';
+  if ([95, 96, 99].includes(code)) return isEnglish ? 'Storm' : 'Tormenta';
+  return isEnglish ? 'Weather' : 'Clima';
+}
+
+export function formatWeather(weather: ClockWeather | null, status: 'idle' | 'loading' | 'ready' | 'error', copy: ClockCopy): string {
+  if (status === 'loading' || status === 'idle') return copy.weatherLoading;
+  if (!weather || status === 'error') return copy.weatherUnavailable;
+  return `${weather.location} Â· ${Math.round(weather.temperature)}Â°C Â· ${weather.label}`;
 }
