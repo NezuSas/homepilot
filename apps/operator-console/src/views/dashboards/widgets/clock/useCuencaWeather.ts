@@ -50,7 +50,11 @@ async function fetchCuencaWeather(localeInput: string): Promise<ClockWeather> {
         label: getWeatherDescription(code, locale),
       };
 
-      weatherCache.set(locale, { weather, cachedAt: Date.now() });
+      weatherCache.set(locale, {
+        weather,
+        cachedAt: Date.now(),
+      });
+
       return weather;
     })
     .finally(() => {

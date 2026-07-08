@@ -56,7 +56,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const iconInputRef = useRef<HTMLInputElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // Local string states for dimension inputs Ã¢â‚¬â€ allow empty/in-progress typing
+  // Local string states for dimension inputs - allow empty/in-progress typing
   const [localW, setLocalW] = useState('');
   const [localH, setLocalH] = useState('');
 
@@ -166,9 +166,9 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
   const quickSizeLabel = isEnglish
     ? (isClock ? 'Clock size' : 'Quick size')
-    : (isClock ? 'Tamaño de reloj' : 'Tamaño rápido');
+    : (isClock ? 'TamaÃ±o de reloj' : 'TamaÃ±o rÃ¡pido');
 
-  const clockDesignLabel = isEnglish ? 'Clock design' : 'Diseño de reloj';
+  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃ±o de reloj';
 
   const boundDevice = safeWidget.type === 'device_control' ? devices.find(d => d.id === binding.entityId) : null;
   const isCamera   = boundDevice ? (boundDevice.type === 'camera' || boundDevice.semanticType === 'camera') : false;
@@ -212,10 +212,10 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {/* Title */}
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
-              {isSection ? 'TÃƒÂ­tulo de secciÃƒÂ³n' : t('dashboards.inspector.custom_title_placeholder')}
+              {isSection ? 'T\u00edtulo de secci\u00f3n' : t('dashboards.inspector.custom_title_placeholder')}
             </label>
             <input
-              placeholder={isSection ? 'Mi SecciÃƒÂ³n' : t('dashboards.inspector.custom_title_placeholder')}
+              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
               value={appearance.title || ''}
               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
@@ -242,7 +242,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                         )}
                       >
                         <span className="text-[10px] font-black uppercase">{preset.label}</span>
-                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}Ãƒâ€”{preset.h}</span>
+                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}\u00d7{preset.h}</span>
                       </button>
                     );
                   })}
@@ -456,7 +456,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
         variant="danger"
       />
 
-      {/* Icon suggestions portal Ã¢â‚¬â€ renders outside overflow-hidden containers */}
+      {/* Icon suggestions portal - renders outside overflow-hidden containers */}
       {showIconField && dropdownPos && matchingIcons.length > 0 && createPortal(
         <div
           style={{

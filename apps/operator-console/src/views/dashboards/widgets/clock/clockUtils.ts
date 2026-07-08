@@ -12,29 +12,28 @@ export function getPeriod(hour: number, copy: ClockCopy): string {
   return hour < 12 ? copy.am : copy.pm;
 }
 
+export function normalizeLocale(locale: string): string {
+  const normalized = (locale || '').toLowerCase();
+  if (normalized.startsWith('en')) return 'en-US';
+  if (normalized.startsWith('es')) return 'es-EC';
+  return locale || 'es-EC';
+}
+
 export function getClockLocale(): string {
-  if (typeof document !== 'undefined') {
-    const htmlLang = document.documentElement.lang;
-    if (htmlLang) return normalizeLocale(htmlLang);
+  if (typeof document !== 'undefined' && document.documentElement.lang) {
+    return normalizeLocale(document.documentElement.lang);
   }
 
   if (typeof navigator !== 'undefined') {
-    const navLang = navigator.language || navigator.languages?.[0];
-    if (navLang) return normalizeLocale(navLang);
+    const language = navigator.language || navigator.languages?.[0];
+    if (language) return normalizeLocale(language);
   }
 
   return 'es-EC';
 }
 
-export function normalizeLocale(locale: string): string {
-  const normalized = locale.toLowerCase();
-  if (normalized.startsWith('en')) return 'en-US';
-  if (normalized.startsWith('es')) return 'es-EC';
-  return locale;
-}
-
 export function getClockCopy(locale: string): ClockCopy {
-  const isEnglish = locale.toLowerCase().startsWith('en');
+  const isEnglish = normalizeLocale(locale).toLowerCase().startsWith('en');
 
   if (isEnglish) {
     return {
@@ -75,18 +74,24 @@ export function getClockCopy(locale: string): ClockCopy {
   };
 }
 
+export function titleCase(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toLocaleUpperCase() + value.slice(1);
+}
+
 export function formatWeekday(now: Date, locale: string, format: 'short' | 'long' = 'short'): string {
-  return titleCase(new Intl.DateTimeFormat(locale, { weekday: format }).format(now));
+  return titleCase(new Intl.DateTimeFormat(normalizeLocale(locale), { weekday: format }).format(now));
 }
 
 export function formatMonth(now: Date, locale: string, format: 'short' | 'long' = 'short'): string {
-  return titleCase(new Intl.DateTimeFormat(locale, { month: format }).format(now));
+  return titleCase(new Intl.DateTimeFormat(normalizeLocale(locale), { month: format }).format(now));
 }
 
 export function formatDateLine(now: Date, locale: string): string {
-  const isEnglish = locale.toLowerCase().startsWith('en');
-  const weekday = formatWeekday(now, locale, 'long');
-  const month = formatMonth(now, locale, 'short').replace('.', '');
+  const normalized = normalizeLocale(locale);
+  const isEnglish = normalized.toLowerCase().startsWith('en');
+  const weekday = formatWeekday(now, normalized, 'long');
+  const month = formatMonth(now, normalized, 'short').replace('.', '');
   const day = now.getDate();
   const year = now.getFullYear();
 
@@ -95,8 +100,9 @@ export function formatDateLine(now: Date, locale: string): string {
 }
 
 export function formatCompactDate(now: Date, locale: string): string {
-  const isEnglish = locale.toLowerCase().startsWith('en');
-  const month = formatMonth(now, locale, 'short').replace('.', '').toUpperCase();
+  const normalized = normalizeLocale(locale);
+  const isEnglish = normalized.toLowerCase().startsWith('en');
+  const month = formatMonth(now, normalized, 'short').replace('.', '').toUpperCase();
   const day = now.getDate();
 
   if (isEnglish) return `${month} ${day}`;
@@ -112,11 +118,6 @@ export function getDayProgress(now: Date): number {
   return Math.round((seconds / 86400) * 100);
 }
 
-export function titleCase(value: string): string {
-  if (!value) return value;
-  return value.charAt(0).toLocaleUpperCase() + value.slice(1);
-}
-
 export function getHandAngles(now: Date) {
   const seconds = now.getSeconds();
   const minutes = now.getMinutes() + seconds / 60;
@@ -130,7 +131,7 @@ export function getHandAngles(now: Date) {
 }
 
 export function getWeatherDescription(code: number, locale: string): string {
-  const isEnglish = locale.toLowerCase().startsWith('en');
+  const isEnglish = normalizeLocale(locale).toLowerCase().startsWith('en');
 
   if (code === 0) return isEnglish ? 'Clear' : 'Despejado';
   if ([1, 2].includes(code)) return isEnglish ? 'Partly cloudy' : 'Parcialmente nublado';
@@ -144,16 +145,22 @@ export function getWeatherDescription(code: number, locale: string): string {
   return isEnglish ? 'Weather' : 'Clima';
 }
 
+export function formatTemperature(value: number): string {
+  return `${Math.round(value)}\u00b0C`;
+}
+
 export function formatWeather(
   weather: ClockWeather | null,
   status: 'idle' | 'loading' | 'ready' | 'error',
   copy: ClockCopy,
-  compact = false,
+  mode: 'full' | 'compact' | 'temp' = 'full',
 ): string {
   if (status === 'loading' || status === 'idle') return copy.weatherLoading;
   if (!weather || status === 'error') return copy.weatherUnavailable;
 
-  const temp = `${Math.round(weather.temperature)}\u00b0C`;
-  if (compact) return `${weather.location} ${temp}`;
+  const temp = formatTemperature(weather.temperature);
+
+  if (mode === 'temp') return `${weather.location} ${temp}`;
+  if (mode === 'compact') return `${weather.location} \u2022 ${temp}`;
   return `${weather.location} \u2022 ${weather.label} \u2022 ${temp}`;
 }

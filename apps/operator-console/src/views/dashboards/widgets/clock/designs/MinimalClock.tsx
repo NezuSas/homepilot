@@ -11,21 +11,26 @@ export function MinimalClock({ now, locale, copy, weather, weatherStatus }: Cloc
   const dateLine = formatDateLine(now, locale);
 
   return (
-    <ClockShell>
-      <div className="flex h-full min-w-0 flex-col justify-between gap-[clamp(0.7rem,2cqi,1.2rem)] p-[clamp(0.9rem,2.5cqi,1.5rem)]">
-        <div className="flex min-w-0 items-start justify-between gap-4">
-          <ClockLabel label={copy.localTime} subtle={dateLine} />
-          <div className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[clamp(0.5rem,1.2cqi,0.65rem)] font-black uppercase tracking-[0.16em] text-primary">
+    <ClockShell className="p-[clamp(1rem,3.2cqi,1.75rem)]">
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <ClockLabel>{copy.localTime}</ClockLabel>
+            <div className="mt-2 truncate text-[clamp(0.54rem,1.35cqi,0.75rem)] font-semibold text-muted-foreground">
+              {dateLine}
+            </div>
+          </div>
+          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-[clamp(0.48rem,1.2cqi,0.68rem)] font-black uppercase tracking-[0.18em] text-primary">
             {seconds} {copy.secondsShort}
           </div>
         </div>
 
-        <div className="flex flex-1 min-w-0 items-center justify-center">
+        <div className="grid min-h-0 flex-1 place-items-center py-[clamp(0.6rem,2.4cqi,1.2rem)]">
           <ResponsiveTime hours={hours} minutes={minutes} blink={blink} />
         </div>
 
-        <div className="grid min-w-0 gap-2">
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} />
+        <div className="space-y-2">
+          <WeatherPill weather={weather} status={weatherStatus} copy={copy} mode="full" />
           <ClockProgress value={dayProgress} label={copy.dayProgress} />
         </div>
       </div>
