@@ -1,6 +1,6 @@
 ﻿import type { ClockDesignProps } from '../clockTypes';
 import { formatDateLine, getMinuteProgress, getPeriod, pad, to12Hour } from '../clockUtils';
-import { ClockLabel, ClockProgress, ClockShell, ResponsiveTime, WeatherPill } from './ClockShared';
+import { AccentDot, ClockProgress, ClockShell, ResponsiveTime, WeatherPill } from './ClockShared';
 
 export function DigitalClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const hours = pad(to12Hour(now.getHours()));
@@ -12,32 +12,36 @@ export function DigitalClock({ now, locale, copy, weather, weatherStatus }: Cloc
   const dateLine = formatDateLine(now, locale);
 
   return (
-    <ClockShell>
-      <div className="flex h-full min-w-0 flex-col justify-between gap-[clamp(0.7rem,2cqi,1rem)] p-[clamp(0.9rem,3cqi,1.5rem)]">
-        <div className="flex min-w-0 items-start justify-between gap-3">
+    <ClockShell className="text-foreground">
+      <div className="grid h-full min-w-0 grid-rows-[auto_1fr_auto] gap-[clamp(0.65rem,2.4cqi,1.15rem)] p-[clamp(0.85rem,3cqi,1.35rem)]">
+        <header className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <ClockLabel>{copy.digitalPro}</ClockLabel>
-            <div className="mt-2 truncate text-[clamp(0.58rem,1.45cqi,0.8rem)] font-semibold text-muted-foreground">{dateLine}</div>
-          </div>
-          <div className="grid h-[clamp(2.4rem,9cqi,3.5rem)] w-[clamp(2.4rem,9cqi,3.5rem)] place-items-center rounded-full border border-border/50 bg-background/35 text-center shadow-inner">
-            <div className="leading-none">
-              <div className="text-[clamp(0.8rem,2.7cqi,1.2rem)] font-black tabular-nums">{seconds}</div>
-              <div className="mt-0.5 text-[clamp(0.42rem,1.1cqi,0.55rem)] font-black uppercase tracking-[0.15em] text-primary">{copy.secondsShort}</div>
+            <div className="flex min-w-0 items-center gap-2 text-[clamp(0.52rem,1.5cqi,0.72rem)] font-black uppercase tracking-[0.34em] text-primary">
+              <AccentDot />
+              <span className="truncate">{copy.digitalPro}</span>
             </div>
+            <p className="mt-1 truncate text-[clamp(0.5rem,1.35cqi,0.7rem)] font-semibold text-muted-foreground">{dateLine}</p>
           </div>
-        </div>
-
-        <div className="mx-auto flex w-full max-w-[min(82%,28rem)] items-center justify-center rounded-[2rem] border border-border/50 bg-background/35 px-[clamp(0.8rem,3cqi,1.6rem)] py-[clamp(0.6rem,2.8cqi,1.2rem)] shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05),0_20px_60px_rgb(0_0_0/0.18)]">
-          <ResponsiveTime hours={hours} minutes={minutes} period={period} blink={blink} compact />
-        </div>
-
-        <div className="grid min-w-0 gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact className="flex-1" />
-            <span className="shrink-0 text-[clamp(0.5rem,1.35cqi,0.68rem)] font-black uppercase tracking-[0.18em] text-primary">{copy.sync} {progress}%</span>
+          <div className="flex h-[clamp(2.4rem,7cqi,3.4rem)] w-[clamp(2.4rem,7cqi,3.4rem)] shrink-0 flex-col items-center justify-center rounded-full border border-border/65 bg-card/55 text-[clamp(0.5rem,1.3cqi,0.72rem)] font-black uppercase leading-none text-foreground">
+            <span>{seconds}</span>
+            <span className="mt-0.5 text-[0.68em] text-primary">{copy.secondsShort}</span>
           </div>
-          <ClockProgress value={progress} />
-        </div>
+        </header>
+
+        <main className="flex min-h-0 items-center justify-center">
+          <div className="min-w-0 rounded-[clamp(1rem,4cqi,2rem)] border border-border/60 bg-background/35 px-[clamp(1rem,5cqi,2.2rem)] py-[clamp(0.55rem,2.4cqi,1rem)] shadow-2xl shadow-black/20">
+            <ResponsiveTime hours={hours} minutes={minutes} period={period} blink={blink} compact />
+          </div>
+        </main>
+
+        <footer className="grid min-w-0 grid-cols-[1fr_auto] items-end gap-3 max-[420px]:grid-cols-1">
+          <div className="min-w-0">
+            <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact />
+          </div>
+          <div className="min-w-[clamp(5rem,18cqi,8rem)] max-[420px]:min-w-0">
+            <ClockProgress value={progress} label={copy.sync} />
+          </div>
+        </footer>
       </div>
     </ClockShell>
   );
