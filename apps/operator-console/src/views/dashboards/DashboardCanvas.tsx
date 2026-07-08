@@ -434,7 +434,7 @@ export function DashboardCanvas({
       <div 
         ref={containerRef}
         className={cn(
-          "relative w-full grid gap-3 transition-all duration-500 sm:gap-4",
+          "relative w-full grid gap-2.5 transition-all duration-500 sm:gap-3 lg:gap-4",
           isEditing
             ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] shadow-2xl shadow-primary/5"
             : "border-transparent bg-transparent p-0"
@@ -455,7 +455,7 @@ export function DashboardCanvas({
               opacity: activeWidget?.id === widget.id ? 0.3 : 1,
             }}
             className={cn(
-              "min-w-0 min-h-0 select-none transition-all duration-300 relative rounded-[1.75rem] sm:rounded-[2.5rem]",
+              "min-w-0 min-h-0 select-none transition-all duration-300 relative rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.5rem]",
               canEditLayout && "cursor-grab active:cursor-grabbing hover:z-10",
               selectedWidgetId === widget.id && isEditing && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(var(--primary),0.3)]"
             )}
@@ -525,7 +525,7 @@ export function DashboardCanvas({
               </div>
             ) : (
               <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 group-hover/placeholder:text-primary transition-colors">
-                + Nueva SecciÃ³n
+                + Nueva SecciÃƒÆ’Ã‚Â³n
               </span>
             )}
           </button>

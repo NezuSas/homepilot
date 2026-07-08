@@ -61,7 +61,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
 
   return (
     <div className={cn(
-      "relative h-full w-full min-h-0 flex flex-col p-4 @md:p-6 @lg:p-7 transition-all duration-700",
+      "relative h-full w-full min-h-0 flex flex-col p-4 @md:p-6 @lg:p-7 transition-all duration-700 overflow-hidden",
       onCount > 0 && "bg-gradient-to-br from-primary/[0.04] via-transparent to-transparent"
     )}>
       <div className="flex items-center justify-between mb-3 @md:mb-6">
