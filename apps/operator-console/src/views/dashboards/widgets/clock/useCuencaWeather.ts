@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type { ClockWeather } from './clockTypes';
 import { getWeatherDescription, normalizeLocale } from './clockUtils';
 
@@ -50,11 +50,7 @@ async function fetchCuencaWeather(localeInput: string): Promise<ClockWeather> {
         label: getWeatherDescription(code, locale),
       };
 
-      weatherCache.set(locale, {
-        weather,
-        cachedAt: Date.now(),
-      });
-
+      weatherCache.set(locale, { weather, cachedAt: Date.now() });
       return weather;
     })
     .finally(() => {
@@ -66,17 +62,18 @@ async function fetchCuencaWeather(localeInput: string): Promise<ClockWeather> {
 }
 
 export function useCuencaWeather(localeInput: string) {
-  const locale = normalizeLocale(localeInput || 'es-EC');
-  const cached = weatherCache.get(locale)?.weather;
+  const locale = useMemo(() => normalizeLocale(localeInput || 'es-EC'), [localeInput]);
+  const cached = weatherCache.get(locale)?.weather ?? null;
 
-  const [weather, setWeather] = useState<ClockWeather | null>(cached ?? null);
+  const [weather, setWeather] = useState<ClockWeather | null>(cached);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(cached ? 'ready' : 'idle');
 
   useEffect(() => {
     let cancelled = false;
 
     const loadWeather = () => {
-      const currentCached = weatherCache.get(locale)?.weather;
+      const currentCached = weatherCache.get(locale)?.weather ?? null;
+      if (currentCached) setWeather(currentCached);
       setStatus(currentCached ? 'ready' : 'loading');
 
       fetchCuencaWeather(locale)
@@ -93,7 +90,6 @@ export function useCuencaWeather(localeInput: string) {
     };
 
     loadWeather();
-
     const timer = window.setInterval(loadWeather, WEATHER_CACHE_MS);
 
     return () => {
