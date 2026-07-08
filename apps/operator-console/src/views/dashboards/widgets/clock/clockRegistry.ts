@@ -1,4 +1,4 @@
-﻿import type { ComponentType } from 'react';
+import type { ComponentType } from 'react';
 import { DigitalClock, ElegantClock, MinimalClock } from './designs';
 import type { ClockDesignProps, ClockStyle, ClockStyleOption } from './clockTypes';
 
@@ -8,7 +8,7 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
   { value: 'elegant', label: 'Elegante' },
 ];
 
-export const CLOCK_DESIGNS: Record<ClockStyle, ComponentType<ClockDesignProps>> = {
+export const CLOCK_DESIGN_COMPONENTS: Record<ClockStyle, ComponentType<ClockDesignProps>> = {
   minimal: MinimalClock,
   digital: DigitalClock,
   elegant: ElegantClock,

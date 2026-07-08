@@ -1,3 +1,3 @@
-﻿export { ClockWidget } from './ClockWidget';
-export { CLOCK_STYLES } from './clockRegistry';
-export type { ClockDesignProps, ClockStyle, ClockStyleOption, ClockWidgetProps } from './clockTypes';
+export { ClockWidget } from './ClockWidget';
+export { CLOCK_STYLES, CLOCK_DESIGN_COMPONENTS } from './clockRegistry';
+export type { ClockCopy, ClockDesignProps, ClockStyle, ClockStyleOption } from './clockTypes';
