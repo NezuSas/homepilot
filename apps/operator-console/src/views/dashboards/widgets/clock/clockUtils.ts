@@ -1,4 +1,4 @@
-import type { ClockCopy, ClockWeather } from './clockTypes';
+﻿import type { ClockCopy, ClockWeather } from './clockTypes';
 
 export function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -44,7 +44,7 @@ export function getClockCopy(locale: string): ClockCopy {
       analogClassic: 'Analog classic',
       analogOrbit: 'Analog orbit',
       analogMinimal: 'Analog minimal',
-      residentialEdge: 'Residential edge',
+      residentialEdge: 'Residential',
       sync: 'Sync',
       secondsShort: 'sec',
       dayProgress: 'Day',
@@ -94,6 +94,12 @@ export function formatDateLine(now: Date, locale: string): string {
   return `${weekday}, ${day} ${month} ${year}`;
 }
 
+export function formatCompactDate(now: Date, locale: string): string {
+  const day = now.getDate();
+  const month = formatMonth(now, locale, 'short').replace('.', '');
+  return `${month} ${day}`;
+}
+
 export function getMinuteProgress(now: Date): number {
   return Math.round(((now.getSeconds() + 1) / 60) * 100);
 }
@@ -122,7 +128,6 @@ export function getHandAngles(now: Date) {
 
 export function getWeatherDescription(code: number, locale: string): string {
   const isEnglish = locale.toLowerCase().startsWith('en');
-
   if (code === 0) return isEnglish ? 'Clear' : 'Despejado';
   if ([1, 2].includes(code)) return isEnglish ? 'Partly cloudy' : 'Parcialmente nublado';
   if (code === 3) return isEnglish ? 'Cloudy' : 'Nublado';
@@ -134,7 +139,11 @@ export function getWeatherDescription(code: number, locale: string): string {
   return isEnglish ? 'Weather' : 'Clima';
 }
 
-export function formatWeather(weather: ClockWeather | null, status: 'idle' | 'loading' | 'ready' | 'error', copy: ClockCopy): string {
+export function formatWeather(
+  weather: ClockWeather | null,
+  status: 'idle' | 'loading' | 'ready' | 'error',
+  copy: ClockCopy,
+): string {
   if (status === 'loading' || status === 'idle') return copy.weatherLoading;
   if (!weather || status === 'error') return copy.weatherUnavailable;
   return `${weather.location} Â· ${Math.round(weather.temperature)}Â°C Â· ${weather.label}`;

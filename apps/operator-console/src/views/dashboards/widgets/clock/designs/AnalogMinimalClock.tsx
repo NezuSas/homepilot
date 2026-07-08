@@ -1,42 +1,31 @@
-import type { ClockDesignProps } from '../clockTypes';
-import { formatMonth, getHandAngles, pad } from '../clockUtils';
-import { ClockShell, WeatherPill } from './ClockShared';
-
-function Hand({ angle, className }: { angle: number; className: string }) {
-  return <div className={className} style={{ transform: `translateX(-50%) rotate(${angle}deg)`, transformOrigin: '50% 100%' }} />;
-}
+﻿import type { ClockDesignProps } from '../clockTypes';
+import { formatCompactDate, getHandAngles, pad } from '../clockUtils';
+import { AnalogDial, ClockShell, WeatherPill } from './ClockShared';
 
 export function AnalogMinimalClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const angles = getHandAngles(now);
-  const month = formatMonth(now, locale, 'short').replace('.', '');
-  const day = now.getDate();
+  const compactDate = formatCompactDate(now, locale);
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   return (
     <ClockShell>
-      <div className="relative z-10 flex h-full w-full select-none flex-col items-center justify-between p-4 text-center">
-        <div className="flex w-full items-center justify-between gap-3">
-          <div className="text-left text-[clamp(0.52rem,1.55cqi,0.7rem)] font-black uppercase tracking-[0.3em] text-primary">{copy.analogMinimal}</div>
-          <div className="rounded-full border border-border/50 bg-background/55 px-2.5 py-1 text-[clamp(0.48rem,1.4cqi,0.62rem)] font-black uppercase tracking-[0.18em] text-muted-foreground backdrop-blur-xl">
-            {month} {day}
-          </div>
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0 truncate text-[clamp(0.55rem,3cqi,0.72rem)] font-black uppercase tracking-[0.36em] text-primary">
+          {copy.analogMinimal}
         </div>
-
-        <div className="relative aspect-square h-[58%] min-h-[7rem] rounded-full border border-border/60 bg-background/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.20)] backdrop-blur-xl dark:bg-black/15">
-          <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[0.62rem] font-black text-muted-foreground/60">12</span>
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[0.62rem] font-black text-muted-foreground/60">6</span>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.62rem] font-black text-muted-foreground/60">3</span>
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[0.62rem] font-black text-muted-foreground/60">9</span>
-          <Hand angle={angles.hour} className="absolute left-1/2 top-[25%] h-[25%] w-1.5 rounded-full bg-foreground" />
-          <Hand angle={angles.minute} className="absolute left-1/2 top-[15%] h-[35%] w-1 rounded-full bg-foreground/75" />
-          <Hand angle={angles.second} className="absolute left-1/2 top-[11%] h-[39%] w-0.5 rounded-full bg-primary" />
-          <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-4 ring-background" />
-        </div>
-
-        <div className="w-full space-y-2">
-          <div className="text-[clamp(1.45rem,6cqi,3.4rem)] font-black leading-none tracking-[-0.06em] text-foreground">{pad(now.getHours())}:{pad(now.getMinutes())}</div>
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact />
+        <div className="shrink-0 rounded-full border border-border/60 bg-background/45 px-[0.75em] py-[0.36em] text-[clamp(0.48rem,2.8cqi,0.64rem)] font-black uppercase tracking-[0.16em] text-muted-foreground">
+          {compactDate}
         </div>
       </div>
+
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[clamp(0.25rem,2cqi,0.45rem)] py-[clamp(0.05rem,1.5cqi,0.35rem)]">
+        <AnalogDial hourAngle={angles.hour} minuteAngle={angles.minute} secondAngle={angles.second} minimal />
+        <div className="text-center text-[clamp(1.4rem,13cqi,2.9rem)] font-black leading-none tracking-[-0.08em] text-foreground tabular-nums">
+          {time}
+        </div>
+      </div>
+
+      <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact />
     </ClockShell>
   );
 }

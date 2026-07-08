@@ -1,6 +1,6 @@
-export { MinimalClock } from './MinimalClock';
+﻿export { AnalogClassicClock } from './AnalogClassicClock';
+export { AnalogMinimalClock } from './AnalogMinimalClock';
+export { AnalogOrbitClock } from './AnalogOrbitClock';
 export { DigitalClock } from './DigitalClock';
 export { ElegantClock } from './ElegantClock';
-export { AnalogClassicClock } from './AnalogClassicClock';
-export { AnalogOrbitClock } from './AnalogOrbitClock';
-export { AnalogMinimalClock } from './AnalogMinimalClock';
+export { MinimalClock } from './MinimalClock';

@@ -1,4 +1,4 @@
-import type { DashboardWidgetConfig } from '../../types';
+﻿import type { DashboardWidgetConfig } from '../../types';
 
 export type ClockStyle =
   | 'minimal'

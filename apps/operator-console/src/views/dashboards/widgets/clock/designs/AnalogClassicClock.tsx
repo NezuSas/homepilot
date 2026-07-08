@@ -1,10 +1,6 @@
-import type { ClockDesignProps } from '../clockTypes';
+﻿import type { ClockDesignProps } from '../clockTypes';
 import { formatWeekday, getHandAngles, pad } from '../clockUtils';
-import { ClockShell, WeatherPill } from './ClockShared';
-
-function Hand({ angle, className }: { angle: number; className: string }) {
-  return <div className={className} style={{ transform: `translateX(-50%) rotate(${angle}deg)`, transformOrigin: '50% 100%' }} />;
-}
+import { AnalogDial, ClockShell, WeatherPill } from './ClockShared';
 
 export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const angles = getHandAngles(now);
@@ -13,29 +9,23 @@ export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }
 
   return (
     <ClockShell>
-      <div className="relative z-10 flex h-full w-full select-none items-center gap-4 p-4">
-        <div className="relative aspect-square h-[82%] min-h-[7rem] rounded-full border border-border/70 bg-background/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_22px_55px_rgba(0,0,0,0.16)] backdrop-blur-xl dark:bg-black/15">
-          {Array.from({ length: 12 }).map((_, index) => (
-            <span
-              key={index}
-              className="absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-muted-foreground/45"
-              style={{ transform: `translate(-50%, -50%) rotate(${index * 30}deg) translateY(-42%)` }}
-            />
-          ))}
-          <div className="absolute inset-[13%] rounded-full border border-border/40" />
-          <Hand angle={angles.hour} className="absolute left-1/2 top-[23%] h-[27%] w-1.5 rounded-full bg-foreground" />
-          <Hand angle={angles.minute} className="absolute left-1/2 top-[15%] h-[35%] w-1 rounded-full bg-foreground/80" />
-          <Hand angle={angles.second} className="absolute left-1/2 top-[12%] h-[38%] w-0.5 rounded-full bg-primary" />
-          <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-background bg-primary shadow-[0_0_18px_hsl(var(--primary)/0.45)]" />
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-[clamp(0.4rem,3cqi,0.8rem)] @[230px]:flex-row @[230px]:items-center @[230px]:justify-between">
+        <div className="flex min-h-0 shrink-0 items-center justify-center">
+          <AnalogDial hourAngle={angles.hour} minuteAngle={angles.minute} secondAngle={angles.second} />
         </div>
-
-        <div className="min-w-0 flex-1 space-y-3">
-          <div>
-            <div className="text-[clamp(0.52rem,1.55cqi,0.7rem)] font-black uppercase tracking-[0.28em] text-primary">{copy.analogClassic}</div>
-            <div className="mt-1 text-[clamp(0.58rem,1.65cqi,0.74rem)] font-bold capitalize text-muted-foreground">{weekday}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-between gap-[clamp(0.35rem,2cqi,0.65rem)] text-center @[230px]:text-left">
+          <div className="min-w-0">
+            <div className="truncate text-[clamp(0.55rem,3cqi,0.72rem)] font-black uppercase tracking-[0.36em] text-primary">
+              {copy.analogClassic}
+            </div>
+            <div className="mt-1 truncate text-[clamp(0.58rem,3.2cqi,0.78rem)] font-semibold text-muted-foreground">
+              {weekday}
+            </div>
           </div>
-          <div className="text-[clamp(1.8rem,8cqi,4.8rem)] font-black leading-none tracking-[-0.07em] text-foreground">{time}</div>
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} />
+          <div className="text-[clamp(1.45rem,14cqi,3rem)] font-black leading-none tracking-[-0.08em] text-foreground tabular-nums">
+            {time}
+          </div>
+          <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact />
         </div>
       </div>
     </ClockShell>

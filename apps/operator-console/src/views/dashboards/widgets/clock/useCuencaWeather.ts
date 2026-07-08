@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import type { ClockWeather } from './clockTypes';
 import { getWeatherDescription } from './clockUtils';
 
@@ -37,6 +37,7 @@ async function fetchCuencaWeather(locale: string): Promise<ClockWeather> {
         location: 'Cuenca',
         label: getWeatherDescription(code, locale),
       };
+
       cachedWeather = weather;
       cachedAt = Date.now();
       return weather;
@@ -49,7 +50,7 @@ async function fetchCuencaWeather(locale: string): Promise<ClockWeather> {
 }
 
 export function useCuencaWeather(locale: string) {
-  const [weather, setWeather] = useState<ClockWeather | null>(cachedWeather);
+  const [weather, setWeather] = useState(cachedWeather);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(cachedWeather ? 'ready' : 'idle');
 
   useEffect(() => {
