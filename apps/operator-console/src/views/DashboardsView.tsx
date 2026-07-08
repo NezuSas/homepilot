@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -49,6 +49,44 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+
+  const currentUser = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('hp_user_ctx');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const isOwner = Boolean(active && currentUser && active.ownerId === currentUser.id);
+
+  const visibleTabs = useMemo(() => {
+    if (!active) return [];
+    if (!currentUser) return active.tabs;
+    return active.tabs.filter(tab => {
+      const usersList = tab.visibility?.users;
+      if (!usersList || usersList.length === 0) {
+        return true;
+      }
+      return usersList.includes(currentUser.id);
+    });
+  }, [active, currentUser]);
+
+  // Adjust activeTabIdx if the currently selected tab is not visible
+  useEffect(() => {
+    if (!active || visibleTabs.length === 0) return;
+    const currentActiveTab = active.tabs[activeTabIdx];
+    if (!currentActiveTab) {
+      setActiveTabIdx(0);
+      return;
+    }
+    const isStillVisible = visibleTabs.some(t => t.id === currentActiveTab.id);
+    if (!isStillVisible) {
+      const firstVisibleIdx = active.tabs.findIndex(t => t.id === visibleTabs[0].id);
+      setActiveTabIdx(firstVisibleIdx >= 0 ? firstVisibleIdx : 0);
+    }
+  }, [active, visibleTabs, activeTabIdx]);
 
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
@@ -327,7 +365,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
           {/* Dashboard Area */}
           {active && (
             <div className="flex min-w-0 flex-col">
-              {isEditing && (
+              {isEditing && isOwner && (
                 <DashboardTitleBar
                   title={active.title}
                   draftTitle={draftTitle}
@@ -357,30 +395,40 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
               )}
 
               <DashboardTabsNav
-                tabs={active.tabs}
-                activeTabIdx={activeTabIdx}
-                isEditing={isEditing}
+                tabs={visibleTabs}
+                activeTabIdx={visibleTabs.findIndex(t => t.id === activeTab?.id)}
+                isEditing={isEditing && isOwner}
                 isAddingTab={addingTab}
                 placeholder={t('dashboards.placeholder_tab_title')}
                 addLabel={t('dashboards.action_add_tab')}
                 configureLabel={t('dashboards.view_config.configure_view')}
                 onSelectTab={(index) => {
-                  setActiveTabIdx(index);
+                  const targetTab = visibleTabs[index];
+                  if (targetTab) {
+                    const originalIdx = active.tabs.findIndex(t => t.id === targetTab.id);
+                    setActiveTabIdx(originalIdx >= 0 ? originalIdx : 0);
+                  }
                   setSelectedWidgetId(null);
                   setIsInspectorOpen(false);
                 }}
-                onConfigureTab={setTabConfigIdx}
-                onStartAddingTab={() => setAddingTab(true)}
+                onConfigureTab={(index) => {
+                  const targetTab = visibleTabs[index];
+                  if (targetTab) {
+                    const originalIdx = active.tabs.findIndex(t => t.id === targetTab.id);
+                    setTabConfigIdx(originalIdx >= 0 ? originalIdx : 0);
+                  }
+                }}
+                onStartAddingTab={isOwner ? () => setAddingTab(true) : undefined}
                 onAddTab={handleAddTab}
                 onCancelAddingTab={() => setAddingTab(false)}
-                onToggleEditing={() => setIsEditing(!isEditing)}
+                onToggleEditing={isOwner ? () => setIsEditing(!isEditing) : undefined}
                 editLabel={t('dashboards.action_edit')}
               />
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className={cn("relative flex flex-col gap-4 w-full", isEditing ? "p-3 sm:p-4" : "px-4 sm:px-6 md:px-8 py-3 sm:py-4")}>
-                   {isEditing && (
+                <div className={cn("relative flex flex-col gap-4 w-full", (isEditing && isOwner) ? "p-3 sm:p-4" : "px-4 sm:px-6 md:px-8 py-3 sm:py-4")}>
+                   {isEditing && isOwner && (
                      <DashboardEditorToolbar
                        isOpen={isCatalogModalOpen}
                        onClose={() => setIsCatalogModalOpen(false)}
@@ -391,28 +439,30 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
                      />
                    )}
 
-                   {activeTab.widgets.length === 0 && !isEditing ? (
+                   {activeTab.widgets.length === 0 && !(isEditing && isOwner) ? (
                      <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
                        <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>
                        <p className="mt-2 max-w-lg text-caption text-muted-foreground">{t('dashboards.widgets_empty_hint')}</p>
-                       <Button className="mt-5" onClick={() => setIsEditing(true)}>{t('dashboards.add_first_widget')}</Button>
+                       {isOwner && (
+                         <Button className="mt-5" onClick={() => setIsEditing(true)}>{t('dashboards.add_first_widget')}</Button>
+                       )}
                      </div>
                    ) : (
                    <DashboardCanvas
                       widgets={activeTab.widgets}
-                      isEditing={isEditing}
+                      isEditing={isEditing && isOwner}
                       selectedWidgetId={selectedWidgetId}
                       onWidgetClick={(id) => { 
                         const widget = activeTab?.widgets.find(w => w.id === id);
                         const isUnconfigured = !widget?.config.binding.entityId;
-                        if (!isEditing && !isUnconfigured) return;
+                        if (!(isEditing && isOwner) && !isUnconfigured) return;
+                        if (!isOwner) return;
                         if (!isEditing) setIsEditing(true);
                         setSelectedWidgetId(id); 
                         setIsInspectorOpen(true); 
                       }}
                       onLayoutChange={handleLayoutChange}
                       onAddCardClick={() => {
-                         // We could use x, y for placement, but for now we just open catalog
                          setIsCatalogModalOpen(true);
                       }}
                       onAddSectionClick={() => {
@@ -434,7 +484,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       {/* Inspector Sidebar Overlay */}
       <WidgetInspector
         widget={activeTab?.widgets.find(w => w.id === selectedWidgetId) || null}
-        isOpen={isInspectorOpen && isEditing}
+        isOpen={isInspectorOpen && isEditing && isOwner}
         onClose={() => setIsInspectorOpen(false)}
         onUpdate={handleUpdateWidgetConfig}
         onRemove={handleRemoveWidget}

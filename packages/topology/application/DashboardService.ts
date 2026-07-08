@@ -40,7 +40,7 @@ export class DashboardService {
     const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
     if (!dashboard) throw new Error('DASHBOARD_NOT_FOUND');
 
-    if (dashboard.ownerId !== userId && userRole !== 'admin') {
+    if (dashboard.ownerId !== userId) {
       throw new Error('FORBIDDEN');
     }
 
@@ -57,7 +57,7 @@ export class DashboardService {
     const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
     if (!dashboard) return;
 
-    if (dashboard.ownerId !== userId && userRole !== 'admin') {
+    if (dashboard.ownerId !== userId) {
       throw new Error('FORBIDDEN');
     }
 

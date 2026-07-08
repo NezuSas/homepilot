@@ -56,6 +56,11 @@ export class MediaService {
     const buffer = Buffer.from(base64Data, 'base64');
 
     const tabDir = path.join(this.baseMediaDir, 'dashboards', dashboardId, tabId);
+    
+    // Clean old files/folder first to prevent mixed extensions (e.g. background.png and background.jpg) from piling up
+    try {
+      await fs.rm(tabDir, { recursive: true, force: true });
+    } catch {}
     await fs.mkdir(tabDir, { recursive: true });
 
     // Save with the file extension
@@ -75,6 +80,16 @@ export class MediaService {
     const tabDir = path.join(this.baseMediaDir, 'dashboards', dashboardId, tabId);
     try {
       await fs.rm(tabDir, { recursive: true, force: true });
+    } catch {}
+  }
+
+  /**
+   * Deletes all backgrounds for a given dashboard when the dashboard is deleted.
+   */
+  public async deleteDashboardBackgrounds(dashboardId: string): Promise<void> {
+    const dashboardDir = path.join(this.baseMediaDir, 'dashboards', dashboardId);
+    try {
+      await fs.rm(dashboardDir, { recursive: true, force: true });
     } catch {}
   }
 

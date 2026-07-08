@@ -13,7 +13,7 @@ interface DashboardTabsNavProps {
   configureLabel: string;
   onSelectTab: (index: number) => void;
   onConfigureTab: (index: number) => void;
-  onStartAddingTab: () => void;
+  onStartAddingTab?: () => void;
   onAddTab: (title: string) => void;
   onCancelAddingTab: () => void;
   onToggleEditing?: () => void;
@@ -105,7 +105,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
         {isAddingTab && (
           <InlineTabCreator placeholder={placeholder} onConfirm={onAddTab} onCancel={onCancelAddingTab} />
         )}
-        {!isAddingTab && (
+        {!isAddingTab && onStartAddingTab && (
           <button
             type="button"
             onClick={onStartAddingTab}

@@ -99,6 +99,26 @@ export class DashboardRoutes extends ApiRoutes {
         if (body.tabs) {
           const mediaService = new MediaService();
           const dashboardId = patchMatch[1];
+
+          // Clean up background files for deleted tabs
+          try {
+            const existing = await container.services.dashboardService.updateDashboard(
+              req.user!.id,
+              req.user!.role,
+              dashboardId,
+              {}
+            );
+            if (existing && existing.tabs) {
+              const incomingTabIds = new Set(body.tabs.map(t => t.id));
+              for (const oldTab of existing.tabs) {
+                if (!incomingTabIds.has(oldTab.id)) {
+                  await mediaService.deleteTabBackground(dashboardId, oldTab.id);
+                }
+              }
+            }
+          } catch {}
+
+          // Save new backgrounds
           for (const tab of body.tabs) {
             if (tab.background?.startsWith('data:image/')) {
               const savedPath = await mediaService.saveTabBackground(dashboardId, tab.id, tab.background);
@@ -127,7 +147,11 @@ export class DashboardRoutes extends ApiRoutes {
     const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)$/);
     if (deleteMatch) {
       try {
-        await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, deleteMatch[1]);
+        const dashboardId = deleteMatch[1];
+        const mediaService = new MediaService();
+        await mediaService.deleteDashboardBackgrounds(dashboardId);
+
+        await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, dashboardId);
         this.sendJson(res, { success: true });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to delete dashboard';
