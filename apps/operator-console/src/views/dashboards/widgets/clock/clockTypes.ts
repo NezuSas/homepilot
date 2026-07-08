@@ -1,4 +1,4 @@
-﻿import type { DashboardWidgetConfig } from '../../types';
+import type { DashboardWidgetConfig } from '../../types';
 
 export type ClockStyle =
   | 'minimal'
@@ -29,6 +29,10 @@ export interface ClockDesignProps {
 export interface ClockStyleOption {
   value: ClockStyle;
   label: string;
+  labelEs: string;
+  labelEn: string;
+  minW: number;
+  minH: number;
 }
 
 export interface ClockCopy {

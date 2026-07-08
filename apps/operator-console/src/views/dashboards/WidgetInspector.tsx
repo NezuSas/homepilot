@@ -10,7 +10,7 @@ import { SelectField } from '../../components/ui/SelectField';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { apiFetch } from '../../lib/apiClient';
 import { API_BASE_URL } from '../../config';
-import { CLOCK_STYLES } from './widgets/clock';
+import { CLOCK_STYLES, getClockStyleLabel } from './widgets/clock';
 import ConfirmModal from '../../components/ConfirmModal';
 import * as Icons from 'lucide-react';
 
@@ -33,7 +33,7 @@ const SIZE_PRESETS = [
 ] as const;
 
 export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }: WidgetInspectorProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { devices } = useDeviceSnapshotStore();
   const [scenes, setScenes] = useState<{ id: string; name: string }[]>([]);
   const [loadingScenes, setLoadingScenes] = useState(false);
@@ -56,7 +56,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const iconInputRef = useRef<HTMLInputElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // Local string states for dimension inputs â€” allow empty/in-progress typing
+  // Local string states for dimension inputs Ã¢â‚¬â€ allow empty/in-progress typing
   const [localW, setLocalW] = useState('');
   const [localH, setLocalH] = useState('');
 
@@ -195,10 +195,10 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {/* Title */}
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
-              {isSection ? 'TÃ­tulo de secciÃ³n' : t('dashboards.inspector.custom_title_placeholder')}
+              {isSection ? 'TÃƒÂ­tulo de secciÃƒÂ³n' : t('dashboards.inspector.custom_title_placeholder')}
             </label>
             <input
-              placeholder={isSection ? 'Mi SecciÃ³n' : t('dashboards.inspector.custom_title_placeholder')}
+              placeholder={isSection ? 'Mi SecciÃƒÂ³n' : t('dashboards.inspector.custom_title_placeholder')}
               value={appearance.title || ''}
               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
@@ -209,9 +209,9 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {!isSection && (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">TamaÃ±o RÃ¡pido</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{quickSizeLabel}</label>
                 <div className="grid grid-cols-5 gap-1.5">
-                  {SIZE_PRESETS.map(preset => {
+                  {effectiveSizePresets.map(preset => {
                     const isActive = layout.w === preset.w && layout.h === preset.h;
                     return (
                       <button
@@ -225,7 +225,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                         )}
                       >
                         <span className="text-[10px] font-black uppercase">{preset.label}</span>
-                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}Ã—{preset.h}</span>
+                        <span className="text-[8px] opacity-50 tabular-nums">{preset.w}Ãƒâ€”{preset.h}</span>
                       </button>
                     );
                   })}
@@ -245,12 +245,12 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                       const v = e.target.value.replace(/\D/g, '');
                       setLocalW(v);
                       if (v !== '') {
-                        const n = Math.max(1, Math.min(12, parseInt(v)));
+                        const n = Math.max(minLayoutW, Math.min(12, parseInt(v)));
                         onUpdate(safeWidget.id, { layout: { ...layout, w: n } });
                       }
                     }}
                     onBlur={() => {
-                      if (localW === '' || parseInt(localW) < 1) {
+                      if (localW === '' || parseInt(localW) < minLayoutW) {
                         setLocalW('1');
                         onUpdate(safeWidget.id, { layout: { ...layout, w: 1 } });
                       } else {
@@ -272,12 +272,12 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                       const v = e.target.value.replace(/\D/g, '');
                       setLocalH(v);
                       if (v !== '') {
-                        const n = Math.max(1, Math.min(20, parseInt(v)));
+                        const n = Math.max(minLayoutH, Math.min(20, parseInt(v)));
                         onUpdate(safeWidget.id, { layout: { ...layout, h: n } });
                       }
                     }}
                     onBlur={() => {
-                      if (localH === '' || parseInt(localH) < 1) {
+                      if (localH === '' || parseInt(localH) < minLayoutH) {
                         setLocalH('1');
                         onUpdate(safeWidget.id, { layout: { ...layout, h: 1 } });
                       } else {
@@ -294,14 +294,14 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {/* Clock style picker */}
           {isClock && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">DiseÃ±o de reloj</label>
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{clockDesignLabel}</label>
               <div className="grid grid-cols-3 gap-2">
                 {CLOCK_STYLES.map(style => {
                   const isActive = (extra.clockStyle ?? 'minimal') === style.value;
                   return (
                     <button
                       key={style.value}
-                      onClick={() => onUpdate(safeWidget.id, { extra: { ...extra, clockStyle: style.value } })}
+                      onClick={() => onUpdate(safeWidget.id, { extra: { ...extra, clockStyle: style.value }, layout: { ...layout, w: Math.max(layout.w, style.minW), h: Math.max(layout.h, style.minH) } })}
                       className={cn(
                         "py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-wide transition-all",
                         isActive
@@ -309,7 +309,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                           : "bg-muted/10 border-border/40 text-muted-foreground hover:border-primary/30"
                       )}
                     >
-                      {style.label}
+                      {getClockStyleLabel(style, i18n.language)}
                     </button>
                   );
                 })}
@@ -439,7 +439,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
         variant="danger"
       />
 
-      {/* Icon suggestions portal â€” renders outside overflow-hidden containers */}
+      {/* Icon suggestions portal Ã¢â‚¬â€ renders outside overflow-hidden containers */}
       {showIconField && dropdownPos && matchingIcons.length > 0 && createPortal(
         <div
           style={{

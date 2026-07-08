@@ -1,4 +1,4 @@
-﻿import type { ClockCopy, ClockWeather } from './clockTypes';
+import type { ClockCopy, ClockWeather } from './clockTypes';
 
 export function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -34,17 +34,17 @@ export function normalizeLocale(locale: string): string {
 }
 
 export function getClockCopy(locale: string): ClockCopy {
-  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
+  const isEnglish = locale.toLowerCase().startsWith('en');
 
-  if (language === 'en') {
+  if (isEnglish) {
     return {
       localTime: 'Local time',
       digitalPro: 'Digital pro',
       homeTime: 'Home time',
-      analogClassic: 'Analog classic',
-      analogOrbit: 'Analog orbit',
-      analogMinimal: 'Analog minimal',
-      residentialEdge: 'Residential',
+      analogClassic: 'Classic analog',
+      analogOrbit: 'Orbit analog',
+      analogMinimal: 'Minimal analog',
+      residentialEdge: 'Residential edge',
       sync: 'Sync',
       secondsShort: 'sec',
       dayProgress: 'Day',
@@ -64,7 +64,7 @@ export function getClockCopy(locale: string): ClockCopy {
     analogOrbit: 'AnalÃ³gico Ã³rbita',
     analogMinimal: 'AnalÃ³gico minimal',
     residentialEdge: 'Residencial',
-    sync: 'Sync',
+    sync: 'Sincronizado',
     secondsShort: 'seg',
     dayProgress: 'DÃ­a',
     weatherLoading: 'Cargando clima',
@@ -84,20 +84,14 @@ export function formatMonth(now: Date, locale: string, format: 'short' | 'long' 
 }
 
 export function formatDateLine(now: Date, locale: string): string {
-  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
+  const isEnglish = locale.toLowerCase().startsWith('en');
   const weekday = formatWeekday(now, locale, 'long');
   const month = formatMonth(now, locale, 'short').replace('.', '');
   const day = now.getDate();
   const year = now.getFullYear();
 
-  if (language === 'en') return `${weekday}, ${month} ${day}, ${year}`;
+  if (isEnglish) return `${weekday}, ${month} ${day}, ${year}`;
   return `${weekday}, ${day} ${month} ${year}`;
-}
-
-export function formatCompactDate(now: Date, locale: string): string {
-  const day = now.getDate();
-  const month = formatMonth(now, locale, 'short').replace('.', '');
-  return `${month} ${day}`;
 }
 
 export function getMinuteProgress(now: Date): number {

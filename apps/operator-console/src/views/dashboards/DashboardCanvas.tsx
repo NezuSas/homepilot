@@ -525,7 +525,7 @@ export function DashboardCanvas({
               </div>
             ) : (
               <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 group-hover/placeholder:text-primary transition-colors">
-                + Nueva SecciÃƒÆ’Ã‚Â³n
+                + Nueva SecciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
               </span>
             )}
           </button>
