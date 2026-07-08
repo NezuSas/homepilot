@@ -1,4 +1,4 @@
-﻿import type { ClockCopy, ClockWeather } from './clockTypes';
+import type { ClockCopy, ClockWeather } from './clockTypes';
 
 export function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -39,7 +39,7 @@ export function getClockCopy(locale: string): ClockCopy {
   if (isEnglish) {
     return {
       localTime: 'Local time',
-      digitalPro: 'Digital pro',
+      digitalPro: 'Compact digital',
       homeTime: 'Home time',
       analogClassic: 'Premium analog',
       analogOrbit: 'Orbital analog',
@@ -58,7 +58,7 @@ export function getClockCopy(locale: string): ClockCopy {
 
   return {
     localTime: 'Hora local',
-    digitalPro: 'Digital pro',
+    digitalPro: 'Digital compacto',
     homeTime: 'Hora del hogar',
     analogClassic: 'Anal\u00f3gico premium',
     analogOrbit: 'Anal\u00f3gico orbital',
@@ -153,7 +153,7 @@ export function formatWeather(
   if (status === 'loading' || status === 'idle') return copy.weatherLoading;
   if (!weather || status === 'error') return copy.weatherUnavailable;
 
-  const temperature = `${Math.round(weather.temperature)}\u00b0C`;
-  if (compact) return `${weather.location} ${temperature}`;
-  return `${weather.location} \u2022 ${temperature} \u2022 ${weather.label}`;
+  const temp = `${Math.round(weather.temperature)}\u00b0C`;
+  if (compact) return `${weather.location} ${temp}`;
+  return `${weather.location} \u2022 ${weather.label} \u2022 ${temp}`;
 }

@@ -1,4 +1,4 @@
-﻿import type { ComponentType } from 'react';
+import type { ComponentType } from 'react';
 import {
   AnalogClassicClock,
   AnalogMinimalClock,
@@ -38,7 +38,7 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
   },
   {
     value: 'analog-classic',
-    label: 'Analogico premium',
+    label: 'Anal\u00f3gico premium',
     labelEs: 'Anal\u00f3gico premium',
     labelEn: 'Premium analog',
     minW: 4,
@@ -46,7 +46,7 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
   },
   {
     value: 'analog-orbit',
-    label: 'Analogico orbital',
+    label: 'Anal\u00f3gico orbital',
     labelEs: 'Anal\u00f3gico orbital',
     labelEn: 'Orbital analog',
     minW: 4,
@@ -54,7 +54,7 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
   },
   {
     value: 'analog-minimal',
-    label: 'Analogico minimal',
+    label: 'Anal\u00f3gico minimal',
     labelEs: 'Anal\u00f3gico minimal',
     labelEn: 'Minimal analog',
     minW: 4,

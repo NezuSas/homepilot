@@ -1,22 +1,24 @@
 import type { ClockDesignProps } from '../clockTypes';
 import { formatWeekday, getHandAngles, pad } from '../clockUtils';
-import { AnalogDial, ClockKicker, ClockShell, SmallMeta, WeatherPill } from './ClockShared';
+import { AnalogDial, ClockLabel, ClockShell, WeatherPill } from './ClockShared';
 
 export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const angles = getHandAngles(now);
+  const weekday = formatWeekday(now, locale, 'short');
   const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   return (
     <ClockShell>
-      <div className="grid h-full min-h-0 grid-cols-[minmax(7rem,0.9fr)_1fr] items-center gap-[clamp(0.8rem,3cqi,1.7rem)] p-[clamp(1rem,3cqi,1.6rem)] max-[460px]:grid-cols-1 max-[460px]:place-items-center">
-        <div className="flex min-w-0 items-center justify-center">
+      <div className="grid h-full min-w-0 grid-cols-[minmax(8rem,0.9fr)_minmax(0,1fr)] items-center gap-[clamp(0.8rem,3cqi,2rem)] p-[clamp(0.95rem,2.5cqi,1.7rem)] max-[520px]:grid-cols-1">
+        <div className="grid place-items-center">
           <AnalogDial hourAngle={angles.hour} minuteAngle={angles.minute} secondAngle={angles.second} />
         </div>
-        <div className="flex min-w-0 flex-col justify-center gap-[clamp(0.45rem,1.4cqi,0.85rem)] max-[460px]:w-full max-[460px]:items-center">
-          <ClockKicker>{copy.analogClassic}</ClockKicker>
-          <SmallMeta>{formatWeekday(now, locale, 'short')}</SmallMeta>
-          <div className="text-[clamp(2rem,9cqi,4.4rem)] font-black leading-none tracking-[-0.08em] text-foreground tabular-nums">{time}</div>
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact className="w-full" tone="solid" />
+        <div className="grid min-w-0 gap-[clamp(0.75rem,2.4cqi,1.3rem)] max-[520px]:place-items-center max-[520px]:text-center">
+          <ClockLabel label={copy.analogClassic} subtle={weekday} />
+          <div className="text-[clamp(2.2rem,10cqi,4.8rem)] font-black leading-none tracking-[-0.07em] text-foreground tabular-nums">
+            {time}
+          </div>
+          <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact />
         </div>
       </div>
     </ClockShell>

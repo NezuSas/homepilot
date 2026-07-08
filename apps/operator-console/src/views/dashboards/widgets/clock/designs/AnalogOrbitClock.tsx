@@ -1,36 +1,34 @@
 import type { ClockDesignProps } from '../clockTypes';
-import { formatDateLine, getHandAngles, getMinuteProgress, pad } from '../clockUtils';
-import { AnalogDial, ClockKicker, ClockShell, LinearProgress, ResponsiveTime, SmallMeta, WeatherPill } from './ClockShared';
+import { formatDateLine, getDayProgress, getHandAngles, pad } from '../clockUtils';
+import { AnalogDial, ClockLabel, ClockProgress, ClockShell, WeatherPill } from './ClockShared';
 
 export function AnalogOrbitClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const angles = getHandAngles(now);
-  const progress = getMinuteProgress(now);
-  const hours = pad(now.getHours());
-  const minutes = pad(now.getMinutes());
-  const blink = now.getSeconds() % 2 === 0;
+  const progress = getDayProgress(now);
+  const dateLine = formatDateLine(now, locale);
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   return (
     <ClockShell>
-      <div className="grid h-full min-h-0 grid-rows-[auto_1fr_auto] gap-[clamp(0.6rem,2cqi,1rem)] p-[clamp(1rem,3cqi,1.55rem)]">
-        <header className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <ClockKicker>{copy.analogOrbit}</ClockKicker>
-            <SmallMeta className="mt-2">{formatDateLine(now, locale)}</SmallMeta>
-          </div>
-          <div className="shrink-0 text-[clamp(0.6rem,1.5cqi,0.78rem)] font-black tabular-nums text-primary">{progress}%</div>
-        </header>
+      <div className="grid h-full min-w-0 grid-rows-[auto_1fr_auto] gap-3 p-[clamp(0.9rem,2.3cqi,1.45rem)]">
+        <div className="flex min-w-0 items-start justify-between gap-4">
+          <ClockLabel label={copy.analogOrbit} subtle={dateLine} />
+          <div className="shrink-0 text-[clamp(0.6rem,1.4cqi,0.78rem)] font-black uppercase tracking-[0.2em] text-primary">{progress}%</div>
+        </div>
 
-        <main className="grid min-h-0 grid-cols-[1fr_1fr] items-center gap-[clamp(0.5rem,2cqi,1.2rem)] max-[460px]:grid-cols-1">
-          <div className="flex justify-center">
-            <AnalogDial hourAngle={angles.hour} minuteAngle={angles.minute} secondAngle={angles.second} orbit />
+        <div className="grid min-h-0 grid-cols-[minmax(8rem,0.8fr)_minmax(0,1fr)] items-center gap-[clamp(0.8rem,3cqi,2rem)] max-[520px]:grid-cols-1">
+          <div className="grid place-items-center">
+            <AnalogDial hourAngle={angles.hour} minuteAngle={angles.minute} secondAngle={angles.second} variant="orbit" />
           </div>
-          <ResponsiveTime hours={hours} minutes={minutes} blink={blink} compact align="right" className="max-[460px]:justify-center" />
-        </main>
+          <div className="text-[clamp(2.6rem,12cqi,5.8rem)] font-black leading-none tracking-[-0.07em] text-foreground tabular-nums max-[520px]:text-center">
+            {time}
+          </div>
+        </div>
 
-        <footer className="min-w-0 space-y-[clamp(0.4rem,1.2cqi,0.7rem)]">
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact className="w-full" />
-          <LinearProgress value={progress} />
-        </footer>
+        <div className="grid min-w-0 gap-2">
+          <WeatherPill weather={weather} status={weatherStatus} copy={copy} compact />
+          <ClockProgress value={progress} compact />
+        </div>
       </div>
     </ClockShell>
   );
