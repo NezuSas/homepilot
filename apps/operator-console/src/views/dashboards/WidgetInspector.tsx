@@ -234,7 +234,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               
               <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/10">
                 <div>
-                  <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Ancho (Columnas)</label>
+                  <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Ancho (columnas)</label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -261,7 +261,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                   />
                 </div>
                 <div>
-                  <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Alto (Filas)</label>
+                  <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Alto (filas)</label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -377,7 +377,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           {/* Custom Icon */}
           {showIconField && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (Opcional)</label>
+              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Icono (opcional)</label>
               <div className="relative flex items-center">
                 {SelectedIconComponent ? (
                   <SelectedIconComponent className="absolute left-3 w-5 h-5 text-primary pointer-events-none" />

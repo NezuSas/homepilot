@@ -34,16 +34,16 @@ export function normalizeLocale(locale: string): string {
 }
 
 export function getClockCopy(locale: string): ClockCopy {
-  const isEnglish = locale.toLowerCase().startsWith('en');
+  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
 
-  if (isEnglish) {
+  if (language === 'en') {
     return {
       localTime: 'Local time',
       digitalPro: 'Digital pro',
       homeTime: 'Home time',
-      analogClassic: 'Classic analog',
-      analogOrbit: 'Orbit analog',
-      analogMinimal: 'Minimal analog',
+      analogClassic: 'Analog classic',
+      analogOrbit: 'Analog orbit',
+      analogMinimal: 'Analog minimal',
       residentialEdge: 'Residential edge',
       sync: 'Sync',
       secondsShort: 'sec',
@@ -60,13 +60,13 @@ export function getClockCopy(locale: string): ClockCopy {
     localTime: 'Hora local',
     digitalPro: 'Digital pro',
     homeTime: 'Hora del hogar',
-    analogClassic: 'AnalÃ³gico clÃ¡sico',
-    analogOrbit: 'AnalÃ³gico Ã³rbita',
-    analogMinimal: 'AnalÃ³gico minimal',
+    analogClassic: 'Analógico clásico',
+    analogOrbit: 'Analógico órbita',
+    analogMinimal: 'Analógico minimal',
     residentialEdge: 'Residencial',
-    sync: 'Sincronizado',
+    sync: 'Sync',
     secondsShort: 'seg',
-    dayProgress: 'DÃ­a',
+    dayProgress: 'Día',
     weatherLoading: 'Cargando clima',
     weatherUnavailable: 'Clima no disponible',
     cuenca: 'Cuenca',
@@ -84,14 +84,23 @@ export function formatMonth(now: Date, locale: string, format: 'short' | 'long' 
 }
 
 export function formatDateLine(now: Date, locale: string): string {
-  const isEnglish = locale.toLowerCase().startsWith('en');
+  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
   const weekday = formatWeekday(now, locale, 'long');
   const month = formatMonth(now, locale, 'short').replace('.', '');
   const day = now.getDate();
   const year = now.getFullYear();
 
-  if (isEnglish) return `${weekday}, ${month} ${day}, ${year}`;
+  if (language === 'en') return `${weekday}, ${month} ${day}, ${year}`;
   return `${weekday}, ${day} ${month} ${year}`;
+}
+
+export function formatCompactDate(now: Date, locale: string): string {
+  const language = locale.toLowerCase().startsWith('en') ? 'en' : 'es';
+  const month = formatMonth(now, locale, 'short').replace('.', '').toUpperCase();
+  const day = now.getDate();
+
+  if (language === 'en') return `${month} ${day}`;
+  return `${day} ${month}`;
 }
 
 export function getMinuteProgress(now: Date): number {
@@ -122,6 +131,7 @@ export function getHandAngles(now: Date) {
 
 export function getWeatherDescription(code: number, locale: string): string {
   const isEnglish = locale.toLowerCase().startsWith('en');
+
   if (code === 0) return isEnglish ? 'Clear' : 'Despejado';
   if ([1, 2].includes(code)) return isEnglish ? 'Partly cloudy' : 'Parcialmente nublado';
   if (code === 3) return isEnglish ? 'Cloudy' : 'Nublado';
@@ -130,6 +140,7 @@ export function getWeatherDescription(code: number, locale: string): string {
   if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return isEnglish ? 'Rain' : 'Lluvia';
   if ([71, 73, 75, 77, 85, 86].includes(code)) return isEnglish ? 'Snow' : 'Nieve';
   if ([95, 96, 99].includes(code)) return isEnglish ? 'Storm' : 'Tormenta';
+
   return isEnglish ? 'Weather' : 'Clima';
 }
 
@@ -140,5 +151,6 @@ export function formatWeather(
 ): string {
   if (status === 'loading' || status === 'idle') return copy.weatherLoading;
   if (!weather || status === 'error') return copy.weatherUnavailable;
-  return `${weather.location} Â· ${Math.round(weather.temperature)}Â°C Â· ${weather.label}`;
+
+  return `${weather.location} · ${Math.round(weather.temperature)}°C · ${weather.label}`;
 }
