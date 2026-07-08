@@ -7,6 +7,10 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import * as Icons from 'lucide-react';
 
+
+const MAX_BG_PX = 1920;
+const BG_QUALITY = 0.8;
+
 type ConfigTab = 'settings' | 'background' | 'visibility';
 
 interface DashboardViewConfigModalProps {
@@ -150,7 +154,29 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setBackgroundImg(event.target?.result as string);
+      const img = new window.Image();
+      img.onload = () => {
+        // Resize to at most MAX_BG_PX on the longest side
+        let { width, height } = img;
+        if (width > MAX_BG_PX || height > MAX_BG_PX) {
+          if (width > height) {
+            height = Math.round((height / width) * MAX_BG_PX);
+            width = MAX_BG_PX;
+          } else {
+            width = Math.round((width / height) * MAX_BG_PX);
+            height = MAX_BG_PX;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', BG_QUALITY);
+        setBackgroundImg(compressed);
+      };
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
     e.target.value = '';

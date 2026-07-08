@@ -52,7 +52,7 @@ export class ApiGateway {
     port: number = 3000
   ) {
     this.port = port;
-    this.fastify = Fastify({ logger: false });
+    this.fastify = Fastify({ logger: false, bodyLimit: 20 * 1024 * 1024 }); // 20 MB – supports base64 background images
     this.wsServer = new WebSocketServer({ noServer: true });
 
     this.registerContentTypeParsers();
