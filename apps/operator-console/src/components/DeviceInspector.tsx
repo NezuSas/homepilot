@@ -410,6 +410,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                       { value: 'switch', label: 'Interruptor' },
                       { value: 'outlet', label: 'Enchufe' },
                       { value: 'cover', label: 'Cortina/Persiana' },
+                      { value: 'camera', label: 'Cámara' },
                       { value: 'sensor', label: 'Sensor' },
                       { value: 'unknown', label: 'Desconocido' },
                     ]}

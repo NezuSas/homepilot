@@ -70,7 +70,7 @@ export function SceneShortcutWidget({ config, isEditing, onConfigure }: { config
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/50 mb-1">
           {t('dashboards.widgets.scenes_shortcut.label')}
         </p>
-        <h4 className="text-sm font-black tracking-tight text-foreground truncate max-w-[140px]">{sceneName}</h4>
+        <h4 className="text-sm font-black tracking-tight text-foreground line-clamp-2 text-center leading-tight">{sceneName}</h4>
       </div>
 
       <Sparkles className="absolute top-4 left-4 w-3 h-3 text-primary/20" />

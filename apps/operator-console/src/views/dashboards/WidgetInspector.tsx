@@ -111,13 +111,20 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
     const searchKey = clean.toLowerCase();
     const translatedSearchKey = translations[searchKey] || searchKey;
     
-    const allKeys = Object.keys(Icons).filter(key => 
-      typeof (Icons as any)[key] === 'function' && key !== 'createReactComponent'
-    );
+    const allKeys = Object.keys(Icons).filter(key => {
+      const val = (Icons as any)[key];
+      // lucide-react icons are React.forwardRef objects (typeof 'object') or plain function components
+      return (
+        key[0] === key[0].toUpperCase() &&
+        key[0] !== '_' &&
+        key !== 'Icons' &&
+        (typeof val === 'function' || (typeof val === 'object' && val !== null))
+      );
+    });
 
     return allKeys
       .filter(key => key.toLowerCase().includes(translatedSearchKey))
-      .slice(0, 8);
+      .slice(0, 12);
   }, [iconQuery]);
 
   if (!isOpen || !widget || !safeWidget) return null;
@@ -204,28 +211,37 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 </div>
               </div>
               
-              {/* Custom sizing inputs (HA style precision) */}
               <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/10">
                 <div>
                   <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Ancho (Columnas)</label>
                   <input
-                    type="number"
-                    min={1}
-                    max={12}
-                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all [appearance:textfield]"
                     value={layout.w}
-                    onChange={(e) => onUpdate(safeWidget.id, { layout: { ...layout, w: Math.max(1, Math.min(12, parseInt(e.target.value) || 1)) } })}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '');
+                      if (v === '') return;
+                      const n = Math.max(1, Math.min(12, parseInt(v)));
+                      onUpdate(safeWidget.id, { layout: { ...layout, w: n } });
+                    }}
                   />
                 </div>
                 <div>
                   <label className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">Alto (Filas)</label>
                   <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary/50 transition-all [appearance:textfield]"
                     value={layout.h}
-                    onChange={(e) => onUpdate(safeWidget.id, { layout: { ...layout, h: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) } })}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '');
+                      if (v === '') return;
+                      const n = Math.max(1, Math.min(20, parseInt(v)));
+                      onUpdate(safeWidget.id, { layout: { ...layout, h: n } });
+                    }}
                   />
                 </div>
               </div>

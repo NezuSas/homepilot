@@ -160,7 +160,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
             : "text-primary drop-shadow-[0_0_16px_rgba(var(--primary),0.6)] scale-110"
           : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
       )}>
-        <IconComponent className="w-[60%] h-[60%] max-w-[6rem] max-h-[6rem]" />
+        <IconComponent className="w-[72%] h-[72%] max-w-[7rem] max-h-[7rem]" />
       </div>
       <div className="w-full text-center mt-auto pb-1">
         <h4 className={cn(
