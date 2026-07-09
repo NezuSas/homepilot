@@ -255,7 +255,9 @@
         "title_alignment": "Alignment",
         "align_left": "Left",
         "align_center": "Center",
-        "align_right": "Right"
+        "align_right": "Right",
+        "section_title": "Section title",
+        "section_title_placeholder": "My section"
       },
       "catalog": {
         "title": "Add to dashboard",

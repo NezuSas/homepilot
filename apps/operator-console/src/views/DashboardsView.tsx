@@ -232,6 +232,50 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
     const currentTab = active.tabs[activeTabIdx];
 
+    const getSectionLayout = (sectionIndex: number) => {
+      const row = Math.floor(sectionIndex / 4);
+      const indexInRow = sectionIndex % 4;
+      const rowItemCount = indexInRow + 1;
+      const width = Math.floor(12 / rowItemCount);
+
+      return {
+        x: indexInRow * width,
+        y: 2 + row * 2,
+        w: width,
+        h: 2,
+      };
+    };
+
+    const isBrokenSectionTitle = (value: unknown) =>
+      typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
+
+    const normalizeSectionWidgets = (widgets: typeof currentTab.widgets) => {
+      let sectionIndex = 0;
+
+      return widgets.map((widget) => {
+        if (widget.type !== 'section') return widget;
+
+        const layout = getSectionLayout(sectionIndex);
+        sectionIndex += 1;
+
+        const title = isBrokenSectionTitle(widget.config.appearance?.title)
+          ? t('dashboard.editor.sections.new_section')
+          : widget.config.appearance?.title;
+
+        return {
+          ...widget,
+          config: {
+            ...widget.config,
+            layout,
+            appearance: {
+              ...widget.config.appearance,
+              title,
+            },
+          },
+        };
+      });
+    };
+
     const maxY = currentTab.widgets.reduce(
       (max, widget) => Math.max(max, widget.config.layout.y + widget.config.layout.h),
       0,
@@ -248,15 +292,12 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     }
 
     const sectionWidgets = currentTab.widgets.filter(widget => widget.type === 'section');
-    const sectionSlot = sectionWidgets.length;
+    const sectionLayout = getSectionLayout(sectionWidgets.length);
 
-    const sectionX = (sectionSlot % 4) * 3;
-    const sectionY = 2 + Math.floor(sectionSlot / 4) * 2;
-
-    const widgetW = isDashboardTitle ? 12 : isSection ? 3 : (size?.w ?? 4);
-    const widgetH = isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4);
-    const widgetX = isDashboardTitle ? 0 : isSection ? sectionX : 0;
-    const widgetY = isDashboardTitle ? 0 : isSection ? sectionY : Math.max(2, maxY);
+    const widgetW = isDashboardTitle ? 12 : isSection ? sectionLayout.w : (size?.w ?? 4);
+    const widgetH = isDashboardTitle ? 2 : isSection ? sectionLayout.h : (size?.h ?? 4);
+    const widgetX = isDashboardTitle ? 0 : isSection ? sectionLayout.x : 0;
+    const widgetY = isDashboardTitle ? 0 : isSection ? sectionLayout.y : Math.max(2, maxY);
 
     const defaultConfig: DashboardWidgetConfig = {
       layout: { x: widgetX, y: widgetY, w: widgetW, h: widgetH },
@@ -264,7 +305,11 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       visibility: { rules: [], defaultState: 'show' },
       appearance: {
         variant: 'glass',
-        title: isDashboardTitle ? t('dashboard.editor.sections.title_area') : isSection ? t('dashboard.editor.sections.new_section') : '',
+        title: isDashboardTitle
+          ? t('dashboard.editor.sections.title_area')
+          : isSection
+            ? t('dashboard.editor.sections.new_section')
+            : '',
         showTitle: true,
       },
       extra: isDashboardTitle
@@ -280,13 +325,24 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     const updatedTabs = active.tabs.map((tab, idx) =>
       idx !== activeTabIdx
         ? tab
-        : { ...tab, widgets: [...tab.widgets, { id: widgetId, type, config: defaultConfig }] },
+        : {
+            ...tab,
+            widgets: normalizeSectionWidgets([
+              ...tab.widgets,
+              { id: widgetId, type, config: defaultConfig },
+            ]),
+          },
     );
 
     const saved = await patch(active.id, { tabs: updatedTabs });
 
-    if (saved && !isSection) { setSelectedWidgetId(widgetId); setIsInspectorOpen(true); }
-  }; const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
+    if (saved && !isSection) {
+      setSelectedWidgetId(widgetId);
+      setIsInspectorOpen(true);
+    }
+  };
+
+const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
     if (!active) return;
     const updatedTabs = active.tabs.map((tab, idx) =>
       idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets }

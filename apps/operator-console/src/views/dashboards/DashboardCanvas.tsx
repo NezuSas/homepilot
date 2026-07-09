@@ -310,18 +310,30 @@ const virtualPlaceholders = useMemo(() => {
   }
 
   const sectionStartY = hasDashboardTitle ? 2 : 2;
-  const sectionSlot = sections.length;
+  const sectionsInCurrentRow = sections.length % 4;
+  const completedRows = Math.floor(sections.length / 4);
 
   if (sections.length === 0) {
     placeholders.push({ key: 'add_section_final', x: 4, y: sectionStartY, w: 4, h: 1, type: 'add_section' });
   } else {
-    const nextSectionX = (sectionSlot % 4) * 3;
-    const nextSectionY = sectionStartY + Math.floor(sectionSlot / 4) * 2;
-    placeholders.push({ key: 'add_section_final', x: nextSectionX, y: nextSectionY, w: 3, h: 2, type: 'add_section' });
+    const slotCount = sectionsInCurrentRow === 0 ? 1 : Math.min(4, sectionsInCurrentRow + 1);
+    const slotW = Math.floor(12 / slotCount);
+    const placeholderSlot = sectionsInCurrentRow === 0 ? 0 : sectionsInCurrentRow;
+    const placeholderY = sectionStartY + completedRows * 2;
+
+    placeholders.push({
+      key: 'add_section_final',
+      x: placeholderSlot * slotW,
+      y: placeholderY,
+      w: slotW,
+      h: 2,
+      type: 'add_section',
+    });
   }
 
   return placeholders;
 }, [sanitizedWidgets, canEditLayout]);
+
 const canvasMinRows = useMemo(() => {
     const bottomY = renderedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
     return Math.max(8, bottomY + (canEditLayout ? 6 : 2));
@@ -508,7 +520,8 @@ const canvasMinRows = useMemo(() => {
       )}
     </button>
   );
-})} {/* Snap drop preview */}
+})}
+ {/* Snap drop preview */}
         {canEditLayout && snapPreview && activeWidget && (
           <div
             aria-hidden="true"

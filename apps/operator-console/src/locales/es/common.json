@@ -255,7 +255,9 @@
         "title_alignment": "Alineación",
         "align_left": "Izquierda",
         "align_center": "Centro",
-        "align_right": "Derecha"
+        "align_right": "Derecha",
+        "section_title": "Título de sección",
+        "section_title_placeholder": "Mi sección"
       },
       "catalog": {
         "title": "Añadir al panel de control",
