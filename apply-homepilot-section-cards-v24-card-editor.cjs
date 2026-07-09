@@ -1,7 +1,25 @@
-import { useMemo, useState, type ReactNode } from 'react';
+// HomePilot Section Cards V24 - better cards, icon picker, responsive preview, reorder by drag/drop
+// Run from repo root:
+// node .\apply-homepilot-section-cards-v24-card-editor.cjs
+//
+// Fixes:
+// - Camera card preview is visible and legible.
+// - Section title is larger.
+// - Internal cards can be reordered by drag/drop.
+// - Light/device cards can choose an icon.
+// - Editor preview changes with selected size: small / medium / full.
+// - Internal card clicks remain isolated; only pencils edit.
+
+const fs = require("fs");
+
+const sectionPath = "apps/operator-console/src/views/dashboards/widgets/SectionWidget.tsx";
+
+const content = `import { useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  Bot,
   Camera,
+  Clock,
   Fan,
   GripVertical,
   Home,
@@ -19,6 +37,7 @@ import {
   Tv,
   Wifi,
   X,
+  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -75,7 +94,7 @@ interface CardDraft {
   icon: SectionCardIcon;
 }
 
-const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createId = () => \`section-card-\${Date.now()}-\${Math.random().toString(36).slice(2, 8)}\`;
 
 const cardKinds: NormalizedSectionCardKind[] = [
   'device',
@@ -510,7 +529,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const filteredCatalog = catalogItems.filter((item) => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return true;
-    return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
+    return \`\${item.title} \${item.description}\`.toLowerCase().includes(normalizedQuery);
   });
 
   const filteredDevices = devices.filter((device) => {
@@ -786,7 +805,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                         {item.description}
                       </span>
                       <span className="mt-2 inline-flex rounded-full border border-border/40 px-2 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
-                        {t(`dashboard.editor.sections.card_size_${item.span}`)}
+                        {t(\`dashboard.editor.sections.card_size_\${item.span}\`)}
                       </span>
                     </div>
                   </button>
@@ -1066,3 +1085,9 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     </div>
   );
 }
+`;
+
+fs.writeFileSync(sectionPath, content, "utf8");
+
+console.log("V24 section card editor patch applied.");
+console.log("Run: npm run build --workspace=apps/operator-console");
