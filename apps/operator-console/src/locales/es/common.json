@@ -243,32 +243,32 @@
       "add_system_status": "Sistema",
       "add_energy_snapshot": "Energía",
       "sections": {
-        "add_title": "AÃ±adir tÃ­tulo",
-        "title_area": "TÃ­tulo del tablero",
+        "add_title": "Añadir título",
+        "title_area": "Título del tablero",
         "title_placeholder": "Hola Gustavo",
-        "subtitle_placeholder": "AÃ±ade tu texto aquÃ­, se admiten variables de plantilla âœ¨",
-        "add_section": "AÃ±adir secciÃ³n",
-        "new_section": "Nueva secciÃ³n",
-        "untitled_section": "SecciÃ³n sin tÃ­tulo",
-        "add_card": "AÃ±adir tarjeta"
+        "subtitle_placeholder": "Añade tu texto aquí, se admiten variables de plantilla ✨",
+        "add_section": "Añadir sección",
+        "new_section": "Nueva sección",
+        "untitled_section": "Sección sin título",
+        "add_card": "Añadir tarjeta"
       },
       "catalog": {
-        "title": "AÃ±adir al panel de control",
+        "title": "Añadir al panel de control",
         "search": "Buscar tarjetas",
         "by_card": "Por tarjeta",
         "by_entity": "Por entidad",
         "other_cards": "Otras tarjetas",
         "device": "Dispositivo",
-        "room": "HabitaciÃ³n",
+        "room": "Habitación",
         "scene": "Escena",
-        "camera": "CÃ¡mara",
+        "camera": "Cámara",
         "light": "Luz",
         "cover": "Cortina",
         "clock": "Reloj",
-        "energy": "EnergÃ­a",
+        "energy": "Energía",
         "system": "Sistema",
         "assistant": "Asistente IA",
-        "section": "SecciÃ³n"
+        "section": "Sección"
       }
     }
   },

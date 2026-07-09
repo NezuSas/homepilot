@@ -14,7 +14,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
 
   if (isEditing && !title && !subtitle) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center rounded-[1.5rem] border-2 border-dashed border-border/60 bg-background/10 px-6 py-6 text-center">
+      <div className="flex h-full w-full items-center justify-center rounded-[1.35rem] border-2 border-dashed border-border/60 bg-background/10 px-6 py-5 text-center">
         <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-sm font-semibold text-primary">
           <span className="text-xl leading-none">+</span>
           <span>{t('dashboard.editor.sections.add_title')}</span>
@@ -24,9 +24,9 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
   }
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col items-center justify-center rounded-[1.5rem] border border-border/35 bg-background/10 px-[clamp(1rem,3cqi,2rem)] py-[clamp(1rem,2cqi,1.5rem)] text-center">
+    <div className="flex h-full w-full min-w-0 flex-col items-center justify-center rounded-[1.35rem] border border-border/35 bg-background/10 px-[clamp(1rem,3cqi,2rem)] py-[clamp(0.85rem,1.8cqi,1.25rem)] text-center">
       {title ? (
-        <h1 className="min-w-0 max-w-full truncate text-[clamp(1.45rem,3.2cqi,2.4rem)] font-black tracking-tight text-foreground">
+        <h1 className="min-w-0 max-w-full truncate text-[clamp(1.35rem,3cqi,2.25rem)] font-black tracking-tight text-foreground">
           {title}
         </h1>
       ) : isEditing ? (
@@ -36,7 +36,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
       ) : null}
 
       {subtitle ? (
-        <p className="mt-3 min-w-0 max-w-3xl truncate text-[clamp(0.85rem,1.5cqi,1rem)] font-medium text-muted-foreground">
+        <p className="mt-2 min-w-0 max-w-3xl truncate text-[clamp(0.8rem,1.4cqi,0.95rem)] font-medium text-muted-foreground">
           {subtitle}
         </p>
       ) : null}

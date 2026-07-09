@@ -202,6 +202,7 @@ export function DashboardCanvas({
   onLayoutChange,
   onAddCardClick, onAddSectionClick, onAddTitleClick }: DashboardCanvasProps) {
   const { t } = useTranslation();
+  void onAddCardClick;
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const [snapPreview, setSnapPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -301,21 +302,21 @@ const virtualPlaceholders = useMemo(() => {
     y: number;
     w: number;
     h: number;
-    type: 'add_title' | 'add_card' | 'add_section';
+    type: 'add_title' | 'add_section';
   }[] = [];
 
   if (!hasDashboardTitle) {
-    placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
+    placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 1, type: 'add_title' });
   }
 
-  const titleRows = hasDashboardTitle ? 3 : 3;
+  const sectionStartY = hasDashboardTitle ? 2 : 2;
   const sectionSlot = sections.length;
 
   if (sections.length === 0) {
-    placeholders.push({ key: 'add_section_final', x: 4, y: titleRows, w: 4, h: 2, type: 'add_section' });
+    placeholders.push({ key: 'add_section_final', x: 4, y: sectionStartY, w: 4, h: 1, type: 'add_section' });
   } else {
     const nextSectionX = (sectionSlot % 4) * 3;
-    const nextSectionY = titleRows + Math.floor(sectionSlot / 4) * 2;
+    const nextSectionY = sectionStartY + Math.floor(sectionSlot / 4) * 2;
     placeholders.push({ key: 'add_section_final', x: nextSectionX, y: nextSectionY, w: 3, h: 2, type: 'add_section' });
   }
 
@@ -469,7 +470,6 @@ const canvasMinRows = useMemo(() => {
         {/* Home Assistant style virtual placeholders */}
 {canEditLayout && virtualPlaceholders.map((placeholder) => {
   const isAddTitle = placeholder.type === 'add_title';
-  const isAddSection = placeholder.type === 'add_section';
 
   return (
     <button
@@ -478,19 +478,15 @@ const canvasMinRows = useMemo(() => {
       onClick={() => {
         if (isAddTitle) {
           onAddTitleClick?.();
-        } else if (isAddSection) {
-          onAddSectionClick?.(placeholder.y);
         } else {
-          onAddCardClick?.(placeholder.x, placeholder.y);
+          onAddSectionClick?.(placeholder.y);
         }
       }}
       className={cn(
         "absolute z-10 flex transition-all duration-200",
         isAddTitle
-          ? "items-center justify-center rounded-[1.5rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-          : isAddSection
-            ? "flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-4 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
-            : "items-center justify-center rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:border-primary hover:bg-primary/10"
+          ? "items-center justify-center rounded-[1.25rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+          : "flex-col justify-between rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-3.5 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
         left: placeholder.x * colWidth + 8,
@@ -504,19 +500,15 @@ const canvasMinRows = useMemo(() => {
           <span className="text-xl leading-none">+</span>
           <span>{t('dashboard.editor.sections.add_title')}</span>
         </span>
-      ) : isAddSection ? (
+      ) : (
         <>
           <span className="min-w-0 truncate text-sm font-semibold text-foreground">
             {t('dashboard.editor.sections.new_section')}
           </span>
-          <span className="mt-3 inline-flex h-10 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
+          <span className="mt-2 inline-flex h-9 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
             +
           </span>
         </>
-      ) : (
-        <span className="inline-flex h-11 min-w-20 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 text-2xl font-light leading-none text-primary">
-          +
-        </span>
       )}
     </button>
   );
