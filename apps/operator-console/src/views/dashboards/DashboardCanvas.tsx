@@ -512,10 +512,10 @@ export function DashboardCanvas({
         }
       }}
       className={cn(
-        "absolute z-10 flex items-center justify-center transition-all duration-200",
+        "absolute z-10 flex transition-all duration-200",
         isAddCard
-          ? "rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:bg-primary/10 hover:border-primary"
-          : "rounded-[1.35rem] border border-dashed border-border/45 bg-transparent text-muted-foreground/70 hover:border-primary/55 hover:text-primary"
+          ? "items-center justify-center rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:border-primary hover:bg-primary/10"
+          : "flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-4 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
         left: placeholder.x * colWidth + 8,
@@ -529,10 +529,14 @@ export function DashboardCanvas({
           +
         </span>
       ) : (
-        <span className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/35 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em]">
-          <span className="text-base leading-none">+</span>
-          <span>Nueva secciÃ³n</span>
-        </span>
+        <>
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+            Nueva secciÃ³n
+          </span>
+          <span className="mt-3 inline-flex h-10 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
+            +
+          </span>
+        </>
       )}
     </button>
   );

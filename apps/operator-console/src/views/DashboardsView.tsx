@@ -20,7 +20,7 @@ import { cn } from '../lib/utils';
 
 const API = `${API_BASE_URL}/api/v1`;
 
-// ─── Main View ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface DashboardsViewProps {
   initialDashboardId?: string | null;
@@ -229,32 +229,52 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
   const handleAddWidget = async (type: WidgetType, size?: { w: number; h: number }) => {
     if (!active || active.tabs.length === 0) return;
-    
-    // Find a free spot (naive start at bottom)
-    const currentTab = active.tabs[activeTabIdx];
-    const maxY = currentTab.widgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
 
-    const widgetW = type === 'section' ? 12 : (size?.w ?? 4);
-    const widgetH = type === 'section' ? 2  : (size?.h ?? 4);
+    const currentTab = active.tabs[activeTabIdx];
+    const maxY = currentTab.widgets.reduce(
+      (max, widget) => Math.max(max, widget.config.layout.y + widget.config.layout.h),
+      0,
+    );
+
+    const sectionWidgets = currentTab.widgets.filter(widget => widget.type === 'section');
+    const sectionSlot = sectionWidgets.length;
+
+    const isSection = type === 'section';
+    const sectionX = (sectionSlot % 4) * 3;
+    const sectionBaseY =
+      sectionWidgets.length > 0
+        ? Math.min(...sectionWidgets.map(section => section.config.layout.y))
+        : maxY;
+
+    const sectionY = sectionBaseY + Math.floor(sectionSlot / 4) * 2;
+
+    const widgetW = isSection ? 3 : (size?.w ?? 4);
+    const widgetH = isSection ? 2 : (size?.h ?? 4);
+    const widgetX = isSection ? sectionX : 0;
+    const widgetY = isSection ? sectionY : maxY;
 
     const defaultConfig: DashboardWidgetConfig = {
-      layout: { x: 0, y: maxY, w: widgetW, h: widgetH },
+      layout: { x: widgetX, y: widgetY, w: widgetW, h: widgetH },
       binding: { entityId: '', entityType: 'device' },
       visibility: { rules: [], defaultState: 'show' },
-      appearance: { variant: 'glass', title: '', showTitle: true }
+      appearance: { variant: 'glass', title: '', showTitle: true },
     };
+
     const widgetId = generateId();
+
     const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx ? tab : { ...tab, widgets: [...tab.widgets, { id: widgetId, type, config: defaultConfig }] }
+      idx !== activeTabIdx
+        ? tab
+        : { ...tab, widgets: [...tab.widgets, { id: widgetId, type, config: defaultConfig }] },
     );
+
     const saved = await patch(active.id, { tabs: updatedTabs });
+
     if (saved) {
       setSelectedWidgetId(widgetId);
       setIsInspectorOpen(true);
     }
-  };
-
-  const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
+  }; const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
     if (!active) return;
     const updatedTabs = active.tabs.map((tab, idx) =>
       idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets }
@@ -343,7 +363,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
 
-      {/* ── Create Form ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Create Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {creating && (
         <DashboardCreateForm
           title={t('dashboards.action_new')}
@@ -357,7 +377,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
         />
       )}
 
-      {/* ── Main Content ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {dashboards.length === 0 ? (
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
