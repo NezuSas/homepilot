@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
+import { IconPicker } from '../components/IconPicker';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -92,32 +93,6 @@ const cardKinds: NormalizedSectionCardKind[] = [
   'energy',
   'assistant',
   'system',
-];
-
-const iconOptions: { id: SectionCardIcon; label: string }[] = [
-  { id: 'lightbulb', label: 'Lightbulb' },
-  { id: 'lightbulb-icon', label: 'LightbulbIcon' },
-  { id: 'lightbulb-off', label: 'LightbulbOff' },
-  { id: 'lightbulb-off-icon', label: 'LightbulbOffIcon' },
-  { id: 'lucide-lightbulb', label: 'LucideLightbulb' },
-  { id: 'power', label: 'Power' },
-  { id: 'power-icon', label: 'PowerIcon' },
-  { id: 'plug', label: 'Plug' },
-  { id: 'plug-icon', label: 'PlugIcon' },
-  { id: 'sun', label: 'Sun' },
-  { id: 'sun-icon', label: 'SunIcon' },
-  { id: 'moon', label: 'Moon' },
-  { id: 'moon-icon', label: 'MoonIcon' },
-  { id: 'fan', label: 'Fan' },
-  { id: 'fan-icon', label: 'FanIcon' },
-  { id: 'camera', label: 'Camera' },
-  { id: 'camera-icon', label: 'CameraIcon' },
-  { id: 'tv', label: 'Tv' },
-  { id: 'tv-icon', label: 'TvIcon' },
-  { id: 'shield', label: 'Shield' },
-  { id: 'shield-icon', label: 'ShieldIcon' },
-  { id: 'wifi', label: 'Wifi' },
-  { id: 'wifi-icon', label: 'WifiIcon' },
 ];
 
 function normalizeKind(kind: SectionCardKind): NormalizedSectionCardKind {
@@ -322,10 +297,6 @@ function normalizeIconKey(icon: SectionCardIcon) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-function getIconOptionLabel(icon: SectionCardIcon) {
-  const normalized = normalizeIconKey(icon);
-  return iconOptions.find((option) => normalizeIconKey(option.id) === normalized)?.label || icon || 'Lightbulb';
-}
 
 function iconForIconKey(icon: SectionCardIcon) {
   const normalized = normalizeIconKey(icon);
@@ -510,8 +481,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [draftTitle, setDraftTitle] = useState(config.appearance?.title || '');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
-  const [iconQuery, setIconQuery] = useState('Lightbulb');
-  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
 
   const rawTitle = config.appearance?.title?.trim();
@@ -581,7 +550,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
     setEditingCardId(nextCard.id);
     const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
-    setIconQuery(getIconOptionLabel(nextIcon));
     setCardDraft({
       title: nextCard.title,
       kind: nextCard.kind,
@@ -594,7 +562,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const openCardEditor = (card: NormalizedSectionCardItem) => {
     setEditingCardId(card.id);
     const nextIcon = card.icon ?? getDefaultIcon(card.kind);
-    setIconQuery(getIconOptionLabel(nextIcon));
     setCardDraft({
       title: card.title,
       kind: card.kind,
@@ -878,7 +845,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                 value={cardDraft.kind}
                 onChange={(event) => {
                   const nextKind = event.target.value as NormalizedSectionCardKind;
-                  setIconQuery(getIconOptionLabel(getDefaultIcon(nextKind)));
                   setCardDraft((draft) => ({
                     ...draft,
                     kind: nextKind,
@@ -914,70 +880,10 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
             </label>
 
             {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
-              <div className="relative space-y-2">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Icono (opcional)</span>
-                <div className="relative">
-                  <input
-                    value={iconQuery}
-                    onFocus={() => setIsIconPickerOpen(true)}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setIconQuery(value);
-                      setIsIconPickerOpen(true);
-
-                      const exact = iconOptions.find((option) =>
-                        option.label.toLowerCase() === value.trim().toLowerCase() ||
-                        option.id.toLowerCase() === value.trim().toLowerCase()
-                      );
-
-                      if (exact) {
-                        setCardDraft((draft) => ({ ...draft, icon: exact.id }));
-                      }
-                    }}
-                    placeholder="Buscar icono, ej. Lightbulb"
-                    className="w-full rounded-2xl border border-primary/60 bg-background/60 px-12 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary"
-                  />
-                  {(() => {
-                    const Icon = iconForIconKey(cardDraft.icon);
-                    return <Icon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />;
-                  })()}
-                </div>
-
-                {isIconPickerOpen ? (
-                  <div className="absolute left-0 right-0 top-full z-[100000] mt-2 max-h-56 overflow-y-auto rounded-2xl border border-border/60 bg-popover p-2 shadow-2xl">
-                    {iconOptions
-                      .filter((option) => {
-                        const q = iconQuery.trim().toLowerCase();
-                        if (!q) return true;
-                        return option.label.toLowerCase().includes(q) || option.id.toLowerCase().includes(q);
-                      })
-                      .map((option) => {
-                        const Icon = iconForIconKey(option.id);
-                        const isSelected = normalizeIconKey(cardDraft.icon) === normalizeIconKey(option.id);
-
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setCardDraft((draft) => ({ ...draft, icon: option.id }));
-                              setIconQuery(option.label);
-                              setIsIconPickerOpen(false);
-                            }}
-                            className={cn(
-                              "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-black transition",
-                              isSelected ? "bg-primary/15 text-primary" : "text-foreground hover:bg-muted/60"
-                            )}
-                          >
-                            <Icon className="h-5 w-5 shrink-0" />
-                            <span>{option.label}</span>
-                          </button>
-                        );
-                      })}
-                  </div>
-                ) : null}
-              </div>
+              <IconPicker
+                value={cardDraft.icon}
+                onChange={(icon) => setCardDraft((draft) => ({ ...draft, icon }))}
+              />
             ) : null}
 
             {isBindableKind(cardDraft.kind) ? (
