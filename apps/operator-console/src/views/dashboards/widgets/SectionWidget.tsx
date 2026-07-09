@@ -16,6 +16,8 @@ import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
+import { DashboardSelect } from '../components/DashboardSelect';
+import { ClockWidget, CLOCK_STYLES, type ClockStyle } from './clock';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -100,6 +102,33 @@ function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   if (isClockKind(normalized)) return normalized === 'clock_minimal' ? 'medium' : 'full';
   if (normalized === 'camera') return 'medium';
   return 'medium';
+}
+
+const clockCardKinds: NormalizedSectionCardKind[] = [
+  'clock_premium',
+  'clock_analog',
+  'clock_digital',
+  'clock_minimal',
+];
+
+function getClockStyleFromKind(kind: SectionCardKind): ClockStyle {
+  switch (normalizeKind(kind)) {
+    case 'clock_digital':
+      return 'digital';
+    case 'clock_analog':
+      return 'analog-classic';
+    case 'clock_minimal':
+      return 'analog-minimal';
+    case 'clock_premium':
+    default:
+      return 'minimal';
+  }
+}
+
+function getClockKindLabel(kind: SectionCardKind) {
+  const style = getClockStyleFromKind(kind);
+  const option = CLOCK_STYLES.find((item) => item.value === style);
+  return option?.labelEs ?? option?.label ?? kind;
 }
 
 function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
@@ -302,41 +331,33 @@ function CardPreview({
   const isSmall = span === 'small';
 
   if (isClockKind(normalized)) {
-    const analog = normalized === 'clock_analog';
-    const minimal = normalized === 'clock_minimal';
-
     return (
-      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-border/45 bg-gradient-to-br from-primary/10 via-card to-background p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">
-            {analog ? 'Analógico premium' : minimal ? 'Minimal' : 'Digital compacto'}
-          </span>
-          {!isSmall ? (
-            <span className="rounded-full border border-primary/30 px-2 py-1 text-[9px] font-black text-primary">
-              13 seg
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-1 items-center justify-center">
-          {analog ? (
-            <div className={cn("relative rounded-full border border-primary/40", isSmall ? "h-16 w-16" : "h-24 w-24")}>
-              <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
-              <span className="absolute left-1/2 top-1/2 h-[2px] w-8 origin-left -rotate-45 bg-foreground" />
-              <span className="absolute left-1/2 top-1/2 h-[2px] w-6 origin-left rotate-90 bg-primary" />
-            </div>
-          ) : (
-            <span className={cn("font-black tracking-tight text-foreground", span === 'full' ? "text-6xl" : "text-4xl")}>
-              09<span className="text-primary">:</span>21
-            </span>
-          )}
-        </div>
-
-        {!isSmall ? (
-          <div className="rounded-full border border-border/40 bg-background/40 px-3 py-1 text-[10px] font-black uppercase text-muted-foreground">
-            Cuenca · 15°C
-          </div>
-        ) : null}
+      <div className="h-full w-full overflow-hidden rounded-[1.35rem] border border-border/40 bg-background">
+        <ClockWidget
+          config={{
+            layout: {
+              x: 0,
+              y: 0,
+              w: span === 'full' ? 6 : 4,
+              h: span === 'small' ? 3 : 4,
+            },
+            binding: {
+              entityId: '',
+              entityType: 'system',
+            },
+            visibility: {
+              rules: [],
+              defaultState: 'show',
+            },
+            appearance: {
+              title,
+              showTitle: false,
+            },
+            extra: {
+              clockStyle: getClockStyleFromKind(normalized),
+            },
+          }}
+        />
       </div>
     );
   }
@@ -765,18 +786,23 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const editorModal = editingCard ? (
     <ModalPortal>
       <div
-        className="fixed inset-0 z-[99999] flex items-center justify-center bg-background/75 p-4 backdrop-blur-md"
+        className="fixed inset-0 z-[99999] grid place-items-center bg-black/55 px-4 backdrop-blur-sm"
         onClick={() => setEditingCardId(null)}
       >
         <div
-          className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-border/50 bg-card shadow-2xl"
+          className="w-full max-w-xl rounded-[2rem] border border-border/60 bg-card shadow-2xl"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between border-b border-border/40 px-6 py-5">
+          <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">Editar</p>
-              <h3 className="mt-1 text-2xl font-black tracking-tight text-foreground">Editar tarjeta</h3>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Editar
+              </p>
+              <h3 className="text-xl font-black text-foreground">
+                Editar tarjeta
+              </h3>
             </div>
+
             <button
               type="button"
               onClick={() => setEditingCardId(null)}
@@ -786,18 +812,18 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
             </button>
           </div>
 
-          <div className="space-y-5 px-6 py-5">
-            <div
-              className={cn(
-                "overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/35 p-2",
-                cardDraft.span === 'small' ? "mx-auto h-44 w-56" : cardDraft.span === 'medium' ? "h-48" : "h-56"
-              )}
-            >
-              {renderCatalogPreview(cardDraft.kind, cardDraft.title || t(getCatalogLabelKey(cardDraft.kind)), cardDraft.span, cardDraft.icon)}
-            </div>
+          <div className="space-y-4 px-5 py-5">
+            {renderCatalogPreview(
+              cardDraft.kind,
+              cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : t(getCatalogLabelKey(cardDraft.kind))),
+              cardDraft.span,
+              cardDraft.icon
+            )}
 
             <label className="block space-y-2">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Nombre</span>
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Nombre
+              </span>
               <input
                 value={cardDraft.title}
                 onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.target.value }))}
@@ -805,12 +831,38 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
               />
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Tipo de tarjeta</span>
-              <select
+            {isClockKind(cardDraft.kind) ? (
+              <DashboardSelect
+                label="Diseño de reloj"
                 value={cardDraft.kind}
-                onChange={(event) => {
-                  const nextKind = event.target.value as NormalizedSectionCardKind;
+                options={clockCardKinds.map((kind) => ({
+                  value: kind,
+                  label: getClockKindLabel(kind),
+                }))}
+                onChange={(value) => {
+                  const nextKind = value as NormalizedSectionCardKind;
+                  setCardDraft((draft) => ({
+                    ...draft,
+                    kind: nextKind,
+                    entityId: '',
+                    span: getDefaultSpan(nextKind),
+                    icon: getDefaultIcon(nextKind),
+                    title: draft.title || getClockKindLabel(nextKind),
+                  }));
+                }}
+              />
+            ) : (
+              <DashboardSelect
+                label="Tipo de tarjeta"
+                value={cardDraft.kind}
+                options={cardKinds
+                  .filter((kind) => !isClockKind(kind))
+                  .map((kind) => ({
+                    value: kind,
+                    label: t(getCatalogLabelKey(kind)),
+                  }))}
+                onChange={(value) => {
+                  const nextKind = value as NormalizedSectionCardKind;
                   setCardDraft((draft) => ({
                     ...draft,
                     kind: nextKind,
@@ -820,30 +872,19 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                     title: draft.title || t(getCatalogLabelKey(nextKind)),
                   }));
                 }}
-                className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary/60"
-              >
-                {cardKinds.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {t(getCatalogLabelKey(kind))}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            )}
 
-            <label className="block space-y-2">
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-                {t('dashboard.editor.sections.card_size')}
-              </span>
-              <select
-                value={cardDraft.span}
-                onChange={(event) => setCardDraft((draft) => ({ ...draft, span: event.target.value as SectionCardSpan }))}
-                className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary/60"
-              >
-                <option value="small">{t('dashboard.editor.sections.card_size_small')}</option>
-                <option value="medium">{t('dashboard.editor.sections.card_size_medium')}</option>
-                <option value="full">{t('dashboard.editor.sections.card_size_full')}</option>
-              </select>
-            </label>
+            <DashboardSelect
+              label={t('dashboard.editor.sections.card_size')}
+              value={cardDraft.span}
+              options={[
+                { value: 'small', label: t('dashboard.editor.sections.card_size_small') },
+                { value: 'medium', label: t('dashboard.editor.sections.card_size_medium') },
+                { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
+              ]}
+              onChange={(value) => setCardDraft((draft) => ({ ...draft, span: value as SectionCardSpan }))}
+            />
 
             {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
               <IconPicker
@@ -853,12 +894,19 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
             ) : null}
 
             {isBindableKind(cardDraft.kind) ? (
-              <label className="block space-y-2">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Dispositivo asignado</span>
-                <select
+              <div className="space-y-2">
+                <DashboardSelect
+                  label="Dispositivo asignado"
                   value={cardDraft.entityId}
-                  onChange={(event) => {
-                    const selectedId = event.target.value;
+                  placeholder="Sin asignar"
+                  options={[
+                    { value: '', label: 'Sin asignar' },
+                    ...filteredDevices.map((device) => ({
+                      value: device.id,
+                      label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
+                    })),
+                  ]}
+                  onChange={(selectedId) => {
                     const selectedDevice = devices.find((device) => device.id === selectedId);
                     setCardDraft((draft) => ({
                       ...draft,
@@ -866,23 +914,16 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                       title: selectedDevice?.name || draft.title,
                     }));
                   }}
-                  className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary/60"
-                >
-                  <option value="">Sin asignar</option>
-                  {filteredDevices.map((device) => (
-                    <option key={device.id} value={device.id}>
-                      {device.name} · {device.type || device.semanticType || 'device'}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs font-medium leading-relaxed text-muted-foreground">
+                />
+
+                <p className="text-xs font-semibold text-muted-foreground">
                   Esta asignación queda guardada dentro de la tarjeta de la sección.
                 </p>
-              </label>
+              </div>
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-border/40 px-6 py-4">
+          <div className="flex justify-end gap-3 border-t border-border/50 px-5 py-4">
             <button
               type="button"
               onClick={() => setEditingCardId(null)}
@@ -890,10 +931,11 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
             >
               Cancelar
             </button>
+
             <button
               type="button"
               onClick={saveCardEditor}
-              className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground transition hover:opacity-90"
+              className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105"
             >
               Guardar
             </button>
