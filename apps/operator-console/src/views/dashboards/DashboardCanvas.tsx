@@ -12,9 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
-import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
-import { useAssistantStore } from '../../stores/useAssistantStore';
-import { isDeviceActive, sanitizeWidget } from './dashboardUtils';
+import { sanitizeWidget } from './dashboardUtils';
 
 interface DashboardCanvasProps {
   widgets: DashboardWidget[];
@@ -41,159 +39,6 @@ function getCanvasColumns(width: number): number {
   return DESKTOP_GRID_COLS;
 }
 
-function clampLayoutWidth(width: number, cols: number): number {
-  return Math.max(1, Math.min(cols, width));
-}
-
-function getResponsiveWidgetWidth(widget: DashboardWidget, cols: number): number {
-  if (cols === DESKTOP_GRID_COLS) {
-    return clampLayoutWidth(widget.config.layout.w, cols);
-  }
-
-  if (widget.type === 'section') return cols;
-  if (cols === MOBILE_GRID_COLS) return 1;
-
-  const scaled = Math.ceil((widget.config.layout.w / DESKTOP_GRID_COLS) * cols);
-
-  switch (widget.type) {
-    case 'device_control':
-    case 'scene_shortcut':
-      return clampLayoutWidth(Math.max(2, scaled), cols);
-    case 'clock_display':
-    case 'room_overview':
-    case 'room_summary':
-    case 'energy_snapshot':
-    case 'assistant_insight':
-    case 'system_status':
-    case 'activity_feed':
-      return clampLayoutWidth(Math.max(3, scaled), cols);
-    default:
-      return clampLayoutWidth(Math.max(2, scaled), cols);
-  }
-}
-
-function getResponsiveWidgetHeight(widget: DashboardWidget, cols: number): number {
-  const original = Math.max(1, widget.config.layout.h);
-
-  if (cols === DESKTOP_GRID_COLS) return original;
-  if (widget.type === 'section') return 1;
-
-  if (cols === MOBILE_GRID_COLS) {
-    switch (widget.type) {
-      case 'device_control':
-        return Math.max(2, Math.min(5, original));
-      case 'scene_shortcut':
-        return Math.max(3, Math.min(5, original));
-      case 'clock_display':
-        return Math.max(3, Math.min(6, original));
-      case 'room_overview':
-      case 'room_summary':
-        return Math.max(3, Math.min(6, original));
-      case 'energy_snapshot':
-      case 'assistant_insight':
-      case 'system_status':
-      case 'activity_feed':
-        return Math.max(4, Math.min(7, original));
-      default:
-        return Math.max(3, Math.min(6, original));
-    }
-  }
-
-  switch (widget.type) {
-    case 'device_control':
-      return Math.max(2, original);
-    case 'clock_display':
-    case 'room_overview':
-    case 'room_summary':
-    case 'scene_shortcut':
-      return Math.max(3, original);
-    default:
-      return Math.max(3, original);
-  }
-}
-
-function canPlace(occupied: boolean[][], x: number, y: number, w: number, h: number, cols: number): boolean {
-  if (x < 0 || x + w > cols) return false;
-
-  for (let row = y; row < y + h; row += 1) {
-    for (let col = x; col < x + w; col += 1) {
-      if (occupied[row]?.[col]) return false;
-    }
-  }
-
-  return true;
-}
-
-function markOccupied(occupied: boolean[][], x: number, y: number, w: number, h: number): void {
-  for (let row = y; row < y + h; row += 1) {
-    occupied[row] ??= [];
-    for (let col = x; col < x + w; col += 1) {
-      occupied[row][col] = true;
-    }
-  }
-}
-
-function packResponsiveWidgets(widgets: DashboardWidget[], cols: number): DashboardWidget[] {
-  const ordered = [...widgets].sort((a, b) => {
-    const byY = a.config.layout.y - b.config.layout.y;
-    if (byY !== 0) return byY;
-    return a.config.layout.x - b.config.layout.x;
-  });
-
-  if (cols === DESKTOP_GRID_COLS) {
-    return ordered.map((widget) => ({
-      ...widget,
-      config: {
-        ...widget.config,
-        layout: {
-          ...widget.config.layout,
-          x: Math.max(0, Math.min(DESKTOP_GRID_COLS - 1, widget.config.layout.x)),
-          w: Math.min(widget.config.layout.w, DESKTOP_GRID_COLS - Math.max(0, widget.config.layout.x)),
-          h: Math.max(1, widget.config.layout.h),
-        },
-      },
-    }));
-  }
-
-  const occupied: boolean[][] = [];
-
-  return ordered.map((widget) => {
-    const w = getResponsiveWidgetWidth(widget, cols);
-    const h = getResponsiveWidgetHeight(widget, cols);
-
-    let placedX = 0;
-    let placedY = 0;
-    let found = false;
-
-    for (let y = 0; y < 500 && !found; y += 1) {
-      for (let x = 0; x <= cols - w; x += 1) {
-        if (canPlace(occupied, x, y, w, h, cols)) {
-          placedX = x;
-          placedY = y;
-          found = true;
-          break;
-        }
-      }
-    }
-
-    markOccupied(occupied, placedX, placedY, w, h);
-
-    return {
-      ...widget,
-      config: {
-        ...widget.config,
-        layout: {
-          ...widget.config.layout,
-          x: placedX,
-          y: placedY,
-          w,
-          h,
-        },
-      },
-    };
-  });
-}
-
 export function DashboardCanvas({ 
   widgets, 
   isEditing, 
@@ -206,10 +51,7 @@ export function DashboardCanvas({
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const [snapPreview, setSnapPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { devices } = useDeviceSnapshotStore();
-  const { findings } = useAssistantStore();
-
-  // Track live column width so drag calculations and DragOverlay stay accurate.
+// Track live column width so drag calculations and DragOverlay stay accurate.
   const [containerWidth, setContainerWidth] = useState(0);
   const gridCols = useMemo(() => getCanvasColumns(containerWidth), [containerWidth]);
   const isResponsiveLayout = gridCols !== DESKTOP_GRID_COLS;
@@ -218,6 +60,9 @@ export function DashboardCanvas({
   const rowHeight = colWidth > 0
     ? Math.min(MAX_ROW_HEIGHT, Math.max(MIN_ROW_HEIGHT, Math.round(colWidth * 0.7)))
     : MIN_ROW_HEIGHT;
+  const dashboardItemInset = 16;
+  const dashboardItemInsetX = dashboardItemInset;
+  const dashboardItemInsetY = 12;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -244,8 +89,8 @@ export function DashboardCanvas({
     const rowStart = row * 4;
     const itemsInRow = Math.min(4, sectionCount - rowStart);
     const isLastRow = rowStart + itemsInRow >= sectionCount;
-    const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : itemsInRow;
-    const width = Math.floor(12 / Math.max(1, effectiveCount));
+    const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : Math.max(1, itemsInRow);
+    const width = Math.floor(12 / effectiveCount);
 
     return {
       x: indexInRow * width,
@@ -281,57 +126,10 @@ export function DashboardCanvas({
     };
   });
 }, [widgets, isEditing, t]);
-  
-  const evaluateVisibility = useCallback((widget: DashboardWidget): boolean => {
-    if (isEditing) return true; // Always show in edit mode
-    
-    const { rules, defaultState } = widget.config.visibility;
-    if (!rules || rules.length === 0) return defaultState === 'show';
 
-    for (const rule of rules) {
-      if (rule.type === 'always') return rule.action === 'show';
-      
-      if (rule.type === 'device_on') {
-         const device = devices.find(d => d.id === rule.value);
-         const isOn = device ? isDeviceActive(device) : false;
-         if (isOn) return rule.action === 'show';
-      }
+const renderedWidgets = sanitizedWidgets;
 
-      if (rule.type === 'has_alerts') {
-         const hasAlerts = findings.some(f => f.severity === 'high' || f.severity === 'medium');
-         if (hasAlerts) return rule.action === 'show';
-      }
-
-      if (rule.type === 'time_range' && rule.value) {
-         const [start, end] = rule.value.split('-').map(t => {
-            const [h, m] = t.split(':').map(Number);
-            return h * 60 + m;
-         });
-         const now = new Date();
-         const minutes = now.getHours() * 60 + now.getMinutes();
-         
-         const isInside = start <= end 
-            ? (minutes >= start && minutes <= end)
-            : (minutes >= start || minutes <= end);
-            
-         if (isInside) return rule.action === 'show';
-      }
-    }
-
-    return defaultState === 'show';
-  }, [isEditing, devices, findings]);
-
-  const visibleWidgets = useMemo(() => 
-    sanitizedWidgets.filter(evaluateVisibility),
-    [sanitizedWidgets, evaluateVisibility]
-  );
-
-  const renderedWidgets = useMemo(
-    () => packResponsiveWidgets(visibleWidgets, gridCols),
-    [visibleWidgets, gridCols]
-  );
-
-  // Compute virtual placeholders for HASS-style add-card and add-section buttons.
+// Compute virtual placeholders for HASS-style add-card and add-section buttons.
 const virtualPlaceholders = useMemo(() => {
   if (!canEditLayout) return [];
 
@@ -383,7 +181,7 @@ const virtualPlaceholders = useMemo(() => {
 }, [sanitizedWidgets, canEditLayout]);
 
 const canvasMinRows = useMemo(() => {
-    const bottomY = renderedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
+    const bottomY = renderedWidgets.reduce((max: number, w: DashboardWidget) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
     return Math.max(8, bottomY + (canEditLayout ? 6 : 2));
   }, [renderedWidgets, canEditLayout]);
 
@@ -476,7 +274,7 @@ const canvasMinRows = useMemo(() => {
           minHeight: `${canvasMinRows * rowHeight}px`,
         }}
       >
-        {renderedWidgets.map((widget) => (
+        {renderedWidgets.map((widget: DashboardWidget) => (
           <div
             key={widget.id}
             id={widget.id}
@@ -550,10 +348,10 @@ const canvasMinRows = useMemo(() => {
           : "items-center justify-center rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
-        left: placeholder.x * colWidth + 8,
-        top: placeholder.y * rowHeight + 8,
-        width: placeholder.w * colWidth - 16,
-        height: placeholder.h * rowHeight - 16,
+        left: placeholder.x * colWidth + dashboardItemInsetX,
+        top: placeholder.y * rowHeight + dashboardItemInsetY,
+        width: placeholder.w * colWidth - dashboardItemInsetX * 2,
+        height: placeholder.h * rowHeight - dashboardItemInsetY * 2,
       }}
     >
       {isAddTitle ? (

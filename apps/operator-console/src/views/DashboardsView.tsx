@@ -253,8 +253,8 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       const rowStart = row * 4;
       const itemsInRow = Math.min(4, sectionCount - rowStart);
       const isLastRow = rowStart + itemsInRow >= sectionCount;
-      const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : itemsInRow;
-      const width = Math.floor(12 / Math.max(1, effectiveCount));
+      const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : Math.max(1, itemsInRow);
+      const width = Math.floor(12 / effectiveCount);
 
       return {
         x: indexInRow * width,
