@@ -159,9 +159,6 @@ function normalizeCards(extra: DashboardWidgetConfig['extra']): SectionCardItem[
 }
 
 function getRecommendedSectionHeight(currentHeight: number, cardsCount: number) {
-  // The add-card tile is always an extra tile after the cards.
-  // 2 internal items per row. Real designed cards need enough height
-  // so the outer section border grows instead of clipping row 2.
   const internalItems = Math.max(1, cardsCount + 1);
   const internalRows = Math.ceil(internalItems / 2);
   const recommended = Math.max(4, 1 + internalRows * 3);
@@ -317,35 +314,36 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
       variant: config.appearance?.variant || 'glass',
     },
     extra: {
-      // Safe defaults for real widget previews rendered inside sections.
-      // Some widgets expect these fields to exist during render.
-      percentage: 64,
-      value: 64,
-      current: 64,
-      total: 100,
-      unit: '%',
-      status: 'preview',
+      ...config.extra,
+      percentage: typeof config.extra?.percentage === 'number' ? config.extra.percentage : 64,
+      value: typeof config.extra?.value === 'number' ? config.extra.value : 64,
+      current: typeof config.extra?.current === 'number' ? config.extra.current : 64,
+      total: typeof config.extra?.total === 'number' ? config.extra.total : 100,
+      unit: config.extra?.unit || '%',
+      status: config.extra?.status || 'preview',
       label: card.title,
       subtitle: card.entityName || card.description || '',
       cameraStatus: card.entityId ? 'live' : 'connecting',
       energy: {
         percentage: 64,
         current: 1.8,
+        total: 3,
         unit: 'kW',
-        trend: 5,
+        ...(typeof config.extra?.energy === 'object' && config.extra.energy ? config.extra.energy : {}),
       },
       metrics: {
         percentage: 64,
         current: 1.8,
-        total: 3.0,
+        total: 3,
         unit: 'kW',
+        ...(typeof config.extra?.metrics === 'object' && config.extra.metrics ? config.extra.metrics : {}),
       },
       stats: {
         percentage: 64,
         active: 1,
         total: 7,
+        ...(typeof config.extra?.stats === 'object' && config.extra.stats ? config.extra.stats : {}),
       },
-      ...config.extra,
       sectionCardId: card.id,
       sectionCardKind: card.kind,
       sectionCardPreview: true,
@@ -380,7 +378,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const renderCard = (card: SectionCardItem) => (
     <div
       key={card.id}
-      className="group/card relative min-h-[13rem] overflow-hidden rounded-[1.35rem] border border-border/45 bg-card/75 shadow-sm transition-all hover:border-primary/45"
+      className="group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/45 bg-card/75 shadow-sm transition-all hover:border-primary/45"
     >
       <div className="h-full w-full">
         {renderRealDesignedCard(card)}
@@ -615,7 +613,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   ) : null;
 
   const sectionGrid = (
-    <div className="grid min-h-0 flex-1 grid-cols-2 auto-rows-[13rem] content-start gap-3 overflow-visible pr-1">
+    <div className="grid min-h-0 flex-1 grid-cols-2 auto-rows-[10.5rem] content-start gap-3 overflow-visible pr-1">
       {cards.map(renderCard)}
 
       {isEditing ? (
@@ -626,7 +624,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
             setIsCatalogOpen(true);
           }}
           className={cn(
-            "inline-flex min-h-[13rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
+            "inline-flex min-h-[10.5rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
             cards.length === 0 && "col-span-2"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}

@@ -74,7 +74,7 @@ export function DashboardCanvas({
   const dashboardSectionStartY = 2;
 const dashboardSectionRows = 2;
 
-function getDashboardSectionLayout(sectionIndex: number, sectionCount: number) {
+function getDashboardSectionLayout(sectionIndex: number, sectionCount: number, sectionHeight = dashboardSectionRows) {
   const row = Math.floor(sectionIndex / 4);
   const indexInRow = sectionIndex % 4;
   const rowStart = row * 4;
@@ -89,7 +89,7 @@ function getDashboardSectionLayout(sectionIndex: number, sectionCount: number) {
     x: indexInRow * width,
     y: dashboardSectionStartY + row * dashboardSectionRows,
     w: width,
-    h: dashboardSectionRows,
+    h: sectionHeight,
   };
 }
 
@@ -108,7 +108,17 @@ const sanitizedWidgets = useMemo(() => {
   return baseWidgets.map((widget) => {
     if (widget.type !== 'section') return widget;
 
-    const layout = getDashboardSectionLayout(sectionIndex, sectionCount);
+    const sectionCards = Array.isArray(widget.config.extra?.cards)
+      ? widget.config.extra.cards
+      : [];
+    const internalItems = Math.max(1, sectionCards.length + 1);
+    const internalRows = Math.ceil(internalItems / 2);
+    const requestedHeight = Math.max(
+      widget.config.layout?.h ?? dashboardSectionRows,
+      dashboardSectionRows,
+      1 + internalRows * 3,
+    );
+    const layout = getDashboardSectionLayout(sectionIndex, sectionCount, requestedHeight);
     sectionIndex += 1;
 
     return {
