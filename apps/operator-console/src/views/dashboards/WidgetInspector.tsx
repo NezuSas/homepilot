@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { sanitizeWidget } from './dashboardUtils';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
+import { IconPicker } from './components/IconPicker';
 import { X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { SelectField } from '../../components/ui/SelectField';
@@ -53,7 +54,6 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   }, [isOpen, widget?.type]);
 
   const [iconQuery, setIconQuery] = useState('');
-  const iconInputRef = useRef<HTMLInputElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Local string states for dimension inputs - allow empty/in-progress typing
@@ -70,11 +70,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [widget?.id]);
 
-  const computeDropdownPos = () => {
-    if (!iconInputRef.current) return;
-    const rect = iconInputRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-  };
+;
 
   const safeWidget = useMemo(() => widget ? sanitizeWidget(widget) : null, [widget]);
 
@@ -449,20 +445,12 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
                 ) : (
                   <Icons.HelpCircle className="absolute left-3 w-5 h-5 text-muted-foreground/30 pointer-events-none" />
                 )}
-                <input
-                  ref={iconInputRef}
-                  type="text"
-                  className="w-full h-10 pl-10 pr-3 bg-card border border-border/60 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
-                  placeholder="Ej: Lightbulb, Power, Tv, Gata, Perro"
-                  value={iconQuery}
-                  onFocus={computeDropdownPos}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setIconQuery(val);
+                <IconPicker
+                  value={appearance.icon || ''}
+                  label=""
+                  onChange={(val) => {
                     onUpdate(safeWidget.id, { appearance: { ...appearance, icon: val } });
-                    setTimeout(computeDropdownPos, 0);
                   }}
-                  onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
                 />
               </div>
             </div>

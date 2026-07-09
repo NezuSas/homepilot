@@ -1,4 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+// HomePilot V27 - Safe modular IconPicker + WidgetInspector migration
+// Run from repo root:
+// node .\apply-homepilot-icon-picker-v27-safe-shared.cjs
+//
+// Fixes:
+// 1) Replaces dynamic lucide export rendering with a safe curated IconPicker to avoid React error #31.
+// 2) Keeps the same UX as the previous WidgetInspector icon field: input + dropdown + scroll.
+// 3) Uses IconPicker inside SectionWidget.
+// 4) Attempts to migrate WidgetInspector to the same IconPicker.
+// If the WidgetInspector pattern is different, the script leaves a warning and build will tell us what remains.
+
+const fs = require("fs");
+const path = require("path");
+
+const iconPickerPath = "apps/operator-console/src/views/dashboards/components/IconPicker.tsx";
+const sectionPath = "apps/operator-console/src/views/dashboards/widgets/SectionWidget.tsx";
+const inspectorPath = "apps/operator-console/src/views/dashboards/WidgetInspector.tsx";
+
+fs.mkdirSync(path.dirname(iconPickerPath), { recursive: true });
+
+const iconPicker = `import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AirVent,
@@ -24,6 +44,7 @@ import {
   Power,
   Radio,
   Router,
+  Search,
   Shield,
   Snowflake,
   Speaker,
@@ -94,7 +115,7 @@ function normalizeIconName(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/^lucide[-_\s]*/i, '')
+    .replace(/^lucide[-_\\s]*/i, '')
     .replace(/icon$/i, '')
     .replace(/[^a-z0-9]/g, '');
 }
@@ -227,3 +248,94 @@ export function IconPicker({
     </div>
   );
 }
+`;
+
+fs.writeFileSync(iconPickerPath, iconPicker, "utf8");
+
+function patchSectionWidget() {
+  let s = fs.readFileSync(sectionPath, "utf8");
+
+  if (!s.includes("components/IconPicker")) {
+    s = s.replace(
+      "import type { DashboardWidgetConfig, WidgetType } from '../types';",
+      "import type { DashboardWidgetConfig, WidgetType } from '../types';\nimport { IconPicker } from '../components/IconPicker';"
+    );
+  }
+
+  s = s.replace(/\n\s*const \[iconQuery, setIconQuery\] = useState\([^;]+;/g, "");
+  s = s.replace(/\n\s*const \[isIconPickerOpen, setIsIconPickerOpen\] = useState\([^;]+;/g, "");
+  s = s.replace(/\n\s*setIconQuery\([^;]+;/g, "");
+
+  const startNeedle = "            {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (";
+  const endNeedle = "            {isBindableKind(cardDraft.kind) ? (";
+  const start = s.indexOf(startNeedle);
+  const end = s.indexOf(endNeedle, start);
+
+  if (start >= 0 && end > start) {
+    const replacement = `            {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
+              <IconPicker
+                value={cardDraft.icon}
+                onChange={(icon) => setCardDraft((draft) => ({ ...draft, icon }))}
+              />
+            ) : null}
+
+`;
+    s = s.slice(0, start) + replacement + s.slice(end);
+  } else {
+    console.warn("WARNING: Could not find SectionWidget icon block. It may already be patched.");
+  }
+
+  fs.writeFileSync(sectionPath, s, "utf8");
+}
+
+function patchWidgetInspector() {
+  if (!fs.existsSync(inspectorPath)) {
+    console.warn("WARNING: WidgetInspector.tsx not found.");
+    return;
+  }
+
+  let s = fs.readFileSync(inspectorPath, "utf8");
+
+  if (!s.includes("components/IconPicker")) {
+    s = s.replace(
+      /import ([^;]+) from ['"]\.\/types['"];?/,
+      (match) => `${match}\nimport { IconPicker } from './components/IconPicker';`
+    );
+
+    if (!s.includes("components/IconPicker")) {
+      s = s.replace(
+        /(import[\s\S]*?from ['"][^'"]+['"];?\n)/,
+        `$1import { IconPicker } from './components/IconPicker';\n`
+      );
+    }
+  }
+
+  // Replace the specific input block the user pasted.
+  const inputRegex = /<input\s+ref=\{iconInputRef\}\s+type="text"[\s\S]*?onBlur=\{\(\) => setTimeout\(\(\) => setDropdownPos\(null\), 200\)\}\s*\/>/;
+
+  if (inputRegex.test(s)) {
+    s = s.replace(
+      inputRegex,
+      `<IconPicker
+                  value={appearance.icon || ''}
+                  label=""
+                  onChange={(val) => {
+                    onUpdate(safeWidget.id, { appearance: { ...appearance, icon: val } });
+                  }}
+                />`
+    );
+  } else {
+    console.warn("WARNING: WidgetInspector icon input pattern was not found. Paste its icon block if it still uses old code.");
+  }
+
+  // Remove common old dropdown rendering blocks if they became unused is too risky automatically.
+  // Keep old state/hooks for now if referenced elsewhere; TypeScript will tell us if any are unused.
+
+  fs.writeFileSync(inspectorPath, s, "utf8");
+}
+
+patchSectionWidget();
+patchWidgetInspector();
+
+console.log("V27 safe shared IconPicker applied.");
+console.log("Run: npm run build --workspace=apps/operator-console");
