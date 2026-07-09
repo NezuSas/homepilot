@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
@@ -16,8 +16,7 @@ import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
-import { DashboardSelect } from '../components/DashboardSelect';
-import { ClockWidget, type ClockStyle } from './clock';
+import { DashboardSelect } from '../components/DashboardSelect';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -104,73 +103,118 @@ function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
-const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; label: string }[] = [
+const clockCardOptions: { kind: NormalizedSectionCardKind; style: string; label: string }[] = [
   { kind: 'clock_premium', style: 'analog-classic', label: 'Analógico premium' },
   { kind: 'clock_digital', style: 'digital', label: 'Digital compacto' },
   { kind: 'clock_analog', style: 'minimal', label: 'Digital residencial' },
   { kind: 'clock_minimal', style: 'analog-minimal', label: 'Analógico minimal' },
 ];
 
-function getClockStyleFromKind(kind: SectionCardKind): ClockStyle {
-  const normalized = normalizeKind(kind);
-  return clockCardOptions.find((option) => option.kind === normalized)?.style ?? 'analog-classic';
-}
 
-function getClockKindLabel(kind: SectionCardKind) {
-  const normalized = normalizeKind(kind);
-  return clockCardOptions.find((option) => option.kind === normalized)?.label ?? 'Analógico premium';
-}
-
-function getClockPreviewScale(span: SectionCardSpan) {
-  switch (span) {
-    case 'small':
-      return 0.36;
-    case 'medium':
-      return 0.46;
-    case 'full':
+function getClockCardLabel(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'clock_digital':
+      return 'Digital compacto';
+    case 'clock_analog':
+      return 'Digital residencial';
+    case 'clock_minimal':
+      return 'Analógico minimal';
+    case 'clock_premium':
     default:
-      return 0.52;
+      return 'Analógico premium';
   }
 }
 
-function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
-  const normalized = normalizeKind(kind);
-  if (normalized === 'camera') return 'camera';
-  if (normalized === 'system') return 'wifi';
-  if (normalized === 'scene') return 'power';
-  if (normalized === 'cover') return 'sun';
-  if (normalized === 'device') return 'power';
-  return 'lightbulb';
+function AnalogDial({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={cn(
+      'relative shrink-0 rounded-full border border-primary/35 bg-black/20 shadow-[0_0_45px_rgba(234,88,12,0.16)]',
+      compact ? 'h-20 w-20' : 'h-28 w-28'
+    )}>
+      {Array.from({ length: 12 }).map((_, index) => (
+        <span
+          key={index}
+          className="absolute left-1/2 top-1/2 h-[1px] origin-left rounded-full bg-white/35"
+          style={{
+            width: compact ? 30 : 43,
+            transform: `rotate(${index * 30 - 90}deg) translateX(${compact ? 28 : 40}px)`,
+          }}
+        />
+      ))}
+
+      <span className="absolute left-1/2 top-1/2 h-1/2 w-1 -translate-x-1/2 origin-top rounded-full bg-white/85" style={{ transform: 'rotate(6deg)' }} />
+      <span className="absolute left-1/2 top-1/2 h-[38%] w-1 -translate-x-1/2 origin-top rounded-full bg-primary" style={{ transform: 'rotate(76deg)' }} />
+      <span className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-4 ring-background" />
+    </div>
+  );
 }
 
-function getSpanCols(span: SectionCardSpan) {
-  switch (span) {
-    case 'small':
-      return 2;
-    case 'full':
-      return 6;
-    case 'medium':
+function getCatalogLabelKey(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'light':
+      return 'dashboard.editor.sections.catalog.light';
+    case 'cover':
+      return 'dashboard.editor.sections.catalog.cover';
+    case 'camera':
+      return 'dashboard.editor.sections.catalog.camera';
+    case 'room':
+      return 'dashboard.editor.sections.catalog.room';
+    case 'scene':
+      return 'dashboard.editor.sections.catalog.scene';
+    case 'clock_digital':
+      return 'dashboard.editor.sections.catalog.clock_digital';
+    case 'clock_analog':
+      return 'dashboard.editor.sections.catalog.clock_analog';
+    case 'clock_premium':
+      return 'dashboard.editor.sections.catalog.clock_premium';
+    case 'clock_minimal':
+      return 'dashboard.editor.sections.catalog.clock_minimal';
+    case 'energy':
+      return 'dashboard.editor.sections.catalog.energy';
+    case 'assistant':
+      return 'dashboard.editor.sections.catalog.assistant';
+    case 'system':
+      return 'dashboard.editor.sections.catalog.system';
+    case 'device':
     default:
-      return 3;
+      return 'dashboard.editor.sections.catalog.device';
   }
 }
 
-function getSpanClass(span: SectionCardSpan) {
-  switch (span) {
-    case 'small':
-      return 'col-span-2';
-    case 'full':
-      return 'col-span-6';
-    case 'medium':
+function getCatalogDescriptionKey(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'light':
+      return 'dashboard.editor.sections.catalog.light_description';
+    case 'cover':
+      return 'dashboard.editor.sections.catalog.cover_description';
+    case 'camera':
+      return 'dashboard.editor.sections.catalog.camera_description';
+    case 'room':
+      return 'dashboard.editor.sections.catalog.room_description';
+    case 'scene':
+      return 'dashboard.editor.sections.catalog.scene_description';
+    case 'clock_digital':
+      return 'dashboard.editor.sections.catalog.clock_digital_description';
+    case 'clock_analog':
+      return 'dashboard.editor.sections.catalog.clock_analog_description';
+    case 'clock_premium':
+      return 'dashboard.editor.sections.catalog.clock_premium_description';
+    case 'clock_minimal':
+      return 'dashboard.editor.sections.catalog.clock_minimal_description';
+    case 'energy':
+      return 'dashboard.editor.sections.catalog.energy_description';
+    case 'assistant':
+      return 'dashboard.editor.sections.catalog.assistant_description';
+    case 'system':
+      return 'dashboard.editor.sections.catalog.system_description';
+    case 'device':
     default:
-      return 'col-span-3';
+      return 'dashboard.editor.sections.catalog.device_description';
   }
 }
 
 function getWidgetType(kind: SectionCardKind): WidgetType {
-  const normalized = normalizeKind(kind);
-
-  switch (normalized) {
+  switch (normalizeKind(kind)) {
     case 'room':
       return 'room_overview' as WidgetType;
     case 'scene':
@@ -181,6 +225,11 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
       return 'assistant_insight' as WidgetType;
     case 'system':
       return 'system_status' as WidgetType;
+    case 'clock_digital':
+    case 'clock_analog':
+    case 'clock_premium':
+    case 'clock_minimal':
+      return 'clock_display' as WidgetType;
     case 'device':
     case 'light':
     case 'cover':
@@ -190,126 +239,298 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
   }
 }
 
-function getCatalogLabelKey(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'device':
-      return 'dashboard.editor.sections.section_card_device';
-    case 'light':
-      return 'dashboard.editor.sections.section_card_light';
-    case 'cover':
-      return 'dashboard.editor.sections.section_card_cover';
-    case 'camera':
-      return 'dashboard.editor.sections.section_card_camera';
-    case 'room':
-      return 'dashboard.editor.sections.section_card_room';
-    case 'scene':
-      return 'dashboard.editor.sections.section_card_scene';
-    case 'clock_digital':
-      return 'dashboard.editor.sections.section_card_clock_digital';
-    case 'clock_analog':
-      return 'dashboard.editor.sections.section_card_clock_analog';
-    case 'clock_premium':
-      return 'dashboard.editor.sections.section_card_clock_premium';
-    case 'clock_minimal':
-      return 'dashboard.editor.sections.section_card_clock_minimal';
-    case 'energy':
-      return 'dashboard.editor.sections.section_card_energy';
-    case 'assistant':
-      return 'dashboard.editor.sections.section_card_assistant';
-    case 'system':
-      return 'dashboard.editor.sections.section_card_system';
-  }
-}
-
-function getCatalogDescriptionKey(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'device':
-      return 'dashboard.editor.sections.section_card_device_desc';
-    case 'light':
-      return 'dashboard.editor.sections.section_card_light_desc';
-    case 'cover':
-      return 'dashboard.editor.sections.section_card_cover_desc';
-    case 'camera':
-      return 'dashboard.editor.sections.section_card_camera_desc';
-    case 'room':
-      return 'dashboard.editor.sections.section_card_room_desc';
-    case 'scene':
-      return 'dashboard.editor.sections.section_card_scene_desc';
-    case 'clock_digital':
-      return 'dashboard.editor.sections.section_card_clock_digital_desc';
-    case 'clock_analog':
-      return 'dashboard.editor.sections.section_card_clock_analog_desc';
-    case 'clock_premium':
-      return 'dashboard.editor.sections.section_card_clock_premium_desc';
-    case 'clock_minimal':
-      return 'dashboard.editor.sections.section_card_clock_minimal_desc';
-    case 'energy':
-      return 'dashboard.editor.sections.section_card_energy_desc';
-    case 'assistant':
-      return 'dashboard.editor.sections.section_card_assistant_desc';
-    case 'system':
-      return 'dashboard.editor.sections.section_card_system_desc';
-  }
-}
-
-function normalizeCards(extra: DashboardWidgetConfig['extra']): NormalizedSectionCardItem[] {
-  const rawCards = extra?.cards;
-  if (!Array.isArray(rawCards)) return [];
-
-  return rawCards
-    .filter((card): card is SectionCardItem => {
-      if (!card || typeof card !== 'object') return false;
-      const candidate = card as Partial<SectionCardItem>;
-      return typeof candidate.id === 'string' && typeof candidate.kind === 'string';
-    })
-    .map((card) => {
-      const kind = normalizeKind(card.kind);
-      return {
-        ...card,
-        kind,
-        title: typeof card.title === 'string' && card.title.trim() ? card.title : kind,
-        widgetType: card.widgetType ?? getWidgetType(kind),
-        span: card.span ?? getDefaultSpan(kind),
-        icon: card.icon ?? getDefaultIcon(kind),
-      };
-    });
-}
-
-function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSectionCardItem[]) {
-  const spans = [
-    ...cards.map((card) => getSpanCols(card.span ?? getDefaultSpan(card.kind))),
-    3,
-  ];
-
-  let rows = 1;
-  let used = 0;
-
-  for (const cols of spans) {
-    if (used + cols > 6) {
-      rows += 1;
-      used = 0;
-    }
-
-    used += cols;
-
-    if (used >= 6) {
-      rows += 1;
-      used = 0;
-    }
-  }
-
-  const effectiveRows = Math.max(1, used === 0 ? rows - 1 : rows);
-  const recommended = Math.max(4, 1 + effectiveRows * 3);
-  return Math.max(currentHeight || 4, recommended);
-}
-
 function isBindableKind(kind: SectionCardKind) {
   const normalized = normalizeKind(kind);
   return normalized === 'device' || normalized === 'light' || normalized === 'cover' || normalized === 'camera';
 }
 
+function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
+  switch (normalizeKind(kind)) {
+    case 'light':
+      return 'Lightbulb';
+    case 'cover':
+      return 'Blinds';
+    case 'camera':
+      return 'Camera';
+    case 'room':
+      return 'Home';
+    case 'scene':
+      return 'Sparkles';
+    case 'clock_digital':
+    case 'clock_analog':
+    case 'clock_premium':
+    case 'clock_minimal':
+      return 'Clock';
+    case 'energy':
+      return 'Zap';
+    case 'assistant':
+      return 'Bot';
+    case 'system':
+      return 'Shield';
+    case 'device':
+    default:
+      return 'Power';
+  }
+}
+
 function iconForIconKey(icon: SectionCardIcon) {
   return getLucideIconComponent(icon);
+}
+
+function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSectionCardItem[] {
+  const rawCards = Array.isArray(extra?.cards) ? extra.cards : [];
+
+  return rawCards.map((rawCard, index) => {
+    const card = rawCard as Partial<NormalizedSectionCardItem> & Record<string, unknown>;
+    const kind = normalizeKind((card.kind as SectionCardKind) || 'device');
+
+    return {
+      id: typeof card.id === 'string' && card.id.trim() ? card.id : createId(),
+      kind,
+      title: typeof card.title === 'string' && card.title.trim()
+        ? card.title
+        : isClockKind(kind)
+          ? getClockKindLabel(kind)
+          : kind,
+      description: typeof card.description === 'string' ? card.description : '',
+      widgetType: (card.widgetType as WidgetType) || getWidgetType(kind),
+      entityId: typeof card.entityId === 'string' ? card.entityId : undefined,
+      entityName: typeof card.entityName === 'string' ? card.entityName : undefined,
+      span: card.span === 'medium' || card.span === 'full' || card.span === 'small' ? card.span : getDefaultSpan(kind),
+      icon: typeof card.icon === 'string' && card.icon.trim() ? card.icon : getDefaultIcon(kind),
+      order: typeof card.order === 'number' ? card.order : index,
+    };
+  });
+}
+
+function getSpanClass(span: SectionCardSpan) {
+  switch (span) {
+    case 'full':
+      return 'col-span-4';
+    case 'medium':
+      return 'col-span-2';
+    case 'small':
+    default:
+      return 'col-span-1';
+  }
+}
+
+function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSectionCardItem[]) {
+  if (cards.length === 0) return Math.max(currentHeight, 3);
+
+  const rows = cards.reduce((total, card) => {
+    if (card.span === 'full') return total + 1;
+    if (card.span === 'medium') return total + 0.5;
+    return total + 0.25;
+  }, 0);
+
+  return Math.max(currentHeight, Math.ceil(rows * 2.2) + 2);
+}
+
+function formatClockTime(date: Date) {
+  return new Intl.DateTimeFormat('es-EC', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
+function getClockKindLabel(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'clock_digital':
+      return 'Digital compacto';
+    case 'clock_analog':
+      return 'Digital residencial';
+    case 'clock_minimal':
+      return 'Analógico minimal';
+    case 'clock_premium':
+    default:
+      return 'Analógico premium';
+  }
+}
+
+function SectionClockPreview({
+  kind,
+  title,
+  span,
+}: {
+  kind: SectionCardKind;
+  title: string;
+  span: SectionCardSpan;
+}) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const normalized = normalizeKind(kind);
+  const label = getClockCardLabel(normalized);
+  const time = formatClockTime(now);
+  const isFull = span === 'full';
+  const isSmall = span === 'small';
+
+  if (normalized === 'clock_digital') {
+    return (
+      <div className="relative flex h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-[radial-gradient(circle_at_25%_20%,rgba(234,88,12,0.18),transparent_34%),linear-gradient(135deg,rgba(20,20,20,0.98),rgba(11,11,11,0.98))] p-4 shadow-sm">
+        <div className="flex h-full w-full flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-[0.42em] text-primary">
+              {label}
+            </p>
+            <span className="rounded-full border border-border/45 bg-background/55 px-2 py-1 text-[10px] font-black text-foreground">
+              {now.getSeconds().toString().padStart(2, '0')} seg
+            </span>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center">
+            <p className={cn('font-black leading-none text-white', isFull ? 'text-7xl' : isSmall ? 'text-4xl' : 'text-5xl')}>
+              {time}
+            </p>
+          </div>
+
+          <div className="h-2 rounded-full border border-border/30 bg-background/40">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(4, (now.getMinutes() / 60) * 100)}%` }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (normalized === 'clock_minimal') {
+    return (
+      <div className="relative flex h-full min-h-[10.5rem] items-center justify-center overflow-hidden rounded-[1.35rem] border border-border/40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.07),transparent_38%),linear-gradient(135deg,rgba(20,20,20,0.98),rgba(9,9,9,0.98))] p-4 shadow-sm">
+        <div className={cn('flex items-center gap-5', isSmall && 'flex-col gap-2')}>
+          <AnalogDial compact={isSmall} />
+          <div className={cn(isSmall && 'text-center')}>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">{label}</p>
+            <p className="mt-2 text-4xl font-black leading-none text-white">{time}</p>
+            {!isSmall ? <p className="mt-2 text-xs font-black uppercase text-white/55">Cuenca · 15°C</p> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-[radial-gradient(circle_at_15%_20%,rgba(234,88,12,0.2),transparent_34%),linear-gradient(135deg,rgba(22,22,22,0.98),rgba(10,10,10,0.98))] p-4 shadow-sm">
+      <div className={cn(
+        'flex h-full w-full items-center',
+        isFull ? 'justify-center gap-8' : 'justify-center gap-4',
+        isSmall && 'flex-col gap-2'
+      )}>
+        <AnalogDial compact={!isFull} />
+
+        <div className={cn(isSmall && 'text-center')}>
+          <p className="text-[10px] font-black uppercase tracking-[0.45em] text-primary">
+            {label}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-white/55">
+            {title || 'Reloj'}
+          </p>
+          <p className={cn('mt-3 font-black leading-none text-white', isFull ? 'text-6xl' : 'text-4xl')}>
+            {time}
+          </p>
+          {!isSmall ? (
+            <div className="mt-3 rounded-full border border-border/35 bg-background/35 px-3 py-1 text-[10px] font-black uppercase text-white/70">
+              Cuenca · 15°C
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function resolveMediaUrl(value: unknown) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return `${window.location.origin}${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> | null }) {
+  const state = device?.lastKnownState;
+  if (!state || typeof state !== 'object') return undefined;
+
+  const attributes = typeof state.attributes === 'object' && state.attributes !== null
+    ? state.attributes as Record<string, unknown>
+    : {};
+
+  const sources = [
+    state.streamUrl,
+    state.stream_url,
+    state.snapshotUrl,
+    state.snapshot_url,
+    state.imageUrl,
+    state.image_url,
+    state.entity_picture,
+    state.picture,
+    state.url,
+    attributes.streamUrl,
+    attributes.stream_url,
+    attributes.snapshotUrl,
+    attributes.snapshot_url,
+    attributes.imageUrl,
+    attributes.image_url,
+    attributes.entity_picture,
+    attributes.picture,
+    attributes.url,
+  ];
+
+  for (const source of sources) {
+    const resolved = resolveMediaUrl(source);
+    if (resolved) return resolved;
+  }
+
+  return undefined;
+}
+
+function CameraMediaPreview({ mediaUrl, title }: { mediaUrl?: string; title: string }) {
+  const isVideo = Boolean(mediaUrl && /\.(mp4|webm|ogg)(\?|#|$)/i.test(mediaUrl));
+  const isHls = Boolean(mediaUrl && /\.m3u8(\?|#|$)/i.test(mediaUrl));
+  const isRtsp = Boolean(mediaUrl && /^rtsp:/i.test(mediaUrl));
+
+  if (mediaUrl && isVideo) {
+    return (
+      <video
+        className="h-full w-full object-cover"
+        src={mediaUrl}
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    );
+  }
+
+  if (mediaUrl && !isHls && !isRtsp) {
+    return (
+      <img
+        className="h-full w-full object-cover"
+        src={mediaUrl}
+        alt={title}
+      />
+    );
+  }
+
+  return (
+    <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_90%_20%,rgba(234,88,12,0.25),transparent_16%),linear-gradient(135deg,rgba(234,88,12,0.24),rgba(18,18,18,0.95)_42%,rgba(8,8,8,0.98))]">
+      <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
+        <Camera className="h-9 w-9" />
+      </div>
+    </div>
+  );
 }
 
 function CardPreview({
@@ -319,6 +540,7 @@ function CardPreview({
   span,
   icon,
   isAssigned,
+  mediaUrl,
 }: {
   kind: SectionCardKind;
   title: string;
@@ -326,74 +548,41 @@ function CardPreview({
   span: SectionCardSpan;
   icon?: SectionCardIcon;
   isAssigned?: boolean;
+  mediaUrl?: string;
 }) {
   const normalized = normalizeKind(kind);
   const Icon = iconForIconKey(icon ?? getDefaultIcon(normalized));
   const isSmall = span === 'small';
 
   if (isClockKind(normalized)) {
-    const scale = getClockPreviewScale(span);
-
     return (
-      <div className="relative h-full min-h-[10.5rem] w-full overflow-hidden rounded-[1.35rem] border border-border/40 bg-background shadow-sm">
-        <div
-          className="absolute left-1/2 top-1/2"
-          style={{
-            width: 620,
-            height: 320,
-            transform: `translate(-50%, -50%) scale(${scale})`,
-            transformOrigin: 'center',
-          }}
-        >
-          <ClockWidget
-            config={{
-              layout: {
-                x: 0,
-                y: 0,
-                w: 6,
-                h: 4,
-              },
-              binding: {
-                entityId: '',
-                entityType: 'system',
-              },
-              visibility: {
-                rules: [],
-                defaultState: 'show',
-              },
-              appearance: {
-                title,
-                showTitle: false,
-              },
-              extra: {
-                clockStyle: getClockStyleFromKind(normalized),
-              },
-            }}
-          />
-        </div>
-      </div>
+      <SectionClockPreview
+        kind={normalized}
+        title={title}
+        span={span}
+      />
     );
   }
 
   if (normalized === 'camera') {
     return (
-      <div className="relative h-full min-h-0 overflow-hidden rounded-[1.35rem] border border-border/45 bg-card">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(234,88,12,0.26),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
-        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between">
-          <span className="rounded-full bg-background/80 px-3 py-1 text-[10px] font-black text-foreground">
-            ● En vivo
-          </span>
+      <div className="relative h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
+        <CameraMediaPreview mediaUrl={mediaUrl} title={title} />
+
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+        <div className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-black text-foreground shadow-sm">
+          <span className="mr-1 text-primary">●</span>
+          En vivo
         </div>
-        <div className="absolute inset-x-3 top-12 bottom-14 overflow-hidden rounded-xl border border-border/35 bg-background/45">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/35 via-muted/30 to-background" />
-          <div className="absolute left-4 top-4 h-8 w-16 rounded bg-background/35" />
-          <div className="absolute bottom-4 left-4 h-10 w-20 rounded bg-background/40" />
-          <div className="absolute bottom-4 right-4 h-14 w-14 rounded-full bg-primary/20" />
-          <Camera className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 text-foreground/65" />
-        </div>
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="line-clamp-1 text-sm font-black text-foreground">{title}</div>
-          <div className="mt-1 line-clamp-1 text-xs font-semibold text-muted-foreground">{subtitle || 'Vista de cámara'}</div>
+
+        <div className="absolute bottom-3 left-3 right-3">
+          <p className="truncate text-sm font-black text-white drop-shadow">
+            {title}
+          </p>
+          <p className="mt-0.5 truncate text-xs font-semibold text-white/75">
+            {mediaUrl ? 'Vista en vivo / snapshot' : subtitle || 'Sin URL de video asignada'}
+          </p>
         </div>
       </div>
     );
@@ -628,7 +817,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const renderCard = (card: NormalizedSectionCardItem) => {
     const span = card.span ?? getDefaultSpan(card.kind);
     const subtitle = card.entityName || card.description;
-
+    const assignedDevice = card.entityId ? devices.find((device) => device.id === card.entityId) : undefined;
+    const mediaUrl = normalizeKind(card.kind) === 'camera' ? getCameraMediaUrl(assignedDevice) : undefined;
     return (
       <div
         key={card.id}
@@ -666,6 +856,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
           span={span}
           icon={card.icon}
           isAssigned={Boolean(card.entityId)}
+          mediaUrl={mediaUrl}
         />
 
         {isEditing ? (
