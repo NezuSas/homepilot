@@ -1,42 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  AirVent,
-  AlarmClock,
-  Bell,
-  Bot,
-  Camera,
-  Car,
-  CircleHelp,
-  Cloud,
-  Coffee,
-  DoorOpen,
-  Fan,
-  Flame,
-  Gauge,
-  Home,
-  Lamp,
-  Lightbulb,
-  LightbulbOff,
-  Lock,
-  Moon,
-  Plug,
-  Power,
-  Radio,
-  Router,
-  Shield,
-  Snowflake,
-  Speaker,
-  Sun,
-  Thermometer,
-  ToggleLeft,
-  Tv,
-  Unlock,
-  Waves,
-  Wifi,
-  Wind,
-  Zap,
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { CircleHelp } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 interface IconPickerProps {
@@ -47,66 +12,61 @@ interface IconPickerProps {
   className?: string;
 }
 
-type IconComponent = React.ComponentType<{ className?: string }>;
+type IconComponent = ComponentType<{ className?: string }>;
 
-const ICONS: { name: string; icon: IconComponent; aliases?: string[] }[] = [
-  { name: 'Lightbulb', icon: Lightbulb, aliases: ['Foco', 'Luz', 'Bulb'] },
-  { name: 'LightbulbIcon', icon: Lightbulb, aliases: ['LucideLightbulb'] },
-  { name: 'LightbulbOff', icon: LightbulbOff, aliases: ['Luz apagada'] },
-  { name: 'LightbulbOffIcon', icon: LightbulbOff },
-  { name: 'Power', icon: Power, aliases: ['Encendido', 'Switch'] },
-  { name: 'PowerIcon', icon: Power },
-  { name: 'Plug', icon: Plug, aliases: ['Enchufe', 'Outlet'] },
-  { name: 'PlugIcon', icon: Plug },
-  { name: 'Sun', icon: Sun, aliases: ['Sol', 'Dia'] },
-  { name: 'Moon', icon: Moon, aliases: ['Luna', 'Noche'] },
-  { name: 'Fan', icon: Fan, aliases: ['Ventilador'] },
-  { name: 'Camera', icon: Camera, aliases: ['Camara', 'CCTV'] },
-  { name: 'Tv', icon: Tv, aliases: ['Television'] },
-  { name: 'Wifi', icon: Wifi, aliases: ['WiFi', 'Internet'] },
-  { name: 'Router', icon: Router, aliases: ['Red'] },
-  { name: 'Shield', icon: Shield, aliases: ['Seguridad'] },
-  { name: 'Lock', icon: Lock, aliases: ['Cerradura'] },
-  { name: 'Unlock', icon: Unlock },
-  { name: 'Home', icon: Home, aliases: ['Casa'] },
-  { name: 'DoorOpen', icon: DoorOpen, aliases: ['Puerta'] },
-  { name: 'Thermometer', icon: Thermometer, aliases: ['Temperatura'] },
-  { name: 'Snowflake', icon: Snowflake, aliases: ['Frio', 'Aire'] },
-  { name: 'Flame', icon: Flame, aliases: ['Calor'] },
-  { name: 'Wind', icon: Wind, aliases: ['Viento'] },
-  { name: 'AirVent', icon: AirVent, aliases: ['Aire acondicionado'] },
-  { name: 'Speaker', icon: Speaker, aliases: ['Audio'] },
-  { name: 'Radio', icon: Radio },
-  { name: 'Bell', icon: Bell, aliases: ['Alarma'] },
-  { name: 'AlarmClock', icon: AlarmClock, aliases: ['Reloj'] },
-  { name: 'Bot', icon: Bot, aliases: ['AI', 'Asistente'] },
-  { name: 'Car', icon: Car, aliases: ['Garage', 'Auto'] },
-  { name: 'Coffee', icon: Coffee, aliases: ['Cocina'] },
-  { name: 'Lamp', icon: Lamp },
-  { name: 'Cloud', icon: Cloud, aliases: ['Clima'] },
-  { name: 'Gauge', icon: Gauge, aliases: ['Medidor'] },
-  { name: 'Waves', icon: Waves, aliases: ['Agua'] },
-  { name: 'Zap', icon: Zap, aliases: ['Energia'] },
-  { name: 'ToggleLeft', icon: ToggleLeft, aliases: ['Toggle'] },
-];
+const BLOCKED_EXPORTS = new Set([
+  'default',
+  'icons',
+  'createLucideIcon',
+  'Icon',
+  'LucideIcon',
+  'LucideProps',
+]);
 
 function normalizeIconName(value: string) {
   return value
     .trim()
-    .toLowerCase()
     .replace(/^lucide[-_\s]*/i, '')
-    .replace(/icon$/i, '')
-    .replace(/[^a-z0-9]/g, '');
+    .replace(/[-_\s]+(.)/g, (_match, letter: string) => letter.toUpperCase())
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .replace(/Icon$/i, '')
+    .toLowerCase();
 }
+
+function isRenderableLucideExport(name: string, value: unknown) {
+  if (BLOCKED_EXPORTS.has(name)) return false;
+  if (!/^[A-Z0-9]/.test(name)) return false;
+
+  // lucide-react exports icons as React components. Depending on React/build,
+  // they can be functions or forwardRef-like objects. Exclude plain objects.
+  if (typeof value === 'function') return true;
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string | symbol, unknown>;
+    const reactType = record[Symbol.for('react.forward_ref')] || record.$$typeof;
+    return Boolean(reactType);
+  }
+
+  return false;
+}
+
+const ICONS = Object.entries(LucideIcons)
+  .filter(([name, value]) => isRenderableLucideExport(name, value))
+  .map(([name, component]) => ({
+    name,
+    icon: component as IconComponent,
+    normalized: normalizeIconName(name),
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 function findIcon(value?: string): IconComponent {
   const normalized = normalizeIconName(value || '');
   if (!normalized) return CircleHelp;
 
   return (
-    ICONS.find((item) => normalizeIconName(item.name) === normalized)?.icon ||
-    ICONS.find((item) => item.aliases?.some((alias) => normalizeIconName(alias) === normalized))?.icon ||
-    ICONS.find((item) => normalizeIconName(item.name).includes(normalized))?.icon ||
+    ICONS.find((item) => item.normalized === normalized)?.icon ||
+    ICONS.find((item) => item.name.toLowerCase() === (value || '').trim().toLowerCase())?.icon ||
+    ICONS.find((item) => item.normalized.includes(normalized))?.icon ||
     CircleHelp
   );
 }
@@ -114,7 +74,7 @@ function findIcon(value?: string): IconComponent {
 export function IconPicker({
   value = '',
   onChange,
-  placeholder = 'Ej: Lightbulb, Power, Tv, Gata, Perro',
+  placeholder = 'Ej: Lightbulb, Power, Tv, Cat, Dog',
   label = 'Icono (opcional)',
   className,
 }: IconPickerProps) {
@@ -131,12 +91,12 @@ export function IconPicker({
   const filteredIcons = useMemo(() => {
     const q = normalizeIconName(iconQuery);
 
-    if (!q) return ICONS;
+    if (!q) return ICONS.slice(0, 120);
 
-    return ICONS.filter((item) => {
-      const haystack = [item.name, ...(item.aliases || [])].map(normalizeIconName).join(' ');
-      return haystack.includes(q);
-    });
+    const startsWith = ICONS.filter((item) => item.normalized.startsWith(q));
+    const includes = ICONS.filter((item) => !item.normalized.startsWith(q) && item.normalized.includes(q));
+
+    return [...startsWith, ...includes].slice(0, 120);
   }, [iconQuery]);
 
   const computeDropdownPos = () => {
@@ -149,6 +109,20 @@ export function IconPicker({
       width: rect.width,
     });
   };
+
+  useEffect(() => {
+    if (!dropdownPos) return;
+
+    const updatePosition = () => computeDropdownPos();
+
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [dropdownPos]);
 
   const dropdown = dropdownPos && typeof document !== 'undefined'
     ? createPortal(
@@ -163,7 +137,7 @@ export function IconPicker({
           {filteredIcons.length > 0 ? (
             filteredIcons.map((item) => {
               const Icon = item.icon;
-              const selected = normalizeIconName(item.name) === normalizeIconName(iconQuery);
+              const selected = item.normalized === normalizeIconName(iconQuery);
 
               return (
                 <button
