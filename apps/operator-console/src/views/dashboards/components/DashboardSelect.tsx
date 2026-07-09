@@ -76,7 +76,10 @@ export function DashboardSelect({
             top: dropdownPos?.top,
             width: dropdownPos?.width,
           }}
-          onMouseDown={(event) => event.preventDefault()}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
         >
           {options.map((option) => {
             const active = option.value === value;
@@ -85,6 +88,10 @@ export function DashboardSelect({
               <button
                 key={option.value}
                 type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
                 onClick={() => {
                   onChange(option.value);
                   setDropdownPos(null);

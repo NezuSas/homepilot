@@ -17,7 +17,7 @@ import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
-import { ClockWidget, CLOCK_STYLES, type ClockStyle } from './clock';
+import { ClockWidget, type ClockStyle } from './clock';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -104,31 +104,33 @@ function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
-const clockCardKinds: NormalizedSectionCardKind[] = [
-  'clock_premium',
-  'clock_analog',
-  'clock_digital',
-  'clock_minimal',
+const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; label: string }[] = [
+  { kind: 'clock_premium', style: 'analog-classic', label: 'Analógico premium' },
+  { kind: 'clock_digital', style: 'digital', label: 'Digital compacto' },
+  { kind: 'clock_analog', style: 'minimal', label: 'Digital residencial' },
+  { kind: 'clock_minimal', style: 'analog-minimal', label: 'Analógico minimal' },
 ];
 
 function getClockStyleFromKind(kind: SectionCardKind): ClockStyle {
-  switch (normalizeKind(kind)) {
-    case 'clock_digital':
-      return 'digital';
-    case 'clock_analog':
-      return 'analog-classic';
-    case 'clock_minimal':
-      return 'analog-minimal';
-    case 'clock_premium':
-    default:
-      return 'minimal';
-  }
+  const normalized = normalizeKind(kind);
+  return clockCardOptions.find((option) => option.kind === normalized)?.style ?? 'analog-classic';
 }
 
 function getClockKindLabel(kind: SectionCardKind) {
-  const style = getClockStyleFromKind(kind);
-  const option = CLOCK_STYLES.find((item) => item.value === style);
-  return option?.labelEs ?? option?.label ?? kind;
+  const normalized = normalizeKind(kind);
+  return clockCardOptions.find((option) => option.kind === normalized)?.label ?? 'Analógico premium';
+}
+
+function getClockPreviewScale(span: SectionCardSpan) {
+  switch (span) {
+    case 'small':
+      return 0.36;
+    case 'medium':
+      return 0.46;
+    case 'full':
+    default:
+      return 0.52;
+  }
 }
 
 function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
@@ -167,7 +169,6 @@ function getSpanClass(span: SectionCardSpan) {
 
 function getWidgetType(kind: SectionCardKind): WidgetType {
   const normalized = normalizeKind(kind);
-  if (isClockKind(normalized)) return 'clock_display' as WidgetType;
 
   switch (normalized) {
     case 'room':
@@ -331,33 +332,45 @@ function CardPreview({
   const isSmall = span === 'small';
 
   if (isClockKind(normalized)) {
+    const scale = getClockPreviewScale(span);
+
     return (
-      <div className="h-full w-full overflow-hidden rounded-[1.35rem] border border-border/40 bg-background">
-        <ClockWidget
-          config={{
-            layout: {
-              x: 0,
-              y: 0,
-              w: span === 'full' ? 6 : 4,
-              h: span === 'small' ? 3 : 4,
-            },
-            binding: {
-              entityId: '',
-              entityType: 'system',
-            },
-            visibility: {
-              rules: [],
-              defaultState: 'show',
-            },
-            appearance: {
-              title,
-              showTitle: false,
-            },
-            extra: {
-              clockStyle: getClockStyleFromKind(normalized),
-            },
+      <div className="relative h-full min-h-[10.5rem] w-full overflow-hidden rounded-[1.35rem] border border-border/40 bg-background shadow-sm">
+        <div
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: 620,
+            height: 320,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+            transformOrigin: 'center',
           }}
-        />
+        >
+          <ClockWidget
+            config={{
+              layout: {
+                x: 0,
+                y: 0,
+                w: 6,
+                h: 4,
+              },
+              binding: {
+                entityId: '',
+                entityType: 'system',
+              },
+              visibility: {
+                rules: [],
+                defaultState: 'show',
+              },
+              appearance: {
+                title,
+                showTitle: false,
+              },
+              extra: {
+                clockStyle: getClockStyleFromKind(normalized),
+              },
+            }}
+          />
+        </div>
       </div>
     );
   }
@@ -835,9 +848,9 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
               <DashboardSelect
                 label="Diseño de reloj"
                 value={cardDraft.kind}
-                options={clockCardKinds.map((kind) => ({
-                  value: kind,
-                  label: getClockKindLabel(kind),
+                options={clockCardOptions.map((option) => ({
+                  value: option.kind,
+                  label: option.label,
                 }))}
                 onChange={(value) => {
                   const nextKind = value as NormalizedSectionCardKind;
