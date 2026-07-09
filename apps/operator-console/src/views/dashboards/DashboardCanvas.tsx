@@ -434,8 +434,8 @@ const canvasMinRows = useMemo(() => {
             <DashboardWidgetNode
               widget={widget}
               isEditing={canEditLayout}
-              isSelected={selectedWidgetId === widget.id}
-              onClick={() => onWidgetClick(widget.id)}
+              isSelected={isEditing && selectedWidgetId === widget.id}
+              onClick={() => { if (isEditing) onWidgetClick(widget.id); }}
               onResizeEnd={(id, w, h) => {
                  // Clamp width so widget never exits the desktop grid
                  const originalWidget = sanitizedWidgets.find(item => item.id === id);

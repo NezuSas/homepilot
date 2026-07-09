@@ -167,13 +167,13 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
   const quickSizeLabel = isEnglish
     ? (isClock ? 'Clock size' : 'Quick size')
-    : (isClock ? 'TamaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o de reloj' : 'TamaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡pido');
+    : (isClock ? 'TamaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±o de reloj' : 'TamaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±o rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡pido');
 
-  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o de reloj';
+  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±o de reloj';
 
   const boundDevice = safeWidget.type === 'device_control' ? devices.find(d => d.id === binding.entityId) : null;
   const isCamera   = boundDevice ? (boundDevice.type === 'camera' || boundDevice.semanticType === 'camera') : false;
-  const showIconField = !isSection && !isClock && !isCamera;
+  const showIconField = !isDashboardTitle && !isSection && !isClock && !isCamera;
 
   return (
     /* Backdrop */
@@ -216,7 +216,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               {isSection ? 'T\u00edtulo de secci\u00f3n' : t('dashboards.inspector.custom_title_placeholder')}
             </label>
             <input
-              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
+              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
               value={appearance.title || ''}
               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
