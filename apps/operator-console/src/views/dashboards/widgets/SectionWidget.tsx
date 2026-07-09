@@ -149,6 +149,67 @@ function AnalogDial({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function getCatalogFallbackLabel(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'light':
+      return 'Luz';
+    case 'cover':
+      return 'Cortina';
+    case 'camera':
+      return 'Cámara';
+    case 'room':
+      return 'Habitación';
+    case 'scene':
+      return 'Escena';
+    case 'clock_digital':
+      return 'Digital compacto';
+    case 'clock_analog':
+      return 'Digital residencial';
+    case 'clock_premium':
+      return 'Analógico premium';
+    case 'clock_minimal':
+      return 'Analógico minimal';
+    case 'energy':
+      return 'Energía';
+    case 'assistant':
+      return 'Asistente IA';
+    case 'system':
+      return 'Sistema';
+    case 'device':
+    default:
+      return 'Dispositivo';
+  }
+}
+
+function getCatalogFallbackDescription(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'camera':
+      return 'Vista en vivo / snapshot';
+    case 'light':
+      return 'Control rápido para luces.';
+    case 'cover':
+      return 'Control rápido para cortinas.';
+    case 'room':
+      return 'Resumen de habitación.';
+    case 'scene':
+      return 'Acceso directo a escena.';
+    case 'clock_digital':
+    case 'clock_analog':
+    case 'clock_premium':
+    case 'clock_minimal':
+      return 'Reloj para la sección.';
+    case 'energy':
+      return 'Resumen de energía.';
+    case 'assistant':
+      return 'Información del asistente.';
+    case 'system':
+      return 'Estado del sistema.';
+    case 'device':
+    default:
+      return 'Control rápido de dispositivo.';
+  }
+}
+
 function getCatalogLabelKey(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
     case 'light':
@@ -474,10 +535,42 @@ function getAssignableDevicesForKind(
   return [];
 }
 
-function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> | null; metadata?: Record<string, unknown> | null }) {
-  const state = (device?.lastKnownState ?? {}) as Record<string, any>;
-  const attrs = (state.attributes ?? {}) as Record<string, any>;
-  const metadata = (device?.metadata ?? {}) as Record<string, any>;
+function appendHomeAssistantAccessToken(url: string, token?: string) {
+  if (!token || !url.includes('/api/camera_proxy')) return url;
+  if (url.includes('token=')) return url;
+
+  return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+}
+
+function normalizeHomeAssistantMediaUrl(url: string, token?: string) {
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+
+  if (trimmed.startsWith('/')) {
+    return appendHomeAssistantAccessToken(trimmed, token);
+  }
+
+  return appendHomeAssistantAccessToken(trimmed, token);
+}
+
+function getCameraMediaUrl(device?: { id?: string; lastKnownState?: Record<string, unknown> | null; metadata?: Record<string, unknown> | null }) {
+  const state = (device?.lastKnownState ?? {}) as Record<string, unknown>;
+  const attrs = (typeof state.attributes === 'object' && state.attributes !== null
+    ? state.attributes
+    : {}) as Record<string, unknown>;
+  const metadata = (device?.metadata ?? {}) as Record<string, unknown>;
+
+  const token =
+    typeof attrs.access_token === 'string' ? attrs.access_token :
+    typeof state.access_token === 'string' ? state.access_token :
+    typeof metadata.access_token === 'string' ? metadata.access_token :
+    undefined;
+
+  const entityId =
+    typeof state.entity_id === 'string' ? state.entity_id :
+    typeof attrs.entity_id === 'string' ? attrs.entity_id :
+    typeof device?.id === 'string' ? device.id :
+    undefined;
 
   const candidates = [
     state.mediaUrl,
@@ -497,6 +590,7 @@ function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> |
     attrs.snapshot_url,
     attrs.stream_source,
     attrs.streamUrl,
+    attrs.stream_url,
     metadata.mediaUrl,
     metadata.media_url,
     metadata.streamUrl,
@@ -507,8 +601,17 @@ function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> |
     metadata.image_url,
   ];
 
-  const found = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
-  return typeof found === 'string' ? found.trim() : undefined;
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const resolved = normalizeHomeAssistantMediaUrl(candidate, token);
+    if (resolved) return resolved;
+  }
+
+  if (entityId && entityId.startsWith('camera.') && token) {
+    return `/api/camera_proxy/${entityId}?token=${encodeURIComponent(token)}`;
+  }
+
+  return undefined;
 }
 
 
@@ -597,7 +700,7 @@ function CardPreview({
             {title}
           </p>
           <p className="mt-0.5 truncate text-xs font-semibold text-white/75">
-            {mediaUrl ? 'Vista en vivo / snapshot' : subtitle || 'Sin URL de video asignada'}
+            {mediaUrl ? 'Vista en vivo / snapshot' : subtitle || 'Sin URL de cámara disponible'}
           </p>
         </div>
       </div>
@@ -678,6 +781,19 @@ function ModalPortal({ children }: { children: ReactNode }) {
 
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
+
+  const catalogLabel = (kind: SectionCardKind) => {
+    const key = getCatalogLabelKey(kind);
+    const translated = t(key);
+    return translated === key ? getCatalogFallbackLabel(kind) : translated;
+  };
+
+  const catalogDescription = (kind: SectionCardKind) => {
+    const key = getCatalogDescriptionKey(kind);
+    const translated = t(key);
+    return translated === key ? getCatalogFallbackDescription(kind) : translated;
+  };
+
   const devices = useDeviceSnapshotStore((state) => state.devices);
 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -701,8 +817,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   const catalogItems = useMemo(() => cardKinds.map((kind) => ({
     kind,
-    title: t(getCatalogLabelKey(kind)),
-    description: t(getCatalogDescriptionKey(kind)),
+    title: catalogLabel(kind),
+    description: catalogDescription(kind),
     widgetType: getWidgetType(kind),
     span: getDefaultSpan(kind),
     icon: getDefaultIcon(kind),
@@ -773,8 +889,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       return {
         ...card,
         kind: cardDraft.kind,
-        title: cardDraft.title.trim() || selectedDevice?.name || t(getCatalogLabelKey(cardDraft.kind)),
-        description: t(getCatalogDescriptionKey(cardDraft.kind)),
+        title: cardDraft.title.trim() || selectedDevice?.name || catalogLabel(cardDraft.kind),
+        description: catalogDescription(cardDraft.kind),
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
         entityName: selectedDevice?.name,
@@ -900,7 +1016,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   };
 
   const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan, iconOverride?: SectionCardIcon, mediaUrlOverride?: string) => {
-    const title = titleOverride || t(getCatalogLabelKey(kind));
+    const title = titleOverride || catalogLabel(kind);
     const span = spanOverride ?? getDefaultSpan(kind);
 
     return (
@@ -908,7 +1024,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         <CardPreview
           kind={kind}
           title={title}
-          subtitle={t(getCatalogDescriptionKey(kind))}
+          subtitle={catalogDescription(kind)}
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
           mediaUrl={mediaUrlOverride}
@@ -1023,7 +1139,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           <div className="space-y-4 px-5 py-5">
             {renderCatalogPreview(
               cardDraft.kind,
-              cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : t(getCatalogLabelKey(cardDraft.kind))),
+              cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
               previewMediaUrl
@@ -1068,7 +1184,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                   .filter((kind) => !isClockKind(kind))
                   .map((kind) => ({
                     value: kind,
-                    label: t(getCatalogLabelKey(kind)),
+                    label: catalogLabel(kind),
                   }))}
                 onChange={(value) => {
                   const nextKind = value as NormalizedSectionCardKind;
@@ -1078,7 +1194,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                     entityId: isBindableKind(nextKind) ? draft.entityId : '',
                     span: getDefaultSpan(nextKind),
                     icon: getDefaultIcon(nextKind),
-                    title: draft.title || t(getCatalogLabelKey(nextKind)),
+                    title: draft.title || catalogLabel(nextKind),
                   }));
                 }}
               />
