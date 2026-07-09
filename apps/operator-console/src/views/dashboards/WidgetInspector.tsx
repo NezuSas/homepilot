@@ -152,6 +152,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
   const appearance = safeWidget.config.appearance;
   const extra      = safeWidget.config.extra ?? {};
   const isSection  = safeWidget.type === 'section';
+  const isDashboardTitle = safeWidget.type === 'dashboard_title';
   const isClock    = safeWidget.type === 'clock_display';
   const isEnglish = (i18n.language || document.documentElement.lang || navigator.language || 'es')
     .toLowerCase()
@@ -166,9 +167,9 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
   const quickSizeLabel = isEnglish
     ? (isClock ? 'Clock size' : 'Quick size')
-    : (isClock ? 'TamaÃ±o de reloj' : 'TamaÃ±o rÃ¡pido');
+    : (isClock ? 'TamaÃƒÆ’Ã‚Â±o de reloj' : 'TamaÃƒÆ’Ã‚Â±o rÃƒÆ’Ã‚Â¡pido');
 
-  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃ±o de reloj';
+  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃƒÆ’Ã‚Â±o de reloj';
 
   const boundDevice = safeWidget.type === 'device_control' ? devices.find(d => d.id === binding.entityId) : null;
   const isCamera   = boundDevice ? (boundDevice.type === 'camera' || boundDevice.semanticType === 'camera') : false;
@@ -215,7 +216,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               {isSection ? 'T\u00edtulo de secci\u00f3n' : t('dashboards.inspector.custom_title_placeholder')}
             </label>
             <input
-              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
+              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
               value={appearance.title || ''}
               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
@@ -223,7 +224,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           </div>
 
           {/* Size presets (not for section) */}
-          {!isSection && (
+          {!isSection && !isDashboardTitle && (
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{quickSizeLabel}</label>

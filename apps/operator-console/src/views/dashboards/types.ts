@@ -3,14 +3,14 @@
 export type WidgetType = 
   | 'device_control' 
   | 'room_overview' 
-  | 'room_summary'   // legacy alias — maps to RoomWidget
+  | 'room_summary'   // legacy alias â€” maps to RoomWidget
   | 'scene_shortcut' 
   | 'activity_feed' 
   | 'assistant_insight' 
   | 'system_status' 
   | 'energy_snapshot'
   | 'clock_display'
-  | 'section';
+  | 'dashboard_title' | 'section';
 
 export interface WidgetLayout {
   x: number;

@@ -22,7 +22,7 @@ interface DashboardCanvasProps {
   selectedWidgetId: string | null;
   onLayoutChange: (widgets: DashboardWidget[]) => void;
   onAddCardClick?: (x: number, y: number) => void;
-  onAddSectionClick?: (y: number) => void;
+  onAddSectionClick?: (y: number) => void; onAddTitleClick?: () => void;
 }
 
 const DESKTOP_GRID_COLS = 12;
@@ -199,9 +199,7 @@ export function DashboardCanvas({
   onWidgetClick, 
   selectedWidgetId,
   onLayoutChange,
-  onAddCardClick,
-  onAddSectionClick
-}: DashboardCanvasProps) {
+  onAddCardClick, onAddSectionClick, onAddTitleClick }: DashboardCanvasProps) {
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const [snapPreview, setSnapPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -287,7 +285,7 @@ export function DashboardCanvas({
     if (!canEditLayout) return [];
 
     const sections = sanitizedWidgets.filter(w => w.type === 'section');
-    const placeholders: { key: string; x: number; y: number; w: number; h: number; type: 'add_card' | 'add_section' }[] = [];
+    const placeholders: { key: string; x: number; y: number; w: number; h: number; type: 'add_title' | 'add_card' | 'add_section' }[] = []; const hasDashboardTitle = sanitizedWidgets.some(w => w.type === 'dashboard_title'); if (!hasDashboardTitle) { placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' }); }
 
     // 1. Group widgets and place an "add card" block under each section
     if (sections.length === 0) {
@@ -498,6 +496,7 @@ export function DashboardCanvas({
 
         {/* Home Assistant style virtual placeholders */}
 {canEditLayout && virtualPlaceholders.map((placeholder) => {
+  const isAddTitle = placeholder.type === 'add_title';
   const isAddCard = placeholder.type === 'add_card';
 
   return (
@@ -505,7 +504,9 @@ export function DashboardCanvas({
       key={placeholder.key}
       type="button"
       onClick={() => {
-        if (isAddCard) {
+        if (isAddTitle) {
+          onAddTitleClick?.();
+        } else if (isAddCard) {
           onAddCardClick?.(placeholder.x, placeholder.y);
         } else {
           onAddSectionClick?.(placeholder.y);
@@ -513,9 +514,11 @@ export function DashboardCanvas({
       }}
       className={cn(
         "absolute z-10 flex transition-all duration-200",
-        isAddCard
-          ? "items-center justify-center rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:border-primary hover:bg-primary/10"
-          : "flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-4 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
+        isAddTitle
+          ? "flex-col items-center justify-center gap-4 rounded-[1.5rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+          : isAddCard
+            ? "items-center justify-center rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:border-primary hover:bg-primary/10"
+            : "flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-4 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
         left: placeholder.x * colWidth + 8,
@@ -524,14 +527,25 @@ export function DashboardCanvas({
         height: placeholder.h * rowHeight - 16,
       }}
     >
-      {isAddCard ? (
+      {isAddTitle ? (
+        <>
+          <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-sm font-semibold text-primary">
+            <span className="text-xl leading-none">+</span>
+            <span>AÃƒÂ±adir tÃƒÂ­tulo</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/20 px-5 py-2 text-sm font-semibold text-primary">
+            <span className="text-xl leading-none">+</span>
+            <span>AÃƒÂ±adir insignia</span>
+          </span>
+        </>
+      ) : isAddCard ? (
         <span className="inline-flex h-11 min-w-20 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 text-2xl font-light leading-none text-primary">
           +
         </span>
       ) : (
         <>
           <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-            Nueva secciÃ³n
+            Nueva secciÃƒÂ³n
           </span>
           <span className="mt-3 inline-flex h-10 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
             +
