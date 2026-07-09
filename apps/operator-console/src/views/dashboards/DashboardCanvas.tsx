@@ -60,9 +60,6 @@ export function DashboardCanvas({
   const rowHeight = colWidth > 0
     ? Math.min(MAX_ROW_HEIGHT, Math.max(MIN_ROW_HEIGHT, Math.round(colWidth * 0.7)))
     : MIN_ROW_HEIGHT;
-  const dashboardItemInsetX = 18;
-  const dashboardItemInsetY = 12;
-
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -371,16 +368,14 @@ const canvasMinRows = useMemo(() => {
       }}
       aria-label={isAddTitle ? t('dashboard.editor.sections.add_title') : t('dashboard.editor.sections.add_section')}
       className={cn(
-        "absolute z-10 flex transition-all duration-200",
+        "z-10 flex min-h-0 min-w-0 transition-all duration-200",
         isAddTitle
           ? "items-center justify-center rounded-[1.25rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
           : "items-center justify-center rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
-        left: placeholder.x * colWidth + dashboardItemInsetX,
-        top: placeholder.y * rowHeight + dashboardItemInsetY,
-        width: placeholder.w * colWidth - dashboardItemInsetX * 2,
-        height: placeholder.h * rowHeight - dashboardItemInsetY * 2,
+        gridColumn: `${placeholder.x + 1} / span ${Math.min(placeholder.w, gridCols - placeholder.x)}`,
+        gridRow: `${placeholder.y + 1} / span ${placeholder.h}`,
       }}
     >
       {isAddTitle ? (

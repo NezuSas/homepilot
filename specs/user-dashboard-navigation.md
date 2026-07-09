@@ -40,3 +40,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC9:** El sidebar no muestra separadores ni encabezados de grupo para `Personalización`; los accesos se listan como items normales.
 - **AC10:** Presionar la flecha del grupo `Tableros` abre o cierra sus hijos sin bloquearse por la navegación.
 - **AC11:** Presionar el lápiz de una vista abre un modal de configuración con pestañas internas de configuración, fondo y visibilidad.
+- **AC12:** Los placeholders de creación de widgets/secciones se alinean con el mismo CSS Grid que las tarjetas reales, sin posicionamiento absoluto que ignore los gaps del layout.
