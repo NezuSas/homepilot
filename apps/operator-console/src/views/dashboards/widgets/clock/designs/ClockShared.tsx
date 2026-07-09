@@ -9,14 +9,16 @@ export function ClockShell({
 }: {
   children: ReactNode;
   className?: string;
-  tone?: 'warm' | 'neutral' | 'analog';
+  tone?: 'warm' | 'neutral' | 'analog' | 'minimal';
 }) {
   const background =
     tone === 'neutral'
-      ? 'bg-[radial-gradient(circle_at_50%_20%,hsl(var(--foreground)/0.045),transparent_34%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
+      ? 'bg-[radial-gradient(circle_at_50%_30%,hsl(var(--foreground)/0.045),transparent_35%),linear-gradient(145deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))]'
       : tone === 'analog'
-        ? 'bg-[radial-gradient(circle_at_28%_36%,hsl(var(--primary)/0.16),transparent_34%),radial-gradient(circle_at_72%_68%,hsl(var(--foreground)/0.035),transparent_30%),linear-gradient(145deg,hsl(var(--card)/0.88),hsl(var(--background)/0.98))]'
-        : 'bg-[radial-gradient(circle_at_22%_22%,hsl(var(--primary)/0.18),transparent_34%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]';
+        ? 'bg-[radial-gradient(circle_at_30%_42%,hsl(var(--primary)/0.18),transparent_36%),radial-gradient(circle_at_74%_64%,hsl(var(--foreground)/0.04),transparent_32%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
+        : tone === 'minimal'
+          ? 'bg-[radial-gradient(circle_at_50%_42%,hsl(var(--foreground)/0.04),transparent_38%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
+          : 'bg-[radial-gradient(circle_at_25%_24%,hsl(var(--primary)/0.18),transparent_35%),radial-gradient(circle_at_74%_72%,hsl(var(--foreground)/0.035),transparent_30%),linear-gradient(145deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))]';
 
   return (
     <div
@@ -25,7 +27,7 @@ export function ClockShell({
     >
       <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(120deg,transparent_0%,hsl(var(--foreground)/0.035)_48%,transparent_100%)] opacity-70" />
       <div className="pointer-events-none absolute inset-[1px] rounded-[inherit] border border-white/5" />
-      <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-primary/5 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-primary/5 blur-3xl" />
       {children}
     </div>
   );
@@ -45,7 +47,7 @@ export function ClockLabel({
   return (
     <div className={`flex min-w-0 items-center gap-2 ${className}`}>
       <AccentDot />
-      <span className="min-w-0 truncate text-[clamp(0.55rem,1.35cqi,0.82rem)] font-black uppercase tracking-[0.42em] text-primary">
+      <span className="min-w-0 truncate text-[clamp(0.55rem,1.3cqi,0.82rem)] font-black uppercase tracking-[0.42em] text-primary">
         {children}
       </span>
     </div>
@@ -68,10 +70,10 @@ export function WeatherPill({
   const label = formatWeather(weather, status, copy, mode);
 
   return (
-    <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-[clamp(0.6rem,1.5cqi,0.95rem)] py-[clamp(0.24rem,0.75cqi,0.38rem)] shadow-inner ${className}`}>
+    <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-[clamp(0.6rem,1.45cqi,0.95rem)] py-[clamp(0.24rem,0.72cqi,0.38rem)] shadow-inner ${className}`}>
       <div className="flex min-w-0 items-center gap-1.5">
-        <AccentDot className="h-1.5 w-1.5" />
-        <span className="min-w-0 truncate text-[clamp(0.49rem,1.25cqi,0.72rem)] font-black uppercase tracking-[0.12em] text-foreground">
+        <AccentDot />
+        <span className="min-w-0 truncate text-[clamp(0.49rem,1.22cqi,0.72rem)] font-black uppercase tracking-[0.12em] text-foreground">
           {label}
         </span>
       </div>
@@ -102,7 +104,7 @@ export function ClockProgress({
         />
       </div>
       {label ? (
-        <div className="mt-2 flex items-center justify-between gap-3 text-[clamp(0.48rem,1.2cqi,0.66rem)] font-black uppercase tracking-[0.22em] text-muted-foreground">
+        <div className="mt-2 flex items-center justify-between gap-3 text-[clamp(0.48rem,1.18cqi,0.66rem)] font-black uppercase tracking-[0.22em] text-muted-foreground">
           <span className="truncate">{label}</span>
           <span className="shrink-0 tabular-nums">{safeValue}%</span>
         </div>
@@ -131,28 +133,26 @@ export function TimeText({
   const justify = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
   const textSize =
     size === 'hero'
-      ? 'text-[clamp(4rem,18cqi,8.5rem)]'
+      ? 'text-[clamp(4.2rem,18cqi,8.8rem)]'
       : size === 'large'
-        ? 'text-[clamp(3.2rem,14cqi,6.5rem)]'
+        ? 'text-[clamp(3.35rem,14cqi,6.8rem)]'
         : size === 'medium'
-          ? 'text-[clamp(2.65rem,11cqi,5.4rem)]'
-          : 'text-[clamp(2.25rem,8cqi,4.4rem)]';
+          ? 'text-[clamp(2.75rem,11cqi,5.6rem)]'
+          : 'text-[clamp(2.3rem,8cqi,4.5rem)]';
 
   return (
     <div className={`flex min-w-0 items-end ${justify} font-black tabular-nums leading-none tracking-[-0.085em] text-foreground`}>
       <span className={textSize}>{hours}</span>
-      <span
-        className="mb-[0.07em] px-[0.035em] text-[0.92em] transition-opacity duration-300"
-        style={{ color: 'hsl(var(--primary))', opacity: blink ? 1 : 0.28 }}
-      >
-        :
+      <span className="mb-[0.13em] flex flex-col gap-[0.12em] px-[0.09em]" style={{ opacity: blink ? 1 : 0.38 }}>
+        <span className="h-[0.12em] w-[0.12em] rounded-full bg-primary" />
+        <span className="h-[0.12em] w-[0.12em] rounded-full bg-primary" />
       </span>
       <span className={textSize}>{minutes}</span>
 
       {(seconds || period) ? (
         <span className="mb-[0.20em] ml-2 flex shrink-0 flex-col items-start gap-0.5 text-primary">
-          {seconds ? <span className="text-[clamp(0.54rem,1.65cqi,0.86rem)] font-black tracking-[0.08em]">{seconds}</span> : null}
-          {period ? <span className="text-[clamp(0.44rem,1.25cqi,0.66rem)] font-black uppercase tracking-[0.24em]">{period}</span> : null}
+          {seconds ? <span className="text-[clamp(0.54rem,1.6cqi,0.86rem)] font-black tracking-[0.08em]">{seconds}</span> : null}
+          {period ? <span className="text-[clamp(0.44rem,1.2cqi,0.66rem)] font-black uppercase tracking-[0.24em]">{period}</span> : null}
         </span>
       ) : null}
     </div>
@@ -176,8 +176,8 @@ export function AnalogDial({
 }) {
   const marks = Array.from({ length: 60 });
   const radiusClass = premium
-    ? 'h-[clamp(9rem,34cqi,15rem)] w-[clamp(9rem,34cqi,15rem)]'
-    : 'h-[clamp(8rem,30cqi,13rem)] w-[clamp(8rem,30cqi,13rem)]';
+    ? 'h-[clamp(10rem,36cqi,16rem)] w-[clamp(10rem,36cqi,16rem)]'
+    : 'h-[clamp(8.6rem,30cqi,13.5rem)] w-[clamp(8.6rem,30cqi,13.5rem)]';
 
   return (
     <svg
