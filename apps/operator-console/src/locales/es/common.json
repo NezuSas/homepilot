@@ -282,7 +282,19 @@
         "section_card_assistant": "Asistente IA",
         "section_card_assistant_desc": "Insights y sugerencias inteligentes.",
         "section_card_system": "Sistema",
-        "section_card_system_desc": "Estado de conectividad, servicios y diagnóstico."
+        "section_card_system_desc": "Estado de conectividad, servicios y diagnóstico.",
+        "section_card_clock_digital": "Reloj digital",
+        "section_card_clock_digital_desc": "Tarjeta de hora digital amplia para el tablero.",
+        "section_card_clock_analog": "Reloj analógico",
+        "section_card_clock_analog_desc": "Reloj con esfera analógica y datos contextuales.",
+        "section_card_clock_premium": "Reloj premium",
+        "section_card_clock_premium_desc": "Reloj grande con estilo residencial premium.",
+        "section_card_clock_minimal": "Reloj minimal",
+        "section_card_clock_minimal_desc": "Reloj limpio y compacto para secciones.",
+        "card_size": "Tamaño de tarjeta",
+        "card_size_small": "Pequeña · 3 por fila",
+        "card_size_medium": "Media · 2 por fila",
+        "card_size_full": "Completa · 1 por fila"
       },
       "catalog": {
         "title": "Añadir al panel de control",

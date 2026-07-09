@@ -117,7 +117,7 @@ export function DashboardWidgetNode({
   return (
     <div 
       ref={setNodeRef}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onClick={(e) => { e.stopPropagation(); if (!isSection) onClick(); }}
       style={{ ...transformStyle, ...accentStyle, containerType: 'inline-size' }}
       className={cn(
         "relative h-full w-full min-h-0 overflow-visible transition-all duration-300 group @container touch-manipulation",

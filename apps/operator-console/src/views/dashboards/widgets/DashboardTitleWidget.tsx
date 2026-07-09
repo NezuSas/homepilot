@@ -10,24 +10,95 @@ interface DashboardTitleWidgetProps {
 type TitleAlign = 'left' | 'center' | 'right';
 
 function getStoredUserName() {
-  if (typeof window === 'undefined') return 'Gustavo';
+  if (typeof window === 'undefined') return 'Usuario';
 
-  const directKeys = ['homepilot.user', 'homepilot.currentUser', 'user', 'currentUser', 'auth.user'];
+  type Candidate = { value: string; score: number };
+  const candidates: Candidate[] = [];
+  const storages = [window.sessionStorage, window.localStorage];
 
-  for (const key of directKeys) {
-    const value = window.localStorage.getItem(key);
-    if (!value) continue;
+  const normalizeName = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+    const clean = value.trim();
+    if (!clean || clean.length > 80) return null;
+    return clean.includes('@') ? clean.split('@')[0] : clean;
+  };
+
+  const addCandidate = (value: unknown, score: number) => {
+    const normalized = normalizeName(value);
+    if (!normalized) return;
+    candidates.push({
+      value: normalized,
+      score: normalized.toLowerCase() === 'gustavo' ? score - 80 : score,
+    });
+  };
+
+  const readNameFromObject = (input: unknown): string | null => {
+    if (!input || typeof input !== 'object') return null;
+
+    const stack: unknown[] = [input];
+    const seen = new Set<unknown>();
+
+    while (stack.length) {
+      const current = stack.shift();
+      if (!current || typeof current !== 'object' || seen.has(current)) continue;
+      seen.add(current);
+
+      const record = current as Record<string, unknown>;
+      const direct = record.name || record.displayName || record.fullName || record.username || record.userName || record.email;
+      const normalized = normalizeName(direct);
+      if (normalized) return normalized;
+
+      for (const value of Object.values(record)) {
+        if (value && typeof value === 'object') stack.push(value);
+      }
+    }
+
+    return null;
+  };
+
+  const readJwtPayload = (value: string) => {
+    const payload = value.split('.')[1];
+    if (!payload) return null;
 
     try {
-      const parsed = JSON.parse(value);
-      const name = parsed?.name || parsed?.displayName || parsed?.username || parsed?.email;
-      if (typeof name === 'string' && name.trim()) return name.split('@')[0];
+      return JSON.parse(window.atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
     } catch {
-      if (value.trim() && value.length < 48) return value.trim();
+      return null;
+    }
+  };
+
+  for (const storage of storages) {
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index) || '';
+      const raw = storage.getItem(key);
+      if (!raw) continue;
+
+      const lowerKey = key.toLowerCase();
+      const isLikelyAuth = ['auth', 'session', 'current', 'user', 'token', 'operator'].some((part) => lowerKey.includes(part));
+      if (!isLikelyAuth) continue;
+
+      const score =
+        lowerKey.includes('token') ? 100 :
+        lowerKey.includes('session') ? 90 :
+        lowerKey.includes('auth') ? 85 :
+        lowerKey.includes('current') ? 80 :
+        lowerKey.includes('operator') ? 70 :
+        lowerKey.includes('user') ? 55 :
+        20;
+
+      const jwtPayload = readJwtPayload(raw);
+      if (jwtPayload) addCandidate(readNameFromObject(jwtPayload), score + 25);
+
+      try {
+        addCandidate(readNameFromObject(JSON.parse(raw)), score);
+      } catch {
+        addCandidate(raw, score - 20);
+      }
     }
   }
 
-  return 'Gustavo';
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0]?.value || 'Usuario';
 }
 
 function renderTemplate(markdown: string) {

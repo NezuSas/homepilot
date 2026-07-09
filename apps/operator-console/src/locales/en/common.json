@@ -282,7 +282,19 @@
         "section_card_assistant": "AI Assistant",
         "section_card_assistant_desc": "Insights and smart suggestions.",
         "section_card_system": "System",
-        "section_card_system_desc": "Connectivity, services, and diagnostics."
+        "section_card_system_desc": "Connectivity, services, and diagnostics.",
+        "section_card_clock_digital": "Digital clock",
+        "section_card_clock_digital_desc": "Large digital time card for the dashboard.",
+        "section_card_clock_analog": "Analog clock",
+        "section_card_clock_analog_desc": "Clock with analog face and contextual data.",
+        "section_card_clock_premium": "Premium clock",
+        "section_card_clock_premium_desc": "Large premium residential clock.",
+        "section_card_clock_minimal": "Minimal clock",
+        "section_card_clock_minimal_desc": "Clean compact clock for sections.",
+        "card_size": "Card size",
+        "card_size_small": "Small · 3 per row",
+        "card_size_medium": "Medium · 2 per row",
+        "card_size_full": "Full · 1 per row"
       },
       "catalog": {
         "title": "Add to dashboard",
