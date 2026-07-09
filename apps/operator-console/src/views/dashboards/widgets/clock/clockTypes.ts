@@ -3,9 +3,7 @@ import type { DashboardWidgetConfig } from '../../types';
 export type ClockStyle =
   | 'minimal'
   | 'digital'
-  | 'elegant'
   | 'analog-classic'
-  | 'analog-orbit'
   | 'analog-minimal';
 
 export interface ClockWeather {
@@ -40,7 +38,6 @@ export interface ClockCopy {
   digitalPro: string;
   homeTime: string;
   analogClassic: string;
-  analogOrbit: string;
   analogMinimal: string;
   residentialEdge: string;
   sync: string;

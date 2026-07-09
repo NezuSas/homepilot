@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DashboardWidgetConfig } from '../../types';
-import { CLOCK_DESIGN_COMPONENTS } from './clockRegistry';
-import type { ClockStyle } from './clockTypes';
+import { CLOCK_DESIGN_COMPONENTS, normalizeClockStyle } from './clockRegistry';
 import { getClockCopy, getClockLocale, normalizeLocale } from './clockUtils';
 import { useCuencaWeather } from './useCuencaWeather';
 
@@ -18,7 +17,7 @@ export function ClockWidget({ config }: ClockWidgetProps) {
   const copy = useMemo(() => getClockCopy(locale), [locale]);
   const { weather, status: weatherStatus } = useCuencaWeather(locale);
 
-  const clockStyle = (config.extra?.clockStyle as ClockStyle | undefined) ?? 'minimal';
+  const clockStyle = normalizeClockStyle(config.extra?.clockStyle);
   const Design = CLOCK_DESIGN_COMPONENTS[clockStyle] ?? CLOCK_DESIGN_COMPONENTS.minimal;
 
   useEffect(() => {

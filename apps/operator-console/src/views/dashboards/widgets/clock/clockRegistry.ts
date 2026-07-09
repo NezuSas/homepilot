@@ -2,9 +2,7 @@ import type { ComponentType } from 'react';
 import {
   AnalogClassicClock,
   AnalogMinimalClock,
-  AnalogOrbitClock,
   DigitalClock,
-  ElegantClock,
   MinimalClock,
 } from './designs';
 import type { ClockDesignProps, ClockStyle, ClockStyleOption } from './clockTypes';
@@ -29,26 +27,10 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
     minH: 4,
   },
   {
-    value: 'elegant',
-    label: 'Digital editorial',
-    labelEs: 'Digital editorial',
-    labelEn: 'Editorial digital',
-    minW: 4,
-    minH: 4,
-  },
-  {
     value: 'analog-classic',
     label: 'Anal\u00f3gico premium',
     labelEs: 'Anal\u00f3gico premium',
     labelEn: 'Premium analog',
-    minW: 4,
-    minH: 4,
-  },
-  {
-    value: 'analog-orbit',
-    label: 'Anal\u00f3gico orbital',
-    labelEs: 'Anal\u00f3gico orbital',
-    labelEn: 'Orbital analog',
     minW: 4,
     minH: 4,
   },
@@ -65,9 +47,7 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
 export const CLOCK_DESIGN_COMPONENTS: Record<ClockStyle, ComponentType<ClockDesignProps>> = {
   minimal: MinimalClock,
   digital: DigitalClock,
-  elegant: ElegantClock,
   'analog-classic': AnalogClassicClock,
-  'analog-orbit': AnalogOrbitClock,
   'analog-minimal': AnalogMinimalClock,
 };
 
@@ -78,4 +58,24 @@ export function getClockStyleLabel(style: ClockStyleOption, locale?: string): st
 export function getClockMinimumLayout(style?: ClockStyle): { w: number; h: number } {
   const selected = CLOCK_STYLES.find((item) => item.value === style);
   return { w: selected?.minW ?? CLOCK_MIN_LAYOUT.w, h: selected?.minH ?? CLOCK_MIN_LAYOUT.h };
+}
+
+export function isVisibleClockStyle(style: ClockStyle): boolean {
+  return CLOCK_STYLES.some((item) => item.value === style);
+}
+
+export function normalizeClockStyle(style: unknown): ClockStyle {
+  switch (style) {
+    case 'digital':
+      return 'digital';
+    case 'analog-classic':
+    case 'analog-orbit':
+      return 'analog-classic';
+    case 'analog-minimal':
+      return 'analog-minimal';
+    case 'minimal':
+    case 'elegant':
+    default:
+      return 'minimal';
+  }
 }
