@@ -97,29 +97,6 @@ function getDashboardSectionLayout(sectionIndex: number, sectionCount: number) {
   };
 }
 
-function getDashboardPlaceholderLayout(sectionCount: number) {
-  if (sectionCount === 0) {
-    return {
-      x: 4,
-      y: dashboardSectionStartY,
-      w: 4,
-      h: 1,
-    };
-  }
-
-  const row = Math.floor(sectionCount / 4);
-  const indexInRow = sectionCount % 4;
-  const slotCount = indexInRow === 0 ? 1 : Math.min(4, indexInRow + 1);
-  const width = Math.floor(12 / slotCount);
-
-  return {
-    x: indexInRow * width,
-    y: dashboardSectionStartY + row * dashboardSectionRows,
-    w: width,
-    h: dashboardSectionRows,
-  };
-}
-
 const sanitizedWidgets = useMemo(() => {
   const baseWidgets = widgets.map(sanitizeWidget);
 
@@ -183,10 +160,49 @@ const virtualPlaceholders = useMemo(() => {
     placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
   }
 
-  const sectionPlaceholder = getDashboardPlaceholderLayout(sections.length);
+  if (sections.length === 0) {
+    placeholders.push({
+      key: 'add_section_final',
+      x: 4,
+      y: 2,
+      w: 4,
+      h: 1,
+      type: 'add_section',
+    });
+
+    return placeholders;
+  }
+
+  const lastRowIndex = Math.floor(sections.length / 4);
+  const sectionsInCurrentRow = sections.length % 4;
+
+  if (sectionsInCurrentRow === 0) {
+    placeholders.push({
+      key: 'add_section_final',
+      x: 0,
+      y: 2 + lastRowIndex * 2,
+      w: 12,
+      h: 1,
+      type: 'add_section',
+    });
+
+    return placeholders;
+  }
+
+  const currentRowStart = lastRowIndex * 4;
+  const currentRowSections = sections.slice(currentRowStart);
+  const rowY = currentRowSections[0]?.config.layout.y ?? 2;
+  const rowH = currentRowSections[0]?.config.layout.h ?? 2;
+
+  const slotCount = Math.min(4, sectionsInCurrentRow + 1);
+  const slotW = Math.floor(12 / slotCount);
+
   placeholders.push({
     key: 'add_section_final',
-    ...sectionPlaceholder,
+    x: sectionsInCurrentRow * slotW,
+    y: rowY,
+    w: slotW,
+    h: rowH,
     type: 'add_section',
   });
 
