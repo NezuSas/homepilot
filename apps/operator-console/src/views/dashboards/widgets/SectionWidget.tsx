@@ -443,31 +443,45 @@ function SectionClockPreview({
   );
 }
 
-function resolveMediaUrl(value: unknown) {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return undefined;
 
-  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
-    return trimmed;
-  }
-
-  if (trimmed.startsWith('/')) {
-    return `${window.location.origin}${trimmed}`;
-  }
-
-  return trimmed;
+function isCameraLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
+  return device.type === 'camera' || device.semanticType === 'camera';
 }
 
-function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> | null }) {
-  const state = device?.lastKnownState;
-  if (!state || typeof state !== 'object') return undefined;
+function isCoverLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
+  return device.type === 'cover' || device.semanticType === 'cover';
+}
 
-  const attributes = typeof state.attributes === 'object' && state.attributes !== null
-    ? state.attributes as Record<string, unknown>
-    : {};
+function isLightLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
+  return device.type === 'light'
+    || device.semanticType === 'light'
+    || device.type === 'switch'
+    || device.semanticType === 'switch'
+    || device.type === 'outlet'
+    || device.semanticType === 'outlet';
+}
 
-  const sources = [
+function getAssignableDevicesForKind(
+  kind: SectionCardKind,
+  devices: Array<{ id: string; name?: string | null; type?: string | null; semanticType?: string | null }>
+) {
+  const normalized = normalizeKind(kind);
+
+  if (normalized === 'camera') return devices.filter(isCameraLikeDevice);
+  if (normalized === 'cover') return devices.filter(isCoverLikeDevice);
+  if (normalized === 'light') return devices.filter(isLightLikeDevice);
+  if (normalized === 'device') return devices.filter((device) => !isCameraLikeDevice(device));
+  return [];
+}
+
+function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> | null; metadata?: Record<string, unknown> | null }) {
+  const state = (device?.lastKnownState ?? {}) as Record<string, any>;
+  const attrs = (state.attributes ?? {}) as Record<string, any>;
+  const metadata = (device?.metadata ?? {}) as Record<string, any>;
+
+  const candidates = [
+    state.mediaUrl,
+    state.media_url,
     state.streamUrl,
     state.stream_url,
     state.snapshotUrl,
@@ -475,26 +489,28 @@ function getCameraMediaUrl(device?: { lastKnownState?: Record<string, unknown> |
     state.imageUrl,
     state.image_url,
     state.entity_picture,
-    state.picture,
-    state.url,
-    attributes.streamUrl,
-    attributes.stream_url,
-    attributes.snapshotUrl,
-    attributes.snapshot_url,
-    attributes.imageUrl,
-    attributes.image_url,
-    attributes.entity_picture,
-    attributes.picture,
-    attributes.url,
+    attrs.entity_picture,
+    attrs.thumbnail,
+    attrs.preview,
+    attrs.preview_url,
+    attrs.snapshot,
+    attrs.snapshot_url,
+    attrs.stream_source,
+    attrs.streamUrl,
+    metadata.mediaUrl,
+    metadata.media_url,
+    metadata.streamUrl,
+    metadata.stream_url,
+    metadata.snapshotUrl,
+    metadata.snapshot_url,
+    metadata.imageUrl,
+    metadata.image_url,
   ];
 
-  for (const source of sources) {
-    const resolved = resolveMediaUrl(source);
-    if (resolved) return resolved;
-  }
-
-  return undefined;
+  const found = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+  return typeof found === 'string' ? found.trim() : undefined;
 }
+
 
 function CameraMediaPreview({ mediaUrl, title }: { mediaUrl?: string; title: string }) {
   const isVideo = Boolean(mediaUrl && /\.(mp4|webm|ogg)(\?|#|$)/i.test(mediaUrl));
@@ -672,6 +688,11 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
 
+  const assignableDevices = getAssignableDevicesForKind(cardDraft.kind, devices);
+  const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
+  const previewMediaUrl = normalizeKind(cardDraft.kind) === 'camera' ? getCameraMediaUrl(selectedDevice) : undefined;
+
+
   const rawTitle = config.appearance?.title?.trim();
   const title = rawTitle || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
@@ -693,23 +714,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
   });
 
-  const filteredDevices = devices.filter((device) => {
-    if (cardDraft.kind === 'camera') {
-      return device.type === 'camera' || device.semanticType === 'camera';
-    }
-
-    if (cardDraft.kind === 'light') {
-      return device.type === 'light' || device.semanticType === 'light' || device.type === 'switch' || device.semanticType === 'switch';
-    }
-
-    if (cardDraft.kind === 'cover') {
-      return device.type === 'cover' || device.semanticType === 'cover';
-    }
-
-    return true;
-  });
-
-  const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
+const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     onUpdate?.({
       layout: {
         ...config.layout,
@@ -762,8 +767,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   const saveCardEditor = () => {
     if (!editingCard) return;
-
-    const selectedDevice = devices.find((device) => device.id === cardDraft.entityId);
     const nextCards = cards.map((card) => {
       if (card.id !== editingCard.id) return card;
 
@@ -896,7 +899,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     );
   };
 
-  const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan, iconOverride?: SectionCardIcon) => {
+  const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan, iconOverride?: SectionCardIcon, mediaUrlOverride?: string) => {
     const title = titleOverride || t(getCatalogLabelKey(kind));
     const span = spanOverride ?? getDefaultSpan(kind);
 
@@ -908,6 +911,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
           subtitle={t(getCatalogDescriptionKey(kind))}
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
+          mediaUrl={mediaUrlOverride}
         />
       </div>
     );
@@ -1021,7 +1025,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
               cardDraft.kind,
               cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : t(getCatalogLabelKey(cardDraft.kind))),
               cardDraft.span,
-              cardDraft.icon
+              cardDraft.icon,
+              previewMediaUrl
             )}
 
             <label className="block space-y-2">
@@ -1105,7 +1110,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                   placeholder="Sin asignar"
                   options={[
                     { value: '', label: 'Sin asignar' },
-                    ...filteredDevices.map((device) => ({
+                    ...assignableDevices.map((device) => ({
                       value: device.id,
                       label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
                     })),
