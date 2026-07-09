@@ -60,8 +60,7 @@ export function DashboardCanvas({
   const rowHeight = colWidth > 0
     ? Math.min(MAX_ROW_HEIGHT, Math.max(MIN_ROW_HEIGHT, Math.round(colWidth * 0.7)))
     : MIN_ROW_HEIGHT;
-  const dashboardItemInset = 16;
-  const dashboardItemInsetX = dashboardItemInset;
+  const dashboardItemInsetX = 18;
   const dashboardItemInsetY = 12;
 
   useEffect(() => {
@@ -76,29 +75,57 @@ export function DashboardCanvas({
     return () => observer.disconnect();
   }, []);
 
-  const sanitizedWidgets = useMemo(() => {
+  const dashboardSectionStartY = 2;
+const dashboardSectionRows = 2;
+
+function getDashboardSectionLayout(sectionIndex: number, sectionCount: number) {
+  const row = Math.floor(sectionIndex / 4);
+  const indexInRow = sectionIndex % 4;
+  const rowStart = row * 4;
+  const itemsInRow = Math.min(4, Math.max(0, sectionCount - rowStart));
+  const isLastRow = rowStart + itemsInRow >= sectionCount;
+  const effectiveCount = isLastRow && itemsInRow < 4
+    ? Math.min(4, itemsInRow + 1)
+    : Math.max(1, itemsInRow);
+  const width = Math.floor(12 / effectiveCount);
+
+  return {
+    x: indexInRow * width,
+    y: dashboardSectionStartY + row * dashboardSectionRows,
+    w: width,
+    h: dashboardSectionRows,
+  };
+}
+
+function getDashboardPlaceholderLayout(sectionCount: number) {
+  if (sectionCount === 0) {
+    return {
+      x: 4,
+      y: dashboardSectionStartY,
+      w: 4,
+      h: 1,
+    };
+  }
+
+  const row = Math.floor(sectionCount / 4);
+  const indexInRow = sectionCount % 4;
+  const slotCount = indexInRow === 0 ? 1 : Math.min(4, indexInRow + 1);
+  const width = Math.floor(12 / slotCount);
+
+  return {
+    x: indexInRow * width,
+    y: dashboardSectionStartY + row * dashboardSectionRows,
+    w: width,
+    h: dashboardSectionRows,
+  };
+}
+
+const sanitizedWidgets = useMemo(() => {
   const baseWidgets = widgets.map(sanitizeWidget);
 
   if (!isEditing) return baseWidgets;
 
   const sectionCount = baseWidgets.filter(widget => widget.type === 'section').length;
-
-  const getEditSectionLayout = (sectionIndex: number) => {
-    const row = Math.floor(sectionIndex / 4);
-    const indexInRow = sectionIndex % 4;
-    const rowStart = row * 4;
-    const itemsInRow = Math.min(4, sectionCount - rowStart);
-    const isLastRow = rowStart + itemsInRow >= sectionCount;
-    const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : Math.max(1, itemsInRow);
-    const width = Math.floor(12 / effectiveCount);
-
-    return {
-      x: indexInRow * width,
-      y: 2 + row * 2,
-      w: width,
-      h: 2,
-    };
-  };
 
   const isBrokenSectionTitle = (value: unknown) =>
     typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
@@ -108,7 +135,7 @@ export function DashboardCanvas({
   return baseWidgets.map((widget) => {
     if (widget.type !== 'section') return widget;
 
-    const layout = getEditSectionLayout(sectionIndex);
+    const layout = getDashboardSectionLayout(sectionIndex, sectionCount);
     sectionIndex += 1;
 
     return {
@@ -156,26 +183,12 @@ const virtualPlaceholders = useMemo(() => {
     placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
   }
 
-  const sectionStartY = 2;
-  const sectionsInCurrentRow = sections.length % 4;
-  const completedRows = Math.floor(sections.length / 4);
-
-  if (sections.length === 0) {
-    placeholders.push({ key: 'add_section_final', x: 4, y: sectionStartY, w: 4, h: 1, type: 'add_section' });
-  } else {
-    const slotCount = sectionsInCurrentRow === 0 ? 1 : Math.min(4, sectionsInCurrentRow + 1);
-    const slotW = Math.floor(12 / slotCount);
-    const placeholderSlot = sectionsInCurrentRow === 0 ? 0 : sectionsInCurrentRow;
-
-    placeholders.push({
-      key: 'add_section_final',
-      x: placeholderSlot * slotW,
-      y: sectionStartY + completedRows * 2,
-      w: slotW,
-      h: 2,
-      type: 'add_section',
-    });
-  }
+  const sectionPlaceholder = getDashboardPlaceholderLayout(sections.length);
+  placeholders.push({
+    key: 'add_section_final',
+    ...sectionPlaceholder,
+    type: 'add_section',
+  });
 
   return placeholders;
 }, [sanitizedWidgets, canEditLayout]);
