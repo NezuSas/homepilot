@@ -2,30 +2,20 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
-  Fan,
   GripVertical,
   Home,
-  Lightbulb,
-  LightbulbOff,
   Monitor,
-  Moon,
   Pencil,
-  Plug,
   Plus,
-  Power,
   Search,
-  Shield,
-  Sun,
   Trash2,
-  Tv,
-  Wifi,
   X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
-import { IconPicker } from '../components/IconPicker';
+import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -288,32 +278,8 @@ function isBindableKind(kind: SectionCardKind) {
   return normalized === 'device' || normalized === 'light' || normalized === 'cover' || normalized === 'camera';
 }
 
-function normalizeIconKey(icon: SectionCardIcon) {
-  return icon
-    .trim()
-    .toLowerCase()
-    .replace(/^lucide-/, '')
-    .replace(/icon$/, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-
 function iconForIconKey(icon: SectionCardIcon) {
-  const normalized = normalizeIconKey(icon);
-
-  if (normalized.includes('lightbulboff')) return LightbulbOff;
-  if (normalized.includes('lightbulb')) return Lightbulb;
-  if (normalized.includes('plug')) return Plug;
-  if (normalized.includes('sun')) return Sun;
-  if (normalized.includes('moon')) return Moon;
-  if (normalized.includes('fan')) return Fan;
-  if (normalized.includes('camera')) return Camera;
-  if (normalized === 'tv' || normalized.includes('television')) return Tv;
-  if (normalized.includes('shield')) return Shield;
-  if (normalized.includes('wifi')) return Wifi;
-  if (normalized.includes('power')) return Power;
-
-  return Lightbulb;
+  return getLucideIconComponent(icon);
 }
 
 function CardPreview({

@@ -59,7 +59,7 @@ const ICONS = Object.entries(LucideIcons)
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 
-function findIcon(value?: string): IconComponent {
+export function getLucideIconComponent(value?: string): IconComponent {
   const normalized = normalizeIconName(value || '');
   if (!normalized) return CircleHelp;
 
@@ -86,7 +86,7 @@ export function IconPicker({
     setIconQuery(value);
   }, [value]);
 
-  const SelectedIcon = findIcon(iconQuery);
+  const SelectedIcon = getLucideIconComponent(iconQuery);
 
   const filteredIcons = useMemo(() => {
     const q = normalizeIconName(iconQuery);
