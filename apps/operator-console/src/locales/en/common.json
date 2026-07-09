@@ -241,7 +241,35 @@
       "add_activity_feed": "Activity",
       "add_assistant_insight": "Assistant",
       "add_system_status": "System",
-      "add_energy_snapshot": "Energy"
+      "add_energy_snapshot": "Energy",
+      "sections": {
+        "add_title": "Add title",
+        "title_area": "Dashboard title",
+        "title_placeholder": "Hello Gustavo",
+        "subtitle_placeholder": "Add your text here. Template variables are supported âœ¨",
+        "add_section": "Add section",
+        "new_section": "New section",
+        "untitled_section": "Untitled section",
+        "add_card": "Add card"
+      },
+      "catalog": {
+        "title": "Add to dashboard",
+        "search": "Search cards",
+        "by_card": "By card",
+        "by_entity": "By entity",
+        "other_cards": "Other cards",
+        "device": "Device",
+        "room": "Room",
+        "scene": "Scene",
+        "camera": "Camera",
+        "light": "Light",
+        "cover": "Cover",
+        "clock": "Clock",
+        "energy": "Energy",
+        "system": "System",
+        "assistant": "AI Assistant",
+        "section": "Section"
+      }
     }
   },
   "scenes": {
@@ -374,7 +402,6 @@
     },
     "messages": {
       "healthy": "All core loops operating exceptionally.",
-
       "degraded": "Subsystems operating below SLA.",
       "offline": "Core link broken.",
       "ha_not_configured": "Integration missing or empty credentials.",
@@ -842,7 +869,6 @@
       "USER_SESSIONS_REVOKED": "All sessions for '{{targetUser}}' have been revoked"
     }
   },
-
   "users": {
     "loading": "Loading user directory...",
     "create_form": {
@@ -1272,7 +1298,15 @@
     "unknown": "Unknown",
     "unknown_scene": "Unknown Scene",
     "system": "System",
-    "days_min": ["S", "M", "T", "W", "T", "F", "S"],
+    "days_min": [
+      "S",
+      "M",
+      "T",
+      "W",
+      "T",
+      "F",
+      "S"
+    ],
     "enable": "Enable",
     "disable": "Disable",
     "edit": "Edit",

@@ -241,7 +241,35 @@
       "add_activity_feed": "Actividad",
       "add_assistant_insight": "Asistente",
       "add_system_status": "Sistema",
-      "add_energy_snapshot": "Energía"
+      "add_energy_snapshot": "Energía",
+      "sections": {
+        "add_title": "AÃ±adir tÃ­tulo",
+        "title_area": "TÃ­tulo del tablero",
+        "title_placeholder": "Hola Gustavo",
+        "subtitle_placeholder": "AÃ±ade tu texto aquÃ­, se admiten variables de plantilla âœ¨",
+        "add_section": "AÃ±adir secciÃ³n",
+        "new_section": "Nueva secciÃ³n",
+        "untitled_section": "SecciÃ³n sin tÃ­tulo",
+        "add_card": "AÃ±adir tarjeta"
+      },
+      "catalog": {
+        "title": "AÃ±adir al panel de control",
+        "search": "Buscar tarjetas",
+        "by_card": "Por tarjeta",
+        "by_entity": "Por entidad",
+        "other_cards": "Otras tarjetas",
+        "device": "Dispositivo",
+        "room": "HabitaciÃ³n",
+        "scene": "Escena",
+        "camera": "CÃ¡mara",
+        "light": "Luz",
+        "cover": "Cortina",
+        "clock": "Reloj",
+        "energy": "EnergÃ­a",
+        "system": "Sistema",
+        "assistant": "Asistente IA",
+        "section": "SecciÃ³n"
+      }
     }
   },
   "scenes": {
@@ -374,7 +402,6 @@
     },
     "messages": {
       "healthy": "Todos los procesos funcionan excepcionalmente.",
-
       "degraded": "Los subsistemas operan por debajo del SLA.",
       "offline": "Enlace central roto.",
       "ha_not_configured": "Integración faltante o credenciales vacías.",
@@ -842,7 +869,6 @@
       "USER_SESSIONS_REVOKED": "Todas las sesiones de '{{targetUser}}' han sido revocadas"
     }
   },
-
   "users": {
     "loading": "Cargando directorio de usuarios...",
     "create_form": {
@@ -1232,7 +1258,7 @@
       "skip": "Omitir"
     },
     "steps": {
-  "dashboard": {
+      "dashboard": {
         "title": "Tu hogar, un solo control",
         "description": "HomePilot centraliza espacios, escenas, dispositivos y salud del sistema en una sola consola local, pensada para operar la casa sin saltar entre apps."
       },
@@ -1306,7 +1332,15 @@
     "unknown": "Desconocido",
     "unknown_scene": "Escena Desconocida",
     "system": "Sistema",
-    "days_min": ["D", "L", "M", "M", "J", "V", "S"],
+    "days_min": [
+      "D",
+      "L",
+      "M",
+      "M",
+      "J",
+      "V",
+      "S"
+    ],
     "roles": {
       "admin": "Administrador",
       "operator": "Operador",

@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
@@ -200,6 +201,7 @@ export function DashboardCanvas({
   selectedWidgetId,
   onLayoutChange,
   onAddCardClick, onAddSectionClick, onAddTitleClick }: DashboardCanvasProps) {
+  const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const [snapPreview, setSnapPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -280,76 +282,46 @@ export function DashboardCanvas({
   );
 
   // Compute virtual placeholders for HASS-style add-card and add-section buttons.
-  // Layout editing is desktop-only; mobile/tablet use a responsive packed projection.
-  const virtualPlaceholders = useMemo(() => {
-    if (!canEditLayout) return [];
+const virtualPlaceholders = useMemo(() => {
+  if (!canEditLayout) return [];
 
-    const sections = sanitizedWidgets.filter(w => w.type === 'section');
-    const placeholders: { key: string; x: number; y: number; w: number; h: number; type: 'add_title' | 'add_card' | 'add_section' }[] = []; const hasDashboardTitle = sanitizedWidgets.some(w => w.type === 'dashboard_title'); if (!hasDashboardTitle) { placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' }); }
-
-    // 1. Group widgets and place an "add card" block under each section
-    if (sections.length === 0) {
-      const bottomY = sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
-      placeholders.push({
-        key: 'add_card_root',
-        x: 0,
-        y: bottomY,
-        w: 4,
-        h: 2,
-        type: 'add_card'
-      });
-    } else {
-      const sortedSections = [...sections].sort((a, b) => a.config.layout.y - b.config.layout.y);
-      
-      // Before first section
-      const firstSecY = sortedSections[0].config.layout.y;
-      const preWidgets = sanitizedWidgets.filter(w => w.config.layout.y < firstSecY);
-      if (preWidgets.length > 0) {
-        const bottomY = preWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
-        placeholders.push({
-          key: 'add_card_pre',
-          x: 0,
-          y: bottomY,
-          w: 4,
-          h: 2,
-          type: 'add_card'
-        });
-      }
-
-      // Inside each section
-      sortedSections.forEach((section, idx) => {
-        const secY = section.config.layout.y;
-        const nextSec = sortedSections[idx + 1];
-        const nextSecY = nextSec ? nextSec.config.layout.y : Infinity;
-
-        const secWidgets = sanitizedWidgets.filter(w => w.id !== section.id && w.config.layout.y > secY && w.config.layout.y < nextSecY);
-        const bottomY = secWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), secY + section.config.layout.h);
-        placeholders.push({
-          key: `add_card_${section.id}`,
-          x: 0,
-          y: bottomY,
-          w: 4,
-          h: 2,
-          type: 'add_card'
-        });
-      });
-    }
-
-    // 2. Section placeholder at the absolute bottom
-    const absoluteMaxY = sanitizedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
-    placeholders.push({
-      key: 'add_section_final',
-      x: 0,
-      y: absoluteMaxY + (placeholders.length > 0 ? 3 : 1),
-      w: 12,
-      h: 2,
-      type: 'add_section'
+  const sections = sanitizedWidgets
+    .filter(widget => widget.type === 'section')
+    .sort((a, b) => {
+      const byY = a.config.layout.y - b.config.layout.y;
+      if (byY !== 0) return byY;
+      return a.config.layout.x - b.config.layout.x;
     });
 
-    return placeholders;
-  }, [sanitizedWidgets, canEditLayout]);
+  const hasDashboardTitle = sanitizedWidgets.some(widget => widget.type === 'dashboard_title');
 
-  const canvasMinRows = useMemo(() => {
+  const placeholders: {
+    key: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    type: 'add_title' | 'add_card' | 'add_section';
+  }[] = [];
+
+  if (!hasDashboardTitle) {
+    placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
+  }
+
+  const titleRows = hasDashboardTitle ? 3 : 3;
+  const sectionSlot = sections.length;
+
+  if (sections.length === 0) {
+    placeholders.push({ key: 'add_section_final', x: 4, y: titleRows, w: 4, h: 2, type: 'add_section' });
+  } else {
+    const nextSectionX = (sectionSlot % 4) * 3;
+    const nextSectionY = titleRows + Math.floor(sectionSlot / 4) * 2;
+    placeholders.push({ key: 'add_section_final', x: nextSectionX, y: nextSectionY, w: 3, h: 2, type: 'add_section' });
+  }
+
+  return placeholders;
+}, [sanitizedWidgets, canEditLayout]);
+const canvasMinRows = useMemo(() => {
     const bottomY = renderedWidgets.reduce((max, w) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
     return Math.max(8, bottomY + (canEditLayout ? 6 : 2));
   }, [renderedWidgets, canEditLayout]);
@@ -497,7 +469,7 @@ export function DashboardCanvas({
         {/* Home Assistant style virtual placeholders */}
 {canEditLayout && virtualPlaceholders.map((placeholder) => {
   const isAddTitle = placeholder.type === 'add_title';
-  const isAddCard = placeholder.type === 'add_card';
+  const isAddSection = placeholder.type === 'add_section';
 
   return (
     <button
@@ -506,19 +478,19 @@ export function DashboardCanvas({
       onClick={() => {
         if (isAddTitle) {
           onAddTitleClick?.();
-        } else if (isAddCard) {
-          onAddCardClick?.(placeholder.x, placeholder.y);
-        } else {
+        } else if (isAddSection) {
           onAddSectionClick?.(placeholder.y);
+        } else {
+          onAddCardClick?.(placeholder.x, placeholder.y);
         }
       }}
       className={cn(
         "absolute z-10 flex transition-all duration-200",
         isAddTitle
-          ? "flex-col items-center justify-center gap-4 rounded-[1.5rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-          : isAddCard
-            ? "items-center justify-center rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:border-primary hover:bg-primary/10"
-            : "flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-4 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
+          ? "items-center justify-center rounded-[1.5rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+          : isAddSection
+            ? "flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-4 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
+            : "items-center justify-center rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:border-primary hover:bg-primary/10"
       )}
       style={{
         left: placeholder.x * colWidth + 8,
@@ -528,29 +500,23 @@ export function DashboardCanvas({
       }}
     >
       {isAddTitle ? (
-        <>
-          <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-sm font-semibold text-primary">
-            <span className="text-xl leading-none">+</span>
-            <span>AÃƒÂ±adir tÃƒÂ­tulo</span>
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/20 px-5 py-2 text-sm font-semibold text-primary">
-            <span className="text-xl leading-none">+</span>
-            <span>AÃƒÂ±adir insignia</span>
-          </span>
-        </>
-      ) : isAddCard ? (
-        <span className="inline-flex h-11 min-w-20 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 text-2xl font-light leading-none text-primary">
-          +
+        <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-sm font-semibold text-primary">
+          <span className="text-xl leading-none">+</span>
+          <span>{t('dashboard.editor.sections.add_title')}</span>
         </span>
-      ) : (
+      ) : isAddSection ? (
         <>
           <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-            Nueva secciÃƒÂ³n
+            {t('dashboard.editor.sections.new_section')}
           </span>
           <span className="mt-3 inline-flex h-10 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
             +
           </span>
         </>
+      ) : (
+        <span className="inline-flex h-11 min-w-20 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 text-2xl font-light leading-none text-primary">
+          +
+        </span>
       )}
     </button>
   );

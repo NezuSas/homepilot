@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { DashboardWidgetConfig } from '../types';
 
 interface SectionWidgetProps {
@@ -7,7 +8,9 @@ interface SectionWidgetProps {
 }
 
 export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
-  const title = config.appearance?.title || 'Nueva sección';
+  const { t } = useTranslation();
+
+  const title = config.appearance?.title || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
 
   if (!isEditing) {
@@ -23,7 +26,7 @@ export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
   }
 
   return (
-    <div className="group/section flex h-full w-full min-w-0 flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/20 px-[clamp(0.85rem,2cqi,1.25rem)] py-[clamp(0.75rem,1.7cqi,1rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5">
+    <div className="group/section flex h-full w-full min-w-0 flex-col justify-between rounded-[1.35rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.85rem,2cqi,1.25rem)] py-[clamp(0.75rem,1.7cqi,1rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5">
       <div className="min-w-0">
         {showTitle ? (
           <h2 className="min-w-0 truncate text-[clamp(0.95rem,1.9cqi,1.2rem)] font-semibold text-foreground">
@@ -31,7 +34,7 @@ export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
           </h2>
         ) : (
           <span className="text-[clamp(0.75rem,1.5cqi,0.9rem)] font-semibold text-muted-foreground">
-            Sección sin título
+            {t('dashboard.editor.sections.untitled_section')}
           </span>
         )}
       </div>
