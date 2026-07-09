@@ -1,4 +1,19 @@
-import { useMemo, useState } from 'react';
+// HomePilot Section Cards V17 - previews, no internal scroll, portal modals
+// Run from repo root:
+// node .\apply-homepilot-section-cards-v17-preview-growth.cjs
+//
+// Fixes:
+// - "Reloj" is rendered as a visual clock preview, not a generic type icon.
+// - All card options/cards get a visual preview of what the user will see.
+// - Section content does NOT scroll internally; section height grows with cards.
+// - Internal cards remain max 2 columns and grow vertically.
+// - Edit/catalog modals render through a React portal above the canvas/placeholder.
+
+const fs = require("fs");
+
+const path = "apps/operator-console/src/views/dashboards/widgets/SectionWidget.tsx";
+
+const content = `import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Bot,
@@ -54,7 +69,7 @@ interface CardDraft {
   entityId: string;
 }
 
-const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createId = () => \`section-card-\${Date.now()}-\${Math.random().toString(36).slice(2, 8)}\`;
 
 const cardKinds: SectionCardKind[] = [
   'device',
@@ -327,7 +342,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const filteredCatalog = catalogItems.filter((item) => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return true;
-    return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
+    return \`\${item.title} \${item.description}\`.toLowerCase().includes(normalizedQuery);
   });
 
   const filteredDevices = devices.filter((device) => {
@@ -744,3 +759,9 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     </div>
   );
 }
+`;
+
+fs.writeFileSync(path, content, "utf8");
+
+console.log("SectionWidget V17 preview/growth/modal layering applied.");
+console.log("Run: npm run build --workspace=apps/operator-console");
