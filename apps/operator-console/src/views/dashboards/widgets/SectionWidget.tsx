@@ -1,23 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  Bot,
+  Camera,
+  Clock,
+  Home,
+  Lightbulb,
+  Monitor,
   Pencil,
   Plus,
+  Power,
   Search,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
-import { DeviceWidget } from './DeviceWidget';
-import { RoomWidget } from './RoomWidget';
-import { SceneShortcutWidget } from './SceneShortcutWidget';
-import { AssistantInsightWidget } from './AssistantInsightWidget';
-import { SystemStatusWidget } from './SystemStatusWidget';
-import { EnergySnapshotWidget } from './EnergySnapshotWidget';
-import { ClockWidget } from './ClockWidget';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -32,6 +33,7 @@ type SectionCardKind =
   | 'camera'
   | 'room'
   | 'scene'
+  | 'clock'
   | 'clock_digital'
   | 'clock_analog'
   | 'clock_premium'
@@ -40,6 +42,7 @@ type SectionCardKind =
   | 'assistant'
   | 'system';
 
+type NormalizedSectionCardKind = Exclude<SectionCardKind, 'clock'>;
 type SectionCardSpan = 'small' | 'medium' | 'full';
 
 interface SectionCardItem {
@@ -53,16 +56,20 @@ interface SectionCardItem {
   span?: SectionCardSpan;
 }
 
+interface NormalizedSectionCardItem extends Omit<SectionCardItem, 'kind'> {
+  kind: NormalizedSectionCardKind;
+}
+
 interface CardDraft {
   title: string;
-  kind: SectionCardKind;
+  kind: NormalizedSectionCardKind;
   entityId: string;
   span: SectionCardSpan;
 }
 
 const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-const cardKinds: SectionCardKind[] = [
+const cardKinds: NormalizedSectionCardKind[] = [
   'device',
   'light',
   'cover',
@@ -78,28 +85,20 @@ const cardKinds: SectionCardKind[] = [
   'system',
 ];
 
-function isClockKind(kind: SectionCardKind) {
-  return kind === 'clock_digital' || kind === 'clock_analog' || kind === 'clock_premium' || kind === 'clock_minimal';
+function normalizeKind(kind: SectionCardKind): NormalizedSectionCardKind {
+  return kind === 'clock' ? 'clock_digital' : kind;
 }
 
-function getClockStyle(kind: SectionCardKind) {
-  switch (kind) {
-    case 'clock_analog':
-      return 'analog';
-    case 'clock_premium':
-      return 'premium';
-    case 'clock_minimal':
-      return 'minimal';
-    case 'clock_digital':
-    default:
-      return 'digital';
-  }
+function isClockKind(kind: SectionCardKind) {
+  const normalized = normalizeKind(kind);
+  return normalized === 'clock_digital' || normalized === 'clock_analog' || normalized === 'clock_premium' || normalized === 'clock_minimal';
 }
 
 function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
-  if (kind === 'light' || kind === 'device' || kind === 'cover') return 'small';
-  if (isClockKind(kind)) return kind === 'clock_minimal' ? 'medium' : 'full';
-  if (kind === 'camera') return 'medium';
+  const normalized = normalizeKind(kind);
+  if (normalized === 'light' || normalized === 'device' || normalized === 'cover') return 'small';
+  if (isClockKind(normalized)) return normalized === 'clock_minimal' ? 'medium' : 'full';
+  if (normalized === 'camera') return 'medium';
   return 'medium';
 }
 
@@ -128,9 +127,10 @@ function getSpanClass(span: SectionCardSpan) {
 }
 
 function getWidgetType(kind: SectionCardKind): WidgetType {
-  if (isClockKind(kind)) return 'clock_display' as WidgetType;
+  const normalized = normalizeKind(kind);
+  if (isClockKind(normalized)) return 'clock_display' as WidgetType;
 
-  switch (kind) {
+  switch (normalized) {
     case 'room':
       return 'room_overview' as WidgetType;
     case 'scene':
@@ -151,7 +151,7 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
 }
 
 function getCatalogLabelKey(kind: SectionCardKind) {
-  switch (kind) {
+  switch (normalizeKind(kind)) {
     case 'device':
       return 'dashboard.editor.sections.section_card_device';
     case 'light':
@@ -182,7 +182,7 @@ function getCatalogLabelKey(kind: SectionCardKind) {
 }
 
 function getCatalogDescriptionKey(kind: SectionCardKind) {
-  switch (kind) {
+  switch (normalizeKind(kind)) {
     case 'device':
       return 'dashboard.editor.sections.section_card_device_desc';
     case 'light':
@@ -212,7 +212,7 @@ function getCatalogDescriptionKey(kind: SectionCardKind) {
   }
 }
 
-function normalizeCards(extra: DashboardWidgetConfig['extra']): SectionCardItem[] {
+function normalizeCards(extra: DashboardWidgetConfig['extra']): NormalizedSectionCardItem[] {
   const rawCards = extra?.cards;
   if (!Array.isArray(rawCards)) return [];
 
@@ -223,20 +223,18 @@ function normalizeCards(extra: DashboardWidgetConfig['extra']): SectionCardItem[
       return typeof candidate.id === 'string' && typeof candidate.kind === 'string';
     })
     .map((card) => {
-      const rawKind = card.kind as string;
-      const normalizedKind = (rawKind === 'clock' ? 'clock_digital' : rawKind) as SectionCardKind;
-
+      const kind = normalizeKind(card.kind);
       return {
         ...card,
-        kind: normalizedKind,
-        title: typeof card.title === 'string' && card.title.trim() ? card.title : normalizedKind,
-        widgetType: card.widgetType ?? getWidgetType(normalizedKind),
-        span: card.span ?? getDefaultSpan(normalizedKind),
+        kind,
+        title: typeof card.title === 'string' && card.title.trim() ? card.title : kind,
+        widgetType: card.widgetType ?? getWidgetType(kind),
+        span: card.span ?? getDefaultSpan(kind),
       };
     });
 }
 
-function getRecommendedSectionHeight(currentHeight: number, cards: SectionCardItem[]) {
+function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSectionCardItem[]) {
   const spans = [
     ...cards.map((card) => getSpanCols(card.span ?? getDefaultSpan(card.kind))),
     3,
@@ -265,66 +263,100 @@ function getRecommendedSectionHeight(currentHeight: number, cards: SectionCardIt
 }
 
 function isBindableKind(kind: SectionCardKind) {
-  return kind === 'device' || kind === 'light' || kind === 'cover' || kind === 'camera';
+  const normalized = normalizeKind(kind);
+  return normalized === 'device' || normalized === 'light' || normalized === 'cover' || normalized === 'camera';
 }
 
-function renderStaticCatalogPreview(kind: SectionCardKind, title: string) {
-  if (isClockKind(kind)) {
+function iconForKind(kind: SectionCardKind) {
+  const normalized = normalizeKind(kind);
+  if (normalized === 'camera') return Camera;
+  if (normalized === 'room') return Home;
+  if (normalized === 'scene') return Monitor;
+  if (isClockKind(normalized)) return Clock;
+  if (normalized === 'energy') return Zap;
+  if (normalized === 'assistant') return Bot;
+  if (normalized === 'system') return Monitor;
+  if (normalized === 'device') return Power;
+  return Lightbulb;
+}
+
+function CardPreview({
+  kind,
+  title,
+  subtitle,
+  span,
+  isAssigned,
+}: {
+  kind: SectionCardKind;
+  title: string;
+  subtitle?: string;
+  span: SectionCardSpan;
+  isAssigned?: boolean;
+}) {
+  const normalized = normalizeKind(kind);
+  const Icon = iconForKind(normalized);
+  const isSmall = span === 'small';
+
+  if (isClockKind(normalized)) {
+    const analog = normalized === 'clock_analog';
+    const minimal = normalized === 'clock_minimal';
+
     return (
-      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-background p-4">
+      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-border/45 bg-gradient-to-br from-primary/10 via-card to-background p-4">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">{kind === 'clock_analog' ? 'Analógico premium' : kind === 'clock_minimal' ? 'Minimal' : 'Hora local'}</span>
-          <span className="rounded-full border border-primary/30 px-2 py-1 text-[9px] font-black text-primary">01 seg</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">
+            {analog ? 'Analógico premium' : minimal ? 'Minimal' : 'Digital compacto'}
+          </span>
+          {!isSmall ? (
+            <span className="rounded-full border border-primary/30 px-2 py-1 text-[9px] font-black text-primary">
+              13 seg
+            </span>
+          ) : null}
         </div>
+
         <div className="flex flex-1 items-center justify-center">
-          <span className="text-5xl font-black tracking-tight text-foreground">01<span className="text-primary">:</span>12</span>
+          {analog ? (
+            <div className={cn("relative rounded-full border border-primary/40", isSmall ? "h-16 w-16" : "h-24 w-24")}>
+              <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
+              <span className="absolute left-1/2 top-1/2 h-[2px] w-8 origin-left -rotate-45 bg-foreground" />
+              <span className="absolute left-1/2 top-1/2 h-[2px] w-6 origin-left rotate-90 bg-primary" />
+            </div>
+          ) : (
+            <span className={cn("font-black tracking-tight text-foreground", span === 'full' ? "text-6xl" : "text-4xl")}>
+              09<span className="text-primary">:</span>21
+            </span>
+          )}
         </div>
-        <div className="rounded-full border border-border/40 bg-background/40 px-3 py-1 text-[10px] font-black uppercase text-muted-foreground">
-          Cuenca · despejado · 13°C
-        </div>
+
+        {!isSmall ? (
+          <div className="rounded-full border border-border/40 bg-background/40 px-3 py-1 text-[10px] font-black uppercase text-muted-foreground">
+            Cuenca · 15°C
+          </div>
+        ) : null}
       </div>
     );
   }
 
-  if (kind === 'camera') {
+  if (normalized === 'camera') {
     return (
-      <div className="relative h-full min-h-0 overflow-hidden rounded-[1.35rem] border border-primary/30 bg-card">
+      <div className="relative h-full min-h-0 overflow-hidden rounded-[1.35rem] border border-border/45 bg-card">
         <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between">
-          <span className="rounded-full bg-background/80 px-3 py-1 text-[10px] font-black text-foreground">● En vivo</span>
+          <span className="rounded-full bg-background/80 px-3 py-1 text-[10px] font-black text-foreground">
+            ● En vivo
+          </span>
         </div>
-        <div className="absolute inset-x-3 top-12 h-[58%] rounded-xl bg-gradient-to-br from-primary/45 via-primary/20 to-background" />
+        <div className="absolute inset-x-3 top-12 bottom-12 rounded-xl bg-gradient-to-br from-primary/45 via-primary/20 to-background" />
         <div className="absolute bottom-4 left-4">
           <div className="text-sm font-black text-foreground">{title}</div>
-          <div className="mt-1 text-xs font-semibold text-muted-foreground">Vista de cámara</div>
+          <div className="mt-1 text-xs font-semibold text-muted-foreground">{subtitle || 'Vista de cámara'}</div>
         </div>
       </div>
     );
   }
 
-  if (kind === 'room') {
+  if (normalized === 'energy') {
     return (
-      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-primary/30 bg-card p-4">
-        <span className="mb-4 grid h-9 w-9 place-items-center rounded-2xl bg-primary/15 text-primary">⌂</span>
-        <span className="text-lg font-black text-foreground">{title}</span>
-        <span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">1 activo · 7 equipos</span>
-        <span className="mt-4 w-fit rounded-full bg-muted px-3 py-1 text-[9px] font-black uppercase text-muted-foreground">Interruptor</span>
-      </div>
-    );
-  }
-
-  if (kind === 'scene') {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-primary/30 bg-gradient-to-br from-primary/15 to-card p-4 text-center">
-        <span className="mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-primary/30 text-primary">▻</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Acceso directo a escena</span>
-        <span className="mt-3 text-sm font-black text-foreground">{title}</span>
-      </div>
-    );
-  }
-
-  if (kind === 'energy') {
-    return (
-      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-primary/30 bg-card p-4">
+      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-border/45 bg-card p-4">
         <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Energía</span>
         <div>
           <span className="text-4xl font-black text-foreground">1.8</span>
@@ -337,10 +369,36 @@ function renderStaticCatalogPreview(kind: SectionCardKind, title: string) {
     );
   }
 
-  if (kind === 'assistant') {
+  if (normalized === 'room') {
     return (
-      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-primary/30 bg-card p-4">
-        <span className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-primary/15 text-primary">AI</span>
+      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-border/45 bg-card p-4">
+        <span className="mb-3 grid h-9 w-9 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <Home className="h-5 w-5" />
+        </span>
+        <span className="text-lg font-black text-foreground">{title}</span>
+        <span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">1 activo · 7 equipos</span>
+      </div>
+    );
+  }
+
+  if (normalized === 'scene') {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-border/45 bg-gradient-to-br from-primary/15 to-card p-4 text-center">
+        <span className="mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-primary/30 text-primary">
+          <Monitor className="h-6 w-6" />
+        </span>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Escena</span>
+        <span className="mt-3 text-sm font-black text-foreground">{title}</span>
+      </div>
+    );
+  }
+
+  if (normalized === 'assistant' || normalized === 'system') {
+    return (
+      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-border/45 bg-card p-4">
+        <span className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <Icon className="h-5 w-5" />
+        </span>
         <span className="text-sm font-black text-foreground">{title}</span>
         <span className="mt-3 h-2 w-3/4 rounded-full bg-primary/30" />
         <span className="mt-2 h-2 w-1/2 rounded-full bg-muted" />
@@ -348,34 +406,26 @@ function renderStaticCatalogPreview(kind: SectionCardKind, title: string) {
     );
   }
 
-  if (kind === 'system') {
-    return (
-      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-primary/30 bg-card p-4">
-        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema</span>
-        <span className="mt-4 text-lg font-black text-foreground">Operativo</span>
-        <div className="mt-auto flex gap-2">
-          <span className="h-3 w-3 rounded-full bg-primary" />
-          <span className="h-3 w-3 rounded-full bg-primary/55" />
-          <span className="h-3 w-3 rounded-full bg-primary/25" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-primary/30 bg-card p-4 text-center">
-      <span className="mb-4 text-6xl font-black text-primary">
-        {kind === 'cover' ? '▥' : kind === 'light' ? '◌' : '⏻'}
+    <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-border/45 bg-card p-4 text-center">
+      <span className={cn("mb-3 grid place-items-center rounded-full bg-primary/10 text-primary", isSmall ? "h-16 w-16" : "h-24 w-24")}>
+        {normalized === 'light' ? (
+          <Lightbulb className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
+        ) : (
+          <Power className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
+        )}
       </span>
-      <span className="text-sm font-black text-foreground">{title}</span>
-      <span className="mt-2 text-[10px] font-bold text-muted-foreground">
-        {kind === 'cover' ? 'Control de apertura' : 'Control de dispositivo'}
-      </span>
+      <span className="line-clamp-1 text-sm font-black text-foreground">{title}</span>
+      {!isSmall ? (
+        <span className="mt-1 line-clamp-1 text-[10px] font-bold text-muted-foreground">
+          {subtitle || (isAssigned ? 'Asignado' : 'Sin asignar')}
+        </span>
+      ) : null}
     </div>
   );
 }
 
-function ModalPortal({ children }: { children: React.ReactNode }) {
+function ModalPortal({ children }: { children: ReactNode }) {
   if (typeof document === 'undefined') return null;
   return createPortal(children, document.body);
 }
@@ -427,7 +477,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     return true;
   });
 
-  const updateCards = (nextCards: SectionCardItem[]) => {
+  const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     onUpdate?.({
       layout: {
         ...config.layout,
@@ -441,7 +491,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   };
 
   const addCard = (item: typeof catalogItems[number]) => {
-    const nextCard: SectionCardItem = {
+    const nextCard: NormalizedSectionCardItem = {
       id: createId(),
       kind: item.kind,
       title: item.title,
@@ -463,7 +513,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     });
   };
 
-  const openCardEditor = (card: SectionCardItem) => {
+  const openCardEditor = (card: NormalizedSectionCardItem) => {
     setEditingCardId(card.id);
     setCardDraft({
       title: card.title,
@@ -511,137 +561,64 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     setIsEditingTitle(false);
   };
 
-  const buildInternalConfig = (card: SectionCardItem): DashboardWidgetConfig => ({
-    ...config,
-    layout: { x: 0, y: 0, w: getSpanCols(card.span ?? getDefaultSpan(card.kind)), h: 2 },
-    binding: {
-      ...config.binding,
-      entityId: card.entityId || config.binding?.entityId || '',
-    },
-    appearance: {
-      ...config.appearance,
-      title: card.title,
-      showTitle: true,
-      variant: config.appearance?.variant || 'glass',
-    },
-    extra: {
-      ...config.extra,
-      percentage: typeof config.extra?.percentage === 'number' ? config.extra.percentage : 64,
-      value: typeof config.extra?.value === 'number' ? config.extra.value : 64,
-      current: typeof config.extra?.current === 'number' ? config.extra.current : 64,
-      total: typeof config.extra?.total === 'number' ? config.extra.total : 100,
-      unit: config.extra?.unit || '%',
-      status: config.extra?.status || 'preview',
-      label: card.title,
-      subtitle: card.entityName || card.description || '',
-      cameraStatus: card.entityId ? 'live' : 'connecting',
-      energy: {
-        percentage: 64,
-        current: 1.8,
-        total: 3,
-        unit: 'kW',
-        ...(typeof config.extra?.energy === 'object' && config.extra.energy ? config.extra.energy : {}),
-      },
-      metrics: {
-        percentage: 64,
-        current: 1.8,
-        total: 3,
-        unit: 'kW',
-        ...(typeof config.extra?.metrics === 'object' && config.extra.metrics ? config.extra.metrics : {}),
-      },
-      stats: {
-        percentage: 64,
-        active: 1,
-        total: 7,
-        ...(typeof config.extra?.stats === 'object' && config.extra.stats ? config.extra.stats : {}),
-      },
-      sectionCardId: card.id,
-      sectionCardKind: card.kind,
-      clockStyle: isClockKind(card.kind) ? getClockStyle(card.kind) : undefined,
-      style: isClockKind(card.kind) ? getClockStyle(card.kind) : undefined,
-      sectionCardPreview: true,
-    },
-  });
-
-  const renderRealDesignedCard = (card: SectionCardItem) => {
-    const internalConfig = buildInternalConfig(card);
-
-    if (isClockKind(card.kind)) {
-      return <ClockWidget config={internalConfig} />;
-    }
-
-    switch (card.kind) {
-      case 'room':
-        return <RoomWidget config={internalConfig} isEditing={false} onConfigure={() => openCardEditor(card)} />;
-      case 'scene':
-        return <SceneShortcutWidget config={internalConfig} isEditing={false} onConfigure={() => openCardEditor(card)} />;
-      case 'energy':
-        return <EnergySnapshotWidget config={internalConfig} isEditing={false} onConfigure={() => openCardEditor(card)} />;
-      case 'assistant':
-        return <AssistantInsightWidget config={internalConfig} />;
-      case 'system':
-        return <SystemStatusWidget config={internalConfig} isEditing={false} onConfigure={() => openCardEditor(card)} />;
-      case 'device':
-      case 'light':
-      case 'cover':
-      case 'camera':
-      default:
-        return <DeviceWidget config={internalConfig} isEditing={false} onConfigure={() => openCardEditor(card)} />;
-    }
-  };
-
-  const renderCard = (card: SectionCardItem) => {
+  const renderCard = (card: NormalizedSectionCardItem) => {
     const span = card.span ?? getDefaultSpan(card.kind);
+    const subtitle = card.entityName || card.description;
 
     return (
-    <div
-      key={card.id}
-      onClick={(event) => event.stopPropagation()}
-      className={cn(
-        "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/45 bg-card/75 shadow-sm transition-all hover:border-primary/45",
-        getSpanClass(span)
-      )}
-    >
-      <div className="h-full w-full">
-        {renderRealDesignedCard(card)}
-      </div>
+      <div
+        key={card.id}
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
+          getSpanClass(span)
+        )}
+      >
+        <CardPreview
+          kind={card.kind}
+          title={card.title}
+          subtitle={subtitle}
+          span={span}
+          isAssigned={Boolean(card.entityId)}
+        />
 
-      {isEditing ? (
-        <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              openCardEditor(card);
-            }}
-            className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-primary"
-            aria-label="Edit card"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              removeCard(card.id);
-            }}
-            className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-destructive"
-            aria-label="Remove card"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
+        {isEditing ? (
+          <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                openCardEditor(card);
+              }}
+              className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-primary"
+              aria-label="Edit card"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                removeCard(card.id);
+              }}
+              className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-destructive"
+              aria-label="Remove card"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
   };
 
-  const renderCatalogPreview = (kind: SectionCardKind, titleOverride?: string) => {
+  const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan) => {
     const title = titleOverride || t(getCatalogLabelKey(kind));
+    const span = spanOverride ?? getDefaultSpan(kind);
 
     return (
-      <div className="h-44 overflow-hidden rounded-[1.5rem] border border-border/45 bg-background/40">
-        {renderStaticCatalogPreview(kind, title)}
+      <div className="h-44 overflow-hidden rounded-[1.5rem] bg-background/40">
+        <CardPreview kind={kind} title={title} subtitle={t(getCatalogDescriptionKey(kind))} span={span} />
       </div>
     );
   };
@@ -696,11 +673,14 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                     onClick={() => addCard(item)}
                     className="rounded-[1.75rem] border border-border/50 bg-background/30 p-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
                   >
-                    {renderCatalogPreview(item.kind)}
+                    {renderCatalogPreview(item.kind, item.title, item.span)}
                     <div className="px-2 pb-1 pt-3">
                       <span className="block text-sm font-black text-foreground">{item.title}</span>
                       <span className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-muted-foreground">
                         {item.description}
+                      </span>
+                      <span className="mt-2 inline-flex rounded-full border border-border/40 px-2 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
+                        {t(`dashboard.editor.sections.card_size_${item.span}`)}
                       </span>
                     </div>
                   </button>
@@ -743,7 +723,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
           <div className="space-y-5 px-6 py-5">
             <div className="h-48 overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/35 p-2">
-              {renderCatalogPreview(cardDraft.kind, cardDraft.title || t(getCatalogLabelKey(cardDraft.kind)))}
+              {renderCatalogPreview(cardDraft.kind, cardDraft.title || t(getCatalogLabelKey(cardDraft.kind)), cardDraft.span)}
             </div>
 
             <label className="block space-y-2">
@@ -760,7 +740,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
               <select
                 value={cardDraft.kind}
                 onChange={(event) => {
-                  const nextKind = event.target.value as SectionCardKind;
+                  const nextKind = event.target.value as NormalizedSectionCardKind;
                   setCardDraft((draft) => ({
                     ...draft,
                     kind: nextKind,
@@ -848,7 +828,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 flex-1 grid-cols-6 auto-rows-[10.5rem] content-start gap-3 overflow-visible pr-1">
+      className="grid min-h-0 flex-1 grid-cols-6 auto-rows-[10.5rem] content-start gap-3 overflow-visible pr-1"
+    >
       {cards.map(renderCard)}
 
       {isEditing ? (
@@ -872,7 +853,10 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   if (!isEditing) {
     return (
-      <section onClick={(event) => event.stopPropagation()} className="flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-1">
+      <section
+        onClick={(event) => event.stopPropagation()}
+        className="flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-1"
+      >
         {showTitle ? (
           <h2 className="min-w-0 truncate text-[clamp(1rem,2cqi,1.3rem)] font-black tracking-tight text-foreground">
             {title}
@@ -888,7 +872,10 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   }
 
   return (
-    <div onClick={(event) => event.stopPropagation()} className="group/section relative flex h-full w-full min-w-0 flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5">
+    <div
+      onClick={(event) => event.stopPropagation()}
+      className="group/section relative flex h-full w-full min-w-0 flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+    >
       <div className="mb-3 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (
           isEditingTitle ? (

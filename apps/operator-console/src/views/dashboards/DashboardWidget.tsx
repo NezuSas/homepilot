@@ -162,7 +162,7 @@ export function DashboardWidgetNode({
           <div className="absolute top-2 right-2 z-30 flex items-center gap-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <div className="flex items-center gap-0.5 px-1.5 py-1 bg-background/90 backdrop-blur-md rounded-xl border border-border/40 shadow-lg">
               <button
-                onClick={(e) => { e.stopPropagation(); onClick(); }}
+                onClick={(e) => { e.stopPropagation(); if (!isSection) onClick(); }}
                 className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors text-muted-foreground hover:text-primary"
                 title="Configurar"
               >

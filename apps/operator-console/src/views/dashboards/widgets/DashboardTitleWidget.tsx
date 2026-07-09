@@ -16,10 +16,18 @@ function getStoredUserName() {
   const candidates: Candidate[] = [];
   const storages = [window.sessionStorage, window.localStorage];
 
+  const looksLikeToken = (value: string) => {
+    const clean = value.trim();
+    if (clean.includes('.') && clean.split('.').length >= 3) return true;
+    if (clean.length > 28 && /^[A-Za-z0-9_-]+$/.test(clean)) return true;
+    if (clean.length > 20 && /[A-Z]/.test(clean) && /[a-z]/.test(clean) && /\d/.test(clean)) return true;
+    return false;
+  };
+
   const normalizeName = (value: unknown): string | null => {
     if (typeof value !== 'string') return null;
     const clean = value.trim();
-    if (!clean || clean.length > 80) return null;
+    if (!clean || clean.length > 80 || looksLikeToken(clean)) return null;
     return clean.includes('@') ? clean.split('@')[0] : clean;
   };
 
@@ -44,7 +52,15 @@ function getStoredUserName() {
       seen.add(current);
 
       const record = current as Record<string, unknown>;
-      const direct = record.name || record.displayName || record.fullName || record.username || record.userName || record.email;
+      const direct =
+        record.name ||
+        record.displayName ||
+        record.fullName ||
+        record.firstName ||
+        record.username ||
+        record.userName ||
+        record.email;
+
       const normalized = normalizeName(direct);
       if (normalized) return normalized;
 
@@ -74,25 +90,29 @@ function getStoredUserName() {
       if (!raw) continue;
 
       const lowerKey = key.toLowerCase();
-      const isLikelyAuth = ['auth', 'session', 'current', 'user', 'token', 'operator'].some((part) => lowerKey.includes(part));
+      const isLikelyAuth = ['auth', 'session', 'current', 'profile', 'account', 'user', 'token', 'operator'].some((part) => lowerKey.includes(part));
       if (!isLikelyAuth) continue;
 
       const score =
-        lowerKey.includes('token') ? 100 :
+        lowerKey.includes('profile') ? 105 :
+        lowerKey.includes('account') ? 100 :
+        lowerKey.includes('current') ? 95 :
         lowerKey.includes('session') ? 90 :
         lowerKey.includes('auth') ? 85 :
-        lowerKey.includes('current') ? 80 :
-        lowerKey.includes('operator') ? 70 :
-        lowerKey.includes('user') ? 55 :
+        lowerKey.includes('operator') ? 75 :
+        lowerKey.includes('user') ? 60 :
+        lowerKey.includes('token') ? 45 :
         20;
 
       const jwtPayload = readJwtPayload(raw);
-      if (jwtPayload) addCandidate(readNameFromObject(jwtPayload), score + 25);
+      if (jwtPayload) addCandidate(readNameFromObject(jwtPayload), score + 20);
 
       try {
         addCandidate(readNameFromObject(JSON.parse(raw)), score);
       } catch {
-        addCandidate(raw, score - 20);
+        if (!lowerKey.includes('token') && !lowerKey.includes('session') && !lowerKey.includes('auth')) {
+          addCandidate(raw, score - 30);
+        }
       }
     }
   }
