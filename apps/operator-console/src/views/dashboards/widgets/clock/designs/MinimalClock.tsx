@@ -1,6 +1,6 @@
 import type { ClockDesignProps } from '../clockTypes';
 import { formatDateLine, getDayProgress, pad } from '../clockUtils';
-import { ClockLabel, ClockProgress, ClockShell, ResponsiveTime, WeatherPill } from './ClockShared';
+import { ClockLabel, ClockProgress, ClockShell, TimeText, WeatherPill } from './ClockShared';
 
 export function MinimalClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const hours = pad(now.getHours());
@@ -11,22 +11,20 @@ export function MinimalClock({ now, locale, copy, weather, weatherStatus }: Cloc
   const dateLine = formatDateLine(now, locale);
 
   return (
-    <ClockShell className="p-[clamp(1rem,3.2cqi,1.75rem)]">
+    <ClockShell className="p-[clamp(1rem,3.2cqi,1.8rem)]">
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ClockLabel>{copy.localTime}</ClockLabel>
-            <div className="mt-2 truncate text-[clamp(0.54rem,1.35cqi,0.75rem)] font-semibold text-muted-foreground">
-              {dateLine}
-            </div>
+            <div className="mt-2 truncate text-[clamp(0.55rem,1.3cqi,0.76rem)] font-semibold text-muted-foreground">{dateLine}</div>
           </div>
-          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-[clamp(0.48rem,1.2cqi,0.68rem)] font-black uppercase tracking-[0.18em] text-primary">
+          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-[clamp(0.48rem,1.12cqi,0.66rem)] font-black uppercase tracking-[0.18em] text-primary">
             {seconds} {copy.secondsShort}
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 place-items-center py-[clamp(0.6rem,2.4cqi,1.2rem)]">
-          <ResponsiveTime hours={hours} minutes={minutes} blink={blink} />
+        <div className="grid min-h-0 flex-1 place-items-center py-[clamp(0.6rem,2cqi,1.2rem)]">
+          <TimeText hours={hours} minutes={minutes} blink={blink} size="hero" />
         </div>
 
         <div className="space-y-2">
