@@ -309,7 +309,7 @@ const virtualPlaceholders = useMemo(() => {
     placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
   }
 
-  const sectionStartY = hasDashboardTitle ? 3 : 3;
+  const sectionStartY = hasDashboardTitle ? 2 : 2;
   const sectionSlot = sections.length;
 
   if (sections.length === 0) {
@@ -482,11 +482,12 @@ const canvasMinRows = useMemo(() => {
           onAddSectionClick?.(placeholder.y);
         }
       }}
+      aria-label={isAddTitle ? t('dashboard.editor.sections.add_title') : t('dashboard.editor.sections.add_section')}
       className={cn(
         "absolute z-10 flex transition-all duration-200",
         isAddTitle
           ? "items-center justify-center rounded-[1.25rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-          : "flex-col justify-between rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-3.5 py-3 text-left hover:border-primary/70 hover:bg-primary/5"
+          : "items-center justify-center rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
         left: placeholder.x * colWidth + 8,
@@ -501,14 +502,9 @@ const canvasMinRows = useMemo(() => {
           <span>{t('dashboard.editor.sections.add_title')}</span>
         </span>
       ) : (
-        <>
-          <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-            {t('dashboard.editor.sections.new_section')}
-          </span>
-          <span className="mt-2 inline-flex h-9 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
-            +
-          </span>
-        </>
+        <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
+          +
+        </span>
       )}
     </button>
   );

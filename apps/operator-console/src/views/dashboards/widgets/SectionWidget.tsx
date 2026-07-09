@@ -10,7 +10,8 @@ interface SectionWidgetProps {
 export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
   const { t } = useTranslation();
 
-  const title = config.appearance?.title || t('dashboard.editor.sections.new_section');
+  const rawTitle = config.appearance?.title?.trim();
+  const title = rawTitle || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
 
   if (!isEditing) {
@@ -26,7 +27,7 @@ export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
   }
 
   return (
-    <div className="group/section flex h-full w-full min-w-0 flex-col justify-between rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5">
+    <div className="group/section flex h-full w-full min-w-0 flex-col rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5">
       <div className="min-w-0">
         {showTitle ? (
           <h2 className="min-w-0 truncate text-[clamp(0.85rem,1.65cqi,1rem)] font-semibold text-foreground">
@@ -39,8 +40,10 @@ export function SectionWidget({ config, isEditing }: SectionWidgetProps) {
         )}
       </div>
 
-      <div className="mt-2 inline-flex h-9 min-w-16 items-center justify-center self-start rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 group-hover/section:bg-primary/10">
-        <Plus className="h-4 w-4" />
+      <div className="grid min-h-0 flex-1 place-items-center">
+        <div className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 group-hover/section:bg-primary/10">
+          <Plus className="h-4 w-4" />
+        </div>
       </div>
     </div>
   );
