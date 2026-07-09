@@ -13,12 +13,12 @@ export function ClockShell({
 }) {
   const background =
     tone === 'neutral'
-      ? 'bg-[radial-gradient(circle_at_50%_30%,hsl(var(--foreground)/0.045),transparent_35%),linear-gradient(145deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))]'
+      ? 'bg-[radial-gradient(circle_at_50%_32%,hsl(var(--foreground)/0.045),transparent_36%),linear-gradient(145deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))]'
       : tone === 'analog'
-        ? 'bg-[radial-gradient(circle_at_30%_42%,hsl(var(--primary)/0.18),transparent_36%),radial-gradient(circle_at_74%_64%,hsl(var(--foreground)/0.04),transparent_32%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
+        ? 'bg-[radial-gradient(circle_at_30%_44%,hsl(var(--primary)/0.18),transparent_38%),radial-gradient(circle_at_78%_64%,hsl(var(--foreground)/0.04),transparent_34%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
         : tone === 'minimal'
-          ? 'bg-[radial-gradient(circle_at_50%_42%,hsl(var(--foreground)/0.04),transparent_38%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
-          : 'bg-[radial-gradient(circle_at_25%_24%,hsl(var(--primary)/0.18),transparent_35%),radial-gradient(circle_at_74%_72%,hsl(var(--foreground)/0.035),transparent_30%),linear-gradient(145deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))]';
+          ? 'bg-[radial-gradient(circle_at_50%_44%,hsl(var(--foreground)/0.04),transparent_40%),linear-gradient(145deg,hsl(var(--card)/0.90),hsl(var(--background)/0.98))]'
+          : 'bg-[radial-gradient(circle_at_25%_26%,hsl(var(--primary)/0.18),transparent_36%),radial-gradient(circle_at_76%_74%,hsl(var(--foreground)/0.035),transparent_32%),linear-gradient(145deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))]';
 
   return (
     <div
@@ -70,10 +70,10 @@ export function WeatherPill({
   const label = formatWeather(weather, status, copy, mode);
 
   return (
-    <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-[clamp(0.6rem,1.45cqi,0.95rem)] py-[clamp(0.24rem,0.72cqi,0.38rem)] shadow-inner ${className}`}>
+    <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-[clamp(0.62rem,1.45cqi,0.95rem)] py-[clamp(0.25rem,0.72cqi,0.38rem)] shadow-inner ${className}`}>
       <div className="flex min-w-0 items-center gap-1.5">
         <AccentDot />
-        <span className="min-w-0 truncate text-[clamp(0.49rem,1.22cqi,0.72rem)] font-black uppercase tracking-[0.12em] text-foreground">
+        <span className="min-w-0 truncate text-[clamp(0.49rem,1.2cqi,0.72rem)] font-black uppercase tracking-[0.12em] text-foreground">
           {label}
         </span>
       </div>
@@ -133,19 +133,21 @@ export function TimeText({
   const justify = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
   const textSize =
     size === 'hero'
-      ? 'text-[clamp(4.2rem,18cqi,8.8rem)]'
+      ? 'text-[clamp(4rem,17cqi,8.4rem)]'
       : size === 'large'
-        ? 'text-[clamp(3.35rem,14cqi,6.8rem)]'
+        ? 'text-[clamp(3.35rem,13.5cqi,6.7rem)]'
         : size === 'medium'
-          ? 'text-[clamp(2.75rem,11cqi,5.6rem)]'
-          : 'text-[clamp(2.3rem,8cqi,4.5rem)]';
+          ? 'text-[clamp(2.75rem,10.5cqi,5.5rem)]'
+          : 'text-[clamp(2.35rem,8cqi,4.5rem)]';
 
   return (
     <div className={`flex min-w-0 items-end ${justify} font-black tabular-nums leading-none tracking-[-0.085em] text-foreground`}>
       <span className={textSize}>{hours}</span>
-      <span className="mb-[0.13em] flex flex-col gap-[0.12em] px-[0.09em]" style={{ opacity: blink ? 1 : 0.38 }}>
-        <span className="h-[0.12em] w-[0.12em] rounded-full bg-primary" />
-        <span className="h-[0.12em] w-[0.12em] rounded-full bg-primary" />
+      <span
+        className={`${textSize} mb-[0.02em] px-[0.025em] leading-none transition-opacity duration-300`}
+        style={{ color: 'hsl(var(--primary))', opacity: blink ? 0.92 : 0.34 }}
+      >
+        :
       </span>
       <span className={textSize}>{minutes}</span>
 
@@ -176,8 +178,8 @@ export function AnalogDial({
 }) {
   const marks = Array.from({ length: 60 });
   const radiusClass = premium
-    ? 'h-[clamp(10rem,36cqi,16rem)] w-[clamp(10rem,36cqi,16rem)]'
-    : 'h-[clamp(8.6rem,30cqi,13.5rem)] w-[clamp(8.6rem,30cqi,13.5rem)]';
+    ? 'h-[clamp(10rem,38cqi,17rem)] w-[clamp(10rem,38cqi,17rem)]'
+    : 'h-[clamp(8.6rem,32cqi,14rem)] w-[clamp(8.6rem,32cqi,14rem)]';
 
   return (
     <svg
