@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
+import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 
 interface SectionWidgetProps {
@@ -42,9 +43,30 @@ interface SectionCardItem {
   title: string;
   description?: string;
   widgetType?: WidgetType;
+  entityId?: string;
+  entityName?: string;
+}
+
+interface CardDraft {
+  title: string;
+  kind: SectionCardKind;
+  entityId: string;
 }
 
 const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const cardKinds: SectionCardKind[] = [
+  'device',
+  'light',
+  'cover',
+  'camera',
+  'room',
+  'scene',
+  'clock',
+  'energy',
+  'assistant',
+  'system',
+];
 
 function getIcon(kind: SectionCardKind) {
   switch (kind) {
@@ -72,6 +94,29 @@ function getIcon(kind: SectionCardKind) {
   }
 }
 
+function getWidgetType(kind: SectionCardKind): WidgetType {
+  switch (kind) {
+    case 'room':
+      return 'room_overview' as WidgetType;
+    case 'scene':
+      return 'scene_shortcut' as WidgetType;
+    case 'clock':
+      return 'clock_display' as WidgetType;
+    case 'energy':
+      return 'energy_snapshot' as WidgetType;
+    case 'assistant':
+      return 'assistant_insight' as WidgetType;
+    case 'system':
+      return 'system_status' as WidgetType;
+    case 'device':
+    case 'light':
+    case 'cover':
+    case 'camera':
+    default:
+      return 'device_control' as WidgetType;
+  }
+}
+
 function normalizeCards(extra: DashboardWidgetConfig['extra']): SectionCardItem[] {
   const rawCards = extra?.cards;
   if (!Array.isArray(rawCards)) return [];
@@ -85,20 +130,41 @@ function normalizeCards(extra: DashboardWidgetConfig['extra']): SectionCardItem[
     .map((card) => ({
       ...card,
       title: typeof card.title === 'string' && card.title.trim() ? card.title : card.kind,
+      widgetType: card.widgetType ?? getWidgetType(card.kind),
     }));
+}
+
+function getRecommendedSectionHeight(currentHeight: number, cardsCount: number) {
+  // Include the add-card tile as one more internal item.
+  // 0 cards -> 1 row; 1 card -> 1 row; 2 cards -> 2 rows; 4 cards -> 3 rows.
+  const internalItems = Math.max(1, cardsCount + 1);
+  const internalRows = Math.ceil(internalItems / 2);
+
+  // 1 unit for title/header + 1 unit per card row.
+  const recommended = Math.max(2, internalRows + 1);
+  return Math.max(currentHeight || 2, recommended);
+}
+
+function isBindableKind(kind: SectionCardKind) {
+  return kind === 'device' || kind === 'light' || kind === 'cover' || kind === 'camera';
 }
 
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
+  const devices = useDeviceSnapshotStore((state) => state.devices);
+
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(config.appearance?.title || '');
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '' });
 
   const rawTitle = config.appearance?.title?.trim();
   const title = rawTitle || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
   const cards = normalizeCards(config.extra);
+  const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   const catalogItems = useMemo(() => [
     {
@@ -169,8 +235,28 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
   });
 
+  const filteredDevices = devices.filter((device) => {
+    if (cardDraft.kind === 'camera') {
+      return device.type === 'camera' || device.semanticType === 'camera';
+    }
+
+    if (cardDraft.kind === 'light') {
+      return device.type === 'light' || device.semanticType === 'light' || device.type === 'switch' || device.semanticType === 'switch';
+    }
+
+    if (cardDraft.kind === 'cover') {
+      return device.type === 'cover' || device.semanticType === 'cover';
+    }
+
+    return true;
+  });
+
   const updateCards = (nextCards: SectionCardItem[]) => {
     onUpdate?.({
+      layout: {
+        ...config.layout,
+        h: getRecommendedSectionHeight(config.layout.h, nextCards.length),
+      },
       extra: {
         ...config.extra,
         cards: nextCards,
@@ -179,18 +265,56 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   };
 
   const addCard = (item: typeof catalogItems[number]) => {
-    updateCards([
-      ...cards,
-      {
-        id: createId(),
-        kind: item.kind,
-        title: item.title,
-        description: item.description,
-        widgetType: item.widgetType,
-      },
-    ]);
+    const nextCard: SectionCardItem = {
+      id: createId(),
+      kind: item.kind,
+      title: item.title,
+      description: item.description,
+      widgetType: item.widgetType,
+    };
+
+    updateCards([...cards, nextCard]);
     setIsCatalogOpen(false);
     setQuery('');
+
+    if (isBindableKind(item.kind)) {
+      setEditingCardId(nextCard.id);
+      setCardDraft({
+        title: nextCard.title,
+        kind: nextCard.kind,
+        entityId: '',
+      });
+    }
+  };
+
+  const openCardEditor = (card: SectionCardItem) => {
+    setEditingCardId(card.id);
+    setCardDraft({
+      title: card.title,
+      kind: card.kind,
+      entityId: card.entityId || '',
+    });
+  };
+
+  const saveCardEditor = () => {
+    if (!editingCard) return;
+
+    const selectedDevice = devices.find((device) => device.id === cardDraft.entityId);
+    const nextCards = cards.map((card) => {
+      if (card.id !== editingCard.id) return card;
+
+      return {
+        ...card,
+        kind: cardDraft.kind,
+        title: cardDraft.title.trim() || selectedDevice?.name || card.title,
+        widgetType: getWidgetType(cardDraft.kind),
+        entityId: cardDraft.entityId || undefined,
+        entityName: selectedDevice?.name,
+      };
+    });
+
+    updateCards(nextCards);
+    setEditingCardId(null);
   };
 
   const removeCard = (id: string) => {
@@ -208,6 +332,53 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     setIsEditingTitle(false);
   };
 
+  const renderCard = (card: SectionCardItem) => {
+    const Icon = getIcon(card.kind);
+    const subtitle = card.entityName || card.description;
+
+    return (
+      <div
+        key={card.id}
+        className="group/card relative flex min-h-24 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card/65 px-3 py-4 text-center shadow-sm transition-all hover:border-primary/45 hover:bg-card/85"
+      >
+        <Icon className="mb-2 h-9 w-9 text-primary/80" />
+        <span className="line-clamp-2 text-sm font-semibold text-foreground">{card.title}</span>
+        {subtitle ? (
+          <span className="mt-1 line-clamp-1 text-[10px] font-semibold text-muted-foreground">
+            {subtitle}
+          </span>
+        ) : null}
+
+        {isEditing ? (
+          <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                openCardEditor(card);
+              }}
+              className="grid h-7 w-7 place-items-center rounded-lg bg-background/80 text-muted-foreground transition hover:text-primary"
+              aria-label="Edit card"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                removeCard(card.id);
+              }}
+              className="grid h-7 w-7 place-items-center rounded-lg bg-background/80 text-muted-foreground transition hover:text-destructive"
+              aria-label="Remove card"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   if (!isEditing) {
     return (
       <section className="flex h-full w-full min-w-0 flex-col gap-3 overflow-hidden px-1 pb-2 pt-1">
@@ -218,16 +389,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
         ) : null}
 
         {cards.length > 0 ? (
-          <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3">
-            {cards.map((card) => {
-              const Icon = getIcon(card.kind);
-              return (
-                <div key={card.id} className="flex min-h-24 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card/70 px-3 py-4 text-center">
-                  <Icon className="mb-2 h-9 w-9 text-primary/80" />
-                  <span className="line-clamp-2 text-sm font-semibold text-foreground">{card.title}</span>
-                </div>
-              );
-            })}
+          <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto pr-1">
+            {cards.map(renderCard)}
           </div>
         ) : null}
       </section>
@@ -280,30 +443,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
         )}
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden">
-        {cards.map((card) => {
-          const Icon = getIcon(card.kind);
-          return (
-            <div
-              key={card.id}
-              className="group/card relative flex min-h-24 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card/65 px-3 py-4 text-center shadow-sm transition-all hover:border-primary/45 hover:bg-card/85"
-            >
-              <Icon className="mb-2 h-9 w-9 text-primary/80" />
-              <span className="line-clamp-2 text-sm font-semibold text-foreground">{card.title}</span>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  removeCard(card.id);
-                }}
-                className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-lg bg-background/75 text-muted-foreground opacity-0 transition-all hover:text-destructive group-hover/card:opacity-100"
-                aria-label="Remove card"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          );
-        })}
+      <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto pr-1">
+        {cards.map(renderCard)}
 
         <button
           type="button"
@@ -390,6 +531,121 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
                   {t('dashboard.editor.sections.card_catalog_empty')}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editingCard ? (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-background/65 p-4 backdrop-blur-md"
+          onClick={() => setEditingCardId(null)}
+        >
+          <div
+            className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-border/50 bg-card shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-border/40 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary">
+                  Editar
+                </p>
+                <h3 className="mt-1 text-2xl font-black tracking-tight text-foreground">
+                  Editar tarjeta
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingCardId(null)}
+                className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-5 px-6 py-5">
+              <label className="block space-y-2">
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                  Nombre
+                </span>
+                <input
+                  value={cardDraft.title}
+                  onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.target.value }))}
+                  className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary/60"
+                />
+              </label>
+
+              <label className="block space-y-2">
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                  Tipo
+                </span>
+                <select
+                  value={cardDraft.kind}
+                  onChange={(event) => {
+                    const nextKind = event.target.value as SectionCardKind;
+                    setCardDraft((draft) => ({
+                      ...draft,
+                      kind: nextKind,
+                      entityId: isBindableKind(nextKind) ? draft.entityId : '',
+                    }));
+                  }}
+                  className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary/60"
+                >
+                  {cardKinds.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {catalogItems.find((item) => item.kind === kind)?.title || kind}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {isBindableKind(cardDraft.kind) ? (
+                <label className="block space-y-2">
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+                    Dispositivo asignado
+                  </span>
+                  <select
+                    value={cardDraft.entityId}
+                    onChange={(event) => {
+                      const selectedId = event.target.value;
+                      const selectedDevice = devices.find((device) => device.id === selectedId);
+                      setCardDraft((draft) => ({
+                        ...draft,
+                        entityId: selectedId,
+                        title: draft.title || selectedDevice?.name || '',
+                      }));
+                    }}
+                    className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-primary/60"
+                  >
+                    <option value="">Sin asignar</option>
+                    {filteredDevices.map((device) => (
+                      <option key={device.id} value={device.id}>
+                        {device.name} · {device.type || device.semanticType || 'device'}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs font-medium leading-relaxed text-muted-foreground">
+                    Esta asignación queda guardada dentro de la tarjeta de la sección.
+                  </p>
+                </label>
+              ) : null}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-border/40 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setEditingCardId(null)}
+                className="rounded-2xl border border-border/50 px-5 py-2.5 text-sm font-black text-muted-foreground transition hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={saveCardEditor}
+                className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground transition hover:opacity-90"
+              >
+                Guardar
+              </button>
             </div>
           </div>
         </div>
