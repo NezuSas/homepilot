@@ -231,7 +231,56 @@ export function DashboardCanvas({
     return () => observer.disconnect();
   }, []);
 
-  const sanitizedWidgets = useMemo(() => widgets.map(sanitizeWidget), [widgets]);
+  const sanitizedWidgets = useMemo(() => {
+  const baseWidgets = widgets.map(sanitizeWidget);
+
+  if (!isEditing) return baseWidgets;
+
+  const sectionCount = baseWidgets.filter(widget => widget.type === 'section').length;
+
+  const getEditSectionLayout = (sectionIndex: number) => {
+    const row = Math.floor(sectionIndex / 4);
+    const indexInRow = sectionIndex % 4;
+    const rowStart = row * 4;
+    const itemsInRow = Math.min(4, sectionCount - rowStart);
+    const isLastRow = rowStart + itemsInRow >= sectionCount;
+    const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : itemsInRow;
+    const width = Math.floor(12 / Math.max(1, effectiveCount));
+
+    return {
+      x: indexInRow * width,
+      y: 2 + row * 2,
+      w: width,
+      h: 2,
+    };
+  };
+
+  const isBrokenSectionTitle = (value: unknown) =>
+    typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
+
+  let sectionIndex = 0;
+
+  return baseWidgets.map((widget) => {
+    if (widget.type !== 'section') return widget;
+
+    const layout = getEditSectionLayout(sectionIndex);
+    sectionIndex += 1;
+
+    return {
+      ...widget,
+      config: {
+        ...widget.config,
+        layout,
+        appearance: {
+          ...widget.config.appearance,
+          title: isBrokenSectionTitle(widget.config.appearance?.title)
+            ? t('dashboard.editor.sections.new_section')
+            : widget.config.appearance?.title,
+        },
+      },
+    };
+  });
+}, [widgets, isEditing, t]);
   
   const evaluateVisibility = useCallback((widget: DashboardWidget): boolean => {
     if (isEditing) return true; // Always show in edit mode
@@ -309,7 +358,7 @@ const virtualPlaceholders = useMemo(() => {
     placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
   }
 
-  const sectionStartY = hasDashboardTitle ? 2 : 2;
+  const sectionStartY = 2;
   const sectionsInCurrentRow = sections.length % 4;
   const completedRows = Math.floor(sections.length / 4);
 
@@ -319,12 +368,11 @@ const virtualPlaceholders = useMemo(() => {
     const slotCount = sectionsInCurrentRow === 0 ? 1 : Math.min(4, sectionsInCurrentRow + 1);
     const slotW = Math.floor(12 / slotCount);
     const placeholderSlot = sectionsInCurrentRow === 0 ? 0 : sectionsInCurrentRow;
-    const placeholderY = sectionStartY + completedRows * 2;
 
     placeholders.push({
       key: 'add_section_final',
       x: placeholderSlot * slotW,
-      y: placeholderY,
+      y: sectionStartY + completedRows * 2,
       w: slotW,
       h: 2,
       type: 'add_section',

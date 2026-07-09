@@ -232,50 +232,6 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
     const currentTab = active.tabs[activeTabIdx];
 
-    const getSectionLayout = (sectionIndex: number) => {
-      const row = Math.floor(sectionIndex / 4);
-      const indexInRow = sectionIndex % 4;
-      const rowItemCount = indexInRow + 1;
-      const width = Math.floor(12 / rowItemCount);
-
-      return {
-        x: indexInRow * width,
-        y: 2 + row * 2,
-        w: width,
-        h: 2,
-      };
-    };
-
-    const isBrokenSectionTitle = (value: unknown) =>
-      typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
-
-    const normalizeSectionWidgets = (widgets: typeof currentTab.widgets) => {
-      let sectionIndex = 0;
-
-      return widgets.map((widget) => {
-        if (widget.type !== 'section') return widget;
-
-        const layout = getSectionLayout(sectionIndex);
-        sectionIndex += 1;
-
-        const title = isBrokenSectionTitle(widget.config.appearance?.title)
-          ? t('dashboard.editor.sections.new_section')
-          : widget.config.appearance?.title;
-
-        return {
-          ...widget,
-          config: {
-            ...widget.config,
-            layout,
-            appearance: {
-              ...widget.config.appearance,
-              title,
-            },
-          },
-        };
-      });
-    };
-
     const maxY = currentTab.widgets.reduce(
       (max, widget) => Math.max(max, widget.config.layout.y + widget.config.layout.h),
       0,
@@ -291,8 +247,29 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       return;
     }
 
+    const getSectionLayout = (sectionIndex: number, sectionCount: number) => {
+      const row = Math.floor(sectionIndex / 4);
+      const indexInRow = sectionIndex % 4;
+      const rowStart = row * 4;
+      const itemsInRow = Math.min(4, sectionCount - rowStart);
+      const isLastRow = rowStart + itemsInRow >= sectionCount;
+      const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : itemsInRow;
+      const width = Math.floor(12 / Math.max(1, effectiveCount));
+
+      return {
+        x: indexInRow * width,
+        y: 2 + row * 2,
+        w: width,
+        h: 2,
+      };
+    };
+
+    const isBrokenSectionTitle = (value: unknown) =>
+      typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
+
     const sectionWidgets = currentTab.widgets.filter(widget => widget.type === 'section');
-    const sectionLayout = getSectionLayout(sectionWidgets.length);
+    const nextSectionCount = sectionWidgets.length + (isSection ? 1 : 0);
+    const sectionLayout = getSectionLayout(sectionWidgets.length, Math.max(1, nextSectionCount));
 
     const widgetW = isDashboardTitle ? 12 : isSection ? sectionLayout.w : (size?.w ?? 4);
     const widgetH = isDashboardTitle ? 2 : isSection ? sectionLayout.h : (size?.h ?? 4);
@@ -322,17 +299,37 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
     const widgetId = generateId();
 
-    const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx
-        ? tab
-        : {
-            ...tab,
-            widgets: normalizeSectionWidgets([
-              ...tab.widgets,
-              { id: widgetId, type, config: defaultConfig },
-            ]),
-          },
-    );
+    const updatedTabs = active.tabs.map((tab, idx) => {
+      if (idx !== activeTabIdx) return tab;
+
+      const nextWidgets = [...tab.widgets, { id: widgetId, type, config: defaultConfig }];
+      const totalSections = nextWidgets.filter(widget => widget.type === 'section').length;
+      let sectionIndex = 0;
+
+      return {
+        ...tab,
+        widgets: nextWidgets.map((widget) => {
+          if (widget.type !== 'section') return widget;
+
+          const layout = getSectionLayout(sectionIndex, totalSections);
+          sectionIndex += 1;
+
+          return {
+            ...widget,
+            config: {
+              ...widget.config,
+              layout,
+              appearance: {
+                ...widget.config.appearance,
+                title: isBrokenSectionTitle(widget.config.appearance?.title)
+                  ? t('dashboard.editor.sections.new_section')
+                  : widget.config.appearance?.title,
+              },
+            },
+          };
+        }),
+      };
+    });
 
     const saved = await patch(active.id, { tabs: updatedTabs });
 
