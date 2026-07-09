@@ -546,7 +546,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                         setSelectedWidgetId(id); 
                         setIsInspectorOpen(true); 
                       }}
-                      onLayoutChange={handleLayoutChange}
+                      onLayoutChange={handleLayoutChange} onWidgetConfigChange={handleUpdateWidgetConfig}
                       onAddCardClick={() => {
                          setIsCatalogModalOpen(true);
                       }}

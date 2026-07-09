@@ -19,7 +19,7 @@ interface DashboardCanvasProps {
   isEditing: boolean;
   onWidgetClick: (id: string) => void;
   selectedWidgetId: string | null;
-  onLayoutChange: (widgets: DashboardWidget[]) => void;
+  onLayoutChange: (widgets: DashboardWidget[]) => void; onWidgetConfigChange?: (widgetId: string, config: Partial<DashboardWidget['config']>) => void;
   onAddCardClick?: (x: number, y: number) => void;
   onAddSectionClick?: (y: number) => void; onAddTitleClick?: () => void;
 }
@@ -44,8 +44,7 @@ export function DashboardCanvas({
   isEditing, 
   onWidgetClick, 
   selectedWidgetId,
-  onLayoutChange,
-  onAddCardClick, onAddSectionClick, onAddTitleClick }: DashboardCanvasProps) {
+  onLayoutChange, onWidgetConfigChange, onAddCardClick, onAddSectionClick, onAddTitleClick }: DashboardCanvasProps) {
   const { t } = useTranslation();
   void onAddCardClick;
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
@@ -347,7 +346,7 @@ const canvasMinRows = useMemo(() => {
                     onLayoutChange(updatedWidgets);
                  }
               }}
-            />
+             onConfigChange={onWidgetConfigChange} />
           </div>
         ))}
 
