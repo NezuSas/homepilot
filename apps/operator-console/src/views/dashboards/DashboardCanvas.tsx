@@ -198,7 +198,6 @@ const virtualPlaceholders = useMemo(() => {
   const currentRowStart = lastRowIndex * 4;
   const currentRowSections = sections.slice(currentRowStart);
   const rowY = currentRowSections[0]?.config.layout.y ?? 2;
-  const rowH = currentRowSections[0]?.config.layout.h ?? 2;
 
   const slotCount = Math.min(4, sectionsInCurrentRow + 1);
   const slotW = Math.floor(12 / slotCount);
@@ -208,7 +207,7 @@ const virtualPlaceholders = useMemo(() => {
     x: sectionsInCurrentRow * slotW,
     y: rowY,
     w: slotW,
-    h: rowH,
+    h: dashboardSectionRows,
     type: 'add_section',
   });
 

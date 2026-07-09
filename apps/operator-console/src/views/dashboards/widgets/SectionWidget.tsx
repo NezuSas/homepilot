@@ -169,6 +169,113 @@ function isBindableKind(kind: SectionCardKind) {
   return kind === 'device' || kind === 'light' || kind === 'cover' || kind === 'camera';
 }
 
+function renderStaticCatalogPreview(kind: SectionCardKind, title: string) {
+  if (kind === 'clock') {
+    return (
+      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-background p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Hora local</span>
+          <span className="rounded-full border border-primary/30 px-2 py-1 text-[9px] font-black text-primary">01 seg</span>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <span className="text-5xl font-black tracking-tight text-foreground">01<span className="text-primary">:</span>12</span>
+        </div>
+        <div className="rounded-full border border-border/40 bg-background/40 px-3 py-1 text-[10px] font-black uppercase text-muted-foreground">
+          Cuenca · despejado · 13°C
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'camera') {
+    return (
+      <div className="relative h-full min-h-0 overflow-hidden rounded-[1.35rem] border border-primary/30 bg-card">
+        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between">
+          <span className="rounded-full bg-background/80 px-3 py-1 text-[10px] font-black text-foreground">● En vivo</span>
+        </div>
+        <div className="absolute inset-x-3 top-12 h-[58%] rounded-xl bg-gradient-to-br from-primary/45 via-primary/20 to-background" />
+        <div className="absolute bottom-4 left-4">
+          <div className="text-sm font-black text-foreground">{title}</div>
+          <div className="mt-1 text-xs font-semibold text-muted-foreground">Vista de cámara</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'room') {
+    return (
+      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-primary/30 bg-card p-4">
+        <span className="mb-4 grid h-9 w-9 place-items-center rounded-2xl bg-primary/15 text-primary">⌂</span>
+        <span className="text-lg font-black text-foreground">{title}</span>
+        <span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">1 activo · 7 equipos</span>
+        <span className="mt-4 w-fit rounded-full bg-muted px-3 py-1 text-[9px] font-black uppercase text-muted-foreground">Interruptor</span>
+      </div>
+    );
+  }
+
+  if (kind === 'scene') {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-primary/30 bg-gradient-to-br from-primary/15 to-card p-4 text-center">
+        <span className="mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-primary/30 text-primary">▻</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Acceso directo a escena</span>
+        <span className="mt-3 text-sm font-black text-foreground">{title}</span>
+      </div>
+    );
+  }
+
+  if (kind === 'energy') {
+    return (
+      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-primary/30 bg-card p-4">
+        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Energía</span>
+        <div>
+          <span className="text-4xl font-black text-foreground">1.8</span>
+          <span className="ml-1 text-sm font-black text-muted-foreground">kW</span>
+        </div>
+        <div className="h-2 rounded-full bg-muted">
+          <div className="h-full w-[64%] rounded-full bg-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'assistant') {
+    return (
+      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-primary/30 bg-card p-4">
+        <span className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-primary/15 text-primary">AI</span>
+        <span className="text-sm font-black text-foreground">{title}</span>
+        <span className="mt-3 h-2 w-3/4 rounded-full bg-primary/30" />
+        <span className="mt-2 h-2 w-1/2 rounded-full bg-muted" />
+      </div>
+    );
+  }
+
+  if (kind === 'system') {
+    return (
+      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-primary/30 bg-card p-4">
+        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema</span>
+        <span className="mt-4 text-lg font-black text-foreground">Operativo</span>
+        <div className="mt-auto flex gap-2">
+          <span className="h-3 w-3 rounded-full bg-primary" />
+          <span className="h-3 w-3 rounded-full bg-primary/55" />
+          <span className="h-3 w-3 rounded-full bg-primary/25" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-primary/30 bg-card p-4 text-center">
+      <span className="mb-4 text-6xl font-black text-primary">
+        {kind === 'cover' ? '▥' : kind === 'light' ? '◌' : '⏻'}
+      </span>
+      <span className="text-sm font-black text-foreground">{title}</span>
+      <span className="mt-2 text-[10px] font-bold text-muted-foreground">
+        {kind === 'cover' ? 'Control de apertura' : 'Control de dispositivo'}
+      </span>
+    </div>
+  );
+}
+
 function ModalPortal({ children }: { children: React.ReactNode }) {
   if (typeof document === 'undefined') return null;
   return createPortal(children, document.body);
@@ -414,17 +521,11 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   );
 
   const renderCatalogPreview = (kind: SectionCardKind) => {
-    const previewCard: SectionCardItem = {
-      id: `preview-${kind}`,
-      kind,
-      title: t(getCatalogLabelKey(kind)),
-      description: t(getCatalogDescriptionKey(kind)),
-      widgetType: getWidgetType(kind),
-    };
+    const title = t(getCatalogLabelKey(kind));
 
     return (
       <div className="h-44 overflow-hidden rounded-[1.5rem] border border-border/45 bg-background/40">
-        {renderRealDesignedCard(previewCard)}
+        {renderStaticCatalogPreview(kind, title)}
       </div>
     );
   };
@@ -525,7 +626,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
           </div>
 
           <div className="space-y-5 px-6 py-5">
-            <div className="h-52 overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/35 p-2">
+            <div className="h-48 overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/35 p-2">
               {renderCatalogPreview(cardDraft.kind)}
             </div>
 
