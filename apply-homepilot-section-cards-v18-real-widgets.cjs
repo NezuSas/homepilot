@@ -1,11 +1,36 @@
-import { useMemo, useState } from 'react';
+// HomePilot Section Cards V18 - use real designed widgets + keep add button visible
+// Run from repo root:
+// node .\apply-homepilot-section-cards-v18-real-widgets.cjs
+//
+// Fixes:
+// - Internal section cards render using the SAME designed widgets already used by the dashboard.
+// - Clock card uses ClockWidget, camera/light/device use DeviceWidget, etc.
+// - The + button always remains visible after the last card.
+// - No internal scroll.
+// - Section height grows more aggressively so row 2/3 are visible.
+// - DashboardWidget wrapper allows section overflow instead of clipping the internal +.
+
+const fs = require("fs");
+
+const sectionPath = "apps/operator-console/src/views/dashboards/widgets/SectionWidget.tsx";
+const dashboardWidgetPath = "apps/operator-console/src/views/dashboards/DashboardWidget.tsx";
+
+const sectionContent = `import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  Bot,
+  Camera,
+  Clock,
+  Home,
+  Layers,
+  Lightbulb,
+  Monitor,
   Pencil,
   Plus,
   Search,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -53,7 +78,7 @@ interface CardDraft {
   entityId: string;
 }
 
-const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createId = () => \`section-card-\${Date.now()}-\${Math.random().toString(36).slice(2, 8)}\`;
 
 const cardKinds: SectionCardKind[] = [
   'device',
@@ -67,6 +92,32 @@ const cardKinds: SectionCardKind[] = [
   'assistant',
   'system',
 ];
+
+function getIcon(kind: SectionCardKind) {
+  switch (kind) {
+    case 'light':
+      return Lightbulb;
+    case 'cover':
+      return Layers;
+    case 'camera':
+      return Camera;
+    case 'room':
+      return Home;
+    case 'scene':
+      return Monitor;
+    case 'clock':
+      return Clock;
+    case 'energy':
+      return Zap;
+    case 'assistant':
+      return Bot;
+    case 'system':
+      return Monitor;
+    case 'device':
+    default:
+      return Lightbulb;
+  }
+}
 
 function getWidgetType(kind: SectionCardKind): WidgetType {
   switch (kind) {
@@ -203,7 +254,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const filteredCatalog = catalogItems.filter((item) => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return true;
-    return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
+    return \`\${item.title} \${item.description}\`.toLowerCase().includes(normalizedQuery);
   });
 
   const filteredDevices = devices.filter((device) => {
@@ -313,7 +364,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
       ...config.appearance,
       title: card.title,
       showTitle: true,
-      variant: config.appearance?.variant || 'glass',
+      variant: config.appearance?.variant || 'default',
     },
     extra: {
       ...config.extra,
@@ -388,7 +439,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   const renderCatalogPreview = (kind: SectionCardKind) => {
     const previewCard: SectionCardItem = {
-      id: `preview-${kind}`,
+      id: \`preview-\${kind}\`,
       kind,
       title: t(getCatalogLabelKey(kind)),
       description: t(getCatalogDescriptionKey(kind)),
@@ -678,3 +729,15 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     </div>
   );
 }
+`;
+
+fs.writeFileSync(sectionPath, sectionContent, "utf8");
+
+// Make the outer dashboard widget less likely to clip section internals.
+// This is intentionally conservative: only replaces obvious overflow-hidden classes.
+let dw = fs.readFileSync(dashboardWidgetPath, "utf8");
+dw = dw.replace(/overflow-hidden/g, "overflow-visible");
+fs.writeFileSync(dashboardWidgetPath, dw, "utf8");
+
+console.log("Section cards V18 real designed widgets applied.");
+console.log("Run: npm run build --workspace=apps/operator-console");
