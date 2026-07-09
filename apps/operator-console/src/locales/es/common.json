@@ -245,12 +245,17 @@
       "sections": {
         "add_title": "Añadir título",
         "title_area": "Título del tablero",
-        "title_placeholder": "Hola Gustavo",
+        "title_placeholder": "Hola {{ user }}",
         "subtitle_placeholder": "Añade tu texto aquí, se admiten variables de plantilla ✨",
         "add_section": "Añadir sección",
         "new_section": "Nueva sección",
         "untitled_section": "Sección sin título",
-        "add_card": "Añadir tarjeta"
+        "add_card": "Añadir tarjeta",
+        "title_markdown": "Contenido Markdown",
+        "title_alignment": "Alineación",
+        "align_left": "Izquierda",
+        "align_center": "Centro",
+        "align_right": "Derecha"
       },
       "catalog": {
         "title": "Añadir al panel de control",

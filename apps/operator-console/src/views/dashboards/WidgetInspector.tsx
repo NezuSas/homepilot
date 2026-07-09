@@ -167,9 +167,9 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
 
   const quickSizeLabel = isEnglish
     ? (isClock ? 'Clock size' : 'Quick size')
-    : (isClock ? 'TamaÃƒÆ’Ã‚Â±o de reloj' : 'TamaÃƒÆ’Ã‚Â±o rÃƒÆ’Ã‚Â¡pido');
+    : (isClock ? 'TamaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o de reloj' : 'TamaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡pido');
 
-  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃƒÆ’Ã‚Â±o de reloj';
+  const clockDesignLabel = isEnglish ? 'Clock design' : 'DiseÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o de reloj';
 
   const boundDevice = safeWidget.type === 'device_control' ? devices.find(d => d.id === binding.entityId) : null;
   const isCamera   = boundDevice ? (boundDevice.type === 'camera' || boundDevice.semanticType === 'camera') : false;
@@ -216,7 +216,7 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
               {isSection ? 'T\u00edtulo de secci\u00f3n' : t('dashboards.inspector.custom_title_placeholder')}
             </label>
             <input
-              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
+              placeholder={isSection ? 'Mi SecciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n' : t('dashboards.inspector.custom_title_placeholder')}
               value={appearance.title || ''}
               onChange={(e) => onUpdate(safeWidget.id, { appearance: { ...appearance, title: e.target.value } })}
               className="w-full bg-muted/20 border border-border/40 rounded-2xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary/50 transition-all"
@@ -310,7 +310,54 @@ export function WidgetInspector({ widget, isOpen, onClose, onUpdate, onRemove }:
           )}
 
           {/* Clock style picker */}
-          {isClock && (
+          
+            {isDashboardTitle && (
+              <div className="dashboard-title-markdown-editor mt-5 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                    {t('dashboard.editor.sections.title_markdown')}
+                  </label>
+                  <textarea
+                    value={typeof extra.markdown === 'string' ? extra.markdown : ''}
+                    onChange={(event) => onUpdate(safeWidget.id, { extra: { ...extra, markdown: event.target.value } })}
+                    placeholder={`# ${t('dashboard.editor.sections.title_placeholder')}\n${t('dashboard.editor.sections.subtitle_placeholder')}`}
+                    rows={5}
+                    className="w-full resize-y rounded-2xl border border-border/40 bg-muted/20 px-4 py-3 font-mono text-xs font-semibold leading-relaxed text-foreground outline-none transition-all focus:border-primary/50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                    {t('dashboard.editor.sections.title_alignment')}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['left', 'center', 'right'] as const).map((alignOption) => {
+                      const activeAlign = (extra.align === 'left' || extra.align === 'right' || extra.align === 'center') ? extra.align : 'center';
+                      return (
+                        <button
+                          key={alignOption}
+                          type="button"
+                          onClick={() => onUpdate(safeWidget.id, { extra: { ...extra, align: alignOption } })}
+                          className={cn(
+                            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                            activeAlign === alignOption
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border/40 bg-muted/20 text-muted-foreground hover:border-primary/40"
+                          )}
+                        >
+                          {alignOption === 'left'
+                            ? t('dashboard.editor.sections.align_left')
+                            : alignOption === 'right'
+                              ? t('dashboard.editor.sections.align_right')
+                              : t('dashboard.editor.sections.align_center')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+            {isClock && (
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{clockDesignLabel}</label>
               <div className="grid grid-cols-3 gap-2">

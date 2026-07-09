@@ -245,12 +245,17 @@
       "sections": {
         "add_title": "Add title",
         "title_area": "Dashboard title",
-        "title_placeholder": "Hello Gustavo",
+        "title_placeholder": "Hello {{ user }}",
         "subtitle_placeholder": "Add your text here. Template variables are supported ✨",
         "add_section": "Add section",
         "new_section": "New section",
         "untitled_section": "Untitled section",
-        "add_card": "Add card"
+        "add_card": "Add card",
+        "title_markdown": "Markdown content",
+        "title_alignment": "Alignment",
+        "align_left": "Left",
+        "align_center": "Center",
+        "align_right": "Right"
       },
       "catalog": {
         "title": "Add to dashboard",

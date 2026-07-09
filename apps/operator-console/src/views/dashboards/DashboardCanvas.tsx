@@ -306,10 +306,10 @@ const virtualPlaceholders = useMemo(() => {
   }[] = [];
 
   if (!hasDashboardTitle) {
-    placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 1, type: 'add_title' });
+    placeholders.push({ key: 'add_title', x: 0, y: 0, w: 12, h: 2, type: 'add_title' });
   }
 
-  const sectionStartY = hasDashboardTitle ? 2 : 2;
+  const sectionStartY = hasDashboardTitle ? 3 : 3;
   const sectionSlot = sections.length;
 
   if (sections.length === 0) {
