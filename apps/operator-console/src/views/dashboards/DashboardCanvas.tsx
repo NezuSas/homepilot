@@ -205,6 +205,7 @@ const virtualPlaceholders = useMemo(() => {
   return placeholders;
 }, [sanitizedWidgets, canEditLayout]);
 
+// V19 preserves section layout height for internal section cards
 const canvasMinRows = useMemo(() => {
     const bottomY = renderedWidgets.reduce((max: number, w: DashboardWidget) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
     return Math.max(8, bottomY + (canEditLayout ? 6 : 2));

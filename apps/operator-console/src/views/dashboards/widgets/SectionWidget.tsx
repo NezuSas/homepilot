@@ -160,11 +160,12 @@ function normalizeCards(extra: DashboardWidgetConfig['extra']): SectionCardItem[
 
 function getRecommendedSectionHeight(currentHeight: number, cardsCount: number) {
   // The add-card tile is always an extra tile after the cards.
-  // 2 internal items per row. Use a taller base so real designed cards fit.
+  // 2 internal items per row. Real designed cards need enough height
+  // so the outer section border grows instead of clipping row 2.
   const internalItems = Math.max(1, cardsCount + 1);
   const internalRows = Math.ceil(internalItems / 2);
-  const recommended = Math.max(3, 1 + internalRows * 2);
-  return Math.max(currentHeight || 3, recommended);
+  const recommended = Math.max(4, 1 + internalRows * 3);
+  return Math.max(currentHeight || 4, recommended);
 }
 
 function isBindableKind(kind: SectionCardKind) {
@@ -316,6 +317,34 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
       variant: config.appearance?.variant || 'glass',
     },
     extra: {
+      // Safe defaults for real widget previews rendered inside sections.
+      // Some widgets expect these fields to exist during render.
+      percentage: 64,
+      value: 64,
+      current: 64,
+      total: 100,
+      unit: '%',
+      status: 'preview',
+      label: card.title,
+      subtitle: card.entityName || card.description || '',
+      cameraStatus: card.entityId ? 'live' : 'connecting',
+      energy: {
+        percentage: 64,
+        current: 1.8,
+        unit: 'kW',
+        trend: 5,
+      },
+      metrics: {
+        percentage: 64,
+        current: 1.8,
+        total: 3.0,
+        unit: 'kW',
+      },
+      stats: {
+        percentage: 64,
+        active: 1,
+        total: 7,
+      },
       ...config.extra,
       sectionCardId: card.id,
       sectionCardKind: card.kind,
@@ -351,7 +380,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const renderCard = (card: SectionCardItem) => (
     <div
       key={card.id}
-      className="group/card relative min-h-[11.5rem] overflow-hidden rounded-[1.35rem] border border-border/45 bg-card/75 shadow-sm transition-all hover:border-primary/45"
+      className="group/card relative min-h-[13rem] overflow-hidden rounded-[1.35rem] border border-border/45 bg-card/75 shadow-sm transition-all hover:border-primary/45"
     >
       <div className="h-full w-full">
         {renderRealDesignedCard(card)}
@@ -396,7 +425,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     };
 
     return (
-      <div className="h-36 overflow-hidden rounded-[1.5rem] border border-border/45 bg-background/40">
+      <div className="h-44 overflow-hidden rounded-[1.5rem] border border-border/45 bg-background/40">
         {renderRealDesignedCard(previewCard)}
       </div>
     );
@@ -498,7 +527,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
           </div>
 
           <div className="space-y-5 px-6 py-5">
-            <div className="h-44 overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/35 p-2">
+            <div className="h-52 overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/35 p-2">
               {renderCatalogPreview(cardDraft.kind)}
             </div>
 
@@ -586,7 +615,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   ) : null;
 
   const sectionGrid = (
-    <div className="grid min-h-0 flex-1 grid-cols-2 auto-rows-[11.5rem] content-start gap-3 overflow-visible pr-1">
+    <div className="grid min-h-0 flex-1 grid-cols-2 auto-rows-[13rem] content-start gap-3 overflow-visible pr-1">
       {cards.map(renderCard)}
 
       {isEditing ? (
@@ -597,7 +626,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
             setIsCatalogOpen(true);
           }}
           className={cn(
-            "inline-flex min-h-[11.5rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
+            "inline-flex min-h-[13rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
             cards.length === 0 && "col-span-2"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}
