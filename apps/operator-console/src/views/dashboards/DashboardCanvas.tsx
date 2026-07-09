@@ -497,41 +497,46 @@ export function DashboardCanvas({
         ))}
 
         {/* Home Assistant style virtual placeholders */}
-        {canEditLayout && virtualPlaceholders.map((placeholder) => (
-          <button
-            key={placeholder.key}
-            type="button"
-            style={{
-              gridColumn: `${placeholder.x + 1} / span ${placeholder.w}`,
-              gridRow: `${placeholder.y + 1} / span ${placeholder.h}`,
-            }}
-            className={cn(
-              "flex flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-primary/20 hover:border-primary/50 bg-primary/[0.01] hover:bg-primary/[0.04] transition-all group/placeholder outline-none",
-              placeholder.type === 'add_section' && "w-full border-border/40 hover:border-primary/40 bg-muted/5 hover:bg-primary/[0.02]"
-            )}
-            onClick={() => {
-              if (placeholder.type === 'add_card') {
-                onAddCardClick?.(placeholder.x, placeholder.y);
-              } else {
-                onAddSectionClick?.(placeholder.y);
-              }
-            }}
-          >
-            {placeholder.type === 'add_card' ? (
-              <div className="flex flex-col items-center gap-1.5 text-muted-foreground/30 group-hover/placeholder:text-primary transition-colors">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full border border-dashed border-muted-foreground/30 group-hover/placeholder:border-primary/50">
-                  <span className="text-lg font-black leading-none">+</span>
-                </div>
-              </div>
-            ) : (
-              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 group-hover/placeholder:text-primary transition-colors">
-                + Nueva SecciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
-              </span>
-            )}
-          </button>
-        ))}
+{canEditLayout && virtualPlaceholders.map((placeholder) => {
+  const isAddCard = placeholder.type === 'add_card';
 
-        {/* Snap drop preview */}
+  return (
+    <button
+      key={placeholder.key}
+      type="button"
+      onClick={() => {
+        if (isAddCard) {
+          onAddCardClick?.(placeholder.x, placeholder.y);
+        } else {
+          onAddSectionClick?.(placeholder.y);
+        }
+      }}
+      className={cn(
+        "absolute z-10 flex items-center justify-center transition-all duration-200",
+        isAddCard
+          ? "rounded-2xl border-2 border-dashed border-primary/75 bg-background/20 text-primary hover:bg-primary/10 hover:border-primary"
+          : "rounded-[1.35rem] border border-dashed border-border/45 bg-transparent text-muted-foreground/70 hover:border-primary/55 hover:text-primary"
+      )}
+      style={{
+        left: placeholder.x * colWidth + 8,
+        top: placeholder.y * rowHeight + 8,
+        width: placeholder.w * colWidth - 16,
+        height: placeholder.h * rowHeight - 16,
+      }}
+    >
+      {isAddCard ? (
+        <span className="inline-flex h-11 min-w-20 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 text-2xl font-light leading-none text-primary">
+          +
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/35 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em]">
+          <span className="text-base leading-none">+</span>
+          <span>Nueva secciÃ³n</span>
+        </span>
+      )}
+    </button>
+  );
+})} {/* Snap drop preview */}
         {canEditLayout && snapPreview && activeWidget && (
           <div
             aria-hidden="true"
