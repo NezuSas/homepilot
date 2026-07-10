@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
+import { apiFetch } from '../../../lib/apiClient';
+import { API_BASE_URL } from '../../../config';
+import { CameraMediaFrame, type CameraFeedMode } from '../../../components/CameraMediaFrame';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
@@ -535,114 +538,91 @@ function getAssignableDevicesForKind(
   return [];
 }
 
-function appendHomeAssistantAccessToken(url: string, token?: string) {
-  if (!token || !url.includes('/api/camera_proxy')) return url;
-  if (url.includes('token=')) return url;
 
-  return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+
+
+interface CameraMediaSession {
+  snapshotPath: string;
+  streamPath: string;
+  hlsPath?: string;
 }
 
-function normalizeHomeAssistantMediaUrl(url: string, token?: string) {
-  const trimmed = url.trim();
-  if (!trimmed) return undefined;
-
-  if (trimmed.startsWith('/')) {
-    return appendHomeAssistantAccessToken(trimmed, token);
-  }
-
-  return appendHomeAssistantAccessToken(trimmed, token);
+function isCameraMediaSession(v: unknown): v is CameraMediaSession {
+  if (!v || typeof v !== 'object') return false;
+  const s = v as Record<string, unknown>;
+  return typeof s.snapshotPath === 'string' && typeof s.streamPath === 'string';
 }
 
-function getCameraMediaUrl(device?: { id?: string; lastKnownState?: Record<string, unknown> | null; metadata?: Record<string, unknown> | null }) {
-  const state = (device?.lastKnownState ?? {}) as Record<string, unknown>;
-  const attrs = (typeof state.attributes === 'object' && state.attributes !== null
-    ? state.attributes
-    : {}) as Record<string, unknown>;
-  const metadata = (device?.metadata ?? {}) as Record<string, unknown>;
-
-  const token =
-    typeof attrs.access_token === 'string' ? attrs.access_token :
-    typeof state.access_token === 'string' ? state.access_token :
-    typeof metadata.access_token === 'string' ? metadata.access_token :
-    undefined;
-
-  const entityId =
-    typeof state.entity_id === 'string' ? state.entity_id :
-    typeof attrs.entity_id === 'string' ? attrs.entity_id :
-    typeof device?.id === 'string' ? device.id :
-    undefined;
-
-  const candidates = [
-    state.mediaUrl,
-    state.media_url,
-    state.streamUrl,
-    state.stream_url,
-    state.snapshotUrl,
-    state.snapshot_url,
-    state.imageUrl,
-    state.image_url,
-    state.entity_picture,
-    attrs.entity_picture,
-    attrs.thumbnail,
-    attrs.preview,
-    attrs.preview_url,
-    attrs.snapshot,
-    attrs.snapshot_url,
-    attrs.stream_source,
-    attrs.streamUrl,
-    attrs.stream_url,
-    metadata.mediaUrl,
-    metadata.media_url,
-    metadata.streamUrl,
-    metadata.stream_url,
-    metadata.snapshotUrl,
-    metadata.snapshot_url,
-    metadata.imageUrl,
-    metadata.image_url,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate !== 'string') continue;
-    const resolved = normalizeHomeAssistantMediaUrl(candidate, token);
-    if (resolved) return resolved;
-  }
-
-  if (entityId && entityId.startsWith('camera.') && token) {
-    return `/api/camera_proxy/${entityId}?token=${encodeURIComponent(token)}`;
-  }
-
-  return undefined;
+function absoluteSessionUrl(path: string): string {
+  return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 }
 
+function SectionCameraCard({ deviceId, title }: { deviceId: string; title: string }) {
+  const [session, setSession] = useState<CameraMediaSession | null>(null);
+  const [hasFeedError, setHasFeedError] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
+  const retryRef = useRef(0);
 
-function CameraMediaPreview({ mediaUrl, title }: { mediaUrl?: string; title: string }) {
-  const isVideo = Boolean(mediaUrl && /\.(mp4|webm|ogg)(\?|#|$)/i.test(mediaUrl));
-  const isHls = Boolean(mediaUrl && /\.m3u8(\?|#|$)/i.test(mediaUrl));
-  const isRtsp = Boolean(mediaUrl && /^rtsp:/i.test(mediaUrl));
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsConnecting(true);
+    setHasFeedError(false);
 
-  if (mediaUrl && isVideo) {
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session`, {
+      signal: controller.signal,
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`SESSION_${res.status}`);
+      const payload: unknown = await res.json();
+      if (!isCameraMediaSession(payload)) throw new Error('INVALID_SESSION');
+      setSession(payload);
+      setFeedMode(payload.hlsPath ? 'hls' : 'stream');
+      setIsConnecting(false);
+    }).catch((err: unknown) => {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setHasFeedError(true);
+      setIsConnecting(false);
+    });
+
+    return () => controller.abort();
+  }, [deviceId, retryRef.current]);
+
+  if (isConnecting) {
     return (
-      <video
-        className="h-full w-full object-cover"
-        src={mediaUrl}
-        autoPlay
-        muted
-        loop
-        playsInline
-      />
+      <div className="grid h-full w-full place-items-center bg-black/40 animate-pulse">
+        <Camera className="h-8 w-8 text-white/30" />
+      </div>
     );
   }
 
-  if (mediaUrl && !isHls && !isRtsp) {
+  if (hasFeedError || !session) {
     return (
-      <img
-        className="h-full w-full object-cover"
-        src={mediaUrl}
-        alt={title}
-      />
+      <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_90%_20%,rgba(234,88,12,0.25),transparent_16%),linear-gradient(135deg,rgba(234,88,12,0.24),rgba(18,18,18,0.95)_42%,rgba(8,8,8,0.98))]">
+        <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
+          <Camera className="h-9 w-9" />
+        </div>
+      </div>
     );
   }
 
+  return (
+    <CameraMediaFrame
+      active
+      hlsUrl={session.hlsPath ? absoluteSessionUrl(session.hlsPath) : undefined}
+      streamUrl={absoluteSessionUrl(session.streamPath)}
+      snapshotUrl={absoluteSessionUrl(session.snapshotPath)}
+      preferredMode={feedMode}
+      alt={title}
+      className="h-full w-full object-cover"
+      onModeChange={setFeedMode}
+      onReady={() => { /* noop */ }}
+      onFailure={() => setHasFeedError(true)}
+    />
+  );
+}
+
+// Legacy helper kept for editor preview only (not used in live render)
+function _CameraMediaPlaceholder() {
   return (
     <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_90%_20%,rgba(234,88,12,0.25),transparent_16%),linear-gradient(135deg,rgba(234,88,12,0.24),rgba(18,18,18,0.95)_42%,rgba(8,8,8,0.98))]">
       <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
@@ -659,7 +639,7 @@ function CardPreview({
   span,
   icon,
   isAssigned,
-  mediaUrl,
+  deviceId,
 }: {
   kind: SectionCardKind;
   title: string;
@@ -667,7 +647,7 @@ function CardPreview({
   span: SectionCardSpan;
   icon?: SectionCardIcon;
   isAssigned?: boolean;
-  mediaUrl?: string;
+  deviceId?: string;
 }) {
   const normalized = normalizeKind(kind);
   const Icon = iconForIconKey(icon ?? getDefaultIcon(normalized));
@@ -686,7 +666,11 @@ function CardPreview({
   if (normalized === 'camera') {
     return (
       <div className="relative h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
-        <CameraMediaPreview mediaUrl={mediaUrl} title={title} />
+        {deviceId ? (
+          <SectionCameraCard deviceId={deviceId} title={title} />
+        ) : (
+          <_CameraMediaPlaceholder />
+        )}
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
@@ -700,7 +684,7 @@ function CardPreview({
             {title}
           </p>
           <p className="mt-0.5 truncate text-xs font-semibold text-white/75">
-            {mediaUrl ? 'Vista en vivo / snapshot' : subtitle || 'Sin URL de cámara disponible'}
+            {deviceId ? 'Vista en vivo / snapshot' : subtitle || 'Sin cámara asignada'}
           </p>
         </div>
       </div>
@@ -806,7 +790,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   const assignableDevices = getAssignableDevicesForKind(cardDraft.kind, devices);
   const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
-  const previewMediaUrl = normalizeKind(cardDraft.kind) === 'camera' ? getCameraMediaUrl(selectedDevice) : undefined;
 
 
   const rawTitle = config.appearance?.title?.trim();
@@ -936,8 +919,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const renderCard = (card: NormalizedSectionCardItem) => {
     const span = card.span ?? getDefaultSpan(card.kind);
     const subtitle = card.entityName || card.description;
-    const assignedDevice = card.entityId ? devices.find((device) => device.id === card.entityId) : undefined;
-    const mediaUrl = normalizeKind(card.kind) === 'camera' ? getCameraMediaUrl(assignedDevice) : undefined;
+    const isCamera = normalizeKind(card.kind) === 'camera';
+    const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
     return (
       <div
         key={card.id}
@@ -975,7 +958,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span={span}
           icon={card.icon}
           isAssigned={Boolean(card.entityId)}
-          mediaUrl={mediaUrl}
+          deviceId={cameraDeviceId}
         />
 
         {isEditing ? (
@@ -1015,7 +998,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     );
   };
 
-  const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan, iconOverride?: SectionCardIcon, mediaUrlOverride?: string) => {
+  const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan, iconOverride?: SectionCardIcon) => {
     const title = titleOverride || catalogLabel(kind);
     const span = spanOverride ?? getDefaultSpan(kind);
 
@@ -1027,7 +1010,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           subtitle={catalogDescription(kind)}
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
-          mediaUrl={mediaUrlOverride}
         />
       </div>
     );
@@ -1142,7 +1124,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
-              previewMediaUrl
             )}
 
             <label className="block space-y-2">
