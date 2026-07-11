@@ -77,7 +77,7 @@ Rutas principales:
 | `/api/v1/auth/*` | `AuthRoutes.ts` | Login, logout, sesion actual y cambio de password |
 | `/api/v1/admin/users/*` | `AdminRoutes.ts` | Gestion de usuarios y roles admin |
 | `/api/v1/devices/*` | `DeviceRoutes.ts` | Inventario, importacion, refresh, control, eliminacion |
-| `/api/v1/devices/:id/camera/*` | `CameraRoutes.ts` | Sesion autenticada y proxy local de snapshot, MJPEG y HLS de camaras HA |
+| `/api/v1/devices/:id/camera/*` | `CameraRoutes.ts` | Sesion autenticada y proxy local de snapshot, MJPEG y HLS de camaras HA o camaras nativas |
 | `/api/v1/scenes/*` | `SceneRoutes.ts` | Crear, listar y ejecutar escenas |
 | `/api/v1/automations/*` | `AutomationRoutes.ts` | Reglas de automatizacion |
 | `/api/v1/executions/*` | `ExecutionRoutes.ts` | Historial de ejecuciones |
@@ -380,7 +380,8 @@ Piezas principales:
 | Config API | `config.ts` | URLs de endpoints |
 | Design tokens | `design-system/tokens.ts` | Colores, radios, sombras y escalas |
 | Componentes base | `components/ui` | Botones, cards, inputs, modales, selects |
-| Dashboard inicio | `views/DashboardView.tsx` y componentes dashboard | Habitaciones, modos, escenas rapidas, devices |
+| Inicio | `views/DashboardView.tsx` y componentes dashboard | Cabecera del hogar, escenas favoritas, automatizaciones favoritas y sugerencias inteligentes |
+| Tableros | `views/DashboardsView.tsx` y `views/dashboards/*` | Navegacion por usuario, pestañas estilo Home Assistant, secciones editables y tarjetas modulares |
 | Devices/inbox | `views/InboxView.tsx` | Importacion y gestion de devices |
 | Home Assistant | `views/HomeAssistantSettingsView.tsx` | Configurar bridge y discovery |
 | Escenas | `views/ScenesView.tsx` | Listado y ejecucion de escenas |

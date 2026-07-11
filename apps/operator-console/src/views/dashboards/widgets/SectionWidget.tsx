@@ -45,10 +45,10 @@ type SectionCardKind =
   | 'clock_premium'
   | 'clock_minimal'
   | 'energy'
-  | 'assistant'
-  | 'system';
+  | 'assistant';
 
 type NormalizedSectionCardKind = Exclude<SectionCardKind, 'clock'>;
+type LegacySectionCardKind = SectionCardKind | 'system';
 type SectionCardSpan = 'small' | 'medium' | 'full';
 type SectionCardIcon = string;
 
@@ -141,8 +141,6 @@ function getCatalogFallbackLabel(kind: SectionCardKind) {
       return 'Energía';
     case 'assistant':
       return 'Asistente IA';
-    case 'system':
-      return 'Sistema';
     case 'device':
     default:
       return 'Dispositivo';
@@ -170,8 +168,6 @@ function getCatalogFallbackDescription(kind: SectionCardKind) {
       return 'Resumen de energía.';
     case 'assistant':
       return 'Información del asistente.';
-    case 'system':
-      return 'Estado del sistema.';
     case 'device':
     default:
       return 'Control rápido de dispositivo.';
@@ -202,8 +198,6 @@ function getCatalogLabelKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.catalog.energy';
     case 'assistant':
       return 'dashboard.editor.sections.catalog.assistant';
-    case 'system':
-      return 'dashboard.editor.sections.catalog.system';
     case 'device':
     default:
       return 'dashboard.editor.sections.catalog.device';
@@ -234,8 +228,6 @@ function getCatalogDescriptionKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.catalog.energy_description';
     case 'assistant':
       return 'dashboard.editor.sections.catalog.assistant_description';
-    case 'system':
-      return 'dashboard.editor.sections.catalog.system_description';
     case 'device':
     default:
       return 'dashboard.editor.sections.catalog.device_description';
@@ -252,8 +244,6 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
       return 'energy_snapshot' as WidgetType;
     case 'assistant':
       return 'assistant_insight' as WidgetType;
-    case 'system':
-      return 'system_status' as WidgetType;
     case 'clock_digital':
     case 'clock_analog':
     case 'clock_premium':
@@ -294,8 +284,6 @@ function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
       return 'Zap';
     case 'assistant':
       return 'Bot';
-    case 'system':
-      return 'Shield';
     case 'device':
     default:
       return 'Power';
@@ -311,8 +299,9 @@ function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSecti
 
   return rawCards.flatMap((rawCard, index) => {
     const card = rawCard as Partial<NormalizedSectionCardItem> & Record<string, unknown>;
-    const kind = normalizeKind((card.kind as SectionCardKind) || 'device');
-    if (kind === 'system') return [];
+    const legacyKind = (card.kind as LegacySectionCardKind) || 'device';
+    if (legacyKind === 'system') return [];
+    const kind = normalizeKind(legacyKind);
 
     return [{
       id: typeof card.id === 'string' && card.id.trim() ? card.id : createId(),
@@ -666,8 +655,7 @@ function CardPreview({
     );
   }
 
-  if (normalized === 'assistant' || normalized === 'system') {
-    const isSystem = normalized === 'system';
+  if (normalized === 'assistant') {
     return (
       <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_85%_20%,hsl(var(--primary)/0.18),transparent_30%),hsl(var(--card))] p-4">
         <div className="flex items-start justify-between gap-3">
@@ -675,19 +663,19 @@ function CardPreview({
             <Icon className="h-5 w-5" />
           </span>
           <span className="rounded-full border border-border/45 bg-background/45 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-            {isSystem ? 'Online' : 'IA'}
+            IA
           </span>
         </div>
         <div className="mt-auto min-w-0">
           <span className="block truncate text-sm font-black text-foreground">{title}</span>
           <span className="mt-1 block truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-            {isSystem ? 'Estado operativo' : 'Resumen inteligente'}
+            Resumen inteligente
           </span>
         </div>
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-            <span>{isSystem ? 'Servicios' : 'Señales'}</span>
-            <span className="text-primary">{isSystem ? 'OK' : 'Listo'}</span>
+            <span>Señales</span>
+            <span className="text-primary">Listo</span>
           </div>
           <div className="h-2 rounded-full bg-muted/70">
             <div className="h-full w-[88%] rounded-full bg-primary" />

@@ -62,10 +62,11 @@ apps/operator-console/src/
 8. `devicePresentation.ts` resuelve la categoría por capabilities/semantic type y `ManagedDeviceTile` selecciona la tarjeta visual correspondiente sin depender de la marca.
 9. `InboxDeviceTile` se utiliza únicamente para dispositivos pendientes que requieren asignación.
 10. Descubrimiento solicita `view=summary`, difiere el filtrado de texto y monta entidades en lotes de 48; nunca debe transferir `attributes` completos ni desmontar resultados existentes durante una actualización.
-8. No mover llamadas API a componentes puramente visuales salvo que el componente sea dueño real del flujo.
-9. No dejar estados, handlers, imports o helpers sin usar.
-10. Todo componente nuevo debe quedar integrado y validado.
-11. Usar primitives del design system antes de crear botones, filtros, alertas o estados vacios manuales.
+11. No mover llamadas API a componentes puramente visuales salvo que el componente sea dueño real del flujo.
+12. No dejar estados, handlers, imports o helpers sin usar.
+13. Todo componente nuevo debe quedar integrado y validado.
+14. Usar primitives del design system antes de crear botones, filtros, alertas o estados vacios manuales.
+15. Las secciones de tablero usan un catálogo acotado de tarjetas (`light`, `cover`, `camera`, `room`, `scene`, relojes, energía y asistente); tarjetas legacy `system` persistidas se ignoran durante la normalización y no deben volver al catálogo visual.
 
 ## Patrón Recomendado
 
@@ -125,7 +126,7 @@ Reglas:
 - Automations: header, empty/loading states, notification, rule cards.
 - Automation Builder: frame, identity, trigger, action, error, submit, shared types.
 - Scenes: header, empty state, group, card.
-- Dashboards: sidebar parent navigation, per-user dashboard entries, Home Assistant-style top bar, tab strip, view configuration modal, create form, title bar, editor toolbar.
+- Dashboards: sidebar parent navigation, per-user dashboard entries, Home Assistant-style top bar, tab strip, view configuration modal, create form, title bar, editor toolbar, secciones editables y tarjetas modulares para luces/dispositivos, cámaras, habitaciones, escenas, relojes, energía y asistente.
 - Diagnostics: loading, error, health banner, resilience summary, issues, probes, timeline.
 - Assistant: loading, empty state, header, finding card, finding group.
 - Home Conversation: header, empty state, message bubble, typing indicator, composer.

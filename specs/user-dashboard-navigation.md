@@ -42,3 +42,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC11:** Presionar el lápiz de una vista abre un modal de configuración con pestañas internas de configuración, fondo y visibilidad.
 - **AC12:** Los placeholders de creación de widgets/secciones se alinean con el mismo CSS Grid que las tarjetas reales, sin posicionamiento absoluto que ignore los gaps del layout.
 - **AC13:** Las tarjetas dentro de una sección son responsivas y accionables: luces/dispositivos/cortinas ejecutan su comando local y refrescan estado; cámaras abren el visor completo sin mantener doble reproducción.
+- **AC14:** El catálogo de tarjetas de sección no expone la tarjeta legacy `system`; si existe data antigua persistida con esa tarjeta, la normalización debe ignorarla sin romper el tablero.
