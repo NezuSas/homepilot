@@ -17,6 +17,7 @@ interface DashboardSelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  placement?: 'auto' | 'down';
 }
 
 export function DashboardSelect({
@@ -27,6 +28,7 @@ export function DashboardSelect({
   placeholder = 'Seleccionar',
   disabled = false,
   className,
+  placement = 'auto',
 }: DashboardSelectProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
@@ -41,7 +43,7 @@ export function DashboardSelect({
     const preferredMaxHeight = 288;
     const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
     const spaceAbove = rect.top - viewportPadding;
-    const opensUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+    const opensUp = placement === 'auto' && spaceBelow < 180 && spaceAbove > spaceBelow;
     const maxHeight = Math.max(140, Math.min(preferredMaxHeight, opensUp ? spaceAbove - 8 : spaceBelow - 8));
 
     setDropdownPos({

@@ -393,7 +393,7 @@ function SectionClockPreview({ kind, title }: { kind: SectionCardKind; title: st
   };
 
   return (
-    <div className="h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem]">
+    <div className="h-full min-h-[18rem] overflow-hidden rounded-[1.35rem]">
       <ClockWidget config={clockConfig} />
     </div>
   );
@@ -938,6 +938,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const span = card.span ?? getDefaultSpan(card.kind);
     const subtitle = card.entityName || card.description;
     const isCamera = normalizeKind(card.kind) === 'camera';
+    const isClock = isClockKind(card.kind);
     const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
     const normalizedKind = normalizeKind(card.kind);
     const isActionable = Boolean(card.entityId)
@@ -976,6 +977,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         className={cn(
           "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
           isCamera && "min-h-[14rem]",
+          isClock && "min-h-[18rem]",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
           getSpanClass(span)
@@ -1049,8 +1051,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     return (
       <div className={cn(
-        "overflow-hidden rounded-[1.5rem] bg-background/40",
-        isCameraPreview ? 'h-72' : isClockPreview ? 'h-72' : span === 'small' ? 'h-36' : 'h-44'
+        "overflow-hidden rounded-[1.5rem] bg-background/40 transition-[height,width,max-width] duration-200",
+        span === 'small' && "h-[10.5rem] w-full max-w-[13rem]",
+        span === 'medium' && "h-[10.5rem] w-full max-w-[26rem]",
+        span === 'full' && "w-full",
+        isCameraPreview ? 'h-72' : isClockPreview ? 'h-80' : span === 'full' ? 'h-44' : ''
       )}>
         <CardPreview
           kind={kind}
@@ -1235,6 +1240,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             <DashboardSelect
               label={t('dashboard.editor.sections.card_size')}
               value={cardDraft.span}
+              placement="down"
               options={isClockKind(cardDraft.kind)
                 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }]
                 : [
