@@ -79,7 +79,6 @@ interface CardDraft {
 const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const cardKinds: NormalizedSectionCardKind[] = [
-  'device',
   'light',
   'cover',
   'camera',
@@ -347,7 +346,8 @@ function getSpanClass(span: SectionCardSpan) {
 }
 
 function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSectionCardItem[]) {
-  if (cards.length === 0) return Math.max(currentHeight, 3);
+  void currentHeight;
+  if (cards.length === 0) return 3;
 
   const rows = cards.reduce((total, card) => {
     if (card.span === 'full') return total + 1;
@@ -355,7 +355,7 @@ function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSec
     return total + 0.25;
   }, 0);
 
-  return Math.max(currentHeight, Math.ceil(rows * 2.2) + 2);
+  return Math.max(4, Math.ceil(rows * 2.2) + 2);
 }
 
 function getClockKindLabel(kind: SectionCardKind) {
@@ -640,12 +640,31 @@ function CardPreview({
 
   if (normalized === 'room') {
     return (
-      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-border/45 bg-card p-4">
-        <span className="mb-3 grid h-9 w-9 place-items-center rounded-2xl bg-primary/15 text-primary">
-          <Home className="h-5 w-5" />
-        </span>
-        <span className="text-lg font-black text-foreground">{title}</span>
-        <span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">1 activo · 7 equipos</span>
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner">
+            <Home className="h-5 w-5" />
+          </span>
+          <span className="rounded-full border border-border/50 bg-background/55 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+            Habitación
+          </span>
+        </div>
+        <div className="mt-auto min-w-0">
+          <span className="block truncate text-lg font-black text-foreground">{title}</span>
+          <span className="mt-1 block truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+            Acceso por estancia
+          </span>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <span className="rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
+            <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Vista</span>
+            <span className="mt-1 block text-sm font-black text-foreground">Room</span>
+          </span>
+          <span className="rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2">
+            <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-primary/70">Control</span>
+            <span className="mt-1 block text-sm font-black text-primary">Local</span>
+          </span>
+        </div>
       </div>
     );
   }
@@ -663,14 +682,32 @@ function CardPreview({
   }
 
   if (normalized === 'assistant' || normalized === 'system') {
+    const isSystem = normalized === 'system';
     return (
-      <div className="flex h-full min-h-0 flex-col rounded-[1.35rem] border border-border/45 bg-card p-4">
-        <span className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-primary/15 text-primary">
-          <Icon className="h-5 w-5" />
-        </span>
-        <span className="text-sm font-black text-foreground">{title}</span>
-        <span className="mt-3 h-2 w-3/4 rounded-full bg-primary/30" />
-        <span className="mt-2 h-2 w-1/2 rounded-full bg-muted" />
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_85%_20%,hsl(var(--primary)/0.18),transparent_30%),hsl(var(--card))] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner">
+            <Icon className="h-5 w-5" />
+          </span>
+          <span className="rounded-full border border-border/45 bg-background/45 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+            {isSystem ? 'Online' : 'IA'}
+          </span>
+        </div>
+        <div className="mt-auto min-w-0">
+          <span className="block truncate text-sm font-black text-foreground">{title}</span>
+          <span className="mt-1 block truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+            {isSystem ? 'Estado operativo' : 'Resumen inteligente'}
+          </span>
+        </div>
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+            <span>{isSystem ? 'Servicios' : 'Señales'}</span>
+            <span className="text-primary">{isSystem ? 'OK' : 'Listo'}</span>
+          </div>
+          <div className="h-2 rounded-full bg-muted/70">
+            <div className="h-full w-[88%] rounded-full bg-primary" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -1317,7 +1354,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="group/section relative flex h-full w-full min-w-0 flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+      className="group/section relative flex min-h-fit w-full min-w-0 flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
     >
       <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (

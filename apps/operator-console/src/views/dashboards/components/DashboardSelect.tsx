@@ -29,7 +29,7 @@ export function DashboardSelect({
   className,
 }: DashboardSelectProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
 
   const selected = options.find((option) => option.value === value);
 
@@ -37,10 +37,18 @@ export function DashboardSelect({
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
+    const viewportPadding = 16;
+    const preferredMaxHeight = 288;
+    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const spaceAbove = rect.top - viewportPadding;
+    const opensUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(140, Math.min(preferredMaxHeight, opensUp ? spaceAbove - 8 : spaceBelow - 8));
+
     setDropdownPos({
       left: rect.left,
-      top: rect.bottom + 8,
+      top: opensUp ? rect.top - maxHeight - 8 : rect.bottom + 8,
       width: rect.width,
+      maxHeight,
     });
   };
 
@@ -70,11 +78,12 @@ export function DashboardSelect({
   const dropdown = isOpen && typeof document !== 'undefined'
     ? createPortal(
         <div
-          className="fixed z-[100000] max-h-72 overflow-y-auto rounded-2xl border border-border/60 bg-popover p-1.5 shadow-2xl"
+          className="fixed z-[100000] overflow-y-auto rounded-2xl border border-border/60 bg-popover p-1.5 shadow-2xl"
           style={{
             left: dropdownPos?.left,
             top: dropdownPos?.top,
             width: dropdownPos?.width,
+            maxHeight: dropdownPos?.maxHeight,
           }}
           onMouseDown={(event) => {
             event.preventDefault();

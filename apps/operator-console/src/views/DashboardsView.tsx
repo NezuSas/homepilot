@@ -450,8 +450,9 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
           {/* Dashboard Area */}
           {active && (
             <div className="flex min-w-0 flex-col">
-              {isEditing && isOwner && (
-                <DashboardTitleBar
+              <div className="sticky top-0 z-40 bg-background/95 shadow-depth-1 backdrop-blur-xl">
+                {isEditing && isOwner && (
+                  <DashboardTitleBar
                   title={active.title}
                   draftTitle={draftTitle}
                   isEditingTitle={editingTitle}
@@ -476,10 +477,10 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                     }
                   }}
                   onCreate={() => setCreating(true)}
-                />
-              )}
+                  />
+                )}
 
-              <DashboardTabsNav
+                <DashboardTabsNav
                 tabs={visibleTabs}
                 activeTabIdx={visibleTabs.findIndex(t => t.id === activeTab?.id)}
                 isEditing={isEditing && isOwner}
@@ -508,7 +509,8 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                 onCancelAddingTab={() => setAddingTab(false)}
                 onToggleEditing={isOwner ? () => setIsEditing(!isEditing) : undefined}
                 editLabel={t('dashboards.action_edit')}
-              />
+                />
+              </div>
 
               {/* Canvas Area */}
               {activeTab ? (
