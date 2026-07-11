@@ -393,7 +393,7 @@ function SectionClockPreview({ kind, title }: { kind: SectionCardKind; title: st
   };
 
   return (
-    <div className="h-full min-h-[18rem] overflow-hidden rounded-[1.35rem]">
+    <div className="h-full min-h-[14rem] overflow-hidden rounded-[1.35rem]">
       <ClockWidget config={clockConfig} />
     </div>
   );
@@ -582,7 +582,7 @@ function CardPreview({
 
   if (normalized === 'camera') {
     return (
-      <div className="relative h-full min-h-[13rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
+      <div className="relative h-full min-h-[12rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
         {deviceId ? (
           <SectionCameraCard deviceId={deviceId} title={title} />
         ) : (
@@ -957,8 +957,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={(event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
-          isCamera && "min-h-[13rem]",
-          isClock && "min-h-[18rem]",
+          isCamera && "min-h-[12rem]",
+          isClock && "min-h-[14rem]",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
           getSpanClass(span)
@@ -1036,7 +1036,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'small' && "h-[10.5rem] w-full max-w-[13rem]",
         span === 'medium' && "h-[10.5rem] w-full max-w-[26rem]",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-72' : isClockPreview ? 'h-80' : span === 'full' ? 'h-44' : ''
+        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : span === 'full' ? 'h-40' : ''
       )}>
         <CardPreview
           kind={kind}
