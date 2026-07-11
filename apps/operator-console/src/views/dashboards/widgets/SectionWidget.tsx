@@ -1,9 +1,11 @@
-import { useEffect, useRef, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
   GripVertical,
   Home,
+  Loader2,
+  Maximize2,
   Monitor,
   Pencil,
   Plus,
@@ -16,8 +18,10 @@ import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { CameraMediaFrame, type CameraFeedMode } from '../../../components/CameraMediaFrame';
+import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
+import { isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
 
@@ -370,9 +374,9 @@ function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSecti
 function getSpanClass(span: SectionCardSpan) {
   switch (span) {
     case 'full':
-      return 'col-span-4';
+      return 'col-span-1 sm:col-span-2 xl:col-span-4';
     case 'medium':
-      return 'col-span-2';
+      return 'col-span-1 sm:col-span-2';
     case 'small':
     default:
       return 'col-span-1';
@@ -562,6 +566,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const retryRef = useRef(0);
 
   useEffect(() => {
@@ -605,19 +610,48 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
     );
   }
 
+  const streamUrl = absoluteSessionUrl(session.streamPath);
+  const snapshotUrl = absoluteSessionUrl(session.snapshotPath);
+  const hlsUrl = session.hlsPath ? absoluteSessionUrl(session.hlsPath) : undefined;
+
   return (
-    <CameraMediaFrame
-      active
-      hlsUrl={session.hlsPath ? absoluteSessionUrl(session.hlsPath) : undefined}
-      streamUrl={absoluteSessionUrl(session.streamPath)}
-      snapshotUrl={absoluteSessionUrl(session.snapshotPath)}
-      preferredMode={feedMode}
-      alt={title}
-      className="h-full w-full object-cover"
-      onModeChange={setFeedMode}
-      onReady={() => { /* noop */ }}
-      onFailure={() => setHasFeedError(true)}
-    />
+    <>
+      <button
+        type="button"
+        className="relative h-full w-full overflow-hidden text-left"
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!hasFeedError) setIsViewerOpen(true);
+        }}
+        aria-label={`Abrir ${title} en pantalla completa`}
+      >
+        <CameraMediaFrame
+          active={!isViewerOpen}
+          hlsUrl={hlsUrl}
+          streamUrl={streamUrl}
+          snapshotUrl={snapshotUrl}
+          preferredMode={feedMode}
+          alt={title}
+          className="h-full w-full object-cover"
+          onModeChange={setFeedMode}
+          onReady={() => { /* noop */ }}
+          onFailure={() => setHasFeedError(true)}
+        />
+        <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/65 text-white shadow-lg backdrop-blur-md">
+          <Maximize2 className="h-4 w-4" />
+        </span>
+      </button>
+
+      <CameraViewerModal
+        isOpen={isViewerOpen}
+        name={title}
+        streamUrl={streamUrl}
+        hlsUrl={hlsUrl}
+        snapshotUrl={snapshotUrl}
+        preferredMode={feedMode}
+        onClose={() => setIsViewerOpen(false)}
+      />
+    </>
   );
 }
 
@@ -779,6 +813,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   };
 
   const devices = useDeviceSnapshotStore((state) => state.devices);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -786,6 +821,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [draftTitle, setDraftTitle] = useState(config.appearance?.title || '');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const [processingCardId, setProcessingCardId] = useState<string | null>(null);
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
 
   const assignableDevices = getAssignableDevicesForKind(cardDraft.kind, devices);
@@ -916,11 +952,45 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     setIsEditingTitle(false);
   };
 
+  const handleCardAction = async (card: NormalizedSectionCardItem, event: MouseEvent) => {
+    event.stopPropagation();
+    if (isEditing || !card.entityId) return;
+
+    const normalized = normalizeKind(card.kind);
+    if (normalized !== 'device' && normalized !== 'light' && normalized !== 'cover') return;
+
+    const device = devices.find((candidate) => candidate.id === card.entityId);
+    if (!device) return;
+
+    const active = isDeviceActive(device);
+    const command = isCoverLikeDevice(device)
+      ? active ? 'close' : 'open'
+      : active ? 'turn_off' : 'turn_on';
+
+    setProcessingCardId(card.id);
+    try {
+      await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      });
+      await refreshSnapshot();
+    } catch (error) {
+      console.error('[SectionWidget] Failed to execute card action:', error);
+    } finally {
+      setProcessingCardId(null);
+    }
+  };
+
   const renderCard = (card: NormalizedSectionCardItem) => {
     const span = card.span ?? getDefaultSpan(card.kind);
     const subtitle = card.entityName || card.description;
     const isCamera = normalizeKind(card.kind) === 'camera';
     const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
+    const normalizedKind = normalizeKind(card.kind);
+    const isActionable = Boolean(card.entityId)
+      && !isEditing
+      && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'cover');
     return (
       <div
         key={card.id}
@@ -944,9 +1014,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           setDraggingCardId(null);
         }}
         onDragEnd={() => setDraggingCardId(null)}
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
+          isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
           getSpanClass(span)
         )}
@@ -960,6 +1031,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isAssigned={Boolean(card.entityId)}
           deviceId={cameraDeviceId}
         />
+
+        {processingCardId === card.id ? (
+          <div className="absolute inset-0 z-30 grid place-items-center rounded-[inherit] bg-background/55 backdrop-blur-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : null}
 
         {isEditing ? (
           <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
@@ -1254,7 +1331,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 flex-1 grid-cols-6 auto-rows-[10.5rem] content-start gap-3 overflow-visible pr-1"
+      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[10.5rem] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
     >
       {cards.map(renderCard)}
 
@@ -1267,7 +1344,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           }}
           className={cn(
             "inline-flex min-h-[10.5rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
-            cards.length === 0 ? "col-span-6" : "col-span-3"
+            cards.length === 0 ? "col-span-1 sm:col-span-2 xl:col-span-4" : "col-span-1 sm:col-span-2"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}
         >
