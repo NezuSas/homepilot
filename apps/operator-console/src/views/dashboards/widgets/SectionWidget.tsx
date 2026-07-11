@@ -455,10 +455,6 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
   const [isConnecting, setIsConnecting] = useState(true);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
   const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
-  const [isDocumentVisible, setIsDocumentVisible] = useState(() => (
-    typeof document === 'undefined' ? true : document.visibilityState !== 'hidden'
-  ));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -481,18 +477,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
     });
 
     return () => controller.abort();
-  }, [deviceId, retryKey]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      const nextVisible = document.visibilityState !== 'hidden';
-      setIsDocumentVisible(nextVisible);
-      if (nextVisible) setRetryKey((value) => value + 1);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  }, [deviceId]);
 
   if (isConnecting) {
     return (
@@ -528,8 +513,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         aria-label={`Abrir ${title} en pantalla completa`}
       >
         <CameraMediaFrame
-          active={!isViewerOpen && isDocumentVisible}
-          key={`${deviceId}-${retryKey}`}
+          active={!isViewerOpen}
           hlsUrl={hlsUrl}
           streamUrl={streamUrl}
           snapshotUrl={snapshotUrl}
@@ -552,10 +536,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         hlsUrl={hlsUrl}
         snapshotUrl={snapshotUrl}
         preferredMode={feedMode}
-        onClose={() => {
-          setIsViewerOpen(false);
-          setRetryKey((value) => value + 1);
-        }}
+        onClose={() => setIsViewerOpen(false)}
       />
     </>
   );
@@ -601,7 +582,7 @@ function CardPreview({
 
   if (normalized === 'camera') {
     return (
-      <div className="relative h-full min-h-[14rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
+      <div className="relative h-full min-h-[13rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
         {deviceId ? (
           <SectionCameraCard deviceId={deviceId} title={title} />
         ) : (
@@ -976,7 +957,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={(event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
-          isCamera && "min-h-[14rem]",
+          isCamera && "min-h-[13rem]",
           isClock && "min-h-[18rem]",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
