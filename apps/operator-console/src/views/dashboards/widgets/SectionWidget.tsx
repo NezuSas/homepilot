@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
@@ -23,7 +23,8 @@ import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
-import { DashboardSelect } from '../components/DashboardSelect';
+import { DashboardSelect } from '../components/DashboardSelect';
+import { ClockWidget, type ClockStyle } from './ClockWidget';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -106,55 +107,17 @@ function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   const normalized = normalizeKind(kind);
   if (normalized === 'light' || normalized === 'device' || normalized === 'cover') return 'small';
   if (isClockKind(normalized)) return normalized === 'clock_minimal' ? 'medium' : 'full';
-  if (normalized === 'camera') return 'medium';
+  if (normalized === 'camera') return 'full';
   return 'medium';
 }
 
-const clockCardOptions: { kind: NormalizedSectionCardKind; style: string; label: string }[] = [
+const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; label: string }[] = [
   { kind: 'clock_premium', style: 'analog-classic', label: 'Analógico premium' },
   { kind: 'clock_digital', style: 'digital', label: 'Digital compacto' },
   { kind: 'clock_analog', style: 'minimal', label: 'Digital residencial' },
   { kind: 'clock_minimal', style: 'analog-minimal', label: 'Analógico minimal' },
 ];
 
-
-function getClockCardLabel(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'clock_digital':
-      return 'Digital compacto';
-    case 'clock_analog':
-      return 'Digital residencial';
-    case 'clock_minimal':
-      return 'Analógico minimal';
-    case 'clock_premium':
-    default:
-      return 'Analógico premium';
-  }
-}
-
-function AnalogDial({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={cn(
-      'relative shrink-0 rounded-full border border-primary/35 bg-black/20 shadow-[0_0_45px_rgba(234,88,12,0.16)]',
-      compact ? 'h-20 w-20' : 'h-28 w-28'
-    )}>
-      {Array.from({ length: 12 }).map((_, index) => (
-        <span
-          key={index}
-          className="absolute left-1/2 top-1/2 h-[1px] origin-left rounded-full bg-white/35"
-          style={{
-            width: compact ? 30 : 43,
-            transform: `rotate(${index * 30 - 90}deg) translateX(${compact ? 28 : 40}px)`,
-          }}
-        />
-      ))}
-
-      <span className="absolute left-1/2 top-1/2 h-1/2 w-1 -translate-x-1/2 origin-top rounded-full bg-white/85" style={{ transform: 'rotate(6deg)' }} />
-      <span className="absolute left-1/2 top-1/2 h-[38%] w-1 -translate-x-1/2 origin-top rounded-full bg-primary" style={{ transform: 'rotate(76deg)' }} />
-      <span className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-4 ring-background" />
-    </div>
-  );
-}
 
 function getCatalogFallbackLabel(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
@@ -395,14 +358,6 @@ function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSec
   return Math.max(currentHeight, Math.ceil(rows * 2.2) + 2);
 }
 
-function formatClockTime(date: Date) {
-  return new Intl.DateTimeFormat('es-EC', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
-}
-
 function getClockKindLabel(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
     case 'clock_digital':
@@ -417,96 +372,25 @@ function getClockKindLabel(kind: SectionCardKind) {
   }
 }
 
-function SectionClockPreview({
-  kind,
-  title,
-  span,
-}: {
-  kind: SectionCardKind;
-  title: string;
-  span: SectionCardSpan;
-}) {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
+function getClockStyleForKind(kind: SectionCardKind): ClockStyle {
   const normalized = normalizeKind(kind);
-  const label = getClockCardLabel(normalized);
-  const time = formatClockTime(now);
-  const isFull = span === 'full';
-  const isSmall = span === 'small';
+  const option = clockCardOptions.find((item) => item.kind === normalized);
+  return option?.style ?? 'minimal';
+}
 
-  if (normalized === 'clock_digital') {
-    return (
-      <div className="relative flex h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-[radial-gradient(circle_at_25%_20%,rgba(234,88,12,0.18),transparent_34%),linear-gradient(135deg,rgba(20,20,20,0.98),rgba(11,11,11,0.98))] p-4 shadow-sm">
-        <div className="flex h-full w-full flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-[0.42em] text-primary">
-              {label}
-            </p>
-            <span className="rounded-full border border-border/45 bg-background/55 px-2 py-1 text-[10px] font-black text-foreground">
-              {now.getSeconds().toString().padStart(2, '0')} seg
-            </span>
-          </div>
-
-          <div className="flex flex-1 items-center justify-center">
-            <p className={cn('font-black leading-none text-white', isFull ? 'text-7xl' : isSmall ? 'text-4xl' : 'text-5xl')}>
-              {time}
-            </p>
-          </div>
-
-          <div className="h-2 rounded-full border border-border/30 bg-background/40">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(4, (now.getMinutes() / 60) * 100)}%` }} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (normalized === 'clock_minimal') {
-    return (
-      <div className="relative flex h-full min-h-[10.5rem] items-center justify-center overflow-hidden rounded-[1.35rem] border border-border/40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.07),transparent_38%),linear-gradient(135deg,rgba(20,20,20,0.98),rgba(9,9,9,0.98))] p-4 shadow-sm">
-        <div className={cn('flex items-center gap-5', isSmall && 'flex-col gap-2')}>
-          <AnalogDial compact={isSmall} />
-          <div className={cn(isSmall && 'text-center')}>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">{label}</p>
-            <p className="mt-2 text-4xl font-black leading-none text-white">{time}</p>
-            {!isSmall ? <p className="mt-2 text-xs font-black uppercase text-white/55">Cuenca · 15°C</p> : null}
-          </div>
-        </div>
-      </div>
-    );
-  }
+function SectionClockPreview({ kind, title }: { kind: SectionCardKind; title: string }) {
+  const clockStyle = getClockStyleForKind(kind);
+  const clockConfig: DashboardWidgetConfig = {
+    layout: { x: 0, y: 0, w: 4, h: 4 },
+    binding: { entityId: '', entityType: 'system', entityName: title },
+    visibility: { rules: [], defaultState: 'show' },
+    appearance: { variant: 'glass', title, showTitle: true },
+    extra: { clockStyle },
+  };
 
   return (
-    <div className="relative flex h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-[radial-gradient(circle_at_15%_20%,rgba(234,88,12,0.2),transparent_34%),linear-gradient(135deg,rgba(22,22,22,0.98),rgba(10,10,10,0.98))] p-4 shadow-sm">
-      <div className={cn(
-        'flex h-full w-full items-center',
-        isFull ? 'justify-center gap-8' : 'justify-center gap-4',
-        isSmall && 'flex-col gap-2'
-      )}>
-        <AnalogDial compact={!isFull} />
-
-        <div className={cn(isSmall && 'text-center')}>
-          <p className="text-[10px] font-black uppercase tracking-[0.45em] text-primary">
-            {label}
-          </p>
-          <p className="mt-1 text-xs font-semibold text-white/55">
-            {title || 'Reloj'}
-          </p>
-          <p className={cn('mt-3 font-black leading-none text-white', isFull ? 'text-6xl' : 'text-4xl')}>
-            {time}
-          </p>
-          {!isSmall ? (
-            <div className="mt-3 rounded-full border border-border/35 bg-background/35 px-3 py-1 text-[10px] font-black uppercase text-white/70">
-              Cuenca · 15°C
-            </div>
-          ) : null}
-        </div>
-      </div>
+    <div className="h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem]">
+      <ClockWidget config={clockConfig} />
     </div>
   );
 }
@@ -567,7 +451,10 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
   const [isConnecting, setIsConnecting] = useState(true);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
   const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const retryRef = useRef(0);
+  const [retryKey, setRetryKey] = useState(0);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(() => (
+    typeof document === 'undefined' ? true : document.visibilityState !== 'hidden'
+  ));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -590,7 +477,18 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
     });
 
     return () => controller.abort();
-  }, [deviceId, retryRef.current]);
+  }, [deviceId, retryKey]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const nextVisible = document.visibilityState !== 'hidden';
+      setIsDocumentVisible(nextVisible);
+      if (nextVisible) setRetryKey((value) => value + 1);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   if (isConnecting) {
     return (
@@ -626,7 +524,8 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         aria-label={`Abrir ${title} en pantalla completa`}
       >
         <CameraMediaFrame
-          active={!isViewerOpen}
+          active={!isViewerOpen && isDocumentVisible}
+          key={`${deviceId}-${retryKey}`}
           hlsUrl={hlsUrl}
           streamUrl={streamUrl}
           snapshotUrl={snapshotUrl}
@@ -649,7 +548,10 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         hlsUrl={hlsUrl}
         snapshotUrl={snapshotUrl}
         preferredMode={feedMode}
-        onClose={() => setIsViewerOpen(false)}
+        onClose={() => {
+          setIsViewerOpen(false);
+          setRetryKey((value) => value + 1);
+        }}
       />
     </>
   );
@@ -689,17 +591,13 @@ function CardPreview({
 
   if (isClockKind(normalized)) {
     return (
-      <SectionClockPreview
-        kind={normalized}
-        title={title}
-        span={span}
-      />
+      <SectionClockPreview kind={normalized} title={title} />
     );
   }
 
   if (normalized === 'camera') {
     return (
-      <div className="relative h-full min-h-[10.5rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
+      <div className="relative h-full min-h-[14rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
         {deviceId ? (
           <SectionCameraCard deviceId={deviceId} title={title} />
         ) : (
@@ -1017,6 +915,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={(event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
+          isCamera && "min-h-[14rem]",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
           getSpanClass(span)
@@ -1075,18 +974,30 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     );
   };
 
-  const renderCatalogPreview = (kind: NormalizedSectionCardKind, titleOverride?: string, spanOverride?: SectionCardSpan, iconOverride?: SectionCardIcon) => {
+  const renderCatalogPreview = (
+    kind: NormalizedSectionCardKind,
+    titleOverride?: string,
+    spanOverride?: SectionCardSpan,
+    iconOverride?: SectionCardIcon,
+    deviceIdOverride?: string,
+  ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = spanOverride ?? getDefaultSpan(kind);
+    const isCameraPreview = normalizeKind(kind) === 'camera';
 
     return (
-      <div className={cn("overflow-hidden rounded-[1.5rem] bg-background/40", span === 'small' ? 'h-36' : 'h-44')}>
+      <div className={cn(
+        "overflow-hidden rounded-[1.5rem] bg-background/40",
+        isCameraPreview ? 'h-60' : span === 'small' ? 'h-36' : 'h-44'
+      )}>
         <CardPreview
           kind={kind}
           title={title}
           subtitle={catalogDescription(kind)}
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
+          isAssigned={Boolean(deviceIdOverride)}
+          deviceId={deviceIdOverride}
         />
       </div>
     );
@@ -1201,6 +1112,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
+              normalizeKind(cardDraft.kind) === 'camera' ? cardDraft.entityId : undefined,
             )}
 
             <label className="block space-y-2">
@@ -1331,7 +1243,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[10.5rem] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
+      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(10.5rem,auto)] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
     >
       {cards.map(renderCard)}
 
