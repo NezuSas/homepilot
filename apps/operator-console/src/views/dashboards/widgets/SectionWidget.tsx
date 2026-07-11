@@ -834,8 +834,21 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     const nextCards = [...cards];
     const [moved] = nextCards.splice(sourceIndex, 1);
+    if (!moved) return;
     nextCards.splice(targetIndex, 0, moved);
 
+    updateCards(nextCards);
+  };
+
+  const moveCardToEnd = (sourceId: string) => {
+    const sourceIndex = cards.findIndex((card) => card.id === sourceId);
+    if (sourceIndex < 0 || sourceIndex === cards.length - 1) return;
+
+    const nextCards = [...cards];
+    const [moved] = nextCards.splice(sourceIndex, 1);
+    if (!moved) return;
+
+    nextCards.push(moved);
     updateCards(nextCards);
   };
 
@@ -983,12 +996,14 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = spanOverride ?? getDefaultSpan(kind);
-    const isCameraPreview = normalizeKind(kind) === 'camera';
+    const normalizedPreviewKind = normalizeKind(kind);
+    const isCameraPreview = normalizedPreviewKind === 'camera';
+    const isClockPreview = isClockKind(normalizedPreviewKind);
 
     return (
       <div className={cn(
         "overflow-hidden rounded-[1.5rem] bg-background/40",
-        isCameraPreview ? 'h-60' : span === 'small' ? 'h-36' : 'h-44'
+        isCameraPreview ? 'h-72' : isClockPreview ? 'h-72' : span === 'small' ? 'h-36' : 'h-44'
       )}>
         <CardPreview
           kind={kind}
@@ -1243,6 +1258,19 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
+      onDragOver={(event) => {
+        if (!isEditing || !draggingCardId) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onDrop={(event) => {
+        if (!isEditing || !draggingCardId) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const sourceId = event.dataTransfer.getData('text/plain') || draggingCardId;
+        if (sourceId) moveCardToEnd(sourceId);
+        setDraggingCardId(null);
+      }}
       className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(10.5rem,auto)] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
     >
       {cards.map(renderCard)}
@@ -1256,7 +1284,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           }}
           className={cn(
             "inline-flex min-h-[10.5rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
-            cards.length === 0 ? "col-span-1 sm:col-span-2 xl:col-span-4" : "col-span-1 sm:col-span-2"
+            cards.length === 0 ? "col-span-1 sm:col-span-2 xl:col-span-4" : "col-span-1"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}
         >
