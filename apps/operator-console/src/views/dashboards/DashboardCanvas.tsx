@@ -96,8 +96,6 @@ function getDashboardSectionLayout(sectionIndex: number, sectionCount: number, s
 const sanitizedWidgets = useMemo(() => {
   const baseWidgets = widgets.map(sanitizeWidget);
 
-  if (!isEditing) return baseWidgets;
-
   const sectionCount = baseWidgets.filter(widget => widget.type === 'section').length;
 
   const isBrokenSectionTitle = (value: unknown) =>
@@ -111,7 +109,7 @@ const sanitizedWidgets = useMemo(() => {
     const sectionCards = Array.isArray(widget.config.extra?.cards)
       ? widget.config.extra.cards
       : [];
-    const internalItems = Math.max(1, sectionCards.length + 1);
+    const internalItems = Math.max(1, sectionCards.length + (isEditing ? 1 : 0));
     const internalRows = Math.ceil(internalItems / 2);
     const requestedHeight = Math.max(
       widget.config.layout?.h ?? dashboardSectionRows,
