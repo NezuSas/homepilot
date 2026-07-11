@@ -416,6 +416,14 @@ describe('OperatorConsoleServer Integration Tests', () => {
         headers: { 'Authorization': `Bearer ${guestLoginData.token}` }
       });
       expect(guestSetupRes.status).toBe(200);
+
+      const guestRoomsRes = await fetch(`http://localhost:${PORT}/api/v1/homes/h-01/rooms`, {
+        headers: { 'Authorization': `Bearer ${guestLoginData.token}` }
+      });
+      expect(guestRoomsRes.status).toBe(200);
+      const guestRooms = await guestRoomsRes.json();
+      expect(Array.isArray(guestRooms)).toBe(true);
+      expect(guestRooms.some((room: { id: string }) => room.id === 'r-01')).toBe(true);
     });
   });
 });

@@ -48,3 +48,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC18:** La visibilidad de dashboards se respeta en backend sin bypass por rol: un admin no ve dashboards de otro usuario salvo que sea propietario o esté incluido en `visibility.users`.
 - **AC19:** Al borrar una pestaña de tablero o remover su fondo, los archivos físicos del fondo en `data/media/dashboards/<dashboardId>/<tabId>` se eliminan.
 - **AC20:** Los tableros visibles se ordenan priorizando el tablero propio del usuario autenticado para que un invitado no aterrice por defecto en un tablero compartido ajeno.
+- **AC21:** Un usuario `guest` puede leer hogares y habitaciones del appliance local para renderizar Inicio/Espacios/Tableros, pero no puede crear, renombrar ni eliminar hogares o habitaciones.

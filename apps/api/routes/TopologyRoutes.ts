@@ -51,6 +51,14 @@ export class TopologyRoutes extends ApiRoutes {
     super();
   }
 
+  private canReadSharedTopology(role: string): boolean {
+    return role === 'admin'
+      || role === 'operator'
+      || role === 'parent'
+      || role === 'child'
+      || role === 'guest';
+  }
+
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -66,7 +74,9 @@ export class TopologyRoutes extends ApiRoutes {
     // GET /api/v1/rooms
     if (method === 'GET' && pathname === '/api/v1/rooms') {
       try {
-        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const homes = this.canReadSharedTopology(req.user!.role)
+          ? await container.repositories.homeRepository.findAll()
+          : await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         if (homes.length === 0) {
           this.sendJson(res, []);
           return true;
@@ -98,7 +108,9 @@ export class TopologyRoutes extends ApiRoutes {
     // GET /api/v1/homes
     if (method === 'GET' && pathname === '/api/v1/homes') {
       try {
-        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const homes = this.canReadSharedTopology(req.user!.role)
+          ? await container.repositories.homeRepository.findAll()
+          : await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         this.sendJson(res, homes);
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Failed to load homes');
@@ -175,7 +187,7 @@ export class TopologyRoutes extends ApiRoutes {
         const homeId = roomsMatch[1];
         const home = await container.repositories.homeRepository.findHomeById(homeId);
         if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
-        if (home.ownerId !== req.user!.id) {
+        if (home.ownerId !== req.user!.id && !this.canReadSharedTopology(req.user!.role)) {
           return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
         }
         const rooms = await container.repositories.roomRepository.findRoomsByHomeId(homeId);
