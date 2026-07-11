@@ -90,7 +90,6 @@ const cardKinds: NormalizedSectionCardKind[] = [
   'clock_minimal',
   'energy',
   'assistant',
-  'system',
 ];
 
 function normalizeKind(kind: SectionCardKind): NormalizedSectionCardKind {
@@ -105,7 +104,7 @@ function isClockKind(kind: SectionCardKind) {
 function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   const normalized = normalizeKind(kind);
   if (normalized === 'light' || normalized === 'device' || normalized === 'cover') return 'small';
-  if (isClockKind(normalized)) return normalized === 'clock_minimal' ? 'medium' : 'full';
+  if (isClockKind(normalized)) return 'full';
   if (normalized === 'camera') return 'full';
   return 'medium';
 }
@@ -310,11 +309,12 @@ function iconForIconKey(icon: SectionCardIcon) {
 function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSectionCardItem[] {
   const rawCards = Array.isArray(extra?.cards) ? extra.cards : [];
 
-  return rawCards.map((rawCard, index) => {
+  return rawCards.flatMap((rawCard, index) => {
     const card = rawCard as Partial<NormalizedSectionCardItem> & Record<string, unknown>;
     const kind = normalizeKind((card.kind as SectionCardKind) || 'device');
+    if (kind === 'system') return [];
 
-    return {
+    return [{
       id: typeof card.id === 'string' && card.id.trim() ? card.id : createId(),
       kind,
       title: typeof card.title === 'string' && card.title.trim()
@@ -326,10 +326,14 @@ function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSecti
       widgetType: (card.widgetType as WidgetType) || getWidgetType(kind),
       entityId: typeof card.entityId === 'string' ? card.entityId : undefined,
       entityName: typeof card.entityName === 'string' ? card.entityName : undefined,
-      span: card.span === 'medium' || card.span === 'full' || card.span === 'small' ? card.span : getDefaultSpan(kind),
+      span: isClockKind(kind)
+        ? 'full'
+        : card.span === 'medium' || card.span === 'full' || card.span === 'small'
+          ? card.span
+          : getDefaultSpan(kind),
       icon: typeof card.icon === 'string' && card.icon.trim() ? card.icon : getDefaultIcon(kind),
       order: typeof card.order === 'number' ? card.order : index,
-    };
+    }];
   });
 }
 
@@ -848,7 +852,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
         entityName: selectedDevice?.name,
-        span: cardDraft.span,
+        span: isClockKind(cardDraft.kind) ? 'full' : cardDraft.span,
         icon: cardDraft.icon,
       };
     });
@@ -953,6 +957,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           if (!isEditing || !draggingCardId || draggingCardId === card.id) return;
           event.preventDefault();
           event.stopPropagation();
+        }}
+        onDragEnter={(event) => {
+          if (!isEditing || !draggingCardId || draggingCardId === card.id) return;
+          event.preventDefault();
+          event.stopPropagation();
+          moveCard(draggingCardId, card.id);
         }}
         onDrop={(event) => {
           event.preventDefault();
@@ -1225,12 +1235,17 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             <DashboardSelect
               label={t('dashboard.editor.sections.card_size')}
               value={cardDraft.span}
-              options={[
-                { value: 'small', label: t('dashboard.editor.sections.card_size_small') },
-                { value: 'medium', label: t('dashboard.editor.sections.card_size_medium') },
-                { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
-              ]}
-              onChange={(value) => setCardDraft((draft) => ({ ...draft, span: value as SectionCardSpan }))}
+              options={isClockKind(cardDraft.kind)
+                ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }]
+                : [
+                  { value: 'small', label: t('dashboard.editor.sections.card_size_small') },
+                  { value: 'medium', label: t('dashboard.editor.sections.card_size_medium') },
+                  { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
+                ]}
+              onChange={(value) => setCardDraft((draft) => ({
+                ...draft,
+                span: isClockKind(draft.kind) ? 'full' : value as SectionCardSpan,
+              }))}
             />
 
             {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
@@ -1338,7 +1353,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         className="flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-1"
       >
         {showTitle ? (
-          <h2 className="min-w-0 truncate text-[clamp(1.25rem,2.4cqi,1.65rem)] font-black tracking-tight text-foreground">
+          <h2 className="min-w-0 truncate text-[clamp(1.35rem,2.5cqi,1.85rem)] font-black tracking-tight text-foreground">
             {title}
           </h2>
         ) : null}
@@ -1354,7 +1369,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="group/section relative flex min-h-fit w-full min-w-0 flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+      className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
     >
       <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (
@@ -1376,7 +1391,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             />
           ) : (
             <>
-              <h2 className="min-w-0 truncate text-[clamp(1.1rem,2cqi,1.45rem)] font-black tracking-tight text-foreground">
+              <h2 className="min-w-0 truncate text-[clamp(1.35rem,2.5cqi,1.85rem)] font-black tracking-tight text-foreground">
                 {title}
               </h2>
               <button
@@ -1386,7 +1401,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                   setDraftTitle(config.appearance?.title || title);
                   setIsEditingTitle(true);
                 }}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border/40 bg-background/60 text-muted-foreground opacity-0 transition-all hover:border-primary/50 hover:text-primary group-hover/section:opacity-100"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border/40 bg-background/60 text-muted-foreground transition-all hover:border-primary/50 hover:text-primary"
                 aria-label={t('dashboard.editor.sections.edit_section_title')}
               >
                 <Pencil className="h-4 w-4" />
