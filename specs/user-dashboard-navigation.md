@@ -43,3 +43,6 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC12:** Los placeholders de creación de widgets/secciones se alinean con el mismo CSS Grid que las tarjetas reales, sin posicionamiento absoluto que ignore los gaps del layout.
 - **AC13:** Las tarjetas dentro de una sección son responsivas y accionables: luces/dispositivos/cortinas ejecutan su comando local y refrescan estado; cámaras abren el visor completo sin mantener doble reproducción.
 - **AC14:** El catálogo de tarjetas de sección no expone la tarjeta legacy `system`; si existe data antigua persistida con esa tarjeta, la normalización debe ignorarla sin romper el tablero.
+- **AC15:** El flujo de edición no expone el inspector legacy de widgets ni presets `XS/S/M/L/XL`; las tarjetas se gestionan desde secciones con dimensiones de filas/columnas.
+- **AC16:** La configuración de vista no muestra opciones de diseño no implementadas para el usuario final; conserva el layout existente y permite configurar título, icono, fondo y visibilidad.
+- **AC17:** La visibilidad de una vista se respeta en frontend filtrando pestañas por usuario; un usuario no incluido en `visibility.users` no debe ver esa pestaña cuando accede con su propia cuenta.

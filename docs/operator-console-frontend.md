@@ -67,6 +67,9 @@ apps/operator-console/src/
 13. Todo componente nuevo debe quedar integrado y validado.
 14. Usar primitives del design system antes de crear botones, filtros, alertas o estados vacios manuales.
 15. Las secciones de tablero usan un catálogo acotado de tarjetas (`light`, `cover`, `camera`, `room`, `scene`, relojes, energía y asistente); tarjetas legacy `system` persistidas se ignoran durante la normalización y no deben volver al catálogo visual.
+16. La edición de tableros no usa el inspector legacy ni presets `XS/S/M/L/XL`; las tarjetas se agregan y configuran dentro de secciones con tamaños reales de filas/columnas.
+17. La configuración de una vista no expone selector de diseño visual; el layout existente se conserva internamente y la edición se concentra en título, icono, fondo y visibilidad.
+18. La ruta de vista se muestra como slug de solo lectura generado desde el título; no debe prometer navegación directa hasta que exista contrato backend/frontend explícito para deep-link por pestaña.
 
 ## Patrón Recomendado
 

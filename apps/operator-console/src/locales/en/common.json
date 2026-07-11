@@ -1159,16 +1159,10 @@
       "settings": "Settings",
       "background": "Background",
       "visibility": "Visibility",
-      "layout": "Layout",
-      "layouts": {
-        "sections": "Sections (default)",
-        "masonry": "Masonry",
-        "sidebar": "Sidebar",
-        "panel": "Panel (single card)"
-      },
       "view_title": "Title",
       "icon": "Icon",
-      "url_hint": "This value becomes part of the URL path for opening this view.",
+      "route_label": "View route",
+      "url_hint": "This route is generated from the title and will be used as the stable view identifier when direct URL opening is enabled.",
       "clear_image": "Clear image",
       "background_settings": "Background configuration",
       "background_opacity": "Background opacity",

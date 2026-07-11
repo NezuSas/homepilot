@@ -586,7 +586,7 @@ function CardPreview({
         </div>
 
         <div className="absolute bottom-3 left-3 right-3">
-          <p className="truncate text-sm font-black text-white drop-shadow">
+          <p className="line-clamp-2 text-sm font-black leading-tight text-white drop-shadow">
             {title}
           </p>
           <p className="mt-0.5 truncate text-xs font-semibold text-white/75">
@@ -624,8 +624,8 @@ function CardPreview({
           </span>
         </div>
         <div className="mt-auto min-w-0">
-          <span className="block truncate text-lg font-black text-foreground">{title}</span>
-          <span className="mt-1 block truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="block line-clamp-2 text-lg font-black leading-tight text-foreground">{title}</span>
+          <span className="mt-1 block line-clamp-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
             Acceso por estancia
           </span>
         </div>
@@ -667,8 +667,8 @@ function CardPreview({
           </span>
         </div>
         <div className="mt-auto min-w-0">
-          <span className="block truncate text-sm font-black text-foreground">{title}</span>
-          <span className="mt-1 block truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="block line-clamp-2 text-sm font-black leading-tight text-foreground">{title}</span>
+          <span className="mt-1 block line-clamp-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
             Resumen inteligente
           </span>
         </div>
@@ -690,9 +690,9 @@ function CardPreview({
       <span className={cn("mb-3 grid place-items-center rounded-full bg-primary/10 text-primary", isSmall ? "h-16 w-16" : "h-24 w-24")}>
         <Icon className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
       </span>
-      <span className="line-clamp-1 text-sm font-black text-foreground">{title}</span>
+      <span className="line-clamp-2 text-sm font-black leading-tight text-foreground">{title}</span>
       {!isSmall ? (
-        <span className="mt-1 line-clamp-1 text-[10px] font-bold text-muted-foreground">
+        <span className="mt-1 line-clamp-2 text-[10px] font-bold leading-tight text-muted-foreground">
           {subtitle || (isAssigned ? 'Asignado' : 'Sin asignar')}
         </span>
       ) : null}

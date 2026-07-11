@@ -26,7 +26,6 @@ interface DashboardViewConfigModalProps {
   onClose: () => void;
   onSave: (fields: {
     title: string;
-    layout?: 'sections' | 'masonry' | 'sidebar' | 'panel';
     icon?: string;
     background?: string | null;
     backgroundOpacity?: number;
@@ -45,7 +44,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ConfigTab>('settings');
   const [draftTitle, setDraftTitle] = useState(tab.title);
-  const [draftLayout, setDraftLayout] = useState<'sections' | 'masonry' | 'sidebar' | 'panel'>(tab.layout || 'sections');
   const [backgroundOpacity, setBackgroundOpacity] = useState(tab.backgroundOpacity ?? 50);
   const [backgroundImg, setBackgroundImg] = useState<string | null>(tab.background || null);
   const [allowedUsers, setAllowedUsers] = useState<string[]>(tab.visibility?.users || []);
@@ -62,7 +60,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   useEffect(() => {
     if (!isOpen) return;
     setDraftTitle(tab.title);
-    setDraftLayout(tab.layout || 'sections');
     setBackgroundOpacity(tab.backgroundOpacity ?? 50);
     setBackgroundImg(tab.background || null);
     setAllowedUsers(tab.visibility?.users || []);
@@ -140,6 +137,16 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
       .slice(0, 12);
   }, [iconQuery]);
 
+  const routeSlug = useMemo(() => {
+    const source = draftTitle.trim() || tab.title || 'view';
+    return source
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'view';
+  }, [draftTitle, tab.title]);
+
   if (!isOpen) return null;
 
   const tabs: Array<{ id: ConfigTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -188,7 +195,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
     onSave({
       title: trimmedTitle,
-      layout: draftLayout,
       icon: iconQuery.trim() || undefined,
       background: backgroundImg,
       backgroundOpacity,
@@ -244,36 +250,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
         <div className="min-h-0 flex-1 overflow-y-auto p-5 no-scrollbar">
           {activeTab === 'settings' && (
             <div className="space-y-5">
-              <section>
-                <p className="mb-3 text-xs font-black uppercase tracking-widest text-muted-foreground/60">{t('dashboards.view_config.layout')}</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['sections', 'masonry', 'sidebar', 'panel'] as const).map((option) => {
-                    const isSelected = draftLayout === option;
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => setDraftLayout(option)}
-                        className={cn(
-                          "flex items-center justify-between rounded-xl border p-3 text-left transition-all hover:bg-muted/30",
-                          isSelected
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border/60 bg-muted/15 text-muted-foreground"
-                        )}
-                      >
-                        <span className="text-xs font-semibold">{t(`dashboards.view_config.layouts.${option}`)}</span>
-                        <div className={cn(
-                          "w-4 h-4 rounded-full border flex items-center justify-center",
-                          isSelected ? "border-primary bg-primary" : "border-border/60"
-                        )}>
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
               <label className="block rounded-xl bg-muted/45 px-4 py-3">
                 <span className="block text-xs font-semibold text-muted-foreground">{t('dashboards.view_config.view_title')}</span>
                 <input
@@ -318,8 +294,12 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
               </div>
 
               <label className="block rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-xs font-semibold text-muted-foreground">URL</span>
-                <input className="mt-1 w-full bg-transparent text-base text-foreground outline-none" placeholder="auto-generated" />
+                <span className="block text-xs font-semibold text-muted-foreground">{t('dashboards.view_config.route_label')}</span>
+                <input
+                  value={routeSlug}
+                  readOnly
+                  className="mt-1 w-full cursor-default bg-transparent text-base font-semibold text-foreground outline-none"
+                />
                 <span className="mt-1 block text-xs text-muted-foreground">{t('dashboards.view_config.url_hint')}</span>
               </label>
             </div>

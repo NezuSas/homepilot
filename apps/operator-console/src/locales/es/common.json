@@ -1159,16 +1159,10 @@
       "settings": "Configuraciones",
       "background": "Fondo",
       "visibility": "Visibilidad",
-      "layout": "Diseño",
-      "layouts": {
-        "sections": "Secciones (predeterminado)",
-        "masonry": "Albañilería",
-        "sidebar": "Barra lateral",
-        "panel": "Panel (tarjeta única)"
-      },
       "view_title": "Título",
       "icon": "Icono",
-      "url_hint": "Este valor pasará a formar parte de la ruta URL para abrir esta vista.",
+      "route_label": "Ruta de la vista",
+      "url_hint": "Esta ruta se genera desde el título y servirá como identificador estable de la vista cuando se abra por URL directa.",
       "clear_image": "Limpiar imagen",
       "background_settings": "Configuración del fondo",
       "background_opacity": "Opacidad de fondo",
