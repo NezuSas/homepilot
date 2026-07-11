@@ -70,6 +70,10 @@ const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(mo
 const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
 const NativeCamerasView = lazy(() => import('./views/NativeCamerasView').then(module => ({ default: module.NativeCamerasView })));
 const GLOBAL_WAKE_SILENCE_ACKNOWLEDGEMENT = 'De acuerdo, Oscar.';
+const BASIC_HOME_ROLES = new Set(['admin', 'operator', 'parent', 'child', 'guest']);
+const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
+const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
+const SYSTEM_ROLES = new Set(['admin', 'operator']);
 
 function ViewLoadingState() {
   return (
@@ -256,7 +260,11 @@ function App() {
     i18n.changeLanguage(nextLang);
   };
 
-  const canAccessDashboards = user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child';
+  const canAccessBasicHomeViews = user?.role ? BASIC_HOME_ROLES.has(user.role) : false;
+  const canAccessFamilyControl = user?.role ? FAMILY_CONTROL_ROLES.has(user.role) : false;
+  const canAccessAdminControl = user?.role ? ADMIN_CONTROL_ROLES.has(user.role) : false;
+  const canAccessDashboards = canAccessBasicHomeViews;
+  const canAccessSystem = user?.role ? SYSTEM_ROLES.has(user.role) : false;
 
   const refreshSidebarDashboards = useCallback(async () => {
     if (!canAccessDashboards) {
@@ -760,7 +768,7 @@ function App() {
                onClick={() => navigateTo('spaces')} 
                collapsedOnDesktop={isSidebarContentCollapsed}
              />
-             {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
+             {canAccessFamilyControl && (
                <SidebarItem 
                  icon={Monitor} 
                  label={t('nav.scenes')} 
@@ -769,7 +777,7 @@ function App() {
                  collapsedOnDesktop={isSidebarContentCollapsed}
                />
              )}
-             {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent') && (
+             {canAccessAdminControl && (
                <SidebarItem 
                  icon={PlaySquare} 
                  label={t('nav.automations')} 
@@ -779,7 +787,7 @@ function App() {
                  collapsedOnDesktop={isSidebarContentCollapsed}
                />
              )}
-             {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
+             {canAccessFamilyControl && (
                <SidebarItem 
                  icon={Sparkles} 
                  label={t('nav.assistant')} 
@@ -809,7 +817,7 @@ function App() {
             />
           </div>
 
-          {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent' || user?.role === 'child') && (
+          {canAccessDashboards && (
             <div className="flex flex-col gap-0.5">
                  <button
                     onClick={() => {
@@ -856,7 +864,7 @@ function App() {
                      ))}
                    </div>
                  )}
-                 {(user?.role === 'admin' || user?.role === 'operator' || user?.role === 'parent') && (
+                 {canAccessAdminControl && (
                    <SidebarItem 
                      icon={Zap} 
                      label={t('nav.energy')} 
@@ -868,7 +876,7 @@ function App() {
             </div>
           )}
 
-          {(user?.role === 'admin' || user?.role === 'operator') && (
+          {canAccessSystem && (
             <>
               <div className="flex flex-col gap-0.5">
                 <button

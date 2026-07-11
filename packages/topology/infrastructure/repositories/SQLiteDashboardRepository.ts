@@ -57,19 +57,17 @@ export class SQLiteDashboardRepository implements DashboardRepository {
     return row ? this.mapRow(row) : null;
   }
 
-  public async findAllVisibleTo(userId: string, userRole: string, homeIds: string[]): Promise<Dashboard[]> {
+  public async findAllVisibleTo(userId: string, _userRole: string, _homeIds: string[]): Promise<Dashboard[]> {
     const db = this.getDb();
     const rows = db.prepare('SELECT * FROM dashboards').all() as LocalDashboardRow[];
     const dashboards = rows.map(r => this.mapRow(r));
     
     return dashboards.filter(d => {
       if (d.ownerId === userId) return true;
-      if (userRole === 'admin') return true;
       
       const v = d.visibility;
-      if (v.roles?.includes(userRole)) return true;
       if (v.users?.includes(userId)) return true;
-      if (v.homes?.some(h => homeIds.includes(h))) return true;
+      if (d.tabs.some(tab => tab.visibility?.users?.includes(userId))) return true;
       
       return false;
     });

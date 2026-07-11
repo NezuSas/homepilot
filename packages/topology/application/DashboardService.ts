@@ -22,7 +22,7 @@ export class DashboardService {
       id: randomUUID(),
       ownerId: userId,
       title: normalizedTitle,
-      visibility: { roles: ['user', 'admin'], users: [userId], homes: [] },
+      visibility: { roles: [], users: [userId], homes: [] },
       tabs: [{ id: randomUUID(), title: 'Principal', widgets: [] }],
       createdAt: now,
       updatedAt: now,
@@ -33,7 +33,7 @@ export class DashboardService {
 
   public async updateDashboard(
     userId: string, 
-    userRole: string,
+    _userRole: string,
     dashboardId: string, 
     updates: { title?: string; tabs?: DashboardTab[]; visibility?: DashboardVisibility }
   ): Promise<Dashboard> {
@@ -53,7 +53,18 @@ export class DashboardService {
     return dashboard;
   }
 
-  public async deleteDashboard(userId: string, userRole: string, dashboardId: string): Promise<void> {
+  public async getOwnedDashboard(userId: string, dashboardId: string): Promise<Dashboard> {
+    const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
+    if (!dashboard) throw new Error('DASHBOARD_NOT_FOUND');
+
+    if (dashboard.ownerId !== userId) {
+      throw new Error('FORBIDDEN');
+    }
+
+    return dashboard;
+  }
+
+  public async deleteDashboard(userId: string, _userRole: string, dashboardId: string): Promise<void> {
     const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
     if (!dashboard) return;
 

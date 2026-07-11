@@ -3,14 +3,17 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { SQLiteHomeRepository } from '../infrastructure/repositories/SQLiteHomeRepository';
 import { SQLiteRoomRepository } from '../infrastructure/repositories/SQLiteRoomRepository';
+import { SQLiteDashboardRepository } from '../infrastructure/repositories/SQLiteDashboardRepository';
 import { SqliteDatabaseManager } from '../../shared/infrastructure/database/SqliteDatabaseManager';
 import { SqliteMigrationsRunner } from '../../shared/infrastructure/database/SqliteMigrationsRunner';
 import { Home, Room } from '../domain/types';
+import { Dashboard } from '../domain/Dashboard';
 
 describe('SQLite Topology Persistence Integration', () => {
   let dbPath: string;
   let homeRepo: SQLiteHomeRepository;
   let roomRepo: SQLiteRoomRepository;
+  let dashboardRepo: SQLiteDashboardRepository;
 
   beforeAll(() => {
     dbPath = path.join(__dirname, `test-topology-${randomUUID()}.db`);
@@ -23,6 +26,7 @@ describe('SQLite Topology Persistence Integration', () => {
     
     homeRepo = new SQLiteHomeRepository(dbPath);
     roomRepo = new SQLiteRoomRepository(dbPath);
+    dashboardRepo = new SQLiteDashboardRepository(dbPath);
   });
 
   afterAll(() => {
@@ -110,5 +114,29 @@ describe('SQLite Topology Persistence Integration', () => {
       name: 'Sala principal',
       entityVersion: 2,
     }));
+  });
+
+  it('debe filtrar dashboards por usuario sin bypass automático por rol admin', async () => {
+    const now = new Date().toISOString();
+    const dashboard: Dashboard = {
+      id: 'dashboard-oscar',
+      ownerId: 'oscar-user',
+      title: 'Oscar',
+      visibility: { roles: ['admin'], users: ['oscar-user'], homes: [] },
+      tabs: [
+        { id: 'tab-private', title: 'Privada', widgets: [], visibility: { users: ['oscar-user'] } },
+        { id: 'tab-gustavo', title: 'Compartida', widgets: [], visibility: { users: ['gustavo-user'] } },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await dashboardRepo.saveDashboard(dashboard);
+
+    const adminDashboards = await dashboardRepo.findAllVisibleTo('admin-user', 'admin', []);
+    const gustavoDashboards = await dashboardRepo.findAllVisibleTo('gustavo-user', 'guest', []);
+
+    expect(adminDashboards.some(item => item.id === dashboard.id)).toBe(false);
+    expect(gustavoDashboards.some(item => item.id === dashboard.id)).toBe(true);
   });
 });

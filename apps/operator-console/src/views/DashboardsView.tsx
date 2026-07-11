@@ -60,12 +60,10 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
   const visibleTabs = useMemo(() => {
     if (!active) return [];
     if (!currentUser) return active.tabs;
+    if (active.ownerId === currentUser.id) return active.tabs;
     return active.tabs.filter(tab => {
       const usersList = tab.visibility?.users;
-      if (!usersList || usersList.length === 0) {
-        return true;
-      }
-      return usersList.includes(currentUser.id);
+      return Boolean(usersList?.includes(currentUser.id));
     });
   }, [active, currentUser]);
 

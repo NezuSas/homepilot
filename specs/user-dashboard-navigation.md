@@ -16,22 +16,21 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - Mantener la pantalla de tablero minimalista, responsiva y alineada al design system de HomePilot.
 
 ## Fuera de Alcance
-- Cambiar el modelo de permisos de dashboards.
 - Implementar drag-and-drop nuevo o un motor de layout distinto.
 - Crear dashboards multi-home avanzados.
 
 ## Requisitos Funcionales
 1. La navegación principal debe mostrar `Tableros` como padre colapsable en español y `Dashboards` en inglés.
 2. Al abrir el grupo, cada tablero visible debe aparecer como hijo de navegación sin duplicar una lista interna dentro de la pantalla.
-3. Al cargar `/api/v1/dashboards`, el backend debe garantizar que cada usuario activo relevante tenga al menos un tablero base.
-4. Para un administrador, la garantía aplica a todos los usuarios activos visibles por gestión de usuarios.
-5. Para un usuario no administrador, la garantía aplica únicamente a su propio usuario.
+3. Al cargar `/api/v1/dashboards`, el backend debe garantizar que el usuario autenticado tenga al menos un tablero base.
+4. La visibilidad de dashboards y vistas debe resolverse por usuario: ser propietario o estar incluido explícitamente en `visibility.users`.
+5. El rol `admin` no debe dar visibilidad automática a dashboards o vistas de otros usuarios.
 6. La vista de tablero debe permitir seguir creando, renombrando, editando, agregando pestañas y eliminando con los flujos existentes.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
 - **AC2:** `Tableros` se comporta como sección colapsable y lista los dashboards debajo.
-- **AC3:** Si existen usuarios activos Oscar y Gustavo sin tablero, un `GET /api/v1/dashboards` desde admin crea y devuelve un tablero para cada usuario.
+- **AC3:** Si el usuario autenticado no tiene tablero, `GET /api/v1/dashboards` crea y devuelve un tablero base para ese usuario, incluyendo usuarios con rol `guest`.
 - **AC4:** La pantalla de dashboards no muestra una segunda lista lateral de tableros dentro del contenido.
 - **AC5:** Seleccionar un tablero hijo desde el sidebar abre la vista `dashboards` y muestra ese tablero.
 - **AC6:** La UI conserva comportamiento responsive en móvil, tablet y escritorio sin crear stores globales nuevos.
@@ -45,4 +44,6 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC14:** El catálogo de tarjetas de sección no expone la tarjeta legacy `system`; si existe data antigua persistida con esa tarjeta, la normalización debe ignorarla sin romper el tablero.
 - **AC15:** El flujo de edición no expone el inspector legacy de widgets ni presets `XS/S/M/L/XL`; las tarjetas se gestionan desde secciones con dimensiones de filas/columnas.
 - **AC16:** La configuración de vista no muestra opciones de diseño no implementadas para el usuario final; conserva el layout existente y permite configurar título, icono, fondo y visibilidad.
-- **AC17:** La visibilidad de una vista se respeta en frontend filtrando pestañas por usuario; un usuario no incluido en `visibility.users` no debe ver esa pestaña cuando accede con su propia cuenta.
+- **AC17:** La visibilidad de una vista se respeta en frontend filtrando pestañas por usuario; el propietario ve sus vistas y un usuario externo solo ve pestañas donde su id esté incluido en `visibility.users`.
+- **AC18:** La visibilidad de dashboards se respeta en backend sin bypass por rol: un admin no ve dashboards de otro usuario salvo que sea propietario o esté incluido en `visibility.users`.
+- **AC19:** Al borrar una pestaña de tablero o remover su fondo, los archivos físicos del fondo en `data/media/dashboards/<dashboardId>/<tabId>` se eliminan.

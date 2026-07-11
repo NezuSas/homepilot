@@ -5,13 +5,6 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { DashboardTab, DashboardVisibility } from '../../../packages/topology/domain/Dashboard';
 import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 
-interface DashboardOwnerSeed {
-  id: string;
-  username: string;
-  displayName: string | null;
-  isActive: boolean;
-}
-
 /**
  * Dashboard routes: /api/v1/dashboards/*
  */
@@ -35,24 +28,13 @@ export class DashboardRoutes extends ApiRoutes {
           req.user!.id,
           req.user!.role
         );
-        const usersRequiringDashboards: DashboardOwnerSeed[] = req.user!.role === 'admin'
-          ? (await container.services.userManagementService.listUsers()).filter(user => user.isActive)
-          : [{
-              id: req.user!.id,
-              username: req.user!.username,
-              displayName: req.user!.displayName ?? null,
-              isActive: true
-            }];
-        if (!usersRequiringDashboards.some(user => user.id === req.user!.id)) {
-          usersRequiringDashboards.push({
-            id: req.user!.id,
-            username: req.user!.username,
-            displayName: req.user!.displayName ?? null,
-            isActive: true
-          });
-        }
+        const currentDashboardOwner = {
+          id: req.user!.id,
+          username: req.user!.username,
+          displayName: req.user!.displayName ?? null,
+        };
 
-        for (const user of usersRequiringDashboards) {
+        for (const user of [currentDashboardOwner]) {
           const hasDashboard = dashboards.some(dashboard => dashboard.ownerId === user.id);
           if (!hasDashboard) {
             const title = user.displayName?.trim() || user.username;
@@ -102,16 +84,15 @@ export class DashboardRoutes extends ApiRoutes {
 
           // Clean up background files for deleted tabs
           try {
-            const existing = await container.services.dashboardService.updateDashboard(
+            const existing = await container.services.dashboardService.getOwnedDashboard(
               req.user!.id,
-              req.user!.role,
-              dashboardId,
-              {}
+              dashboardId
             );
             if (existing && existing.tabs) {
-              const incomingTabIds = new Set(body.tabs.map(t => t.id));
+              const incomingTabsById = new Map(body.tabs.map(t => [t.id, t]));
               for (const oldTab of existing.tabs) {
-                if (!incomingTabIds.has(oldTab.id)) {
+                const incomingTab = incomingTabsById.get(oldTab.id);
+                if (!incomingTab || (oldTab.background && !incomingTab.background)) {
                   await mediaService.deleteTabBackground(dashboardId, oldTab.id);
                 }
               }

@@ -70,6 +70,8 @@ apps/operator-console/src/
 16. La edición de tableros no usa el inspector legacy ni presets `XS/S/M/L/XL`; las tarjetas se agregan y configuran dentro de secciones con tamaños reales de filas/columnas.
 17. La configuración de una vista no expone selector de diseño visual; el layout existente se conserva internamente y la edición se concentra en título, icono, fondo y visibilidad.
 18. La ruta de vista se muestra como slug de solo lectura generado desde el título; no debe prometer navegación directa hasta que exista contrato backend/frontend explícito para deep-link por pestaña.
+19. Los tableros y vistas se filtran por usuario: `admin` no ve tableros ajenos por defecto; solo propietarios o usuarios incluidos en `visibility.users` reciben el dashboard o pestaña.
+20. Al borrar una pestaña o remover su imagen de fondo, el backend debe eliminar el directorio físico `data/media/dashboards/<dashboardId>/<tabId>` para evitar archivos huérfanos.
 
 ## Patrón Recomendado
 
@@ -129,7 +131,7 @@ Reglas:
 - Automations: header, empty/loading states, notification, rule cards.
 - Automation Builder: frame, identity, trigger, action, error, submit, shared types.
 - Scenes: header, empty state, group, card.
-- Dashboards: sidebar parent navigation, per-user dashboard entries, Home Assistant-style top bar, tab strip, view configuration modal, create form, title bar, editor toolbar, secciones editables y tarjetas modulares para luces/dispositivos, cámaras, habitaciones, escenas, relojes, energía y asistente.
+- Dashboards: sidebar parent navigation, per-user dashboard entries, Home Assistant-style top bar, tab strip, view configuration modal, create form, title bar, secciones editables y tarjetas modulares para luces/dispositivos, cámaras, habitaciones, escenas, relojes, energía y asistente.
 - Diagnostics: loading, error, health banner, resilience summary, issues, probes, timeline.
 - Assistant: loading, empty state, header, finding card, finding group.
 - Home Conversation: header, empty state, message bubble, typing indicator, composer.
