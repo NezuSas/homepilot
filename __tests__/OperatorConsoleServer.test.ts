@@ -399,6 +399,23 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(setupRes.status).toBe(200);
       const setupData = await setupRes.json();
       expect(setupData).toHaveProperty('isInitialized');
+
+      const guestHash = await container.services.authService['cryptoService'].hashPassword('guestPass123');
+      db.prepare("INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at) VALUES ('u-test-guest', 'testguest', ?, 'guest', 1, ?, ?)")
+        .run(guestHash, now, now);
+
+      const guestLoginRes = await fetch(`http://localhost:${PORT}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'testguest', password: 'guestPass123' })
+      });
+      expect(guestLoginRes.status).toBe(200);
+      const guestLoginData = await guestLoginRes.json();
+
+      const guestSetupRes = await fetch(`http://localhost:${PORT}/api/v1/system/setup-status`, {
+        headers: { 'Authorization': `Bearer ${guestLoginData.token}` }
+      });
+      expect(guestSetupRes.status).toBe(200);
     });
   });
 });

@@ -283,11 +283,16 @@ function App() {
         ownerId: dashboard.ownerId,
         title: dashboard.title
       })));
-      setSelectedSidebarDashboardId(current => current ?? data[0]?.id ?? null);
-    } catch {
+      setSelectedSidebarDashboardId(current => {
+        if (current && data.some(dashboard => dashboard.id === current)) return current;
+        const ownedDashboard = data.find(dashboard => dashboard.ownerId === user?.id);
+        return ownedDashboard?.id ?? data[0]?.id ?? null;
+      });
+    } catch (error) {
+      console.warn('[AppShell] Failed to refresh sidebar dashboards:', error);
       setSidebarDashboards([]);
     }
-  }, [canAccessDashboards]);
+  }, [canAccessDashboards, user?.id]);
 
   // Check setup status before login only to detect factory state without users.
   useEffect(() => {

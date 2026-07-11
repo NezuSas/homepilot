@@ -46,6 +46,11 @@ export class DashboardRoutes extends ApiRoutes {
           req.user!.id,
           req.user!.role
         );
+        dashboards.sort((a, b) => {
+          if (a.ownerId === req.user!.id && b.ownerId !== req.user!.id) return -1;
+          if (a.ownerId !== req.user!.id && b.ownerId === req.user!.id) return 1;
+          return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+        });
         this.sendJson(res, dashboards);
       } catch (error: unknown) {
         this.sendError(res, 500, 'DASHBOARD_ERROR', error instanceof Error ? error.message : 'Failed to load dashboards');

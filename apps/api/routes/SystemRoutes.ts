@@ -27,7 +27,6 @@ export class SystemRoutes extends ApiRoutes {
         if (status.hasAdminUser) {
           const isProtected = await container.guards.authGuard.protect(req, res, true);
           if (!isProtected) return true;
-          if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
         }
         this.sendJson(res, status);
       } catch (e: any) {

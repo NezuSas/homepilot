@@ -47,3 +47,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC17:** La visibilidad de una vista se respeta en frontend filtrando pestañas por usuario; el propietario ve sus vistas y un usuario externo solo ve pestañas donde su id esté incluido en `visibility.users`.
 - **AC18:** La visibilidad de dashboards se respeta en backend sin bypass por rol: un admin no ve dashboards de otro usuario salvo que sea propietario o esté incluido en `visibility.users`.
 - **AC19:** Al borrar una pestaña de tablero o remover su fondo, los archivos físicos del fondo en `data/media/dashboards/<dashboardId>/<tabId>` se eliminan.
+- **AC20:** Los tableros visibles se ordenan priorizando el tablero propio del usuario autenticado para que un invitado no aterrice por defecto en un tablero compartido ajeno.
