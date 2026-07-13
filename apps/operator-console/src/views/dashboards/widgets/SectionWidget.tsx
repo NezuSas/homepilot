@@ -76,6 +76,12 @@ interface CardDraft {
   icon: SectionCardIcon;
 }
 
+interface AssignableScene {
+  id: string;
+  name: string;
+  actionCount: number;
+}
+
 const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const cardKinds: NormalizedSectionCardKind[] = [
@@ -258,7 +264,11 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
 
 function isBindableKind(kind: SectionCardKind) {
   const normalized = normalizeKind(kind);
-  return normalized === 'device' || normalized === 'light' || normalized === 'cover' || normalized === 'camera';
+  return normalized === 'device'
+    || normalized === 'light'
+    || normalized === 'cover'
+    || normalized === 'camera'
+    || normalized === 'scene';
 }
 
 function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
@@ -415,6 +425,18 @@ function getAssignableDevicesForKind(
   if (normalized === 'light') return devices.filter(isLightLikeDevice);
   if (normalized === 'device') return devices.filter((device) => !isCameraLikeDevice(device));
   return [];
+}
+
+function normalizeAssignableScene(rawScene: unknown): AssignableScene | null {
+  if (!rawScene || typeof rawScene !== 'object') return null;
+  const scene = rawScene as Record<string, unknown>;
+  if (typeof scene.id !== 'string') return null;
+  const name = typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Escena';
+  return {
+    id: scene.id,
+    name,
+    actionCount: Array.isArray(scene.actions) ? scene.actions.length : 0,
+  };
 }
 
 
@@ -743,9 +765,11 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
+  const [scenes, setScenes] = useState<AssignableScene[]>([]);
 
   const assignableDevices = getAssignableDevicesForKind(cardDraft.kind, devices);
   const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
+  const selectedScene = cardDraft.entityId ? scenes.find((scene) => scene.id === cardDraft.entityId) : undefined;
 
 
   const rawTitle = config.appearance?.title?.trim();
@@ -753,6 +777,35 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const showTitle = config.appearance?.showTitle !== false;
   const cards = normalizeCards(config.extra);
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
+
+  useEffect(() => {
+    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene') return;
+
+    let cancelled = false;
+    void apiFetch(`${API_BASE_URL}/api/v1/scenes`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`SCENES_${response.status}`);
+        const payload: unknown = await response.json();
+        if (!Array.isArray(payload)) return [];
+        return payload
+          .map(normalizeAssignableScene)
+          .filter((scene): scene is AssignableScene => Boolean(scene))
+          .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+      })
+      .then((nextScenes) => {
+        if (!cancelled) setScenes(nextScenes);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          console.error('[SectionWidget] Failed to load scenes:', error);
+          setScenes([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cardDraft.kind, isCatalogOpen]);
 
   const catalogItems = useMemo(() => cardKinds.map((kind) => ({
     kind,
@@ -828,11 +881,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       return {
         ...card,
         kind: cardDraft.kind,
-        title: cardDraft.title.trim() || selectedDevice?.name || catalogLabel(cardDraft.kind),
-        description: catalogDescription(cardDraft.kind),
+        title: cardDraft.title.trim() || selectedScene?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
+        description: normalizeKind(cardDraft.kind) === 'scene' && selectedScene
+          ? `${selectedScene.actionCount} ${selectedScene.actionCount === 1 ? 'acción' : 'acciones'}`
+          : catalogDescription(cardDraft.kind),
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
-        entityName: selectedDevice?.name,
+        entityName: selectedScene?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : cardDraft.span,
         icon: cardDraft.icon,
       };
@@ -890,6 +945,20 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     if (isEditing || !card.entityId) return;
 
     const normalized = normalizeKind(card.kind);
+    if (normalized === 'scene') {
+      setProcessingCardId(card.id);
+      try {
+        await apiFetch(`${API_BASE_URL}/api/v1/scenes/${encodeURIComponent(card.entityId)}/execute`, {
+          method: 'POST',
+        });
+      } catch (error) {
+        console.error('[SectionWidget] Failed to execute scene card:', error);
+      } finally {
+        setProcessingCardId(null);
+      }
+      return;
+    }
+
     if (normalized !== 'device' && normalized !== 'light' && normalized !== 'cover') return;
 
     const device = devices.find((candidate) => candidate.id === card.entityId);
@@ -1032,6 +1101,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const normalizedPreviewKind = normalizeKind(kind);
     const isCameraPreview = normalizedPreviewKind === 'camera';
     const isClockPreview = isClockKind(normalizedPreviewKind);
+    const isScenePreview = normalizedPreviewKind === 'scene';
 
     return (
       <div className={cn(
@@ -1039,7 +1109,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'small' && "h-[8.25rem] w-full max-w-[13rem]",
         span === 'medium' && "h-[9.25rem] w-full max-w-[26rem]",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isScenePreview ? 'h-44' : span === 'full' ? 'h-40' : ''
       )}>
         <CardPreview
           kind={kind}
@@ -1212,7 +1282,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                   setCardDraft((draft) => ({
                     ...draft,
                     kind: nextKind,
-                    entityId: isBindableKind(nextKind) ? draft.entityId : '',
+                    entityId: isBindableKind(nextKind) && normalizeKind(draft.kind) === normalizeKind(nextKind) ? draft.entityId : '',
                     span: getDefaultSpan(nextKind),
                     icon: getDefaultIcon(nextKind),
                     title: draft.title || catalogLabel(nextKind),
@@ -1247,26 +1317,49 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
             {isBindableKind(cardDraft.kind) ? (
               <div className="space-y-2">
-                <DashboardSelect
-                  label="Dispositivo asignado"
-                  value={cardDraft.entityId}
-                  placeholder="Sin asignar"
-                  options={[
-                    { value: '', label: 'Sin asignar' },
-                    ...assignableDevices.map((device) => ({
-                      value: device.id,
-                      label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
-                    })),
-                  ]}
-                  onChange={(selectedId) => {
-                    const selectedDevice = devices.find((device) => device.id === selectedId);
-                    setCardDraft((draft) => ({
-                      ...draft,
-                      entityId: selectedId,
-                      title: selectedDevice?.name || draft.title,
-                    }));
-                  }}
-                />
+                {normalizeKind(cardDraft.kind) === 'scene' ? (
+                  <DashboardSelect
+                    label="Escena asignada"
+                    value={cardDraft.entityId}
+                    placeholder="Sin asignar"
+                    options={[
+                      { value: '', label: 'Sin asignar' },
+                      ...scenes.map((scene) => ({
+                        value: scene.id,
+                        label: `${scene.name} · ${scene.actionCount} ${scene.actionCount === 1 ? 'acción' : 'acciones'}`,
+                      })),
+                    ]}
+                    onChange={(selectedId) => {
+                      const nextScene = scenes.find((scene) => scene.id === selectedId);
+                      setCardDraft((draft) => ({
+                        ...draft,
+                        entityId: selectedId,
+                        title: nextScene?.name || draft.title,
+                      }));
+                    }}
+                  />
+                ) : (
+                  <DashboardSelect
+                    label="Dispositivo asignado"
+                    value={cardDraft.entityId}
+                    placeholder="Sin asignar"
+                    options={[
+                      { value: '', label: 'Sin asignar' },
+                      ...assignableDevices.map((device) => ({
+                        value: device.id,
+                        label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
+                      })),
+                    ]}
+                    onChange={(selectedId) => {
+                      const nextDevice = devices.find((device) => device.id === selectedId);
+                      setCardDraft((draft) => ({
+                        ...draft,
+                        entityId: selectedId,
+                        title: nextDevice?.name || draft.title,
+                      }));
+                    }}
+                  />
+                )}
 
                 <p className="text-xs font-semibold text-muted-foreground">
                   Esta asignación queda guardada dentro de la tarjeta de la sección.

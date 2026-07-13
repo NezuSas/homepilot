@@ -33,7 +33,7 @@ export function SceneShortcutWidget({ config, isEditing, onConfigure }: { config
     
     setStatus('executing');
     try {
-      await apiFetch(`${API}/scenes/${config.binding.entityId}/trigger`, {
+      await apiFetch(`${API}/scenes/${config.binding.entityId}/execute`, {
         method: 'POST'
       });
       setStatus('success');
