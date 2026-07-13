@@ -944,7 +944,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onDragEnd={() => setDraggingCardId(null)}
         onClick={(event) => { void handleCardAction(card, event); }}
         className={cn(
-          "group/card relative min-h-[10.5rem] overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
+          "group/card relative overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
+          span === 'small' && "min-h-[8.25rem]",
+          span === 'medium' && "min-h-[9.25rem]",
+          span === 'full' && "min-h-[10rem]",
           isCamera && "min-h-[12rem]",
           isClock && "min-h-[14rem]",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
@@ -1021,8 +1024,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div className={cn(
         "overflow-hidden rounded-[1.5rem] bg-background/40 transition-[height,width,max-width] duration-200",
-        span === 'small' && "h-[10.5rem] w-full max-w-[13rem]",
-        span === 'medium' && "h-[10.5rem] w-full max-w-[26rem]",
+        span === 'small' && "h-[8.25rem] w-full max-w-[13rem]",
+        span === 'medium' && "h-[9.25rem] w-full max-w-[26rem]",
         span === 'full' && "w-full",
         isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : span === 'full' ? 'h-40' : ''
       )}>
@@ -1298,7 +1301,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         if (sourceId) moveCardToEnd(sourceId);
         setDraggingCardId(null);
       }}
-      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(10.5rem,auto)] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
+      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(8.25rem,auto)] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
     >
       {cards.map(renderCard)}
 
@@ -1310,7 +1313,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             setIsCatalogOpen(true);
           }}
           className={cn(
-            "inline-flex min-h-[10.5rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
+            "inline-flex min-h-[8.25rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
             cards.length === 0 ? "col-span-1 sm:col-span-2 xl:col-span-4" : "col-span-1"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}
