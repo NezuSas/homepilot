@@ -88,8 +88,6 @@ const cardKinds: NormalizedSectionCardKind[] = [
   'clock_analog',
   'clock_premium',
   'clock_minimal',
-  'energy',
-  'assistant',
 ];
 
 function normalizeKind(kind: SectionCardKind): NormalizedSectionCardKind {
@@ -645,12 +643,26 @@ function CardPreview({
 
   if (normalized === 'scene') {
     return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-border/45 bg-gradient-to-br from-primary/15 to-card p-4 text-center">
-        <span className="mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-primary/30 text-primary">
-          <Monitor className="h-6 w-6" />
-        </span>
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Escena</span>
-        <span className="mt-3 text-sm font-black text-foreground">{title}</span>
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-primary/25 bg-[radial-gradient(circle_at_82%_18%,hsl(var(--primary)/0.2),transparent_32%),linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.09))] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-inner">
+            <Monitor className="h-5 w-5" />
+          </span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-primary">
+            Lista
+          </span>
+        </div>
+        <div className="mt-auto min-w-0">
+          <span className="block text-[9px] font-black uppercase tracking-[0.28em] text-primary/80">Escena</span>
+          <span className="mt-1 block line-clamp-2 text-base font-black leading-tight text-foreground">{title}</span>
+          <span className="mt-2 block line-clamp-2 text-[10px] font-semibold leading-snug text-muted-foreground">
+            {subtitle || 'Acceso directo para ejecutar ambiente'}
+          </span>
+        </div>
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
+          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Control</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">1 toque</span>
+        </div>
       </div>
     );
   }
