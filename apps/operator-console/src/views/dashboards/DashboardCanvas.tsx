@@ -135,7 +135,21 @@ const sanitizedWidgets = useMemo(() => {
   });
 }, [widgets, isEditing, t]);
 
-const renderedWidgets = sanitizedWidgets;
+  const renderedWidgets = sanitizedWidgets;
+
+  const getResponsiveGridColumn = useCallback((widget: DashboardWidget) => {
+    if (!isResponsiveLayout) {
+      return `${widget.config.layout.x + 1} / span ${Math.min(widget.config.layout.w, gridCols - widget.config.layout.x)}`;
+    }
+
+    if (gridCols === MOBILE_GRID_COLS) return '1 / -1';
+
+    const isWideWidget = widget.type === 'dashboard_title'
+      || widget.type === 'section'
+      || widget.config.layout.w >= DESKTOP_GRID_COLS / 2;
+
+    return `auto / span ${isWideWidget ? TABLET_GRID_COLS : Math.max(1, TABLET_GRID_COLS / 2)}`;
+  }, [gridCols, isResponsiveLayout]);
 
 // Compute virtual placeholders for HASS-style add-card and add-section buttons.
 const virtualPlaceholders = useMemo(() => {
@@ -303,8 +317,8 @@ const canvasMinRows = useMemo(() => {
         )}
         style={{
           gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          gridAutoRows: `${rowHeight}px`,
-          minHeight: `${canvasMinRows * rowHeight}px`,
+          gridAutoRows: isResponsiveLayout ? undefined : `${rowHeight}px`,
+          minHeight: isResponsiveLayout ? undefined : `${canvasMinRows * rowHeight}px`,
         }}
       >
         {renderedWidgets.map((widget: DashboardWidget) => (
@@ -312,8 +326,8 @@ const canvasMinRows = useMemo(() => {
             key={widget.id}
             id={widget.id}
             style={{
-              gridColumn: `${widget.config.layout.x + 1} / span ${Math.min(widget.config.layout.w, gridCols - widget.config.layout.x)}`,
-              gridRow: `${widget.config.layout.y + 1} / span ${widget.config.layout.h}`,
+              gridColumn: getResponsiveGridColumn(widget),
+              gridRow: isResponsiveLayout ? undefined : `${widget.config.layout.y + 1} / span ${widget.config.layout.h}`,
               opacity: activeWidget?.id === widget.id ? 0.3 : 1,
             }}
             className={cn(
@@ -324,7 +338,8 @@ const canvasMinRows = useMemo(() => {
           >
             <DashboardWidgetNode
               widget={widget}
-              isEditing={canEditLayout}
+              isEditing={isEditing}
+              canDrag={canEditLayout}
               isSelected={isEditing && selectedWidgetId === widget.id}
               onClick={() => { if (isEditing) onWidgetClick(widget.id); }}
               onResizeEnd={(id, w, h) => {

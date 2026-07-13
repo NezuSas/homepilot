@@ -23,6 +23,7 @@ import { SectionWidget } from './widgets/SectionWidget'; import { DashboardTitle
 interface DashboardWidgetNodeProps {
   widget: DashboardWidget;
   isEditing: boolean;
+  canDrag?: boolean;
   isSelected: boolean;
   isOverlay?: boolean;   // true when rendered inside DragOverlay (disables dnd registration)
   onClick: () => void;
@@ -73,6 +74,7 @@ export function WidgetContent({ widget, isEditing, onClick, onConfigChange }: { 
 export function DashboardWidgetNode({ 
   widget, 
   isEditing, 
+  canDrag = true,
   isSelected, 
   isOverlay = false,
   onClick,
@@ -88,7 +90,7 @@ export function DashboardWidgetNode({
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
 
   // Never register dnd for section widgets or when rendering inside DragOverlay
-  const isDndDisabled = !isEditing || isOverlay || isSection || isTitleWidget;
+  const isDndDisabled = !isEditing || !canDrag || isOverlay || isSection || isTitleWidget;
   
   const {
     attributes,
@@ -150,7 +152,7 @@ export function DashboardWidgetNode({
       {isEditing && !isOverlay && (
         <>
           {/* Drag Handle (full area, not for sections) */}
-          {!isSection && (
+          {!isSection && canDrag && (
             <div 
               {...attributes} 
               {...listeners}
@@ -168,10 +170,10 @@ export function DashboardWidgetNode({
               >
                 <Pencil className="w-3 h-3" />
               </button>
-              {!isSection && (
+              {!isSection && canDrag && (
                 <div className="w-px h-4 bg-border/40 mx-0.5" />
               )}
-              {!isSection && (
+              {!isSection && canDrag && (
                 <div className="p-1.5 text-muted-foreground/50">
                   <GripVertical className="w-3 h-3" />
                 </div>
