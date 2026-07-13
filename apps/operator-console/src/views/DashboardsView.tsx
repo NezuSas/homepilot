@@ -23,9 +23,10 @@ const API = `${API_BASE_URL}/api/v1`;
 interface DashboardsViewProps {
   initialDashboardId?: string | null;
   onDashboardCatalogChange?: (dashboards: Dashboard[]) => void;
+  onOpenMobileMenu?: () => void;
 }
 
-export function DashboardsView({ initialDashboardId = null, onDashboardCatalogChange }: DashboardsViewProps) {
+export function DashboardsView({ initialDashboardId = null, onDashboardCatalogChange, onOpenMobileMenu }: DashboardsViewProps) {
   const { t } = useTranslation();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const [active, setActive]             = useState<Dashboard | null>(null);
@@ -461,6 +462,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                 <DashboardTabsNav
                 tabs={visibleTabs}
                 activeTabIdx={visibleTabs.findIndex(t => t.id === activeTab?.id)}
+                onOpenMobileMenu={onOpenMobileMenu}
                 isEditing={isEditing && isOwner}
                 isAddingTab={addingTab}
                 placeholder={t('dashboards.placeholder_tab_title')}

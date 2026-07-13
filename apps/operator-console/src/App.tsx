@@ -1075,15 +1075,17 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-background">
         
-        <button
-          type="button"
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-3 top-3 z-[35] flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/90 text-muted-foreground shadow-depth-1 backdrop-blur-md transition-colors hover:text-foreground lg:hidden"
-          title={t('shell.toggle_sidebar')}
-          aria-label={t('shell.toggle_sidebar')}
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+        {currentView !== 'dashboards' && (
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="fixed left-3 top-3 z-[35] flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/90 text-muted-foreground shadow-depth-1 backdrop-blur-md transition-colors hover:text-foreground lg:hidden"
+            title={t('shell.toggle_sidebar')}
+            aria-label={t('shell.toggle_sidebar')}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
         
         <section className={cn(
           "flex-1 min-h-0 relative scroll-smooth",
@@ -1134,6 +1136,7 @@ function App() {
                  {currentView === 'dashboards' && (
                   <DashboardsView
                     initialDashboardId={selectedSidebarDashboardId}
+                    onOpenMobileMenu={() => setIsSidebarOpen(true)}
                     onDashboardCatalogChange={(dashboards) => {
                       setSidebarDashboards(dashboards.map(dashboard => ({
                         id: dashboard.id,

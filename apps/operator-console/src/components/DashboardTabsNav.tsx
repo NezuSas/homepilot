@@ -6,6 +6,7 @@ import { InlineTabCreator } from './InlineTabCreator';
 interface DashboardTabsNavProps {
   tabs: Dashboard['tabs'];
   activeTabIdx: number;
+  onOpenMobileMenu?: () => void;
   isEditing: boolean;
   isAddingTab: boolean;
   placeholder: string;
@@ -23,6 +24,7 @@ interface DashboardTabsNavProps {
 export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   tabs,
   activeTabIdx,
+  onOpenMobileMenu,
   isEditing,
   isAddingTab,
   placeholder,
@@ -64,6 +66,17 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   return (
     <div className="border-b border-border/60">
       <div className="flex min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
+        {onOpenMobileMenu && (
+          <button
+            type="button"
+            onClick={onOpenMobileMenu}
+            className="mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/80 text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary lg:hidden"
+            aria-label="Abrir navegación"
+            title="Abrir navegación"
+          >
+            <Icons.Menu className="h-5 w-5" />
+          </button>
+        )}
         {tabs.map((tab, index) => {
           const Icon = getTabIcon(tab, index);
           const isActive = activeTabIdx === index;
