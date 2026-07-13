@@ -1089,7 +1089,11 @@ function App() {
         
         <section className={cn(
           "flex-1 min-h-0 relative scroll-smooth",
-          currentView === 'home-conversation' ? "overflow-hidden" : "overflow-y-auto pt-14 lg:pt-0"
+          currentView === 'home-conversation'
+            ? "overflow-hidden"
+            : currentView === 'dashboards'
+              ? "overflow-y-auto"
+              : "overflow-y-auto pt-14 lg:pt-0"
         )}>
            {isBackendOffline && (
              <PageFrame className="pb-0 animate-in fade-in slide-in-from-top-4 duration-500">
