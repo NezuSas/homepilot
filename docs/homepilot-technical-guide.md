@@ -288,6 +288,49 @@ chmod +x scripts/install-edge-office.sh
 
 El prefijo `bash` solo es necesario cuando el archivo todavia no tiene permiso de ejecucion o cuando se desea indicar explicitamente el interprete.
 
+#### Mantenimiento despues de cada build
+
+En miniPCs con disco limitado, Docker puede acumular cache de `buildx`, capas intermedias, imagenes antiguas y contenedores detenidos. Para evitar que cada compilacion deje residuos, el repositorio incluye:
+
+```bash
+bash scripts/homepilot-maintenance.sh --deploy --yes
+```
+
+Ese comando ejecuta un ciclo seguro:
+
+1. Muestra espacio libre y consumo actual de Docker.
+2. Limpia cache de BuildKit/buildx conservando un maximo configurable.
+3. Elimina imagenes no usadas, contenedores detenidos y redes no usadas.
+4. Construye e inicia HomePilot con `docker-compose.office.yml`.
+5. Repite la limpieza segura despues del build.
+6. Muestra el espacio disponible final.
+
+Por defecto conserva hasta `2GB` de cache util:
+
+```bash
+bash scripts/homepilot-maintenance.sh --deploy --keep-storage 2GB --yes
+```
+
+Para solo limpiar sin reconstruir:
+
+```bash
+bash scripts/homepilot-maintenance.sh --clean --yes
+```
+
+Para diagnosticar sin modificar nada:
+
+```bash
+bash scripts/homepilot-maintenance.sh --status
+```
+
+El script no ejecuta `docker volume prune` y no borra bases de datos ni volumenes. Si los logs de Docker crecieron demasiado, se puede vaciarlos explicitamente:
+
+```bash
+bash scripts/homepilot-maintenance.sh --clean --truncate-logs --yes
+```
+
+El comando `--truncate-logs` solo trunca archivos `*-json.log`; no borra contenedores ni datos persistentes.
+
 La plantilla `.env.office.example` contiene todas las variables operativas. Sus campos que deben verificarse por instalacion son:
 
 | Variable | Uso |
