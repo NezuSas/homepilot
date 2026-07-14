@@ -568,13 +568,13 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
 
       <div
         ref={scrollRef}
-        className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth bg-muted/10 px-4 py-5 md:px-6 lg:px-10 lg:py-8"
+        className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth bg-muted/10 px-3 py-4 sm:px-4 md:px-6 lg:px-8 xl:px-10 xl:py-8"
       >
         <div
           role="log"
           aria-live="polite"
           aria-relevant="additions text"
-          className="mx-auto flex w-full max-w-5xl flex-col gap-5"
+          className="mx-auto flex w-full max-w-7xl flex-col gap-4 md:gap-5"
         >
           {messages.length === 0 && (
             <HomeConversationEmptyState

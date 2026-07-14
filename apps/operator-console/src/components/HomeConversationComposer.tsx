@@ -57,15 +57,15 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   onToggleListening,
   onToggleSpeech
 }) => (
-  <footer className="shrink-0 border-t border-border/60 bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:px-6 md:pt-4 md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-    <div className="mx-auto max-w-5xl">
+  <footer className="shrink-0 border-t border-border/60 bg-background/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4 md:px-6 md:pt-4 md:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div className="mx-auto w-full max-w-7xl">
       <form
         onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           onSend();
         }}
       >
-        <Card className="relative flex flex-col gap-2 overflow-visible rounded-panel border-border/70 bg-card/95 p-2 shadow-depth-2 transition-all duration-300 focus-within:border-primary/45 focus-within:bg-card focus-within:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary/10 sm:flex-row sm:items-end">
+        <Card className="relative flex flex-col gap-2 overflow-visible rounded-panel border-border/70 bg-card/95 p-2 shadow-depth-2 transition-all duration-300 focus-within:border-primary/45 focus-within:bg-card focus-within:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary/10 md:flex-row md:items-end">
           <textarea
             aria-label={placeholder}
             rows={1}
@@ -73,10 +73,10 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             onChange={event => onInputChange(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="custom-scrollbar min-h-[48px] max-h-48 w-full flex-1 resize-none border-none bg-transparent px-4 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
+            className="custom-scrollbar min-h-[48px] max-h-40 w-full flex-1 resize-none border-none bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 md:max-h-48 md:text-base"
             disabled={isLoading}
           />
-          <div className="flex w-full shrink-0 items-center justify-end gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1 shadow-inner shadow-black/5 sm:w-auto">
+          <div className="flex w-full shrink-0 items-center justify-end gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1 shadow-inner shadow-black/5 md:w-auto">
             {isSpeechRecordingSupported && (
               <>
               <AudioInputPicker
@@ -129,7 +129,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
           </div>
         </Card>
       </form>
-      <div className="mt-3 flex items-center justify-between gap-3 px-1">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 md:mt-3">
         <div className="flex min-w-0 items-center gap-2">
           <StatusPill variant={isLoading ? 'warning' : 'success'} pulse={isLoading} dot className="h-3 w-3 shrink-0" />
           <p className="truncate text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">

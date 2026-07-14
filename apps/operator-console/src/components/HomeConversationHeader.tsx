@@ -18,20 +18,20 @@ export const HomeConversationHeader: React.FC<HomeConversationHeaderProps> = ({
   messageCount
 }) => (
   <header className="shrink-0 border-b border-border/60 bg-card/75 px-4 py-3 shadow-depth-1 backdrop-blur-xl md:px-6">
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-panel border border-primary/25 bg-primary/10 text-primary shadow-depth-1">
           <Bot className="h-[18px] w-[18px]" />
         </div>
         <div className="min-w-0">
-          <h2 className="truncate text-base font-black tracking-tight text-foreground">{title}</h2>
-          <p className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/55">
+          <h2 className="truncate text-base font-black tracking-tight text-foreground md:text-lg">{title}</h2>
+          <p className="line-clamp-2 text-[10px] font-black uppercase leading-snug tracking-[0.18em] text-muted-foreground/55 sm:truncate">
             {subtitle}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pl-[52px] sm:pl-0">
         <StatusPill variant={isLoading ? 'warning' : 'success'} pulse={isLoading}>
           {statusLabel}
         </StatusPill>
