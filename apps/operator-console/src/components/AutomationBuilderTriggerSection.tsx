@@ -29,21 +29,23 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
   const selectedTime = triggerConfig.timeLocal || triggerConfig.time || '12:00';
 
   return (
-    <div className="space-y-4 p-6 rounded-[2rem] bg-muted/10 border border-border/10 relative">
+    <div className="relative space-y-5 rounded-[1.75rem] border border-border/55 bg-card/80 p-5 shadow-[0_16px_44px_hsl(var(--foreground)/0.07)] ring-1 ring-background/45 sm:p-6">
       <div className="flex items-center gap-3 mb-2">
-        <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0 min-w-8">
-          <span className="text-[9px] font-black">{t('automations.summary.if')}</span>
+        <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/90 px-3 shadow-sm">
+          <span className="text-[9px] font-black text-foreground">{t('automations.summary.if')}</span>
         </div>
-        <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{t('automations.builder.trigger_subtitle')}</label>
+        <label className="text-[9px] font-black uppercase tracking-[0.28em] text-muted-foreground">{t('automations.builder.trigger_subtitle')}</label>
       </div>
 
-      <div className="flex bg-background/50 p-1.5 rounded-2xl gap-2 border border-border/10">
+      <div className="flex gap-2 rounded-2xl border border-border/55 bg-background/75 p-1.5 shadow-inner">
         <button
           type="button"
           onClick={() => onTriggerTypeChange('device_state_changed')}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-            triggerType === 'device_state_changed' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-foreground/5"
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+            triggerType === 'device_state_changed'
+              ? "bg-primary text-primary-foreground shadow-[0_10px_24px_hsl(var(--primary)/0.24)]"
+              : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
           )}
         >
           <Zap className="w-3 h-3" /> {t('automations.builder.properties.state')}
@@ -52,8 +54,10 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           type="button"
           onClick={() => onTriggerTypeChange('time')}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-            triggerType === 'time' ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-foreground/5"
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+            triggerType === 'time'
+              ? "bg-primary text-primary-foreground shadow-[0_10px_24px_hsl(var(--primary)/0.24)]"
+              : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
           )}
         >
           <Clock className="w-3 h-3" /> {t('common.time', { defaultValue: 'Time' })}
@@ -63,7 +67,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
       {triggerType === 'device_state_changed' ? (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.source_device')}</label>
+            <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-muted-foreground">{t('automations.form.source_device')}</label>
             <Select
               searchable
               value={triggerConfig.deviceId || ''}
@@ -74,7 +78,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           </div>
           <div className="grid grid-cols-5 gap-3">
             <div className="space-y-2 col-span-3">
-              <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.state_key')}</label>
+              <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-muted-foreground">{t('automations.form.state_key')}</label>
               <Select
                 value={triggerConfig.stateKey || 'state'}
                 onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, stateKey: value })}
@@ -86,13 +90,13 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
               />
             </div>
             <div className="space-y-2 col-span-2">
-              <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.expected_value')}</label>
+              <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-muted-foreground">{t('automations.form.expected_value')}</label>
               <input
                 type="text"
                 value={triggerConfig.expectedValue || ''}
                 onChange={(event) => onTriggerConfigChange({ ...triggerConfig, expectedValue: event.target.value })}
                 placeholder={t('automations.builder.placeholders.expected_value')}
-                className="w-full h-11 bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 text-sm font-bold tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20 translate-y-[1px]"
+                className="h-11 w-full translate-y-[1px] rounded-xl border border-border/55 bg-background/80 px-4 text-sm font-bold tracking-tight text-foreground outline-none transition-all placeholder:text-muted-foreground/40 focus:border-primary/55 focus:bg-card focus:shadow-[0_0_0_4px_hsl(var(--primary)/0.10)]"
               />
             </div>
           </div>
@@ -100,7 +104,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
       ) : (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.time_label')}</label>
+            <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-muted-foreground">{t('automations.form.time_label')}</label>
             <div className="flex items-center gap-2">
               <Select
                 value={selectedTime.split(':')[0]}
@@ -111,7 +115,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 options={hours}
                 className="flex-1 text-center"
               />
-              <span className="text-lg font-black opacity-10">:</span>
+              <span className="text-lg font-black text-muted-foreground/35">:</span>
               <Select
                 value={selectedTime.split(':')[1] || '00'}
                 onChange={(minute: string) => {
@@ -124,7 +128,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('automations.form.days_label')}</label>
+            <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-muted-foreground">{t('automations.form.days_label')}</label>
             <div className="grid grid-cols-7 gap-1">
               {(t('common.days_min', { returnObjects: true }) as string[]).map((day, index) => {
                 const selectedDays = triggerConfig.days || [0, 1, 2, 3, 4, 5, 6];
@@ -138,8 +142,10 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                       onTriggerConfigChange({ ...triggerConfig, days: next });
                     }}
                     className={cn(
-                      "w-full aspect-square rounded-lg font-black text-[9px] transition-all border-2 flex items-center justify-center",
-                      isSelected ? "bg-primary border-primary text-primary-foreground premium-glow" : "bg-muted/20 border-border/10 text-muted-foreground opacity-40 hover:opacity-100"
+                      "flex aspect-square w-full items-center justify-center rounded-xl border text-[9px] font-black transition-all",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground shadow-[0_8px_18px_hsl(var(--primary)/0.22)]"
+                        : "border-border/55 bg-background/70 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )}
                   >
                     {day}

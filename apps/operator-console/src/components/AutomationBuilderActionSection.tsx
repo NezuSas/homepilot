@@ -26,12 +26,12 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-4 p-6 rounded-[2rem] bg-primary/[0.02] border border-primary/10 relative">
+    <div className="relative space-y-5 rounded-[1.75rem] border border-primary/20 bg-[linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.07))] p-5 shadow-[0_16px_44px_hsl(var(--primary)/0.08)] ring-1 ring-background/45 sm:p-6">
       <div className="flex items-center gap-3 mb-2">
-        <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground border-none flex items-center justify-center shrink-0 min-w-8">
+        <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-primary px-3 text-primary-foreground shadow-[0_8px_18px_hsl(var(--primary)/0.22)]">
           <span className="text-[9px] font-black">{t('automations.summary.then')}</span>
         </div>
-        <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">{t('automations.builder.action_subtitle')}</label>
+        <label className="text-[9px] font-black uppercase tracking-[0.28em] text-primary">{t('automations.builder.action_subtitle')}</label>
       </div>
 
       <SegmentedControl
@@ -47,7 +47,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
       {actionType === 'device_command' ? (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase tracking-widest text-primary/50 ml-1">{t('automations.form.target_device')}</label>
+            <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-primary">{t('automations.form.target_device')}</label>
             <Select
               searchable
               value={actionConfig.targetDeviceId || ''}
@@ -57,7 +57,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase tracking-widest text-primary/50 ml-1">{t('automations.form.action_type')}</label>
+            <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-primary">{t('automations.form.action_type')}</label>
             <Select
               value={actionConfig.command || 'turn_on'}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, command: value })}
@@ -72,7 +72,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
       ) : (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase tracking-widest text-primary/50 ml-1">{t('automations.form.select_scene')}</label>
+            <label className="ml-1 text-[8px] font-black uppercase tracking-widest text-primary">{t('automations.form.select_scene')}</label>
             <Select
               searchable
               value={actionConfig.sceneId || ''}
@@ -81,9 +81,9 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
               placeholder={t('automations.form.select_scene')}
             />
           </div>
-          <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center gap-3">
-            <AlertCircle className="w-4 h-4 text-primary opacity-40 shrink-0" />
-            <p className="text-[10px] font-medium leading-tight text-primary/60">{t('automations.builder.scene_info')}</p>
+          <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+            <AlertCircle className="h-4 w-4 shrink-0 text-primary" />
+            <p className="text-[10px] font-semibold leading-tight text-primary">{t('automations.builder.scene_info')}</p>
           </div>
         </div>
       )}

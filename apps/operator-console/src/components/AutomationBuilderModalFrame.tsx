@@ -16,17 +16,17 @@ export const AutomationBuilderModalFrame: React.FC<AutomationBuilderModalFramePr
   onClose,
   children
 }) => createPortal(
-  <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-    <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
-    <div className="relative w-full max-w-3xl bg-card/60 backdrop-blur-2xl border-2 border-border/40 rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 duration-500">
-      <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+  <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
+    <div className="absolute inset-0 bg-background/70 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
+    <div className="relative w-full max-w-4xl overflow-hidden rounded-[2rem] border border-border/55 bg-card/95 shadow-[0_28px_90px_hsl(var(--foreground)/0.18)] ring-1 ring-background/50 backdrop-blur-2xl animate-in zoom-in-95 duration-500 dark:border-border/35">
+      <div className="flex items-start justify-between gap-4 border-b border-border/45 px-5 py-5 sm:px-8 sm:py-6">
         <div>
-          <h2 className="text-2xl font-black tracking-tighter">{title}</h2>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">{subtitle}</p>
+          <h2 className="text-2xl font-black tracking-tighter text-foreground sm:text-3xl">{title}</h2>
+          <p className="mt-1 text-[9px] font-black uppercase tracking-[0.22em] text-muted-foreground sm:text-[10px]">{subtitle}</p>
         </div>
         <IconButton icon={X} label="Cerrar constructor" onClick={onClose} />
       </div>
-      <div className="p-8 pt-2 max-h-[82vh] overflow-y-auto custom-scrollbar space-y-6">
+      <div className="max-h-[82vh] space-y-6 overflow-y-auto p-5 custom-scrollbar sm:p-8">
         {children}
       </div>
     </div>

@@ -14,11 +14,11 @@ export const AutomationBuilderSubmitButton: React.FC<AutomationBuilderSubmitButt
   disabled,
   onClick
 }) => (
-  <div className="pt-2 pb-6">
+  <div className="pb-4 pt-2">
     <button
       disabled={disabled}
       onClick={onClick}
-      className="w-full bg-primary text-primary-foreground py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
+      className="flex w-full items-center justify-center gap-4 rounded-[2rem] bg-primary py-5 text-xs font-black uppercase tracking-[0.3em] text-primary-foreground shadow-[0_18px_38px_hsl(var(--primary)/0.24)] transition-all hover:translate-y-[-1px] hover:shadow-[0_22px_46px_hsl(var(--primary)/0.28)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-none"
     >
       {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
       {label}
