@@ -766,64 +766,8 @@ function App() {
                data-demo="nav-dashboard"
                collapsedOnDesktop={isSidebarContentCollapsed}
              />
-             <SidebarItem 
-               icon={LayoutDashboard} 
-               label={t('nav.spaces')} 
-               active={currentView === 'spaces'} 
-               onClick={() => navigateTo('spaces')} 
-               collapsedOnDesktop={isSidebarContentCollapsed}
-             />
-             {canAccessFamilyControl && (
-               <SidebarItem 
-                 icon={Monitor} 
-                 label={t('nav.scenes')} 
-                 active={currentView === 'scenes'} 
-                 onClick={() => navigateTo('scenes')} 
-                 collapsedOnDesktop={isSidebarContentCollapsed}
-               />
-             )}
-             {canAccessAdminControl && (
-               <SidebarItem 
-                 icon={PlaySquare} 
-                 label={t('nav.automations')} 
-                 active={currentView === 'automations'} 
-                 onClick={() => navigateTo('automations')} 
-                 data-demo="nav-automations"
-                 collapsedOnDesktop={isSidebarContentCollapsed}
-               />
-             )}
-             {canAccessFamilyControl && (
-               <SidebarItem 
-                 icon={Sparkles} 
-                 label={t('nav.assistant')} 
-                 active={currentView === 'assistant'} 
-                 onClick={() => navigateTo('assistant')}
-                 badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0 
-                    ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span> 
-                    : undefined}
-                 collapsedOnDesktop={isSidebarContentCollapsed}
-               />
-             )}
-             <SidebarItem 
-               icon={ShieldCheck} 
-               label={t('nav.resilience_showcase')} 
-               active={currentView === 'resilience-showcase'} 
-               onClick={() => navigateTo('resilience-showcase')} 
-               data-demo="nav-resilience"
-               collapsedOnDesktop={isSidebarContentCollapsed}
-             />
-            <SidebarItem
-              icon={MessageSquare}
-              label={t('nav.talk_to_home')}
-              active={currentView === 'home-conversation'}
-              onClick={() => navigateTo('home-conversation')}
-              collapsedOnDesktop={isSidebarContentCollapsed}
-              data-demo="nav-home-conversation"
-            />
-          </div>
-
-          {canAccessDashboards && (
-            <div className="flex flex-col gap-0.5">
+             {canAccessDashboards && (
+               <>
                  <button
                     onClick={() => {
                       setIsDashboardsExpanded(prev => {
@@ -869,17 +813,74 @@ function App() {
                      ))}
                    </div>
                  )}
-                 {canAccessAdminControl && (
-                   <SidebarItem 
-                     icon={Zap} 
-                     label={t('nav.energy')} 
-                     active={currentView === 'energy'}
-                     onClick={() => navigateTo('energy')}
-                     collapsedOnDesktop={isSidebarContentCollapsed}
-                  />
-                 )}
-            </div>
+               </>
+             )}
+             <SidebarItem 
+               icon={LayoutDashboard} 
+               label={t('nav.spaces')} 
+               active={currentView === 'spaces'} 
+               onClick={() => navigateTo('spaces')} 
+               collapsedOnDesktop={isSidebarContentCollapsed}
+             />
+             {canAccessFamilyControl && (
+               <SidebarItem 
+                 icon={Monitor} 
+                 label={t('nav.scenes')} 
+                 active={currentView === 'scenes'} 
+                 onClick={() => navigateTo('scenes')} 
+                 collapsedOnDesktop={isSidebarContentCollapsed}
+               />
+             )}
+             {canAccessAdminControl && (
+               <SidebarItem 
+                 icon={PlaySquare} 
+                 label={t('nav.automations')} 
+                 active={currentView === 'automations'} 
+                 onClick={() => navigateTo('automations')} 
+                 data-demo="nav-automations"
+                 collapsedOnDesktop={isSidebarContentCollapsed}
+               />
+             )}
+             <SidebarItem
+               icon={MessageSquare}
+               label={t('nav.talk_to_home')}
+               active={currentView === 'home-conversation'}
+               onClick={() => navigateTo('home-conversation')}
+               collapsedOnDesktop={isSidebarContentCollapsed}
+               data-demo="nav-home-conversation"
+             />
+             {canAccessFamilyControl && (
+               <SidebarItem
+                 icon={Sparkles}
+                 label={t('nav.assistant')}
+                 active={currentView === 'assistant'}
+                 onClick={() => navigateTo('assistant')}
+                 badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0
+                    ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span>
+                    : undefined}
+                 collapsedOnDesktop={isSidebarContentCollapsed}
+               />
+             )}
+          </div>
+
+          {canAccessAdminControl && (
+            <SidebarItem
+              icon={Zap}
+              label={t('nav.energy')}
+              active={currentView === 'energy'}
+              onClick={() => navigateTo('energy')}
+              collapsedOnDesktop={isSidebarContentCollapsed}
+            />
           )}
+
+          <SidebarItem
+            icon={ShieldCheck}
+            label={t('nav.resilience_showcase')}
+            active={currentView === 'resilience-showcase'}
+            onClick={() => navigateTo('resilience-showcase')}
+            data-demo="nav-resilience"
+            collapsedOnDesktop={isSidebarContentCollapsed}
+          />
 
           {canAccessSystem && (
             <>

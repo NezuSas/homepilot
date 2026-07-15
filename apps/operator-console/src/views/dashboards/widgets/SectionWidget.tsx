@@ -124,60 +124,60 @@ const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; la
 function getCatalogLabelKey(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
     case 'light':
-      return 'dashboard.editor.sections.catalog.light';
+      return 'dashboard.editor.sections.section_card_light';
     case 'cover':
-      return 'dashboard.editor.sections.catalog.cover';
+      return 'dashboard.editor.sections.section_card_cover';
     case 'camera':
-      return 'dashboard.editor.sections.catalog.camera';
+      return 'dashboard.editor.sections.section_card_camera';
     case 'room':
-      return 'dashboard.editor.sections.catalog.room';
+      return 'dashboard.editor.sections.section_card_room';
     case 'scene':
-      return 'dashboard.editor.sections.catalog.scene';
+      return 'dashboard.editor.sections.section_card_scene';
     case 'clock_digital':
-      return 'dashboard.editor.sections.catalog.clock_digital';
+      return 'dashboard.editor.sections.section_card_clock_digital';
     case 'clock_analog':
-      return 'dashboard.editor.sections.catalog.clock_analog';
+      return 'dashboard.editor.sections.section_card_clock_analog';
     case 'clock_premium':
-      return 'dashboard.editor.sections.catalog.clock_premium';
+      return 'dashboard.editor.sections.section_card_clock_premium';
     case 'clock_minimal':
-      return 'dashboard.editor.sections.catalog.clock_minimal';
+      return 'dashboard.editor.sections.section_card_clock_minimal';
     case 'energy':
-      return 'dashboard.editor.sections.catalog.energy';
+      return 'dashboard.editor.sections.section_card_energy';
     case 'assistant':
-      return 'dashboard.editor.sections.catalog.assistant';
+      return 'dashboard.editor.sections.section_card_assistant';
     case 'device':
     default:
-      return 'dashboard.editor.sections.catalog.device';
+      return 'dashboard.editor.sections.section_card_device';
   }
 }
 
 function getCatalogDescriptionKey(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
     case 'light':
-      return 'dashboard.editor.sections.catalog.light_description';
+      return 'dashboard.editor.sections.section_card_light_desc';
     case 'cover':
-      return 'dashboard.editor.sections.catalog.cover_description';
+      return 'dashboard.editor.sections.section_card_cover_desc';
     case 'camera':
-      return 'dashboard.editor.sections.catalog.camera_description';
+      return 'dashboard.editor.sections.section_card_camera_desc';
     case 'room':
-      return 'dashboard.editor.sections.catalog.room_description';
+      return 'dashboard.editor.sections.section_card_room_desc';
     case 'scene':
-      return 'dashboard.editor.sections.catalog.scene_description';
+      return 'dashboard.editor.sections.section_card_scene_desc';
     case 'clock_digital':
-      return 'dashboard.editor.sections.catalog.clock_digital_description';
+      return 'dashboard.editor.sections.section_card_clock_digital_desc';
     case 'clock_analog':
-      return 'dashboard.editor.sections.catalog.clock_analog_description';
+      return 'dashboard.editor.sections.section_card_clock_analog_desc';
     case 'clock_premium':
-      return 'dashboard.editor.sections.catalog.clock_premium_description';
+      return 'dashboard.editor.sections.section_card_clock_premium_desc';
     case 'clock_minimal':
-      return 'dashboard.editor.sections.catalog.clock_minimal_description';
+      return 'dashboard.editor.sections.section_card_clock_minimal_desc';
     case 'energy':
-      return 'dashboard.editor.sections.catalog.energy_description';
+      return 'dashboard.editor.sections.section_card_energy_desc';
     case 'assistant':
-      return 'dashboard.editor.sections.catalog.assistant_description';
+      return 'dashboard.editor.sections.section_card_assistant_desc';
     case 'device':
     default:
-      return 'dashboard.editor.sections.catalog.device_description';
+      return 'dashboard.editor.sections.section_card_device_desc';
   }
 }
 
