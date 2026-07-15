@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, Check, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -18,6 +19,7 @@ interface SelectProps {
 }
 
 const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, className, searchable = false }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -89,7 +91,7 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
         )}
       >
         <span className={cn("font-medium truncate mr-2", !selectedOption && "text-foreground/40")}>
-          {selectedOption ? selectedOption.label : placeholder || 'Select option...'}
+          {selectedOption ? selectedOption.label : placeholder || t('common.select_option')}
         </span>
         <ChevronDown className={cn("w-4 h-4 text-foreground/30 transition-transform shrink-0", isOpen && "rotate-180")} />
       </button>
@@ -112,7 +114,7 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
+                  placeholder={t('common.search')}
                   className="w-full bg-foreground/[0.05] border-none rounded-lg pl-9 pr-3 py-2 text-caption font-medium focus:ring-1 focus:ring-primary/30 outline-none"
                 />
               </div>

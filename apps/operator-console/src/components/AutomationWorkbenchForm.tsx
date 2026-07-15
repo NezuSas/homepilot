@@ -61,7 +61,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               required
               value={formData.name}
               onChange={event => onChange({ ...formData, name: event.target.value })}
-              placeholder="e.g. Turn on Living Room Light on Motion"
+              placeholder={t('automations.form.rule_name_placeholder')}
             />
           </div>
 

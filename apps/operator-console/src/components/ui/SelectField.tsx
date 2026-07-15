@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { Select } from './Select';
 import { Loader2 } from 'lucide-react';
@@ -60,6 +61,8 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   variant = 'default',
   fullWidth = true
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className={cn("flex flex-col gap-1", fullWidth ? "w-full" : "w-auto", className)}>
       <Select
@@ -76,7 +79,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
       >
         {placeholder && (
           <option value="" disabled>
-            {loading ? 'Cargando...' : placeholder}
+            {loading ? t('common.loading') : placeholder}
           </option>
         )}
         {options.map((option) => (
@@ -96,7 +99,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         <div className="flex items-center gap-2 mt-1 ml-1 animate-in fade-in">
           <Loader2 className="w-3 h-3 animate-spin text-primary/60" />
           <span className="text-micro font-black uppercase tracking-widest text-primary/40">
-            Cargando...
+            {t('common.loading')}
           </span>
         </div>
       )}

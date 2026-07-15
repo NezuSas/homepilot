@@ -7,8 +7,10 @@ import { ExecutionCard } from '../components/ExecutionCard';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { useTranslation } from 'react-i18next';
 
 export const ExecutionLogsView: React.FC = () => {
+  const { t } = useTranslation();
   const [records, setRecords] = useState<ExecutionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,12 +19,12 @@ export const ExecutionLogsView: React.FC = () => {
     try {
       setLoading(true);
       const res = await apiFetch(`${API_BASE_URL}/api/v1/executions/recent?limit=50`);
-      if (!res.ok) throw new Error('Failed to fetch execution records');
+      if (!res.ok) throw new Error(t('execution_logs.fetch_error'));
       const data = await res.json() as ExecutionRecord[];
       setRecords(data);
       setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'API call failed');
+      setError(err instanceof Error ? err.message : t('common.errors.api_failed'));
     } finally {
       setLoading(false);
     }
@@ -36,7 +38,7 @@ export const ExecutionLogsView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-empty-sm animate-pulse">
         <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
-        <p className="text-body font-black uppercase tracking-label-wider opacity-30 italic">Syncing with Edge...</p>
+        <p className="text-caption font-black uppercase tracking-label opacity-40 italic">{t('execution_logs.loading')}</p>
       </div>
     );
   }
@@ -46,11 +48,11 @@ export const ExecutionLogsView: React.FC = () => {
       <AlertBanner
         variant="danger"
         icon={ShieldAlert}
-        title="Observability Error"
+        title={t('execution_logs.error_title')}
         message={error}
         action={
           <Button variant="danger" size="sm" onClick={fetchRecords}>
-            Retry Connection
+            {t('common.retry')}
           </Button>
         }
       />
@@ -61,13 +63,13 @@ export const ExecutionLogsView: React.FC = () => {
     return (
       <EmptyState
         icon={ShieldAlert}
-        title="No Executions Detected"
-        description="There is no historical data for scenes or automations yet. Execute a scene to see it here."
+        title={t('execution_logs.empty_title')}
+        description={t('execution_logs.empty_description')}
         className="min-h-glow-orb"
         action={
           <Button variant="outline" size="sm" onClick={fetchRecords} className="gap-2 text-micro uppercase tracking-widest">
             <RefreshCw className="h-3.5 w-3.5" />
-            Scan Edge Logs
+            {t('execution_logs.scan_logs')}
           </Button>
         }
       />
@@ -80,7 +82,7 @@ export const ExecutionLogsView: React.FC = () => {
          <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span className="text-micro font-black text-muted-foreground uppercase tracking-label-wider">
-              Edge Real-time Observability
+              {t('execution_logs.realtime_observability')}
             </span>
          </div>
          <button 
@@ -88,7 +90,7 @@ export const ExecutionLogsView: React.FC = () => {
             className="group flex items-center gap-2 text-micro font-black text-muted-foreground hover:text-primary transition-colors"
          >
             <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-700" />
-            Sync Now
+            {t('execution_logs.sync_now')}
          </button>
       </div>
 
@@ -104,7 +106,7 @@ export const ExecutionLogsView: React.FC = () => {
       
       <div className="py-10 flex flex-col items-center gap-4 opacity-20">
          <Activity className="w-8 h-8" />
-         <p className="text-micro font-black uppercase tracking-label-hero">End of Records</p>
+         <p className="text-label font-black uppercase tracking-label">{t('execution_logs.end_of_records')}</p>
       </div>
     </div>
   );

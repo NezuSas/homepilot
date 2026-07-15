@@ -1054,7 +1054,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
             <span
               className="grid h-8 w-8 cursor-grab place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg active:cursor-grabbing"
-              title="Mover tarjeta"
+              title={t('dashboard.editor.sections.move_card')}
               onClick={(event) => event.stopPropagation()}
             >
               <GripVertical className="h-4 w-4" />

@@ -271,7 +271,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                     ref={iconInputRef}
                     type="text"
                     className="w-full h-10 pl-10 pr-10 bg-transparent text-body font-bold text-foreground outline-none"
-                    placeholder="Ej: Home, Lightbulb, Tv"
+                    placeholder={t('dashboards.view_config.icon_placeholder')}
                     value={iconQuery}
                     onFocus={computeDropdownPos}
                     onChange={(e) => {
@@ -388,7 +388,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                     );
                   })}
                   {users.length === 0 && (
-                    <div className="text-center py-8 text-caption text-muted-foreground">No hay otros usuarios registrados</div>
+                    <div className="text-center py-8 text-caption text-muted-foreground">{t('dashboards.view_config.no_other_users')}</div>
                   )}
                 </div>
               )}

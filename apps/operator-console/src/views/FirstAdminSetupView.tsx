@@ -131,7 +131,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                   placeholder="admin"
                 />
               </div>
-              <span className="text-caption font-semibold text-muted-foreground">Usa letras, numeros, punto, guion o guion bajo.</span>
+              <span className="text-caption font-semibold text-muted-foreground">{t('first_admin_setup.username_hint')}</span>
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">

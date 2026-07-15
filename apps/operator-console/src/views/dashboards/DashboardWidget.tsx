@@ -83,6 +83,7 @@ export function DashboardWidgetNode({
   onClick,
   onResizeEnd, onConfigChange
 }: DashboardWidgetNodeProps) {
+  const { t } = useTranslation();
   const [isResizing, setIsResizing] = React.useState(false);
   const [resizeOffset, setResizeOffset] = React.useState({ w: 0, h: 0 });
 
@@ -169,7 +170,7 @@ export function DashboardWidgetNode({
               <button
                 onClick={(e) => { e.stopPropagation(); onClick(); }}
                 className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors text-muted-foreground hover:text-primary"
-                title="Configurar"
+                title={t('common.configure')}
               >
                 <Pencil className="w-3 h-3" />
               </button>

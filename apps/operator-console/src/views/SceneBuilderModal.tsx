@@ -167,8 +167,8 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                     type="text" 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter name..."
-                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-section-title font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                    placeholder={t('scenes.builder.placeholders.name')}
+                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-body-lg font-black tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-35"
                     autoFocus
                   />
                 </div>
@@ -185,7 +185,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                       { value: '', label: t('dashboard.scene_global') },
                       ...rooms.map(r => ({ value: r.id, label: r.name.toUpperCase() }))
                     ]}
-                    placeholder="Global"
+                    placeholder={t('dashboard.scene_global')}
                   />
                 </div>
              </div>
@@ -196,7 +196,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                   type="text" 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What does this scene do?"
+                  placeholder={t('scenes.builder.placeholders.description')}
                   className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-body font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
                 />
              </div>
@@ -219,8 +219,8 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                     type="text"
                     value={deviceSearch}
                     onChange={(e) => setDeviceSearch(e.target.value)}
-                    placeholder="Search..."
-                    className="w-full rounded-lg border-none bg-primary/5 py-1.5 pl-8 pr-3 text-micro font-black uppercase tracking-widest outline-none transition-all focus:ring-1 focus:ring-primary/20 min-[460px]:w-32 min-[460px]:focus:w-48"
+                    placeholder={t('common.search')}
+                    className="w-full rounded-lg border-none bg-primary/5 py-2 pl-8 pr-3 text-caption font-bold outline-none transition-all focus:ring-1 focus:ring-primary/20 min-[460px]:w-36 min-[460px]:focus:w-52"
                    />
                 </div>
              </div>

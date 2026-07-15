@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { SearchInput } from './Input';
 import { SegmentedControl } from './SegmentedControl';
@@ -23,19 +24,21 @@ export interface SearchFilterBarProps {
 export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   searchQuery,
   onSearchChange,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   options = [],
   activeFilter,
   onFilterChange,
   className
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className={cn("flex w-full flex-col items-stretch gap-3 xl:flex-row xl:items-center", className)}>
       <div className="w-full shrink-0 xl:w-search-panel">
         <SearchInput 
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={searchPlaceholder}
+          placeholder={searchPlaceholder ?? t('common.search')}
         />
       </div>
       

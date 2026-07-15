@@ -91,12 +91,12 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
               disabled={rule._processing}
               className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-micro font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
             >
-              <Edit2 className="w-3.5 h-3.5" /> Edit
+              <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
             </button>
 
             {rule._confirmingDelete ? (
               <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
-                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-xl text-micro font-black uppercase tracking-tighter shadow-lg shadow-destructive/20">Confirm</button>
+                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-xl text-caption font-black uppercase tracking-control shadow-lg shadow-destructive/20">{t('common.confirm')}</button>
                 <button onClick={() => onConfirmingDeleteChange(rule.id, false)} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-micro font-black uppercase transition-colors hover:bg-muted/80">X</button>
               </div>
             ) : (
@@ -104,7 +104,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
                 onClick={() => onConfirmingDeleteChange(rule.id, true)}
                 className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-micro font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
+                <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
               </button>
             )}
           </div>

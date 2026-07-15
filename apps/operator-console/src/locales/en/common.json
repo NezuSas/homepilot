@@ -253,6 +253,7 @@
         "new_section": "New section",
         "untitled_section": "Untitled section",
         "add_card": "Add card",
+        "move_card": "Move card",
         "title_markdown": "Markdown content",
         "title_alignment": "Alignment",
         "align_left": "Left",
@@ -970,6 +971,17 @@
       "USER_SESSIONS_REVOKED": "All sessions for '{{targetUser}}' have been revoked"
     }
   },
+  "execution_logs": {
+    "loading": "Syncing with Edge...",
+    "fetch_error": "Failed to fetch execution history",
+    "error_title": "Observability Error",
+    "empty_title": "No Executions Detected",
+    "empty_description": "There is no historical data for scenes or automations yet. Execute a scene to see it here.",
+    "scan_logs": "Scan Edge Logs",
+    "realtime_observability": "Edge Real-time Observability",
+    "sync_now": "Sync Now",
+    "end_of_records": "End of Records"
+  },
   "users": {
     "loading": "Loading user directory...",
     "create_form": {
@@ -1118,6 +1130,7 @@
     "description": "This system does not have users yet. Instead of using a log key or a fixed password, create the first local administrator here. After that, you will continue with the Home Assistant connection.",
     "display_name": "Display name",
     "username": "Administrator username",
+    "username_hint": "Use letters, numbers, dot, hyphen, or underscore.",
     "password": "Password",
     "password_placeholder": "Minimum 10 characters",
     "confirm_password": "Confirm password",
@@ -1243,6 +1256,7 @@
       "icon": "Icon",
       "route_label": "View route",
       "url_hint": "This route is generated from the title and will be used as the stable view identifier when direct URL opening is enabled.",
+      "icon_placeholder": "e.g. Home, Lightbulb, Tv",
       "clear_image": "Clear image",
       "background_settings": "Background configuration",
       "background_opacity": "Background opacity",
@@ -1252,7 +1266,8 @@
       "visibility_owner": "Owner",
       "visibility_admin": "Administrators",
       "visibility_guests": "Guests",
-      "delete_view": "Delete view"
+      "delete_view": "Delete view",
+      "no_other_users": "No other users registered"
     },
     "status": {
       "edge_active": "Edge Network Active",
@@ -1408,6 +1423,10 @@
     "confirm": "Confirm",
     "continue": "Continue",
     "retry": "Retry",
+    "search": "Search",
+    "configure": "Configure",
+    "select_option": "Select option...",
+    "retry_failed": "Retry failed",
     "not_available": "N/A",
     "password_mask": "••••••••",
     "online": "Online",

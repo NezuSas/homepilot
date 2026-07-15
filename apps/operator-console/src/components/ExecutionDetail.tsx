@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { SceneActionResult } from '../types/executions';
 import { cn } from '../lib/utils';
 import { CheckCircle2, XCircle, Slash, RefreshCcw, Loader2 } from 'lucide-react';
@@ -12,6 +13,7 @@ interface ExecutionDetailProps {
 }
 
 export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, actions, onRetrySuccess }) => {
+  const { t } = useTranslation();
   const [retryingIdx, setRetryingIdx] = useState<number | null>(null);
   const [retryErrorByIndex, setRetryErrorByIndex] = useState<Record<number, string>>({});
 
@@ -31,8 +33,8 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
       if (res.ok) {
         if (onRetrySuccess) onRetrySuccess();
       } else {
-        const errorData = await res.json().catch(() => ({ message: 'API error' }));
-        setRetryErrorByIndex(prev => ({ ...prev, [idx]: errorData.message || 'Retry failed' }));
+        const errorData = await res.json().catch(() => ({ message: t('common.errors.api_failed') }));
+        setRetryErrorByIndex(prev => ({ ...prev, [idx]: errorData.message || t('common.retry_failed') }));
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -114,7 +116,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
                   ) : (
                     <RefreshCcw className="w-3 h-3" />
                   )}
-                  Retry
+                  {t('common.retry')}
                 </button>
               )}
               
