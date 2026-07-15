@@ -113,11 +113,11 @@ function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
-const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; label: string }[] = [
-  { kind: 'clock_premium', style: 'analog-classic', label: 'Analógico premium' },
-  { kind: 'clock_digital', style: 'digital', label: 'Digital compacto' },
-  { kind: 'clock_analog', style: 'minimal', label: 'Digital residencial' },
-  { kind: 'clock_minimal', style: 'analog-minimal', label: 'Analógico minimal' },
+const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; labelKey: string }[] = [
+  { kind: 'clock_premium', style: 'analog-classic', labelKey: 'dashboard.editor.sections.clock_style_premium' },
+  { kind: 'clock_digital', style: 'digital', labelKey: 'dashboard.editor.sections.clock_style_digital' },
+  { kind: 'clock_analog', style: 'minimal', labelKey: 'dashboard.editor.sections.clock_style_residential' },
+  { kind: 'clock_minimal', style: 'analog-minimal', labelKey: 'dashboard.editor.sections.clock_style_minimal' },
 ];
 
 
@@ -373,6 +373,20 @@ function getClockKindLabel(kind: SectionCardKind) {
   }
 }
 
+function getClockKindLabelKey(kind: SectionCardKind) {
+  switch (normalizeKind(kind)) {
+    case 'clock_digital':
+      return 'dashboard.editor.sections.clock_style_digital';
+    case 'clock_analog':
+      return 'dashboard.editor.sections.clock_style_residential';
+    case 'clock_minimal':
+      return 'dashboard.editor.sections.clock_style_minimal';
+    case 'clock_premium':
+    default:
+      return 'dashboard.editor.sections.clock_style_premium';
+  }
+}
+
 function getClockStyleForKind(kind: SectionCardKind): ClockStyle {
   const normalized = normalizeKind(kind);
   const option = clockCardOptions.find((item) => item.kind === normalized);
@@ -579,6 +593,7 @@ function CardPreview({
   isAssigned?: boolean;
   deviceId?: string;
 }) {
+  const { t } = useTranslation();
   const normalized = normalizeKind(kind);
   const Icon = iconForIconKey(icon ?? getDefaultIcon(normalized));
   const isSmall = span === 'small';
@@ -610,7 +625,7 @@ function CardPreview({
             {title}
           </p>
           <p className="mt-0.5 truncate text-xs font-semibold text-white/75">
-            {deviceId ? 'Vista en vivo / snapshot' : subtitle || 'Sin cámara asignada'}
+            {deviceId ? t('dashboard.editor.sections.camera_live_snapshot') : subtitle || t('dashboard.editor.sections.camera_unassigned')}
           </p>
         </div>
       </div>
@@ -620,7 +635,7 @@ function CardPreview({
   if (normalized === 'energy') {
     return (
       <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-border/45 bg-card p-4">
-        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Energía</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">{t('dashboard.editor.sections.energy_label')}</span>
         <div>
           <span className="text-4xl font-black text-foreground">1.8</span>
           <span className="ml-1 text-sm font-black text-muted-foreground">kW</span>
@@ -640,13 +655,13 @@ function CardPreview({
             <Home className="h-5 w-5" />
           </span>
           <span className="rounded-full border border-border/50 bg-background/55 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-            Habitación
+            {t('dashboard.editor.sections.room_label')}
           </span>
         </div>
         <div className="mt-auto min-w-0">
           <span className="block line-clamp-2 text-lg font-black leading-tight text-foreground">{title}</span>
           <span className="mt-1 block line-clamp-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-            Acceso por estancia
+            {t('dashboard.editor.sections.room_access')}
           </span>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -671,14 +686,14 @@ function CardPreview({
             <Monitor className="h-5 w-5" />
           </span>
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-primary">
-            Lista
+            {t('dashboard.editor.sections.scene_list')}
           </span>
         </div>
         <div className="mt-auto min-w-0">
-          <span className="block text-[9px] font-black uppercase tracking-[0.28em] text-primary/80">Escena</span>
+          <span className="block text-[9px] font-black uppercase tracking-[0.28em] text-primary/80">{t('dashboard.editor.sections.scene_label')}</span>
           <span className="mt-1 block line-clamp-2 text-base font-black leading-tight text-foreground">{title}</span>
           <span className="mt-2 block line-clamp-2 text-[10px] font-semibold leading-snug text-muted-foreground">
-            {subtitle || 'Acceso directo para ejecutar ambiente'}
+            {subtitle || t('dashboard.editor.sections.scene_description')}
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
@@ -708,8 +723,8 @@ function CardPreview({
         </div>
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-            <span>Señales</span>
-            <span className="text-primary">Listo</span>
+            <span>{t('dashboard.editor.sections.signals')}</span>
+            <span className="text-primary">{t('dashboard.editor.sections.ready')}</span>
           </div>
           <div className="h-2 rounded-full bg-muted/70">
             <div className="h-full w-[88%] rounded-full bg-primary" />
@@ -727,7 +742,7 @@ function CardPreview({
       <span className="line-clamp-2 text-sm font-black leading-tight text-foreground">{title}</span>
       {!isSmall ? (
         <span className="mt-1 line-clamp-2 text-[10px] font-bold leading-tight text-muted-foreground">
-          {subtitle || (isAssigned ? 'Asignado' : 'Sin asignar')}
+          {subtitle || (isAssigned ? t('dashboard.editor.sections.assigned') : t('dashboard.editor.sections.unassigned'))}
         </span>
       ) : null}
     </div>
@@ -883,7 +898,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         kind: cardDraft.kind,
         title: cardDraft.title.trim() || selectedScene?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
         description: normalizeKind(cardDraft.kind) === 'scene' && selectedScene
-          ? `${selectedScene.actionCount} ${selectedScene.actionCount === 1 ? 'acción' : 'acciones'}`
+          ? `${selectedScene.actionCount} ${selectedScene.actionCount === 1 ? t('dashboard.editor.sections.scene_action_one') : t('dashboard.editor.sections.scene_action_other')}`
           : catalogDescription(cardDraft.kind),
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
@@ -1068,7 +1083,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 openCardEditor(card);
               }}
               className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-primary"
-              aria-label="Edit card"
+              aria-label={t('dashboard.editor.sections.edit_card')}
             >
               <Pencil className="h-4 w-4" />
             </button>
@@ -1079,7 +1094,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 removeCard(card.id);
               }}
               className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-destructive"
-              aria-label="Remove card"
+              aria-label={t('dashboard.editor.sections.remove_card')}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -1211,10 +1226,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-                Editar
+                {t('dashboard.editor.sections.edit')}
               </p>
               <h3 className="text-xl font-black text-foreground">
-                Editar tarjeta
+                {t('dashboard.editor.sections.edit_card')}
               </h3>
             </div>
 
@@ -1230,7 +1245,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           <div className="space-y-4 px-5 py-5">
             {renderCatalogPreview(
               cardDraft.kind,
-              cardDraft.title || (isClockKind(cardDraft.kind) ? getClockKindLabel(cardDraft.kind) : catalogLabel(cardDraft.kind)),
+              cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
               normalizeKind(cardDraft.kind) === 'camera' ? cardDraft.entityId : undefined,
@@ -1238,7 +1253,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
             <label className="block space-y-2">
               <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-                Nombre
+                {t('dashboard.editor.sections.name')}
               </span>
               <input
                 value={cardDraft.title}
@@ -1249,11 +1264,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
             {isClockKind(cardDraft.kind) ? (
               <DashboardSelect
-                label="Diseño de reloj"
+                label={t('dashboard.editor.sections.clock_design')}
                 value={cardDraft.kind}
                 options={clockCardOptions.map((option) => ({
                   value: option.kind,
-                  label: option.label,
+                  label: t(option.labelKey),
                 }))}
                 onChange={(value) => {
                   const nextKind = value as NormalizedSectionCardKind;
@@ -1263,13 +1278,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                     entityId: '',
                     span: getDefaultSpan(nextKind),
                     icon: getDefaultIcon(nextKind),
-                    title: draft.title || getClockKindLabel(nextKind),
+                    title: draft.title || t(getClockKindLabelKey(nextKind)),
                   }));
                 }}
               />
             ) : (
               <DashboardSelect
-                label="Tipo de tarjeta"
+                label={t('dashboard.editor.sections.card_type')}
                 value={cardDraft.kind}
                 options={cardKinds
                   .filter((kind) => !isClockKind(kind))
@@ -1319,14 +1334,14 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               <div className="space-y-2">
                 {normalizeKind(cardDraft.kind) === 'scene' ? (
                   <DashboardSelect
-                    label="Escena asignada"
+                    label={t('dashboard.editor.sections.assigned_scene')}
                     value={cardDraft.entityId}
-                    placeholder="Sin asignar"
+                    placeholder={t('dashboard.editor.sections.unassigned')}
                     options={[
-                      { value: '', label: 'Sin asignar' },
+                      { value: '', label: t('dashboard.editor.sections.unassigned') },
                       ...scenes.map((scene) => ({
                         value: scene.id,
-                        label: `${scene.name} · ${scene.actionCount} ${scene.actionCount === 1 ? 'acción' : 'acciones'}`,
+                        label: `${scene.name} · ${scene.actionCount} ${scene.actionCount === 1 ? t('dashboard.editor.sections.scene_action_one') : t('dashboard.editor.sections.scene_action_other')}`,
                       })),
                     ]}
                     onChange={(selectedId) => {
@@ -1340,11 +1355,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                   />
                 ) : (
                   <DashboardSelect
-                    label="Dispositivo asignado"
+                    label={t('dashboard.editor.sections.assigned_device')}
                     value={cardDraft.entityId}
-                    placeholder="Sin asignar"
+                    placeholder={t('dashboard.editor.sections.unassigned')}
                     options={[
-                      { value: '', label: 'Sin asignar' },
+                      { value: '', label: t('dashboard.editor.sections.unassigned') },
                       ...assignableDevices.map((device) => ({
                         value: device.id,
                         label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
@@ -1374,7 +1389,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               onClick={() => setEditingCardId(null)}
               className="rounded-2xl border border-border/50 px-5 py-2.5 text-sm font-black text-muted-foreground transition hover:text-foreground"
             >
-              Cancelar
+              {t('dashboard.editor.sections.cancel')}
             </button>
 
             <button
@@ -1382,7 +1397,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               onClick={saveCardEditor}
               className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105"
             >
-              Guardar
+              {t('dashboard.editor.sections.save')}
             </button>
           </div>
         </div>
