@@ -590,12 +590,12 @@ function CardPreview({
 
   if (normalized === 'room') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] p-3.5 sm:p-4">
+      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[1.35rem] border border-border/60 bg-card/95 p-3.5 text-foreground shadow-[0_14px_40px_hsl(var(--foreground)/0.07)] ring-1 ring-background/45 transition-all dark:border-border/45 dark:bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] sm:p-4">
         <div className="flex items-start justify-between gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner sm:h-11 sm:w-11">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary shadow-sm ring-1 ring-primary/15 sm:h-11 sm:w-11">
             <Home className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" />
           </span>
-          <span className="rounded-full border border-border/50 bg-background/55 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
+          <span className="rounded-full border border-border/55 bg-background/80 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground shadow-sm sm:text-[10px]">
             {t('dashboard.editor.sections.room_label')}
           </span>
         </div>
@@ -608,7 +608,7 @@ function CardPreview({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <span className="min-w-0 rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
+          <span className="min-w-0 rounded-2xl border border-border/55 bg-background/70 px-3 py-2 shadow-sm">
             <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
               {t('dashboard.editor.sections.room_devices')}
             </span>
@@ -616,8 +616,8 @@ function CardPreview({
               {roomDeviceCount ?? 0}
             </span>
           </span>
-          <span className="min-w-0 rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2">
-            <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-primary/70">
+          <span className="min-w-0 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2 shadow-sm ring-1 ring-primary/10">
+            <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-primary">
               {t('dashboard.editor.sections.room_active')}
             </span>
             <span className="mt-0.5 block truncate text-xs font-black text-primary sm:text-sm">
@@ -688,17 +688,19 @@ function CardPreview({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-[1.35rem] border p-4 text-center transition-all",
+        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-[1.35rem] border p-4 text-center text-foreground transition-all",
         isActive
-          ? "border-primary/55 bg-[radial-gradient(circle_at_50%_20%,hsl(var(--primary)/0.24),transparent_38%),hsl(var(--card))] shadow-[0_0_28px_hsl(var(--primary)/0.18)]"
-          : "border-border/45 bg-card opacity-85"
+          ? "border-primary/55 bg-[linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.12))] shadow-[0_16px_42px_hsl(var(--primary)/0.18)] ring-1 ring-primary/20 dark:bg-[radial-gradient(circle_at_50%_20%,hsl(var(--primary)/0.24),transparent_38%),hsl(var(--card))]"
+          : "border-border/60 bg-card/95 shadow-[0_12px_34px_hsl(var(--foreground)/0.07)] ring-1 ring-background/45"
       )}
     >
       <span
         className={cn(
           "mb-3 grid place-items-center rounded-full transition-all",
           isSmall ? "h-16 w-16" : "h-24 w-24",
-          isActive ? "bg-primary/20 text-primary shadow-[0_0_24px_hsl(var(--primary)/0.18)]" : "bg-muted/45 text-muted-foreground"
+          isActive
+            ? "bg-primary/15 text-primary shadow-[0_0_24px_hsl(var(--primary)/0.16)] ring-1 ring-primary/20"
+            : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
         <Icon className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
@@ -710,7 +712,7 @@ function CardPreview({
             "mt-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]",
             isActive
               ? "border-primary/35 bg-primary/10 text-primary"
-              : "border-border/45 bg-background/35 text-muted-foreground"
+              : "border-border/55 bg-muted/60 text-muted-foreground"
           )}
         >
           {t(isActive ? 'device_statuses.on' : 'device_statuses.off')}
