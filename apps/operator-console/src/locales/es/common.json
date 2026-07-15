@@ -89,6 +89,7 @@
     "review": "Revisar",
     "assign": "Asignar",
     "fix": "Corregir",
+    "generic_finding_description": "Se identificó una oportunidad de mejora en el hogar. Revisa los detalles para continuar.",
     "severities": {
       "high": "Prioridad Alta",
       "medium": "Media",
@@ -417,6 +418,7 @@
     "all_scenes": "Todas las Escenas del Sistema",
     "point_count_one": "1 Punto",
     "point_count_other": "{{count}} Puntos",
+    "global_scene": "Escena global",
     "delete_confirm_title": "¿Eliminar Escena?",
     "delete_confirm_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados."
   },
@@ -553,7 +555,8 @@
       "verifying_session": "Verificando Sesión..."
     },
     "tooltips": {
-      "switch_language": "Cambiar Idioma"
+      "switch_language": "Cambiar Idioma",
+      "change_password": "Cambiar contraseña"
     }
   },
   "inbox": {
@@ -1232,6 +1235,7 @@
     "action_create": "Crea tu primer panel",
     "action_new": "Nuevo Panel",
     "action_add_widget": "Añadir Widget",
+    "action_edit": "Editar",
     "placeholder_title": "Nombre de mi panel...",
     "tabs_empty": "Sin pestañas aún",
     "tabs_hint": "Las pestañas te permiten organizar tu panel en distintas secciones.",

@@ -13,6 +13,10 @@ import {
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { StatusPill } from './ui/StatusPill';
+import {
+  getSafeFindingMetadata,
+  hasTechnicalFindingMetadata,
+} from '../lib/assistantFindingPresentation';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 
 interface AssistantFindingCardProps {
@@ -72,6 +76,10 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const reasonKey = getMetadataText(finding.metadata, ['reasonKey'], '');
+  const safeMetadata = getSafeFindingMetadata(finding.metadata);
+  const description = hasTechnicalFindingMetadata(finding.metadata)
+    ? t('assistant.generic_finding_description')
+    : t(`assistant.types.${finding.type}_description`, safeMetadata);
 
   return (
     <div
@@ -97,7 +105,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
         {t(`assistant.types.${finding.type}`)}
       </h3>
       <p className="text-caption text-muted-foreground leading-relaxed mb-6 font-medium">
-        {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
+        {description}
       </p>
 
       {reasonKey !== '' && (

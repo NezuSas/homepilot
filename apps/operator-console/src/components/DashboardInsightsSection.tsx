@@ -3,27 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { Sparkles, Zap } from 'lucide-react';
 import { AssistantCard } from './ui/AssistantCard';
 import { Button } from './ui/Button';
+import {
+  getSafeFindingMetadata,
+  hasTechnicalFindingMetadata,
+} from '../lib/assistantFindingPresentation';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 
 interface DashboardInsightsSectionProps {
   findings: AssistantFinding[];
   onAction: (finding: AssistantFinding, action: AssistantFindingAction) => void;
 }
-
-const getMetadataText = (
-  metadata: Record<string, unknown>,
-  keys: string[],
-  fallback: string
-): string => {
-  for (const key of keys) {
-    const value = metadata[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-  }
-
-  return fallback;
-};
 
 const isEnergyFinding = (finding: AssistantFinding): boolean => {
   return finding.type.includes('energy')
@@ -52,18 +41,18 @@ export const DashboardInsightsSection: React.FC<DashboardInsightsSectionProps> =
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {findings.slice(0, 2).map((finding) => {
           const isEnergy = isEnergyFinding(finding);
+          const safeMetadata = getSafeFindingMetadata(finding.metadata);
+          const description = hasTechnicalFindingMetadata(finding.metadata)
+            ? t('assistant.generic_finding_description')
+            : t(`assistant.types.${finding.type}_description`, safeMetadata);
 
           return (
             <AssistantCard
               key={finding.id}
               icon={isEnergy ? Zap : Sparkles}
               category={isEnergy ? t('dashboard.energy_insight') : t('dashboard.proactive')}
-              title={getMetadataText(finding.metadata, ['displayTitle'], t(`assistant.types.${finding.type}`))}
-              description={getMetadataText(
-                finding.metadata,
-                ['displayDescription'],
-                t(`assistant.types.${finding.type}_description`, finding.metadata) as string
-              )}
+              title={t(`assistant.types.${finding.type}`)}
+              description={description}
               severity={finding.severity}
               actions={
                 <div className="flex gap-2 w-full mt-2">

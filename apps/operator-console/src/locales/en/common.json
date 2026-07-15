@@ -89,6 +89,7 @@
     "review": "Review",
     "assign": "Assign",
     "fix": "Fix",
+    "generic_finding_description": "An opportunity to improve your home was identified. Review the details to continue.",
     "severities": {
       "high": "High Priority",
       "medium": "Medium",
@@ -417,6 +418,7 @@
     "all_scenes": "All System Scenes",
     "point_count_one": "1 Point",
     "point_count_other": "{{count}} Points",
+    "global_scene": "Global scene",
     "delete_confirm_title": "Delete Scene?",
     "delete_confirm_description": "This will permanently remove the scene. Individual devices will not be affected."
   },
@@ -553,7 +555,8 @@
       "verifying_session": "Verifying Session..."
     },
     "tooltips": {
-      "switch_language": "Switch Language"
+      "switch_language": "Switch Language",
+      "change_password": "Change password"
     }
   },
   "inbox": {
@@ -1232,6 +1235,7 @@
     "action_create": "Create your first dashboard",
     "action_new": "New Panel",
     "action_add_widget": "Add Widget",
+    "action_edit": "Edit",
     "placeholder_title": "My panel name...",
     "tabs_empty": "No tabs yet",
     "tabs_hint": "Tabs let you organize your dashboard into distinct sections.",

@@ -95,7 +95,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4 sm:gap-3">
             <span className="text-micro font-black uppercase tracking-label text-primary/60">
-              {roomName || t('common.unknown')}
+              {roomName || t('scenes.global_scene')}
             </span>
             <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
             <span className="text-micro font-black uppercase tracking-label text-muted-foreground opacity-40">

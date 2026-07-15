@@ -477,11 +477,6 @@ export const TopologyView: React.FC = () => {
                         )} />
                       </div>
                     </div>
-                    <div className="flex items-center justify-between mt-3 ml-12">
-                      <span className="text-micro text-muted-foreground/50 font-mono bg-muted/30 px-2 py-0.5 rounded border border-border/10">
-                        {home.id}
-                      </span>
-                    </div>
                   </li>
                 );
               })}
