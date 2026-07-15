@@ -121,7 +121,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
       onClick={onInspect}
       className={cn(
         'relative group cursor-pointer transition-all duration-500',
-        'aspect-square min-w-[140px] p-4 rounded-2xl flex flex-col justify-between border-2 hover:-translate-y-1 hover:shadow-xl',
+        'aspect-square min-w-inbox-device p-4 rounded-2xl flex flex-col justify-between border-2 hover:-translate-y-1 hover:shadow-xl',
         'bg-card hover:border-border',
         isOn && isAssigned && !unavailable ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20' : 'border-border shadow-md',
         (!isAssigned && isSonoff) ? 'border-success/30 bg-success/5 shadow-lg shadow-success/10 animate-in fade-in zoom-in-95 duration-700' : '',
@@ -154,7 +154,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
       </div>
 
       {error && !isProcessing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-[1px] rounded-2xl p-2 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-micro rounded-2xl p-2 text-center">
           <AlertCircle className="w-5 h-5 text-destructive mb-1" />
           <span className="text-micro font-black uppercase text-destructive leading-tight">{error}</span>
           <button
@@ -170,10 +170,10 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         <div className="flex items-center gap-2 overflow-hidden">
           <span className="text-caption font-black uppercase tracking-tighter truncate opacity-60">{device.type}</span>
           {isSonoff && (
-            <span className="text-micro font-black uppercase tracking-[0.1em] bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.1)] shrink-0">{t('inbox.native_local')}</span>
+            <span className="text-micro font-black uppercase tracking-micro bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-success-pill shrink-0">{t('inbox.native_local')}</span>
           )}
           {unavailable && (
-            <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-micro font-black uppercase tracking-[0.1em] text-danger">
+            <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-micro font-black uppercase tracking-micro text-danger">
               {t('device_states.unavailable')}
             </span>
           )}

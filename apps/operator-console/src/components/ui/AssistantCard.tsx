@@ -38,7 +38,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
       <div
         ref={ref}
         className={cn(
-          "relative border-2 rounded-[2rem] p-6 overflow-hidden transition-all duration-500 flex flex-col md:flex-row gap-6",
+          "relative border-2 rounded-panel p-6 overflow-hidden transition-all duration-500 flex flex-col md:flex-row gap-6",
           isDismissed ? "opacity-0 translate-x-12 scale-95 pointer-events-none" : "hover:-translate-y-1 hover:shadow-xl",
           !severity ? "border-primary/30 bg-gradient-to-br from-card via-card to-primary/10 shadow-lg shadow-primary/10 hover:shadow-primary/20" : "bg-card border-border shadow-md",
           className

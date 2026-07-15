@@ -129,7 +129,7 @@ export function DashboardWidgetNode({
         // Section widgets and cameras are transparent shell-wise (camera handles its own rounded borders)
         isSection || isCamera
           ? "rounded-2xl bg-transparent border-transparent shadow-none"
-          : "rounded-[1.5rem] sm:rounded-[2rem]",
+          : "rounded-section sm:rounded-panel",
         
         // --- Variant Application (non-section, non-camera) ---
         !isSection && !isCamera && !accentColor && isDevice && "bg-card border border-border/60 shadow-xl",
@@ -239,7 +239,7 @@ export function DashboardWidgetNode({
 
           {/* Resize Preview */}
           {isResizing && (
-            <div className="absolute inset-0 pointer-events-none border-2 border-primary border-dashed rounded-[2rem] bg-primary/5 z-50">
+            <div className="absolute inset-0 pointer-events-none border-2 border-primary border-dashed rounded-panel bg-primary/5 z-50">
                <div className="absolute bottom-2 right-4 text-micro font-black text-primary uppercase">
                  {widget.config.layout.w + resizeOffset.w} × {widget.config.layout.h + resizeOffset.h}
                </div>

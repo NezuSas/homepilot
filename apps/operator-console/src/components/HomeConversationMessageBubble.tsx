@@ -41,7 +41,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
     >
       <div className={cn(
         "flex gap-3",
-        isUserMessage ? "max-w-[92%] flex-row-reverse lg:max-w-[64%]" : "max-w-[92%] flex-row lg:max-w-[74%]"
+        isUserMessage ? "max-w-conversation-mobile flex-row-reverse lg:max-w-percent-64" : "max-w-conversation-mobile flex-row lg:max-w-conversation-assistant"
       )}>
         <div className={cn(
           "mt-1 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-depth-1",

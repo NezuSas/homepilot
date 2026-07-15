@@ -33,7 +33,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
         <div className="min-w-0 flex flex-col">
           {/* Eyebrow — only for section level with subtitle */}
           {subtitle && level !== 'group' && (
-            <span className="text-label font-black uppercase tracking-[0.22em] text-muted-foreground/60 mb-1.5">
+            <span className="text-label font-black uppercase tracking-label text-muted-foreground/60 mb-1.5">
               {subtitle}
             </span>
           )}
@@ -69,7 +69,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
                 {title}
               </h3>
             ) : (
-              <span className="text-label font-black uppercase tracking-[0.2em] text-muted-foreground/55">
+              <span className="text-label font-black uppercase tracking-label text-muted-foreground/55">
                 {title}
               </span>
             )}

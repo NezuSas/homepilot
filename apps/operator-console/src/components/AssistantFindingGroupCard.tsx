@@ -94,7 +94,7 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
   return (
     <div className="col-span-1 md:col-span-2 lg:col-span-3">
       <div className={cn(
-        'rounded-[2rem] border bg-card transition-all duration-300 overflow-hidden',
+        'rounded-panel border bg-card transition-all duration-300 overflow-hidden',
         isExpanded ? 'border-primary/40 shadow-2xl shadow-primary/5' : 'border-border hover:border-primary/20'
       )}>
         <button

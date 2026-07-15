@@ -29,7 +29,7 @@ export const DashboardsHero: React.FC<DashboardsHeroProps> = ({
   onToggleEditing,
   onCreate
 }) => (
-  <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-6">
+  <div className="relative mb-6 overflow-hidden rounded-panel border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-6">
     <div className="absolute inset-0 pointer-events-none">
       <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
       <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-primary/3 rounded-full blur-2xl translate-y-1/2" />
@@ -40,7 +40,7 @@ export const DashboardsHero: React.FC<DashboardsHeroProps> = ({
           <LayoutDashboard className="h-6 w-6 text-primary-foreground sm:h-7 sm:w-7" />
         </div>
         <div className="min-w-0">
-          <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/70 mb-2">{category}</p>
+          <p className="text-micro font-black uppercase tracking-label-wider text-primary/70 mb-2">{category}</p>
           <h2 className="truncate text-view-title font-black tracking-tight text-foreground sm:text-display-title">{title}</h2>
           <p className="text-caption text-muted-foreground/60 max-w-md">{subtitle}</p>
         </div>

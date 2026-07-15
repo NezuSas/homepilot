@@ -101,7 +101,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
   if (loading && devices.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+      <div className="flex flex-col items-center justify-center h-full min-h-empty-sm">
         <Loader2 className="w-10 h-10 animate-spin text-primary opacity-20" />
       </div>
     );
@@ -186,11 +186,11 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
           <section key={id} className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/header">
               <h3 className="text-body font-black uppercase tracking-widest flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.3)]" />
+                <div className="w-1.5 h-6 bg-primary rounded-full shadow-primary-pill" />
                 {group.name}
               </h3>
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/30 hidden sm:block min-w-[20px]" />
+                <div className="h-px flex-1 bg-border/30 hidden sm:block min-w-5" />
                 <span className="px-3 py-1 bg-muted rounded-full text-micro font-black border border-border opacity-50 whitespace-nowrap">
                   {t('inbox.rooms.device_count', { count: group.devices.length })}
                 </span>
@@ -233,12 +233,12 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         ))}
 
         {Object.keys(grouped).length === 0 && (
-          <div className="py-24 border-2 border-dashed border-border/40 rounded-[3rem] flex flex-col items-center justify-center text-center bg-card/5">
+          <div className="py-24 border-2 border-dashed border-border/40 rounded-hero flex flex-col items-center justify-center text-center bg-card/5">
              <Zap className="w-12 h-12 mb-4 text-primary opacity-20" />
              <h3 className="text-panel-title font-black mb-2 tracking-tight">
                {mode === 'discovery' ? t('inbox.discovery.no_entities') : t('inbox.empty_state')}
              </h3>
-             <p className="text-micro font-black uppercase tracking-[0.4em] opacity-40">
+             <p className="text-micro font-black uppercase tracking-label-hero opacity-40">
                {mode === 'discovery' ? t('nav.system_inbox') : t('nav.system_devices')}
              </p>
           </div>

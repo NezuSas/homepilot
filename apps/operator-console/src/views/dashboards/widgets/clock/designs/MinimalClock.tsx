@@ -11,19 +11,19 @@ export function MinimalClock({ now, locale, copy, weather, weatherStatus }: Cloc
   const dateLine = formatDateLine(now, locale);
 
   return (
-    <ClockShell className="p-[clamp(1rem,3.2cqi,1.8rem)]">
+    <ClockShell className="p-clock-shell-roomy">
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ClockLabel>{copy.localTime}</ClockLabel>
             <div className="mt-2 truncate text-clock-caption-fluid font-semibold text-muted-foreground">{dateLine}</div>
           </div>
-          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-clock-micro-fluid font-black uppercase tracking-[0.18em] text-primary">
+          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-clock-micro-fluid font-black uppercase tracking-status text-primary">
             {seconds} {copy.secondsShort}
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 place-items-center py-[clamp(0.6rem,2cqi,1.2rem)]">
+        <div className="grid min-h-0 flex-1 place-items-center py-clock-section-y-compact">
           <TimeText hours={hours} minutes={minutes} blink={blink} size="hero" />
         </div>
 

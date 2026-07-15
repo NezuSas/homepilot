@@ -312,7 +312,7 @@ const canvasMinRows = useMemo(() => {
         className={cn(
           "relative w-full grid gap-2.5 transition-all duration-500 sm:gap-3 lg:gap-4",
           isEditing
-            ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:20px_20px] shadow-2xl shadow-primary/5"
+            ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
             : "border-transparent bg-transparent p-0"
         )}
         style={{
@@ -331,9 +331,9 @@ const canvasMinRows = useMemo(() => {
               opacity: activeWidget?.id === widget.id ? 0.3 : 1,
             }}
             className={cn(
-              "min-w-0 min-h-0 select-none transition-all duration-300 relative rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.5rem]",
+              "min-w-0 min-h-0 select-none transition-all duration-300 relative rounded-section sm:rounded-panel lg:rounded-dashboard",
               canEditLayout && "cursor-grab active:cursor-grabbing hover:z-10",
-              selectedWidgetId === widget.id && isEditing && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(var(--primary),0.3)]"
+              selectedWidgetId === widget.id && isEditing && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-primary-ring"
             )}
           >
             <DashboardWidgetNode
@@ -392,8 +392,8 @@ const canvasMinRows = useMemo(() => {
       className={cn(
         "z-10 flex min-h-0 min-w-0 transition-all duration-200",
         isAddTitle
-          ? "items-center justify-center rounded-[1.25rem] border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-          : "items-center justify-center rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+          ? "items-center justify-center rounded-section border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+          : "items-center justify-center rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
       )}
       style={{
         gridColumn: `${placeholder.x + 1} / span ${Math.min(placeholder.w, gridCols - placeholder.x)}`,
@@ -422,7 +422,7 @@ const canvasMinRows = useMemo(() => {
               gridRow: `${snapPreview.y + 1} / span ${snapPreview.h}`,
               pointerEvents: 'none',
             }}
-            className="rounded-[2.5rem] border-2 border-dashed border-primary/40 bg-primary/5 transition-all duration-100"
+            className="rounded-dashboard border-2 border-dashed border-primary/40 bg-primary/5 transition-all duration-100"
           />
         )}
         <DragOverlay dropAnimation={{
@@ -436,7 +436,7 @@ const canvasMinRows = useMemo(() => {
         }}>
           {canEditLayout && activeWidget && colWidth > 0 ? (
             <div
-              className="rounded-[2rem] shadow-2xl opacity-80 border border-primary/20 bg-card/80 backdrop-blur-xl"
+              className="rounded-panel shadow-2xl opacity-80 border border-primary/20 bg-card/80 backdrop-blur-xl"
               style={{
                 width: colWidth * activeWidget.config.layout.w - 16,
                 height: rowHeight * activeWidget.config.layout.h - 16,

@@ -48,7 +48,7 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
             </div>
             <div>
               <p className="text-caption font-black text-foreground mb-1">{t('dashboards.widgets.assistant_insights.no_findings')}</p>
-              <p className="text-micro text-muted-foreground max-w-[140px] mx-auto leading-relaxed">{t('dashboards.widgets.assistant_insights.no_findings_desc')}</p>
+              <p className="text-micro text-muted-foreground max-w-copy-sm mx-auto leading-relaxed">{t('dashboards.widgets.assistant_insights.no_findings_desc')}</p>
             </div>
           </div>
         ) : (

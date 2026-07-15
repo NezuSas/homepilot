@@ -44,7 +44,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         onClick={isInteractive ? onClick : undefined}
         className={cn(
           // Base structure
-          'surface-transition relative rounded-[1.75rem] border overflow-hidden group flex flex-col justify-between',
+          'surface-transition relative rounded-card border overflow-hidden group flex flex-col justify-between',
           // Padding — slightly more breathing room
           'p-5',
           // Cursor
@@ -67,7 +67,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         {active && !error && (
           <span
             aria-hidden
-            className="absolute inset-0 rounded-[1.75rem] pointer-events-none"
+            className="absolute inset-0 rounded-card pointer-events-none"
             style={{
               background: 'radial-gradient(ellipse at 30% 20%, hsl(210 100% 58% / 0.07) 0%, transparent 65%)',
             }}
@@ -93,7 +93,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
             >
               <Icon
                 className={cn(
-                  'w-[1.1rem] h-[1.1rem]',
+                  'h-control-icon w-control-icon',
                   syncing && 'animate-pulse',
                 )}
               />
@@ -151,7 +151,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         {active && !error && (
           <span
             aria-hidden
-            className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-primary/50"
+            className="absolute bottom-0 left-4 right-4 h-rule rounded-full bg-primary/50"
             style={{ boxShadow: '0 0 8px hsl(210 100% 58% / 0.6)' }}
           />
         )}

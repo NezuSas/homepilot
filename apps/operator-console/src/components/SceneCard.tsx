@@ -76,14 +76,14 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     <div
       onClick={() => onExecute(scene)}
       className={cn(
-        'group relative bg-card/40 backdrop-blur-2xl border-2 rounded-[2rem] p-4 transition-all duration-700 cursor-pointer overflow-hidden sm:rounded-[3rem] sm:p-6 lg:rounded-[3.5rem] lg:p-8',
+        'group relative bg-card/40 backdrop-blur-2xl border-2 rounded-panel p-4 transition-all duration-700 cursor-pointer overflow-hidden sm:rounded-hero sm:p-6 lg:rounded-scene lg:p-8',
         isSuccessful ? 'border-primary bg-primary/5 premium-glow shadow-primary/10 scale-[1.02]' : 'border-border/40 hover:border-primary/40',
         isExecuting && 'animate-premium-pulse'
       )}
     >
       <div className="relative z-10 flex items-start gap-4 sm:gap-6 lg:gap-8">
         <div className={cn(
-          'rounded-[1.5rem] p-4 transition-all duration-700 transform group-hover:scale-110 sm:rounded-[2rem] sm:p-5 lg:rounded-[2.5rem] lg:p-6',
+          'rounded-section p-4 transition-all duration-700 transform group-hover:scale-110 sm:rounded-panel sm:p-5 lg:rounded-dashboard lg:p-6',
           isSuccessful ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/40' : 'bg-primary/10 text-primary group-hover:bg-primary/20'
         )}>
           {isExecuting ? <Loader2 className="h-6 w-6 animate-spin sm:h-8 sm:w-8" /> : <Icon className="h-6 w-6 sm:h-8 sm:w-8" />}
@@ -94,11 +94,11 @@ export const SceneCard: React.FC<SceneCardProps> = ({
             {description}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4 sm:gap-3">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/60">
+            <span className="text-micro font-black uppercase tracking-label text-primary/60">
               {roomName || t('common.unknown')}
             </span>
             <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
+            <span className="text-micro font-black uppercase tracking-label text-muted-foreground opacity-40">
               {t('scenes.point_count', { count: scene.actions.length })}
             </span>
           </div>

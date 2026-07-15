@@ -52,7 +52,7 @@ export function SceneShortcutWidget({ config, isEditing, onConfigure }: { config
       )}
     >
       <div className={cn(
-        "w-12 h-12 @md:w-16 @md:h-16 rounded-[1.5rem] @md:rounded-[2rem] flex items-center justify-center border transition-all duration-500 mb-2 @md:mb-4",
+        "w-12 h-12 @md:w-16 @md:h-16 rounded-section @md:rounded-panel flex items-center justify-center border transition-all duration-500 mb-2 @md:mb-4",
         status === 'executing' ? "bg-primary border-primary shadow-xl shadow-primary/30 rotate-12" : 
         status === 'success' ? "bg-success border-success text-success-foreground" :
         "bg-primary/10 border-primary/20"
@@ -67,7 +67,7 @@ export function SceneShortcutWidget({ config, isEditing, onConfigure }: { config
       </div>
 
       <div className="text-center">
-        <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 mb-1">
+        <p className="text-micro font-black uppercase tracking-label text-primary/50 mb-1">
           {t('dashboards.widgets.scenes_shortcut.label')}
         </p>
         <h4 className="text-caption @md:text-body font-black tracking-tight text-foreground line-clamp-2 text-center leading-tight">{sceneName}</h4>

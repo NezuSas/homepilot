@@ -41,13 +41,13 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
 
   return (
     <div className={cn(
-      "relative w-full h-full min-h-0 rounded-[1.5rem] @md:rounded-[2.5rem] overflow-hidden p-4 @md:p-6 transition-all duration-700",
+      "relative w-full h-full min-h-0 rounded-section @md:rounded-dashboard overflow-hidden p-4 @md:p-6 transition-all duration-700",
       config.appearance.variant === 'glass' && "bg-card/40 backdrop-blur-2xl border border-border/40",
       config.appearance.variant === 'solid' && "bg-background border border-border/20",
       config.appearance.variant === 'outline' && "border-2 border-primary/20",
       config.appearance.variant === 'flat' && "bg-muted/30"
     )}>
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 animate-pulse" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-energy -translate-y-1/2 translate-x-1/2 animate-pulse" />
 
       <div className="flex items-center justify-between mb-4 @md:mb-6 relative z-10">
         <div className="flex items-center gap-3">
@@ -56,7 +56,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
           </div>
           <div>
             {config.appearance.showTitle && (
-              <h3 className="text-micro font-black uppercase tracking-[0.2em] text-foreground/80">
+              <h3 className="text-micro font-black uppercase tracking-label text-foreground/80">
                 {config.appearance.title || t('dashboards.widgets.energy_insight.label')}
               </h3>
             )}
@@ -71,7 +71,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
 
       <div className="grid grid-cols-1 gap-4 @md:gap-6 relative z-10">
         <div className="flex flex-col gap-1">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/40">{t('dashboards.widgets.energy_insight.current_power')}</span>
+          <span className="text-micro font-black uppercase tracking-label text-muted-foreground/40">{t('dashboards.widgets.energy_insight.current_power')}</span>
           <div className="flex items-baseline gap-2">
             <span className="text-widget-metric-fluid font-black tracking-tighter text-foreground tabular-nums">
               {power.toLocaleString()}
@@ -102,7 +102,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
       <div className="mt-6 space-y-2 relative z-10">
          {entities.slice(0, 2).map(entity => (
            <div key={entity.entity_id} className="flex items-center justify-between px-2">
-              <span className="text-micro font-bold text-muted-foreground/60 truncate max-w-[120px] uppercase tracking-widest">{entity.name}</span>
+              <span className="text-micro font-bold text-muted-foreground/60 truncate max-w-copy-xs uppercase tracking-widest">{entity.name}</span>
               <span className="text-micro font-black text-foreground/80 tabular-nums">{entity.state} {entity.unit}</span>
            </div>
          ))}

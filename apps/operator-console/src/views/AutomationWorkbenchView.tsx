@@ -241,7 +241,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       
       {/* Header with Create Button */}
       <SectionHeader 
-        className="bg-card/40 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm shadow-sm"
+        className="bg-card/40 p-6 rounded-panel border border-border/40 backdrop-blur-sm shadow-sm"
         title={t('automations.title')}
         subtitle={t('automations.active_recipes', { count: rules.length })}
         icon={Zap}

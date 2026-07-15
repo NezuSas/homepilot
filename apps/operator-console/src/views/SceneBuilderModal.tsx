@@ -126,7 +126,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
       
-      <div className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border-2 border-border/40 bg-card/60 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] backdrop-blur-2xl animate-in zoom-in-95 duration-500 sm:max-h-[90vh] sm:rounded-[3rem]">
+      <div className="relative flex max-h-viewport-modal w-full max-w-2xl flex-col overflow-hidden rounded-panel border-2 border-border/40 bg-card/60 shadow-scene-modal backdrop-blur-2xl animate-in zoom-in-95 duration-500 sm:max-h-viewport-panel-sm sm:rounded-hero">
         
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-4 px-5 pb-3 pt-5 sm:px-8 sm:pb-4 sm:pt-8">
@@ -134,7 +134,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
             <h2 className="truncate text-panel-title font-black tracking-tighter sm:text-view-title">
               {existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
             </h2>
-            <p className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">
+            <p className="text-micro font-black uppercase tracking-label text-muted-foreground opacity-50 mt-1">
               {t('scenes.builder.subtitle')}
             </p>
           </div>
@@ -152,12 +152,12 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           )}
 
           {/* Identity Section */}
-          <div className="relative space-y-4 rounded-[1.5rem] border border-border/10 bg-muted/10 p-4 sm:rounded-[2rem] sm:p-6">
+          <div className="relative space-y-4 rounded-section border border-border/10 bg-muted/10 p-4 sm:rounded-panel sm:p-6">
              <div className="flex items-center gap-3 mb-2">
                 <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0">
                   <Settings className="w-3 h-3 text-foreground/40" />
                 </div>
-                <label className="text-micro font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{t('scenes.builder.identity')}</label>
+                <label className="text-micro font-black uppercase tracking-label-wider text-muted-foreground opacity-60">{t('scenes.builder.identity')}</label>
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -203,13 +203,13 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           </div>
 
           {/* Device Selection Section */}
-          <div className="relative space-y-4 rounded-[1.5rem] border border-primary/10 bg-primary/[0.02] p-4 sm:rounded-[2rem] sm:p-6">
+          <div className="relative space-y-4 rounded-section border border-primary/10 bg-primary/[0.02] p-4 sm:rounded-panel sm:p-6">
              <div className="mb-2 flex flex-col gap-3 min-[460px]:flex-row min-[460px]:items-center min-[460px]:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
                     <List className="w-3 h-3" />
                   </div>
-                  <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/60">
+                  <label className="text-micro font-black uppercase tracking-label-wider text-primary/60">
                     {t('scenes.builder.select_units', { count: actions.length })}
                   </label>
                 </div>
@@ -249,7 +249,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-body font-black tracking-tighter leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
-                            <span className="text-nano font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
+                            <span className="text-nano font-black uppercase tracking-label text-muted-foreground opacity-40">
                                {(d.semanticType || d.type).toUpperCase()}
                             </span>
                           </div>
@@ -293,7 +293,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
             <button 
               disabled={saving || !name || actions.length === 0}
               onClick={handleSave}
-              className="w-full bg-primary text-primary-foreground py-5 rounded-[2rem] font-black text-caption uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
+              className="w-full bg-primary text-primary-foreground py-5 rounded-panel font-black text-caption uppercase tracking-label-wider transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               {t('scenes.builder.commit')}

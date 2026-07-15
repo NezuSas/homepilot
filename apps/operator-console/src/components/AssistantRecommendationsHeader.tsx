@@ -6,7 +6,7 @@ export const AssistantRecommendationsHeader: React.FC = () => {
 
   return (
     <div className="flex items-center gap-4 px-2">
-      <h2 className="text-micro font-black uppercase tracking-[0.25em] text-muted-foreground/50">
+      <h2 className="text-micro font-black uppercase tracking-label-wide text-muted-foreground/50">
         {t('assistant.top_recommendations')}
       </h2>
       <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent" />

@@ -12,21 +12,21 @@ export function DigitalClock({ now, locale, copy, weather, weatherStatus }: Cloc
   const dateLine = formatDateLine(now, locale);
 
   return (
-    <ClockShell tone="neutral" className="p-[clamp(1rem,3cqi,1.65rem)]">
+    <ClockShell tone="neutral" className="p-clock-shell">
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ClockLabel>{copy.digitalPro}</ClockLabel>
             <div className="mt-2 truncate text-clock-digital-label-fluid font-semibold text-muted-foreground">{dateLine}</div>
           </div>
-          <div className="grid h-[clamp(3rem,7.5cqi,4rem)] w-[clamp(3rem,7.5cqi,4rem)] place-items-center rounded-full border border-border/60 bg-background/38 text-center shadow-inner">
+          <div className="grid h-clock-orb w-clock-orb place-items-center rounded-full border border-border/60 bg-background/38 text-center shadow-inner">
             <span className="text-clock-digital-body-fluid font-black text-foreground">{seconds}</span>
-            <span className="-mt-2 text-clock-digital-micro-fluid font-black uppercase tracking-[0.18em] text-primary">{copy.secondsShort}</span>
+            <span className="-mt-2 text-clock-digital-micro-fluid font-black uppercase tracking-status text-primary">{copy.secondsShort}</span>
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 place-items-center py-[clamp(0.8rem,2.5cqi,1.5rem)]">
-          <div className="rounded-[clamp(1.3rem,3.7cqi,2.25rem)] border border-border/55 bg-background/34 px-[clamp(1.15rem,4.2cqi,2.45rem)] py-[clamp(0.8rem,2.1cqi,1.2rem)] shadow-[0_22px_60px_hsl(var(--background)/0.28)]">
+        <div className="grid min-h-0 flex-1 place-items-center py-clock-section-y">
+          <div className="rounded-panel border border-border/55 bg-background/34 px-clock-pad-x py-clock-pad-y shadow-clock-digital">
             <TimeText hours={hours} minutes={minutes} period={period} blink={blink} size="medium" />
           </div>
         </div>

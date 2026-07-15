@@ -33,7 +33,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
 
   if (device.type === 'camera' || device.semanticType === 'camera') {
     return (
-      <div className="h-full w-full overflow-hidden rounded-[2rem]">
+      <div className="h-full w-full overflow-hidden rounded-panel">
         <CameraDeviceTile device={device} />
       </div>
     );
@@ -117,11 +117,11 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
           "flex shrink-0 items-center justify-center transition-all duration-300",
           isOn 
             ? device.type === 'light' 
-              ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" 
-              : "text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)] scale-110"
+              ? "text-amber-400 drop-shadow-none shadow-light-warm-sm scale-110" 
+              : "text-primary drop-shadow-primary-beacon scale-110"
             : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
         )}>
-          <IconComponent className="h-[clamp(1.25rem,12cqi,1.75rem)] w-[clamp(1.25rem,12cqi,1.75rem)]" />
+          <IconComponent className="h-device-icon-sm w-device-icon-sm" />
         </div>
         <div className="flex-1 min-w-0 overflow-hidden text-left">
           <h4 className={cn(
@@ -134,7 +134,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
 
         {/* Loading state overlay */}
         {isProcessing && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center rounded-[inherit] z-10">
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-surface flex items-center justify-center rounded-[inherit] z-10">
             <Icons.Loader2 className="w-4 h-4 animate-spin text-primary" />
           </div>
         )}
@@ -154,11 +154,11 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         "flex-1 flex items-center justify-center transition-all duration-300",
         isOn 
           ? device.type === 'light' 
-            ? "text-amber-400 drop-shadow-[0_0_16px_rgba(251,191,36,0.6)] scale-110" 
-            : "text-primary drop-shadow-[0_0_16px_rgba(var(--primary),0.6)] scale-110"
+            ? "text-amber-400 drop-shadow-none shadow-light-warm-lg scale-110" 
+            : "text-primary drop-shadow-none shadow-primary-glow scale-110"
           : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
       )}>
-        <IconComponent className="h-[clamp(3rem,38cqi,7rem)] w-[clamp(3rem,38cqi,7rem)]" />
+        <IconComponent className="h-device-icon-lg w-device-icon-lg" />
       </div>
       <div className="w-full min-w-0 overflow-hidden text-center mt-auto pb-1">
         <h4 className={cn(
@@ -171,7 +171,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
 
       {/* Loading state overlay */}
       {isProcessing && (
-        <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center rounded-[inherit] z-10">
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-surface flex items-center justify-center rounded-[inherit] z-10">
           <Icons.Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       )}

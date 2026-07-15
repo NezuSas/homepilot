@@ -84,7 +84,7 @@ export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate
       disabled={isOffline}
       syncing={isProcessing}
       aria-label={`${displayName}: ${localizedState}`}
-      className="min-h-[7.75rem] sm:min-h-[8.25rem]"
+      className="min-h-device-tile-sm sm:min-h-device-tile-md"
     >
       <div className="relative z-10 flex items-start justify-between gap-3 sm:gap-4">
         <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">

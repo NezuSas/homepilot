@@ -45,7 +45,7 @@ export const DeviceTileShell = React.forwardRef<HTMLDivElement, DeviceTileShellP
         tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
         onKeyDown={handleKeyDown}
         className={cn(
-          'surface-transition relative flex w-full self-start min-h-[8rem] flex-col justify-between overflow-hidden rounded-card border p-3 group sm:min-h-[9rem] sm:p-4',
+          'surface-transition relative flex w-full self-start min-h-device-tile flex-col justify-between overflow-hidden rounded-card border p-3 group sm:min-h-device-tile-lg sm:p-4',
           isInteractive ? 'interactive-lift cursor-pointer' : 'cursor-default',
           active ? 'device-state-on' : 'device-state-off',
           tone === 'light' && 'device-tone-light',

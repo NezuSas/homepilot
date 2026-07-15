@@ -26,9 +26,9 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
   const { t } = useTranslation();
 
   return (
-    <div className="relative space-y-5 rounded-[1.75rem] border border-primary/20 bg-[linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.07))] p-5 shadow-[0_16px_44px_hsl(var(--primary)/0.08)] ring-1 ring-background/45 sm:p-6">
+    <div className="relative space-y-5 rounded-card border border-primary/20 bg-automation-action p-5 shadow-primary-button ring-1 ring-background/45 sm:p-6">
       <div className="flex items-center gap-3 mb-2">
-        <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-primary px-3 text-primary-foreground shadow-[0_8px_18px_hsl(var(--primary)/0.22)]">
+        <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-primary px-3 text-primary-foreground shadow-primary-soft">
           <span className="hp-type-control normal-case tracking-normal">{t('automations.summary.then')}</span>
         </div>
         <label className="hp-type-label-accent">{t('automations.builder.action_subtitle')}</label>

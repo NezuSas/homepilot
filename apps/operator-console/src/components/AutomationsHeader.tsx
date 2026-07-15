@@ -20,7 +20,7 @@ export const AutomationsHeader: React.FC<AutomationsHeaderProps> = ({ activeCoun
       </div>
       <button
         onClick={onCreate}
-        className="bg-primary text-primary-foreground px-10 py-5 rounded-[1.8rem] font-black text-caption uppercase tracking-[0.2em] transition-all hover:scale-[1.03] active:scale-95 premium-glow shadow-primary/20 flex items-center gap-4"
+        className="bg-primary text-primary-foreground px-10 py-5 rounded-panel font-black text-caption uppercase tracking-label transition-all hover:scale-[1.03] active:scale-95 premium-glow shadow-primary/20 flex items-center gap-4"
       >
         <Plus className="w-6 h-6" />
         {t('automations.create_rule')}

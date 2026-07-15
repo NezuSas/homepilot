@@ -138,7 +138,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
   };
 
   return (
-    <div className="flex-1 min-h-[calc(100vh-4rem)] bg-muted/20 px-4 py-8">
+    <div className="flex-1 min-h-onboarding bg-muted/20 px-4 py-8">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
         
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
@@ -148,14 +148,14 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 <Home className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-micro font-black uppercase tracking-[0.28em] text-primary">{t('onboarding.kicker')}</p>
+                <p className="text-micro font-black uppercase tracking-label-wide text-primary">{t('onboarding.kicker')}</p>
                 <h1 className="mt-1 text-view-title font-black tracking-tight text-foreground">{t('onboarding.title')}</h1>
                 <p className="mt-1 max-w-2xl text-body font-semibold text-muted-foreground">
                   {t('onboarding.subtitle')}
                 </p>
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 lg:w-[26rem]">
+            <div className="grid gap-2 sm:grid-cols-3 lg:w-form-md">
               {progressItems.map(item => {
                 const isCurrent = item.index === step;
                 const isDone = item.index < step;
@@ -219,7 +219,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 </div>
 
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="text-caption font-black uppercase tracking-[0.22em] text-primary">{t('onboarding.step1.operator_note_title')}</p>
+                  <p className="text-caption font-black uppercase tracking-label text-primary">{t('onboarding.step1.operator_note_title')}</p>
                   <p className="mt-2 text-body font-semibold text-muted-foreground">{t('onboarding.step1.operator_note')}</p>
                 </div>
 
@@ -285,7 +285,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-muted/25 p-4">
-                  <p className="text-caption font-black uppercase tracking-[0.22em] text-muted-foreground">{t('onboarding.step2.token_help_title')}</p>
+                  <p className="text-caption font-black uppercase tracking-label text-muted-foreground">{t('onboarding.step2.token_help_title')}</p>
                   <ol className="mt-3 grid gap-2 text-body font-semibold text-muted-foreground">
                     <li>{t('onboarding.step2.token_help_1')}</li>
                     <li>{t('onboarding.step2.token_help_2')}</li>
@@ -324,7 +324,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
                 <div>
-                  <p className="text-micro font-black uppercase tracking-[0.28em] text-success">{t('onboarding.step3.kicker')}</p>
+                  <p className="text-micro font-black uppercase tracking-label-wide text-success">{t('onboarding.step3.kicker')}</p>
                   <h2 className="mt-2 text-view-title font-black tracking-tight">{t('onboarding.step3.title')}</h2>
                   <p className="mx-auto mt-2 max-w-lg text-body font-semibold text-muted-foreground">
                     {t('onboarding.step3.subtitle')}
@@ -353,7 +353,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
           </div>
 
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-            <p className="text-caption font-black uppercase tracking-[0.22em] text-muted-foreground">{t('onboarding.side.title')}</p>
+            <p className="text-caption font-black uppercase tracking-label text-muted-foreground">{t('onboarding.side.title')}</p>
             <div className="mt-4 grid gap-3">
               {[t('onboarding.side.local'), t('onboarding.side.secure'), t('onboarding.side.recoverable')].map(item => (
                 <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 p-3">

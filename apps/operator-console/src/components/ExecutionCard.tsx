@@ -28,14 +28,14 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
 
   return (
     <div className={cn(
-      "group relative overflow-hidden rounded-[2.5rem] border transition-all duration-500 bg-card/40 backdrop-blur-xl",
+      "group relative overflow-hidden rounded-dashboard border transition-all duration-500 bg-card/40 backdrop-blur-xl",
       isExpanded ? "p-6" : "p-5",
       statusColors[record.status],
       isExpanded ? "shadow-2xl scale-[1.01]" : "shadow-md hover:shadow-lg hover:-translate-y-0.5"
     )}>
       {/* Dynamic Background Glow */}
       <div className={cn(
-        "absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 rounded-full blur-[80px] opacity-20 transition-opacity duration-1000",
+        "absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 rounded-full blur-glow opacity-20 transition-opacity duration-1000",
         record.status === 'success' ? "bg-success" :
         record.status === 'failed' ? "bg-destructive" : "bg-warning"
       )} />
@@ -49,7 +49,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-micro font-black uppercase tracking-[0.15em] opacity-40">
+              <span className="text-micro font-black uppercase tracking-control opacity-40">
                 {record.sourceType}
               </span>
               <span className="text-micro font-mono opacity-20">/</span>
@@ -94,7 +94,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
         </div>
 
         {/* Time & Performance */}
-        <div className="flex flex-col items-end gap-1 min-w-[110px] shrink-0">
+        <div className="flex flex-col items-end gap-1 min-w-execution-time shrink-0">
           <div className="flex items-center gap-2 text-foreground/70">
             <Clock className="w-3.5 h-3.5 opacity-40" />
             <span className="text-label font-mono font-bold tracking-tight">
@@ -108,7 +108,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
             <div className={cn(
               "w-1.5 h-1.5 rounded-full",
               record.status === 'success' ? "bg-success animate-pulse" :
-              record.status === 'failed' ? "bg-destructive shadow-[0_0_8px_hsl(var(--destructive))]" : "bg-warning"
+              record.status === 'failed' ? "bg-destructive shadow-danger-dot" : "bg-warning"
             )} />
           </div>
         </div>

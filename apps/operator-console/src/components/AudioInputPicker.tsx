@@ -85,7 +85,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
         title={selectedLabel}
         onClick={() => setIsOpen(current => !current)}
         className={cn(
-          'control-transition flex h-10 w-[7.5rem] items-center gap-2 rounded-xl border px-3 sm:w-[9rem] md:w-[10.5rem]',
+          'control-transition flex h-10 w-audio-picker-sm items-center gap-2 rounded-xl border px-3 sm:w-audio-picker-md md:w-audio-picker-lg',
           'border-transparent bg-background/55 text-foreground shadow-sm hover:border-primary/35 hover:bg-background/80',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
           'disabled:pointer-events-none disabled:opacity-50'
@@ -99,7 +99,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full right-0 z-[80] mb-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-panel border border-border/70 bg-popover/95 shadow-depth-3 backdrop-blur-xl">
+        <div className="absolute bottom-full right-0 z-[80] mb-2 w-popover-responsive overflow-hidden rounded-panel border border-border/70 bg-popover/95 shadow-depth-3 backdrop-blur-xl">
           <div className="border-b border-border/50 px-3 py-2 text-micro font-bold uppercase tracking-widest text-muted-foreground/80">
             {label}
           </div>

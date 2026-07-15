@@ -48,13 +48,13 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
 
   return (
     <div className={cn(
-      "relative flex flex-col md:flex-row border border-border rounded-[2.5rem] bg-card overflow-hidden transition-all duration-500",
+      "relative flex flex-col md:flex-row border border-border rounded-dashboard bg-card overflow-hidden transition-all duration-500",
       !rule.enabled && "opacity-60 grayscale-[0.5]",
       rule._processing && "pointer-events-none opacity-80 backdrop-blur-sm",
       editingId === rule.id ? "border-primary ring-2 ring-primary/20 shadow-2xl scale-[1.02]" : "hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1"
     )}>
       {rule._processing && (
-        <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[2.5rem] animate-in fade-in">
+        <div className="absolute inset-0 bg-background/40 backdrop-blur-micro z-50 flex items-center justify-center rounded-dashboard animate-in fade-in">
           <div className="bg-card px-6 py-3 rounded-full shadow-2xl border border-primary/20 flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin text-primary" />
             <span className="text-micro font-black uppercase tracking-widest text-primary">{t('common.processing')}</span>
@@ -67,7 +67,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         rule.enabled ? "bg-primary/[0.03]" : "bg-muted/20"
       )}>
         <div className={cn(
-          "p-6 rounded-[2rem] shadow-xl border-2 transition-all duration-700 transform group-hover:scale-110",
+          "p-6 rounded-panel shadow-xl border-2 transition-all duration-700 transform group-hover:scale-110",
           rule.enabled ? "bg-primary text-primary-foreground border-primary/20" : "bg-background text-muted-foreground border-border"
         )}>
           {rule.enabled ? <Play className="fill-current w-8 h-8" /> : <Pause className="fill-current w-8 h-8" />}
@@ -135,7 +135,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         </div>
 
         <div className="grid lg:grid-cols-[1fr,auto,1fr] gap-8 items-center">
-          <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-[2rem] font-mono text-label shadow-inner relative group/node overflow-hidden">
+          <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-panel font-mono text-label shadow-inner relative group/node overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
             <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-micro font-black text-muted-foreground">{t('automations.rule.if_trigger')}</span>
             <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
@@ -143,7 +143,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
                 <span className="text-primary/40 italic">{t('automations.form.device_label')}</span>
                 <span className="text-foreground/70">{rule.trigger.deviceId}</span>
               </div>
-              <div className="h-[1px] w-full bg-border/40" />
+              <div className="h-hairline w-full bg-border/40" />
               <div className="flex items-center gap-2 flex-wrap">
                 <StatusPill variant="primary">{rule.trigger.stateKey}</StatusPill>
                 <span className="text-muted-foreground opacity-30">==</span>
@@ -154,10 +154,10 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
 
           <div className="flex flex-col items-center gap-1 opacity-20">
             <ArrowRight className="hidden lg:block w-6 h-6" />
-            <div className="w-[2px] h-10 bg-primary lg:hidden" />
+            <div className="w-rule h-10 bg-primary lg:hidden" />
           </div>
 
-          <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-[2rem] font-mono text-label relative shadow-sm group/node overflow-hidden">
+          <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-panel font-mono text-label relative shadow-sm group/node overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
             <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-micro font-black text-primary/70">{t('automations.rule.then_action')}</span>
             <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
@@ -165,7 +165,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
                 <span className="text-primary/40 italic">{t('automations.form.target_label')}</span>
                 <span className="text-foreground/70">{rule.action.targetDeviceId}</span>
               </div>
-              <div className="h-[1px] w-full bg-primary/10" />
+              <div className="h-hairline w-full bg-primary/10" />
               <div className="inline-flex items-center gap-2 py-1.5 px-3 bg-primary text-primary-foreground rounded-xl self-start shadow-lg shadow-primary/20 border border-primary/10 group-hover:scale-105 transition-transform duration-300">
                 <Cpu className="w-3.5 h-3.5 opacity-60" />
                 <span className="font-black uppercase tracking-tighter">{rule.action.command}</span>

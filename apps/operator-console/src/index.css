@@ -275,7 +275,7 @@
 
   /* ── Shared card style ────────────────────────────────────── */
   .premium-card {
-    @apply relative overflow-hidden bg-card/50 border border-border/60 rounded-[2rem] transition-all duration-300;
+    @apply relative overflow-hidden bg-card/50 border border-border/60 rounded-panel transition-all duration-300;
     box-shadow: 0 1px 3px hsl(210 30% 2% / 0.35), 0 1px 0 hsl(210 30% 100% / 0.03) inset;
   }
   .light .premium-card {
@@ -319,15 +319,15 @@
   }
 
   .hp-type-label {
-    @apply text-label font-black uppercase leading-none tracking-[0.22em] text-muted-foreground;
+    @apply text-label font-black uppercase leading-none tracking-label text-muted-foreground;
   }
 
   .hp-type-label-accent {
-    @apply text-label font-black uppercase leading-none tracking-[0.22em] text-primary;
+    @apply text-label font-black uppercase leading-none tracking-label text-primary;
   }
 
   .hp-type-control {
-    @apply text-caption font-black uppercase leading-none tracking-[0.16em];
+    @apply text-caption font-black uppercase leading-none tracking-control;
   }
 
   .hp-type-field {

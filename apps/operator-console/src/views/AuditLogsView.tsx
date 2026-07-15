@@ -61,7 +61,7 @@ export const AuditLogsView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground animate-pulse">
+      <div className="flex flex-col items-center justify-center min-h-empty-sm text-muted-foreground animate-pulse">
         <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
         <p className="text-body font-black uppercase tracking-widest italic">{t('audit_logs.loading')}</p>
       </div>
@@ -90,7 +90,7 @@ export const AuditLogsView: React.FC = () => {
         icon={ShieldAlert}
         title={t('audit_logs.empty_title')}
         description={t('audit_logs.empty_description')}
-        className="min-h-[500px]"
+        className="min-h-glow-orb"
         action={
           <Button variant="outline" size="sm" onClick={fetchLogs} className="gap-2 text-micro uppercase tracking-widest">
             <RefreshCw className="h-3.5 w-3.5" />
@@ -106,7 +106,7 @@ export const AuditLogsView: React.FC = () => {
       <div className="flex items-center justify-between mb-2">
          <div className="flex items-center gap-3">
             <Info className="w-5 h-5 text-primary opacity-40 px-0.5" />
-            <span className="text-micro font-black text-muted-foreground uppercase tracking-[0.2em]">{t('audit_logs.v1_title')}</span>
+            <span className="text-micro font-black text-muted-foreground uppercase tracking-label">{t('audit_logs.v1_title')}</span>
          </div>
          <button onClick={fetchLogs} className="text-micro font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
             <RefreshCw className="w-3.5 h-3.5" />

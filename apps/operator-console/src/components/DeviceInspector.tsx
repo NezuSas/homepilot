@@ -370,7 +370,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
+                <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
                   <div className="flex items-center justify-between">
                     <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
                       <Database className="w-3 h-3" /> Entity ID
@@ -378,7 +378,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   </div>
                   <span className="font-mono text-caption font-bold break-all">{device.externalId || device.id}</span>
                 </div>
-                <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
+                <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
                   <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
                     <Settings className="w-3 h-3" /> {t('inbox.device_inspector.technical_origin')}
                   </span>
@@ -395,7 +395,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     )}
                   </div>
                 </div>
-                <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner relative">
+                <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner relative">
                   <span className="text-micro font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
                     <Zap className="w-3 h-3" /> {t('inbox.device_inspector.device_function')}
                   </span>
@@ -421,7 +421,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
 
                 {device.type === 'cover' && (
-                  <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-3 shadow-inner">
+                  <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-3 shadow-inner">
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <span className="text-micro font-black uppercase tracking-widest text-primary">
@@ -457,7 +457,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 )}
               </div>
 
-              <div className="mt-4 p-8 bg-black/5 border-2 border-dashed border-border/50 rounded-[2.5rem] flex flex-col gap-6">
+              <div className="mt-4 p-8 bg-black/5 border-2 border-dashed border-border/50 rounded-dashboard flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                   <span className="text-micro font-black uppercase tracking-widest opacity-50">{t('inbox.inspector.actions_header')}</span>
                   <Activity className="w-4 h-4 opacity-20" />
@@ -615,7 +615,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           {activeTab === 'logs' && (
             <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4 duration-500">
               {Array.isArray(logs) && logs.map((log, index) => (
-                <div key={index} className="p-5 bg-muted/10 border border-border/20 rounded-[1.5rem] flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
+                <div key={index} className="p-5 bg-muted/10 border border-border/20 rounded-section flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
                   <div className="flex justify-between items-center">
                     <span className="text-micro font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-tighter">
                       {log.type}
@@ -630,7 +630,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
               {logs.length === 0 && (
                 <div className="text-center py-20 flex flex-col items-center justify-center opacity-10">
                   <Terminal className="w-12 h-12 mb-4" />
-                  <div className="text-caption font-black uppercase tracking-[0.2em]">{t('inbox.inspector.no_logs')}</div>
+                  <div className="text-caption font-black uppercase tracking-label">{t('inbox.inspector.no_logs')}</div>
                 </div>
               )}
             </div>
@@ -638,7 +638,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
           {activeTab === 'state' && (
             <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 h-full">
-              <div className="flex-1 bg-[#0D0D0D] rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
+              <div className="flex-1 rounded-dashboard border border-white/5 bg-background p-8 shadow-2xl relative overflow-hidden group">
                 <div className="absolute top-4 right-8 text-micro font-black font-mono opacity-20 tracking-widest group-hover:opacity-40 transition-opacity">{t('inbox.inspector.json_parser_hint')}</div>
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                 <pre className="text-label font-mono text-success overflow-auto h-full leading-relaxed custom-scrollbar relative z-10 selection:bg-primary/30">
@@ -650,7 +650,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         </div>
 
         <div className="p-6 border-t border-border/50 bg-muted/10 text-center">
-          <p className="text-micro font-black uppercase tracking-[0.3em] opacity-20">{t('inbox.inspector.data_object')}</p>
+          <p className="text-micro font-black uppercase tracking-label-wider opacity-20">{t('inbox.inspector.data_object')}</p>
         </div>
       </div>
 

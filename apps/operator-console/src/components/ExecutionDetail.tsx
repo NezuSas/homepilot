@@ -43,7 +43,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
   };
 
   return (
-    <div className="flex flex-col gap-2 mt-4 p-4 bg-background/50 rounded-[1.5rem] border border-border/40 animate-in slide-in-from-top-2 duration-300">
+    <div className="flex flex-col gap-2 mt-4 p-4 bg-background/50 rounded-section border border-border/40 animate-in slide-in-from-top-2 duration-300">
       <h4 className="text-micro font-black uppercase tracking-widest text-muted-foreground/60 mb-2 px-1">
         Action Details
       </h4>
@@ -74,7 +74,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
             
             <div className="flex items-center gap-3 shrink-0">
               {retryErrorByIndex[idx] && (
-                <span className="text-micro font-bold text-destructive animate-pulse truncate max-w-[100px]" title={retryErrorByIndex[idx]}>
+                <span className="text-micro font-bold text-destructive animate-pulse truncate max-w-copy-2xs" title={retryErrorByIndex[idx]}>
                   {retryErrorByIndex[idx]}
                 </span>
               )}
@@ -82,18 +82,18 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
               {action.status === 'failed' && (action.userMessage || action.error) && (
                 <div className="flex flex-col items-end text-right">
                   <span className={cn(
-                    "text-label font-bold max-w-[150px] sm:max-w-[250px] truncate",
+                    "text-label font-bold max-w-copy-md sm:max-w-copy-2xl truncate",
                     action.severity === 'warning' ? "text-warning" : "text-destructive"
                   )} title={action.userMessage || action.error}>
                     {action.userMessage || action.error}
                   </span>
                   {action.suggestedAction && (
-                    <span className="text-micro font-medium text-muted-foreground max-w-[150px] sm:max-w-[250px] truncate" title={action.suggestedAction}>
+                    <span className="text-micro font-medium text-muted-foreground max-w-copy-md sm:max-w-copy-2xl truncate" title={action.suggestedAction}>
                       {action.suggestedAction}
                     </span>
                   )}
                   {(action.technicalMessage || action.error) && (
-                    <span className="text-nano font-mono text-muted-foreground/30 max-w-[100px] truncate hover:text-muted-foreground/70 transition-colors" title={action.technicalMessage || action.error}>
+                    <span className="text-nano font-mono text-muted-foreground/30 max-w-copy-2xs truncate hover:text-muted-foreground/70 transition-colors" title={action.technicalMessage || action.error}>
                       {action.technicalMessage || action.error}
                     </span>
                   )}

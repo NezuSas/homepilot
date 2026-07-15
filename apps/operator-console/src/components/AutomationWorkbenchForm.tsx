@@ -45,7 +45,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
   const deviceOptions = devices.map(device => ({ value: device.id, label: `${device.name} (${device.type})` }));
 
   return (
-    <form onSubmit={onSubmit} className="bg-card border-2 border-primary/20 rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
+    <form onSubmit={onSubmit} className="bg-card border-2 border-primary/20 rounded-hero p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
       {success && (
         <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-primary-foreground z-10 animate-in fade-in transition-all">
           <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
@@ -65,8 +65,8 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
             />
           </div>
 
-          <div className="p-8 bg-muted/20 rounded-[2.5rem] border border-border/40 flex flex-col gap-5">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/60 mb-2 flex items-center gap-2">
+          <div className="p-8 bg-muted/20 rounded-dashboard border border-border/40 flex flex-col gap-5">
+            <span className="text-micro font-black uppercase tracking-label text-primary/60 mb-2 flex items-center gap-2">
               <Play className="w-3 h-3 fill-current" /> {t('automations.form.trigger_config')}
             </span>
 
@@ -99,8 +99,8 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
         </div>
 
         <div className="flex flex-col gap-6 justify-between">
-          <div className="p-8 bg-primary/[0.03] rounded-[2.5rem] border-2 border-primary/10 flex flex-col gap-5 shadow-inner">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary mb-2 flex items-center gap-2">
+          <div className="p-8 bg-primary/[0.03] rounded-dashboard border-2 border-primary/10 flex flex-col gap-5 shadow-inner">
+            <span className="text-micro font-black uppercase tracking-label text-primary mb-2 flex items-center gap-2">
               <Zap className="w-3 h-3 fill-current" /> {t('automations.form.action_result')}
             </span>
 
@@ -138,7 +138,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               disabled={submitting}
               type="submit"
               size="lg"
-              className="w-full text-caption font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 group"
+              className="w-full text-caption font-black uppercase tracking-label-wider flex items-center justify-center gap-4 group"
               isLoading={submitting}
             >
               <>

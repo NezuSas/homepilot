@@ -3,7 +3,7 @@ import { Bot } from 'lucide-react';
 import { Card } from './ui/Card';
 
 export const HomeConversationTypingIndicator: React.FC = () => (
-  <div className="flex w-full max-w-[85%] justify-start animate-in fade-in duration-300">
+  <div className="flex w-full max-w-composer-bubble justify-start animate-in fade-in duration-300">
     <div className="flex gap-3">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted shadow-depth-1">
         <Bot className="h-5 w-5 animate-pulse text-primary" />

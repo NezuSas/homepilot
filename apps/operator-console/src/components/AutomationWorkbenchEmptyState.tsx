@@ -12,6 +12,6 @@ export const AutomationWorkbenchEmptyState: React.FC<AutomationWorkbenchEmptySta
     icon={Sparkles}
     title={title}
     description={description}
-    className="min-h-[400px] animate-in fade-in duration-1000"
+    className="min-h-empty-sm animate-in fade-in duration-1000"
   />
 );

@@ -86,15 +86,15 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden bg-card/40 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-700',
+        'group relative overflow-hidden bg-card/40 backdrop-blur-xl rounded-dashboard border transition-all duration-700',
         isEnabled
-          ? 'border-primary/10 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] p-7'
+          ? 'border-primary/10 shadow-depth-3 p-7'
           : 'border-border/10 opacity-60 p-7 grayscale hover:grayscale-0 hover:opacity-100'
       )}
     >
       {isEnabled && (
         <div className={cn(
-          'absolute -top-24 -right-24 w-48 h-48 blur-[80px] opacity-20 pointer-events-none transition-colors duration-1000',
+          'absolute -top-24 -right-24 w-48 h-48 blur-glow opacity-20 pointer-events-none transition-colors duration-1000',
           isFullyAutonomous ? 'bg-success' : 'bg-primary'
         )} />
       )}
@@ -119,7 +119,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
                     : (isEdgeCapable ? 'border-primary/30 text-primary' : 'border-border/30 text-muted-foreground opacity-40')
                 )}>
                   {isFullyAutonomous && <Cpu className="w-2.5 h-2.5" />}
-                  <span className="text-nano font-black uppercase tracking-[0.1em]">{resilienceLabel}</span>
+                  <span className="text-nano font-black uppercase tracking-micro">{resilienceLabel}</span>
                 </div>
               )}
             </div>
@@ -170,8 +170,8 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
         </div>
       </div>
 
-      <div className="relative p-6 rounded-[2rem] bg-foreground/[0.02] border border-foreground/[0.05] flex flex-col gap-8">
-        <div className="absolute left-[2.35rem] top-12 bottom-12 w-[1px] bg-gradient-to-b from-border/20 via-primary/20 to-border/20" />
+      <div className="relative p-6 rounded-panel bg-foreground/[0.02] border border-foreground/[0.05] flex flex-col gap-8">
+        <div className="absolute left-9 top-12 bottom-12 w-hairline bg-gradient-to-b from-border/20 via-primary/20 to-border/20" />
 
         <div className="flex items-start gap-5 relative z-10">
           <div className={cn(
@@ -189,7 +189,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
                 ? t('automations.summary.clock_hits', { time: rule.trigger.timeLocal || rule.trigger.time })
                 : t('automations.summary.when_device', { name: getDeviceName(rule.trigger.deviceId), value: rule.trigger.expectedValue })}
             </p>
-            <span className="text-nano font-black uppercase tracking-[0.25em] text-muted-foreground opacity-30 mt-1.5 block">
+            <span className="text-nano font-black uppercase tracking-label-wide text-muted-foreground opacity-30 mt-1.5 block">
               {t('automations.summary.trigger_label')}
             </span>
           </div>
@@ -217,7 +217,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
                 : t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) })}
             </p>
             <span className={cn(
-              'text-nano font-black uppercase tracking-[0.25em] mt-1.5 block transition-colors duration-700',
+              'text-nano font-black uppercase tracking-label-wide mt-1.5 block transition-colors duration-700',
               isEnabled ? (isFullyAutonomous ? 'text-success/50' : 'text-primary/50') : 'text-muted-foreground/30'
             )}>
               {t('automations.summary.action_label')}
@@ -230,9 +230,9 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
         <div className="flex items-center gap-2.5">
           <div className={cn(
             'w-1.5 h-1.5 rounded-full',
-            isEnabled ? (isFullyAutonomous ? 'bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]') : 'bg-muted-foreground/20'
+            isEnabled ? (isFullyAutonomous ? 'bg-success animate-pulse shadow-success-beacon' : 'bg-primary animate-pulse shadow-primary-beacon') : 'bg-muted-foreground/20'
           )} />
-          <span className="text-nano font-black uppercase tracking-[0.15em] text-muted-foreground opacity-40">
+          <span className="text-nano font-black uppercase tracking-control text-muted-foreground opacity-40">
             {isFullyAutonomous ? 'Verified Hardware Autonomy' : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_automation'))}
           </span>
         </div>

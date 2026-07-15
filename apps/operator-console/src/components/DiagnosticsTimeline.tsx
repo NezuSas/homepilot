@@ -121,7 +121,7 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
     <div className="space-y-4 pt-4">
       <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
       <div className="border border-border bg-card rounded-2xl overflow-hidden">
-        <div className="divide-y divide-border/50 max-h-[600px] overflow-y-auto custom-scrollbar">
+        <div className="divide-y divide-border/50 max-h-timeline overflow-y-auto custom-scrollbar">
           {events.length === 0 ? (
             <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
               <Activity className="w-8 h-8 mb-4 text-muted-foreground" />

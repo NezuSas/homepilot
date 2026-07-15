@@ -59,10 +59,10 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/95 p-2 backdrop-blur-xl sm:p-4" role="dialog" aria-modal="true" aria-label={t('camera.viewer_label', { name })}>
       <button className="absolute inset-0 cursor-default" aria-label={t('camera.close_viewer')} onClick={onClose} />
-      <section className="relative z-10 flex h-[calc(100dvh-1rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-modal border border-border/70 bg-card shadow-depth-3 sm:h-[calc(100dvh-2rem)]">
+      <section className="relative z-10 flex h-camera-viewer w-full max-w-camera-viewer flex-col overflow-hidden rounded-modal border border-border/70 bg-card shadow-depth-3 sm:h-camera-viewer-sm">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
-            <div className={cn('flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.18em]', feedMode === 'snapshot' ? 'text-warning' : 'text-success')}>
+            <div className={cn('flex items-center gap-2 text-micro font-semibold uppercase tracking-status', feedMode === 'snapshot' ? 'text-warning' : 'text-success')}>
               <span className={feedMode === 'snapshot' ? 'status-dot-warning' : 'status-dot-synced'} aria-hidden="true" />
               {feedMode === 'snapshot' ? t('camera.snapshot') : t('camera.live')}
             </div>

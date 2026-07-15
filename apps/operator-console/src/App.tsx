@@ -77,7 +77,7 @@ const SYSTEM_ROLES = new Set(['admin', 'operator']);
 
 function ViewLoadingState() {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
+    <div className="flex min-h-screen-half items-center justify-center text-muted-foreground">
       <Monitor className="h-7 w-7 animate-pulse" />
     </div>
   );
@@ -515,7 +515,7 @@ function App() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-background relative overflow-hidden">
         {/* Cinematic Atmospheric background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 animate-pulse duration-3000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] opacity-20 animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-glow-orb h-glow-orb bg-primary/10 rounded-full blur-glow-xl opacity-20 animate-pulse" />
         
         <div className="relative z-10 flex flex-col items-center gap-8">
           <div className="relative">
@@ -535,7 +535,7 @@ function App() {
           </div>
         </div>
 
-        <div className="absolute bottom-12 text-micro uppercase font-black tracking-[0.4em] text-muted-foreground opacity-30">
+        <div className="absolute bottom-12 text-micro uppercase font-black tracking-label-hero text-muted-foreground opacity-30">
           HomePilot Edge Security Gate
         </div>
       </div>
@@ -692,7 +692,7 @@ function App() {
 
   return (
     <div 
-      className="flex h-[100dvh] w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
+      className="flex h-screen-dvh w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/10 transition-all duration-1000"
     >
       
       {/* Mobile Drawer Backdrop */}
@@ -706,10 +706,10 @@ function App() {
       {/* Sidebar (Responsive Drawer on Mobile, Collapsible on Desktop) */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-[50] border-r border-border/60 bg-card flex flex-col transition-all duration-300 ease-in-out shrink-0",
-        isSidebarOpen ? "w-72 translate-x-0 shadow-[4px_0_32px_-4px_hsl(210_30%_2%/0.6)]" : "w-72 -translate-x-full",
+        isSidebarOpen ? "w-72 translate-x-0 shadow-sidebar-open" : "w-72 -translate-x-full",
         // Desktop override:
         "lg:relative",
-        isDesktopSidebarOpen ? "lg:w-[15.5rem] lg:translate-x-0" : "lg:w-[4.75rem] lg:translate-x-0 lg:overflow-hidden"
+        isDesktopSidebarOpen ? "lg:w-sidebar-expanded lg:translate-x-0" : "lg:w-sidebar-collapsed lg:translate-x-0 lg:overflow-hidden"
       )}>
         {/* Logo area */}
         <div className={cn("px-4 py-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "lg:px-3")}>
@@ -733,7 +733,7 @@ function App() {
               {t('shell.app_title')}
             </h2>
           </div>
-          <div className={cn("mt-1 ml-[2.875rem] flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>
+          <div className={cn("mt-1 ml-brand-indent flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:h-0 lg:ml-0 lg:opacity-0")}>
             <button
               type="button"
               onClick={() => {
@@ -749,7 +749,7 @@ function App() {
             >
               <Menu className="h-3.5 w-3.5" />
             </button>
-            <span className="text-micro uppercase font-black tracking-[0.22em] text-muted-foreground/35">{t('shell.subtitle')}</span>
+            <span className="text-micro uppercase font-black tracking-label text-muted-foreground/35">{t('shell.subtitle')}</span>
           </div>
         </div>
         
@@ -999,7 +999,7 @@ function App() {
               <span className="text-micro font-black uppercase tracking-widest whitespace-nowrap">
                 {t('demo.start_button')}
               </span>
-              <span className="mt-0.5 truncate text-micro font-bold uppercase tracking-[0.14em] text-primary/60">
+              <span className="mt-0.5 truncate text-micro font-bold uppercase tracking-control text-primary/60">
                 {t('demo.sidebar_summary', { count: DEMO_STEPS.length })}
               </span>
             </div>

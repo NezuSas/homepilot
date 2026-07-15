@@ -74,7 +74,7 @@ const ResilienceShowcaseView: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] animate-pulse">
+      <div className="flex flex-col items-center justify-center min-h-empty-sm animate-pulse">
         <Activity className="w-10 h-10 text-primary/40 mb-4" />
         <p className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-40">{t('showcase.loading_pulse')}</p>
       </div>
@@ -85,7 +85,7 @@ const ResilienceShowcaseView: React.FC = () => {
     <div className="space-y-12 animate-in fade-in duration-1000 pb-20">
       
       {/* Autonomy Hero Section */}
-      <div className="relative overflow-hidden bg-card/40 backdrop-blur-3xl border-2 border-border/40 rounded-[4rem] p-12 transition-all hover:border-primary/20">
+      <div className="relative overflow-hidden bg-card/40 backdrop-blur-3xl border-2 border-border/40 rounded-showcase p-12 transition-all hover:border-primary/20">
         <div className="absolute top-0 right-0 p-12 opacity-5">
            <Shield className="w-64 h-64 text-primary" />
         </div>
@@ -143,7 +143,7 @@ const ResilienceShowcaseView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Hardware Pillar */}
-        <div className="bg-card/40 border border-border/40 rounded-[3rem] p-10 space-y-8 flex flex-col justify-between">
+        <div className="bg-card/40 border border-border/40 rounded-hero p-10 space-y-8 flex flex-col justify-between">
            <div>
               <div className="flex items-center gap-4 mb-8">
                  <div className="p-4 bg-success/10 text-success rounded-2xl">
@@ -177,7 +177,7 @@ const ResilienceShowcaseView: React.FC = () => {
         </div>
 
         {/* Intelligence Pillar */}
-        <div className="bg-card/40 border border-border/40 rounded-[3rem] p-10 space-y-8 flex flex-col justify-between">
+        <div className="bg-card/40 border border-border/40 rounded-hero p-10 space-y-8 flex flex-col justify-between">
            <div>
               <div className="flex items-center gap-4 mb-8">
                  <div className="p-4 bg-primary/10 text-primary rounded-2xl">
@@ -212,7 +212,7 @@ const ResilienceShowcaseView: React.FC = () => {
       </div>
 
       {/* System Integrity Map Placeholder / Logic Visualization */}
-      <div className="bg-muted/10 border-2 border-dashed border-border/30 rounded-[4rem] p-12 text-center flex flex-col items-center gap-6">
+      <div className="bg-muted/10 border-2 border-dashed border-border/30 rounded-showcase p-12 text-center flex flex-col items-center gap-6">
          <Layers className="w-12 h-12 text-muted-foreground opacity-20" />
          <div className="max-w-md">
             <h4 className="text-panel-title font-bold tracking-tight mb-2 opacity-60">{t('showcase.synergy_title')}</h4>

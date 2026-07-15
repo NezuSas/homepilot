@@ -183,7 +183,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
 
   if (isEditing && !markdown.trim()) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-[1.25rem] border-2 border-dashed border-border/60 bg-background/10 px-5 py-4">
+      <div className="flex h-full w-full items-center justify-center rounded-section border-2 border-dashed border-border/60 bg-background/10 px-5 py-4">
         <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
           <span className="text-panel-title leading-none">+</span>
           <span>{t('dashboard.editor.sections.add_title')}</span>
@@ -194,13 +194,13 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
 
   return (
     <div
-      className={`flex h-full w-full min-w-0 flex-col justify-center overflow-hidden rounded-[1.25rem] border border-border/35 bg-background/10 px-[clamp(1rem,3cqi,2rem)] py-[clamp(0.65rem,1.5cqi,1.1rem)] ${alignmentClass}`}
+      className={`flex h-full w-full min-w-0 flex-col justify-center overflow-hidden rounded-section border border-border/35 bg-background/10 px-widget-pad-x py-widget-pad-y ${alignmentClass}`}
       style={{ containerType: 'inline-size' }}
     >
       <div className="min-w-0 max-w-full space-y-[clamp(0.18rem,0.6cqi,0.45rem)]">
         {blocks.map((block) => {
           if (block.type === 'space') {
-            return <div key={block.key} className="h-[clamp(0.2rem,0.6cqi,0.5rem)]" />;
+            return <div key={block.key} className="h-widget-spacer" />;
           }
 
           if (block.type === 'h1') {

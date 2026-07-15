@@ -347,7 +347,7 @@ export const NativeCamerasView: React.FC = () => {
       />
 
       {notice && (
-        <div className="fixed right-4 top-4 z-[140] w-[min(420px,calc(100vw-2rem))]">
+        <div className="fixed right-4 top-4 z-[140] w-native-camera-toast">
           <AlertBanner
             variant={notice.variant}
             icon={AlertTriangle}
@@ -391,7 +391,7 @@ export const NativeCamerasView: React.FC = () => {
                       <Camera size={20} className="text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-section-title font-medium text-foreground truncate max-w-[150px]">{camera.name}</h3>
+                      <h3 className="text-section-title font-medium text-foreground truncate max-w-copy-md">{camera.name}</h3>
                       <div className="flex items-center mt-1">
                         <StatusPill 
                           variant={camera.enabled ? 'success' : 'neutral'}
@@ -399,7 +399,7 @@ export const NativeCamerasView: React.FC = () => {
                           {camera.enabled ? t('native_cameras.status_active') : t('native_cameras.status_inactive')}
                         </StatusPill>
                       </div>
-                      <p className="mt-2 text-micro font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="mt-2 text-micro font-bold uppercase tracking-status text-muted-foreground">
                         {t(`native_cameras.source_types.${camera.sourceType || 'onvif-ptz'}`)}
                       </p>
                     </div>
@@ -431,7 +431,7 @@ export const NativeCamerasView: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-body">
                     <span className="text-muted-foreground">{t('native_cameras.rtsp_path_label')}</span>
-                    <span className="text-foreground/80 font-mono truncate max-w-[150px]">{camera.rtspPath || '/'}</span>
+                    <span className="text-foreground/80 font-mono truncate max-w-copy-md">{camera.rtspPath || '/'}</span>
                   </div>
                 </div>
               </div>
@@ -445,7 +445,7 @@ export const NativeCamerasView: React.FC = () => {
         onClose={() => !isDiscovering && setIsDiscoveryModalOpen(false)}
         title={t('native_cameras.discovery.title')}
         description={t('native_cameras.discovery.subtitle')}
-        className="max-w-[min(1120px,calc(100vw-2rem))]"
+        className="max-w-native-camera-modal"
       >
         {isDiscovering ? (
           <div className="flex flex-col items-center justify-center p-8 space-y-4">
@@ -458,7 +458,7 @@ export const NativeCamerasView: React.FC = () => {
               {(['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'] as NativeCameraSourceType[]).map(sourceType => (
                 <label
                   key={sourceType}
-                  className={`flex min-h-[136px] cursor-pointer flex-col gap-2 rounded-card border p-4 transition-colors ${
+                  className={`flex min-h-native-camera-card cursor-pointer flex-col gap-2 rounded-card border p-4 transition-colors ${
                     selectedSourceType === sourceType
                       ? 'border-primary/60 bg-primary/10 text-foreground'
                       : 'border-border/50 bg-card hover:bg-muted/30'
@@ -489,7 +489,7 @@ export const NativeCamerasView: React.FC = () => {
                 />
               )}
 
-              <div className="grid max-h-[360px] gap-3 overflow-y-auto pr-1 custom-scrollbar lg:grid-cols-2">
+              <div className="grid max-h-camera-list gap-3 overflow-y-auto pr-1 custom-scrollbar lg:grid-cols-2">
                   <label className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
                     <input
                       type="radio"
@@ -554,7 +554,7 @@ export const NativeCamerasView: React.FC = () => {
         onClose={() => !isSubmitting && setIsModalOpen(false)}
         title={editingDevice ? t('native_cameras.form.title_edit') : t('native_cameras.form.title_create')}
         description={t('native_cameras.form.subtitle')}
-        className="max-w-[min(960px,calc(100vw-2rem))]"
+        className="max-w-native-camera-form"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (

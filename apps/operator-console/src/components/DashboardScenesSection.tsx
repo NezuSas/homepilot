@@ -90,7 +90,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
               onClick={() => onSceneExecute(scene)}
               disabled={!!roomProcessing}
               className={cn(
-                'group relative flex min-h-[5.75rem] items-center gap-3 overflow-hidden rounded-card border p-3 text-left surface-transition interactive-lift active:scale-[0.98] disabled:opacity-50 sm:min-h-[6.5rem] sm:gap-4 sm:p-4',
+                'group relative flex min-h-scene-card-sm items-center gap-3 overflow-hidden rounded-card border p-3 text-left surface-transition interactive-lift active:scale-[0.98] disabled:opacity-50 sm:min-h-scene-card sm:gap-4 sm:p-4',
                 isProcessing ? 'border-primary bg-primary text-primary-foreground shadow-depth-2' : 'border-border/65 bg-card shadow-depth-1 hover:border-primary/35',
               )}
             >

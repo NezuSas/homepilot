@@ -136,7 +136,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       active={isMoving || isOpen}
       disabled={device.status === 'PENDING' || unavailable}
       syncing={isMoving}
-      className="min-h-[12rem] sm:min-h-[13rem]"
+      className="min-h-curtain-card sm:min-h-curtain-card-lg"
     >
       
       {isMoving && (
@@ -153,7 +153,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         }}
         aria-hidden="true"
       >
-        <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-[0_-4px_12px_hsl(var(--foreground)/0.18)]" />
+        <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-curtain-track" />
       </div>
 
       <div className="relative z-10 flex flex-col h-full justify-between">

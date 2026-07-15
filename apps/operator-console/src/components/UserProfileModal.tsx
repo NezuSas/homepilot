@@ -278,7 +278,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                 </div>
               )}
 
-              <p className="text-label text-muted-foreground text-center max-w-[200px]">
+              <p className="text-label text-muted-foreground text-center max-w-copy-lg">
                 {rawImage ? t('users.profile.crop_hint') : t('users.profile.avatar_hint')}
               </p>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />

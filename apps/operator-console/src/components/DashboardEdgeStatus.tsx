@@ -27,19 +27,19 @@ export const DashboardEdgeStatus: React.FC<DashboardEdgeStatusProps> = ({
       <div className="flex items-center gap-8 py-1">
         <div className="flex flex-col items-center gap-1 group">
           <span className="text-body font-black text-foreground tracking-tight">{localDeviceCount}</span>
-          <span className="text-nano font-black uppercase tracking-[0.2em] text-success/60">
+          <span className="text-nano font-black uppercase tracking-label text-success/60">
             {t('dashboards.status.local')} {onlineLocalCount < localDeviceCount && `(${onlineLocalCount} ${t('common.online')})`}
           </span>
         </div>
         <div className="w-px h-6 bg-border/40" />
         <div className="flex flex-col items-center gap-1">
           <span className="text-body font-black text-foreground tracking-tight">{bridgedCount}</span>
-          <span className="text-nano font-black uppercase tracking-[0.2em] text-muted-foreground/40">
+          <span className="text-nano font-black uppercase tracking-label text-muted-foreground/40">
             {t('dashboards.status.bridged')}
           </span>
         </div>
         <div className="w-px h-6 bg-border/40" />
-        <div className="flex flex-col gap-1 items-start max-w-[120px]">
+        <div className="flex flex-col gap-1 items-start max-w-copy-xs">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-2.5 h-2.5 text-primary opacity-60" />
             <span className="text-nano font-black uppercase tracking-widest text-primary/60">

@@ -80,14 +80,14 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8 text-foreground">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-2xl lg:grid-cols-[1fr_26rem]">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-panel border border-border/70 bg-card shadow-2xl lg:grid-cols-[1fr_26rem]">
         <section className="space-y-8 p-6 sm:p-10">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
               <ShieldCheck className="h-7 w-7" />
             </div>
             <div>
-              <p className="text-micro font-black uppercase tracking-[0.32em] text-primary">{t('first_admin_setup.eyebrow')}</p>
+              <p className="text-micro font-black uppercase tracking-label-wider text-primary">{t('first_admin_setup.eyebrow')}</p>
               <h1 className="mt-2 text-display-title font-black tracking-tight sm:text-hero-title">{t('first_admin_setup.title')}</h1>
               <p className="mt-3 max-w-2xl text-body font-semibold leading-6 text-muted-foreground">
                 {t('first_admin_setup.description')}
@@ -186,7 +186,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
         </section>
 
         <aside className="border-t border-border/70 bg-muted/25 p-6 sm:p-10 lg:border-l lg:border-t-0">
-          <p className="text-caption font-black uppercase tracking-[0.28em] text-muted-foreground">{t('first_admin_setup.flow_title')}</p>
+          <p className="text-caption font-black uppercase tracking-label-wide text-muted-foreground">{t('first_admin_setup.flow_title')}</p>
           <div className="mt-6 grid gap-4">
             {[
               t('first_admin_setup.flow.no_logs'),

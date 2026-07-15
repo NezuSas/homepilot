@@ -138,7 +138,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     </div>
 
     <div className="hidden overflow-x-auto xl:block">
-      <table className="w-full min-w-[760px] whitespace-nowrap text-left text-body">
+      <table className="w-full min-w-data-table whitespace-nowrap text-left text-body">
         <thead className="bg-muted/50 border-b">
           <tr>
             <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.identity}</th>

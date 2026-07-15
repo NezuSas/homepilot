@@ -29,7 +29,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
   const selectedTime = triggerConfig.timeLocal || triggerConfig.time || '12:00';
 
   return (
-    <div className="relative space-y-5 rounded-[1.75rem] border border-border/55 bg-card/80 p-5 shadow-[0_16px_44px_hsl(var(--foreground)/0.07)] ring-1 ring-background/45 sm:p-6">
+    <div className="relative space-y-5 rounded-card border border-border/55 bg-card/80 p-5 shadow-surface-soft ring-1 ring-background/45 sm:p-6">
       <div className="flex items-center gap-3 mb-2">
         <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/90 px-3 shadow-sm">
           <span className="hp-type-control normal-case tracking-normal text-foreground">{t('automations.summary.if')}</span>
@@ -44,7 +44,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           className={cn(
             "hp-type-control flex flex-1 items-center justify-center gap-2 rounded-xl py-2 transition-all",
             triggerType === 'device_state_changed'
-              ? "bg-primary text-primary-foreground shadow-[0_10px_24px_hsl(var(--primary)/0.24)]"
+              ? "bg-primary text-primary-foreground shadow-primary-soft"
               : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
           )}
         >
@@ -56,7 +56,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           className={cn(
             "hp-type-control flex flex-1 items-center justify-center gap-2 rounded-xl py-2 transition-all",
             triggerType === 'time'
-              ? "bg-primary text-primary-foreground shadow-[0_10px_24px_hsl(var(--primary)/0.24)]"
+              ? "bg-primary text-primary-foreground shadow-primary-soft"
               : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
           )}
         >
@@ -96,7 +96,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 value={triggerConfig.expectedValue || ''}
                 onChange={(event) => onTriggerConfigChange({ ...triggerConfig, expectedValue: event.target.value })}
                 placeholder={t('automations.builder.placeholders.expected_value')}
-                className="hp-type-field h-11 w-full translate-y-[1px] rounded-xl border border-border/55 bg-background/80 px-4 outline-none transition-all placeholder:text-muted-foreground/40 focus:border-primary/55 focus:bg-card focus:shadow-[0_0_0_4px_hsl(var(--primary)/0.10)]"
+                className="hp-type-field h-11 w-full translate-y-[1px] rounded-xl border border-border/55 bg-background/80 px-4 outline-none transition-all placeholder:text-muted-foreground/40 focus:border-primary/55 focus:bg-card focus:shadow-primary-focus"
               />
             </div>
           </div>
@@ -144,7 +144,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                     className={cn(
                       "hp-type-control flex aspect-square w-full items-center justify-center rounded-xl border transition-all",
                       isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-[0_8px_18px_hsl(var(--primary)/0.22)]"
+                        ? "border-primary bg-primary text-primary-foreground shadow-primary-soft"
                         : "border-border/55 bg-background/70 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )}
                   >

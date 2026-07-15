@@ -44,7 +44,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
               <Zap className="w-7 h-7 text-warning/80" />
             </div>
             <div className="min-w-0">
-              <p className="text-micro font-black uppercase tracking-[0.25em] text-warning/70 mb-1">{t('energy.category')}</p>
+              <p className="text-micro font-black uppercase tracking-label-wide text-warning/70 mb-1">{t('energy.category')}</p>
               <h2 className="text-panel-title sm:text-view-title font-black text-foreground tracking-tight">{t('energy.title')}</h2>
               <p className="text-caption text-muted-foreground mt-0.5">{t('energy.subtitle')}</p>
             </div>
@@ -116,7 +116,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
 
               {/* Live Consumption List */}
               <div className="flex flex-col gap-3">
-                <p className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-1 mb-1">{t('energy.live_consumption')}</p>
+                <p className="text-micro font-black uppercase tracking-label text-muted-foreground/50 px-1 mb-1">{t('energy.live_consumption')}</p>
                 {wEntities.length === 0 ? (
                   <div className="p-6 rounded-2xl bg-card border border-border/40 text-center text-body text-muted-foreground">
                     {t('energy.no_data')}
@@ -145,7 +145,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
             // No Data Fallback (Empty State)
             <div className="relative rounded-3xl border border-border/60 bg-card overflow-hidden p-6 sm:p-10 flex flex-col items-center text-center gap-5 sm:gap-6 select-none">
               <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.03)_0%,transparent_70%)]" />
+                <div className="absolute inset-0 bg-energy-radial" />
               </div>
 
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-panel bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-border/60 flex items-center justify-center shadow-depth-2">
@@ -160,7 +160,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
 
               {/* Feature list */}
               <div className="w-full max-w-sm space-y-2 z-10">
-                <p className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-3">{t('energy.what_you_will_see')}</p>
+                <p className="text-micro font-black uppercase tracking-label text-muted-foreground/50 mb-3">{t('energy.what_you_will_see')}</p>
                 {features.map(({ icon: Icon, key }) => (
                   <div key={key} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-muted/40 border border-border/40 text-left">
                     <div className="w-7 h-7 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center shrink-0">

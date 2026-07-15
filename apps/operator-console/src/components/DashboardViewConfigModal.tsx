@@ -204,7 +204,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/70 backdrop-blur-sm p-4">
-      <div className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.75rem] border border-border/70 bg-card text-foreground shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative flex max-h-viewport-modal w-full max-w-2xl flex-col overflow-hidden rounded-card border border-border/70 bg-card text-foreground shadow-2xl animate-in zoom-in-95 duration-200">
         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border/60 px-5">
           <button
             type="button"

@@ -73,7 +73,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="w-full max-w-md bg-card border border-muted rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="w-full max-w-md bg-card border border-muted rounded-modal shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         <header className="p-6 border-b border-muted">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-panel-title font-black tracking-tight">{t(action.label)}</h2>
@@ -82,7 +82,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
             </button>
           </div>
           {deviceName && (
-            <p className="text-micro font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
+            <p className="text-micro font-bold text-muted-foreground uppercase tracking-label px-1">
               {deviceName}
             </p>
           )}
@@ -94,7 +94,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
               <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">
                 {t('topology.room_select')}
               </label>
-              <div className="grid gap-2 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="grid gap-2 max-h-picker overflow-y-auto pr-2 custom-scrollbar">
                 {rooms.map(room => (
                   <button
                     key={room.id}

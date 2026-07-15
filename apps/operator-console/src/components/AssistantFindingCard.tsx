@@ -76,7 +76,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
   return (
     <div
       className={cn(
-        'group relative flex flex-col p-6 rounded-[2rem] border transition-all duration-500',
+        'group relative flex flex-col p-6 rounded-panel border transition-all duration-500',
         isProactiveType(finding.type)
           ? 'bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-xl shadow-primary/5 hover:shadow-primary/10 hover:-translate-y-1'
           : 'bg-card border-border hover:border-primary/30'

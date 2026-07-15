@@ -58,7 +58,7 @@ export const Modal: React.FC<ModalProps> = ({
       
       {/* Modal */}
       <div className={cn(
-          "surface-transition relative my-auto w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)]",
+          "surface-transition relative my-auto w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-modal-safe sm:max-h-modal-safe-lg",
           variantConfig[variant].borderClass,
           className
         )}

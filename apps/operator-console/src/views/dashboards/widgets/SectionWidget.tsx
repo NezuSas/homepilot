@@ -332,7 +332,7 @@ function SectionClockPreview({ kind, title }: { kind: SectionCardKind; title: st
   };
 
   return (
-    <div className="h-full min-h-[14rem] overflow-hidden rounded-[1.35rem]">
+    <div className="h-full min-h-clock-card overflow-hidden rounded-section">
       <ClockWidget config={clockConfig} />
     </div>
   );
@@ -447,7 +447,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
   if (hasFeedError || !session) {
     return (
-      <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_90%_20%,rgba(234,88,12,0.25),transparent_16%),linear-gradient(135deg,rgba(234,88,12,0.24),rgba(18,18,18,0.95)_42%,rgba(8,8,8,0.98))]">
+      <div className="grid h-full w-full place-items-center bg-scene-preview">
         <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
           <Camera className="h-9 w-9" />
         </div>
@@ -503,7 +503,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 // Legacy helper kept for editor preview only (not used in live render)
 function _CameraMediaPlaceholder() {
   return (
-    <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_90%_20%,rgba(234,88,12,0.25),transparent_16%),linear-gradient(135deg,rgba(234,88,12,0.24),rgba(18,18,18,0.95)_42%,rgba(8,8,8,0.98))]">
+    <div className="grid h-full w-full place-items-center bg-scene-preview">
       <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
         <Camera className="h-9 w-9" />
       </div>
@@ -547,7 +547,7 @@ function CardPreview({
 
   if (normalized === 'camera') {
     return (
-      <div className="relative h-full min-h-[12rem] overflow-hidden rounded-[1.35rem] border border-border/40 bg-card shadow-sm">
+      <div className="relative h-full min-h-curtain-card overflow-hidden rounded-section border border-border/40 bg-card shadow-sm">
         {deviceId ? (
           <SectionCameraCard deviceId={deviceId} title={title} />
         ) : (
@@ -575,14 +575,14 @@ function CardPreview({
 
   if (normalized === 'energy') {
     return (
-      <div className="flex h-full min-h-0 flex-col justify-between rounded-[1.35rem] border border-border/45 bg-card p-4">
-        <span className="text-micro font-black uppercase tracking-[0.25em] text-primary">{t('dashboard.editor.sections.energy_label')}</span>
+      <div className="flex h-full min-h-0 flex-col justify-between rounded-section border border-border/45 bg-card p-4">
+        <span className="text-micro font-black uppercase tracking-label-wide text-primary">{t('dashboard.editor.sections.energy_label')}</span>
         <div>
           <span className="text-hero-title font-black text-foreground">1.8</span>
           <span className="ml-1 text-body font-black text-muted-foreground">kW</span>
         </div>
         <div className="h-2 rounded-full bg-muted">
-          <div className="h-full w-[64%] rounded-full bg-primary" />
+          <div className="h-full w-percent-64 rounded-full bg-primary" />
         </div>
       </div>
     );
@@ -590,27 +590,27 @@ function CardPreview({
 
   if (normalized === 'room') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[1.35rem] border border-primary/25 bg-[linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.09))] p-3.5 text-foreground shadow-[0_18px_46px_hsl(var(--foreground)/0.12)] ring-1 ring-background/55 transition-all dark:border-primary/20 dark:bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] dark:shadow-[0_18px_46px_hsl(var(--primary)/0.10)] sm:p-4">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,hsl(var(--primary)/0.12),transparent_26%)]" />
+      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-section border border-primary/25 bg-room-card p-3.5 text-foreground shadow-surface-room ring-1 ring-background/55 transition-all dark:border-primary/20 dark:bg-room-card-dark dark:shadow-primary-room sm:p-4">
+        <div className="pointer-events-none absolute inset-0 bg-room-card-aura" />
         <div className="flex items-start justify-between gap-3">
           <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/12 text-primary shadow-sm ring-1 ring-primary/20 sm:h-11 sm:w-11">
-            <Home className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" />
+            <Home className="h-room-icon w-room-icon sm:h-5 sm:w-5" />
           </span>
-          <span className="relative rounded-full border border-border/60 bg-background/90 px-2 py-1 text-micro font-black uppercase tracking-[0.14em] text-muted-foreground shadow-sm sm:text-micro">
+          <span className="relative rounded-full border border-border/60 bg-background/90 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground shadow-sm sm:text-micro">
             {t('dashboard.editor.sections.room_label')}
           </span>
         </div>
 
         <div className="relative min-w-0 py-2">
           <span className="block line-clamp-2 text-section-title font-black leading-tight text-foreground sm:text-panel-title">{title}</span>
-          <span className="mt-1 block line-clamp-2 text-micro font-black uppercase tracking-[0.18em] text-muted-foreground sm:text-micro">
+          <span className="mt-1 block line-clamp-2 text-micro font-black uppercase tracking-status text-muted-foreground sm:text-micro">
             {t('dashboard.editor.sections.room_access')}
           </span>
         </div>
 
         <div className="relative grid grid-cols-2 gap-2">
           <span className="min-w-0 rounded-2xl border border-border/60 bg-background/90 px-3 py-2 shadow-sm">
-            <span className="block truncate text-micro font-black uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="block truncate text-micro font-black uppercase tracking-control text-muted-foreground">
               {t('dashboard.editor.sections.room_devices')}
             </span>
             <span className="mt-0.5 block truncate text-body-lg font-black text-foreground sm:text-section-title">
@@ -618,7 +618,7 @@ function CardPreview({
             </span>
           </span>
           <span className="min-w-0 rounded-2xl border border-primary/35 bg-primary/12 px-3 py-2 shadow-sm ring-1 ring-primary/10">
-            <span className="block truncate text-micro font-black uppercase tracking-[0.16em] text-primary">
+            <span className="block truncate text-micro font-black uppercase tracking-control text-primary">
               {t('dashboard.editor.sections.room_active')}
             </span>
             <span className="mt-0.5 block truncate text-body-lg font-black text-primary sm:text-section-title">
@@ -632,25 +632,25 @@ function CardPreview({
 
   if (normalized === 'scene') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-primary/25 bg-[radial-gradient(circle_at_82%_18%,hsl(var(--primary)/0.2),transparent_32%),linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.09))] p-4">
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-primary/25 bg-room-card-rich p-4">
         <div className="flex items-start justify-between gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-inner">
             <Monitor className="h-5 w-5" />
           </span>
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-micro font-black uppercase tracking-[0.18em] text-primary">
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-micro font-black uppercase tracking-status text-primary">
             {t('dashboard.editor.sections.scene_list')}
           </span>
         </div>
         <div className="mt-auto min-w-0">
-          <span className="block text-micro font-black uppercase tracking-[0.28em] text-primary/80">{t('dashboard.editor.sections.scene_label')}</span>
+          <span className="block text-micro font-black uppercase tracking-label-wide text-primary/80">{t('dashboard.editor.sections.scene_label')}</span>
           <span className="mt-1 block line-clamp-2 text-body-lg font-black leading-tight text-foreground">{title}</span>
           <span className="mt-2 block line-clamp-2 text-micro font-semibold leading-snug text-muted-foreground">
             {subtitle || t('dashboard.editor.sections.scene_description')}
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
-          <span className="text-micro font-black uppercase tracking-[0.18em] text-muted-foreground">Control</span>
-          <span className="text-micro font-black uppercase tracking-[0.18em] text-primary">1 toque</span>
+          <span className="text-micro font-black uppercase tracking-status text-muted-foreground">Control</span>
+          <span className="text-micro font-black uppercase tracking-status text-primary">1 toque</span>
         </div>
       </div>
     );
@@ -658,28 +658,28 @@ function CardPreview({
 
   if (normalized === 'assistant') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_85%_20%,hsl(var(--primary)/0.18),transparent_30%),hsl(var(--card))] p-4">
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/45 bg-room-card-quiet p-4">
         <div className="flex items-start justify-between gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner">
             <Icon className="h-5 w-5" />
           </span>
-          <span className="rounded-full border border-border/45 bg-background/45 px-2 py-1 text-micro font-black uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="rounded-full border border-border/45 bg-background/45 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
             IA
           </span>
         </div>
         <div className="mt-auto min-w-0">
           <span className="block line-clamp-2 text-body font-black leading-tight text-foreground">{title}</span>
-          <span className="mt-1 block line-clamp-2 text-micro font-black uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="mt-1 block line-clamp-2 text-micro font-black uppercase tracking-label text-muted-foreground">
             {t('dashboard.editor.sections.smart_summary')}
           </span>
         </div>
         <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-micro font-black uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="flex items-center justify-between text-micro font-black uppercase tracking-control text-muted-foreground">
             <span>{t('dashboard.editor.sections.signals')}</span>
             <span className="text-primary">{t('dashboard.editor.sections.ready')}</span>
           </div>
           <div className="h-2 rounded-full bg-muted/70">
-            <div className="h-full w-[88%] rounded-full bg-primary" />
+            <div className="h-full w-percent-88 rounded-full bg-primary" />
           </div>
         </div>
       </div>
@@ -689,10 +689,10 @@ function CardPreview({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-[1.35rem] border p-4 text-center text-foreground transition-all",
+        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-section border p-4 text-center text-foreground transition-all",
         isActive
-          ? "border-primary/55 bg-[linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.12))] shadow-[0_16px_42px_hsl(var(--primary)/0.18)] ring-1 ring-primary/20 dark:bg-[radial-gradient(circle_at_50%_20%,hsl(var(--primary)/0.24),transparent_38%),hsl(var(--card))]"
-          : "border-border/60 bg-card/95 shadow-[0_12px_34px_hsl(var(--foreground)/0.07)] ring-1 ring-background/45"
+          ? "border-primary/55 bg-device-active shadow-primary-warm ring-1 ring-primary/20 dark:bg-device-active-dark"
+          : "border-border/60 bg-card/95 shadow-surface-card ring-1 ring-background/45"
       )}
     >
       <span
@@ -700,7 +700,7 @@ function CardPreview({
           "mb-3 grid place-items-center rounded-full transition-all",
           isSmall ? "h-16 w-16" : "h-24 w-24",
           isActive
-            ? "bg-primary/15 text-primary shadow-[0_0_24px_hsl(var(--primary)/0.16)] ring-1 ring-primary/20"
+            ? "bg-primary/15 text-primary shadow-primary-room-icon ring-1 ring-primary/20"
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
@@ -710,7 +710,7 @@ function CardPreview({
       {isAssigned ? (
         <span
           className={cn(
-            "mt-2 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-[0.16em]",
+            "mt-2 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-control",
             isActive
               ? "border-primary/35 bg-primary/10 text-primary"
               : "border-border/55 bg-muted/60 text-muted-foreground"
@@ -1020,12 +1020,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onDragEnd={() => setDraggingCardId(null)}
         onClick={(event) => { void handleCardAction(card, event); }}
         className={cn(
-          "group/card relative overflow-hidden rounded-[1.35rem] shadow-sm transition-all",
-          span === 'small' && "min-h-[8.25rem]",
-          span === 'medium' && "min-h-[9.25rem]",
-          span === 'full' && "min-h-[10rem]",
-          isCamera && "min-h-[12rem]",
-          isClock && "min-h-[14rem]",
+          "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
+          span === 'small' && "min-h-section-card-sm",
+          span === 'medium' && "min-h-section-card-md",
+          span === 'full' && "min-h-section-card-lg",
+          isCamera && "min-h-curtain-card",
+          isClock && "min-h-clock-card",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
           getSpanClass(span)
@@ -1110,9 +1110,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     return (
       <div className={cn(
-        "overflow-hidden rounded-[1.5rem] bg-background/40 transition-[height,width,max-width] duration-200",
-        span === 'small' && "h-[8.25rem] w-full max-w-[13rem]",
-        span === 'medium' && "h-[9.25rem] w-full max-w-[26rem]",
+        "overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
+        span === 'small' && "h-section-card-sm w-full max-w-copy-xl",
+        span === 'medium' && "h-section-card-md w-full max-w-form-md",
         span === 'full' && "w-full",
         isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : span === 'full' ? 'h-40' : ''
       )}>
@@ -1139,12 +1139,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={() => setIsCatalogOpen(false)}
       >
         <div
-          className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/50 bg-card shadow-2xl"
+          className="max-h-section-modal w-full max-w-5xl overflow-hidden rounded-panel border border-border/50 bg-card shadow-2xl"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex items-start justify-between border-b border-border/40 px-6 py-5">
             <div>
-              <p className="text-micro font-black uppercase tracking-[0.35em] text-primary">
+              <p className="text-micro font-black uppercase tracking-label-ultra text-primary">
                 {t('dashboard.editor.sections.add_card')}
               </p>
               <h3 className="mt-1 text-view-title font-black tracking-tight text-foreground">
@@ -1172,7 +1172,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             </div>
           </div>
 
-          <div className="max-h-[58vh] overflow-y-auto p-6">
+          <div className="max-h-section-editor overflow-y-auto p-6">
             {filteredCatalog.length > 0 ? (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {filteredCatalog.map((item) => (
@@ -1180,7 +1180,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                     key={item.kind}
                     type="button"
                     onClick={() => addCard(item)}
-                    className="rounded-[1.75rem] border border-border/50 bg-background/30 p-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
+                    className="rounded-card border border-border/50 bg-background/30 p-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
                   >
                     {renderCatalogPreview(item.kind, item.title, item.span, item.icon)}
                     <div className="px-2 pb-1 pt-3">
@@ -1188,7 +1188,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                       <span className="mt-1 line-clamp-2 text-caption font-medium leading-relaxed text-muted-foreground">
                         {item.description}
                       </span>
-                      <span className="mt-2 inline-flex rounded-full border border-border/40 px-2 py-1 text-micro font-black uppercase tracking-[0.15em] text-muted-foreground">
+                      <span className="mt-2 inline-flex rounded-full border border-border/40 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
                         {t(`dashboard.editor.sections.card_size_${item.span}`)}
                       </span>
                     </div>
@@ -1213,12 +1213,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={() => setEditingCardId(null)}
       >
         <div
-          className="w-full max-w-xl rounded-[2rem] border border-border/60 bg-card shadow-2xl"
+          className="w-full max-w-xl rounded-panel border border-border/60 bg-card shadow-2xl"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
-              <p className="text-caption font-black uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-caption font-black uppercase tracking-label text-muted-foreground">
                 {t('dashboard.editor.sections.edit')}
               </p>
               <h3 className="text-panel-title font-black text-foreground">
@@ -1245,7 +1245,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             )}
 
             <label className="block space-y-2">
-              <span className="text-caption font-black uppercase tracking-[0.2em] text-muted-foreground">
+              <span className="text-caption font-black uppercase tracking-label text-muted-foreground">
                 {t('dashboard.editor.sections.name')}
               </span>
               <input
@@ -1447,7 +1447,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             setIsCatalogOpen(true);
           }}
           className={cn(
-            "inline-flex min-h-[8.25rem] items-center justify-center rounded-[1.35rem] border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
+            "inline-flex min-h-section-card-sm items-center justify-center rounded-section border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
             cards.length === 0 ? "col-span-1 sm:col-span-2 xl:col-span-4" : "col-span-1"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}
@@ -1481,7 +1481,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible rounded-[1.15rem] border-2 border-dashed border-border/70 bg-background/15 px-[clamp(0.75rem,1.7cqi,1rem)] py-[clamp(0.65rem,1.35cqi,0.9rem)] text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+      className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible rounded-field border-2 border-dashed border-border/70 bg-background/15 px-widget-pad-x py-widget-pad-y text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
     >
       <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (

@@ -574,7 +574,7 @@ export const TopologyView: React.FC = () => {
                               <div className={cn(
                                 "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors",
                                 hasActiveLight
-                                  ? "bg-warning/15 text-warning shadow-[0_0_18px_hsl(var(--warning)/0.18)]"
+                                  ? "bg-warning/15 text-warning shadow-warning-soft"
                                   : isRoomSelected
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
@@ -693,7 +693,7 @@ export const TopologyView: React.FC = () => {
                               placeholder={t('topology.search_lights')}
                               aria-label={t('topology.search_lights')}
                             />
-                            <div className="flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="flex max-h-topology-list flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                             {visibleSelectedRoomDevices.length === 0 && (
                               <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-body font-medium text-muted-foreground">
                                 {t('topology.no_light_search_results')}
@@ -755,7 +755,7 @@ export const TopologyView: React.FC = () => {
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[350px] border border-border border-dashed rounded-xl bg-muted/10 text-muted-foreground cursor-default">
+          <div className="flex flex-col items-center justify-center h-topology-empty border border-border border-dashed rounded-xl bg-muted/10 text-muted-foreground cursor-default">
             <div className="p-4 bg-muted rounded-full mb-4 opacity-50">
               <HomeIcon className="w-8 h-8" />
             </div>

@@ -7,8 +7,8 @@ export interface PageFrameProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const maxWidthClasses: Record<NonNullable<PageFrameProps['maxWidth']>, string> = {
-  standard: 'max-w-[1280px]',
-  wide: 'max-w-[1600px]',
+  standard: 'max-w-content-standard',
+  wide: 'max-w-content-wide',
   none: 'max-w-none',
 };
 

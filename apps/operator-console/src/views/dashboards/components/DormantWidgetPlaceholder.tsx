@@ -24,7 +24,7 @@ export function DormantWidgetPlaceholder({
   const { t } = useTranslation();
   return (
     <div className={cn(
-      "relative w-full h-full rounded-[2.5rem] overflow-hidden flex flex-col items-center justify-center p-8 text-center transition-all duration-700",
+      "relative w-full h-full rounded-dashboard overflow-hidden flex flex-col items-center justify-center p-8 text-center transition-all duration-700",
       variant === 'glass' && "bg-card/40 backdrop-blur-2xl border border-border/40",
       variant === 'solid' && "bg-muted/80 border border-border/20",
       variant === 'radiant' && "bg-gradient-to-br from-primary/20 via-primary/5 to-card border border-primary/30 shadow-2xl shadow-primary/10",
@@ -32,7 +32,7 @@ export function DormantWidgetPlaceholder({
       variant === 'flat' && "bg-muted/30"
     )}>
       <div className="absolute inset-0 pointer-events-none opacity-20">
-         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,rgba(var(--primary),0.05),transparent_70%)]" />
+         <div className="absolute top-0 left-0 w-full h-full bg-dormant-radial" />
       </div>
 
       <div className={cn(
@@ -45,7 +45,7 @@ export function DormantWidgetPlaceholder({
         </div>
       </div>
 
-      <div className="space-y-2 max-w-[200px]">
+      <div className="space-y-2 max-w-copy-lg">
         <h4 className="text-body font-black uppercase tracking-widest text-foreground/40">{title}</h4>
         <p className="text-micro text-muted-foreground/40 leading-relaxed font-bold italic">
           {message}

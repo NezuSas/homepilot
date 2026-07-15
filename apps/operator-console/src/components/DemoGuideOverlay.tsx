@@ -153,7 +153,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
     )}>
       {/* Backdrop z-40 */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-all duration-500 z-[40]"
+        className="absolute inset-0 bg-black/60 backdrop-blur-surface transition-all duration-500 z-[40]"
         style={{
           clipPath: (layout && !isMobile) 
             ? `polygon(0% 0%, 0% 100%, ${layout.L}px 100%, ${layout.L}px ${layout.T}px, ${layout.R}px ${layout.T}px, ${layout.R}px ${layout.B}px, ${layout.L}px ${layout.B}px, ${layout.L}px 100%, 100% 100%, 100% 0%)`
@@ -168,7 +168,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
             "absolute rounded-2xl transition-all duration-500 ease-out z-[50]",
             isMobile 
               ? "border-[3px] border-primary/60 scale-125 animate-ping opacity-75" 
-              : "border-2 border-primary shadow-[0_0_40px_rgba(var(--primary),0.25)] animate-pulse"
+              : "border-2 border-primary shadow-primary-halo animate-pulse"
           )}
           style={{
             transform: `translate(${layout.L}px, ${layout.T}px)`,
@@ -187,11 +187,11 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
             width: TOOLTIP_WIDTH,
           }}
         >
-          <div className="bg-card/95 border border-primary/20 rounded-[1.75rem] p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
+          <div className="bg-card/95 border border-primary/20 rounded-card p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
              <div className="absolute top-0 left-0 h-0.5 bg-primary/20 transition-all duration-1000" style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }} />
              
              <div className="flex items-center justify-between mb-3 mt-0.5">
-                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/60">
+                <span className="text-micro font-black uppercase tracking-label text-primary/60">
                   {t('demo.controls.label')} • {t('demo.controls.step_of', { current: currentStepIndex + 1, total: steps.length })}
                 </span>
                 <button onClick={endDemo} className="p-1 -mr-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -208,7 +208,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
                 <Button 
                   onClick={nextStep} 
                   size="sm"
-                  className="h-10 min-w-[9rem] rounded-xl px-4 text-micro font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                  className="h-10 min-w-demo-button rounded-xl px-4 text-micro font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                 >
                   {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
                   <ChevronRight className="w-3 h-3" />

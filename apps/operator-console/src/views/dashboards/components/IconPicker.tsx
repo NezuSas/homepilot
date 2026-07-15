@@ -172,7 +172,7 @@ export function IconPicker({
   return (
     <div className={cn('space-y-2', className)}>
       {label ? (
-        <span className="text-caption font-black uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="text-caption font-black uppercase tracking-label text-muted-foreground">
           {label}
         </span>
       ) : null}

@@ -41,7 +41,7 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
       role="status"
       aria-live="polite"
       className={cn(
-        'fixed bottom-14 left-1/2 z-[70] w-[min(540px,calc(100vw-2rem))] -translate-x-1/2 rounded-[1.35rem] border bg-card/95 p-4 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors',
+        'fixed bottom-14 left-1/2 z-[70] w-toast-responsive -translate-x-1/2 rounded-section border bg-card/95 p-4 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors',
         notice.tone === 'success' && 'border-primary/35',
         notice.tone === 'warning' && 'border-warning/40',
         notice.tone === 'error' && 'border-destructive/40',
@@ -49,12 +49,12 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-micro font-black uppercase tracking-[0.24em] text-muted-foreground">
+        <span className="text-micro font-black uppercase tracking-label text-muted-foreground">
           Nezu Voice
         </span>
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-[0.18em]',
+            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-status',
             isProcessing ? 'border-warning/40 text-warning' : 'border-primary/30 text-primary'
           )}
         >
