@@ -576,29 +576,39 @@ function CardPreview({
 
   if (normalized === 'room') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] p-4">
+      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[1.35rem] border border-border/45 bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] p-3.5 sm:p-4">
         <div className="flex items-start justify-between gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner">
-            <Home className="h-5 w-5" />
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner sm:h-11 sm:w-11">
+            <Home className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" />
           </span>
-          <span className="rounded-full border border-border/50 bg-background/55 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="rounded-full border border-border/50 bg-background/55 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">
             {t('dashboard.editor.sections.room_label')}
           </span>
         </div>
-        <div className="mt-auto min-w-0">
-          <span className="block line-clamp-2 text-lg font-black leading-tight text-foreground">{title}</span>
-          <span className="mt-1 block line-clamp-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+
+        <div className="min-w-0 py-2">
+          <span className="block line-clamp-2 text-base font-black leading-tight text-foreground sm:text-lg">{title}</span>
+          <span className="mt-1 block line-clamp-2 text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
             {t('dashboard.editor.sections.room_access')}
           </span>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <span className="rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
-            <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Vista</span>
-            <span className="mt-1 block text-sm font-black text-foreground">Room</span>
+
+        <div className="grid grid-cols-2 gap-2">
+          <span className="min-w-0 rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
+            <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+              {t('dashboard.editor.sections.room_view')}
+            </span>
+            <span className="mt-0.5 block truncate text-xs font-black text-foreground sm:text-sm">
+              {t('dashboard.editor.sections.room_label')}
+            </span>
           </span>
-          <span className="rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2">
-            <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-primary/70">Control</span>
-            <span className="mt-1 block text-sm font-black text-primary">Local</span>
+          <span className="min-w-0 rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2">
+            <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-primary/70">
+              {t('dashboard.editor.sections.room_control')}
+            </span>
+            <span className="mt-0.5 block truncate text-xs font-black text-primary sm:text-sm">
+              {t('dashboard.editor.sections.room_local')}
+            </span>
           </span>
         </div>
       </div>
