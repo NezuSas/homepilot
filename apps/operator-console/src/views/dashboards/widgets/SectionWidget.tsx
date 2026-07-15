@@ -518,6 +518,7 @@ function CardPreview({
   span,
   icon,
   isAssigned,
+  isActive,
   deviceId,
   roomDeviceCount,
   roomActiveCount,
@@ -528,6 +529,7 @@ function CardPreview({
   span: SectionCardSpan;
   icon?: SectionCardIcon;
   isAssigned?: boolean;
+  isActive?: boolean;
   deviceId?: string;
   roomDeviceCount?: number;
   roomActiveCount?: number;
@@ -684,14 +686,38 @@ function CardPreview({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center rounded-[1.35rem] border border-border/45 bg-card p-4 text-center">
-      <span className={cn("mb-3 grid place-items-center rounded-full bg-primary/10 text-primary", isSmall ? "h-16 w-16" : "h-24 w-24")}>
+    <div
+      className={cn(
+        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-[1.35rem] border p-4 text-center transition-all",
+        isActive
+          ? "border-primary/55 bg-[radial-gradient(circle_at_50%_20%,hsl(var(--primary)/0.24),transparent_38%),hsl(var(--card))] shadow-[0_0_28px_hsl(var(--primary)/0.18)]"
+          : "border-border/45 bg-card opacity-85"
+      )}
+    >
+      <span
+        className={cn(
+          "mb-3 grid place-items-center rounded-full transition-all",
+          isSmall ? "h-16 w-16" : "h-24 w-24",
+          isActive ? "bg-primary/20 text-primary shadow-[0_0_24px_hsl(var(--primary)/0.18)]" : "bg-muted/45 text-muted-foreground"
+        )}
+      >
         <Icon className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
       </span>
       <span className="line-clamp-2 text-sm font-black leading-tight text-foreground">{title}</span>
-      {!isSmall ? (
+      {isAssigned ? (
+        <span
+          className={cn(
+            "mt-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]",
+            isActive
+              ? "border-primary/35 bg-primary/10 text-primary"
+              : "border-border/45 bg-background/35 text-muted-foreground"
+          )}
+        >
+          {t(isActive ? 'device_statuses.on' : 'device_statuses.off')}
+        </span>
+      ) : !isSmall ? (
         <span className="mt-1 line-clamp-2 text-[10px] font-bold leading-tight text-muted-foreground">
-          {subtitle || (isAssigned ? t('dashboard.editor.sections.assigned') : t('dashboard.editor.sections.unassigned'))}
+          {subtitle || t('dashboard.editor.sections.unassigned')}
         </span>
       ) : null}
     </div>
@@ -953,6 +979,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const roomDevices = normalizedKind === 'room' && card.entityId
       ? devices.filter((device) => device.roomId === card.entityId)
       : [];
+    const assignedDevice = card.entityId
+      ? devices.find((device) => device.id === card.entityId)
+      : undefined;
+    const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
     const isActionable = Boolean(card.entityId)
       && !isEditing
       && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'cover');
@@ -1005,6 +1035,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span={span}
           icon={card.icon}
           isAssigned={Boolean(card.entityId)}
+          isActive={cardIsActive}
           deviceId={cameraDeviceId}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
@@ -1070,6 +1101,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const roomDevices = isRoomPreview && deviceIdOverride
       ? devices.filter((device) => device.roomId === deviceIdOverride)
       : [];
+    const previewDevice = deviceIdOverride
+      ? devices.find((device) => device.id === deviceIdOverride)
+      : undefined;
 
     return (
       <div className={cn(
@@ -1086,6 +1120,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
+          isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           deviceId={deviceIdOverride}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
