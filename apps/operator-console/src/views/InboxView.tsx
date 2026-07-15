@@ -144,15 +144,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         subtitle={mode === 'manager' ? t('inbox.manager_subtitle') : t('inbox.discovery_subtitle')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="flex w-full min-w-0 flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <div className="flex w-full min-w-0 flex-col items-stretch gap-3 xl:w-auto">
             {/* Origin Filter */}
-            <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-border/50 bg-muted p-1 no-scrollbar">
+            <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted p-1 xl:w-auto">
               {(['all', 'local', 'bridged'] as const).map(o => (
                 <button
                   key={o}
                   onClick={() => setOriginFilter(o)}
                   className={cn(
-                    "px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                    "min-h-10 rounded-xl px-2 py-2 text-label font-black uppercase tracking-control transition-all",
                     originFilter === o ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
                   )}
                 >
@@ -162,13 +162,13 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             </div>
 
             {/* Type Filter */}
-            <div className="flex items-center gap-1.5 p-1 bg-muted rounded-2xl border border-border/50 overflow-x-auto no-scrollbar max-w-full">
+            <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted p-1 xl:w-auto">
               {(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
                   className={cn(
-                    "px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                    "min-h-10 rounded-xl px-2 py-2 text-label font-black uppercase tracking-control transition-all",
                    filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
                   )}
                 >
