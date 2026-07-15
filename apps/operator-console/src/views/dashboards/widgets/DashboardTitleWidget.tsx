@@ -184,8 +184,8 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
   if (isEditing && !markdown.trim()) {
     return (
       <div className="flex h-full w-full items-center justify-center rounded-[1.25rem] border-2 border-dashed border-border/60 bg-background/10 px-5 py-4">
-        <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-sm font-semibold text-primary">
-          <span className="text-xl leading-none">+</span>
+        <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
+          <span className="text-panel-title leading-none">+</span>
           <span>{t('dashboard.editor.sections.add_title')}</span>
         </span>
       </div>
@@ -207,7 +207,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
             return (
               <h1
                 key={block.key}
-                className="min-w-0 max-w-full truncate text-[clamp(1.15rem,3.1cqi,2rem)] font-black leading-tight tracking-tight text-foreground"
+                className="min-w-0 max-w-full truncate text-widget-title-fluid font-black leading-tight tracking-tight text-foreground"
               >
                 {block.text}
               </h1>
@@ -218,7 +218,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
             return (
               <h2
                 key={block.key}
-                className="min-w-0 max-w-full truncate text-[clamp(1rem,2.4cqi,1.55rem)] font-black leading-tight tracking-tight text-foreground"
+                className="min-w-0 max-w-full truncate text-widget-title-compact-fluid font-black leading-tight tracking-tight text-foreground"
               >
                 {block.text}
               </h2>
@@ -229,7 +229,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
             return (
               <h3
                 key={block.key}
-                className="min-w-0 max-w-full truncate text-[clamp(0.9rem,2cqi,1.25rem)] font-bold leading-tight text-foreground"
+                className="min-w-0 max-w-full truncate text-widget-title-small-fluid font-bold leading-tight text-foreground"
               >
                 {block.text}
               </h3>
@@ -239,7 +239,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
           return (
             <p
               key={block.key}
-              className="min-w-0 max-w-full truncate text-[clamp(0.72rem,1.45cqi,0.98rem)] font-medium leading-snug text-muted-foreground"
+              className="min-w-0 max-w-full truncate text-widget-caption-fluid font-medium leading-snug text-muted-foreground"
             >
               {block.text}
             </p>

@@ -80,14 +80,14 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
           <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
             <Cpu className="w-4 h-4" />
           </div>
-          <h3 className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate">
+          <h3 className="text-caption @md:text-body font-black text-foreground tracking-tight truncate">
             {config.appearance.title || t('dashboards.widgets.system_status.label')}
           </h3>
         </div>
         {!loading && (
            <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-glow shadow-success/50" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.system_status.online')}</span>
+              <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.system_status.online')}</span>
            </div>
         )}
       </div>
@@ -112,7 +112,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
           <div className="space-y-3 @md:space-y-5 animate-in fade-in duration-500">
             {/* CPU Metric */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest mb-1 px-1">
+              <div className="flex justify-between items-center text-micro font-black uppercase tracking-widest mb-1 px-1">
                 <span className="text-muted-foreground/60 flex items-center gap-1.5">
                    <Zap className="w-3 h-3" /> {t('dashboards.widgets.system_status.processor')}
                 </span>
@@ -128,7 +128,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
 
             {/* RAM Metric */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest mb-1 px-1">
+              <div className="flex justify-between items-center text-micro font-black uppercase tracking-widest mb-1 px-1">
                 <span className="text-muted-foreground/60 flex items-center gap-1.5">
                    <HardDrive className="w-3 h-3" /> {t('dashboards.widgets.system_status.memory')}
                 </span>
@@ -140,7 +140,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
                   style={{ width: `${snapshot.memoryUsage.percentage}%` }} 
                 />
               </div>
-              <p className="text-[9px] text-muted-foreground/30 font-bold uppercase tracking-tight text-right px-1">
+              <p className="text-micro text-muted-foreground/30 font-bold uppercase tracking-tight text-right px-1">
                 {Math.round(snapshot.memoryUsage.used / 1024)}GB / {Math.round(snapshot.memoryUsage.total / 1024)}GB
               </p>
             </div>
@@ -151,8 +151,8 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
                   <Timer className="w-3 h-3 text-muted-foreground" />
                </div>
                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 leading-none mb-1">{t('dashboards.widgets.system_status.uptime')}</p>
-                  <p className="text-xs font-black text-foreground tracking-tight">{formatUptime(snapshot.uptime)}</p>
+                  <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/40 leading-none mb-1">{t('dashboards.widgets.system_status.uptime')}</p>
+                  <p className="text-caption font-black text-foreground tracking-tight">{formatUptime(snapshot.uptime)}</p>
                </div>
             </div>
           </div>

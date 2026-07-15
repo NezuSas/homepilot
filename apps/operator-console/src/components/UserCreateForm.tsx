@@ -59,7 +59,7 @@ export const UserCreateForm: React.FC<UserCreateFormProps> = ({
     </CardHeader>
     <CardContent className="pt-6">
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      {error && <p className="text-danger text-sm font-medium">{error}</p>}
+      {error && <p className="text-danger text-body font-medium">{error}</p>}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-1">
           <Input

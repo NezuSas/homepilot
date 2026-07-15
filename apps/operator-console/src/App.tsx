@@ -526,7 +526,7 @@ function App() {
           </div>
           
           <div className="flex flex-col items-center gap-2">
-            <h2 className="text-xl font-black tracking-tighter uppercase">{t('shell.status.verifying_session')}</h2>
+            <h2 className="text-panel-title font-black tracking-tighter uppercase">{t('shell.status.verifying_session')}</h2>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
@@ -535,7 +535,7 @@ function App() {
           </div>
         </div>
 
-        <div className="absolute bottom-12 text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground opacity-30">
+        <div className="absolute bottom-12 text-micro uppercase font-black tracking-[0.4em] text-muted-foreground opacity-30">
           HomePilot Edge Security Gate
         </div>
       </div>
@@ -572,7 +572,7 @@ function App() {
       <div className="flex flex-col min-h-screen bg-background text-foreground font-sans">
         <header className="h-16 border-b flex items-center px-6 bg-card shrink-0">
           <Monitor className="w-6 h-6 mr-3 text-primary" />
-          <h1 className="text-lg font-bold tracking-tight">{t('shell.app_title')} {t('shell.app_edge')}</h1>
+          <h1 className="text-section-title font-bold tracking-tight">{t('shell.app_title')} {t('shell.app_edge')}</h1>
         </header>
         <main className="flex-1 flex overflow-hidden">
           <OnboardingView 
@@ -729,7 +729,7 @@ function App() {
             >
               <img src="/nezu.png" alt="Nezu" className={cn("h-10 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "lg:opacity-100")} />
             </button>
-            <h2 className={cn("font-black tracking-tighter text-base leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
+            <h2 className={cn("font-black tracking-tighter text-body-lg leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
               {t('shell.app_title')}
             </h2>
           </div>
@@ -749,7 +749,7 @@ function App() {
             >
               <Menu className="h-3.5 w-3.5" />
             </button>
-            <span className="text-[9px] uppercase font-black tracking-[0.22em] text-muted-foreground/35">{t('shell.subtitle')}</span>
+            <span className="text-micro uppercase font-black tracking-[0.22em] text-muted-foreground/35">{t('shell.subtitle')}</span>
           </div>
         </div>
         
@@ -777,7 +777,7 @@ function App() {
                       });
                     }}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition-all w-full text-left",
+                      "flex items-center gap-3 rounded-2xl p-3 text-body font-bold transition-all w-full text-left",
                       activeDashboardsSection
                         ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted/80',
@@ -797,7 +797,7 @@ function App() {
                  {isDashboardsExpanded && !isSidebarContentCollapsed && (
                    <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
                      {sidebarDashboards.length === 0 ? (
-                       <span className="px-3 py-2 text-[0.72rem] font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
+                       <span className="px-3 py-2 text-caption font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
                      ) : sidebarDashboards.map(dashboard => (
                        <SidebarItem
                          key={dashboard.id}
@@ -856,7 +856,7 @@ function App() {
                  active={currentView === 'assistant'}
                  onClick={() => navigateTo('assistant')}
                  badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0
-                    ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-black">{assistantSummary.totalOpen}</span>
+                    ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-micro font-black">{assistantSummary.totalOpen}</span>
                     : undefined}
                  collapsedOnDesktop={isSidebarContentCollapsed}
                />
@@ -888,7 +888,7 @@ function App() {
                 <button
                     onClick={() => setIsSystemExpanded(prev => !prev)}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition-all w-full text-left",
+                      "flex items-center gap-3 rounded-2xl p-3 text-body font-bold transition-all w-full text-left",
                       activeSystemSection
                         ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted/80',
@@ -996,10 +996,10 @@ function App() {
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div className={cn("flex min-w-0 flex-1 flex-col text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>
-              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+              <span className="text-micro font-black uppercase tracking-widest whitespace-nowrap">
                 {t('demo.start_button')}
               </span>
-              <span className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.14em] text-primary/60">
+              <span className="mt-0.5 truncate text-micro font-bold uppercase tracking-[0.14em] text-primary/60">
                 {t('demo.sidebar_summary', { count: DEMO_STEPS.length })}
               </span>
             </div>
@@ -1022,12 +1022,12 @@ function App() {
                       alt="avatar" 
                       className="w-full h-full object-cover shadow-inner" 
                     />
-                  : <span className="font-black text-xs uppercase">{(user?.username || '?').substring(0, 2)}</span>
+                  : <span className="font-black text-caption uppercase">{(user?.username || '?').substring(0, 2)}</span>
                 }
               </div>
               <div className={cn("flex flex-col min-w-0 text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0")}>
-                <span className="text-xs font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
-                <span className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-tighter opacity-70">
+                <span className="text-caption font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
+                <span className="text-micro text-muted-foreground truncate uppercase font-bold tracking-tighter opacity-70">
                    {user?.role ? t(`users.roles.${user.role}`) : 'User'}
                 </span>
               </div>

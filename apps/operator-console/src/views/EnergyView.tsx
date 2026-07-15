@@ -44,15 +44,15 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
               <Zap className="w-7 h-7 text-warning/80" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-warning/70 mb-1">{t('energy.category')}</p>
-              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">{t('energy.title')}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('energy.subtitle')}</p>
+              <p className="text-micro font-black uppercase tracking-[0.25em] text-warning/70 mb-1">{t('energy.category')}</p>
+              <h2 className="text-panel-title sm:text-view-title font-black text-foreground tracking-tight">{t('energy.title')}</h2>
+              <p className="text-caption text-muted-foreground mt-0.5">{t('energy.subtitle')}</p>
             </div>
           </div>
           {/* Status badge — hidden on very small screens */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/20 shrink-0 shadow-sm">
             <Cpu className="w-3 h-3 text-primary/60" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary/80">{t('energy.status_active')}</span>
+            <span className="text-micro font-black uppercase tracking-widest text-primary/80">{t('energy.status_active')}</span>
             <div className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse premium-glow-warning" />
           </div>
         </div>
@@ -82,14 +82,14 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                     <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
                       <Zap className="w-5 h-5 text-warning/80" />
                     </div>
-                    <span className="text-sm font-bold text-foreground/80">{t('energy.total_power')}</span>
+                    <span className="text-body font-bold text-foreground/80">{t('energy.total_power')}</span>
                   </div>
                   <div>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-4xl font-black text-foreground tracking-tight">
+                      <span className="text-hero-title font-black text-foreground tracking-tight">
                         {totalPower >= 1000 ? (totalPower / 1000).toFixed(2) : Math.round(totalPower)}
                       </span>
-                      <span className="text-sm font-bold text-muted-foreground">
+                      <span className="text-body font-bold text-muted-foreground">
                         {totalPower >= 1000 ? 'kW' : 'W'}
                       </span>
                     </div>
@@ -101,14 +101,14 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                       <Activity className="w-5 h-5 text-primary/80" />
                     </div>
-                    <span className="text-sm font-bold text-foreground/80">{t('energy.total_energy')}</span>
+                    <span className="text-body font-bold text-foreground/80">{t('energy.total_energy')}</span>
                   </div>
                   <div>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-4xl font-black text-foreground tracking-tight">
+                      <span className="text-hero-title font-black text-foreground tracking-tight">
                         {totalEnergy.toFixed(1)}
                       </span>
-                      <span className="text-sm font-bold text-muted-foreground">kWh</span>
+                      <span className="text-body font-bold text-muted-foreground">kWh</span>
                     </div>
                   </div>
                 </Card>
@@ -116,9 +116,9 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
 
               {/* Live Consumption List */}
               <div className="flex flex-col gap-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-1 mb-1">{t('energy.live_consumption')}</p>
+                <p className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-1 mb-1">{t('energy.live_consumption')}</p>
                 {wEntities.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-card border border-border/40 text-center text-sm text-muted-foreground">
+                  <div className="p-6 rounded-2xl bg-card border border-border/40 text-center text-body text-muted-foreground">
                     {t('energy.no_data')}
                   </div>
                 ) : (
@@ -129,11 +129,11 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                           <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
                             <Zap className="w-4 h-4 text-warning/60" />
                           </div>
-                          <p className="text-sm font-bold text-foreground truncate">{e.name}</p>
+                          <p className="text-body font-bold text-foreground truncate">{e.name}</p>
                         </div>
                         <div className="flex items-baseline gap-1 shrink-0 text-right">
-                          <span className="text-sm font-black text-warning/90">{Math.round(e.state)}</span>
-                          <span className="text-[10px] font-black text-muted-foreground/60">W</span>
+                          <span className="text-body font-black text-warning/90">{Math.round(e.state)}</span>
+                          <span className="text-micro font-black text-muted-foreground/60">W</span>
                         </div>
                       </Card>
                     ))}
@@ -154,19 +154,19 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
               </div>
 
               <div className="space-y-3 max-w-md z-10">
-                <h3 className="text-lg sm:text-xl font-black text-foreground tracking-tight">{t('energy.empty_title')}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{t('energy.empty_description')}</p>
+                <h3 className="text-section-title sm:text-panel-title font-black text-foreground tracking-tight">{t('energy.empty_title')}</h3>
+                <p className="text-body text-muted-foreground leading-relaxed">{t('energy.empty_description')}</p>
               </div>
 
               {/* Feature list */}
               <div className="w-full max-w-sm space-y-2 z-10">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-3">{t('energy.what_you_will_see')}</p>
+                <p className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-3">{t('energy.what_you_will_see')}</p>
                 {features.map(({ icon: Icon, key }) => (
                   <div key={key} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-muted/40 border border-border/40 text-left">
                     <div className="w-7 h-7 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center shrink-0">
                       <Icon className="w-3.5 h-3.5 text-warning/70" />
                     </div>
-                    <span className="text-xs font-bold text-foreground/70">{t(`energy.${key}`)}</span>
+                    <span className="text-caption font-bold text-foreground/70">{t(`energy.${key}`)}</span>
                   </div>
                 ))}
               </div>
@@ -174,7 +174,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
               {/* Local badge */}
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/60 border border-border/50 z-10">
                 <Leaf className="w-3 h-3 text-muted-foreground/50" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">{t('energy.powered_by_local')}</span>
+                <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">{t('energy.powered_by_local')}</span>
               </div>
             </div>
           )}
@@ -188,17 +188,17 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
                 <Zap className="w-4 h-4 text-primary/70" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black text-foreground">{t('nav.assistant')}</p>
-                <p className="text-[10px] text-muted-foreground/60 truncate">{t('assistant.subtitle')}</p>
+                <p className="text-caption font-black text-foreground">{t('nav.assistant')}</p>
+                <p className="text-micro text-muted-foreground/60 truncate">{t('assistant.subtitle')}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">{t('energy.insight_hint')}</p>
+            <p className="text-caption text-muted-foreground leading-relaxed">{t('energy.insight_hint')}</p>
             {onNavigate && (
               <button
                 onClick={() => onNavigate('assistant')}
                 className="flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 group active:scale-[0.98]"
               >
-                <span className="text-xs font-black uppercase tracking-widest text-primary/80 group-hover:text-primary">
+                <span className="text-caption font-black uppercase tracking-widest text-primary/80 group-hover:text-primary">
                   {t('energy.go_to_assistant')}
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-primary/50 group-hover:translate-x-0.5 transition-transform shrink-0" />

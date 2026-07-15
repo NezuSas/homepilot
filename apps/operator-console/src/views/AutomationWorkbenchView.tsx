@@ -253,7 +253,7 @@ export const AutomationWorkbenchView: React.FC = () => {
               if (editingId) cancelEditing();
               setShowForm(!showForm);
             }}
-            className="uppercase tracking-widest text-[11px]"
+            className="uppercase tracking-widest text-label"
           >
             {showForm || editingId ? <><X className="w-4 h-4" /> {t('common.cancel')}</> : <><Plus className="w-4 h-4" /> {t('automations.create_rule')}</>}
           </Button>

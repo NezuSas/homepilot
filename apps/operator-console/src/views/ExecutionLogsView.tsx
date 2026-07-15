@@ -36,7 +36,7 @@ export const ExecutionLogsView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] animate-pulse">
         <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
-        <p className="text-sm font-black uppercase tracking-[0.3em] opacity-30 italic">Syncing with Edge...</p>
+        <p className="text-body font-black uppercase tracking-[0.3em] opacity-30 italic">Syncing with Edge...</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ export const ExecutionLogsView: React.FC = () => {
         description="There is no historical data for scenes or automations yet. Execute a scene to see it here."
         className="min-h-[500px]"
         action={
-          <Button variant="outline" size="sm" onClick={fetchRecords} className="gap-2 text-[10px] uppercase tracking-widest">
+          <Button variant="outline" size="sm" onClick={fetchRecords} className="gap-2 text-micro uppercase tracking-widest">
             <RefreshCw className="h-3.5 w-3.5" />
             Scan Edge Logs
           </Button>
@@ -79,13 +79,13 @@ export const ExecutionLogsView: React.FC = () => {
       <div className="flex items-center justify-between px-4">
          <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+            <span className="text-micro font-black text-muted-foreground uppercase tracking-[0.3em]">
               Edge Real-time Observability
             </span>
          </div>
          <button 
             onClick={fetchRecords} 
-            className="group flex items-center gap-2 text-[10px] font-black text-muted-foreground hover:text-primary transition-colors"
+            className="group flex items-center gap-2 text-micro font-black text-muted-foreground hover:text-primary transition-colors"
          >
             <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-700" />
             Sync Now
@@ -104,7 +104,7 @@ export const ExecutionLogsView: React.FC = () => {
       
       <div className="py-10 flex flex-col items-center gap-4 opacity-20">
          <Activity className="w-8 h-8" />
-         <p className="text-[9px] font-black uppercase tracking-[0.4em]">End of Records</p>
+         <p className="text-micro font-black uppercase tracking-[0.4em]">End of Records</p>
       </div>
     </div>
   );

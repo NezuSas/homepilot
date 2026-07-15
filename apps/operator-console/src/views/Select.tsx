@@ -113,14 +113,14 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full bg-foreground/[0.05] border-none rounded-lg pl-9 pr-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary/30 outline-none"
+                  className="w-full bg-foreground/[0.05] border-none rounded-lg pl-9 pr-3 py-2 text-caption font-medium focus:ring-1 focus:ring-primary/30 outline-none"
                 />
               </div>
             </div>
           )}
           <div className="portal-select-dropdown-list max-h-60 overflow-y-auto custom-scrollbar p-1.5">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-4 text-center text-xs text-foreground/30 font-medium">
+              <div className="px-3 py-4 text-center text-caption text-foreground/30 font-medium">
                 No results found
               </div>
             ) : (
@@ -133,7 +133,7 @@ const Select: React.FC<SelectProps> = ({ value, onChange, options, placeholder, 
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left outline-none",
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-body font-medium transition-colors text-left outline-none",
                     option.value === value 
                       ? "bg-primary/10 text-primary" 
                       : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground focus:bg-foreground/5"

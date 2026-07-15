@@ -401,12 +401,12 @@ const canvasMinRows = useMemo(() => {
       }}
     >
       {isAddTitle ? (
-        <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-sm font-semibold text-primary">
-          <span className="text-xl leading-none">+</span>
+        <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
+          <span className="text-panel-title leading-none">+</span>
           <span>{t('dashboard.editor.sections.add_title')}</span>
         </span>
       ) : (
-        <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-xl font-light leading-none text-primary">
+        <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-panel-title font-light leading-none text-primary">
           +
         </span>
       )}

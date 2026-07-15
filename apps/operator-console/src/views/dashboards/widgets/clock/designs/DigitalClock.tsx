@@ -17,11 +17,11 @@ export function DigitalClock({ now, locale, copy, weather, weatherStatus }: Cloc
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ClockLabel>{copy.digitalPro}</ClockLabel>
-            <div className="mt-2 truncate text-[clamp(0.53rem,1.25cqi,0.72rem)] font-semibold text-muted-foreground">{dateLine}</div>
+            <div className="mt-2 truncate text-clock-digital-label-fluid font-semibold text-muted-foreground">{dateLine}</div>
           </div>
           <div className="grid h-[clamp(3rem,7.5cqi,4rem)] w-[clamp(3rem,7.5cqi,4rem)] place-items-center rounded-full border border-border/60 bg-background/38 text-center shadow-inner">
-            <span className="text-[clamp(0.52rem,1.35cqi,0.78rem)] font-black text-foreground">{seconds}</span>
-            <span className="-mt-2 text-[clamp(0.38rem,0.95cqi,0.5rem)] font-black uppercase tracking-[0.18em] text-primary">{copy.secondsShort}</span>
+            <span className="text-clock-digital-body-fluid font-black text-foreground">{seconds}</span>
+            <span className="-mt-2 text-clock-digital-micro-fluid font-black uppercase tracking-[0.18em] text-primary">{copy.secondsShort}</span>
           </div>
         </div>
 

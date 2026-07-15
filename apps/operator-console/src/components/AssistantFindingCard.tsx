@@ -93,16 +93,16 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
         </StatusPill>
       </div>
 
-      <h3 className="text-sm font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
+      <h3 className="text-body font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
         {t(`assistant.types.${finding.type}`)}
       </h3>
-      <p className="text-xs text-muted-foreground leading-relaxed mb-6 font-medium">
+      <p className="text-caption text-muted-foreground leading-relaxed mb-6 font-medium">
         {t(`assistant.types.${finding.type}_description`, finding.metadata) as string}
       </p>
 
       {reasonKey !== '' && (
         <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 mb-6 font-primary">
-          <p className="text-[10px] font-bold text-primary italic leading-normal flex items-center gap-2">
+          <p className="text-micro font-bold text-primary italic leading-normal flex items-center gap-2">
             <Info className="w-3 h-3" />
             {t(`assistant.types.reasons.${reasonKey}`)}
           </p>
@@ -112,7 +112,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
       {finding.metadata.ready === true && (
         <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-success/10 border border-success/20 text-success">
           <Sparkles className="w-3 h-3" />
-          <span className="text-[10px] font-black uppercase tracking-wider">
+          <span className="text-micro font-black uppercase tracking-wider">
             {t('assistant.draft.ready')}
           </span>
         </div>
@@ -124,7 +124,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
             key={`${finding.id}-${action.type}-${index}`}
             variant={index === 0 ? 'primary' : 'secondary'}
             onClick={() => onAction(finding, action)}
-            className="flex-1 text-[10px] uppercase tracking-widest h-auto py-3"
+            className="flex-1 text-micro uppercase tracking-widest h-auto py-3"
           >
             {t(action.label)}
           </Button>

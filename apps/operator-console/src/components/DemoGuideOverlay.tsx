@@ -191,7 +191,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
              <div className="absolute top-0 left-0 h-0.5 bg-primary/20 transition-all duration-1000" style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }} />
              
              <div className="flex items-center justify-between mb-3 mt-0.5">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">
+                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/60">
                   {t('demo.controls.label')} • {t('demo.controls.step_of', { current: currentStepIndex + 1, total: steps.length })}
                 </span>
                 <button onClick={endDemo} className="p-1 -mr-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -199,8 +199,8 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
                 </button>
              </div>
              
-             <h3 className="text-base font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
-             <p className="text-[12px] text-muted-foreground leading-relaxed mb-4 opacity-85 font-medium">
+             <h3 className="text-body-lg font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
+             <p className="text-caption text-muted-foreground leading-relaxed mb-4 opacity-85 font-medium">
                 {t(currentStep.descriptionKey)}
              </p>
              
@@ -208,14 +208,14 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
                 <Button 
                   onClick={nextStep} 
                   size="sm"
-                  className="h-10 min-w-[9rem] rounded-xl px-4 text-[9px] font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                  className="h-10 min-w-[9rem] rounded-xl px-4 text-micro font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                 >
                   {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
                   <ChevronRight className="w-3 h-3" />
                 </Button>
                 <button 
                   onClick={endDemo}
-                  className="px-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/30 hover:text-muted-foreground transition-all"
+                  className="px-1 text-micro font-black uppercase tracking-widest text-muted-foreground/30 hover:text-muted-foreground transition-all"
                 >
                   {t('demo.controls.skip')}
                 </button>

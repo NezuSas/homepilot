@@ -76,13 +76,13 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
       <div className="w-full max-w-md bg-card border border-muted rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         <header className="p-6 border-b border-muted">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-xl font-black tracking-tight">{t(action.label)}</h2>
+            <h2 className="text-panel-title font-black tracking-tight">{t(action.label)}</h2>
             <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
           {deviceName && (
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
+            <p className="text-micro font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
               {deviceName}
             </p>
           )}
@@ -91,7 +91,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
         <div className="p-8 space-y-6">
           {action.type === 'assign_room' && (
             <div className="space-y-3">
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+              <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">
                 {t('topology.room_select')}
               </label>
               <div className="grid gap-2 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
@@ -100,7 +100,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
                     key={room.id}
                     onClick={() => setSelectedRoomId(room.id)}
                     className={cn(
-                      "flex items-center justify-between p-4 rounded-2xl border transition-all font-bold text-sm",
+                      "flex items-center justify-between p-4 rounded-2xl border transition-all font-bold text-body",
                       selectedRoomId === room.id 
                         ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
                         : "bg-muted/30 border-muted hover:border-primary/40"
@@ -116,7 +116,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
 
           {action.type === 'rename_device' && (
             <div className="space-y-3">
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+              <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">
                 {t('devices.new_name')}
               </label>
               <input
@@ -132,10 +132,10 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
 
           {action.type === 'import_device' && (
             <div className="py-4 text-center space-y-3">
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+              <p className="text-body font-medium text-muted-foreground leading-relaxed">
                 {t('assistant.actions.import_confirm')}
               </p>
-              <div className="inline-block px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-xs">
+              <div className="inline-block px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-caption">
                 {deviceName}
               </div>
             </div>
@@ -143,10 +143,10 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
 
           {action.type === 'activate_draft' && (
             <div className="p-6 rounded-3xl bg-primary/5 border-2 border-primary/10 text-center space-y-2">
-              <p className="text-primary font-black uppercase tracking-widest text-[10px]">
+              <p className="text-primary font-black uppercase tracking-widest text-micro">
                 {t('assistant.draft.ready')}
               </p>
-              <p className="text-muted-foreground text-sm font-medium leading-relaxed">
+              <p className="text-muted-foreground text-body font-medium leading-relaxed">
                 {t('assistant.draft.created_automatically')}
               </p>
             </div>
@@ -155,14 +155,14 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
           <div className="flex gap-3 pt-4">
             <button 
               onClick={onClose}
-              className="flex-1 py-4 rounded-2xl font-black uppercase tracking-wider text-xs hover:bg-muted transition-colors"
+              className="flex-1 py-4 rounded-2xl font-black uppercase tracking-wider text-caption hover:bg-muted transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button 
               disabled={loading || (action.type === 'assign_room' && !selectedRoomId) || (action.type === 'rename_device' && !newName)}
               onClick={handleSubmit}
-              className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
+              className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wider text-caption hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
               {t('common.confirm')}

@@ -125,7 +125,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         </div>
         <div className="flex-1 min-w-0 overflow-hidden text-left">
           <h4 className={cn(
-            "text-[clamp(0.72rem,3.5cqi,0.95rem)] font-bold tracking-tight leading-none truncate",
+            "text-widget-body-fluid font-bold tracking-tight leading-none truncate",
             isOn ? "text-foreground" : "text-muted-foreground/80"
           )}>
             {config.appearance.title || config.binding.entityName || device.name}
@@ -162,7 +162,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       </div>
       <div className="w-full min-w-0 overflow-hidden text-center mt-auto pb-1">
         <h4 className={cn(
-          "text-[clamp(0.72rem,3.4cqi,1rem)] font-bold tracking-tight leading-tight truncate px-1",
+          "text-widget-body-lg-fluid font-bold tracking-tight leading-tight truncate px-1",
           isOn ? "text-foreground" : "text-muted-foreground/80"
         )}>
           {config.appearance.title || config.binding.entityName || device.name}

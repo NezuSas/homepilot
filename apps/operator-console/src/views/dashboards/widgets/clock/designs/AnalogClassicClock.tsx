@@ -23,9 +23,9 @@ export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }
         <div className="flex min-h-0 min-w-0 flex-col justify-center gap-[clamp(0.55rem,1.7cqi,0.85rem)]">
           <div>
             <ClockLabel>{copy.analogClassic}</ClockLabel>
-            <div className="mt-2 text-[clamp(0.58rem,1.3cqi,0.78rem)] font-semibold text-muted-foreground">{weekday}</div>
+            <div className="mt-2 text-clock-analog-label-fluid font-semibold text-muted-foreground">{weekday}</div>
           </div>
-          <div className="text-[clamp(2.5rem,8.2cqi,4.45rem)] font-black leading-none tracking-[-0.08em] text-foreground tabular-nums">{time}</div>
+          <div className="text-clock-analog-time-fluid font-black leading-none tracking-[-0.08em] text-foreground tabular-nums">{time}</div>
           <WeatherPill weather={weather} status={weatherStatus} copy={copy} mode="compact" />
         </div>
       </div>

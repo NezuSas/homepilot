@@ -102,10 +102,10 @@ export const DiagnosticsResilienceSummary: React.FC<DiagnosticsResilienceSummary
       {stats.map((stat) => (
         <div key={stat.label} className="bg-card border border-border/60 rounded-2xl p-4 flex items-center justify-between group hover:border-primary/40 transition-all shadow-sm">
           <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">{stat.label}</p>
+            <p className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-50">{stat.label}</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black tabular-nums">{stat.value}</span>
-              <span className="text-[8px] font-bold text-muted-foreground/60 uppercase">{stat.sub}</span>
+              <span className="text-view-title font-black tabular-nums">{stat.value}</span>
+              <span className="text-nano font-bold text-muted-foreground/60 uppercase">{stat.sub}</span>
             </div>
           </div>
           <div className={cn('p-3 rounded-xl bg-muted/50 group-hover:scale-110 transition-transform', stat.color)}>

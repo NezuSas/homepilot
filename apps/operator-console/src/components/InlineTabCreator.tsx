@@ -38,7 +38,7 @@ export const InlineTabCreator: React.FC<InlineTabCreatorProps> = ({
           if (event.key === 'Escape') onCancel();
         }}
         placeholder={placeholder}
-        className="w-28 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/50"
+        className="w-28 bg-transparent text-caption font-bold text-foreground outline-none placeholder:text-muted-foreground/50"
       />
       <button onClick={handleConfirm} disabled={!value.trim()} className="p-0.5 rounded-md text-primary hover:bg-primary/20 disabled:opacity-30 transition-colors">
         <Check className="w-3 h-3" />

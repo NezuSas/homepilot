@@ -148,9 +148,9 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 <Home className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">{t('onboarding.kicker')}</p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight text-foreground">{t('onboarding.title')}</h1>
-                <p className="mt-1 max-w-2xl text-sm font-semibold text-muted-foreground">
+                <p className="text-micro font-black uppercase tracking-[0.28em] text-primary">{t('onboarding.kicker')}</p>
+                <h1 className="mt-1 text-view-title font-black tracking-tight text-foreground">{t('onboarding.title')}</h1>
+                <p className="mt-1 max-w-2xl text-body font-semibold text-muted-foreground">
                   {t('onboarding.subtitle')}
                 </p>
               </div>
@@ -163,13 +163,13 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <div
                     key={item.index}
                     className={cn(
-                      'rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-widest transition-colors',
+                      'rounded-xl border px-3 py-2 text-caption font-black uppercase tracking-widest transition-colors',
                       isCurrent && 'border-primary/60 bg-primary/10 text-primary',
                       isDone && 'border-success/30 bg-success/10 text-success',
                       !isCurrent && !isDone && 'border-border/60 bg-muted/30 text-muted-foreground'
                     )}
                   >
-                    <span className="mb-1 block text-[10px] opacity-70">{t('onboarding.progress.step', { count: item.index })}</span>
+                    <span className="mb-1 block text-micro opacity-70">{t('onboarding.progress.step', { count: item.index })}</span>
                     {item.label}
                   </div>
                 );
@@ -181,7 +181,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
         {errorMsg && (
           <div className="rounded-xl border border-danger/40 bg-danger/10 p-4 text-danger flex items-start gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <span className="text-sm font-medium">{errorMsg}</span>
+            <span className="text-body font-medium">{errorMsg}</span>
           </div>
         )}
 
@@ -194,18 +194,18 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black tracking-tight">{t('onboarding.step1.title')}</h2>
-                    <p className="mt-1 text-sm font-semibold text-muted-foreground">{t('onboarding.step1.description')}</p>
+                    <h2 className="text-panel-title font-black tracking-tight">{t('onboarding.step1.title')}</h2>
+                    <p className="mt-1 text-body font-semibold text-muted-foreground">{t('onboarding.step1.description')}</p>
                   </div>
                 </div>
                 
                 <div className="grid gap-3">
                   {readinessItems.map(item => (
                     <div key={item.label} className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/25 px-4 py-3">
-                      <span className="text-sm font-bold text-muted-foreground">{item.label}</span>
+                      <span className="text-body font-bold text-muted-foreground">{item.label}</span>
                       <span
                         className={cn(
-                          'inline-flex items-center gap-2 text-right text-xs font-black uppercase tracking-widest',
+                          'inline-flex items-center gap-2 text-right text-caption font-black uppercase tracking-widest',
                           item.status === 'success' && 'text-success',
                           item.status === 'warning' && 'text-warning',
                           item.status === 'error' && 'text-danger'
@@ -219,15 +219,15 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 </div>
 
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">{t('onboarding.step1.operator_note_title')}</p>
-                  <p className="mt-2 text-sm font-semibold text-muted-foreground">{t('onboarding.step1.operator_note')}</p>
+                  <p className="text-caption font-black uppercase tracking-[0.22em] text-primary">{t('onboarding.step1.operator_note_title')}</p>
+                  <p className="mt-2 text-body font-semibold text-muted-foreground">{t('onboarding.step1.operator_note')}</p>
                 </div>
 
                 <div className="pt-2 flex justify-end">
                   <button 
                     onClick={() => setStep(2)}
                     disabled={!isAdmin}
-                    className="w-full rounded-xl bg-primary px-6 py-3 text-xs font-black uppercase tracking-widest text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
+                    className="w-full rounded-xl bg-primary px-6 py-3 text-caption font-black uppercase tracking-widest text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
                   >
                     {t('onboarding.step1.continue')}
                   </button>
@@ -242,14 +242,14 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     <Wifi className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black tracking-tight">{t('onboarding.step2.title')}</h2>
-                    <p className="mt-1 text-sm font-semibold text-muted-foreground">{t('onboarding.step2.description')}</p>
+                    <h2 className="text-panel-title font-black tracking-tight">{t('onboarding.step2.title')}</h2>
+                    <p className="mt-1 text-body font-semibold text-muted-foreground">{t('onboarding.step2.description')}</p>
                   </div>
                 </div>
 
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('onboarding.step2.url')}</label>
+                    <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('onboarding.step2.url')}</label>
                     <div className="relative">
                       <Server className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                       <input
@@ -260,14 +260,14 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                           setHaUrl(event.target.value);
                           setTestResult('idle');
                         }}
-                        className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       />
                     </div>
-                    <p className="text-xs font-semibold text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('onboarding.step2.docker_hint') }} />
+                    <p className="text-caption font-semibold text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('onboarding.step2.docker_hint') }} />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('onboarding.step2.token')}</label>
+                    <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('onboarding.step2.token')}</label>
                     <div className="relative">
                       <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                       <input
@@ -278,15 +278,15 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                           setHaToken(event.target.value);
                           setTestResult('idle');
                         }}
-                        className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-muted/25 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-muted-foreground">{t('onboarding.step2.token_help_title')}</p>
-                  <ol className="mt-3 grid gap-2 text-sm font-semibold text-muted-foreground">
+                  <p className="text-caption font-black uppercase tracking-[0.22em] text-muted-foreground">{t('onboarding.step2.token_help_title')}</p>
+                  <ol className="mt-3 grid gap-2 text-body font-semibold text-muted-foreground">
                     <li>{t('onboarding.step2.token_help_1')}</li>
                     <li>{t('onboarding.step2.token_help_2')}</li>
                     <li>{t('onboarding.step2.token_help_3')}</li>
@@ -297,7 +297,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <button 
                     onClick={handleTestConnection}
                     disabled={!canTestConnection}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-4 py-3 text-xs font-black uppercase tracking-widest text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80 disabled:opacity-50"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-4 py-3 text-caption font-black uppercase tracking-widest text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80 disabled:opacity-50"
                   >
                     {testingHA ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
                     {t('onboarding.step2.test')}
@@ -306,14 +306,14 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <button 
                     onClick={handleSaveConnection}
                     disabled={testResult !== 'success' || loading}
-                    className="inline-flex flex-[1.35] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-black uppercase tracking-widest text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                    className="inline-flex flex-[1.35] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-caption font-black uppercase tracking-widest text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                     {t('onboarding.step2.save')}
                   </button>
                 </div>
                 {testResult === 'success' && (
-                  <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-center text-sm font-black text-success animate-in fade-in">{t('onboarding.step2.success')}</p>
+                  <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-center text-body font-black text-success animate-in fade-in">{t('onboarding.step2.success')}</p>
                 )}
               </div>
             )}
@@ -324,16 +324,16 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-success">{t('onboarding.step3.kicker')}</p>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight">{t('onboarding.step3.title')}</h2>
-                  <p className="mx-auto mt-2 max-w-lg text-sm font-semibold text-muted-foreground">
+                  <p className="text-micro font-black uppercase tracking-[0.28em] text-success">{t('onboarding.step3.kicker')}</p>
+                  <h2 className="mt-2 text-view-title font-black tracking-tight">{t('onboarding.step3.title')}</h2>
+                  <p className="mx-auto mt-2 max-w-lg text-body font-semibold text-muted-foreground">
                     {t('onboarding.step3.subtitle')}
                   </p>
                 </div>
 
                 <div className="grid gap-3 text-left sm:grid-cols-3">
                   {[t('onboarding.step3.next_1'), t('onboarding.step3.next_2'), t('onboarding.step3.next_3')].map(item => (
-                    <div key={item} className="rounded-xl border border-border/70 bg-muted/25 p-4 text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    <div key={item} className="rounded-xl border border-border/70 bg-muted/25 p-4 text-caption font-black uppercase tracking-widest text-muted-foreground">
                       {item}
                     </div>
                   ))}
@@ -343,7 +343,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <button 
                     onClick={finalizeSetup}
                     disabled={loading}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-success px-6 py-3 text-xs font-black uppercase tracking-widest text-success-foreground shadow-lg transition-colors hover:bg-success/90 disabled:opacity-50 sm:w-auto"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-success px-6 py-3 text-caption font-black uppercase tracking-widest text-success-foreground shadow-lg transition-colors hover:bg-success/90 disabled:opacity-50 sm:w-auto"
                   >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('onboarding.step3.complete')}
                   </button>
@@ -353,12 +353,12 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
           </div>
 
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-muted-foreground">{t('onboarding.side.title')}</p>
+            <p className="text-caption font-black uppercase tracking-[0.22em] text-muted-foreground">{t('onboarding.side.title')}</p>
             <div className="mt-4 grid gap-3">
               {[t('onboarding.side.local'), t('onboarding.side.secure'), t('onboarding.side.recoverable')].map(item => (
                 <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 p-3">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-sm font-semibold text-muted-foreground">{item}</span>
+                  <span className="text-body font-semibold text-muted-foreground">{item}</span>
                 </div>
               ))}
             </div>

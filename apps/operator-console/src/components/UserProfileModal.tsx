@@ -191,7 +191,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
         <div className="px-6 py-5 flex items-center justify-between border-b border-border/40 bg-muted/30">
           <div>
             <h3 className="font-black tracking-tight">{t('users.profile.title', 'Mi Perfil')}</h3>
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mt-0.5">{roleLabel}</p>
+            <p className="text-micro uppercase font-black tracking-widest text-muted-foreground mt-0.5">{roleLabel}</p>
           </div>
           <button onClick={onClose} className="p-2 bg-muted/60 rounded-xl hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
         </div>
@@ -212,7 +212,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                 >
                   {!rawImage && !avatarPreview && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/30 bg-primary/5">
-                      <span className="font-black text-4xl uppercase tracking-tighter opacity-20">
+                      <span className="font-black text-hero-title uppercase tracking-tighter opacity-20">
                         {(user?.username || '?').substring(0, 2)}
                       </span>
                       <UserCircle2 className="w-12 h-12 absolute opacity-10" />
@@ -266,7 +266,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
 
               {rawImage && (
                 <div className="w-full flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">
+                  <div className="flex items-center justify-between text-micro font-black uppercase tracking-widest text-muted-foreground px-1">
                     <div className="flex items-center gap-2"><ZoomIn className="w-3 h-3" /> {t('users.profile.zoom', 'Zoom')}</div>
                     <div className="flex items-center gap-2"><Move className="w-3 h-3" /> {t('users.profile.adjust', 'Arrastra para ajustar')}</div>
                   </div>
@@ -278,30 +278,30 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                 </div>
               )}
 
-              <p className="text-[11px] text-muted-foreground text-center max-w-[200px]">
+              <p className="text-label text-muted-foreground text-center max-w-[200px]">
                 {rawImage ? t('users.profile.crop_hint') : t('users.profile.avatar_hint')}
               </p>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('users.profile.display_name', 'Nombre a Mostrar')}</label>
+              <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('users.profile.display_name', 'Nombre a Mostrar')}</label>
               <input
                 type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
                 placeholder={user.username} maxLength={40}
-                className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
+                className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-body font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
               />
             </div>
 
-            {error && <p className="text-sm text-destructive font-bold text-center bg-destructive/5 py-2 rounded-xl border border-destructive/10">{error}</p>}
+            {error && <p className="text-body text-destructive font-bold text-center bg-destructive/5 py-2 rounded-xl border border-destructive/10">{error}</p>}
           </div>
         )}
 
         <div className="px-6 py-5 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 text-sm font-black uppercase tracking-widest bg-muted text-muted-foreground hover:bg-muted/80 rounded-2xl border border-border transition-all">{t('common.cancel', 'Cancelar')}</button>
+          <button onClick={onClose} className="px-5 py-2.5 text-body font-black uppercase tracking-widest bg-muted text-muted-foreground hover:bg-muted/80 rounded-2xl border border-border transition-all">{t('common.cancel', 'Cancelar')}</button>
           <button
             onClick={handleSave} disabled={saving || loading}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-lg shadow-primary/20 transition-all disabled:opacity-60"
+            className="flex items-center gap-2 px-6 py-2.5 text-body font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-lg shadow-primary/20 transition-all disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             {t('common.save', 'Guardar')}

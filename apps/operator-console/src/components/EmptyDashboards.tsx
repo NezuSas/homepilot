@@ -22,10 +22,10 @@ export const EmptyDashboards: React.FC<EmptyDashboardsProps> = ({ onCreate }) =>
         <div className="absolute inset-0 rounded-[2.5rem] bg-primary/5 blur-2xl -z-10 scale-150" />
       </div>
       <div className="space-y-3 max-w-sm">
-        <h3 className="text-2xl font-black text-foreground tracking-tight">{t('dashboards.empty_title')}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t('dashboards.empty_description')}</p>
+        <h3 className="text-view-title font-black text-foreground tracking-tight">{t('dashboards.empty_title')}</h3>
+        <p className="text-body text-muted-foreground leading-relaxed">{t('dashboards.empty_description')}</p>
       </div>
-      <Button variant="primary" onClick={onCreate} className="flex items-center gap-2 px-8 py-3 text-sm">
+      <Button variant="primary" onClick={onCreate} className="flex items-center gap-2 px-8 py-3 text-body">
         <Plus className="w-4 h-4" />
         {t('dashboards.action_create')}
       </Button>

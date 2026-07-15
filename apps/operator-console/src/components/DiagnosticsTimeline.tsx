@@ -119,13 +119,13 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
 
   return (
     <div className="space-y-4 pt-4">
-      <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
+      <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
       <div className="border border-border bg-card rounded-2xl overflow-hidden">
         <div className="divide-y divide-border/50 max-h-[600px] overflow-y-auto custom-scrollbar">
           {events.length === 0 ? (
             <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
               <Activity className="w-8 h-8 mb-4 text-muted-foreground" />
-              <p className="text-[10px] font-black uppercase tracking-widest">{t('diagnostics.no_events')}</p>
+              <p className="text-micro font-black uppercase tracking-widest">{t('diagnostics.no_events')}</p>
             </div>
           ) : (
             groupEvents(Array.isArray(events) ? events : []).map(group => {
@@ -142,31 +142,31 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
                     className="flex gap-4 cursor-pointer"
                     onClick={() => onToggleExpand(group.id)}
                   >
-                    <div className="w-24 shrink-0 text-[10px] text-muted-foreground font-mono font-bold mt-1">
+                    <div className="w-24 shrink-0 text-micro text-muted-foreground font-mono font-bold mt-1">
                       {new Date(event.occurredAt).toLocaleTimeString()}
                     </div>
                     <div className="flex-1 flex flex-col gap-1.5">
                       <div className="flex items-center gap-2">
-                        <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
+                        <span className={cn("px-2 py-0.5 rounded text-micro font-black uppercase tracking-widest", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
                           {t(`diagnostics.categories.${event.category}`, { defaultValue: event.category })}
                         </span>
-                        <span className={cn("font-bold text-sm tracking-tight", isError ? "text-danger" : "")}>
+                        <span className={cn("font-bold text-body tracking-tight", isError ? "text-danger" : "")}>
                           {t(`common.events.${event.eventType}`, { defaultValue: event.eventType })}
                         </span>
                         {(hasChildren || hasData) && (
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
+                          <span className="text-micro uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
                             {isExpanded ? t('diagnostics.hide_details') : t('diagnostics.view_details')}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-foreground/70">{getMainEventMessage(event, t)}</p>
+                      <p className="text-body font-medium text-foreground/70">{getMainEventMessage(event, t)}</p>
                     </div>
                   </div>
 
                   {isExpanded && (hasData || hasChildren) && (
                     <div className="ml-28 pl-4 border-l-2 border-border/50 flex flex-col gap-4 mt-2">
                       {hasData && (
-                        <div className="text-[10px] font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
+                        <div className="text-micro font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
                           <span className="font-bold uppercase tracking-widest opacity-60 mb-2 block">{t('diagnostics.payload')}</span>
                           {Object.entries(data).map(([key, value]) => (
                             <div key={key}><span className="opacity-50">{key}:</span> {typeof value === 'object' ? JSON.stringify(value) : String(value)}</div>
@@ -176,9 +176,9 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
 
                       {hasChildren && (
                         <div className="flex flex-col gap-3 mt-2">
-                          <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">{t('diagnostics.trace_events')}</span>
+                          <span className="font-bold text-micro uppercase tracking-widest opacity-60">{t('diagnostics.trace_events')}</span>
                           {group.children.map((child, childIndex) => (
-                            <div key={`${child.eventType}-${childIndex}`} className="flex gap-4 items-start text-xs text-muted-foreground bg-card border rounded p-3">
+                            <div key={`${child.eventType}-${childIndex}`} className="flex gap-4 items-start text-caption text-muted-foreground bg-card border rounded p-3">
                               <div className="w-20 shrink-0 font-mono opacity-60">
                                 {new Date(child.occurredAt).toLocaleTimeString()}
                               </div>

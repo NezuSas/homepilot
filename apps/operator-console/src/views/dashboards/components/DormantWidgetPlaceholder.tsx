@@ -46,8 +46,8 @@ export function DormantWidgetPlaceholder({
       </div>
 
       <div className="space-y-2 max-w-[200px]">
-        <h4 className="text-sm font-black uppercase tracking-widest text-foreground/40">{title}</h4>
-        <p className="text-[10px] text-muted-foreground/40 leading-relaxed font-bold italic">
+        <h4 className="text-body font-black uppercase tracking-widest text-foreground/40">{title}</h4>
+        <p className="text-micro text-muted-foreground/40 leading-relaxed font-bold italic">
           {message}
         </p>
       </div>
@@ -60,7 +60,7 @@ export function DormantWidgetPlaceholder({
           className="mt-6 rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary transition-all group active:scale-95"
         >
           <Settings2 className="w-3.5 h-3.5 mr-2 group-hover:rotate-90 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+          <span className="text-micro font-black uppercase tracking-widest leading-none">
             {t('dashboards.widgets.bind_now')}
           </span>
         </Button>

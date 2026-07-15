@@ -59,7 +59,7 @@ export const CoverPositionControl: React.FC<CoverPositionControlProps> = ({
           "focus:outline-none focus:ring-2 focus:ring-primary/20"
         )}
       />
-      <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">
+      <div className="flex justify-between text-nano font-black uppercase tracking-widest text-muted-foreground/40">
         <span>0%</span>
         <span>{value}%</span>
         <span>100%</span>

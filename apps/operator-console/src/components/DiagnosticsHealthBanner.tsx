@@ -43,8 +43,8 @@ export const DiagnosticsHealthBanner: React.FC<DiagnosticsHealthBannerProps> = (
           : status === 'degraded' ? <AlertTriangle className="w-10 h-10 text-warning" />
           : <XCircle className="w-10 h-10 text-danger" />}
         <div>
-          <h2 className="text-2xl font-bold tracking-tight capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${status}`) })}</h2>
-          <p className="text-sm text-foreground/60 mt-1">
+          <h2 className="text-view-title font-bold tracking-tight capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${status}`) })}</h2>
+          <p className="text-body text-foreground/60 mt-1">
             {status === 'healthy'
               ? t('diagnostics.messages.healthy')
               : issueCount > 0 ? t('diagnostics.messages.degraded') : t('diagnostics.messages.offline')}
@@ -53,15 +53,15 @@ export const DiagnosticsHealthBanner: React.FC<DiagnosticsHealthBannerProps> = (
       </div>
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-12">
         <div className="sm:text-right">
-          <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.appliance_time')}</div>
+          <div className="text-micro uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.appliance_time')}</div>
           <div className="flex flex-col items-end gap-1 mt-1">
-            <div className="font-mono font-bold text-sm">
+            <div className="font-mono font-bold text-body">
               {systemTimeLocal}
             </div>
 
             {isAdmin && (
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground/50 tracking-tighter">{t('diagnostics.timezone')}</span>
+                <span className="text-micro uppercase font-bold text-muted-foreground/50 tracking-tighter">{t('diagnostics.timezone')}</span>
                 <SelectField
                   variant="small"
                   fullWidth={false}
@@ -78,8 +78,8 @@ export const DiagnosticsHealthBanner: React.FC<DiagnosticsHealthBannerProps> = (
         </div>
 
         <div className="sm:text-right">
-          <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.last_event')}</div>
-          <div className="font-mono font-bold mt-1 text-sm">{formatTime(lastEventAt)}</div>
+          <div className="text-micro uppercase font-bold tracking-widest text-muted-foreground opacity-60">{t('diagnostics.last_event')}</div>
+          <div className="font-mono font-bold mt-1 text-body">{formatTime(lastEventAt)}</div>
         </div>
       </div>
     </div>

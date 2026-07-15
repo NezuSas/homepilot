@@ -49,7 +49,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
       {success && (
         <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-primary-foreground z-10 animate-in fade-in transition-all">
           <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
-          <span className="text-xl font-black uppercase tracking-tighter">{editingId ? t('automations.rule_updated') : t('automations.rule_created')}</span>
+          <span className="text-panel-title font-black uppercase tracking-tighter">{editingId ? t('automations.rule_updated') : t('automations.rule_created')}</span>
         </div>
       )}
 
@@ -66,7 +66,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
           </div>
 
           <div className="p-8 bg-muted/20 rounded-[2.5rem] border border-border/40 flex flex-col gap-5">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60 mb-2 flex items-center gap-2">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/60 mb-2 flex items-center gap-2">
               <Play className="w-3 h-3 fill-current" /> {t('automations.form.trigger_config')}
             </span>
 
@@ -100,7 +100,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
 
         <div className="flex flex-col gap-6 justify-between">
           <div className="p-8 bg-primary/[0.03] rounded-[2.5rem] border-2 border-primary/10 flex flex-col gap-5 shadow-inner">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary mb-2 flex items-center gap-2">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary mb-2 flex items-center gap-2">
               <Zap className="w-3 h-3 fill-current" /> {t('automations.form.action_result')}
             </span>
 
@@ -129,7 +129,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
 
           <div className="flex flex-col gap-4 mt-auto">
             {createError && (
-              <div className="bg-danger/10 border border-danger/20 text-danger text-[10px] font-bold p-4 rounded-2xl flex items-center gap-3 animate-shake">
+              <div className="bg-danger/10 border border-danger/20 text-danger text-micro font-bold p-4 rounded-2xl flex items-center gap-3 animate-shake">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {createError}
               </div>
@@ -138,7 +138,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               disabled={submitting}
               type="submit"
               size="lg"
-              className="w-full text-xs font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 group"
+              className="w-full text-caption font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 group"
               isLoading={submitting}
             >
               <>

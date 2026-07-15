@@ -150,7 +150,7 @@ export function IconPicker({
                     setDropdownPos(null);
                   }}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-black transition',
+                    'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-body font-black transition',
                     selected ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-muted/60'
                   )}
                 >
@@ -160,7 +160,7 @@ export function IconPicker({
               );
             })
           ) : (
-            <div className="px-3 py-6 text-center text-sm font-semibold text-muted-foreground">
+            <div className="px-3 py-6 text-center text-body font-semibold text-muted-foreground">
               No se encontraron iconos.
             </div>
           )}
@@ -172,7 +172,7 @@ export function IconPicker({
   return (
     <div className={cn('space-y-2', className)}>
       {label ? (
-        <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="text-caption font-black uppercase tracking-[0.2em] text-muted-foreground">
           {label}
         </span>
       ) : null}
@@ -181,7 +181,7 @@ export function IconPicker({
         <input
           ref={iconInputRef}
           type="text"
-          className="h-10 w-full rounded-xl border border-border/60 bg-card pl-10 pr-3 text-sm text-foreground transition-colors focus:border-primary/50 focus:outline-none"
+          className="h-10 w-full rounded-xl border border-border/60 bg-card pl-10 pr-3 text-body text-foreground transition-colors focus:border-primary/50 focus:outline-none"
           placeholder={placeholder}
           value={iconQuery}
           onFocus={computeDropdownPos}

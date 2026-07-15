@@ -73,16 +73,16 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         </div>
         
         <div className="flex items-center gap-2">
-           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">{t('topology.room_select')}</span>
+           <span className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/30">{t('topology.room_select')}</span>
         </div>
       </div>
 
       <div className="flex-1 min-h-0 space-y-3 @md:space-y-4">
         <div>
-          <h4 className="text-base @md:text-xl font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
+          <h4 className="text-body-lg @md:text-panel-title font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
           <div className="flex items-center gap-2 mt-1">
              <span className={cn(
-               "text-[10px] font-black uppercase tracking-widest",
+               "text-micro font-black uppercase tracking-widest",
                onCount > 0 ? "text-primary" : "text-muted-foreground/40"
              )}>
                {onCount > 0 
@@ -90,7 +90,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
                  : t('dashboards.widgets.room_summary.all_off')}
              </span>
              <div className="w-1 h-1 rounded-full bg-border" />
-             <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-tight">
+             <span className="text-micro font-bold text-muted-foreground/30 uppercase tracking-tight">
                {t('dashboards.widgets.room_summary.units', { count: roomDevices.length })}
              </span>
           </div>
@@ -100,7 +100,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
           <div className="flex flex-wrap gap-2">
              {activeTypes.map(type => (
                <div key={type} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 border border-border/40 backdrop-blur-md">
-                  <span className="text-[9px] font-black uppercase tracking-tight text-muted-foreground/60">
+                  <span className="text-micro font-black uppercase tracking-tight text-muted-foreground/60">
                     {t(`device_types.${type}`, { defaultValue: type })}
                   </span>
                </div>
@@ -113,7 +113,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         <button
           onClick={handleToggleAll}
           disabled={isProcessing}
-          className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-destructive/5 hover:bg-destructive text-destructive hover:text-destructive-foreground rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-95"
+          className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-destructive/5 hover:bg-destructive text-destructive hover:text-destructive-foreground rounded-2xl text-micro font-black uppercase tracking-[0.2em] transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-95"
         >
           {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}

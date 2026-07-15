@@ -31,7 +31,7 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
           <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
             <Sparkles className="w-4 h-4" />
           </div>
-          <h3 className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate">
+          <h3 className="text-caption @md:text-body font-black text-foreground tracking-tight truncate">
             {config.appearance.title || t('dashboards.widgets.assistant_insights.label')}
           </h3>
         </div>
@@ -47,24 +47,24 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
               <CheckCircle2 className="w-6 h-6 text-success" />
             </div>
             <div>
-              <p className="text-xs font-black text-foreground mb-1">{t('dashboards.widgets.assistant_insights.no_findings')}</p>
-              <p className="text-[10px] text-muted-foreground max-w-[140px] mx-auto leading-relaxed">{t('dashboards.widgets.assistant_insights.no_findings_desc')}</p>
+              <p className="text-caption font-black text-foreground mb-1">{t('dashboards.widgets.assistant_insights.no_findings')}</p>
+              <p className="text-micro text-muted-foreground max-w-[140px] mx-auto leading-relaxed">{t('dashboards.widgets.assistant_insights.no_findings_desc')}</p>
             </div>
           </div>
         ) : (
           <div className="w-full space-y-4 animate-in slide-in-from-bottom-2 duration-500">
-            <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest", getSeverityStyles(topFinding.severity))}>
+            <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-micro font-black uppercase tracking-widest", getSeverityStyles(topFinding.severity))}>
               <AlertCircle className="w-3 h-3" />
               {t(`assistant.severities.${topFinding.severity}`)}
             </div>
             
             <div className="space-y-1">
-              <h4 className="text-xs sm:text-sm font-black text-foreground leading-tight tracking-tight px-2 line-clamp-1">{topFinding.title}</h4>
-              <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 px-2 @md:px-4 italic opacity-80">{topFinding.description}</p>
+              <h4 className="text-caption sm:text-body font-black text-foreground leading-tight tracking-tight px-2 line-clamp-1">{topFinding.title}</h4>
+              <p className="text-micro text-muted-foreground leading-relaxed line-clamp-2 px-2 @md:px-4 italic opacity-80">{topFinding.description}</p>
             </div>
 
             <div className="pt-2">
-              <Button size="sm" variant="primary" className="w-full text-[9px] font-black uppercase tracking-widest gap-2 transition-all duration-300">
+              <Button size="sm" variant="primary" className="w-full text-micro font-black uppercase tracking-widest gap-2 transition-all duration-300">
                 {t('dashboards.widgets.assistant_insights.view_details')} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>

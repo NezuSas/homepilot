@@ -73,7 +73,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             onChange={event => onInputChange(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="custom-scrollbar min-h-[48px] max-h-40 w-full flex-1 resize-none border-none bg-transparent px-3 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 md:max-h-48 md:text-base"
+            className="custom-scrollbar min-h-[48px] max-h-40 w-full flex-1 resize-none border-none bg-transparent px-3 py-3 text-body leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 md:max-h-48 md:text-body-lg"
             disabled={isLoading}
           />
           <div className="flex w-full shrink-0 items-center justify-end gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1 shadow-inner shadow-black/5 md:w-auto">
@@ -132,13 +132,13 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="flex min-w-0 items-center gap-2">
           <StatusPill variant={isLoading ? 'warning' : 'success'} pulse={isLoading} dot className="h-3 w-3 shrink-0" />
-          <p className="truncate text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+          <p className="truncate text-micro font-bold uppercase tracking-widest text-muted-foreground/60">
             {versionLabel}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground/55">
           <Zap className="h-3 w-3 text-primary" />
-          <span className="hidden text-[10px] font-bold uppercase tracking-wider sm:inline">
+          <span className="hidden text-micro font-bold uppercase tracking-wider sm:inline">
             {inputHint}
           </span>
         </div>

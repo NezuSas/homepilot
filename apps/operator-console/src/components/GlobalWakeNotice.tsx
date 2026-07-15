@@ -49,12 +49,12 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-[0.62rem] font-black uppercase tracking-[0.24em] text-muted-foreground">
+        <span className="text-micro font-black uppercase tracking-[0.24em] text-muted-foreground">
           Nezu Voice
         </span>
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.18em]',
+            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-[0.18em]',
             isProcessing ? 'border-warning/40 text-warning' : 'border-primary/30 text-primary'
           )}
         >
@@ -62,7 +62,7 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
           {getStatusLabel(notice.status, isProcessing)}
         </span>
       </div>
-      <p className="text-sm font-semibold leading-6 text-foreground">{notice.message}</p>
+      <p className="text-body font-semibold leading-6 text-foreground">{notice.message}</p>
     </div>
   );
 }

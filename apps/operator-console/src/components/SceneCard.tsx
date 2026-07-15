@@ -89,16 +89,16 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           {isExecuting ? <Loader2 className="h-6 w-6 animate-spin sm:h-8 sm:w-8" /> : <Icon className="h-6 w-6 sm:h-8 sm:w-8" />}
         </div>
         <div className="flex-1 flex flex-col gap-2 min-w-0 pt-1">
-          <h4 className="truncate text-xl font-black tracking-tighter luxury-text-gradient sm:text-2xl">{scene.name}</h4>
-          <p className="line-clamp-2 text-sm font-medium leading-tight text-muted-foreground opacity-60">
+          <h4 className="truncate text-panel-title font-black tracking-tighter luxury-text-gradient sm:text-view-title">{scene.name}</h4>
+          <p className="line-clamp-2 text-body font-medium leading-tight text-muted-foreground opacity-60">
             {description}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4 sm:gap-3">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/60">
               {roomName || t('common.unknown')}
             </span>
             <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
               {t('scenes.point_count', { count: scene.actions.length })}
             </span>
           </div>

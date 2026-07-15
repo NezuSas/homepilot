@@ -62,13 +62,13 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
         <div className="flex-1 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <span className={cn(
-                    "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-muted text-muted-foreground"
+                    "px-2 py-0.5 rounded text-micro font-black uppercase tracking-widest bg-muted text-muted-foreground"
                 )}>
                     {category}
                 </span>
                 {severity && (
                     <span className={cn(
-                        "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                        "text-micro font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
                         severityClasses[severity]
                     )}>
                         {t(`common.severity_${severity}`, { defaultValue: severity })}
@@ -76,8 +76,8 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
                  )}
             </div>
             
-            <h3 className={cn("text-lg font-bold tracking-tight mb-2", severity ? severityTextClasses[severity] : "text-foreground")}>{title}</h3>
-            <p className="text-sm font-medium text-muted-foreground/80 leading-relaxed mb-6">
+            <h3 className={cn("text-section-title font-bold tracking-tight mb-2", severity ? severityTextClasses[severity] : "text-foreground")}>{title}</h3>
+            <p className="text-body font-medium text-muted-foreground/80 leading-relaxed mb-6">
                 {description}
             </p>
 

@@ -56,11 +56,11 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
           </div>
           <div>
             {config.appearance.showTitle && (
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">
+              <h3 className="text-micro font-black uppercase tracking-[0.2em] text-foreground/80">
                 {config.appearance.title || t('dashboards.widgets.energy_insight.label')}
               </h3>
             )}
-            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-micro text-muted-foreground/60 font-bold uppercase tracking-widest">
               <Activity className="w-3 h-3" />
               {t('shell.status.live')}
             </div>
@@ -71,12 +71,12 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
 
       <div className="grid grid-cols-1 gap-4 @md:gap-6 relative z-10">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">{t('dashboards.widgets.energy_insight.current_power')}</span>
+          <span className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground/40">{t('dashboards.widgets.energy_insight.current_power')}</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-[clamp(1.75rem,18cqi,2.25rem)] font-black tracking-tighter text-foreground tabular-nums">
+            <span className="text-widget-metric-fluid font-black tracking-tighter text-foreground tabular-nums">
               {power.toLocaleString()}
             </span>
-            <span className="text-sm font-black text-primary uppercase tracking-widest">W</span>
+            <span className="text-body font-black text-primary uppercase tracking-widest">W</span>
           </div>
         </div>
 
@@ -86,12 +86,12 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
                <Battery className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.energy_insight.consumption_today')}</span>
-               <span className="text-sm font-black text-foreground tabular-nums">{energy.toFixed(1)} kWh</span>
+               <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.energy_insight.consumption_today')}</span>
+               <span className="text-body font-black text-foreground tabular-nums">{energy.toFixed(1)} kWh</span>
             </div>
           </div>
           <div className="flex flex-col items-end">
-             <div className="flex items-center gap-1 text-[9px] font-black text-green-500 uppercase tracking-widest">
+             <div className="flex items-center gap-1 text-micro font-black text-green-500 uppercase tracking-widest">
                 <AlertCircle className="w-2.5 h-2.5 rotate-180" />
                 {t('dashboards.widgets.energy_insight.sustainable')}
              </div>
@@ -102,8 +102,8 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
       <div className="mt-6 space-y-2 relative z-10">
          {entities.slice(0, 2).map(entity => (
            <div key={entity.entity_id} className="flex items-center justify-between px-2">
-              <span className="text-[9px] font-bold text-muted-foreground/60 truncate max-w-[120px] uppercase tracking-widest">{entity.name}</span>
-              <span className="text-[9px] font-black text-foreground/80 tabular-nums">{entity.state} {entity.unit}</span>
+              <span className="text-micro font-bold text-muted-foreground/60 truncate max-w-[120px] uppercase tracking-widest">{entity.name}</span>
+              <span className="text-micro font-black text-foreground/80 tabular-nums">{entity.state} {entity.unit}</span>
            </div>
          ))}
       </div>

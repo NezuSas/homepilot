@@ -143,7 +143,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
   return (
     <section className="flex flex-col gap-4" aria-labelledby="ha-discovery-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 id="ha-discovery-title" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <h3 id="ha-discovery-title" className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
           <RadioTower className="h-4 w-4" /> {t('inbox.discovery.bridge_title')}
         </h3>
         <Button
@@ -159,7 +159,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
       {showDiscovery && (
         <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
           {loading && entities.length === 0 ? (
-            <div className="flex min-h-36 items-center justify-center gap-3 rounded-panel border border-border/60 bg-card/35 text-sm text-muted-foreground">
+            <div className="flex min-h-36 items-center justify-center gap-3 rounded-panel border border-border/60 bg-card/35 text-body text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               {t('inbox.discovery.loading_entities')}
             </div>

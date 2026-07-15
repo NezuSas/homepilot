@@ -57,7 +57,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[2.5rem] animate-in fade-in">
           <div className="bg-card px-6 py-3 rounded-full shadow-2xl border border-primary/20 flex items-center gap-3">
             <Loader2 className="w-4 h-4 animate-spin text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">{t('common.processing')}</span>
+            <span className="text-micro font-black uppercase tracking-widest text-primary">{t('common.processing')}</span>
           </div>
         </div>
       )}
@@ -78,7 +78,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             disabled={rule._processing}
             onClick={() => onToggle(rule.id, rule.enabled)}
             className={cn(
-              "w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+              "w-full py-2.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all active:scale-95",
               rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" : "bg-primary text-primary-foreground"
             )}
           >
@@ -89,20 +89,20 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             <button
               onClick={() => onEdit(rule)}
               disabled={rule._processing}
-              className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
+              className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-micro font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
             >
               <Edit2 className="w-3.5 h-3.5" /> Edit
             </button>
 
             {rule._confirmingDelete ? (
               <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
-                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-xl text-[9px] font-black uppercase tracking-tighter shadow-lg shadow-destructive/20">Confirm</button>
-                <button onClick={() => onConfirmingDeleteChange(rule.id, false)} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-[9px] font-black uppercase transition-colors hover:bg-muted/80">X</button>
+                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-xl text-micro font-black uppercase tracking-tighter shadow-lg shadow-destructive/20">Confirm</button>
+                <button onClick={() => onConfirmingDeleteChange(rule.id, false)} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-micro font-black uppercase transition-colors hover:bg-muted/80">X</button>
               </div>
             ) : (
               <button
                 onClick={() => onConfirmingDeleteChange(rule.id, true)}
-                className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
+                className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-micro font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
@@ -111,7 +111,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         </div>
 
         {rule._error && (
-          <div className="absolute top-4 left-4 right-4 bg-destructive text-destructive-foreground text-[9px] font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl flex items-center justify-center gap-2">
+          <div className="absolute top-4 left-4 right-4 bg-destructive text-destructive-foreground text-micro font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl flex items-center justify-center gap-2">
             <AlertCircle className="w-3 h-3" /> {rule._error}
           </div>
         )}
@@ -126,18 +126,18 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             <Zap className={cn("w-5 h-5", rule.enabled && "fill-warning animate-pulse")} />
           </div>
           <div className="flex flex-col">
-            <h4 className="text-2xl font-black tracking-tighter text-foreground/90 leading-tight">{rule.name}</h4>
+            <h4 className="text-view-title font-black tracking-tighter text-foreground/90 leading-tight">{rule.name}</h4>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[9px] font-mono font-bold text-muted-foreground/30 px-1.5 py-0.5 bg-muted/40 rounded uppercase tracking-tighter">ID: {rule.id}</span>
-              {!rule.enabled && <span className="text-[8px] font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">{t('automations.rule.inactive')}</span>}
+              <span className="text-micro font-mono font-bold text-muted-foreground/30 px-1.5 py-0.5 bg-muted/40 rounded uppercase tracking-tighter">ID: {rule.id}</span>
+              {!rule.enabled && <span className="text-nano font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">{t('automations.rule.inactive')}</span>}
             </div>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-[1fr,auto,1fr] gap-8 items-center">
-          <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-[2rem] font-mono text-[11px] shadow-inner relative group/node overflow-hidden">
+          <div className="p-7 bg-muted/20 border-2 border-border/30 rounded-[2rem] font-mono text-label shadow-inner relative group/node overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
-            <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-[9px] font-black text-muted-foreground">{t('automations.rule.if_trigger')}</span>
+            <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border rounded-full text-micro font-black text-muted-foreground">{t('automations.rule.if_trigger')}</span>
             <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
               <div className="flex items-center gap-2">
                 <span className="text-primary/40 italic">{t('automations.form.device_label')}</span>
@@ -157,9 +157,9 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             <div className="w-[2px] h-10 bg-primary lg:hidden" />
           </div>
 
-          <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-[2rem] font-mono text-[11px] relative shadow-sm group/node overflow-hidden">
+          <div className="p-7 bg-primary/[0.02] border-2 border-primary/20 rounded-[2rem] font-mono text-label relative shadow-sm group/node overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-700" />
-            <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-[9px] font-black text-primary/70">{t('automations.rule.then_action')}</span>
+            <span className="absolute -top-3 left-6 px-3 py-0.5 bg-background border border-primary/20 rounded-full text-micro font-black text-primary/70">{t('automations.rule.then_action')}</span>
             <div className="font-bold flex flex-col gap-2 pt-2 relative z-10">
               <div className="flex items-center gap-2">
                 <span className="text-primary/40 italic">{t('automations.form.target_label')}</span>

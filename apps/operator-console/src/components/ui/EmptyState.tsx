@@ -29,9 +29,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <Icon className="h-5 w-5" />
       </div>
     )}
-    <h3 className="text-lg font-black tracking-tight text-foreground/90">{title}</h3>
+    <h3 className="text-section-title font-black tracking-tight text-foreground/90">{title}</h3>
     {description && (
-      <p className="mt-2 max-w-md text-sm font-medium leading-relaxed text-muted-foreground">
+      <p className="mt-2 max-w-md text-body font-medium leading-relaxed text-muted-foreground">
         {description}
       </p>
     )}

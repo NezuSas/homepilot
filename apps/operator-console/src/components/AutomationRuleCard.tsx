@@ -111,7 +111,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <h4 className="text-xl font-black tracking-tight leading-tight">{rule.name}</h4>
+              <h4 className="text-panel-title font-black tracking-tight leading-tight">{rule.name}</h4>
               {isEnabled && (
                 <div className={cn(
                   'flex items-center gap-1.5 px-2 py-0.5 rounded-full border shrink-0 bg-background/40 backdrop-blur-md',
@@ -119,11 +119,11 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
                     : (isEdgeCapable ? 'border-primary/30 text-primary' : 'border-border/30 text-muted-foreground opacity-40')
                 )}>
                   {isFullyAutonomous && <Cpu className="w-2.5 h-2.5" />}
-                  <span className="text-[7.5px] font-black uppercase tracking-[0.1em]">{resilienceLabel}</span>
+                  <span className="text-nano font-black uppercase tracking-[0.1em]">{resilienceLabel}</span>
                 </div>
               )}
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-40">
+            <span className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-40">
               {rule.trigger.type === 'time' ? t('automations.summary.schedule_based') : t('automations.summary.event_driven')}
             </span>
           </div>
@@ -147,7 +147,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
             onClick={() => onToggle(rule.id, isEnabled)}
             disabled={isWorking}
             className={cn(
-              'h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm',
+              'h-10 px-4 rounded-xl font-black text-micro uppercase tracking-widest transition-all shadow-sm',
               isEnabled
                 ? (isFullyAutonomous ? 'bg-success/10 text-success border border-success/10' : 'bg-primary/10 text-primary border border-primary/10')
                 : 'bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary'
@@ -178,18 +178,18 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
             'h-8 px-3 rounded-full flex items-center justify-center shrink-0 shadow-sm border transition-all duration-700',
             isEnabled ? 'bg-background border-border' : 'bg-muted/50 border-transparent'
           )}>
-            <span className={cn('text-[9px] font-black tracking-tighter', isEnabled ? 'opacity-40' : 'opacity-20')}>{t('automations.summary.if')}</span>
+            <span className={cn('text-micro font-black tracking-tighter', isEnabled ? 'opacity-40' : 'opacity-20')}>{t('automations.summary.if')}</span>
           </div>
           <div className="pt-0.5">
             <p className={cn(
-              'text-lg font-black tracking-tight leading-tight transition-colors duration-700',
+              'text-section-title font-black tracking-tight leading-tight transition-colors duration-700',
               isEnabled ? 'text-foreground/90' : 'text-muted-foreground/40'
             )}>
               {rule.trigger.type === 'time'
                 ? t('automations.summary.clock_hits', { time: rule.trigger.timeLocal || rule.trigger.time })
                 : t('automations.summary.when_device', { name: getDeviceName(rule.trigger.deviceId), value: rule.trigger.expectedValue })}
             </p>
-            <span className="text-[8px] font-black uppercase tracking-[0.25em] text-muted-foreground opacity-30 mt-1.5 block">
+            <span className="text-nano font-black uppercase tracking-[0.25em] text-muted-foreground opacity-30 mt-1.5 block">
               {t('automations.summary.trigger_label')}
             </span>
           </div>
@@ -202,11 +202,11 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
               ? (isFullyAutonomous ? 'bg-success text-success-foreground premium-glow-success' : 'bg-primary text-primary-foreground premium-glow')
               : 'bg-muted text-muted-foreground/30'
           )}>
-            <span className="text-[9px] font-black tracking-tighter">{t('automations.summary.then')}</span>
+            <span className="text-micro font-black tracking-tighter">{t('automations.summary.then')}</span>
           </div>
           <div className="pt-0.5">
             <p className={cn(
-              'text-lg font-black tracking-tight leading-tight transition-all duration-700',
+              'text-section-title font-black tracking-tight leading-tight transition-all duration-700',
               isEnabled ? (isFullyAutonomous ? 'text-success' : 'text-primary') : 'text-muted-foreground/40'
             )}>
               {rule.action.type === 'device_command'
@@ -217,7 +217,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
                 : t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) })}
             </p>
             <span className={cn(
-              'text-[8px] font-black uppercase tracking-[0.25em] mt-1.5 block transition-colors duration-700',
+              'text-nano font-black uppercase tracking-[0.25em] mt-1.5 block transition-colors duration-700',
               isEnabled ? (isFullyAutonomous ? 'text-success/50' : 'text-primary/50') : 'text-muted-foreground/30'
             )}>
               {t('automations.summary.action_label')}
@@ -232,13 +232,13 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
             'w-1.5 h-1.5 rounded-full',
             isEnabled ? (isFullyAutonomous ? 'bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]') : 'bg-muted-foreground/20'
           )} />
-          <span className="text-[8px] font-black uppercase tracking-[0.15em] text-muted-foreground opacity-40">
+          <span className="text-nano font-black uppercase tracking-[0.15em] text-muted-foreground opacity-40">
             {isFullyAutonomous ? 'Verified Hardware Autonomy' : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_automation'))}
           </span>
         </div>
         <div className="flex items-center gap-1.5 opacity-10 grayscale">
           <Cpu className="w-3 h-3" />
-          <span className="text-[7.5px] font-bold uppercase tracking-tighter">Nezu Core v1</span>
+          <span className="text-nano font-bold uppercase tracking-tighter">Nezu Core v1</span>
         </div>
       </div>
     </div>

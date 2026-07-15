@@ -57,7 +57,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           <span
             className={cn(
               'tracking-tight text-left leading-none whitespace-nowrap overflow-hidden transition-[opacity,width,margin] duration-base',
-              nested ? 'text-[0.76rem]' : 'text-[0.82rem]',
+              nested ? 'text-caption' : 'text-body-compact',
               active ? 'font-bold text-primary' : 'font-medium',
               collapsedOnDesktop && 'lg:w-0 lg:opacity-0 lg:ml-0'
             )}
@@ -71,7 +71,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           {badge && <div className="shrink-0">{badge}</div>}
 
           {soonText && (
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/50 px-1.5 py-0.5 bg-primary/5 rounded border border-primary/10">
+            <span className="text-nano font-black uppercase tracking-widest text-primary/50 px-1.5 py-0.5 bg-primary/5 rounded border border-primary/10">
               {soonText}
             </span>
           )}

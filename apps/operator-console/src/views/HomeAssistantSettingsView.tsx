@@ -109,7 +109,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
       </div>
       <div className="text-center">
         <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.error_title')}</h3>
-        <p className="text-sm text-muted-foreground mb-4">{error}</p>
+        <p className="text-body text-muted-foreground mb-4">{error}</p>
         <Button
           onClick={fetchStatus}
         >
@@ -137,12 +137,12 @@ export const HomeAssistantSettingsView: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.title')}</h3>
-                <p className="text-xs text-muted-foreground">{t('ha_settings.status_card.subtitle')}</p>
+                <p className="text-caption text-muted-foreground">{t('ha_settings.status_card.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 bg-background/50 px-3 py-1.5 rounded-full border border-white/5 shadow-inner">
               {getStatusIcon(status.connectivityStatus)}
-              <span className="text-sm font-medium capitalize">
+              <span className="text-body font-medium capitalize">
                 {status.connectivityStatus === 'reachable' ? t('ha_settings.status.reachable') : 
                  status.connectivityStatus === 'unreachable' ? t('ha_settings.status.unreachable') : 
                  status.connectivityStatus === 'auth_error' ? t('ha_settings.status.auth_error') : t('ha_settings.status.unknown')}
@@ -152,15 +152,15 @@ export const HomeAssistantSettingsView: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="bg-background/40 p-3 rounded-xl border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.active_source')}</span>
-              <div className="flex items-center gap-2 text-sm font-medium">
+              <span className="text-micro uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.active_source')}</span>
+              <div className="flex items-center gap-2 text-body font-medium">
                 {status.activeSource === 'database' ? <Database className="w-3.5 h-3.5 text-primary" /> : <Globe className="w-3.5 h-3.5 text-warning" />}
                 <span className="capitalize">{status.activeSource.replace('-', ' ')}</span>
               </div>
             </div>
             <div className="bg-background/40 p-3 rounded-xl border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.last_checked')}</span>
-              <div className="text-sm font-medium">
+              <span className="text-micro uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.last_checked')}</span>
+              <div className="text-body font-medium">
                 {status.lastCheckedAt ? new Date(status.lastCheckedAt).toLocaleTimeString() : t('common.never')}
               </div>
             </div>
@@ -174,11 +174,11 @@ export const HomeAssistantSettingsView: React.FC = () => {
             <ShieldCheck className="w-4 h-4 text-primary" />
             {t('ha_settings.security.title')}
           </h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-caption text-muted-foreground leading-relaxed">
             {t('ha_settings.security.description')}
           </p>
           <div className="mt-auto pt-2">
-             <span className="text-[10px] bg-primary/20 text-primary-foreground px-2 py-1 rounded font-bold">{t('ha_settings.security.badge')}</span>
+             <span className="text-micro bg-primary/20 text-primary-foreground px-2 py-1 rounded font-bold">{t('ha_settings.security.badge')}</span>
           </div>
         </Card>
       </div>
@@ -187,7 +187,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
       <Card className="rounded-2xl">
         <header className="border-b p-6 bg-muted/20">
           <h3 className="font-semibold">{t('ha_settings.config.title')}</h3>
-          <p className="text-sm text-muted-foreground">{t('ha_settings.config.subtitle')}</p>
+          <p className="text-body text-muted-foreground">{t('ha_settings.config.subtitle')}</p>
         </header>
 
         <form onSubmit={handleSave} className="p-8 space-y-6">
@@ -203,7 +203,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
                 className="font-mono"
                 required
               />
-              <p className="text-[11px] text-muted-foreground">{t('ha_settings.test.url_hint')}</p>
+              <p className="text-label text-muted-foreground">{t('ha_settings.test.url_hint')}</p>
             </div>
 
             <div className="space-y-2">
@@ -221,14 +221,14 @@ export const HomeAssistantSettingsView: React.FC = () => {
                    {status.hasToken && <CheckCircle2 className="w-4 h-4 text-success" />}
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">{t('ha_settings.config.token_hint')}</p>
+              <p className="text-label text-muted-foreground">{t('ha_settings.config.token_hint')}</p>
             </div>
           </div>
 
           {testResult && (
             <div className={`p-4 rounded-xl border flex gap-3 animate-in fade-in zoom-in-95 duration-300 ${testResult.success ? 'bg-success/5 border-success/20 text-success' : 'bg-danger/5 border-danger/20 text-danger'}`}>
               {testResult.success ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <XCircle className="w-5 h-5 shrink-0" />}
-              <div className="text-sm">
+              <div className="text-body">
                 <p className="font-bold">{testResult.success ? t('ha_settings.test.success') : t('ha_settings.test.failure')}</p>
                 <p className="opacity-90">{testResult.message || (testResult.success ? t('ha_settings.test.success_msg') : t('ha_settings.test.failure_msg'))}</p>
               </div>
@@ -236,7 +236,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
           )}
 
           {message && (
-             <div className={`p-4 rounded-xl border text-sm ${message.type === 'success' ? 'bg-success/10 border-success/20 text-success' : 'bg-danger/10 border-danger/20 text-danger'}`}>
+             <div className={`p-4 rounded-xl border text-body ${message.type === 'success' ? 'bg-success/10 border-success/20 text-success' : 'bg-danger/10 border-danger/20 text-danger'}`}>
                 {message.text}
              </div>
           )}

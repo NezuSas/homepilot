@@ -106,10 +106,10 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
               <Layers className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <h3 className="text-sm font-black tracking-tight">
+              <h3 className="text-body font-black tracking-tight">
                 {t(`assistant.types.group.${getGroupKey(group.type)}`, { count: totalCount })}
               </h3>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
+              <p className="text-micro text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
                 {t('assistant.group_hint', { count: totalCount })}
               </p>
             </div>
@@ -132,7 +132,7 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
                     onAction(fallbackFinding, fallbackAction);
                   }
                 }}
-                className="text-[9px] font-black uppercase tracking-widest"
+                className="text-micro font-black uppercase tracking-widest"
               >
                 {t(action.label)}
               </Button>
@@ -161,15 +161,15 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
                           {getIcon(primaryFinding.type)}
                         </div>
                         <div className="text-left flex-1">
-                          <p className="text-sm font-bold flex items-center gap-2">
+                          <p className="text-body font-bold flex items-center gap-2">
                             {subGroup.name}
                             {count > 1 && (
-                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
+                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-micro font-black uppercase tracking-wider">
                                 x {count}
                               </span>
                             )}
                           </p>
-                          <p className="text-[10px] text-muted-foreground line-clamp-1">
+                          <p className="text-micro text-muted-foreground line-clamp-1">
                             {t(`assistant.types.${primaryFinding.type}_description`, primaryFinding.metadata) as string}
                           </p>
                         </div>
@@ -179,7 +179,7 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
                         {count > 1 ? (
                           <button
                             onClick={() => onToggleSubGroup(subGroupId)}
-                            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-all flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-all flex items-center gap-1 text-micro font-bold uppercase tracking-wider"
                           >
                             {isSubExpanded ? t('common.hide') : t('common.more')}
                             <ChevronDown className={cn('w-3 h-3 transition-transform', isSubExpanded && 'rotate-180')} />
@@ -199,7 +199,7 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
                       <div className="pl-12 pr-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
                         {subGroup.findings.map((finding) => (
                           <div key={finding.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/40 group/item">
-                            <span className="text-[11px] font-bold text-foreground">
+                            <span className="text-label font-bold text-foreground">
                               {getMetadataText(finding.metadata, ['friendlyName', 'deviceName'], finding.id)}
                             </span>
                             <button

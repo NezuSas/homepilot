@@ -17,7 +17,7 @@ export const AutomationsEmptyState: React.FC<AutomationsEmptyStateProps> = ({ on
       title={t('automations.empty_state.title')}
       description={t('automations.empty_state.description')}
       action={
-        <Button size="sm" onClick={onCreate} className="gap-2 text-[10px] uppercase tracking-widest">
+        <Button size="sm" onClick={onCreate} className="gap-2 text-micro uppercase tracking-widest">
           {t('automations.create_rule')} <ArrowRight className="h-4 w-4" />
         </Button>
       }

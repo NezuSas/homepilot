@@ -40,9 +40,9 @@ export const DashboardsHero: React.FC<DashboardsHeroProps> = ({
           <LayoutDashboard className="h-6 w-6 text-primary-foreground sm:h-7 sm:w-7" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70 mb-2">{category}</p>
-          <h2 className="truncate text-2xl font-black tracking-tight text-foreground sm:text-3xl">{title}</h2>
-          <p className="text-xs text-muted-foreground/60 max-w-md">{subtitle}</p>
+          <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/70 mb-2">{category}</p>
+          <h2 className="truncate text-view-title font-black tracking-tight text-foreground sm:text-display-title">{title}</h2>
+          <p className="text-caption text-muted-foreground/60 max-w-md">{subtitle}</p>
         </div>
       </div>
       <div className="flex shrink-0 items-center justify-end gap-3">
@@ -54,13 +54,13 @@ export const DashboardsHero: React.FC<DashboardsHeroProps> = ({
             className="flex items-center gap-2 px-6 rounded-2xl"
           >
             {isEditing ? <Check className="w-4 h-4" /> : <PenLine className="w-4 h-4" />}
-            <span className="hidden xs:inline uppercase font-black text-[10px] tracking-widest">{isEditing ? doneLabel : editLabel}</span>
+            <span className="hidden xs:inline uppercase font-black text-micro tracking-widest">{isEditing ? doneLabel : editLabel}</span>
           </Button>
         )}
         {!isCreating && !isEditing && (
           <Button variant="primary" size="sm" onClick={onCreate} className="flex items-center gap-2 px-6 rounded-2xl">
             <Plus className="w-4 h-4" />
-            <span className="hidden xs:inline uppercase font-black text-[10px] tracking-widest">{newLabel}</span>
+            <span className="hidden xs:inline uppercase font-black text-micro tracking-widest">{newLabel}</span>
           </Button>
         )}
       </div>

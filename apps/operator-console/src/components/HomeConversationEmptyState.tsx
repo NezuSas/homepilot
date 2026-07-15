@@ -34,13 +34,13 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
               <Home className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary/75">
+              <p className="text-micro font-black uppercase tracking-[0.28em] text-primary/75">
                 HomePilot Edge
               </p>
-              <h3 className="mt-2 max-w-2xl text-3xl font-black leading-[0.95] tracking-tight text-foreground md:text-5xl xl:text-6xl">
+              <h3 className="mt-2 max-w-2xl text-display-title font-black leading-[0.95] tracking-tight text-foreground md:text-hero-title-lg xl:text-hero-title-lg">
                 {title}
               </h3>
-              <p className="mt-4 max-w-3xl text-sm font-semibold leading-relaxed text-muted-foreground md:text-base">
+              <p className="mt-4 max-w-3xl text-body font-semibold leading-relaxed text-muted-foreground md:text-body-lg">
                 {description}
               </p>
             </div>
@@ -55,7 +55,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Icon className="h-3.5 w-3.5" />
                   </span>
-                  <span className="min-w-0 text-xs font-black uppercase leading-snug tracking-wide text-foreground/75">
+                  <span className="min-w-0 text-caption font-black uppercase leading-snug tracking-wide text-foreground/75">
                     {capability}
                   </span>
                 </div>
@@ -65,7 +65,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
         </div>
 
         <div className="min-w-0 rounded-[1.5rem] border border-border/45 bg-background/30 p-3 shadow-inner shadow-black/5 md:p-4">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground/65">
+          <p className="mb-3 text-micro font-black uppercase tracking-[0.24em] text-muted-foreground/65">
             {suggestionLabel}
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
@@ -85,7 +85,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 whitespace-normal text-[0.82rem] font-bold leading-snug text-foreground/85">
+                    <span className="min-w-0 whitespace-normal text-body-compact font-bold leading-snug text-foreground/85">
                       {suggestion}
                     </span>
                   </span>

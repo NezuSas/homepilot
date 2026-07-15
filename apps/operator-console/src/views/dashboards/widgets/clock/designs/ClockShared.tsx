@@ -47,7 +47,7 @@ export function ClockLabel({
   return (
     <div className={`flex min-w-0 items-center gap-2 ${className}`}>
       <AccentDot />
-      <span className="min-w-0 truncate text-[clamp(0.55rem,1.3cqi,0.82rem)] font-black uppercase tracking-[0.42em] text-primary">
+      <span className="min-w-0 truncate text-clock-caption-fluid font-black uppercase tracking-[0.42em] text-primary">
         {children}
       </span>
     </div>
@@ -73,7 +73,7 @@ export function WeatherPill({
     <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-[clamp(0.62rem,1.45cqi,0.95rem)] py-[clamp(0.25rem,0.72cqi,0.38rem)] shadow-inner ${className}`}>
       <div className="flex min-w-0 items-center gap-1.5">
         <AccentDot />
-        <span className="min-w-0 truncate text-[clamp(0.49rem,1.2cqi,0.72rem)] font-black uppercase tracking-[0.12em] text-foreground">
+        <span className="min-w-0 truncate text-clock-label-fluid font-black uppercase tracking-[0.12em] text-foreground">
           {label}
         </span>
       </div>
@@ -104,7 +104,7 @@ export function ClockProgress({
         />
       </div>
       {label ? (
-        <div className="mt-2 flex items-center justify-between gap-3 text-[clamp(0.48rem,1.18cqi,0.66rem)] font-black uppercase tracking-[0.22em] text-muted-foreground">
+        <div className="mt-2 flex items-center justify-between gap-3 text-clock-micro-fluid font-black uppercase tracking-[0.22em] text-muted-foreground">
           <span className="truncate">{label}</span>
           <span className="shrink-0 tabular-nums">{safeValue}%</span>
         </div>
@@ -133,12 +133,12 @@ export function TimeText({
   const justify = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
   const textSize =
     size === 'hero'
-      ? 'text-[clamp(4rem,17cqi,8.4rem)]'
+      ? 'text-clock-time-2xl-fluid'
       : size === 'large'
-        ? 'text-[clamp(3.35rem,13.5cqi,6.7rem)]'
+        ? 'text-clock-time-xl-fluid'
         : size === 'medium'
-          ? 'text-[clamp(2.75rem,10.5cqi,5.5rem)]'
-          : 'text-[clamp(2.35rem,8cqi,4.5rem)]';
+          ? 'text-clock-time-lg-fluid'
+          : 'text-clock-time-md-fluid';
 
   return (
     <div className={`flex min-w-0 items-end ${justify} font-black tabular-nums leading-none tracking-[-0.085em] text-foreground`}>
@@ -153,8 +153,8 @@ export function TimeText({
 
       {(seconds || period) ? (
         <span className="mb-[0.20em] ml-2 flex shrink-0 flex-col items-start gap-0.5 text-primary">
-          {seconds ? <span className="text-[clamp(0.54rem,1.6cqi,0.86rem)] font-black tracking-[0.08em]">{seconds}</span> : null}
-          {period ? <span className="text-[clamp(0.44rem,1.2cqi,0.66rem)] font-black uppercase tracking-[0.24em]">{period}</span> : null}
+          {seconds ? <span className="text-clock-seconds-fluid font-black tracking-[0.08em]">{seconds}</span> : null}
+          {period ? <span className="text-clock-period-fluid font-black uppercase tracking-[0.24em]">{period}</span> : null}
         </span>
       ) : null}
     </div>
@@ -226,10 +226,10 @@ export function AnalogDial({
 
       {minimal ? (
         <>
-          <text x="60" y="26" textAnchor="middle" className="fill-muted-foreground text-[8px] font-black">12</text>
-          <text x="95" y="63" textAnchor="middle" className="fill-muted-foreground text-[8px] font-black">3</text>
-          <text x="60" y="99" textAnchor="middle" className="fill-muted-foreground text-[8px] font-black">6</text>
-          <text x="25" y="63" textAnchor="middle" className="fill-muted-foreground text-[8px] font-black">9</text>
+          <text x="60" y="26" textAnchor="middle" className="fill-muted-foreground text-nano font-black">12</text>
+          <text x="95" y="63" textAnchor="middle" className="fill-muted-foreground text-nano font-black">3</text>
+          <text x="60" y="99" textAnchor="middle" className="fill-muted-foreground text-nano font-black">6</text>
+          <text x="25" y="63" textAnchor="middle" className="fill-muted-foreground text-nano font-black">9</text>
         </>
       ) : null}
 

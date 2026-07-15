@@ -355,7 +355,7 @@ export const NativeCamerasView: React.FC = () => {
             action={(
               <button
                 type="button"
-                className="rounded-pill border border-current/20 px-3 py-1 text-xs font-semibold"
+                className="rounded-pill border border-current/20 px-3 py-1 text-caption font-semibold"
                 onClick={() => setNotice(null)}
               >
                 {t('common.close', 'Cerrar')}
@@ -374,7 +374,7 @@ export const NativeCamerasView: React.FC = () => {
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6 border border-border/50">
             <Camera size={32} className="text-muted-foreground" />
           </div>
-          <h3 className="text-xl font-medium text-foreground mb-2">{t('native_cameras.empty_title')}</h3>
+          <h3 className="text-panel-title font-medium text-foreground mb-2">{t('native_cameras.empty_title')}</h3>
           <p className="text-muted-foreground max-w-md mb-8">{t('native_cameras.empty_description')}</p>
           <Button variant="primary" onClick={handleOpenDiscoveryModal}>
             <Plus size={16} /> {t('native_cameras.add_camera')}
@@ -391,7 +391,7 @@ export const NativeCamerasView: React.FC = () => {
                       <Camera size={20} className="text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-foreground truncate max-w-[150px]">{camera.name}</h3>
+                      <h3 className="text-section-title font-medium text-foreground truncate max-w-[150px]">{camera.name}</h3>
                       <div className="flex items-center mt-1">
                         <StatusPill 
                           variant={camera.enabled ? 'success' : 'neutral'}
@@ -399,7 +399,7 @@ export const NativeCamerasView: React.FC = () => {
                           {camera.enabled ? t('native_cameras.status_active') : t('native_cameras.status_inactive')}
                         </StatusPill>
                       </div>
-                      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="mt-2 text-micro font-bold uppercase tracking-[0.18em] text-muted-foreground">
                         {t(`native_cameras.source_types.${camera.sourceType || 'onvif-ptz'}`)}
                       </p>
                     </div>
@@ -421,15 +421,15 @@ export const NativeCamerasView: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 mt-6">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-body">
                     <span className="text-muted-foreground">{t('native_cameras.host_label')}</span>
                     <span className="text-foreground/80 font-mono">{camera.host}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-body">
                     <span className="text-muted-foreground">{t('native_cameras.rtsp_port_label')}</span>
                     <span className="text-foreground/80 font-mono">{camera.rtspPort}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-body">
                     <span className="text-muted-foreground">{t('native_cameras.rtsp_path_label')}</span>
                     <span className="text-foreground/80 font-mono truncate max-w-[150px]">{camera.rtspPath || '/'}</span>
                   </div>
@@ -450,7 +450,7 @@ export const NativeCamerasView: React.FC = () => {
         {isDiscovering ? (
           <div className="flex flex-col items-center justify-center p-8 space-y-4">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm text-muted-foreground">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
+            <p className="text-body text-muted-foreground">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
           </div>
         ) : (
           <form onSubmit={handleDiscoverySubmit} className="space-y-6">
@@ -475,8 +475,8 @@ export const NativeCamerasView: React.FC = () => {
                     }}
                     className="sr-only"
                   />
-                  <span className="text-sm font-semibold">{t(`native_cameras.source_types.${sourceType}`)}</span>
-                  <span className="text-xs leading-relaxed text-muted-foreground">{t(`native_cameras.discovery.profile_hints.${sourceType}`)}</span>
+                  <span className="text-body font-semibold">{t(`native_cameras.source_types.${sourceType}`)}</span>
+                  <span className="text-caption leading-relaxed text-muted-foreground">{t(`native_cameras.discovery.profile_hints.${sourceType}`)}</span>
                 </label>
               ))}
             </div>
@@ -500,13 +500,13 @@ export const NativeCamerasView: React.FC = () => {
                       className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
                     />
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-foreground">
+                      <span className="text-body font-medium text-foreground">
                         {selectedSourceType === 'onvif-ptz'
                           ? t('native_cameras.discovery.manual')
                           : t('native_cameras.discovery.manual_rtsp')}
                       </span>
                       {selectedSourceType !== 'onvif-ptz' && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-caption text-muted-foreground">
                           {t(`native_cameras.discovery.manual_rtsp_hints.${selectedSourceType}`)}
                         </span>
                       )}
@@ -524,8 +524,8 @@ export const NativeCamerasView: React.FC = () => {
                         className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
                       />
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">{cam.name}</span>
-                        <span className="text-xs text-muted-foreground/80 font-mono">
+                        <span className="text-body font-medium text-foreground">{cam.name}</span>
+                        <span className="text-caption text-muted-foreground/80 font-mono">
                           {selectedSourceType === 'onvif-ptz'
                             ? `${cam.host}:${cam.onvifPort}`
                             : `${cam.host} · ${t('native_cameras.discovery.detected_by_onvif')}`}
@@ -558,7 +558,7 @@ export const NativeCamerasView: React.FC = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-body">
               {formError}
             </div>
           )}

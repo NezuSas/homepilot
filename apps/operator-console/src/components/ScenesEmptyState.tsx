@@ -17,7 +17,7 @@ export const ScenesEmptyState: React.FC<ScenesEmptyStateProps> = ({ onCreateScen
       title={t('scenes.empty_title')}
       description={t('scenes.empty_description')}
       action={
-        <Button size="sm" onClick={onCreateScene} className="gap-2 text-[10px] uppercase tracking-widest">
+        <Button size="sm" onClick={onCreateScene} className="gap-2 text-micro uppercase tracking-widest">
           {t('dashboard.scene_create')} <Zap className="h-4 w-4" />
         </Button>
       }

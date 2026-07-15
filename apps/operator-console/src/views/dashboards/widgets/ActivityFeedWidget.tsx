@@ -64,12 +64,12 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
           <div className="p-2 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20">
             <Activity className="w-4 h-4" />
           </div>
-          <h3 className="text-xs @md:text-sm font-black text-foreground tracking-tight truncate">
+          <h3 className="text-caption @md:text-body font-black text-foreground tracking-tight truncate">
             {config.appearance.title || t('dashboards.widgets.activity_feed.label')}
           </h3>
         </div>
         {!loading && (
-          <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">{t('shell.status.live')}</span>
+          <span className="text-micro font-bold text-muted-foreground/40 uppercase tracking-widest">{t('shell.status.live')}</span>
         )}
       </div>
 
@@ -96,12 +96,12 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
                 {getEventIcon(event.eventType)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-foreground leading-tight truncate">
+                <p className="text-label font-bold text-foreground leading-tight truncate">
                   {formatEventName(event.eventType)}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
                   <Clock className="w-2.5 h-2.5 text-muted-foreground" />
-                  <span className="text-[9px] font-medium text-muted-foreground">
+                  <span className="text-micro font-medium text-muted-foreground">
                     {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>

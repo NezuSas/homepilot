@@ -14,7 +14,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
+          <label className={cn("text-micro font-black uppercase tracking-widest ml-1", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
             {label}
           </label>
         )}
@@ -28,7 +28,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              "surface-transition flex h-10 w-full rounded-xl border bg-background px-3 py-2 text-sm shadow-sm",
+              "surface-transition flex h-10 w-full rounded-xl border bg-background px-3 py-2 text-body shadow-sm",
               "border-border placeholder:text-muted-foreground/40",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40 focus-visible:shadow-depth-1",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
@@ -40,7 +40,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {(error || helperText) && (
-          <p className={cn("text-[10px] font-medium ml-1", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}>
+          <p className={cn("text-micro font-medium ml-1", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}>
             {error || helperText}
           </p>
         )}

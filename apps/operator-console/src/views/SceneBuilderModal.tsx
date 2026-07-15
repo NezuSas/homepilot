@@ -131,10 +131,10 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-4 px-5 pb-3 pt-5 sm:px-8 sm:pb-4 sm:pt-8">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-black tracking-tighter sm:text-2xl">
+            <h2 className="truncate text-panel-title font-black tracking-tighter sm:text-view-title">
               {existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
             </h2>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">
+            <p className="text-micro font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 mt-1">
               {t('scenes.builder.subtitle')}
             </p>
           </div>
@@ -147,7 +147,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
           {error && (
             <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive animate-shake">
               <X className="w-4 h-4 shrink-0" />
-              <p className="text-[10px] font-black uppercase tracking-wider leading-none">{error}</p>
+              <p className="text-micro font-black uppercase tracking-wider leading-none">{error}</p>
             </div>
           )}
 
@@ -157,23 +157,23 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                 <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0">
                   <Settings className="w-3 h-3 text-foreground/40" />
                 </div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{t('scenes.builder.identity')}</label>
+                <label className="text-micro font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">{t('scenes.builder.identity')}</label>
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.name')}</label>
+                  <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.name')}</label>
                   <input 
                     type="text" 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter name..."
-                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-lg font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-section-title font-black tracking-tighter focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
                     autoFocus
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
+                  <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
                   <Select 
                     searchable
                     value={roomId || ''} 
@@ -191,13 +191,13 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
              </div>
 
              <div className="space-y-2 mt-2">
-                <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.description')}</label>
+                <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.description')}</label>
                 <input 
                   type="text" 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What does this scene do?"
-                  className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-sm font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
+                  className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-body font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
                 />
              </div>
           </div>
@@ -209,7 +209,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                   <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
                     <List className="w-3 h-3" />
                   </div>
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">
+                  <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/60">
                     {t('scenes.builder.select_units', { count: actions.length })}
                   </label>
                 </div>
@@ -220,14 +220,14 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                     value={deviceSearch}
                     onChange={(e) => setDeviceSearch(e.target.value)}
                     placeholder="Search..."
-                    className="w-full rounded-lg border-none bg-primary/5 py-1.5 pl-8 pr-3 text-[10px] font-black uppercase tracking-widest outline-none transition-all focus:ring-1 focus:ring-primary/20 min-[460px]:w-32 min-[460px]:focus:w-48"
+                    className="w-full rounded-lg border-none bg-primary/5 py-1.5 pl-8 pr-3 text-micro font-black uppercase tracking-widest outline-none transition-all focus:ring-1 focus:ring-primary/20 min-[460px]:w-32 min-[460px]:focus:w-48"
                    />
                 </div>
              </div>
 
              {availableDevices.length === 0 ? (
                 <div className="p-8 text-center bg-primary/[0.03] border-2 border-dashed border-primary/10 rounded-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">{t('dashboard.scene_no_devices')}</p>
+                  <p className="text-micro font-black uppercase tracking-widest text-primary/40">{t('dashboard.scene_no_devices')}</p>
                 </div>
              ) : (
                 <div className="grid grid-cols-1 gap-2">
@@ -248,8 +248,8 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                              <PlayCircle className={cn("w-5 h-5", isSelected && "animate-pulse")} />
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-black tracking-tighter leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
-                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
+                            <span className="text-body font-black tracking-tighter leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
+                            <span className="text-nano font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40">
                                {(d.semanticType || d.type).toUpperCase()}
                             </span>
                           </div>
@@ -260,7 +260,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                             <button 
                               onClick={() => setCommand(d.id, isCoverDevice(d) ? 'open' : 'turn_on')}
                               className={cn(
-                                "px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border",
+                                "px-3 py-2 rounded-lg text-nano font-black uppercase tracking-widest transition-all border",
                                 action?.command === 'turn_on' || action?.command === 'open' 
                                   ? "bg-primary border-primary text-primary-foreground shadow-lg" 
                                   : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
@@ -271,7 +271,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                             <button 
                               onClick={() => setCommand(d.id, isCoverDevice(d) ? 'close' : 'turn_off')}
                               className={cn(
-                                "px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border",
+                                "px-3 py-2 rounded-lg text-nano font-black uppercase tracking-widest transition-all border",
                                 action?.command === 'turn_off' || action?.command === 'close' 
                                   ? "bg-primary border-primary text-primary-foreground shadow-lg" 
                                   : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
@@ -293,7 +293,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
             <button 
               disabled={saving || !name || actions.length === 0}
               onClick={handleSave}
-              className="w-full bg-primary text-primary-foreground py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
+              className="w-full bg-primary text-primary-foreground py-5 rounded-[2rem] font-black text-caption uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               {t('scenes.builder.commit')}

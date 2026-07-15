@@ -336,7 +336,7 @@ export const TopologyView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-muted/10 rounded-xl border border-dashed">
         <Loader2 className="w-8 h-8 animate-spin mb-4" />
-        <p className="text-sm font-medium">{t('common.loading')}</p>
+        <p className="text-body font-medium">{t('common.loading')}</p>
       </div>
     );
   }
@@ -350,9 +350,9 @@ export const TopologyView: React.FC = () => {
       {/* Homes List */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+          <h3 className="text-caption font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
             {t('topology.homes_title')} 
-            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px]">
+            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-micro">
               {homes.length}
             </span>
           </h3>
@@ -366,7 +366,7 @@ export const TopologyView: React.FC = () => {
               value={newHomeName}
               onChange={(event) => setNewHomeName(event.target.value)}
               onKeyDown={(event) => { if (event.key === 'Enter') void handleAddHome(); }}
-              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none transition-all focus:ring-1 focus:ring-primary"
+              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-caption outline-none transition-all focus:ring-1 focus:ring-primary"
             />
             <button
               type="button"
@@ -382,7 +382,7 @@ export const TopologyView: React.FC = () => {
         
         <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
           {homes.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground italic bg-muted/20">
+            <div className="p-8 text-center text-body text-muted-foreground italic bg-muted/20">
               {t('topology.no_homes', { defaultValue: 'No homes registered.' })}
             </div>
           ) : (
@@ -422,7 +422,7 @@ export const TopologyView: React.FC = () => {
                                 autoFocus
                                 value={homeNameDraft}
                                 onChange={(event) => setHomeNameDraft(event.target.value)}
-                                className="w-36 rounded-lg border border-primary/40 bg-background px-2 py-1 text-xs font-bold text-foreground outline-none"
+                                className="w-36 rounded-lg border border-primary/40 bg-background px-2 py-1 text-caption font-bold text-foreground outline-none"
                                 aria-label={t('topology.rename_home')}
                               />
                               <button
@@ -443,12 +443,12 @@ export const TopologyView: React.FC = () => {
                             </form>
                           ) : (
                             <span className={cn(
-                              "font-bold text-sm transition-colors",
+                              "font-bold text-body transition-colors",
                               isSelected ? "text-primary" : "text-foreground"
                             )}>{home.name}</span>
                           )}
                           {isSelected && (
-                            <span className="text-[9px] font-black tracking-tighter uppercase text-primary/60">{t('inbox.inspector.home_cluster')}</span>
+                            <span className="text-micro font-black tracking-tighter uppercase text-primary/60">{t('inbox.inspector.home_cluster')}</span>
                           )}
                         </div>
                       </div>
@@ -478,7 +478,7 @@ export const TopologyView: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-3 ml-12">
-                      <span className="text-[10px] text-muted-foreground/50 font-mono bg-muted/30 px-2 py-0.5 rounded border border-border/10">
+                      <span className="text-micro text-muted-foreground/50 font-mono bg-muted/30 px-2 py-0.5 rounded border border-border/10">
                         {home.id}
                       </span>
                     </div>
@@ -495,7 +495,7 @@ export const TopologyView: React.FC = () => {
         {selectedHome ? (
           <>
             <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+              <h3 className="text-caption font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                 {t('topology.rooms_in')} <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
               </h3>
               <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -504,13 +504,13 @@ export const TopologyView: React.FC = () => {
                   placeholder={t('topology.placeholder')}
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs outline-none transition-all focus:ring-1 focus:ring-primary sm:w-52"
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-caption outline-none transition-all focus:ring-1 focus:ring-primary sm:w-52"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
                 />
                 <button 
                   onClick={handleAddRoom}
                   disabled={isCreatingRoom || !newRoomName.trim()}
-                  className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
+                  className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-caption font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   {isCreatingRoom ? <Loader2 className="w-3 h-3 animate-spin" /> : t('topology.add_room')}
                 </button>
@@ -528,7 +528,7 @@ export const TopologyView: React.FC = () => {
             {loadingRooms ? (
               <div className="flex flex-col items-center justify-center p-16 border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground">
                 <Loader2 className="w-6 h-6 animate-spin mb-3" />
-                <p className="text-sm">{t('common.loading')}</p>
+                <p className="text-body">{t('common.loading')}</p>
               </div>
             ) : (
               <div className={cn(
@@ -536,7 +536,7 @@ export const TopologyView: React.FC = () => {
                 selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]",
               )}>
                 {rooms.length === 0 ? (
-                  <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-sm italic">
+                  <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-body italic">
                     {t('topology.no_rooms', { defaultValue: 'No rooms associated with this environment.' })}
                   </div>
                 ) : (
@@ -548,7 +548,7 @@ export const TopologyView: React.FC = () => {
                       }}
                     >
                       {visibleRooms.length === 0 && (
-                        <p className="col-span-full rounded-xl border border-dashed border-border bg-muted/10 p-6 text-center text-sm text-muted-foreground">
+                        <p className="col-span-full rounded-xl border border-dashed border-border bg-muted/10 p-6 text-center text-body text-muted-foreground">
                           {t('topology.no_search_results')}
                         </p>
                       )}
@@ -583,7 +583,7 @@ export const TopologyView: React.FC = () => {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <span className="block truncate font-semibold text-foreground">{room.name}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                                   {t('topology.room_device_count', { count: roomDevices.length, defaultValue: `${roomDevices.length} devices` })}
                                 </span>
                               </div>
@@ -597,14 +597,14 @@ export const TopologyView: React.FC = () => {
                     {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                          <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.room_details', { defaultValue: 'Room details' })}
                           </p>
                           {selectedRoom && editingRoomId === selectedRoom.id ? (
                             <form className="mt-2 flex items-center gap-2" onSubmit={handleRenameRoom}>
                               <input
                                 autoFocus
-                                className="min-w-0 flex-1 rounded-xl border border-primary/40 bg-background px-3 py-2 text-sm font-bold outline-none ring-2 ring-primary/10"
+                                className="min-w-0 flex-1 rounded-xl border border-primary/40 bg-background px-3 py-2 text-body font-bold outline-none ring-2 ring-primary/10"
                                 maxLength={80}
                                 value={roomNameDraft}
                                 onChange={(event) => setRoomNameDraft(event.target.value)}
@@ -630,7 +630,7 @@ export const TopologyView: React.FC = () => {
                             </form>
                           ) : (
                             <div className="mt-1 flex items-center gap-2">
-                              <h4 className="min-w-0 truncate text-lg font-black tracking-tight text-foreground">
+                              <h4 className="min-w-0 truncate text-section-title font-black tracking-tight text-foreground">
                                 {selectedRoom?.name || t('topology.select_room_hint', { defaultValue: 'Select a room' })}
                               </h4>
                               {selectedRoom && (
@@ -645,7 +645,7 @@ export const TopologyView: React.FC = () => {
                               )}
                             </div>
                           )}
-                          {roomRenameError && <p className="mt-2 text-xs font-semibold text-danger">{roomRenameError}</p>}
+                          {roomRenameError && <p className="mt-2 text-caption font-semibold text-danger">{roomRenameError}</p>}
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="rounded-xl bg-primary/10 p-2 text-primary">
@@ -664,25 +664,25 @@ export const TopologyView: React.FC = () => {
 
                       <div className="mt-5 grid grid-cols-2 gap-3">
                         <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                          <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.lights_total')}
                           </p>
-                          <p className="mt-1 text-2xl font-black text-foreground">{selectedRoomLights.length}</p>
+                          <p className="mt-1 text-view-title font-black text-foreground">{selectedRoomLights.length}</p>
                         </div>
                         <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                          <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.lights_on')}
                           </p>
-                          <p className="mt-1 text-2xl font-black text-primary">{activeRoomDeviceCount}</p>
+                          <p className="mt-1 text-view-title font-black text-primary">{activeRoomDeviceCount}</p>
                         </div>
                       </div>
 
                       <div className="mt-5 border-t border-border/50 pt-5">
-                        <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                        <p className="mb-3 text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                           {t('topology.lights_in_room')}
                         </p>
                         {selectedRoomLights.length === 0 ? (
-                          <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
+                          <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-body font-medium text-muted-foreground">
                             {t('topology.no_lights_in_room')}
                           </p>
                         ) : (
@@ -695,7 +695,7 @@ export const TopologyView: React.FC = () => {
                             />
                             <div className="flex max-h-[340px] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                             {visibleSelectedRoomDevices.length === 0 && (
-                              <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
+                              <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-body font-medium text-muted-foreground">
                                 {t('topology.no_light_search_results')}
                               </p>
                             )}
@@ -703,11 +703,11 @@ export const TopologyView: React.FC = () => {
                               <div key={device.id} className="rounded-2xl border border-border/60 bg-background/60 p-3">
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="min-w-0">
-                                    <p className="truncate text-sm font-bold text-foreground">{device.name}</p>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">{device.type}</p>
+                                    <p className="truncate text-body font-bold text-foreground">{device.name}</p>
+                                    <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">{device.type}</p>
                                   </div>
                                   <span className={cn(
-                                    "shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-widest",
+                                    "shrink-0 rounded-full px-2 py-1 text-micro font-black uppercase tracking-widest",
                                     isActiveDevice(device) ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                                   )}>
                                     {isActiveDevice(device) ? t('device_states.on') : t('device_states.off')}
@@ -742,7 +742,7 @@ export const TopologyView: React.FC = () => {
                           type="button"
                           onClick={() => setRoomPendingDelete(selectedRoom)}
                           disabled={isDeletingRoom}
-                          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-danger transition-all hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-micro font-black uppercase tracking-widest text-danger transition-all hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                           {t('topology.delete_room', { defaultValue: 'Delete room' })}
@@ -759,8 +759,8 @@ export const TopologyView: React.FC = () => {
             <div className="p-4 bg-muted rounded-full mb-4 opacity-50">
               <HomeIcon className="w-8 h-8" />
             </div>
-            <p className="text-sm font-medium text-foreground">{t('topology.select_home_hint', { defaultValue: 'No Home Selected' })}</p>
-            <p className="text-xs mt-1.5 opacity-80 max-w-xs text-center">{t('topology.select_home')}</p>
+            <p className="text-body font-medium text-foreground">{t('topology.select_home_hint', { defaultValue: 'No Home Selected' })}</p>
+            <p className="text-caption mt-1.5 opacity-80 max-w-xs text-center">{t('topology.select_home')}</p>
           </div>
         )}
       </div>

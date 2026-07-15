@@ -14,8 +14,8 @@ export const ScenesHeader: React.FC<ScenesHeaderProps> = ({ sceneCount, onCreate
   return (
     <div className="flex items-center justify-between pb-4 border-b border-border/40">
       <div className="flex flex-col">
-        <h2 className="text-3xl font-black tracking-tighter">{t('nav.scenes')}</h2>
-        <p className="text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-widest mt-1">
+        <h2 className="text-display-title font-black tracking-tighter">{t('nav.scenes')}</h2>
+        <p className="text-caption font-bold text-muted-foreground opacity-50 uppercase tracking-widest mt-1">
           {t('scenes.header.available', { count: sceneCount })}
         </p>
       </div>

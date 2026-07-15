@@ -70,8 +70,8 @@ export const Modal: React.FC<ModalProps> = ({
                         <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
                     </div>
                 )}
-                {title && <h2 className="text-xl font-black text-foreground mb-2">{title}</h2>}
-                {description && <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                {title && <h2 className="text-panel-title font-black text-foreground mb-2">{title}</h2>}
+                {description && <p className="text-body font-medium text-muted-foreground leading-relaxed">
                     {description}
                 </p>}
             </div>}

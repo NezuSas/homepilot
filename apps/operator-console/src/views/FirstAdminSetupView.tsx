@@ -87,9 +87,9 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               <ShieldCheck className="h-7 w-7" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-primary">{t('first_admin_setup.eyebrow')}</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{t('first_admin_setup.title')}</h1>
-              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-muted-foreground">
+              <p className="text-micro font-black uppercase tracking-[0.32em] text-primary">{t('first_admin_setup.eyebrow')}</p>
+              <h1 className="mt-2 text-display-title font-black tracking-tight sm:text-hero-title">{t('first_admin_setup.title')}</h1>
+              <p className="mt-3 max-w-2xl text-body font-semibold leading-6 text-muted-foreground">
                 {t('first_admin_setup.description')}
               </p>
             </div>
@@ -97,27 +97,27 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
           <form onSubmit={handleSubmit} className="grid gap-4">
             {error && (
-              <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-bold text-danger">
+              <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-body font-bold text-danger">
                 {error}
               </div>
             )}
 
             <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.display_name')}</span>
+              <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.display_name')}</span>
               <div className="relative">
                 <UserRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                 <input
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
                   disabled={loading}
-                  className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                  className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
                   placeholder="Oscar"
                 />
               </div>
             </label>
 
             <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.username')}</span>
+              <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.username')}</span>
               <div className="relative">
                 <Cpu className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                 <input
@@ -127,16 +127,16 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                   required
                   minLength={3}
                   pattern="[a-zA-Z0-9._-]+"
-                  className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                  className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
                   placeholder="admin"
                 />
               </div>
-              <span className="text-xs font-semibold text-muted-foreground">Usa letras, numeros, punto, guion o guion bajo.</span>
+              <span className="text-caption font-semibold text-muted-foreground">Usa letras, numeros, punto, guion o guion bajo.</span>
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.password')}</span>
+                <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.password')}</span>
                 <div className="relative">
                   <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                   <input
@@ -146,14 +146,14 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                     disabled={loading}
                     required
                     minLength={10}
-                    className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                    className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
                     placeholder={t('first_admin_setup.password_placeholder')}
                   />
                 </div>
               </label>
 
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.confirm_password')}</span>
+                <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.confirm_password')}</span>
                 <div className="relative">
                   <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                   <input
@@ -163,7 +163,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                     disabled={loading}
                     required
                     minLength={10}
-                    className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                    className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
                     placeholder={t('first_admin_setup.confirm_password_placeholder')}
                   />
                 </div>
@@ -171,13 +171,13 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
             </div>
 
             {passwordError && (
-              <p className="text-sm font-bold text-warning">{passwordError}</p>
+              <p className="text-body font-bold text-warning">{passwordError}</p>
             )}
 
             <button
               type="submit"
               disabled={!canSubmit}
-              className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-xs font-black uppercase tracking-widest text-primary-foreground shadow-lg transition hover:bg-primary/90 disabled:opacity-50"
+              className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-caption font-black uppercase tracking-widest text-primary-foreground shadow-lg transition hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
               {t('first_admin_setup.submit')}
@@ -186,7 +186,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
         </section>
 
         <aside className="border-t border-border/70 bg-muted/25 p-6 sm:p-10 lg:border-l lg:border-t-0">
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-muted-foreground">{t('first_admin_setup.flow_title')}</p>
+          <p className="text-caption font-black uppercase tracking-[0.28em] text-muted-foreground">{t('first_admin_setup.flow_title')}</p>
           <div className="mt-6 grid gap-4">
             {[
               t('first_admin_setup.flow.no_logs'),
@@ -196,7 +196,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
             ].map(item => (
               <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 p-4">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                <span className="text-sm font-bold leading-5 text-muted-foreground">{item}</span>
+                <span className="text-body font-bold leading-5 text-muted-foreground">{item}</span>
               </div>
             ))}
           </div>

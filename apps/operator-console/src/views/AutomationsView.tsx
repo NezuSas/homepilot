@@ -179,7 +179,7 @@ const AutomationsView: React.FC = () => {
       {error && (
         <div className="p-6 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 text-destructive animate-shake">
           <AlertCircle className="w-6 h-6 shrink-0" />
-          <p className="font-black text-xs uppercase tracking-wider">{error}</p>
+          <p className="font-black text-caption uppercase tracking-wider">{error}</p>
         </div>
       )}
 

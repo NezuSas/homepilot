@@ -125,7 +125,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         <div className="mt-auto relative z-10">
           <h3
             className={cn(
-              'font-bold text-[0.9rem] tracking-tight leading-snug',
+              'font-bold text-card-title tracking-tight leading-snug',
               error
                 ? 'text-danger'
                 : active
@@ -138,7 +138,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
           {subtitle && (
             <p
               className={cn(
-                'text-[0.68rem] font-medium mt-0.5 truncate',
+                'text-label font-medium mt-0.5 truncate',
                 active ? 'text-muted-foreground' : 'text-muted-foreground/40'
               )}
             >

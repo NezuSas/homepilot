@@ -49,15 +49,15 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40">
+              <span className="text-micro font-black uppercase tracking-[0.15em] opacity-40">
                 {record.sourceType}
               </span>
-              <span className="text-[10px] font-mono opacity-20">/</span>
-              <span className="text-[10px] font-mono font-bold truncate opacity-60">
+              <span className="text-micro font-mono opacity-20">/</span>
+              <span className="text-micro font-mono font-bold truncate opacity-60">
                 {record.sourceId}
               </span>
             </div>
-            <h3 className="text-sm font-black tracking-tight text-foreground/90 truncate">
+            <h3 className="text-body font-black tracking-tight text-foreground/90 truncate">
               {record.summary || `Execution ID ${record.id.slice(0, 8)}`}
             </h3>
           </div>
@@ -66,29 +66,29 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
         {/* Aggregate Stats */}
         <div className="hidden md:flex items-center gap-6 px-6 border-x border-border/10">
           <div className="flex flex-col items-center">
-            <span className="text-[9px] font-black opacity-30 uppercase tracking-widest">Total</span>
-            <span className="text-xs font-black">{record.actionCount}</span>
+            <span className="text-micro font-black opacity-30 uppercase tracking-widest">Total</span>
+            <span className="text-caption font-black">{record.actionCount}</span>
           </div>
           <div className="flex flex-col items-center">
-            <span className={cn("text-xs font-black", record.successCount > 0 ? "text-success" : "opacity-30")}>
+            <span className={cn("text-caption font-black", record.successCount > 0 ? "text-success" : "opacity-30")}>
               {record.successCount}
             </span>
-            <span className="text-[8px] font-bold opacity-30 uppercase tracking-tighter">Success</span>
+            <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">Success</span>
           </div>
           {record.failedCount > 0 && (
             <div className="flex flex-col items-center">
-              <span className="text-xs font-black text-destructive">
+              <span className="text-caption font-black text-destructive">
                 {record.failedCount}
               </span>
-              <span className="text-[8px] font-bold opacity-30 uppercase tracking-tighter">Failed</span>
+              <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">Failed</span>
             </div>
           )}
           {record.skippedCount > 0 && (
             <div className="flex flex-col items-center">
-              <span className="text-xs font-black opacity-60">
+              <span className="text-caption font-black opacity-60">
                 {record.skippedCount}
               </span>
-              <span className="text-[8px] font-bold opacity-30 uppercase tracking-tighter">Skip</span>
+              <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">Skip</span>
             </div>
           )}
         </div>
@@ -97,12 +97,12 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
         <div className="flex flex-col items-end gap-1 min-w-[110px] shrink-0">
           <div className="flex items-center gap-2 text-foreground/70">
             <Clock className="w-3.5 h-3.5 opacity-40" />
-            <span className="text-[11px] font-mono font-bold tracking-tight">
+            <span className="text-label font-mono font-bold tracking-tight">
               {new Date(record.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="text-[10px] font-black uppercase tracking-tighter opacity-40">
+            <div className="text-micro font-black uppercase tracking-tighter opacity-40">
               {(record.durationMs / 1000).toFixed(2)}s
             </div>
             <div className={cn(

@@ -16,9 +16,9 @@ export function MinimalClock({ now, locale, copy, weather, weatherStatus }: Cloc
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ClockLabel>{copy.localTime}</ClockLabel>
-            <div className="mt-2 truncate text-[clamp(0.55rem,1.3cqi,0.76rem)] font-semibold text-muted-foreground">{dateLine}</div>
+            <div className="mt-2 truncate text-clock-caption-fluid font-semibold text-muted-foreground">{dateLine}</div>
           </div>
-          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-[clamp(0.48rem,1.12cqi,0.66rem)] font-black uppercase tracking-[0.18em] text-primary">
+          <div className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-clock-micro-fluid font-black uppercase tracking-[0.18em] text-primary">
             {seconds} {copy.secondsShort}
           </div>
         </div>

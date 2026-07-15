@@ -24,8 +24,8 @@ export const HomeConversationHeader: React.FC<HomeConversationHeaderProps> = ({
           <Bot className="h-[18px] w-[18px]" />
         </div>
         <div className="min-w-0">
-          <h2 className="truncate text-base font-black tracking-tight text-foreground md:text-lg">{title}</h2>
-          <p className="line-clamp-2 text-[10px] font-black uppercase leading-snug tracking-[0.18em] text-muted-foreground/55 sm:truncate">
+          <h2 className="truncate text-body-lg font-black tracking-tight text-foreground md:text-section-title">{title}</h2>
+          <p className="line-clamp-2 text-micro font-black uppercase leading-snug tracking-[0.18em] text-muted-foreground/55 sm:truncate">
             {subtitle}
           </p>
         </div>

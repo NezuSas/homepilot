@@ -87,7 +87,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
       </Select>
       
       {description && !error && !helperText && (
-        <p className="text-[10px] text-muted-foreground/60 ml-1 leading-tight">
+        <p className="text-micro text-muted-foreground/60 ml-1 leading-tight">
           {description}
         </p>
       )}
@@ -95,7 +95,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
       {loading && !disabled && (
         <div className="flex items-center gap-2 mt-1 ml-1 animate-in fade-in">
           <Loader2 className="w-3 h-3 animate-spin text-primary/60" />
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+          <span className="text-micro font-black uppercase tracking-widest text-primary/40">
             Cargando...
           </span>
         </div>

@@ -108,14 +108,14 @@ export function DashboardSelect({
                   setDropdownPos(null);
                 }}
                 className={cn(
-                  'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-black transition',
+                  'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-body font-black transition',
                   active ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-muted/60'
                 )}
               >
                 <span className="min-w-0">
                   <span className="block truncate">{option.label}</span>
                   {option.description ? (
-                    <span className="mt-0.5 block truncate text-[11px] font-semibold text-muted-foreground">
+                    <span className="mt-0.5 block truncate text-label font-semibold text-muted-foreground">
                       {option.description}
                     </span>
                   ) : null}
@@ -133,7 +133,7 @@ export function DashboardSelect({
   return (
     <div className={cn('space-y-2', className)}>
       {label ? (
-        <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="text-caption font-black uppercase tracking-[0.2em] text-muted-foreground">
           {label}
         </span>
       ) : null}
@@ -151,7 +151,7 @@ export function DashboardSelect({
           }
         }}
         className={cn(
-          'flex w-full items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-left text-sm font-semibold text-foreground outline-none transition',
+          'flex w-full items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-left text-body font-semibold text-foreground outline-none transition',
           'hover:border-primary/45 focus:border-primary/60',
           disabled && 'cursor-not-allowed opacity-50'
         )}

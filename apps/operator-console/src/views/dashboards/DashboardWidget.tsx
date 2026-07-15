@@ -67,8 +67,8 @@ export function WidgetContent({ widget, isEditing, onClick, onConfigChange }: { 
     default:
       return (
         <div className="flex flex-col items-center justify-center h-full p-4 text-center opacity-40 grayscale">
-          <span className="text-[10px] font-black uppercase tracking-widest">{widget.type}</span>
-          <span className="text-[8px] mt-1">{t('common.coming_soon')}</span>
+          <span className="text-micro font-black uppercase tracking-widest">{widget.type}</span>
+          <span className="text-nano mt-1">{t('common.coming_soon')}</span>
         </div>
       );
   }
@@ -240,7 +240,7 @@ export function DashboardWidgetNode({
           {/* Resize Preview */}
           {isResizing && (
             <div className="absolute inset-0 pointer-events-none border-2 border-primary border-dashed rounded-[2rem] bg-primary/5 z-50">
-               <div className="absolute bottom-2 right-4 text-[10px] font-black text-primary uppercase">
+               <div className="absolute bottom-2 right-4 text-micro font-black text-primary uppercase">
                  {widget.config.layout.w + resizeOffset.w} × {widget.config.layout.h + resizeOffset.h}
                </div>
             </div>

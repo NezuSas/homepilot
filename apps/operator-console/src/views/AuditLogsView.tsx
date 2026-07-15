@@ -63,7 +63,7 @@ export const AuditLogsView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground animate-pulse">
         <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
-        <p className="text-sm font-black uppercase tracking-widest italic">{t('audit_logs.loading')}</p>
+        <p className="text-body font-black uppercase tracking-widest italic">{t('audit_logs.loading')}</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export const AuditLogsView: React.FC = () => {
         description={t('audit_logs.empty_description')}
         className="min-h-[500px]"
         action={
-          <Button variant="outline" size="sm" onClick={fetchLogs} className="gap-2 text-[10px] uppercase tracking-widest">
+          <Button variant="outline" size="sm" onClick={fetchLogs} className="gap-2 text-micro uppercase tracking-widest">
             <RefreshCw className="h-3.5 w-3.5" />
             {t('audit_logs.refresh')}
           </Button>
@@ -106,9 +106,9 @@ export const AuditLogsView: React.FC = () => {
       <div className="flex items-center justify-between mb-2">
          <div className="flex items-center gap-3">
             <Info className="w-5 h-5 text-primary opacity-40 px-0.5" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{t('audit_logs.v1_title')}</span>
+            <span className="text-micro font-black text-muted-foreground uppercase tracking-[0.2em]">{t('audit_logs.v1_title')}</span>
          </div>
-         <button onClick={fetchLogs} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+         <button onClick={fetchLogs} className="text-micro font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
             <RefreshCw className="w-3.5 h-3.5" />
             {t('audit_logs.live_update')}
          </button>
@@ -121,22 +121,22 @@ export const AuditLogsView: React.FC = () => {
             <div className="w-full md:w-56 p-5 bg-muted/20 border-b md:border-b-0 md:border-r border-border/30 flex flex-col justify-center gap-2">
                <div className="flex items-center gap-2 text-muted-foreground mb-1">
                   <Clock className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-mono font-bold">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                  <span className="text-label font-mono font-bold">{new Date(log.timestamp).toLocaleTimeString()}</span>
                </div>
                <div className={cn(
-                 "text-[9px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg self-start border",
+                 "text-micro font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg self-start border",
                  log.type.includes('FAILED') ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/5 text-primary border-primary/10"
                )}>
                  {mapActivityType(log.type, t)}
                </div>
-               <span className="text-[10px] font-mono text-muted-foreground italic mt-1">{new Date(log.timestamp).toLocaleDateString()}</span>
+               <span className="text-micro font-mono text-muted-foreground italic mt-1">{new Date(log.timestamp).toLocaleDateString()}</span>
             </div>
 
             {/* Content Col */}
             <div className="flex-1 p-5 flex flex-col justify-center gap-4">
                <div className="flex items-center gap-3">
                   <Zap className="w-4 h-4 text-primary opacity-40" />
-                  <p className="text-sm font-bold tracking-tight text-foreground/90">
+                  <p className="text-body font-bold tracking-tight text-foreground/90">
                     {(() => {
                       let key = `audit_logs.messages.${log.type}`;
                       // 1. Parsing robusto de datos (maneja strings, objetos o nulos)
@@ -204,9 +204,9 @@ export const AuditLogsView: React.FC = () => {
                <div className="flex flex-wrap items-center gap-4">
                   {log.deviceId && (
                     <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
-                       <span className="text-[10px] font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
-                       <span className="text-[11px] font-bold text-foreground/80">{getDeviceName(log.deviceId)}</span>
-                       <span className="text-[10px] font-mono text-muted-foreground/60">{log.deviceId}</span>
+                       <span className="text-micro font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
+                       <span className="text-label font-bold text-foreground/80">{getDeviceName(log.deviceId)}</span>
+                       <span className="text-micro font-mono text-muted-foreground/60">{log.deviceId}</span>
                     </div>
                   )}
                </div>
@@ -216,11 +216,11 @@ export const AuditLogsView: React.FC = () => {
             {log.data && Object.keys(log.data).length > 0 && (
               <div className="p-5 md:w-80 bg-muted/5 flex items-center">
                  <details className="w-full cursor-pointer group/data">
-                    <summary className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest list-none flex items-center gap-2 group-hover/data:text-primary transition-colors">
+                    <summary className="text-micro font-black text-muted-foreground/60 uppercase tracking-widest list-none flex items-center gap-2 group-hover/data:text-primary transition-colors">
                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
                        {t('audit_logs.payload_button')}
                     </summary>
-                    <pre className="mt-3 p-3 bg-background border rounded-xl text-[10px] font-mono text-foreground/80 overflow-x-auto shadow-inner max-h-32">
+                    <pre className="mt-3 p-3 bg-background border rounded-xl text-micro font-mono text-foreground/80 overflow-x-auto shadow-inner max-h-32">
                        {JSON.stringify(log.data, null, 2)}
                     </pre>
                  </details>

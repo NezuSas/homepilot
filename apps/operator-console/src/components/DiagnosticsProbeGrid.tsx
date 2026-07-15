@@ -48,7 +48,7 @@ const getStatusColor = (status: string) => {
 };
 
 const StatusBadge = ({ status, label }: { status: string; label?: string }) => (
-  <span className={cn("px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border", getStatusColor(status))}>
+  <span className={cn("px-2 py-0.5 rounded text-micro font-black uppercase tracking-wider border", getStatusColor(status))}>
     {label || status.replace('_', ' ')}
   </span>
 );
@@ -68,7 +68,7 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
 
   return (
     <>
-      <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50 mt-8 mb-4">{t('diagnostics.probes.title')}</h3>
+      <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50 mt-8 mb-4">{t('diagnostics.probes.title')}</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
           <div className="flex items-start justify-between">
@@ -79,14 +79,14 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground">{t('diagnostics.probes.ws_sync')}</span>
+              <span className="text-caption font-semibold text-muted-foreground">{t('diagnostics.probes.ws_sync')}</span>
               <StatusBadge status={websocketStatus} />
             </div>
-            <div className="flex justify-between text-xs pt-3 border-t border-border/50">
+            <div className="flex justify-between text-caption pt-3 border-t border-border/50">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.connections_lost')}</span>
               <span className="font-mono font-bold text-warning">{counters.recentReconnects}</span>
             </div>
-            <div className="flex justify-between text-[11px]">
+            <div className="flex justify-between text-label">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_reconnect')}</span>
               <span className="font-mono">{formatTime(lastReconnectAt)}</span>
             </div>
@@ -102,18 +102,18 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-end pb-3">
-              <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.activity_volume')}</span>
-              <div className="text-xs font-mono font-bold flex items-center gap-2">
+              <span className="text-micro uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.activity_volume')}</span>
+              <div className="text-caption font-mono font-bold flex items-center gap-2">
                 <span className="text-success">+{counters.recentAutomationSuccess}</span>
                 <span className="text-muted-foreground/30">/</span>
                 <span className="text-danger">-{counters.recentAutomationFailures}</span>
               </div>
             </div>
-            <div className="flex justify-between text-[11px] border-t border-border/50 pt-3">
+            <div className="flex justify-between text-label border-t border-border/50 pt-3">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.eval_failed')}</span>
               <span className="font-mono font-bold text-danger">{counters.recentAutomationFailures}</span>
             </div>
-            <div className="flex justify-between text-[11px]">
+            <div className="flex justify-between text-label">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_execution')}</span>
               <span className="font-mono">{formatTime(lastAutomationExecutionAt)}</span>
             </div>
@@ -129,16 +129,16 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-end pb-3">
-              <span className="text-[10px] uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.state_delta')}</span>
-              <div className="text-xs font-mono font-bold">
+              <span className="text-micro uppercase font-black text-muted-foreground opacity-40">{t('diagnostics.probes.state_delta')}</span>
+              <div className="text-caption font-mono font-bold">
                 {counters.recentReconciliations} {t('diagnostics.probes.cycles')}
               </div>
             </div>
-            <div className="flex justify-between text-[11px] border-t border-border/50 pt-3">
+            <div className="flex justify-between text-label border-t border-border/50 pt-3">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.divergences_fixed')}</span>
               <span className="font-mono font-bold">{counters.recentReconciliations}</span>
             </div>
-            <div className="flex justify-between text-[11px]">
+            <div className="flex justify-between text-label">
               <span className="font-bold text-muted-foreground/70">{t('diagnostics.probes.last_cycle')}</span>
               <span className="font-mono">{formatTime(lastReconciliationAt)}</span>
             </div>

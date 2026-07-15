@@ -18,8 +18,8 @@ export const DashboardSidebarNav: React.FC<DashboardSidebarNavProps> = ({
 }) => (
   <nav className="flex flex-col gap-3 rounded-panel border border-border/60 bg-card/55 p-3 shadow-depth-1 lg:sticky lg:top-4">
     <div className="flex items-center justify-between gap-3 px-2 py-1">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground/60">{title}</p>
-      <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">{dashboards.length}</span>
+      <p className="text-micro font-black uppercase tracking-[0.22em] text-muted-foreground/60">{title}</p>
+      <span className="rounded-full bg-primary/10 px-2 py-1 text-micro font-black text-primary">{dashboards.length}</span>
     </div>
     <div className="flex flex-col gap-2">
       {dashboards.map(dashboard => {
@@ -41,7 +41,7 @@ export const DashboardSidebarNav: React.FC<DashboardSidebarNavProps> = ({
             )}>
               <LayoutDashboard className="w-4 h-4" />
             </div>
-            <span className={cn('flex-1 text-sm font-bold truncate', isActive ? 'text-primary' : 'text-foreground')}>{dashboard.title}</span>
+            <span className={cn('flex-1 text-body font-bold truncate', isActive ? 'text-primary' : 'text-foreground')}>{dashboard.title}</span>
             {isActive && <ChevronRight className="w-4 h-4 text-primary/30" />}
           </button>
         );

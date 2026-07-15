@@ -63,7 +63,7 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          {title && <p className="text-sm font-black text-foreground">{title}</p>}
+          {title && <p className="text-body font-black text-foreground">{title}</p>}
           <p className="text-label font-black uppercase tracking-widest opacity-70">{message}</p>
         </div>
       </div>

@@ -214,7 +214,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           >
             <X className="h-5 w-5" />
           </button>
-          <h2 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
+          <h2 className="min-w-0 flex-1 truncate text-section-title font-semibold tracking-tight">
             {t('dashboards.view_config.title', { title: tab.title })}
           </h2>
           <button
@@ -236,7 +236,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 type="button"
                 onClick={() => setActiveTab(tabItem.id)}
                 className={cn(
-                  'flex items-center justify-center gap-2 border-b-2 px-2 py-3 text-xs font-black transition-colors sm:text-sm',
+                  'flex items-center justify-center gap-2 border-b-2 px-2 py-3 text-caption font-black transition-colors sm:text-body',
                   isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground'
                 )}
               >
@@ -251,16 +251,16 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           {activeTab === 'settings' && (
             <div className="space-y-5">
               <label className="block rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-xs font-semibold text-muted-foreground">{t('dashboards.view_config.view_title')}</span>
+                <span className="block text-caption font-semibold text-muted-foreground">{t('dashboards.view_config.view_title')}</span>
                 <input
                   value={draftTitle}
                   onChange={event => setDraftTitle(event.target.value)}
-                  className="mt-1 w-full bg-transparent text-base font-bold text-foreground outline-none"
+                  className="mt-1 w-full bg-transparent text-body-lg font-bold text-foreground outline-none"
                 />
               </label>
 
               <div className="rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-xs font-semibold text-muted-foreground">{t('dashboards.view_config.icon')}</span>
+                <span className="block text-caption font-semibold text-muted-foreground">{t('dashboards.view_config.icon')}</span>
                 <div className="relative mt-2 flex items-center">
                   {SelectedIconComponent ? (
                     <SelectedIconComponent className="absolute left-3 w-5 h-5 text-primary" />
@@ -270,7 +270,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                   <input
                     ref={iconInputRef}
                     type="text"
-                    className="w-full h-10 pl-10 pr-10 bg-transparent text-sm font-bold text-foreground outline-none"
+                    className="w-full h-10 pl-10 pr-10 bg-transparent text-body font-bold text-foreground outline-none"
                     placeholder="Ej: Home, Lightbulb, Tv"
                     value={iconQuery}
                     onFocus={computeDropdownPos}
@@ -294,13 +294,13 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
               </div>
 
               <label className="block rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-xs font-semibold text-muted-foreground">{t('dashboards.view_config.route_label')}</span>
+                <span className="block text-caption font-semibold text-muted-foreground">{t('dashboards.view_config.route_label')}</span>
                 <input
                   value={routeSlug}
                   readOnly
-                  className="mt-1 w-full cursor-default bg-transparent text-base font-semibold text-foreground outline-none"
+                  className="mt-1 w-full cursor-default bg-transparent text-body-lg font-semibold text-foreground outline-none"
                 />
-                <span className="mt-1 block text-xs text-muted-foreground">{t('dashboards.view_config.url_hint')}</span>
+                <span className="mt-1 block text-caption text-muted-foreground">{t('dashboards.view_config.url_hint')}</span>
               </label>
             </div>
           )}
@@ -315,7 +315,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                     className="mx-auto aspect-video max-w-md rounded-lg object-cover border border-border/40 shadow-inner"
                   />
                 ) : (
-                  <div className="mx-auto aspect-video max-w-md rounded-lg bg-gradient-to-br from-muted via-card to-primary/10 opacity-70 border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground/45 text-xs font-semibold">
+                  <div className="mx-auto aspect-video max-w-md rounded-lg bg-gradient-to-br from-muted via-card to-primary/10 opacity-70 border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground/45 text-caption font-semibold">
                     No hay imagen seleccionada
                   </div>
                 )}
@@ -323,7 +323,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="text-xs font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/95 rounded-2xl px-5 py-2.5 shadow-lg shadow-primary/20 transition-all"
+                    className="text-caption font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/95 rounded-2xl px-5 py-2.5 shadow-lg shadow-primary/20 transition-all"
                   >
                     Subir Imagen
                   </button>
@@ -331,7 +331,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                     <button
                       type="button"
                       onClick={() => setBackgroundImg(null)}
-                      className="text-xs font-black uppercase tracking-widest bg-destructive/10 text-destructive hover:bg-destructive/15 rounded-2xl px-5 py-2.5 transition-all"
+                      className="text-caption font-black uppercase tracking-widest bg-destructive/10 text-destructive hover:bg-destructive/15 rounded-2xl px-5 py-2.5 transition-all"
                     >
                       {t('dashboards.view_config.clear_image')}
                     </button>
@@ -341,8 +341,8 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
               </div>
 
               <section className="rounded-xl border border-border/70 p-4">
-                <p className="mb-5 text-sm font-semibold">{t('dashboards.view_config.background_settings')}</p>
-                <label className="grid gap-3 text-sm">
+                <p className="mb-5 text-body font-semibold">{t('dashboards.view_config.background_settings')}</p>
+                <label className="grid gap-3 text-body">
                   <span>{t('dashboards.view_config.background_opacity')}</span>
                   <div className="flex items-center gap-4">
                     <input
@@ -353,7 +353,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                       onChange={event => setBackgroundOpacity(Number(event.target.value))}
                       className="min-w-0 flex-1 accent-primary"
                     />
-                    <span className="w-14 rounded-lg bg-muted px-3 py-2 text-center text-sm">{backgroundOpacity}</span>
+                    <span className="w-14 rounded-lg bg-muted px-3 py-2 text-center text-body">{backgroundOpacity}</span>
                   </div>
                 </label>
               </section>
@@ -362,7 +362,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
           {activeTab === 'visibility' && (
             <div className="space-y-4">
-              <p className="text-sm text-foreground">{t('dashboards.editor.visibility_hint')}</p>
+              <p className="text-body text-foreground">{t('dashboards.editor.visibility_hint')}</p>
               {loadingUsers ? (
                 <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
               ) : (
@@ -371,7 +371,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                     const isChecked = allowedUsers.includes(user.id);
                     return (
                       <label key={user.id} className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-muted/35 cursor-pointer transition-colors border border-border/10 bg-muted/10">
-                        <span className="text-sm font-bold">{user.displayName || user.username}</span>
+                        <span className="text-body font-bold">{user.displayName || user.username}</span>
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -388,7 +388,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                     );
                   })}
                   {users.length === 0 && (
-                    <div className="text-center py-8 text-xs text-muted-foreground">No hay otros usuarios registrados</div>
+                    <div className="text-center py-8 text-caption text-muted-foreground">No hay otros usuarios registrados</div>
                   )}
                 </div>
               )}
@@ -400,7 +400,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           <button
             type="button"
             onClick={onDelete}
-            className="flex items-center gap-2 text-sm font-semibold text-destructive"
+            className="flex items-center gap-2 text-body font-semibold text-destructive"
           >
             <Trash2 className="h-4 w-4" />
             {t('dashboards.view_config.delete_view')}
@@ -408,7 +408,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+            className="rounded-full bg-primary px-6 py-2.5 text-body font-bold text-primary-foreground transition-opacity disabled:opacity-40"
           >
             {t('common.save')}
           </button>
@@ -438,7 +438,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                   setIconQuery(iconName);
                   setDropdownPos(null);
                 }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors text-foreground/80"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-caption font-semibold hover:bg-primary/10 hover:text-primary transition-colors text-foreground/80"
               >
                 {IconComponent && <IconComponent className="w-5 h-5 shrink-0" />}
                 <span>{iconName}</span>

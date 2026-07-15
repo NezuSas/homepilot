@@ -82,13 +82,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                     alt={user.username}
                     className="h-full w-full object-cover"
                   />
-                : <span className="flex h-full w-full items-center justify-center text-xs font-bold uppercase">{user.username.substring(0, 2)}</span>
+                : <span className="flex h-full w-full items-center justify-center text-caption font-bold uppercase">{user.username.substring(0, 2)}</span>
               }
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold text-foreground">{user.displayName || user.username}</p>
-              <p className="truncate text-[10px] font-mono text-muted-foreground/60">@{user.username}</p>
-              <span className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${getRoleClassName(user.role)}`}>
+              <p className="truncate text-micro font-mono text-muted-foreground/60">@{user.username}</p>
+              <span className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-label font-bold ${getRoleClassName(user.role)}`}>
                 {user.role === 'admin' ? <ShieldCheck className="h-3 w-3 shrink-0" /> : <Shield className="h-3 w-3 shrink-0" />}
                 <span className="whitespace-normal leading-tight">{getRoleLabel(user.role)}</span>
               </span>
@@ -110,7 +110,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             />
             <button
               onClick={() => onToggleActive(user)}
-              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-[10px] font-bold text-muted-foreground transition-colors hover:text-foreground"
+              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-micro font-bold text-muted-foreground transition-colors hover:text-foreground"
             >
               <Power className="h-4 w-4 shrink-0" />
               <span className="truncate">{user.isActive ? labels.suspendTitle : labels.restoreTitle}</span>
@@ -118,7 +118,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <button
               onClick={() => onRevokeSessions(user)}
               disabled={!user.hasActiveSessions}
-              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-[10px] font-bold text-muted-foreground transition-colors disabled:opacity-35"
+              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-micro font-bold text-muted-foreground transition-colors disabled:opacity-35"
             >
               <UserMinus className="h-4 w-4 shrink-0" />
               <span className="truncate">{labels.revokeTitle}</span>
@@ -126,7 +126,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             {user.id !== currentUserId && (
               <button
                 onClick={() => onResetPassword(user)}
-                className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[10px] font-bold text-primary min-[430px]:col-span-2"
+                className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-micro font-bold text-primary min-[430px]:col-span-2"
               >
                 <KeyRound className="h-4 w-4 shrink-0" />
                 <span className="truncate">{labels.resetPasswordTitle}</span>
@@ -138,13 +138,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     </div>
 
     <div className="hidden overflow-x-auto xl:block">
-      <table className="w-full min-w-[760px] whitespace-nowrap text-left text-sm">
+      <table className="w-full min-w-[760px] whitespace-nowrap text-left text-body">
         <thead className="bg-muted/50 border-b">
           <tr>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{labels.identity}</th>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{labels.access}</th>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider">{labels.status}</th>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-[10px] tracking-wider text-right">{labels.controls}</th>
+            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.identity}</th>
+            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.access}</th>
+            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.status}</th>
+            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider text-right">{labels.controls}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -159,29 +159,29 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                           alt={user.username}
                           className="w-full h-full object-cover"
                         />
-                      : <span className="font-bold text-xs uppercase">{user.username.substring(0, 2)}</span>
+                      : <span className="font-bold text-caption uppercase">{user.username.substring(0, 2)}</span>
                     }
                   </div>
                   <div className="flex flex-col">
                     <span className="font-semibold text-foreground">{user.displayName || user.username}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono opacity-60">@{user.username}</span>
+                    <span className="text-micro text-muted-foreground font-mono opacity-60">@{user.username}</span>
                   </div>
                 </div>
               </td>
               <td className="px-5 py-4">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${getRoleClassName(user.role)}`}>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label font-bold border ${getRoleClassName(user.role)}`}>
                   {user.role === 'admin' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
                   {getRoleLabel(user.role)}
                 </span>
               </td>
               <td className="px-5 py-4">
                 <div className="flex flex-col gap-1.5 items-start">
-                  <span className={`flex items-center text-[11px] font-bold ${user.isActive ? 'text-success' : 'text-danger'}`}>
+                  <span className={`flex items-center text-label font-bold ${user.isActive ? 'text-success' : 'text-danger'}`}>
                     <span className={`w-2 h-2 rounded-full mr-2 ${user.isActive ? 'status-dot-synced animate-pulse' : 'status-dot-error shrink-0'}`} />
                     {user.isActive ? labels.active : labels.suspended}
                   </span>
                   {user.hasActiveSessions && (
-                    <span className="inline-flex items-center gap-1.5 text-[10px] bg-muted/80 px-2 py-0.5 rounded border text-muted-foreground font-bold italic">
+                    <span className="inline-flex items-center gap-1.5 text-micro bg-muted/80 px-2 py-0.5 rounded border text-muted-foreground font-bold italic">
                       <Activity className="w-3 h-3 text-primary" /> {labels.live}
                     </span>
                   )}

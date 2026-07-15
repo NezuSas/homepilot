@@ -59,7 +59,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-xs font-black uppercase">{userLabel.substring(0, 2)}</span>
+              <span className="text-caption font-black uppercase">{userLabel.substring(0, 2)}</span>
             )
           ) : (
             <Bot className="h-5 w-5 text-current" />
@@ -75,13 +75,13 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                 ? "rounded-tl-md border-danger/25 bg-danger/5 text-foreground"
                 : "rounded-tl-md bg-card/90 text-foreground"
           )}>
-            <p className="whitespace-pre-wrap break-words text-sm font-medium leading-relaxed md:text-[0.95rem]">
+            <p className="whitespace-pre-wrap break-words text-body font-medium leading-relaxed md:text-card-title">
               {message.content}
             </p>
 
             {message.options && message.options.length > 0 && (
               <div className="mt-4 space-y-3 border-t border-border/50 pt-4">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-muted-foreground/70">
                   {hasConfirmationOptions ? (
                     <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                   ) : (
@@ -143,7 +143,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
           </Card>
 
           <span className={cn(
-            "px-1 text-[10px] text-muted-foreground/50",
+            "px-1 text-micro text-muted-foreground/50",
             isUserMessage ? "text-right" : "text-left"
           )}>
             {new Date(message.timestamp).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}

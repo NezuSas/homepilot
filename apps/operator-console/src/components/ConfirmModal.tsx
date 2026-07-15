@@ -57,8 +57,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8" />
           </div>
 
-          <h2 className="text-xl font-black text-foreground mb-2">{title}</h2>
-          <p className="text-sm font-medium text-foreground/50 leading-relaxed">
+          <h2 className="text-panel-title font-black text-foreground mb-2">{title}</h2>
+          <p className="text-body font-medium text-foreground/50 leading-relaxed">
             {description}
           </p>
         </div>
@@ -67,14 +67,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             disabled={isSubmitting}
             onClick={onClose}
-            className="rounded-xl border border-foreground/10 px-5 py-3 text-sm font-bold text-foreground/60 transition-all hover:bg-foreground/5 disabled:opacity-50"
+            className="rounded-xl border border-foreground/10 px-5 py-3 text-body font-bold text-foreground/60 transition-all hover:bg-foreground/5 disabled:opacity-50"
           >
             {displayCancel}
           </button>
           <button
             disabled={isSubmitting}
             onClick={onConfirm}
-            className={`flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 ${variantColors[variant]}`}
+            className={`flex items-center justify-center rounded-xl px-5 py-3 text-body font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 ${variantColors[variant]}`}
           >
             {isSubmitting ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

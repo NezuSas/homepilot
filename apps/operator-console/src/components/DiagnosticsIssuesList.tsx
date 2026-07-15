@@ -20,7 +20,7 @@ export const DiagnosticsIssuesList: React.FC<DiagnosticsIssuesListProps> = ({ is
 
   return (
     <div className="space-y-3">
-      <h3 className="text-[10px] font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.active_issues')}</h3>
+      <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.active_issues')}</h3>
       {issues.map((issue, index) => (
         <div key={`${issue.code}-${index}`} className={cn(
           "flex items-start gap-4 p-4 rounded-xl border",
@@ -28,8 +28,8 @@ export const DiagnosticsIssuesList: React.FC<DiagnosticsIssuesListProps> = ({ is
         )}>
           <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-1">
-            <span className="uppercase font-mono text-[11px] tracking-widest font-bold">{t(`diagnostics.issues.${issue.code}`, { defaultValue: issue.code }) as string}</span>
-            <span className="text-sm">{t(issue.message)}</span>
+            <span className="uppercase font-mono text-label tracking-widest font-bold">{t(`diagnostics.issues.${issue.code}`, { defaultValue: issue.code }) as string}</span>
+            <span className="text-body">{t(issue.message)}</span>
           </div>
         </div>
       ))}

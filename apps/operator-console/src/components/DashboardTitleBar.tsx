@@ -45,7 +45,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <input
           autoFocus
-          className="flex-1 border-b-2 border-primary bg-transparent py-1 text-xl font-semibold text-foreground outline-none sm:text-2xl"
+          className="flex-1 border-b-2 border-primary bg-transparent py-1 text-panel-title font-semibold text-foreground outline-none sm:text-view-title"
           value={draftTitle}
           onChange={event => onDraftTitleChange(event.target.value)}
           onKeyDown={event => {
@@ -58,7 +58,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       </div>
     ) : (
       <div className="group flex min-w-0 flex-1 items-center gap-2">
-        <h3 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">{title}</h3>
+        <h3 className="truncate text-section-title font-semibold tracking-tight text-foreground sm:text-panel-title">{title}</h3>
         <button type="button" onClick={onStartEditingTitle} className="rounded-full p-2 text-muted-foreground transition-all hover:bg-muted hover:text-primary" aria-label={editLabel}><PenLine className="h-4 w-4" /></button>
       </div>
     )}
@@ -68,7 +68,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
           <button type="button" onClick={onCreate} title={newLabel} aria-label={newLabel} className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"><Plus className="h-5 w-5" /></button>
           <button type="button" className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={helpLabel}><HelpCircle className="h-5 w-5" /></button>
           <button type="button" className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={moreLabel}><MoreVertical className="h-5 w-5" /></button>
-          <button type="button" onClick={onToggleEditing} className="rounded-full bg-primary/15 px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground">{doneLabel}</button>
+          <button type="button" onClick={onToggleEditing} className="rounded-full bg-primary/15 px-4 py-2 text-body font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground">{doneLabel}</button>
         </>
       ) : (
         <>

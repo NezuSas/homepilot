@@ -524,7 +524,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-40 bg-muted/20 rounded-3xl border border-dashed border-border/60">
-                   <p className="text-xs text-muted-foreground italic">{t('common.no_content_yet')}</p>
+                   <p className="text-caption text-muted-foreground italic">{t('common.no_content_yet')}</p>
                 </div>
               )}
             </div>

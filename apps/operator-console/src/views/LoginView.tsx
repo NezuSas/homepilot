@@ -49,21 +49,21 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
             <Cpu className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t('login.title')}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t('login.subtitle')}</p>
+            <h1 className="text-view-title font-bold tracking-tight">{t('login.title')}</h1>
+            <p className="text-body text-muted-foreground mt-1">{t('login.subtitle')}</p>
           </div>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4 pt-4">
           {error && (
-            <div className="p-3 bg-danger/10 border border-danger/50 rounded-lg text-sm font-medium text-danger flex items-center gap-2">
+            <div className="p-3 bg-danger/10 border border-danger/50 rounded-lg text-body font-medium text-danger flex items-center gap-2">
               <Lock className="w-4 h-4" />
               {error}
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label className="text-body font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               {t('login.username')}
             </label>
             <input 
@@ -72,13 +72,13 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               disabled={loading}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-body ring-offset-background file:border-0 file:bg-transparent file:text-body file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="admin"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label className="text-body font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               {t('login.password')}
             </label>
             <input 
@@ -87,7 +87,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-body ring-offset-background file:border-0 file:bg-transparent file:text-body file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="••••••••••••"
             />
           </div>
@@ -95,7 +95,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
           <button 
             type="submit" 
             disabled={loading}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-4"
+            className="inline-flex items-center justify-center rounded-md text-body font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-4"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('login.button')}
           </button>

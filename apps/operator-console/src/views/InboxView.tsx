@@ -114,8 +114,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       {hasLocalDevices && (
         <div className="mt-2 flex flex-col gap-2 rounded-xl border border-success/20 bg-success/5 px-4 py-2 shadow-sm animate-in fade-in slide-in-from-top-2 duration-1000 sm:flex-row sm:items-center">
           <Cpu className="w-3.5 h-3.5 text-success/80" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-success/90 bg-success/10 px-2 py-0.5 rounded">{t('inbox.edge_mode_active')}</span>
-          <span className="text-[10px] font-medium tracking-wide text-muted-foreground/60 sm:border-l sm:border-border/50 sm:pl-3">
+          <span className="text-micro font-black uppercase tracking-widest text-success/90 bg-success/10 px-2 py-0.5 rounded">{t('inbox.edge_mode_active')}</span>
+          <span className="text-micro font-medium tracking-wide text-muted-foreground/60 sm:border-l sm:border-border/50 sm:pl-3">
              {t('inbox.edge_hint')}
           </span>
         </div>
@@ -152,7 +152,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                   key={o}
                   onClick={() => setOriginFilter(o)}
                   className={cn(
-                    "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                    "px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all whitespace-nowrap",
                     originFilter === o ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
                   )}
                 >
@@ -168,7 +168,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                   key={f}
                   onClick={() => setFilter(f)}
                   className={cn(
-                    "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                    "px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all whitespace-nowrap",
                    filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
                   )}
                 >
@@ -185,13 +185,13 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         {Array.isArray(Object.entries(grouped)) && Object.entries(grouped).map(([id, group]) => (
           <section key={id} className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/header">
-              <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3">
+              <h3 className="text-body font-black uppercase tracking-widest flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.3)]" />
                 {group.name}
               </h3>
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border/30 hidden sm:block min-w-[20px]" />
-                <span className="px-3 py-1 bg-muted rounded-full text-[10px] font-black border border-border opacity-50 whitespace-nowrap">
+                <span className="px-3 py-1 bg-muted rounded-full text-micro font-black border border-border opacity-50 whitespace-nowrap">
                   {t('inbox.rooms.device_count', { count: group.devices.length })}
                 </span>
               </div>
@@ -235,10 +235,10 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         {Object.keys(grouped).length === 0 && (
           <div className="py-24 border-2 border-dashed border-border/40 rounded-[3rem] flex flex-col items-center justify-center text-center bg-card/5">
              <Zap className="w-12 h-12 mb-4 text-primary opacity-20" />
-             <h3 className="text-xl font-black mb-2 tracking-tight">
+             <h3 className="text-panel-title font-black mb-2 tracking-tight">
                {mode === 'discovery' ? t('inbox.discovery.no_entities') : t('inbox.empty_state')}
              </h3>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
+             <p className="text-micro font-black uppercase tracking-[0.4em] opacity-40">
                {mode === 'discovery' ? t('nav.system_inbox') : t('nav.system_devices')}
              </p>
           </div>

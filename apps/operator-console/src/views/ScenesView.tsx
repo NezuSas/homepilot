@@ -161,7 +161,7 @@ const ScenesView: React.FC<{
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4 opacity-50">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="text-xs font-black uppercase tracking-widest">{t('common.processing')}</span>
+        <span className="text-caption font-black uppercase tracking-widest">{t('common.processing')}</span>
       </div>
     );
   }
