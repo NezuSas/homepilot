@@ -1215,14 +1215,14 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const editorModal = editingCard ? (
     <ModalPortal>
       <div
-        className="fixed inset-0 z-[99999] grid place-items-center bg-black/55 px-4 backdrop-blur-sm"
+        className="fixed inset-0 z-[99999] grid place-items-center overflow-y-auto bg-black/55 px-3 py-4 backdrop-blur-sm sm:px-4 sm:py-6"
         onClick={() => setEditingCardId(null)}
       >
         <div
-          className="w-full max-w-xl rounded-panel border border-border/60 bg-card shadow-2xl"
+          className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-panel border border-border/60 bg-card shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-5 py-4">
             <div>
               <p className="text-caption font-black uppercase tracking-label text-muted-foreground">
                 {t('dashboard.editor.sections.edit')}
@@ -1241,7 +1241,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             </button>
           </div>
 
-          <div className="space-y-4 px-5 py-5">
+          <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
@@ -1403,7 +1403,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-border/50 px-5 py-4">
+          <div className="flex shrink-0 justify-end gap-3 border-t border-border/50 px-5 py-4">
             <button
               type="button"
               onClick={() => setEditingCardId(null)}

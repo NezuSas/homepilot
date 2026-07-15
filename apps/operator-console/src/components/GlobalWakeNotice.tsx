@@ -1,5 +1,6 @@
 import { Activity, CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export type GlobalWakeNoticeTone = 'info' | 'success' | 'warning' | 'error';
 export type GlobalWakeStatus = 'listening' | 'capturing' | 'transcribing' | 'processing' | 'speaking' | 'idle' | 'unavailable';
@@ -16,16 +17,6 @@ interface GlobalWakeNoticeProps {
   isProcessing: boolean;
 }
 
-function getStatusLabel(status: GlobalWakeStatus | undefined, isProcessing: boolean): string {
-  if (isProcessing) return 'Procesando';
-  if (status === 'listening') return 'Escuchando';
-  if (status === 'capturing') return 'Capturando';
-  if (status === 'transcribing') return 'Transcribiendo';
-  if (status === 'speaking') return 'Respondiendo';
-  if (status === 'unavailable') return 'No disponible';
-  return 'Respuesta';
-}
-
 function getStatusIcon(status: GlobalWakeStatus | undefined, isProcessing: boolean) {
   if (isProcessing || status === 'transcribing' || status === 'capturing') return Loader2;
   if (status === 'unavailable') return ShieldAlert;
@@ -34,14 +25,28 @@ function getStatusIcon(status: GlobalWakeStatus | undefined, isProcessing: boole
 }
 
 export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps) {
+  const { t } = useTranslation();
   const StatusIcon = getStatusIcon(notice.status, isProcessing);
+  const statusKey = isProcessing
+    ? 'processing'
+    : notice.status === 'listening'
+      ? 'listening'
+      : notice.status === 'capturing'
+        ? 'capturing'
+        : notice.status === 'transcribing'
+          ? 'transcribing'
+          : notice.status === 'speaking'
+            ? 'speaking'
+            : notice.status === 'unavailable'
+              ? 'unavailable'
+              : 'response';
 
   return (
     <div
       role="status"
       aria-live="polite"
       className={cn(
-        'fixed bottom-14 left-1/2 z-[70] w-toast-responsive -translate-x-1/2 rounded-section border bg-card/95 p-4 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors',
+        'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-toast-responsive -translate-x-1/2 rounded-section border bg-card/95 p-3.5 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors sm:bottom-6 sm:w-toast-responsive sm:p-4',
         notice.tone === 'success' && 'border-primary/35',
         notice.tone === 'warning' && 'border-warning/40',
         notice.tone === 'error' && 'border-destructive/40',
@@ -50,7 +55,7 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="text-micro font-black uppercase tracking-label text-muted-foreground">
-          Nezu Voice
+          {t('assistant.voice_notice.label')}
         </span>
         <span
           className={cn(
@@ -59,7 +64,7 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
           )}
         >
           <StatusIcon className={cn('h-3 w-3', (isProcessing || notice.status === 'transcribing' || notice.status === 'capturing') && 'animate-spin')} />
-          {getStatusLabel(notice.status, isProcessing)}
+          {t(`assistant.voice_notice.${statusKey}`)}
         </span>
       </div>
       <p className="text-body font-semibold leading-6 text-foreground">{notice.message}</p>

@@ -165,11 +165,11 @@ export function DashboardWidgetNode({
           )}
 
           {/* Floating control bar appears on hover */}
-          <div className="absolute top-2 right-2 z-30 flex items-center gap-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-            <div className="flex items-center gap-0.5 px-1.5 py-1 bg-background/90 backdrop-blur-md rounded-xl border border-border/40 shadow-lg">
+          <div className="pointer-events-auto absolute right-2 top-2 z-30 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+            <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
               <button
                 onClick={(e) => { e.stopPropagation(); onClick(); }}
-                className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors text-muted-foreground hover:text-primary"
+                className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                 title={t('common.configure')}
               >
                 <Pencil className="w-3 h-3" />
@@ -178,7 +178,7 @@ export function DashboardWidgetNode({
                 <div className="w-px h-4 bg-border/40 mx-0.5" />
               )}
               {!isSection && canDrag && (
-                <div className="p-1.5 text-muted-foreground/50">
+                <div className="grid h-9 w-7 place-items-center text-muted-foreground/50">
                   <GripVertical className="w-3 h-3" />
                 </div>
               )}
@@ -188,7 +188,7 @@ export function DashboardWidgetNode({
           {/* Resize Handle (not for sections) */}
           {!isSection && onResizeEnd && (
             <div 
-              className="absolute bottom-1 right-1 z-40 hidden h-8 w-8 cursor-nwse-resize items-end justify-end p-2 opacity-0 transition-opacity active:scale-95 group-hover:opacity-100 group/resize lg:flex"
+              className="absolute bottom-1 right-1 z-40 hidden h-10 w-10 cursor-nwse-resize items-end justify-end p-2 opacity-0 transition-opacity active:scale-95 group-hover:opacity-100 group/resize xl:flex [@media(hover:none)]:opacity-100"
               onMouseDown={(e) => {
                 e.stopPropagation();
                 e.preventDefault();

@@ -7,9 +7,9 @@ interface AutomationNotificationProps {
 
 export const AutomationNotification: React.FC<AutomationNotificationProps> = ({ message }) => {
   return (
-    <div className="fixed bottom-12 right-12 z-[110] px-8 py-5 rounded-panel shadow-2xl animate-in slide-in-from-right-8 fade-in flex items-center gap-4 border border-border/40 bg-card/80 backdrop-blur-2xl text-primary premium-glow">
-      <CheckCircle2 className="w-6 h-6" />
-      <span className="font-black text-caption uppercase tracking-widest">{message}</span>
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-3 z-[110] flex w-[calc(100%-1.5rem)] max-w-toast-responsive items-center gap-3 rounded-panel border border-border/40 bg-card/95 px-4 py-3 shadow-2xl animate-in slide-in-from-right-8 fade-in text-primary premium-glow backdrop-blur-2xl sm:bottom-6 sm:right-6 sm:w-auto sm:min-w-80 sm:px-5 sm:py-4">
+      <CheckCircle2 className="h-5 w-5 shrink-0" />
+      <span className="text-caption font-black uppercase tracking-widest">{message}</span>
     </div>
   );
 };

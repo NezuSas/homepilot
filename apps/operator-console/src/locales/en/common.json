@@ -50,6 +50,16 @@
   "assistant": {
     "title": "HomePilot Assistant",
     "subtitle": "System improvements and suggestions",
+    "voice_notice": {
+      "label": "Nezu Voice",
+      "processing": "Processing",
+      "listening": "Listening",
+      "capturing": "Capturing",
+      "transcribing": "Transcribing",
+      "speaking": "Responding",
+      "unavailable": "Unavailable",
+      "response": "Response"
+    },
     "top_recommendations": "Top Recommendations",
     "sections": {
       "proactive": "Proactive Suggestions",
