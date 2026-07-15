@@ -691,16 +691,19 @@ function CardPreview({
       className={cn(
         "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-section border p-4 text-center text-foreground transition-all",
         isActive
-          ? "border-primary/55 bg-device-active shadow-primary-warm ring-1 ring-primary/20 dark:bg-device-active-dark"
+          ? "border-primary/70 bg-primary/15 shadow-primary-warm ring-1 ring-primary/25 dark:bg-device-active-dark"
           : "border-border/60 bg-card/95 shadow-surface-card ring-1 ring-background/45"
       )}
     >
+      {isActive && (
+        <span className="absolute inset-x-5 top-3 h-1 rounded-full bg-primary/70 shadow-primary-warm" />
+      )}
       <span
         className={cn(
           "mb-3 grid place-items-center rounded-full transition-all",
           isSmall ? "h-16 w-16" : "h-24 w-24",
           isActive
-            ? "bg-primary/15 text-primary shadow-primary-room-icon ring-1 ring-primary/20"
+            ? "bg-primary text-primary-foreground shadow-primary-room-icon ring-1 ring-primary/35"
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
@@ -715,7 +718,7 @@ function CardPreview({
           className={cn(
             "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-semibold leading-none tracking-tight normal-case",
             isActive
-              ? "border-primary/35 bg-primary/10 text-primary"
+              ? "border-primary/50 bg-primary text-primary-foreground shadow-primary-room-icon"
               : "border-border/55 bg-muted/60 text-muted-foreground"
           )}
         >
