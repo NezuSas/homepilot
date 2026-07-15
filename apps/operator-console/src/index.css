@@ -301,6 +301,39 @@
     @apply bg-background/60 backdrop-blur-xl border-t border-border/40;
   }
 
+  /* ── Typography system ───────────────────────────────────── */
+  .hp-type-display {
+    @apply text-3xl font-black leading-[0.95] tracking-tight text-foreground sm:text-4xl;
+  }
+
+  .hp-type-modal-title {
+    @apply text-2xl font-black leading-none tracking-tight text-foreground sm:text-3xl;
+  }
+
+  .hp-type-card-title {
+    @apply text-base font-black leading-tight tracking-tight text-foreground;
+  }
+
+  .hp-type-body {
+    @apply text-sm font-semibold leading-relaxed text-muted-foreground;
+  }
+
+  .hp-type-label {
+    @apply text-[0.68rem] font-black uppercase leading-none tracking-[0.22em] text-muted-foreground;
+  }
+
+  .hp-type-label-accent {
+    @apply text-[0.68rem] font-black uppercase leading-none tracking-[0.22em] text-primary;
+  }
+
+  .hp-type-control {
+    @apply text-xs font-black uppercase leading-none tracking-[0.16em];
+  }
+
+  .hp-type-field {
+    @apply text-base font-bold leading-none tracking-tight text-foreground;
+  }
+
   /* ── Device state utilities ───────────────────────────────── */
   /* ON state: radiant, alive */
   .device-state-on {

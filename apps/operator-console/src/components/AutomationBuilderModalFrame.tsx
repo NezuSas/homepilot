@@ -21,8 +21,8 @@ export const AutomationBuilderModalFrame: React.FC<AutomationBuilderModalFramePr
     <div className="relative w-full max-w-4xl overflow-hidden rounded-[2rem] border border-border/55 bg-card/95 shadow-[0_28px_90px_hsl(var(--foreground)/0.18)] ring-1 ring-background/50 backdrop-blur-2xl animate-in zoom-in-95 duration-500 dark:border-border/35">
       <div className="flex items-start justify-between gap-4 border-b border-border/45 px-5 py-5 sm:px-8 sm:py-6">
         <div>
-          <h2 className="text-2xl font-black tracking-tighter text-foreground sm:text-3xl">{title}</h2>
-          <p className="mt-1 text-[9px] font-black uppercase tracking-[0.22em] text-muted-foreground sm:text-[10px]">{subtitle}</p>
+          <h2 className="hp-type-modal-title">{title}</h2>
+          <p className="hp-type-label mt-2">{subtitle}</p>
         </div>
         <IconButton icon={X} label="Cerrar constructor" onClick={onClose} />
       </div>
