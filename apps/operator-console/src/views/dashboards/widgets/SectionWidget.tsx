@@ -590,37 +590,38 @@ function CardPreview({
 
   if (normalized === 'room') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[1.35rem] border border-border/60 bg-card/95 p-3.5 text-foreground shadow-[0_14px_40px_hsl(var(--foreground)/0.07)] ring-1 ring-background/45 transition-all dark:border-border/45 dark:bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] sm:p-4">
+      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[1.35rem] border border-primary/25 bg-[linear-gradient(145deg,hsl(var(--card)),hsl(var(--primary)/0.09))] p-3.5 text-foreground shadow-[0_18px_46px_hsl(var(--foreground)/0.12)] ring-1 ring-background/55 transition-all dark:border-primary/20 dark:bg-[radial-gradient(circle_at_90%_10%,hsl(var(--primary)/0.18),transparent_34%),hsl(var(--card))] dark:shadow-[0_18px_46px_hsl(var(--primary)/0.10)] sm:p-4">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,hsl(var(--primary)/0.12),transparent_26%)]" />
         <div className="flex items-start justify-between gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary shadow-sm ring-1 ring-primary/15 sm:h-11 sm:w-11">
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/12 text-primary shadow-sm ring-1 ring-primary/20 sm:h-11 sm:w-11">
             <Home className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" />
           </span>
-          <span className="rounded-full border border-border/55 bg-background/80 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground shadow-sm sm:text-[10px]">
+          <span className="relative rounded-full border border-border/60 bg-background/90 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground shadow-sm sm:text-[10px]">
             {t('dashboard.editor.sections.room_label')}
           </span>
         </div>
 
-        <div className="min-w-0 py-2">
-          <span className="block line-clamp-2 text-base font-black leading-tight text-foreground sm:text-lg">{title}</span>
+        <div className="relative min-w-0 py-2">
+          <span className="block line-clamp-2 text-lg font-black leading-tight text-foreground sm:text-xl">{title}</span>
           <span className="mt-1 block line-clamp-2 text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground sm:text-[10px]">
             {t('dashboard.editor.sections.room_access')}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <span className="min-w-0 rounded-2xl border border-border/55 bg-background/70 px-3 py-2 shadow-sm">
+        <div className="relative grid grid-cols-2 gap-2">
+          <span className="min-w-0 rounded-2xl border border-border/60 bg-background/90 px-3 py-2 shadow-sm">
             <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
               {t('dashboard.editor.sections.room_devices')}
             </span>
-            <span className="mt-0.5 block truncate text-xs font-black text-foreground sm:text-sm">
+            <span className="mt-0.5 block truncate text-base font-black text-foreground sm:text-lg">
               {roomDeviceCount ?? 0}
             </span>
           </span>
-          <span className="min-w-0 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2 shadow-sm ring-1 ring-primary/10">
+          <span className="min-w-0 rounded-2xl border border-primary/35 bg-primary/12 px-3 py-2 shadow-sm ring-1 ring-primary/10">
             <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-primary">
               {t('dashboard.editor.sections.room_active')}
             </span>
-            <span className="mt-0.5 block truncate text-xs font-black text-primary sm:text-sm">
+            <span className="mt-0.5 block truncate text-base font-black text-primary sm:text-lg">
               {roomActiveCount ?? 0}
             </span>
           </span>
