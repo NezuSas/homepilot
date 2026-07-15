@@ -181,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       <header className="flex flex-col gap-5 pt-1 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="text-caption font-semibold text-primary">{t('dashboard.home_label')}</p>
-          <h1 className="mt-1 text-view-title font-semibold tracking-display-tight text-foreground min-[380px]:text-display-title sm:text-hero-title">
+          <h1 className="mt-1 text-view-title font-semibold tracking-display-tight text-foreground min-[380px]:text-display-title">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
           </h1>
           <p className="mt-2 text-body text-muted-foreground">{t('dashboard.home_calm')}</p>

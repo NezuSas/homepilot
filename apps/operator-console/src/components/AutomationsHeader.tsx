@@ -13,7 +13,7 @@ export const AutomationsHeader: React.FC<AutomationsHeaderProps> = ({ activeCoun
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border/40">
       <div>
-        <h2 className="text-hero-title font-black tracking-tighter leading-none mb-2">{t('automations.header.title')}</h2>
+        <h2 className="text-view-title font-black tracking-tight leading-tight sm:text-display-title mb-2">{t('automations.header.title')}</h2>
         <p className="text-body font-bold text-muted-foreground opacity-50 uppercase tracking-widest">
           {t('automations.header.subtitle', { count: activeCount })}
         </p>

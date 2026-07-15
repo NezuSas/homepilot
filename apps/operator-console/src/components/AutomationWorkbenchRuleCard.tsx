@@ -126,7 +126,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             <Zap className={cn("w-5 h-5", rule.enabled && "fill-warning animate-pulse")} />
           </div>
           <div className="flex flex-col">
-            <h4 className="text-view-title font-black tracking-tighter text-foreground/90 leading-tight">{rule.name}</h4>
+            <h4 className="text-panel-title font-black tracking-tight text-foreground/90 leading-tight">{rule.name}</h4>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-micro font-mono font-bold text-muted-foreground/30 px-1.5 py-0.5 bg-muted/40 rounded uppercase tracking-tighter">ID: {rule.id}</span>
               {!rule.enabled && <span className="text-nano font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">{t('automations.rule.inactive')}</span>}

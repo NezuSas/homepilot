@@ -89,7 +89,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           {isExecuting ? <Loader2 className="h-6 w-6 animate-spin sm:h-8 sm:w-8" /> : <Icon className="h-6 w-6 sm:h-8 sm:w-8" />}
         </div>
         <div className="flex-1 flex flex-col gap-2 min-w-0 pt-1">
-          <h4 className="truncate text-panel-title font-black tracking-tighter luxury-text-gradient sm:text-view-title">{scene.name}</h4>
+          <h4 className="truncate text-section-title font-black tracking-tight luxury-text-gradient sm:text-panel-title">{scene.name}</h4>
           <p className="line-clamp-2 text-body font-medium leading-tight text-muted-foreground opacity-60">
             {description}
           </p>

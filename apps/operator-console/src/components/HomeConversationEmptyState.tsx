@@ -37,7 +37,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
               <p className="text-micro font-black uppercase tracking-label-wide text-primary/75">
                 HomePilot Edge
               </p>
-              <h3 className="mt-2 max-w-2xl text-display-title font-black leading-display-tight tracking-tight text-foreground md:text-hero-title-lg xl:text-hero-title-lg">
+              <h3 className="mt-2 max-w-2xl text-view-title font-black leading-display-tight tracking-tight text-foreground md:text-display-title xl:text-display-title">
                 {title}
               </h3>
               <p className="mt-4 max-w-3xl text-body font-semibold leading-relaxed text-muted-foreground md:text-body-lg">

@@ -311,7 +311,7 @@
   }
 
   .hp-type-card-title {
-    @apply text-body-lg font-black leading-tight tracking-tight text-foreground;
+    @apply text-card-title font-black leading-tight tracking-tight text-foreground;
   }
 
   .hp-type-body {

@@ -100,7 +100,7 @@ const ResilienceShowcaseView: React.FC = () => {
                     <span className="text-micro font-black uppercase tracking-widest text-primary">{t('showcase.edge_native')}</span>
                 </div>
              </div>
-             <h2 className="text-hero-title-lg font-black tracking-tighter leading-tight mb-4 text-foreground/90">
+             <h2 className="text-display-title font-black tracking-tight leading-tight mb-4 text-foreground/90 sm:text-hero-title">
                {t('showcase.hero_title_p1')} <br /> {t('showcase.hero_title_p2')}
              </h2>
              <p className="text-section-title font-medium text-muted-foreground leading-relaxed">
@@ -150,7 +150,7 @@ const ResilienceShowcaseView: React.FC = () => {
                     <Cpu className="w-8 h-8" />
                  </div>
                  <div>
-                    <h3 className="text-view-title font-black tracking-tight tracking-tighter">{t('showcase.infrastructure_title')}</h3>
+                    <h3 className="text-panel-title font-black tracking-tight">{t('showcase.infrastructure_title')}</h3>
                     <p className="text-caption font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{t('showcase.infrastructure_subtitle')}</p>
                  </div>
               </div>
@@ -184,7 +184,7 @@ const ResilienceShowcaseView: React.FC = () => {
                     <ShieldCheck className="w-8 h-8" />
                  </div>
                  <div>
-                    <h3 className="text-view-title font-black tracking-tighter">{t('showcase.resilience_title')}</h3>
+                    <h3 className="text-panel-title font-black tracking-tight">{t('showcase.resilience_title')}</h3>
                     <p className="text-caption font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{t('showcase.resilience_subtitle')}</p>
                  </div>
               </div>
