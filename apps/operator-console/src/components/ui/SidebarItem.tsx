@@ -58,7 +58,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
             className={cn(
               'tracking-tight text-left leading-none whitespace-nowrap overflow-hidden transition-[opacity,width,margin] duration-base',
               nested ? 'text-caption' : 'text-body-compact',
-              active ? 'font-bold text-primary' : 'font-medium',
+              active ? 'font-semibold text-primary' : 'font-medium',
               collapsedOnDesktop && 'lg:w-0 lg:opacity-0 lg:ml-0'
             )}
           >

@@ -777,7 +777,7 @@ function App() {
                       });
                     }}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl p-3 text-body font-bold transition-all w-full text-left",
+                      "flex items-center gap-3 rounded-2xl p-3 text-body-compact font-semibold transition-all w-full text-left",
                       activeDashboardsSection
                         ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted/80',
@@ -788,7 +788,7 @@ function App() {
                     <div className={cn("p-2 rounded-xl transition-all duration-300", activeDashboardsSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted")}>
                         <BarChart2 className="w-4 h-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.dashboards')}</span>
+                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden tracking-tight transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.dashboards')}</span>
                     {!isSidebarContentCollapsed && (isDashboardsExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
@@ -888,7 +888,7 @@ function App() {
                 <button
                     onClick={() => setIsSystemExpanded(prev => !prev)}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl p-3 text-body font-bold transition-all w-full text-left",
+                      "flex items-center gap-3 rounded-2xl p-3 text-body-compact font-semibold transition-all w-full text-left",
                       activeSystemSection
                         ? 'bg-primary/10 text-primary shadow-inner shadow-primary/20'
                         : 'text-muted-foreground hover:bg-muted/80',
@@ -899,7 +899,7 @@ function App() {
                     <div className={cn("p-2 rounded-xl transition-all duration-300", activeSystemSection ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40" : "bg-muted group-hover:bg-background group-hover:shadow")}>
                         <Settings className="w-4 h-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.system')}</span>
+                    <span className={cn("flex-1 whitespace-nowrap overflow-hidden tracking-tight transition-[opacity,width] duration-200", isSidebarContentCollapsed && "lg:w-0 lg:opacity-0 lg:flex-none")}>{t('nav.system')}</span>
                     {!isSidebarContentCollapsed && (isSystemExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />

@@ -706,11 +706,14 @@ function CardPreview({
       >
         <Icon className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
       </span>
-      <span className="line-clamp-2 text-body font-black leading-tight text-foreground">{title}</span>
+      <span className={cn(
+        "line-clamp-2 font-black leading-tight text-foreground",
+        isSmall ? "text-caption" : "text-body"
+      )}>{title}</span>
       {isAssigned ? (
         <span
           className={cn(
-            "mt-2 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-control",
+            "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-black uppercase leading-none tracking-micro",
             isActive
               ? "border-primary/35 bg-primary/10 text-primary"
               : "border-border/55 bg-muted/60 text-muted-foreground"
