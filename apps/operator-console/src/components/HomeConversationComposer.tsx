@@ -57,7 +57,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   onToggleListening,
   onToggleSpeech
 }) => (
-  <footer className="shrink-0 border-t border-border/60 bg-background/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4 md:px-6 md:pt-4 md:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+  <footer className="shrink-0 border-t border-border/60 bg-background/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4 md:px-6">
     <div className="mx-auto w-full max-w-7xl">
       <form
         onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
@@ -129,7 +129,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
           </div>
         </Card>
       </form>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 md:mt-3">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="flex min-w-0 items-center gap-2">
           <StatusPill variant={isLoading ? 'warning' : 'success'} pulse={isLoading} dot className="h-3 w-3 shrink-0" />
           <p className="truncate text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
