@@ -590,13 +590,13 @@ function CardPreview({
 
   if (normalized === 'room') {
     return (
-      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-section border border-primary/25 bg-room-card p-3.5 text-foreground shadow-surface-room ring-1 ring-background/55 transition-all dark:border-primary/20 dark:bg-room-card-dark dark:shadow-primary-room sm:p-4">
-        <div className="pointer-events-none absolute inset-0 bg-room-card-aura" />
+      <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-section border border-border/60 bg-room-card p-3.5 text-foreground shadow-surface-card ring-1 ring-background/70 transition-all dark:border-primary/20 dark:bg-room-card-dark dark:shadow-primary-room sm:p-4">
+        <div className="pointer-events-none absolute inset-0 bg-room-card-aura opacity-80 dark:opacity-100" />
         <div className="flex items-start justify-between gap-3">
-          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/12 text-primary shadow-sm ring-1 ring-primary/20 sm:h-11 sm:w-11">
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10 sm:h-11 sm:w-11">
             <Home className="h-room-icon w-room-icon sm:h-5 sm:w-5" />
           </span>
-          <span className="relative rounded-full border border-border/60 bg-background/90 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground shadow-sm sm:text-micro">
+          <span className="relative rounded-full border border-border/65 bg-background/90 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground shadow-sm dark:bg-background/45 sm:text-micro">
             {t('dashboard.editor.sections.room_label')}
           </span>
         </div>
@@ -609,7 +609,7 @@ function CardPreview({
         </div>
 
         <div className="relative grid grid-cols-2 gap-2">
-          <span className="min-w-0 rounded-2xl border border-border/60 bg-background/90 px-3 py-2 shadow-sm">
+          <span className="min-w-0 rounded-2xl border border-border/65 bg-background/95 px-3 py-2 shadow-sm dark:bg-background/45">
             <span className="block truncate text-micro font-black uppercase tracking-control text-muted-foreground">
               {t('dashboard.editor.sections.room_devices')}
             </span>
@@ -617,7 +617,7 @@ function CardPreview({
               {roomDeviceCount ?? 0}
             </span>
           </span>
-          <span className="min-w-0 rounded-2xl border border-primary/35 bg-primary/12 px-3 py-2 shadow-sm ring-1 ring-primary/10">
+          <span className="min-w-0 rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2 shadow-primary-room-icon ring-1 ring-primary/10">
             <span className="block truncate text-micro font-black uppercase tracking-control text-primary">
               {t('dashboard.editor.sections.room_active')}
             </span>

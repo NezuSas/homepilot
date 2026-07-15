@@ -61,23 +61,24 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
 
   return (
     <div className={cn(
-      "relative h-full w-full min-h-0 flex flex-col p-4 @md:p-6 @lg:p-7 transition-all duration-700 overflow-hidden",
-      onCount > 0 && "bg-gradient-to-br from-primary/[0.04] via-transparent to-transparent"
+      "relative h-full w-full min-h-0 flex flex-col overflow-hidden rounded-section border border-border/60 bg-room-card p-4 text-foreground shadow-surface-card ring-1 ring-background/70 transition-all duration-700 dark:border-primary/20 dark:bg-room-card-dark dark:shadow-primary-room @md:p-6 @lg:p-7",
+      onCount > 0 && "border-primary/35 ring-primary/10"
     )}>
+      <div className="pointer-events-none absolute inset-0 bg-room-card-aura opacity-80 dark:opacity-100" />
       <div className="flex items-center justify-between mb-3 @md:mb-6">
         <div className={cn(
-          "w-10 h-10 @md:w-12 @md:h-12 rounded-2xl flex items-center justify-center border transition-all duration-500",
-          onCount > 0 ? "bg-primary/10 border-primary/20 shadow-lg" : "bg-muted border-border/40"
+          "relative w-10 h-10 @md:w-12 @md:h-12 rounded-2xl flex items-center justify-center border transition-all duration-500",
+          onCount > 0 ? "bg-primary/10 border-primary/30 shadow-primary-room-icon" : "bg-background/90 border-border/70 shadow-sm"
         )}>
-          <Home className={cn("w-5 h-5 @md:w-6 @md:h-6", onCount > 0 ? "text-primary" : "text-muted-foreground/30")} />
+          <Home className={cn("w-5 h-5 @md:w-6 @md:h-6", onCount > 0 ? "text-primary" : "text-muted-foreground")} />
         </div>
         
         <div className="flex items-center gap-2">
-           <span className="text-micro font-black uppercase tracking-label text-muted-foreground/30">{t('topology.room_select')}</span>
+           <span className="relative rounded-full border border-border/65 bg-background/85 px-2.5 py-1 text-micro font-black uppercase tracking-label text-muted-foreground shadow-sm dark:bg-background/45">{t('topology.room_select')}</span>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 space-y-3 @md:space-y-4">
+      <div className="relative flex-1 min-h-0 space-y-3 @md:space-y-4">
         <div>
           <h4 className="text-body-lg @md:text-panel-title font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
           <div className="flex items-center gap-2 mt-1">
@@ -89,7 +90,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
                  ? t('dashboards.widgets.room_summary.active_count', { count: onCount }) 
                  : t('dashboards.widgets.room_summary.all_off')}
              </span>
-             <div className="w-1 h-1 rounded-full bg-border" />
+             <div className="h-1 w-1 rounded-full bg-border" />
              <span className="text-micro font-bold text-muted-foreground/30 uppercase tracking-tight">
                {t('dashboards.widgets.room_summary.units', { count: roomDevices.length })}
              </span>
@@ -99,7 +100,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         {onCount > 0 && (
           <div className="flex flex-wrap gap-2">
              {activeTypes.map(type => (
-               <div key={type} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 border border-border/40 backdrop-blur-md">
+               <div key={type} className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/85 px-3 py-1.5 shadow-sm backdrop-blur-md dark:bg-background/45">
                   <span className="text-micro font-black uppercase tracking-tight text-muted-foreground/60">
                     {t(`device_types.${type}`, { defaultValue: type })}
                   </span>
@@ -113,7 +114,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         <button
           onClick={handleToggleAll}
           disabled={isProcessing}
-          className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-destructive/5 hover:bg-destructive text-destructive hover:text-destructive-foreground rounded-2xl text-micro font-black uppercase tracking-label transition-all duration-300 border border-destructive/20 hover:border-transparent active:scale-95"
+          className="relative mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/5 py-3 text-micro font-black uppercase tracking-label text-destructive transition-all duration-300 hover:border-transparent hover:bg-destructive hover:text-destructive-foreground active:scale-95"
         >
           {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}
