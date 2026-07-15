@@ -45,7 +45,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
   const deviceOptions = devices.map(device => ({ value: device.id, label: `${device.name} (${device.type})` }));
 
   return (
-    <form onSubmit={onSubmit} className="bg-card border-2 border-primary/20 rounded-hero p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden">
+    <form onSubmit={onSubmit} className="relative overflow-hidden rounded-panel border-2 border-primary/20 bg-card p-4 shadow-2xl animate-in zoom-in-95 duration-300 sm:p-6 lg:rounded-hero lg:p-10">
       {success && (
         <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-primary-foreground z-10 animate-in fade-in transition-all">
           <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
@@ -53,8 +53,8 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-10">
-        <div className="flex flex-col gap-6">
+      <div className="grid gap-5 md:grid-cols-2 md:gap-8 lg:gap-10">
+        <div className="flex flex-col gap-5 sm:gap-6">
           <div className="flex flex-col gap-2">
             <Input
               label={t('automations.form.rule_name')}
@@ -65,7 +65,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
             />
           </div>
 
-          <div className="p-8 bg-muted/20 rounded-dashboard border border-border/40 flex flex-col gap-5">
+          <div className="flex flex-col gap-5 rounded-panel border border-border/40 bg-muted/20 p-4 sm:p-6 lg:rounded-dashboard lg:p-8">
             <span className="text-micro font-black uppercase tracking-label text-primary/60 mb-2 flex items-center gap-2">
               <Play className="w-3 h-3 fill-current" /> {t('automations.form.trigger_config')}
             </span>
@@ -79,7 +79,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               options={deviceOptions}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
               <Input
                 label={t('automations.form.state_key')}
                 required
@@ -98,8 +98,8 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 justify-between">
-          <div className="p-8 bg-primary/[0.03] rounded-dashboard border-2 border-primary/10 flex flex-col gap-5 shadow-inner">
+        <div className="flex flex-col justify-between gap-5 sm:gap-6">
+          <div className="flex flex-col gap-5 rounded-panel border-2 border-primary/10 bg-primary/[0.03] p-4 shadow-inner sm:p-6 lg:rounded-dashboard lg:p-8">
             <span className="text-micro font-black uppercase tracking-label text-primary mb-2 flex items-center gap-2">
               <Zap className="w-3 h-3 fill-current" /> {t('automations.form.action_result')}
             </span>

@@ -82,17 +82,17 @@ const ResilienceShowcaseView: React.FC = () => {
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-1000 pb-20">
+    <div className="space-y-6 pb-12 animate-in fade-in duration-1000 sm:space-y-8 sm:pb-16 lg:space-y-12 lg:pb-20">
       
       {/* Autonomy Hero Section */}
-      <div className="relative overflow-hidden bg-card/40 backdrop-blur-3xl border-2 border-border/40 rounded-showcase p-12 transition-all hover:border-primary/20">
-        <div className="absolute top-0 right-0 p-12 opacity-5">
-           <Shield className="w-64 h-64 text-primary" />
+      <div className="relative overflow-hidden rounded-panel border-2 border-border/40 bg-card/40 p-5 backdrop-blur-3xl transition-all hover:border-primary/20 sm:p-8 lg:rounded-showcase lg:p-12">
+        <div className="absolute right-0 top-0 p-5 opacity-5 sm:p-8 lg:p-12">
+           <Shield className="h-32 w-32 text-primary sm:h-48 sm:w-48 lg:h-64 lg:w-64" />
         </div>
         
-        <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12">
+        <div className="relative flex flex-col items-center justify-between gap-6 lg:flex-row lg:gap-12">
           <div className="max-w-xl">
-             <div className="flex items-center gap-3 mb-6">
+             <div className="mb-5 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-3">
                 <div className="px-3 py-1 bg-success/10 border border-success/20 rounded-full">
                     <span className="text-micro font-black uppercase tracking-widest text-success">{t('showcase.verified_resilience')}</span>
                 </div>
@@ -100,18 +100,18 @@ const ResilienceShowcaseView: React.FC = () => {
                     <span className="text-micro font-black uppercase tracking-widest text-primary">{t('showcase.edge_native')}</span>
                 </div>
              </div>
-             <h2 className="text-display-title font-black tracking-tight leading-tight mb-4 text-foreground/90 sm:text-hero-title">
+             <h2 className="mb-3 text-view-title font-black leading-tight tracking-tight text-foreground/90 sm:mb-4 sm:text-hero-title">
                {t('showcase.hero_title_p1')} <br /> {t('showcase.hero_title_p2')}
              </h2>
-             <p className="text-section-title font-medium text-muted-foreground leading-relaxed">
+             <p className="text-body font-medium leading-relaxed text-muted-foreground sm:text-section-title">
                {t('showcase.hero_description')}
              </p>
           </div>
 
           <div className="relative flex items-center justify-center">
-             <div className="w-64 h-64 rounded-full border-8 border-muted/20 flex items-center justify-center relative">
+             <div className="relative flex h-48 w-48 items-center justify-center rounded-full border-4 border-muted/20 sm:h-56 sm:w-56 sm:border-6 lg:h-64 lg:w-64 lg:border-8">
                 {/* SVG Radial Gauge */}
-                <svg className="absolute inset-0 w-full h-full -rotate-90">
+                <svg viewBox="0 0 256 256" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden="true">
                   <circle 
                     cx="128" cy="128" r="120" 
                     fill="none" 
@@ -130,8 +130,8 @@ const ResilienceShowcaseView: React.FC = () => {
                     strokeLinecap="round"
                   />
                 </svg>
-                <div className="text-center bg-background/40 backdrop-blur-md w-48 h-48 rounded-full flex flex-col items-center justify-center border border-border/40 shadow-2xl">
-                   <span className="text-hero-title-lg font-black tracking-tighter tabular-nums">{metrics.score}%</span>
+                <div className="flex h-36 w-36 flex-col items-center justify-center rounded-full border border-border/40 bg-background/40 text-center shadow-2xl backdrop-blur-md sm:h-44 sm:w-44 lg:h-48 lg:w-48">
+                   <span className="text-display-title font-black tracking-tighter tabular-nums sm:text-hero-title-lg">{metrics.score}%</span>
                    <span className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('showcase.autonomy_score')}</span>
                 </div>
              </div>
@@ -140,13 +140,13 @@ const ResilienceShowcaseView: React.FC = () => {
       </div>
 
       {/* Persistence Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:gap-8">
         
         {/* Hardware Pillar */}
-        <div className="bg-card/40 border border-border/40 rounded-hero p-10 space-y-8 flex flex-col justify-between">
+        <div className="flex flex-col justify-between space-y-5 rounded-panel border border-border/40 bg-card/40 p-5 sm:space-y-6 sm:p-6 lg:rounded-hero lg:p-10 lg:space-y-8">
            <div>
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="p-4 bg-success/10 text-success rounded-2xl">
+              <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4 lg:mb-8">
+                 <div className="rounded-xl bg-success/10 p-3 text-success sm:rounded-2xl sm:p-4">
                     <Cpu className="w-8 h-8" />
                  </div>
                  <div>
@@ -154,15 +154,15 @@ const ResilienceShowcaseView: React.FC = () => {
                     <p className="text-caption font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{t('showcase.infrastructure_subtitle')}</p>
                  </div>
               </div>
-              <div className="space-y-6">
-                 <div className="flex items-center justify-between p-6 bg-muted/20 rounded-2xl border border-border/20">
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                 <div className="flex items-center justify-between gap-3 rounded-xl border border-border/20 bg-muted/20 p-4 sm:rounded-2xl sm:p-5 lg:p-6">
                     <span className="font-bold text-section-title">{t('showcase.edge_native')}</span>
                     <div className="flex items-center gap-2">
                        <span className="text-view-title font-black tabular-nums">{metrics.localDevices}</span>
                        <span className="text-micro font-bold text-success uppercase">{t('showcase.online')}</span>
                     </div>
                  </div>
-                 <div className="flex items-center justify-between p-6 bg-muted/20 rounded-2xl border border-border/20">
+                 <div className="flex items-center justify-between gap-3 rounded-xl border border-border/20 bg-muted/20 p-4 sm:rounded-2xl sm:p-5 lg:p-6">
                     <span className="font-bold text-section-title">{t('showcase.bridged_entities')}</span>
                     <div className="flex items-center gap-2">
                        <span className="text-view-title font-black tabular-nums">{metrics.bridgedDevices}</span>
@@ -177,10 +177,10 @@ const ResilienceShowcaseView: React.FC = () => {
         </div>
 
         {/* Intelligence Pillar */}
-        <div className="bg-card/40 border border-border/40 rounded-hero p-10 space-y-8 flex flex-col justify-between">
+        <div className="flex flex-col justify-between space-y-5 rounded-panel border border-border/40 bg-card/40 p-5 sm:space-y-6 sm:p-6 lg:rounded-hero lg:p-10 lg:space-y-8">
            <div>
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="p-4 bg-primary/10 text-primary rounded-2xl">
+              <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4 lg:mb-8">
+                 <div className="rounded-xl bg-primary/10 p-3 text-primary sm:rounded-2xl sm:p-4">
                     <ShieldCheck className="w-8 h-8" />
                  </div>
                  <div>
@@ -188,12 +188,12 @@ const ResilienceShowcaseView: React.FC = () => {
                     <p className="text-caption font-bold text-muted-foreground opacity-50 uppercase tracking-widest">{t('showcase.resilience_subtitle')}</p>
                  </div>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                 <div className="p-6 bg-muted/20 rounded-2xl border border-border/20 text-center">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                 <div className="rounded-xl border border-border/20 bg-muted/20 p-4 text-center sm:rounded-2xl sm:p-5 lg:p-6">
                     <span className="text-display-title font-black tabular-nums block mb-1">{metrics.autonomousAutomations}</span>
                     <span className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">{t('showcase.autonomous_rules')}</span>
                  </div>
-                 <div className="p-6 bg-muted/20 rounded-2xl border border-border/20 text-center">
+                 <div className="rounded-xl border border-border/20 bg-muted/20 p-4 text-center sm:rounded-2xl sm:p-5 lg:p-6">
                     <span className="text-display-title font-black tabular-nums block mb-1">{metrics.autonomousScenes}</span>
                     <span className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">{t('showcase.edge_scenes')}</span>
                  </div>
@@ -212,7 +212,7 @@ const ResilienceShowcaseView: React.FC = () => {
       </div>
 
       {/* System Integrity Map Placeholder / Logic Visualization */}
-      <div className="bg-muted/10 border-2 border-dashed border-border/30 rounded-showcase p-12 text-center flex flex-col items-center gap-6">
+      <div className="flex flex-col items-center gap-5 rounded-panel border-2 border-dashed border-border/30 bg-muted/10 p-5 text-center sm:p-8 lg:gap-6 lg:rounded-showcase lg:p-12">
          <Layers className="w-12 h-12 text-muted-foreground opacity-20" />
          <div className="max-w-md">
             <h4 className="text-panel-title font-bold tracking-tight mb-2 opacity-60">{t('showcase.synergy_title')}</h4>

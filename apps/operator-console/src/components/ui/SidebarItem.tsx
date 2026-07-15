@@ -33,13 +33,13 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
             ? 'opacity-50 cursor-not-allowed pointer-events-none'
             : 'interactive-lift cursor-pointer',
           // Duration
-          collapsedOnDesktop && 'lg:justify-center lg:px-2',
+          collapsedOnDesktop && 'xl:justify-center xl:px-2',
           className
         )}
         {...props}
         title={collapsedOnDesktop ? label : props.title}
       >
-        <div className={cn("flex items-center gap-2.5 min-w-0", collapsedOnDesktop && "lg:justify-center")}>
+        <div className={cn("flex items-center gap-2.5 min-w-0", collapsedOnDesktop && "xl:justify-center")}>
           {/* Icon container */}
           <span
             className={cn(
@@ -59,7 +59,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
               'tracking-tight text-left leading-none whitespace-nowrap overflow-hidden transition-[opacity,width,margin] duration-base',
               nested ? 'text-caption' : 'text-body-compact',
               active ? 'font-semibold text-primary' : 'font-medium',
-              collapsedOnDesktop && 'lg:w-0 lg:opacity-0 lg:ml-0'
+              collapsedOnDesktop && 'xl:w-0 xl:opacity-0 xl:ml-0'
             )}
           >
             {label}
@@ -67,7 +67,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
         </div>
 
         {/* Right side: badge or soon tag */}
-        <div className={cn("flex items-center gap-1.5 shrink-0 surface-transition", collapsedOnDesktop && "lg:hidden")}>
+        <div className={cn("flex items-center gap-1.5 shrink-0 surface-transition", collapsedOnDesktop && "xl:hidden")}>
           {badge && <div className="shrink-0">{badge}</div>}
 
           {soonText && (

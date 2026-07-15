@@ -35,7 +35,7 @@ const MAX_ROW_HEIGHT = 80;
 
 function getCanvasColumns(width: number): number {
   if (width > 0 && width < 640) return MOBILE_GRID_COLS;
-  if (width > 0 && width < 1024) return TABLET_GRID_COLS;
+  if (width > 0 && width < 1280) return TABLET_GRID_COLS;
   return DESKTOP_GRID_COLS;
 }
 
