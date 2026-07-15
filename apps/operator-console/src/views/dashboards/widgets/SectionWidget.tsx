@@ -19,7 +19,7 @@ import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { CameraMediaFrame, type CameraFeedMode } from '../../../components/CameraMediaFrame';
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
-import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
+import { useDeviceSnapshotStore, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
@@ -211,6 +211,7 @@ function isBindableKind(kind: SectionCardKind) {
     || normalized === 'light'
     || normalized === 'cover'
     || normalized === 'camera'
+    || normalized === 'room'
     || normalized === 'scene';
 }
 
@@ -368,6 +369,13 @@ function getAssignableDevicesForKind(
   return [];
 }
 
+function getAssignableRooms(roomsByHome: Record<string, SnapshotRoom[]>) {
+  return Object.values(roomsByHome)
+    .flat()
+    .filter((room) => room.id && room.name)
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+}
+
 function normalizeAssignableScene(rawScene: unknown): AssignableScene | null {
   if (!rawScene || typeof rawScene !== 'object') return null;
   const scene = rawScene as Record<string, unknown>;
@@ -511,6 +519,8 @@ function CardPreview({
   icon,
   isAssigned,
   deviceId,
+  roomDeviceCount,
+  roomActiveCount,
 }: {
   kind: SectionCardKind;
   title: string;
@@ -519,6 +529,8 @@ function CardPreview({
   icon?: SectionCardIcon;
   isAssigned?: boolean;
   deviceId?: string;
+  roomDeviceCount?: number;
+  roomActiveCount?: number;
 }) {
   const { t } = useTranslation();
   const normalized = normalizeKind(kind);
@@ -596,18 +608,18 @@ function CardPreview({
         <div className="grid grid-cols-2 gap-2">
           <span className="min-w-0 rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
             <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-              {t('dashboard.editor.sections.room_view')}
+              {t('dashboard.editor.sections.room_devices')}
             </span>
             <span className="mt-0.5 block truncate text-xs font-black text-foreground sm:text-sm">
-              {t('dashboard.editor.sections.room_label')}
+              {roomDeviceCount ?? 0}
             </span>
           </span>
           <span className="min-w-0 rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2">
             <span className="block truncate text-[9px] font-black uppercase tracking-[0.16em] text-primary/70">
-              {t('dashboard.editor.sections.room_control')}
+              {t('dashboard.editor.sections.room_active')}
             </span>
             <span className="mt-0.5 block truncate text-xs font-black text-primary sm:text-sm">
-              {t('dashboard.editor.sections.room_local')}
+              {roomActiveCount ?? 0}
             </span>
           </span>
         </div>
@@ -699,6 +711,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const catalogDescription = (kind: SectionCardKind) => t(getCatalogDescriptionKey(kind));
 
   const devices = useDeviceSnapshotStore((state) => state.devices);
+  const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -712,8 +725,10 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
 
   const assignableDevices = getAssignableDevicesForKind(cardDraft.kind, devices);
+  const assignableRooms = useMemo(() => getAssignableRooms(roomsByHome), [roomsByHome]);
   const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
   const selectedScene = cardDraft.entityId ? scenes.find((scene) => scene.id === cardDraft.entityId) : undefined;
+  const selectedRoom = cardDraft.entityId ? assignableRooms.find((room) => room.id === cardDraft.entityId) : undefined;
 
 
   const rawTitle = config.appearance?.title?.trim();
@@ -825,13 +840,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       return {
         ...card,
         kind: cardDraft.kind,
-        title: cardDraft.title.trim() || selectedScene?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
+        title: cardDraft.title.trim() || selectedScene?.name || selectedRoom?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
         description: normalizeKind(cardDraft.kind) === 'scene' && selectedScene
           ? `${selectedScene.actionCount} ${selectedScene.actionCount === 1 ? t('dashboard.editor.sections.scene_action_one') : t('dashboard.editor.sections.scene_action_other')}`
           : catalogDescription(cardDraft.kind),
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
-        entityName: selectedScene?.name || selectedDevice?.name,
+        entityName: selectedScene?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : cardDraft.span,
         icon: cardDraft.icon,
       };
@@ -935,6 +950,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const isClock = isClockKind(card.kind);
     const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
     const normalizedKind = normalizeKind(card.kind);
+    const roomDevices = normalizedKind === 'room' && card.entityId
+      ? devices.filter((device) => device.roomId === card.entityId)
+      : [];
     const isActionable = Boolean(card.entityId)
       && !isEditing
       && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'cover');
@@ -988,6 +1006,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           icon={card.icon}
           isAssigned={Boolean(card.entityId)}
           deviceId={cameraDeviceId}
+          roomDeviceCount={roomDevices.length}
+          roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />
 
         {processingCardId === card.id ? (
@@ -1046,6 +1066,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const isCameraPreview = normalizedPreviewKind === 'camera';
     const isClockPreview = isClockKind(normalizedPreviewKind);
     const isScenePreview = normalizedPreviewKind === 'scene';
+    const isRoomPreview = normalizedPreviewKind === 'room';
+    const roomDevices = isRoomPreview && deviceIdOverride
+      ? devices.filter((device) => device.roomId === deviceIdOverride)
+      : [];
 
     return (
       <div className={cn(
@@ -1053,7 +1077,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'small' && "h-[8.25rem] w-full max-w-[13rem]",
         span === 'medium' && "h-[9.25rem] w-full max-w-[26rem]",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isScenePreview ? 'h-44' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : span === 'full' ? 'h-40' : ''
       )}>
         <CardPreview
           kind={kind}
@@ -1063,6 +1087,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           icon={iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
           deviceId={deviceIdOverride}
+          roomDeviceCount={roomDevices.length}
+          roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />
       </div>
     );
@@ -1177,7 +1203,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
-              normalizeKind(cardDraft.kind) === 'camera' ? cardDraft.entityId : undefined,
+              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' ? cardDraft.entityId : undefined,
             )}
 
             <label className="block space-y-2">
@@ -1279,6 +1305,27 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                         ...draft,
                         entityId: selectedId,
                         title: nextScene?.name || draft.title,
+                      }));
+                    }}
+                  />
+                ) : normalizeKind(cardDraft.kind) === 'room' ? (
+                  <DashboardSelect
+                    label={t('dashboard.editor.sections.assigned_room')}
+                    value={cardDraft.entityId}
+                    placeholder={t('dashboard.editor.sections.unassigned')}
+                    options={[
+                      { value: '', label: t('dashboard.editor.sections.unassigned') },
+                      ...assignableRooms.map((room) => ({
+                        value: room.id,
+                        label: room.name,
+                      })),
+                    ]}
+                    onChange={(selectedId) => {
+                      const nextRoom = assignableRooms.find((room) => room.id === selectedId);
+                      setCardDraft((draft) => ({
+                        ...draft,
+                        entityId: selectedId,
+                        title: nextRoom?.name || draft.title,
                       }));
                     }}
                   />
