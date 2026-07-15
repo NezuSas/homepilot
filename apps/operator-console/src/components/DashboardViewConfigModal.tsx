@@ -362,7 +362,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
           {activeTab === 'visibility' && (
             <div className="space-y-4">
-              <p className="text-sm text-foreground">Seleccione qué usuarios deberían ver esta vista en la navegación</p>
+              <p className="text-sm text-foreground">{t('dashboards.editor.visibility_hint')}</p>
               {loadingUsers ? (
                 <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
               ) : (

@@ -1,4 +1,5 @@
 import * as Icons from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
 import { InlineTabCreator } from './InlineTabCreator';
@@ -38,6 +39,8 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   onToggleEditing,
   editLabel
 }) => {
+  const { t } = useTranslation();
+
   const getTabIcon = (tab: Dashboard['tabs'][number], index: number) => {
     if (tab.icon) {
       let name = tab.icon.trim();
@@ -71,8 +74,8 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
             type="button"
             onClick={onOpenMobileMenu}
             className="mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/80 text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary lg:hidden"
-            aria-label="Abrir navegación"
-            title="Abrir navegación"
+            aria-label={t('shell.toggle_sidebar')}
+            title={t('shell.toggle_sidebar')}
           >
             <Icons.Menu className="h-5 w-5" />
           </button>

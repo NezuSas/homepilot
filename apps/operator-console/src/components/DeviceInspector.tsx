@@ -380,7 +380,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner">
                   <span className="text-[9px] font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                    <Settings className="w-3 h-3" /> Tipo técnico & Origen
+                    <Settings className="w-3 h-3" /> {t('inbox.device_inspector.technical_origin')}
                   </span>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs font-bold uppercase truncate">{device.type}</span>
@@ -397,7 +397,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
                 <div className="p-5 bg-muted/20 border border-border rounded-[1.5rem] flex flex-col gap-2 shadow-inner relative">
                   <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
-                    <Zap className="w-3 h-3" /> Función del dispositivo
+                    <Zap className="w-3 h-3" /> {t('inbox.device_inspector.device_function')}
                   </span>
                   <SelectField
                     disabled={isActionLoading}
@@ -405,18 +405,18 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     value={device.semanticType || 'automatic'}
                     onChange={(val) => handleSemanticTypeChange(val)}
                     options={[
-                      { value: 'automatic', label: 'Automático' },
-                      { value: 'light', label: 'Luz' },
-                      { value: 'switch', label: 'Interruptor' },
-                      { value: 'outlet', label: 'Enchufe' },
-                      { value: 'cover', label: 'Cortina/Persiana' },
-                      { value: 'camera', label: 'Cámara' },
-                      { value: 'sensor', label: 'Sensor' },
-                      { value: 'unknown', label: 'Desconocido' },
+                      { value: 'automatic', label: t('inbox.device_inspector.semantic.automatic') },
+                      { value: 'light', label: t('inbox.device_inspector.semantic.light') },
+                      { value: 'switch', label: t('inbox.device_inspector.semantic.switch') },
+                      { value: 'outlet', label: t('inbox.device_inspector.semantic.outlet') },
+                      { value: 'cover', label: t('inbox.device_inspector.semantic.cover') },
+                      { value: 'camera', label: t('inbox.device_inspector.semantic.camera') },
+                      { value: 'sensor', label: t('inbox.device_inspector.semantic.sensor') },
+                      { value: 'unknown', label: t('inbox.device_inspector.semantic.unknown') },
                     ]}
                   />
                   <p className="text-[8px] text-muted-foreground/50 px-2 leading-relaxed">
-                    Determina cómo el Asistente interpreta este dispositivo.
+                    {t('inbox.device_inspector.semantic_hint')}
                   </p>
                 </div>
 
@@ -425,10 +425,10 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary">
-                          Estado de cortina invertido
+                          {t('inbox.device_inspector.cover_inverted')}
                         </span>
                         <p className="mt-1 text-[8px] text-muted-foreground/50 leading-relaxed">
-                          Actívalo cuando Home Assistant reporte abierta pero físicamente está cerrada.
+                          {t('inbox.device_inspector.cover_inverted_hint')}
                         </p>
                       </div>
                       <button

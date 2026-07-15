@@ -121,63 +121,6 @@ const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; la
 ];
 
 
-function getCatalogFallbackLabel(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'light':
-      return 'Luz';
-    case 'cover':
-      return 'Cortina';
-    case 'camera':
-      return 'Cámara';
-    case 'room':
-      return 'Habitación';
-    case 'scene':
-      return 'Escena';
-    case 'clock_digital':
-      return 'Digital compacto';
-    case 'clock_analog':
-      return 'Digital residencial';
-    case 'clock_premium':
-      return 'Analógico premium';
-    case 'clock_minimal':
-      return 'Analógico minimal';
-    case 'energy':
-      return 'Energía';
-    case 'assistant':
-      return 'Asistente IA';
-    case 'device':
-    default:
-      return 'Dispositivo';
-  }
-}
-
-function getCatalogFallbackDescription(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'camera':
-      return 'Vista en vivo / snapshot';
-    case 'light':
-      return 'Control rápido para luces.';
-    case 'cover':
-      return 'Control rápido para cortinas.';
-    case 'room':
-      return 'Resumen de habitación.';
-    case 'scene':
-      return 'Acceso directo a escena.';
-    case 'clock_digital':
-    case 'clock_analog':
-    case 'clock_premium':
-    case 'clock_minimal':
-      return 'Reloj para la sección.';
-    case 'energy':
-      return 'Resumen de energía.';
-    case 'assistant':
-      return 'Información del asistente.';
-    case 'device':
-    default:
-      return 'Control rápido de dispositivo.';
-  }
-}
-
 function getCatalogLabelKey(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
     case 'light':
@@ -316,9 +259,7 @@ function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSecti
       kind,
       title: typeof card.title === 'string' && card.title.trim()
         ? card.title
-        : isClockKind(kind)
-          ? getClockKindLabel(kind)
-          : kind,
+        : '',
       description: typeof card.description === 'string' ? card.description : '',
       widgetType: (card.widgetType as WidgetType) || getWidgetType(kind),
       entityId: typeof card.entityId === 'string' ? card.entityId : undefined,
@@ -357,20 +298,6 @@ function getRecommendedSectionHeight(currentHeight: number, cards: NormalizedSec
   }, 0);
 
   return Math.max(4, Math.ceil(rows * 2.2) + 2);
-}
-
-function getClockKindLabel(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'clock_digital':
-      return 'Digital compacto';
-    case 'clock_analog':
-      return 'Digital residencial';
-    case 'clock_minimal':
-      return 'Analógico minimal';
-    case 'clock_premium':
-    default:
-      return 'Analógico premium';
-  }
 }
 
 function getClockKindLabelKey(kind: SectionCardKind) {
@@ -718,7 +645,7 @@ function CardPreview({
         <div className="mt-auto min-w-0">
           <span className="block line-clamp-2 text-sm font-black leading-tight text-foreground">{title}</span>
           <span className="mt-1 block line-clamp-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-            Resumen inteligente
+            {t('dashboard.editor.sections.smart_summary')}
           </span>
         </div>
         <div className="mt-4 space-y-2">
@@ -757,17 +684,9 @@ function ModalPortal({ children }: { children: ReactNode }) {
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
-  const catalogLabel = (kind: SectionCardKind) => {
-    const key = getCatalogLabelKey(kind);
-    const translated = t(key);
-    return translated === key ? getCatalogFallbackLabel(kind) : translated;
-  };
+  const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
-  const catalogDescription = (kind: SectionCardKind) => {
-    const key = getCatalogDescriptionKey(kind);
-    const translated = t(key);
-    return translated === key ? getCatalogFallbackDescription(kind) : translated;
-  };
+  const catalogDescription = (kind: SectionCardKind) => t(getCatalogDescriptionKey(kind));
 
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
@@ -1053,7 +972,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       >
         <CardPreview
           kind={card.kind}
-          title={card.title}
+          title={card.title || catalogLabel(card.kind)}
           subtitle={subtitle}
           span={span}
           icon={card.icon}
@@ -1377,7 +1296,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 )}
 
                 <p className="text-xs font-semibold text-muted-foreground">
-                  Esta asignación queda guardada dentro de la tarjeta de la sección.
+                  {t('dashboard.editor.sections.assignment_note')}
                 </p>
               </div>
             ) : null}

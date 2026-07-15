@@ -182,7 +182,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
 
   const roleLabel = user.role === 'admin'
     ? t('users.roles.admin', 'Administrador (Padre)')
-    : t('users.roles.operator', 'Estándar (Hijo)');
+    : t('users.roles.operator');
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -279,7 +279,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
               )}
 
               <p className="text-[11px] text-muted-foreground text-center max-w-[200px]">
-                {rawImage ? t('users.profile.crop_hint', 'Ajusta el zoom y arrastra la foto para encuadrar tu cara.') : t('users.profile.avatar_hint', 'Haz clic en la cámara para subir una foto nueva.')}
+                {rawImage ? t('users.profile.crop_hint') : t('users.profile.avatar_hint')}
               </p>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>

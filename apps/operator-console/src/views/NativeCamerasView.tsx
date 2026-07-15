@@ -679,8 +679,8 @@ export const NativeCamerasView: React.FC = () => {
         isOpen={!!deviceToDelete}
         onClose={() => setDeviceToDelete(null)}
         onConfirm={confirmDelete}
-        title={t('native_cameras.delete_confirm_title', 'Eliminar cámara')}
-        description={t('native_cameras.delete_confirm_description', '¿Está seguro de que desea eliminar esta cámara? Esta acción no se puede deshacer.')}
+        title={t('native_cameras.delete_confirm_title')}
+        description={t('native_cameras.delete_confirm_description')}
         confirmText={t('common.delete', 'Eliminar')}
       />
     </PageFrame>

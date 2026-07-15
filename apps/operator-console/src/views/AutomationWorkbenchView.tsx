@@ -96,7 +96,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     try {
       setLoading(true);
       const res = await apiFetch(`${API_URL}/automations`);
-      if (!res.ok) throw new Error('Error de conexión con el motor de reglas');
+      if (!res.ok) throw new Error(t('common.errors.connection_error'));
       const rawData = await res.json();
       if (Array.isArray(rawData)) {
         setRules(rawData.map(r => ({ ...r, _processing: false, _error: null, _confirmingDelete: false })));
@@ -106,11 +106,11 @@ export const AutomationWorkbenchView: React.FC = () => {
         setError(t('common.error_invalid_response_shape'));
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error de red fatal');
+      setError(err instanceof Error ? err.message : t('common.errors.connection_error'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [API_URL, t]);
 
   const fetchDevices = useCallback(async () => {
     try {
@@ -140,12 +140,12 @@ export const AutomationWorkbenchView: React.FC = () => {
       const res = await apiFetch(`${API_URL}/automations/${id}/${act}`, { method: 'PATCH' });
       const data = (await res.json()) as AutomationRule | { error: string };
 
-      if (!res.ok) throw new Error('error' in data ? data.error : 'Fallo en la operación');
+      if (!res.ok) throw new Error('error' in data ? data.error : t('common.errors.operation_failed'));
       
       const updated = data as AutomationRule;
       setRules(prev => prev.map(r => r.id === id ? { ...updated, _processing: false, _error: null } : r));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      const msg = err instanceof Error ? err.message : t('common.errors.unknown');
       setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: false, _error: msg } : r));
     }
   };
@@ -156,11 +156,11 @@ export const AutomationWorkbenchView: React.FC = () => {
       const res = await apiFetch(`${API_URL}/automations/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = (await res.json()) as { error: string };
-        throw new Error(data.error || 'Error al eliminar la regla');
+        throw new Error(data.error || t('common.errors.operation_failed'));
       }
       setRules(prev => prev.filter(r => r.id !== id));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al eliminar';
+      const msg = err instanceof Error ? err.message : t('common.errors.operation_failed');
       setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: false, _error: msg, _confirmingDelete: false } : r));
     }
   };
@@ -217,7 +217,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       });
       const data = (await res.json()) as AutomationRule | { error: string };
 
-      if (!res.ok) throw new Error('error' in data ? data.error : 'Error en la operación');
+      if (!res.ok) throw new Error('error' in data ? data.error : t('common.errors.operation_failed'));
 
       setSuccess(true);
       setTimeout(() => {
@@ -228,7 +228,7 @@ export const AutomationWorkbenchView: React.FC = () => {
         fetchRules();
       }, 1500);
     } catch (err: unknown) {
-      setCreateError(err instanceof Error ? err.message : 'Fallo catastrófico');
+      setCreateError(err instanceof Error ? err.message : t('common.errors.unknown'));
     } finally {
       setSubmitting(false);
     }

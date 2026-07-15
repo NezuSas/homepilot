@@ -23,6 +23,7 @@
     "system_inbox": "Descubrimiento",
     "system_diagnostics": "Diagnósticos",
     "system_audit": "Registros de Auditoría",
+    "system_executions": "Historial Ejecución",
     "system_users": "Usuarios y Acceso",
     "system_ha": "Integración HA",
     "system_cameras": "Cámaras IP",
@@ -138,6 +139,7 @@
       "voice_permission_error": "Permiso de micrófono denegado",
       "voice_no_speech": "No escuché nada",
       "voice_not_understood": "No tengo una lectura clara. Intenta decir: apaga la luz de la sala",
+      "voice_timeout": "No pude entenderte a tiempo. Inténtalo de nuevo.",
       "voice_capture_error": "No se detectó un micrófono",
       "voice_unavailable_error": "Abre HomePilot desde localhost o HTTPS para usar el micrófono",
       "voice_transcribing": "Transcribiendo voz...",
@@ -323,7 +325,9 @@
         "scene_description": "Acceso directo para ejecutar ambiente",
         "signals": "Señales",
         "ready": "Listo",
-        "assigned": "Asignado"
+        "assigned": "Asignado",
+        "smart_summary": "Resumen inteligente",
+        "assignment_note": "Esta asignación queda guardada dentro de la tarjeta de la sección."
       },
       "catalog": {
         "title": "Añadir al panel de control",
@@ -554,8 +558,26 @@
       "sensor": "Sensores",
       "local": "Local",
       "bridged": "Puenteado"
+  },
+  "device_inspector": {
+    "technical_origin": "Tipo técnico y origen",
+    "device_function": "Función del dispositivo",
+    "semantic": {
+      "automatic": "Automático",
+      "light": "Luz",
+      "switch": "Interruptor",
+      "outlet": "Enchufe",
+      "cover": "Cortina/Persiana",
+      "camera": "Cámara",
+      "sensor": "Sensor",
+      "unknown": "Desconocido",
+      "position": "Posición de cortina"
     },
-    "rooms": {
+    "semantic_hint": "Determina cómo el asistente interpreta este dispositivo.",
+    "cover_inverted": "Estado de cortina invertido",
+    "cover_inverted_hint": "Actívalo cuando Home Assistant reporte abierta pero físicamente está cerrada."
+  },
+  "rooms": {
       "unassigned": "Sin Asignar / Pendiente de Puesta en Marcha",
       "device_count_one": "1 Unidad",
       "device_count_other": "{{count}} Unidades",
@@ -1004,6 +1026,7 @@
       "title": "Mi Perfil",
       "change_avatar": "Cambiar Foto",
       "avatar_hint": "Haz clic en la foto para cambiarla. Se guarda localmente en la MiniPC.",
+      "crop_hint": "Ajusta el zoom y arrastra la foto para encuadrar tu cara.",
       "avatar_error": "No se pudo procesar la imagen. Intenta con otra.",
       "display_name": "Nombre a Mostrar",
       "display_name_hint": "Si lo dejas vacío, se mostrará tu nombre de usuario.",
@@ -1078,6 +1101,28 @@
       "next_2": "Asignar espacios",
       "next_3": "Probar escenas",
       "complete": "Finalizar Configuración e Iniciar Workspace"
+    }
+  },
+  "first_admin_setup": {
+    "password_length": "La contraseña debe tener al menos 10 caracteres.",
+    "password_mismatch": "Las contraseñas no coinciden.",
+    "create_failed": "No se pudo crear el administrador inicial.",
+    "eyebrow": "Primer arranque",
+    "title": "Crea el administrador de Nezu",
+    "description": "Este sistema no tiene usuarios todavía. En vez de usar una clave en logs o una contraseña fija, crea aquí el primer administrador local. Después continuarás con la conexión de Home Assistant.",
+    "display_name": "Nombre visible",
+    "username": "Usuario administrador",
+    "password": "Contraseña",
+    "password_placeholder": "Mínimo 10 caracteres",
+    "confirm_password": "Confirmar contraseña",
+    "confirm_password_placeholder": "Repite la contraseña",
+    "submit": "Crear administrador y continuar",
+    "flow_title": "Flujo correcto",
+    "flow": {
+      "no_logs": "No se imprime contraseña de cliente en logs.",
+      "no_dev_credentials": "No se usa admin/admin fuera de desarrollo.",
+      "first_account": "La primera cuenta queda creada por la persona que instala el sistema.",
+      "ha_onboarding": "Después se completa Home Assistant desde el onboarding protegido."
     }
   },
   "change_password": {

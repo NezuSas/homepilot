@@ -70,7 +70,7 @@ export const DashboardScenesSection: React.FC<DashboardScenesSectionProps> = ({
     <section className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-scenes">
       <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         <h2 className="text-section-title font-semibold tracking-tight text-foreground">
-          {t('dashboard.quick_scenes', { defaultValue: 'Escenas rápidas' })}
+          {t('dashboard.quick_scenes')}
         </h2>
         <Button variant="ghost" onClick={onCreateScene} className="group h-auto gap-2 px-0 text-caption font-semibold text-primary">
           <Plus className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />

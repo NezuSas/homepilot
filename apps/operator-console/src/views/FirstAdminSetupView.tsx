@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle2, Cpu, KeyRound, Loader2, ShieldCheck, UserRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
 
 interface FirstAdminUser {
@@ -14,17 +15,18 @@ interface FirstAdminSetupViewProps {
   onCompleted: (token: string, user: FirstAdminUser) => void;
 }
 
-function getPasswordError(password: string, confirmation: string): string | null {
+function getPasswordError(password: string, confirmation: string, t: (key: string) => string): string | null {
   if (password.length < 10) {
-    return 'La contraseña debe tener al menos 10 caracteres.';
+    return t('first_admin_setup.password_length');
   }
   if (password !== confirmation) {
-    return 'Las contraseñas no coinciden.';
+    return t('first_admin_setup.password_mismatch');
   }
   return null;
 }
 
 export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
+  const { t } = useTranslation();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
@@ -34,7 +36,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
   const trimmedUsername = username.trim();
   const trimmedDisplayName = displayName.trim();
-  const passwordError = password ? getPasswordError(password, passwordConfirmation) : null;
+  const passwordError = password ? getPasswordError(password, passwordConfirmation, t) : null;
   const canSubmit = trimmedUsername.length >= 3
     && password.length >= 10
     && password === passwordConfirmation
@@ -44,7 +46,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
     event.preventDefault();
     setError(null);
 
-    const currentPasswordError = getPasswordError(password, passwordConfirmation);
+    const currentPasswordError = getPasswordError(password, passwordConfirmation, t);
     if (currentPasswordError) {
       setError(currentPasswordError);
       return;
@@ -70,7 +72,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
       onCompleted(data.token, data.user);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'No se pudo crear el administrador inicial.');
+      setError(e instanceof Error ? e.message : t('first_admin_setup.create_failed'));
     } finally {
       setLoading(false);
     }
@@ -85,11 +87,10 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               <ShieldCheck className="h-7 w-7" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-primary">Primer arranque</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Crea el administrador de Nezu</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-primary">{t('first_admin_setup.eyebrow')}</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{t('first_admin_setup.title')}</h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-muted-foreground">
-                Este sistema no tiene usuarios todavía. En vez de usar una clave en logs o una contraseña fija,
-                crea aquí el primer administrador local. Después continuarás con la conexión de Home Assistant.
+                {t('first_admin_setup.description')}
               </p>
             </div>
           </div>
@@ -102,7 +103,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
             )}
 
             <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Nombre visible</span>
+              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.display_name')}</span>
               <div className="relative">
                 <UserRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                 <input
@@ -116,7 +117,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Usuario administrador</span>
+              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.username')}</span>
               <div className="relative">
                 <Cpu className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                 <input
@@ -135,7 +136,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Contraseña</span>
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.password')}</span>
                 <div className="relative">
                   <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                   <input
@@ -146,13 +147,13 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                     required
                     minLength={10}
                     className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-                    placeholder="Minimo 10 caracteres"
+                    placeholder={t('first_admin_setup.password_placeholder')}
                   />
                 </div>
               </label>
 
               <label className="grid gap-2">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Confirmar contraseña</span>
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.confirm_password')}</span>
                 <div className="relative">
                   <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
                   <input
@@ -163,7 +164,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                     required
                     minLength={10}
                     className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-                    placeholder="Repite la contraseña"
+                    placeholder={t('first_admin_setup.confirm_password_placeholder')}
                   />
                 </div>
               </label>
@@ -179,19 +180,19 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-xs font-black uppercase tracking-widest text-primary-foreground shadow-lg transition hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              Crear administrador y continuar
+              {t('first_admin_setup.submit')}
             </button>
           </form>
         </section>
 
         <aside className="border-t border-border/70 bg-muted/25 p-6 sm:p-10 lg:border-l lg:border-t-0">
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-muted-foreground">Flujo correcto</p>
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-muted-foreground">{t('first_admin_setup.flow_title')}</p>
           <div className="mt-6 grid gap-4">
             {[
-              'No se imprime contraseña de cliente en logs.',
-              'No se usa admin/admin fuera de desarrollo.',
-              'La primera cuenta queda creada por la persona que instala el sistema.',
-              'Después se completa Home Assistant desde el onboarding protegido.'
+              t('first_admin_setup.flow.no_logs'),
+              t('first_admin_setup.flow.no_dev_credentials'),
+              t('first_admin_setup.flow.first_account'),
+              t('first_admin_setup.flow.ha_onboarding')
             ].map(item => (
               <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 p-4">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />

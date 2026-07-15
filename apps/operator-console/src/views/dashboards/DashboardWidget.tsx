@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
+import { useTranslation } from 'react-i18next';
 import { 
   Pencil,
   GripVertical
@@ -33,6 +34,8 @@ interface DashboardWidgetNodeProps {
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
 export function WidgetContent({ widget, isEditing, onClick, onConfigChange }: { widget: DashboardWidget; isEditing: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void }) {
+  const { t } = useTranslation();
+
   switch (widget.type) {
     case 'device_control':
       return <DeviceWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
@@ -65,7 +68,7 @@ export function WidgetContent({ widget, isEditing, onClick, onConfigChange }: { 
       return (
         <div className="flex flex-col items-center justify-center h-full p-4 text-center opacity-40 grayscale">
           <span className="text-[10px] font-black uppercase tracking-widest">{widget.type}</span>
-          <span className="text-[8px] mt-1">Próximamente</span>
+          <span className="text-[8px] mt-1">{t('common.coming_soon')}</span>
         </div>
       );
   }

@@ -23,6 +23,7 @@
     "system_inbox": "Discovery",
     "system_diagnostics": "Diagnostics",
     "system_audit": "Audit Logs",
+    "system_executions": "Execution History",
     "system_users": "Users & Access",
     "system_ha": "HA Integration",
     "system_cameras": "IP Cameras",
@@ -138,6 +139,7 @@
       "voice_permission_error": "Microphone permission denied",
       "voice_no_speech": "I did not hear anything",
       "voice_not_understood": "I do not have a clear read. Try saying: turn off the living room light",
+      "voice_timeout": "I could not understand you in time. Try again.",
       "voice_capture_error": "No microphone detected",
       "voice_unavailable_error": "Open HomePilot from localhost or HTTPS to use the microphone",
       "voice_transcribing": "Transcribing voice...",
@@ -323,7 +325,9 @@
         "scene_description": "Direct access to run an ambiance",
         "signals": "Signals",
         "ready": "Ready",
-        "assigned": "Assigned"
+        "assigned": "Assigned",
+        "smart_summary": "Smart summary",
+        "assignment_note": "This assignment is saved inside the section card."
       },
       "catalog": {
         "title": "Add to dashboard",
@@ -556,8 +560,26 @@
       "sensor": "Sensors",
       "local": "Local",
       "bridged": "Bridged"
+  },
+  "device_inspector": {
+    "technical_origin": "Technical type and origin",
+    "device_function": "Device function",
+    "semantic": {
+      "automatic": "Automatic",
+      "light": "Light",
+      "switch": "Switch",
+      "outlet": "Outlet",
+      "cover": "Cover/Blind",
+      "camera": "Camera",
+      "sensor": "Sensor",
+      "unknown": "Unknown",
+      "position": "Cover position"
     },
-    "rooms": {
+    "semantic_hint": "Determines how the assistant interprets this device.",
+    "cover_inverted": "Inverted cover state",
+    "cover_inverted_hint": "Enable this when Home Assistant reports open while it is physically closed."
+  },
+  "rooms": {
       "unassigned": "Unassigned / Pending Commissioning",
       "device_count_one": "1 Unit",
       "device_count_other": "{{count}} Units",
@@ -1004,6 +1026,7 @@
       "title": "My Profile",
       "change_avatar": "Change Photo",
       "avatar_hint": "Click the photo to change it. It gets saved locally on the MiniPC.",
+      "crop_hint": "Adjust the zoom and drag the photo to frame your face.",
       "avatar_error": "Could not process image. Please try another.",
       "display_name": "Display Name",
       "display_name_hint": "If left empty, your username will be displayed.",
@@ -1078,6 +1101,28 @@
       "next_2": "Assign spaces",
       "next_3": "Test scenes",
       "complete": "Complete Setup & Boot Workspace"
+    }
+  },
+  "first_admin_setup": {
+    "password_length": "Password must be at least 10 characters.",
+    "password_mismatch": "Passwords do not match.",
+    "create_failed": "Could not create the initial administrator.",
+    "eyebrow": "First boot",
+    "title": "Create the Nezu administrator",
+    "description": "This system does not have users yet. Instead of using a log key or a fixed password, create the first local administrator here. After that, you will continue with the Home Assistant connection.",
+    "display_name": "Display name",
+    "username": "Administrator username",
+    "password": "Password",
+    "password_placeholder": "Minimum 10 characters",
+    "confirm_password": "Confirm password",
+    "confirm_password_placeholder": "Repeat the password",
+    "submit": "Create administrator and continue",
+    "flow_title": "Correct flow",
+    "flow": {
+      "no_logs": "No customer password is printed in logs.",
+      "no_dev_credentials": "admin/admin is not used outside development.",
+      "first_account": "The first account is created by the person installing the system.",
+      "ha_onboarding": "Home Assistant is completed afterward from the protected onboarding."
     }
   },
   "change_password": {

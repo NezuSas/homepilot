@@ -1,5 +1,6 @@
 import { apiFetch } from './apiClient';
 import { API_BASE_URL } from '../config';
+import i18n from '../i18n';
 import type {
   AssistantConverseRequest,
   AssistantConversationResponse,
@@ -12,7 +13,6 @@ import type {
  */
 
 export const ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS = 5000;
-const ASSISTANT_VOICE_TIMEOUT_MESSAGE = 'No pude entenderte a tiempo. Inténtalo de nuevo.';
 
 interface AssistantConversationOptions {
   timeoutMs?: number;
@@ -69,7 +69,7 @@ export async function converseWithAssistant(
     return response.json();
   } catch (error: unknown) {
     if (timedOut) {
-      throw new Error(ASSISTANT_VOICE_TIMEOUT_MESSAGE);
+      throw new Error(i18n.t('assistant.conversation.voice_timeout'));
     }
     throw error;
   } finally {

@@ -237,7 +237,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
               initialPosition={position}
               onPositionChange={handlePositionChange}
               disabled={!!isProcessing}
-              ariaLabel={t('common.cover.position', { defaultValue: 'Posición de cortina' })}
+              ariaLabel={t('common.cover.position')}
             />
           )}
         </div>

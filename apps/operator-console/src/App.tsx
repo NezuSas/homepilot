@@ -493,11 +493,11 @@ function App() {
 
     setGlobalWakeNotice({
       id: `wake-${wakeStatus}`,
-      message: 'La escucha por voz no está disponible en este navegador.',
+      message: t('assistant.conversation.voice_unavailable_error'),
       tone: 'warning',
       status: wakeStatus
     });
-  }, []);
+  }, [t]);
 
   const handleGlobalWakeInterrupt = useCallback(() => {
     globalWakeConversationIdRef.current += 1;
@@ -526,7 +526,7 @@ function App() {
           </div>
           
           <div className="flex flex-col items-center gap-2">
-            <h2 className="text-xl font-black tracking-tighter uppercase">{t('shell.verifying_session')}</h2>
+            <h2 className="text-xl font-black tracking-tighter uppercase">{t('shell.status.verifying_session')}</h2>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
@@ -939,7 +939,7 @@ function App() {
                       />
                       <SidebarItem
                         icon={Activity}
-                        label={t('nav.system_executions', 'Historial Ejecución')}
+                        label={t('nav.system_executions')}
                         active={currentView === 'system-executions'}
                         onClick={() => navigateTo('system-executions')}
                         nested
@@ -962,7 +962,7 @@ function App() {
                       />
                       <SidebarItem
                         icon={Camera}
-                        label={t('nav.system_cameras', 'Cámaras IP')}
+                        label={t('nav.system_cameras')}
                         active={currentView === 'system-cameras'}
                         onClick={() => navigateTo('system-cameras')}
                         nested
