@@ -214,11 +214,10 @@ export default {
         'inbox-device': '8.75rem',
       },
       fontSize: {
-        // Product typography scale.
-        // Keep functional UI text at 12px+ whenever possible; nano/micro are
-        // reserved for compact badges, timestamps, metadata and decorative labels.
-        nano: ['0.5625rem', { lineHeight: '0.75rem' }],
-        micro: ['0.6875rem', { lineHeight: '0.875rem' }],
+        // Product typography scale. Content that a resident needs to read is
+        // never smaller than 12px. `nano` is intentionally decorative only.
+        nano: ['0.625rem', { lineHeight: '0.875rem' }],
+        micro: ['0.75rem', { lineHeight: '1rem' }],
         label: ['0.75rem', { lineHeight: '1rem' }],
         caption: ['0.8125rem', { lineHeight: '1.125rem' }],
         'body-compact': ['0.875rem', { lineHeight: '1.25rem' }],
@@ -257,14 +256,14 @@ export default {
         'clock-digital-micro-fluid': ['clamp(0.38rem,0.95cqi,0.5rem)', { lineHeight: '1' }]
       },
       letterSpacing: {
-        micro: '0.1em',
-        control: '0.16em',
-        status: '0.18em',
-        label: '0.22em',
-        'label-wide': '0.28em',
-        'label-wider': '0.3em',
-        'label-ultra': '0.35em',
-        'label-hero': '0.4em',
+        micro: '0.04em',
+        control: '0.06em',
+        status: '0.08em',
+        label: '0.1em',
+        'label-wide': '0.12em',
+        'label-wider': '0.14em',
+        'label-ultra': '0.16em',
+        'label-hero': '0.18em',
         clock: '0.42em',
         'display-tight': '-0.035em',
         'clock-tight': '-0.08em',

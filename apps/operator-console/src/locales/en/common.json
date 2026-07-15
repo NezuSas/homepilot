@@ -352,7 +352,17 @@
         "energy": "Energy",
         "system": "System",
         "assistant": "AI Assistant",
-        "section": "Section"
+        "assistant_description": "Insights and smart suggestions.",
+        "section": "Section",
+        "light_description": "Quick lighting on, off, and adjustment.",
+        "cover_description": "Open, close, and position control.",
+        "camera_description": "Camera view or quick video access.",
+        "room_description": "Visual room summary.",
+        "scene_description": "Quick access to a scene or routine.",
+        "clock_description": "Time, date, and contextual status.",
+        "energy_description": "Consumption, power, and energy state.",
+        "system_description": "Operational state and local system health.",
+        "section_description": "Groups related cards in the dashboard."
       }
     }
   },

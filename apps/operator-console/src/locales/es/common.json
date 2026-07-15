@@ -352,7 +352,17 @@
         "energy": "Energía",
         "system": "Sistema",
         "assistant": "Asistente IA",
-        "section": "Sección"
+        "assistant_description": "Insights y sugerencias inteligentes.",
+        "section": "Sección",
+        "light_description": "Control rápido para encender, apagar o ajustar iluminación.",
+        "cover_description": "Control de apertura, cierre y posición.",
+        "camera_description": "Vista de cámara o acceso rápido al video.",
+        "room_description": "Resumen visual de una habitación.",
+        "scene_description": "Acceso rápido a una escena o rutina.",
+        "clock_description": "Hora, fecha y estado contextual.",
+        "energy_description": "Consumo, potencia y estado energético.",
+        "system_description": "Estado operativo y salud local del sistema.",
+        "section_description": "Agrupa tarjetas relacionadas en el tablero."
       }
     }
   },

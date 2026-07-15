@@ -311,23 +311,23 @@
   }
 
   .hp-type-card-title {
-    @apply text-card-title font-black leading-tight tracking-tight text-foreground;
+    @apply text-card-title font-semibold leading-tight tracking-tight text-foreground;
   }
 
   .hp-type-body {
-    @apply text-body font-semibold leading-relaxed text-muted-foreground;
+    @apply text-body font-medium leading-relaxed text-muted-foreground;
   }
 
   .hp-type-label {
-    @apply text-label font-black uppercase leading-none tracking-label text-muted-foreground;
+    @apply text-label font-semibold uppercase leading-none tracking-label text-muted-foreground;
   }
 
   .hp-type-label-accent {
-    @apply text-label font-black uppercase leading-none tracking-label text-primary;
+    @apply text-label font-semibold uppercase leading-none tracking-label text-primary;
   }
 
   .hp-type-control {
-    @apply text-caption font-black uppercase leading-none tracking-control;
+    @apply text-caption font-semibold normal-case leading-none tracking-normal;
   }
 
   .hp-type-field {

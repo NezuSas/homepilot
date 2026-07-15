@@ -72,13 +72,17 @@ HomePilot compite contra sistemas residenciales premium, no contra un dashboard 
 - `rounded-pill`: pills y avatares circulares.
 
 ### Tipografia
-- `text-micro`: indicadores técnicos muy compactos (10 px).
-- `text-label`: labels uppercase y chips (11 px).
-- `text-caption`: metadatos y texto secundario (12 px).
-- `text-body`: texto normal y de controles (14 px).
-- `text-card-title`: títulos de tarjetas (15 px).
-- `text-section-title`: títulos internos de sección (18 px).
-- `text-view-title`: títulos principales de pantalla (24 px).
+- `text-nano`: 10 px; reservado para decoración o timestamps, nunca para contenido funcional.
+- `text-micro`: 12 px; metadatos compactos y estados secundarios.
+- `text-label`: 12 px; etiquetas cortas, con mayúsculas y tracking moderado solo cuando aporten jerarquía.
+- `text-caption`: 13 px; ayudas y texto secundario.
+- `text-body-compact`: 14 px; navegación, controles compactos y filas densas.
+- `text-body`: 15 px; texto normal y controles.
+- `text-card-title`: 16 px; títulos de tarjetas.
+- `text-section-title`: 18 px; títulos internos de sección.
+- `text-view-title`: 24 px; títulos principales de pantalla.
+
+La interfaz residencial debe usar una jerarquía corta y repetible: `view title → section title → card title → body → metadata`. Los estados accionables (por ejemplo, `Encendido` y `Apagado`) se muestran en `text-micro`, sin mayúsculas forzadas ni tracking amplio. Los labels técnicos no deben competir visualmente con el nombre del dispositivo.
 
 Los tamaños arbitrarios `text-[Npx]` no deben usarse para roles cubiertos por esta escala. Las excepciones se reservan para visualizaciones de datos cuyo tamaño sea parte del componente.
 

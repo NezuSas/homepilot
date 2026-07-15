@@ -59,7 +59,7 @@ export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
       <span
         ref={ref}
         className={cn(
-          'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-micro font-bold uppercase tracking-wider border',
+          'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-micro font-semibold normal-case tracking-normal border',
           cfg.pill,
           className
         )}
