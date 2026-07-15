@@ -89,7 +89,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   type="button"
                   onClick={() => onSelectTab(index)}
                   className={cn(
-                    "flex h-14 min-w-20 items-center justify-center gap-2 border-b-2 px-3 text-caption font-black transition-all sm:min-w-28",
+                    "flex h-14 min-w-20 items-center justify-center gap-2 border-b-2 px-3 text-caption font-semibold transition-all sm:min-w-28",
                     isActive
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-transparent text-muted-foreground hover:bg-muted/35 hover:text-foreground"
@@ -126,7 +126,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
             type="button"
             onClick={onStartAddingTab}
             className={cn(
-              "ml-1 flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-3 text-micro font-black uppercase tracking-widest transition-colors",
+              "ml-1 flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-3 text-caption font-semibold tracking-tight normal-case transition-colors",
               isEditing
                 ? "border-primary/30 bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
                 : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"

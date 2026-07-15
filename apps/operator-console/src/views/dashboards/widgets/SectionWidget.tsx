@@ -713,7 +713,7 @@ function CardPreview({
       {isAssigned ? (
         <span
           className={cn(
-            "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-black uppercase leading-none tracking-micro",
+            "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-semibold leading-none tracking-tight normal-case",
             isActive
               ? "border-primary/35 bg-primary/10 text-primary"
               : "border-border/55 bg-muted/60 text-muted-foreground"
