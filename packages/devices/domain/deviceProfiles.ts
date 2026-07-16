@@ -130,7 +130,7 @@ const HOME_ASSISTANT_DEVICE_PROFILES: Record<string, DeviceProfile> = {
     displayName: 'Reproductor multimedia',
     category: 'media',
     capabilityTypes: ['media_player'],
-    configurationSections: [ASSIGNMENT_SECTION, READ_ONLY_SECTION, STATE_SYNC_SECTION],
+    configurationSections: [ASSIGNMENT_SECTION, STATE_SYNC_SECTION],
   }),
   camera: createProfile({
     source: 'home_assistant',

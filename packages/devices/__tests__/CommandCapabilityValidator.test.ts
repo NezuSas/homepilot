@@ -69,6 +69,14 @@ describe('CommandCapabilityValidator', () => {
     expect(result.error).toContain('tipo sensor');
   });
 
+  it('should allow playback commands only for media players', () => {
+    const mediaPlayer: Device = { ...baseDevice, type: 'media_player', externalId: 'ha:media_player.speaker' };
+
+    expect(validateDeviceCommand(mediaPlayer, { name: 'media_play' }).valid).toBe(true);
+    expect(validateDeviceCommand(mediaPlayer, { name: 'media_pause' }).valid).toBe(true);
+    expect(validateDeviceCommand(baseDevice, { name: 'media_play' }).valid).toBe(false);
+  });
+
   it('should allow commands for unknown devices (conservative fallback)', () => {
     const unknown: Device = { ...baseDevice, type: 'weird_device' };
     const result = validateDeviceCommand(unknown, { name: 'turn_on' });

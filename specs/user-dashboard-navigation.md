@@ -29,6 +29,8 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 7. El catálogo de tarjetas de una sección debe incluir una tarjeta de sensor para dispositivos `sensor` y `binary_sensor` ya importados al inventario local de HomePilot.
 8. La tarjeta de sensor debe ser informativa: muestra el último estado local sincronizado, su unidad y el contexto disponible sin exponer acciones de encendido o apagado.
 9. Cuando el sensor represente batería, la tarjeta debe mostrar un indicador porcentual legible; las mediciones y estados no numéricos deben conservar su valor sin inventar una lectura.
+10. El catálogo de tarjetas debe incluir un reproductor multimedia para entidades `media_player` ya importadas al inventario local de HomePilot.
+11. La tarjeta multimedia debe mostrar el último estado y metadatos sincronizados localmente; sus controles de encendido, reproducción y pausa solo estarán disponibles si el perfil local del dispositivo declara el comando correspondiente.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -55,3 +57,5 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC22:** El catálogo permite crear una tarjeta `Sensor`; su selector solo lista dispositivos semánticos `sensor` o `binary_sensor` presentes en el inventario local de HomePilot.
 - **AC23:** Una tarjeta de sensor muestra el último `state` sincronizado localmente y, cuando existe, `unit_of_measurement`; las tarjetas de batería usan un indicador de 0 a 100 sin enviar comandos al dispositivo.
 - **AC24:** Si un sensor no tiene lectura o Home Assistant lo reporta como no disponible, la tarjeta muestra un estado no disponible y no fabrica un valor numérico.
+- **AC25:** El selector de una tarjeta multimedia solo lista entidades `media_player` ya importadas a HomePilot; no consulta ni depende de la interfaz de Home Assistant.
+- **AC26:** La tarjeta multimedia ejecuta `turn_on`, `turn_off`, `media_play` o `media_pause` únicamente cuando el dispositivo los soporta, y refresca el snapshot local tras una ejecución satisfactoria.

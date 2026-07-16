@@ -68,7 +68,12 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
     { name: 'toggle' }
   ],
   'climate': [],
-  'media_player': [],
+  'media_player': [
+    { name: 'turn_on' },
+    { name: 'turn_off' },
+    { name: 'media_play' },
+    { name: 'media_pause' },
+  ],
   'camera': []
 };
 

@@ -1,4 +1,5 @@
 import { resolveCapabilitiesForDevice } from '../domain/CapabilityResolver';
+import { CAPABILITY_DEFINITIONS } from '../domain/capabilities';
 import { Device } from '../domain/types';
 
 describe('CapabilityResolver', () => {
@@ -57,10 +58,16 @@ describe('CapabilityResolver', () => {
     expect(caps[0].type).toBe('cover');
   });
 
-  it('should resolve Home Assistant media players as read-only media profile', () => {
+  it('should resolve Home Assistant media players as controllable media profiles', () => {
     const device: Device = { ...baseDevice, externalId: 'ha:media_player.tv', type: 'unknown' };
     const caps = resolveCapabilitiesForDevice(device);
     expect(caps[0].type).toBe('media_player');
+    expect(CAPABILITY_DEFINITIONS.media_player.map((command) => command.name)).toEqual([
+      'turn_on',
+      'turn_off',
+      'media_play',
+      'media_pause',
+    ]);
   });
 
   it('should resolve legacy imported Home Assistant cameras from externalId', () => {

@@ -161,6 +161,23 @@ describe('HomeAssistantDeviceDriver', () => {
     expect(result2.newState?.on).toBe(false);
   });
 
+  it('should execute play and pause commands for a Home Assistant media player', async () => {
+    const mediaPlayer = {
+      ...mockDevice,
+      externalId: 'ha:media_player.z_tech_speaker',
+      type: 'media_player',
+      lastKnownState: { state: 'paused' },
+    };
+
+    const playResult = await driver.executeCommand(mediaPlayer, { name: 'media_play' }, { userId: 'u1', correlationId: 'c1' });
+    const pauseResult = await driver.executeCommand(mediaPlayer, { name: 'media_pause' }, { userId: 'u1', correlationId: 'c2' });
+
+    expect(mockClient.callService).toHaveBeenNthCalledWith(1, 'media_player', 'media_play', 'media_player.z_tech_speaker', undefined);
+    expect(mockClient.callService).toHaveBeenNthCalledWith(2, 'media_player', 'media_pause', 'media_player.z_tech_speaker', undefined);
+    expect(playResult.newState).toMatchObject({ state: 'playing', on: true });
+    expect(pauseResult.newState).toMatchObject({ state: 'paused', on: true });
+  });
+
   it('should return error if connection is not configured', async () => {
     mockConnectionProvider.hasClient.mockReturnValue(false);
     const result = await driver.executeCommand(mockDevice, { name: 'turn_on' }, { userId: 'u1', correlationId: 'c1' });

@@ -56,6 +56,13 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     if (dispatchedCommand === 'turn_on') service = 'turn_on';
     else if (dispatchedCommand === 'turn_off') service = 'turn_off';
     else if (dispatchedCommand === 'toggle') service = 'toggle';
+    else if (dispatchedCommand === 'media_play' && haDomain === 'media_player') {
+      domain = 'media_player';
+      service = 'media_play';
+    } else if (dispatchedCommand === 'media_pause' && haDomain === 'media_player') {
+      domain = 'media_player';
+      service = 'media_pause';
+    }
     else if (dispatchedCommand === 'open' && haDomain === 'cover') {
       domain = 'cover';
       service = 'open_cover';
@@ -150,6 +157,12 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       newState.state = 'closed';
       newState.current_position = 0;
       newState.position = 0;
+    } else if (command === 'media_play') {
+      newState.state = 'playing';
+      newState.on = true;
+    } else if (command === 'media_pause') {
+      newState.state = 'paused';
+      newState.on = true;
     }
 
     return newState;

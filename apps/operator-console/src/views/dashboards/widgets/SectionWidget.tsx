@@ -26,6 +26,7 @@ import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
 import { SensorMetricCard } from './SensorMetricCard';
+import { MediaPlayerCard, type MediaPlayerCommand } from './MediaPlayerCard';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -39,6 +40,7 @@ type SectionCardKind =
   | 'cover'
   | 'camera'
   | 'sensor'
+  | 'media'
   | 'room'
   | 'scene'
   | 'clock'
@@ -91,6 +93,7 @@ const cardKinds: NormalizedSectionCardKind[] = [
   'cover',
   'camera',
   'sensor',
+  'media',
   'room',
   'scene',
   'clock_digital',
@@ -134,6 +137,8 @@ function getCatalogLabelKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.section_card_camera';
     case 'sensor':
       return 'dashboard.editor.sections.section_card_sensor';
+    case 'media':
+      return 'dashboard.editor.sections.section_card_media';
     case 'room':
       return 'dashboard.editor.sections.section_card_room';
     case 'scene':
@@ -166,6 +171,8 @@ function getCatalogDescriptionKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.section_card_camera_desc';
     case 'sensor':
       return 'dashboard.editor.sections.section_card_sensor_desc';
+    case 'media':
+      return 'dashboard.editor.sections.section_card_media_desc';
     case 'room':
       return 'dashboard.editor.sections.section_card_room_desc';
     case 'scene':
@@ -208,6 +215,7 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
     case 'cover':
     case 'camera':
     case 'sensor':
+    case 'media':
     default:
       return 'device_control' as WidgetType;
   }
@@ -220,6 +228,7 @@ function isBindableKind(kind: SectionCardKind) {
     || normalized === 'cover'
     || normalized === 'camera'
     || normalized === 'sensor'
+    || normalized === 'media'
     || normalized === 'room'
     || normalized === 'scene';
 }
@@ -234,6 +243,8 @@ function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
       return 'Camera';
     case 'sensor':
       return 'Gauge';
+    case 'media':
+      return 'Music2';
     case 'room':
       return 'Home';
     case 'scene':
@@ -373,9 +384,13 @@ function isSensorLikeDevice(device: { type?: string | null; semanticType?: strin
     || device.semanticType === 'sensor';
 }
 
+function isMediaPlayerLikeDevice(device: { type?: string | null; profile?: { category?: string | null } | null }) {
+  return device.type === 'media_player' || device.profile?.category === 'media';
+}
+
 function getAssignableDevicesForKind(
   kind: SectionCardKind,
-  devices: Array<{ id: string; name?: string | null; type?: string | null; semanticType?: string | null }>
+  devices: Array<{ id: string; name?: string | null; type?: string | null; semanticType?: string | null; profile?: { category?: string | null } | null }>
 ) {
   const normalized = normalizeKind(kind);
 
@@ -383,6 +398,7 @@ function getAssignableDevicesForKind(
   if (normalized === 'cover') return devices.filter(isCoverLikeDevice);
   if (normalized === 'light') return devices.filter(isLightLikeDevice);
   if (normalized === 'sensor') return devices.filter(isSensorLikeDevice);
+  if (normalized === 'media') return devices.filter(isMediaPlayerLikeDevice);
   if (normalized === 'device') return devices.filter((device) => !isCameraLikeDevice(device));
   return [];
 }
@@ -540,6 +556,8 @@ function CardPreview({
   deviceId,
   device,
   isPreview,
+  isMediaProcessing,
+  onMediaCommand,
   roomDeviceCount,
   roomActiveCount,
 }: {
@@ -553,6 +571,8 @@ function CardPreview({
   deviceId?: string;
   device?: SnapshotDevice;
   isPreview?: boolean;
+  isMediaProcessing?: boolean;
+  onMediaCommand?: (command: MediaPlayerCommand) => void;
   roomDeviceCount?: number;
   roomActiveCount?: number;
 }) {
@@ -597,6 +617,18 @@ function CardPreview({
 
   if (normalized === 'sensor') {
     return <SensorMetricCard device={device} title={title} isPreview={isPreview} />;
+  }
+
+  if (normalized === 'media') {
+    return (
+      <MediaPlayerCard
+        device={device}
+        title={title}
+        isPreview={isPreview}
+        isProcessing={isMediaProcessing}
+        onCommand={onMediaCommand}
+      />
+    );
   }
 
   if (normalized === 'energy') {
@@ -1004,6 +1036,28 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     }
   };
 
+  const handleMediaCardAction = async (card: NormalizedSectionCardItem, command: MediaPlayerCommand) => {
+    if (isEditing || !card.entityId) return;
+
+    const device = devices.find((candidate) => candidate.id === card.entityId);
+    if (!device) return;
+
+    setProcessingCardId(card.id);
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      });
+      if (!response.ok) throw new Error(`MEDIA_COMMAND_${response.status}`);
+      await refreshSnapshot();
+    } catch (error) {
+      console.error('[SectionWidget] Failed to execute media card action:', error);
+    } finally {
+      setProcessingCardId(null);
+    }
+  };
+
   const renderCard = (card: NormalizedSectionCardItem) => {
     const span = card.span ?? getDefaultSpan(card.kind);
     const subtitle = card.entityName || card.description;
@@ -1073,6 +1127,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isActive={cardIsActive}
           deviceId={cameraDeviceId}
           device={assignedDevice}
+          isMediaProcessing={processingCardId === card.id}
+          onMediaCommand={normalizedKind === 'media'
+            ? (command) => { void handleMediaCardAction(card, command); }
+            : undefined}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />
@@ -1276,7 +1334,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
-              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' ? cardDraft.entityId : undefined,
+              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' ? cardDraft.entityId : undefined,
             )}
 
             <label className="block space-y-2">
