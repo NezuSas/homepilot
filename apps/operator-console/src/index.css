@@ -334,6 +334,25 @@
     @apply text-body-lg font-bold leading-none tracking-tight text-foreground;
   }
 
+  /* ── Legacy typography guardrail ───────────────────────────
+   * Older screens composed control labels directly with Tailwind utilities.
+   * Keep that legacy markup visually aligned with the tokenized control scale
+   * while those screens migrate to the hp-type helpers.
+   */
+  .text-micro.font-black.uppercase.tracking-widest,
+  .text-caption.font-black.uppercase.tracking-widest,
+  .text-label.font-black.uppercase.tracking-widest {
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .text-body.font-black.uppercase.tracking-widest {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
   /* ── Device state utilities ───────────────────────────────── */
   /* ON state: radiant, alive */
   .device-state-on {

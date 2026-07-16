@@ -143,13 +143,14 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
   return (
     <section className="flex flex-col gap-4" aria-labelledby="ha-discovery-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 id="ha-discovery-title" className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
+        <h3 id="ha-discovery-title" className="flex items-center gap-2 text-micro font-semibold uppercase tracking-control text-muted-foreground">
           <RadioTower className="h-4 w-4" /> {t('inbox.discovery.bridge_title')}
         </h3>
         <Button
           variant="secondary"
           onClick={toggleDiscovery}
-          className="h-10 w-full px-4 text-label font-black uppercase tracking-widest sm:w-auto"
+          size="sm"
+          className="w-full uppercase tracking-label sm:w-auto"
         >
           <RefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
           {showDiscovery ? t('inbox.discovery.close_button') : t('inbox.discovery.discover_button')}
@@ -199,15 +200,17 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
                     </div>
                     <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/20 pt-2">
                       <span className="rounded bg-muted px-2 py-0.5 text-micro font-bold uppercase">{entity.domain.replaceAll('_', ' ')}</span>
-                      <button
+                      <Button
                         type="button"
                         onClick={() => { void handleImport(entity); }}
                         disabled={importingId !== null}
-                        className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1.5 text-label font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                        variant="ghost"
+                        size="xs"
+                        className="gap-1 bg-primary/10 uppercase tracking-control text-primary hover:bg-primary/20"
                       >
                         {importingId === entity.entityId ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
                         {t('common.import')}
-                      </button>
+                      </Button>
                     </div>
                   </article>
                 ))}

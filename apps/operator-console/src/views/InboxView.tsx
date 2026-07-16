@@ -150,7 +150,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             <SegmentedControl
               value={originFilter}
               onChange={setOriginFilter}
-              className="grid w-full grid-cols-3 gap-1 rounded-2xl p-1 xl:w-auto"
+              className="grid w-full grid-cols-3 gap-1 rounded-2xl p-1"
               options={(['all', 'local', 'bridged'] as const).map((value) => ({
                 value,
                 label: value === 'all'
@@ -165,7 +165,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             <SegmentedControl
               value={filter}
               onChange={setFilter}
-              className="grid w-full grid-cols-2 gap-1 rounded-2xl p-1 min-[420px]:grid-cols-3 xl:w-auto xl:grid-cols-6"
+              className="grid w-full grid-cols-2 gap-1 rounded-2xl p-1 min-[420px]:grid-cols-3"
               options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map((value) => ({
                 value,
                 label: t(`inbox.filters.${value}`),
