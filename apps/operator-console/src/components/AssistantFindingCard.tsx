@@ -77,9 +77,15 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
   const { t } = useTranslation();
   const reasonKey = getMetadataText(finding.metadata, ['reasonKey'], '');
   const safeMetadata = getSafeFindingMetadata(finding.metadata);
-  const description = hasTechnicalFindingMetadata(finding.metadata)
+  const metadataDescription = getMetadataText(safeMetadata, ['displayDescription', 'description'], '');
+  const description = metadataDescription || (hasTechnicalFindingMetadata(finding.metadata)
     ? t('assistant.generic_finding_description')
-    : t(`assistant.types.${finding.type}_description`, safeMetadata);
+    : t(`assistant.types.${finding.type}_description`, safeMetadata));
+  const context = getMetadataText(
+    safeMetadata,
+    ['friendlyName', 'deviceName', 'name', 'roomName', 'areaName'],
+    ''
+  );
 
   return (
     <div
@@ -108,6 +114,18 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
         {description}
       </p>
 
+      {context !== '' && (
+        <div className="mb-4 flex min-w-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
+          <Info className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="shrink-0 text-nano font-semibold uppercase tracking-control text-muted-foreground">
+            {t('assistant.card.related_to')}
+          </span>
+          <span className="min-w-0 truncate text-caption font-semibold text-foreground" title={context}>
+            {context}
+          </span>
+        </div>
+      )}
+
       {reasonKey !== '' && (
         <div className="mb-4 rounded-xl border border-primary/10 bg-primary/5 p-2.5 font-primary">
           <p className="flex items-center gap-2 text-micro font-semibold italic leading-normal text-primary">
@@ -120,7 +138,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
       {finding.metadata.ready === true && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-2.5 py-2 text-success">
           <Sparkles className="w-3 h-3" />
-          <span className="text-micro font-black uppercase tracking-wider">
+          <span className="text-micro font-semibold uppercase tracking-control">
             {t('assistant.draft.ready')}
           </span>
         </div>

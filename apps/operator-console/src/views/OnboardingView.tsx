@@ -156,7 +156,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 lg:w-form-md">
+            <div className="grid w-full grid-cols-3 gap-2 sm:max-w-form-md lg:w-form-md">
               {progressItems.map(item => {
                 const isCurrent = item.index === step;
                 const isDone = item.index < step;
@@ -164,14 +164,14 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <div
                     key={item.index}
                     className={cn(
-                      'min-w-0 rounded-xl border px-2.5 py-2 text-micro font-semibold uppercase leading-tight tracking-control transition-colors',
+                      'min-w-0 rounded-xl border px-2 py-2 text-nano font-semibold uppercase leading-tight tracking-[0.04em] transition-colors sm:px-2.5',
                       isCurrent && 'border-primary/60 bg-primary/10 text-primary',
                       isDone && 'border-success/30 bg-success/10 text-success',
                       !isCurrent && !isDone && 'border-border/60 bg-muted/30 text-muted-foreground'
                     )}
                   >
-                    <span className="mb-1 block text-nano font-semibold opacity-70">{t('onboarding.progress.step', { count: item.index })}</span>
-                    <span className="block break-words">{item.label}</span>
+                    <span className="mb-1 block text-nano font-semibold tracking-normal opacity-70">{t('onboarding.progress.step', { count: item.index })}</span>
+                    <span className="block whitespace-nowrap text-nano leading-3">{item.label}</span>
                   </div>
                 );
               })}

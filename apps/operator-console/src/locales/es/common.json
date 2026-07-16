@@ -71,6 +71,9 @@
     "scan_trigger": "Escanear Sistema",
     "scanning": "Escaneando...",
     "group_hint": "{{count}} instancias consolidadas para mayor claridad",
+    "card": {
+      "related_to": "Relacionado con"
+    },
     "learning": {
       "priority_boost_type": "Prioridad alta según tus preferencias",
       "priority_penalty_type": "Prioridad ajustada por descartes previos"

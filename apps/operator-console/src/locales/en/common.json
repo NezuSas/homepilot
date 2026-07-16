@@ -71,6 +71,9 @@
     "scan_trigger": "Scan System",
     "scanning": "Scanning...",
     "group_hint": "{{count}} instances consolidated for clarity",
+    "card": {
+      "related_to": "Related to"
+    },
     "learning": {
       "priority_boost_type": "High priority based on your preferences",
       "priority_penalty_type": "Optimized priority based on past dismissals"
