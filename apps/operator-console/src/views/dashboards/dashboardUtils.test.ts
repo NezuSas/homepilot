@@ -72,6 +72,16 @@ describe('dashboard section layout', () => {
     expect(getDashboardSectionPlaceholderY(layouts)).toBe(12);
   });
 
+  it('reclaims stale section height before placing the add-section placeholder', () => {
+    const section = createSection('section-legacy-height', 0);
+    section.config.layout.h = 18;
+
+    const layouts = resolveDashboardSectionLayouts([section], true);
+
+    expect(layouts.get('section-legacy-height')).toMatchObject({ y: 2, h: 3 });
+    expect(getDashboardSectionPlaceholderY(layouts)).toBe(6);
+  });
+
   it('lists only compatible local entities for each card kind', () => {
     const devices = [
       createDevice('light-1', 'Luz', 'light'),

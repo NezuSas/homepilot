@@ -89,7 +89,6 @@ export function resolveDashboardSectionLayouts(
       const internalRows = Math.max(1, getSectionContentRows(cards, isEditing));
 
       return Math.max(
-        section.config.layout.h,
         DASHBOARD_SECTION_MIN_ROWS,
         1 + internalRows,
       );
