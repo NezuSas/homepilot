@@ -13,6 +13,7 @@ import { DeviceInspector } from '../components/DeviceInspector';
 import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscoverySection';
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
 import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
@@ -146,36 +147,30 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         action={
           <div className="flex w-full min-w-0 flex-col items-stretch gap-3 xl:w-auto">
             {/* Origin Filter */}
-            <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted p-1 xl:w-auto">
-              {(['all', 'local', 'bridged'] as const).map(o => (
-                <button
-                  key={o}
-                  onClick={() => setOriginFilter(o)}
-                  className={cn(
-                    "min-h-10 rounded-xl px-2 py-2 text-label font-black uppercase tracking-control transition-all",
-                    originFilter === o ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
-                  )}
-                >
-                  {o === 'all' ? t('inbox.filters.all') : (o === 'local' ? t('inbox.filters.local') : t('inbox.filters.bridged'))}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={originFilter}
+              onChange={setOriginFilter}
+              className="grid w-full grid-cols-3 gap-1 rounded-2xl p-1 xl:w-auto"
+              options={(['all', 'local', 'bridged'] as const).map((value) => ({
+                value,
+                label: value === 'all'
+                  ? t('inbox.filters.all')
+                  : value === 'local'
+                    ? t('inbox.filters.local')
+                    : t('inbox.filters.bridged'),
+              }))}
+            />
 
             {/* Type Filter */}
-            <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted p-1 xl:w-auto">
-              {(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={cn(
-                    "min-h-10 rounded-xl px-2 py-2 text-label font-black uppercase tracking-control transition-all",
-                   filter === f ? "bg-background text-primary shadow-sm border border-border" : "text-muted-foreground hover:bg-background/20"
-                  )}
-                >
-                  {t(`inbox.filters.${f}`)}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={filter}
+              onChange={setFilter}
+              className="grid w-full grid-cols-2 gap-1 rounded-2xl p-1 min-[420px]:grid-cols-3 xl:w-auto xl:grid-cols-6"
+              options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map((value) => ({
+                value,
+                label: t(`inbox.filters.${value}`),
+              }))}
+            />
           </div>
         }
       />

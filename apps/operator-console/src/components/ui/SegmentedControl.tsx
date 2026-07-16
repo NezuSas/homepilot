@@ -46,7 +46,7 @@ export function SegmentedControl<T extends string>({
             disabled={option.disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-control px-3 py-2 text-micro font-bold uppercase tracking-control transition-all',
+              'flex min-w-0 flex-1 items-center justify-center gap-2 rounded-control px-2 py-2 text-micro font-semibold uppercase tracking-control transition-all',
               active
                 ? tone === 'primary'
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'

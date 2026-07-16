@@ -25,6 +25,7 @@ import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/u
 import ConfirmModal from './ConfirmModal';
 import { Button } from './ui/Button';
 import { SelectField } from './ui/SelectField';
+import { SegmentedControl } from './ui/SegmentedControl';
 
 type InspectableDevice = Device & {
   externalId: string;
@@ -339,22 +340,16 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted/50 p-1">
-            {(['info', 'logs', 'state'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  'min-h-10 rounded-xl px-2 py-2 text-label font-black uppercase tracking-control transition-all',
-                  activeTab === tab
-                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                {t(`inbox.inspector.tabs.${tab}`)}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            value={activeTab}
+            onChange={setActiveTab}
+            tone="primary"
+            className="grid grid-cols-3 gap-1 rounded-2xl p-1"
+            options={(['info', 'logs', 'state'] as const).map((value) => ({
+              value,
+              label: t(`inbox.inspector.tabs.${value}`),
+            }))}
+          />
         </div>
 
         <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-6 xl:p-8">
