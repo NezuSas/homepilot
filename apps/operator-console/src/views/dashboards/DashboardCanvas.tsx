@@ -168,9 +168,17 @@ const virtualPlaceholders = useMemo(() => {
 
 // V19 preserves section layout height for internal section cards
 const canvasMinRows = useMemo(() => {
-    const bottomY = renderedWidgets.reduce((max: number, w: DashboardWidget) => Math.max(max, w.config.layout.y + w.config.layout.h), 0);
-    return Math.max(8, bottomY + (canEditLayout ? 6 : 2));
-  }, [renderedWidgets, canEditLayout]);
+    const widgetBottom = renderedWidgets.reduce(
+      (max: number, widget: DashboardWidget) => Math.max(max, widget.config.layout.y + widget.config.layout.h),
+      0,
+    );
+    const placeholderBottom = virtualPlaceholders.reduce(
+      (max, placeholder) => Math.max(max, placeholder.y + placeholder.h),
+      0,
+    );
+
+    return Math.max(1, widgetBottom, placeholderBottom);
+  }, [renderedWidgets, virtualPlaceholders]);
 
   const sensorOptions = useMemo(() => ({
     activationConstraint: {

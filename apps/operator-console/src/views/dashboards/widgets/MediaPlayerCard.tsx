@@ -1,4 +1,4 @@
-import { Music2, Pause, Play, Power, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { Cast, MoreVertical, Pause, Play, Power, SkipBack, SkipForward, Volume2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../../config';
@@ -110,16 +110,6 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const displayTitle = presentation.mediaTitle || title;
   const hasPrevious = commands.has('media_previous_track');
   const hasNext = commands.has('media_next_track');
-  const stateLabel = unavailable
-    ? t('dashboard.editor.sections.media_unavailable')
-    : isPlaying
-      ? t('dashboard.editor.sections.media_playing')
-      : presentation.state === 'paused'
-        ? t('dashboard.editor.sections.media_paused')
-        : isOff
-          ? t('dashboard.editor.sections.media_off')
-          : t('dashboard.editor.sections.media_ready');
-
   const invoke = (command: MediaPlayerCommand | null) => {
     if (!command || !canAct) return;
     onCommand?.(command);
@@ -151,36 +141,31 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
 
   return (
     <div className="relative flex h-full min-h-media-card flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
-      {artworkUrl && <img src={artworkUrl} alt="" className="pointer-events-none absolute inset-y-0 right-0 h-full w-2/5 object-cover" />}
+      {artworkUrl && <img src={artworkUrl} alt="" className="pointer-events-none absolute inset-y-0 right-0 h-full w-[48%] object-cover" />}
       <div className={cn(
         'pointer-events-none absolute inset-0',
         artworkUrl
-          ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.99)_0%,hsl(var(--card)/0.95)_42%,hsl(var(--card)/0.58)_64%,hsl(var(--card)/0.08)_100%)]'
+          ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.98)_0%,hsl(var(--card)/0.94)_43%,hsl(var(--card)/0.58)_68%,hsl(var(--card)/0.12)_100%)]'
           : 'bg-[radial-gradient(circle_at_92%_8%,hsl(var(--primary)/0.22),transparent_39%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--card)/0.74))]',
       )} />
       <div className="relative flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
           <span className="flex items-center gap-2 text-caption font-semibold text-foreground">
-            <Music2 className="h-4 w-4 shrink-0 text-primary" />
+            <Cast className="h-4 w-4 shrink-0 text-primary" />
             <span className="truncate">{title}</span>
           </span>
         </div>
-        <span className={cn(
-          'shrink-0 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-control backdrop-blur-sm',
-          isPlaying ? 'border-primary/35 bg-primary/10 text-primary' : 'border-border/55 bg-background/75 text-muted-foreground',
-        )}>
-          {stateLabel}
-        </span>
+        <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />
       </div>
 
-      <div className="relative mt-auto min-w-0 px-4 pt-5">
-        <span className="block line-clamp-2 text-card-title font-black leading-tight text-foreground">{displayTitle}</span>
+      <div className="relative mt-auto min-w-0 px-4 pt-4">
+        <span className="block line-clamp-2 text-card-title font-bold leading-tight text-foreground">{displayTitle}</span>
         <span className="mt-1 block truncate text-caption font-semibold text-muted-foreground">
           {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
         </span>
       </div>
 
-      <div className="relative mt-4 flex items-center gap-2 px-4">
+      <div className="relative mt-3 flex items-center gap-1.5 px-4">
         <button
           type="button"
           disabled={!canAct || !powerCommand}
@@ -189,7 +174,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             invoke(powerCommand);
           }}
           aria-label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
         >
           <Power className="h-4 w-4" />
         </button>
@@ -199,7 +184,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             disabled={!canAct}
             onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
             aria-label={t('dashboard.editor.sections.media_previous')}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
           >
             <SkipBack className="h-4 w-4" />
           </button>
@@ -212,7 +197,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             invoke(playPauseCommand);
           }}
           aria-label={t(isPlaying ? 'dashboard.editor.sections.media_pause' : 'dashboard.editor.sections.media_play')}
-          className="grid h-10 min-w-12 flex-1 place-items-center rounded-xl bg-primary text-primary-foreground shadow-primary-warm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
         >
           {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </button>
@@ -222,17 +207,17 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             disabled={!canAct}
             onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
             aria-label={t('dashboard.editor.sections.media_next')}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
           >
             <SkipForward className="h-4 w-4" />
           </button>
         )}
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm" title={presentation.volume === null ? undefined : `${presentation.volume}%`}>
+        <span className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={presentation.volume === null ? undefined : `${presentation.volume}%`}>
           <Volume2 className="h-4 w-4" />
         </span>
       </div>
-      <div className="relative mx-4 mb-4 mt-3 h-1 overflow-hidden rounded-full bg-background/70 backdrop-blur-sm">
-        <span className="block h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${presentation.volume ?? 0}%` }} />
+      <div className="relative mx-4 mb-4 mt-2 h-1 overflow-hidden rounded-full bg-foreground/20">
+        <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${presentation.volume ?? 0}%` }} />
       </div>
     </div>
   );
