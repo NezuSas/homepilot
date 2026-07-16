@@ -19,12 +19,13 @@ import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { CameraMediaFrame, type CameraFeedMode } from '../../../components/CameraMediaFrame';
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
-import { useDeviceSnapshotStore, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
+import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
+import { SensorMetricCard } from './SensorMetricCard';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -37,6 +38,7 @@ type SectionCardKind =
   | 'light'
   | 'cover'
   | 'camera'
+  | 'sensor'
   | 'room'
   | 'scene'
   | 'clock'
@@ -88,6 +90,7 @@ const cardKinds: NormalizedSectionCardKind[] = [
   'light',
   'cover',
   'camera',
+  'sensor',
   'room',
   'scene',
   'clock_digital',
@@ -129,6 +132,8 @@ function getCatalogLabelKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.section_card_cover';
     case 'camera':
       return 'dashboard.editor.sections.section_card_camera';
+    case 'sensor':
+      return 'dashboard.editor.sections.section_card_sensor';
     case 'room':
       return 'dashboard.editor.sections.section_card_room';
     case 'scene':
@@ -159,6 +164,8 @@ function getCatalogDescriptionKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.section_card_cover_desc';
     case 'camera':
       return 'dashboard.editor.sections.section_card_camera_desc';
+    case 'sensor':
+      return 'dashboard.editor.sections.section_card_sensor_desc';
     case 'room':
       return 'dashboard.editor.sections.section_card_room_desc';
     case 'scene':
@@ -200,6 +207,7 @@ function getWidgetType(kind: SectionCardKind): WidgetType {
     case 'light':
     case 'cover':
     case 'camera':
+    case 'sensor':
     default:
       return 'device_control' as WidgetType;
   }
@@ -211,6 +219,7 @@ function isBindableKind(kind: SectionCardKind) {
     || normalized === 'light'
     || normalized === 'cover'
     || normalized === 'camera'
+    || normalized === 'sensor'
     || normalized === 'room'
     || normalized === 'scene';
 }
@@ -223,6 +232,8 @@ function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
       return 'Blinds';
     case 'camera':
       return 'Camera';
+    case 'sensor':
+      return 'Gauge';
     case 'room':
       return 'Home';
     case 'scene':
@@ -356,6 +367,12 @@ function isLightLikeDevice(device: { type?: string | null; semanticType?: string
     || device.semanticType === 'outlet';
 }
 
+function isSensorLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
+  return device.type === 'sensor'
+    || device.type === 'binary_sensor'
+    || device.semanticType === 'sensor';
+}
+
 function getAssignableDevicesForKind(
   kind: SectionCardKind,
   devices: Array<{ id: string; name?: string | null; type?: string | null; semanticType?: string | null }>
@@ -365,6 +382,7 @@ function getAssignableDevicesForKind(
   if (normalized === 'camera') return devices.filter(isCameraLikeDevice);
   if (normalized === 'cover') return devices.filter(isCoverLikeDevice);
   if (normalized === 'light') return devices.filter(isLightLikeDevice);
+  if (normalized === 'sensor') return devices.filter(isSensorLikeDevice);
   if (normalized === 'device') return devices.filter((device) => !isCameraLikeDevice(device));
   return [];
 }
@@ -520,6 +538,8 @@ function CardPreview({
   isAssigned,
   isActive,
   deviceId,
+  device,
+  isPreview,
   roomDeviceCount,
   roomActiveCount,
 }: {
@@ -531,6 +551,8 @@ function CardPreview({
   isAssigned?: boolean;
   isActive?: boolean;
   deviceId?: string;
+  device?: SnapshotDevice;
+  isPreview?: boolean;
   roomDeviceCount?: number;
   roomActiveCount?: number;
 }) {
@@ -571,6 +593,10 @@ function CardPreview({
         </div>
       </div>
     );
+  }
+
+  if (normalized === 'sensor') {
+    return <SensorMetricCard device={device} title={title} isPreview={isPreview} />;
   }
 
   if (normalized === 'energy') {
@@ -1046,6 +1072,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isAssigned={Boolean(card.entityId)}
           isActive={cardIsActive}
           deviceId={cameraDeviceId}
+          device={assignedDevice}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />
@@ -1131,6 +1158,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isAssigned={Boolean(deviceIdOverride)}
           isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           deviceId={deviceIdOverride}
+          device={previewDevice}
+          isPreview={!deviceIdOverride}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />
@@ -1247,7 +1276,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
-              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' ? cardDraft.entityId : undefined,
+              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' ? cardDraft.entityId : undefined,
             )}
 
             <label className="block space-y-2">
