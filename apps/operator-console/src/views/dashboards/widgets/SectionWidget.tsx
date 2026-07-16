@@ -21,7 +21,7 @@ import { CameraMediaFrame, type CameraFeedMode } from '../../../components/Camer
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
-import { isDeviceActive } from '../dashboardUtils';
+import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
@@ -301,7 +301,7 @@ function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSecti
 function getSpanClass(span: SectionCardSpan) {
   switch (span) {
     case 'full':
-      return 'col-span-1 sm:col-span-2 xl:col-span-4';
+      return 'col-span-full';
     case 'medium':
       return 'col-span-1 sm:col-span-2';
     case 'small':
@@ -360,48 +360,6 @@ function SectionClockPreview({ kind, title }: { kind: SectionCardKind; title: st
   );
 }
 
-
-function isCameraLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
-  return device.type === 'camera' || device.semanticType === 'camera';
-}
-
-function isCoverLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
-  return device.type === 'cover' || device.semanticType === 'cover';
-}
-
-function isLightLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
-  return device.type === 'light'
-    || device.semanticType === 'light'
-    || device.type === 'switch'
-    || device.semanticType === 'switch'
-    || device.type === 'outlet'
-    || device.semanticType === 'outlet';
-}
-
-function isSensorLikeDevice(device: { type?: string | null; semanticType?: string | null }) {
-  return device.type === 'sensor'
-    || device.type === 'binary_sensor'
-    || device.semanticType === 'sensor';
-}
-
-function isMediaPlayerLikeDevice(device: { type?: string | null; profile?: { category?: string | null } | null }) {
-  return device.type === 'media_player' || device.profile?.category === 'media';
-}
-
-function getAssignableDevicesForKind(
-  kind: SectionCardKind,
-  devices: Array<{ id: string; name?: string | null; type?: string | null; semanticType?: string | null; profile?: { category?: string | null } | null }>
-) {
-  const normalized = normalizeKind(kind);
-
-  if (normalized === 'camera') return devices.filter(isCameraLikeDevice);
-  if (normalized === 'cover') return devices.filter(isCoverLikeDevice);
-  if (normalized === 'light') return devices.filter(isLightLikeDevice);
-  if (normalized === 'sensor') return devices.filter(isSensorLikeDevice);
-  if (normalized === 'media') return devices.filter(isMediaPlayerLikeDevice);
-  if (normalized === 'device') return devices.filter((device) => !isCameraLikeDevice(device));
-  return [];
-}
 
 function getAssignableRooms(roomsByHome: Record<string, SnapshotRoom[]>) {
   return Object.values(roomsByHome)
@@ -747,9 +705,9 @@ function CardPreview({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-section border p-4 text-center text-foreground transition-all",
+        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-section border p-3 text-center text-foreground transition-all sm:p-4",
         isActive
-          ? "border-primary/70 bg-primary/15 shadow-primary-warm ring-1 ring-primary/25 dark:bg-device-active-dark"
+          ? "border-primary/80 bg-primary/15 shadow-primary-warm ring-2 ring-primary/30 dark:bg-device-active-dark"
           : "border-border/60 bg-card/95 shadow-surface-card ring-1 ring-background/45"
       )}
     >
@@ -758,26 +716,26 @@ function CardPreview({
       )}
       <span
         className={cn(
-          "mb-3 grid place-items-center rounded-full transition-all",
-          isSmall ? "h-16 w-16" : "h-24 w-24",
+          "mb-2 grid place-items-center rounded-full transition-all sm:mb-3",
+          isSmall ? "h-12 w-12 sm:h-14 sm:w-14" : "h-24 w-24",
           isActive
             ? "bg-primary text-primary-foreground shadow-primary-room-icon ring-1 ring-primary/35"
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
-        <Icon className={cn(isSmall ? "h-9 w-9" : "h-14 w-14")} />
+        <Icon className={cn(isSmall ? "h-7 w-7 sm:h-8 sm:w-8" : "h-14 w-14")} />
       </span>
       <span className={cn(
-        "line-clamp-2 font-black leading-tight text-foreground",
+        "line-clamp-2 min-w-0 font-black leading-tight text-foreground",
         isSmall ? "text-caption" : "text-body"
       )}>{title}</span>
       {isAssigned ? (
         <span
           className={cn(
-            "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-semibold uppercase leading-none tracking-control",
+            "mt-1.5 max-w-full shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-nano font-black uppercase leading-none tracking-control sm:mt-2",
             isActive
-              ? "border-primary/50 bg-primary text-primary-foreground shadow-primary-room-icon"
-              : "border-border/55 bg-muted/60 text-muted-foreground"
+              ? "border-primary bg-primary text-primary-foreground shadow-primary-room-icon"
+              : "border-border/55 bg-background/90 text-muted-foreground"
           )}
         >
           {t(isActive ? 'device_statuses.on' : 'device_statuses.off')}
@@ -817,7 +775,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
 
-  const assignableDevices = getAssignableDevicesForKind(cardDraft.kind, devices);
+  const assignableDevices = getAssignableDevicesForSectionCard(normalizeKind(cardDraft.kind), devices);
   const assignableRooms = useMemo(() => getAssignableRooms(roomsByHome), [roomsByHome]);
   const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
   const selectedScene = cardDraft.entityId ? scenes.find((scene) => scene.id === cardDraft.entityId) : undefined;
@@ -1017,7 +975,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     if (!device) return;
 
     const active = isDeviceActive(device);
-    const command = isCoverLikeDevice(device)
+    const command = normalized === 'cover'
       ? active ? 'close' : 'open'
       : active ? 'turn_off' : 'turn_on';
 
@@ -1528,7 +1486,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         if (sourceId) moveCardToEnd(sourceId);
         setDraggingCardId(null);
       }}
-      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(8.25rem,auto)] content-start gap-3 overflow-visible pr-1 sm:grid-cols-2 xl:grid-cols-4"
+      className="grid min-h-0 flex-1 auto-rows-[minmax(8.25rem,auto)] content-start gap-3 overflow-visible pr-1"
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr))' }}
     >
       {cards.map(renderCard)}
 
@@ -1541,7 +1500,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           }}
           className={cn(
             "inline-flex min-h-section-card-sm items-center justify-center rounded-section border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
-            cards.length === 0 ? "col-span-1 sm:col-span-2 xl:col-span-4" : "col-span-1"
+            cards.length === 0 ? "col-span-full" : "col-span-1"
           )}
           aria-label={t('dashboard.editor.sections.add_card')}
         >

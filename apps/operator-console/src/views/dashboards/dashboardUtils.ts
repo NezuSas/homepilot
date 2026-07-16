@@ -94,6 +94,47 @@ export function getDevicesInRoom(devices: SnapshotDevice[], roomId: string | nul
   return devices.filter(d => d.roomId === roomId);
 }
 
+function isCameraDevice(device: SnapshotDevice) {
+  return device.type === 'camera' || device.semanticType === 'camera';
+}
+
+function isCoverDevice(device: SnapshotDevice) {
+  return device.type === 'cover' || device.semanticType === 'cover';
+}
+
+function isLightDevice(device: SnapshotDevice) {
+  return device.type === 'light'
+    || device.semanticType === 'light'
+    || device.type === 'switch'
+    || device.semanticType === 'switch'
+    || device.type === 'outlet'
+    || device.semanticType === 'outlet';
+}
+
+function isSensorDevice(device: SnapshotDevice) {
+  return device.type === 'sensor'
+    || device.type === 'binary_sensor'
+    || device.semanticType === 'sensor';
+}
+
+function isMediaPlayerDevice(device: SnapshotDevice) {
+  return device.type === 'media_player' || device.profile?.category === 'media';
+}
+
+/** Returns only HomePilot-local devices compatible with a dashboard card. */
+export function getAssignableDevicesForSectionCard(kind: string, devices: SnapshotDevice[]): SnapshotDevice[] {
+  const matchingDevices = kind === 'camera' ? devices.filter(isCameraDevice)
+    : kind === 'cover' ? devices.filter(isCoverDevice)
+      : kind === 'light' ? devices.filter(isLightDevice)
+        : kind === 'sensor' ? devices.filter(isSensorDevice)
+          : kind === 'media' ? devices.filter(isMediaPlayerDevice)
+            : kind === 'device'
+              ? devices.filter((device) => !isCameraDevice(device) && !isSensorDevice(device) && !isMediaPlayerDevice(device))
+              : [];
+
+  return matchingDevices.sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+}
+
 /**
  * Ensures a widget config has all required fields with defaults.
  */

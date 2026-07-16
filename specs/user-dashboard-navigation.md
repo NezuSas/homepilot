@@ -32,6 +32,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 10. El catálogo de tarjetas debe incluir un reproductor multimedia para entidades `media_player` ya importadas al inventario local de HomePilot.
 11. La tarjeta multimedia debe mostrar el último estado y metadatos sincronizados localmente; sus controles de encendido, reproducción y pausa solo estarán disponibles si el perfil local del dispositivo declara el comando correspondiente.
 12. En modo edición, el placeholder para crear una nueva zona debe colocarse en una fila completa después de la zona más baja del tablero; no puede compartir ni superponerse a una fila de zonas existente.
+13. Las tarjetas internas de una zona deben adaptar sus columnas al ancho real de la zona. Sus selectores solo pueden mostrar entidades locales compatibles con el tipo de tarjeta.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -61,3 +62,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC25:** El selector de una tarjeta multimedia solo lista entidades `media_player` ya importadas a HomePilot; no consulta ni depende de la interfaz de Home Assistant.
 - **AC26:** La tarjeta multimedia ejecuta `turn_on`, `turn_off`, `media_play` o `media_pause` únicamente cuando el dispositivo los soporta, y refresca el snapshot local tras una ejecución satisfactoria.
 - **AC27:** Tras crear cuatro o más zonas, el control para añadir la siguiente zona aparece debajo de todas las zonas existentes y la nueva zona se inserta sin solapar contenido previo.
+- **AC28:** Con cuatro zonas en el tablero, las tarjetas pequeñas no desbordan su título ni su estado; el selector de Luz/Cortina/Cámara/Sensor/Multimedia presenta únicamente dispositivos locales del tipo respectivo.
