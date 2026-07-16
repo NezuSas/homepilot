@@ -52,8 +52,24 @@ describe('dashboard section layout', () => {
     const layouts = resolveDashboardSectionLayouts(sections, true);
 
     expect(layouts.get('section-0')).toMatchObject({ y: 2, h: 7 });
-    expect(layouts.get('section-4')).toMatchObject({ x: 0, y: 10, h: 4 });
-    expect(getDashboardSectionPlaceholderY(layouts)).toBe(15);
+    expect(layouts.get('section-4')).toMatchObject({ x: 0, y: 10, h: 3 });
+    expect(getDashboardSectionPlaceholderY(layouts)).toBe(14);
+  });
+
+  it('reserves the full visual height of wide media cards before placing the next zone', () => {
+    const section = createSection('section-media', 0);
+    section.config.extra = {
+      cards: [
+        { id: 'light-a', kind: 'light', span: 'small' },
+        { id: 'light-b', kind: 'light', span: 'small' },
+        { id: 'media', kind: 'media', span: 'full' },
+      ],
+    };
+    const nextSection = createSection('section-next', 0);
+    const layouts = resolveDashboardSectionLayouts([section, nextSection], true);
+
+    expect(layouts.get('section-media')).toMatchObject({ y: 2, h: 9 });
+    expect(getDashboardSectionPlaceholderY(layouts)).toBe(12);
   });
 
   it('lists only compatible local entities for each card kind', () => {

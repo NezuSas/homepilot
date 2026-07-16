@@ -6,6 +6,62 @@ const DASHBOARD_SECTION_COLUMNS = 4;
 const DASHBOARD_SECTION_START_Y = 2;
 const DASHBOARD_SECTION_MIN_ROWS = 2;
 
+type SectionCardSpan = 'small' | 'medium' | 'full';
+
+interface SectionCardLayoutInput {
+  readonly kind?: unknown;
+  readonly span?: unknown;
+}
+
+function getSectionCardSpan(card: SectionCardLayoutInput): SectionCardSpan {
+  if (card.span === 'small' || card.span === 'medium' || card.span === 'full') return card.span;
+  if (card.kind === 'camera' || card.kind === 'media' || card.kind === 'clock_analog_minimal' || card.kind === 'clock_analog_premium' || card.kind === 'clock_digital_compact') {
+    return 'full';
+  }
+  if (card.kind === 'sensor' || card.kind === 'room' || card.kind === 'scene') return 'medium';
+  return 'small';
+}
+
+function getSectionCardHeight(card: SectionCardLayoutInput, span: SectionCardSpan): number {
+  if (card.kind === 'camera' || card.kind === 'media' || card.kind === 'clock_analog_minimal' || card.kind === 'clock_analog_premium' || card.kind === 'clock_digital_compact') return 4;
+  return span === 'small' ? 2 : 3;
+}
+
+/**
+ * The internal section grid adapts to the actual width of a section, but it
+ * always guarantees room for two compact cards. This packing estimate is used
+ * only for the outer dashboard grid so subsequent zones and its placeholder
+ * cannot overlap taller cards such as cameras, clocks or media players.
+ */
+function getSectionContentRows(cards: SectionCardLayoutInput[], isEditing: boolean): number {
+  const items: Array<SectionCardLayoutInput | null> = [...cards, ...(isEditing ? [null] : [])];
+  let occupiedColumns = 0;
+  let currentRowHeight = 0;
+  let totalRows = 0;
+
+  for (const card of items) {
+    const span = card === null ? 'full' : getSectionCardSpan(card);
+    const width = span === 'small' ? 1 : 2;
+    const height = card === null ? 2 : getSectionCardHeight(card, span);
+
+    if (occupiedColumns > 0 && occupiedColumns + width > 2) {
+      totalRows += currentRowHeight;
+      occupiedColumns = 0;
+      currentRowHeight = 0;
+    }
+
+    occupiedColumns += width;
+    currentRowHeight = Math.max(currentRowHeight, height);
+    if (occupiedColumns === 2) {
+      totalRows += currentRowHeight;
+      occupiedColumns = 0;
+      currentRowHeight = 0;
+    }
+  }
+
+  return totalRows + currentRowHeight;
+}
+
 /**
  * Resolves the visual grid for dashboard sections. Section cards can grow
  * independently, so each following row starts below the tallest section in
@@ -27,14 +83,15 @@ export function resolveDashboardSectionLayouts(
       : DASHBOARD_SECTION_COLUMNS;
     const width = Math.floor(12 / effectiveColumnCount);
     const heights = rowSections.map((section) => {
-      const cards = Array.isArray(section.config.extra?.cards) ? section.config.extra.cards : [];
-      const internalItems = Math.max(1, cards.length + (isEditing ? 1 : 0));
-      const internalRows = Math.ceil(internalItems / 2);
+      const cards = Array.isArray(section.config.extra?.cards)
+        ? section.config.extra.cards.filter((card): card is SectionCardLayoutInput => card !== null && typeof card === 'object' && !Array.isArray(card))
+        : [];
+      const internalRows = Math.max(1, getSectionContentRows(cards, isEditing));
 
       return Math.max(
         section.config.layout.h,
         DASHBOARD_SECTION_MIN_ROWS,
-        1 + internalRows * 3,
+        1 + internalRows,
       );
     });
 
