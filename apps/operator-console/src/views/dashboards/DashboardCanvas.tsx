@@ -14,6 +14,7 @@ import type { DashboardWidget } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
 import {
   getDashboardSectionPlaceholderY,
+  getDashboardSectionStartY,
   resolveDashboardSectionLayouts,
   sanitizeWidget,
 } from './dashboardUtils';
@@ -143,7 +144,7 @@ const virtualPlaceholders = useMemo(() => {
     placeholders.push({
       key: 'add_section_final',
       x: 4,
-      y: 2,
+      y: getDashboardSectionStartY(sanitizedWidgets),
       w: 4,
       h: 1,
       type: 'add_section',

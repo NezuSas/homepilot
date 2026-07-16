@@ -3,6 +3,7 @@ import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import {
   getAssignableDevicesForSectionCard,
   getDashboardSectionPlaceholderY,
+  getDashboardSectionStartY,
   resolveDashboardSectionLayouts,
 } from './dashboardUtils';
 
@@ -80,6 +81,24 @@ describe('dashboard section layout', () => {
 
     expect(layouts.get('section-legacy-height')).toMatchObject({ y: 2, h: 3 });
     expect(getDashboardSectionPlaceholderY(layouts)).toBe(6);
+  });
+
+  it('places the first zone below a taller dashboard title', () => {
+    const title: DashboardWidget = {
+      id: 'title',
+      type: 'dashboard_title',
+      config: {
+        layout: { x: 0, y: 0, w: 12, h: 4 },
+        binding: { entityId: '', entityType: 'system' },
+        visibility: { rules: [], defaultState: 'show' },
+        appearance: { title: 'Hola', showTitle: true },
+        extra: {},
+      },
+    };
+    const section = createSection('section-after-title', 0);
+
+    expect(getDashboardSectionStartY([title])).toBe(4);
+    expect(resolveDashboardSectionLayouts([title, section], true).get(section.id)).toMatchObject({ y: 4 });
   });
 
   it('lists only compatible local entities for each card kind', () => {

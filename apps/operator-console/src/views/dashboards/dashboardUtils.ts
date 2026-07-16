@@ -63,6 +63,18 @@ function getSectionContentRows(cards: SectionCardLayoutInput[], isEditing: boole
 }
 
 /**
+ * Zones always start directly below the title area. Older dashboards can have
+ * a taller title widget, so deriving this position prevents the first
+ * add-zone placeholder from being hidden underneath it.
+ */
+export function getDashboardSectionStartY(widgets: DashboardWidget[]): number {
+  return widgets.reduce((startY, widget) => {
+    if (widget.type !== 'dashboard_title') return startY;
+    return Math.max(startY, widget.config.layout.y + widget.config.layout.h);
+  }, DASHBOARD_SECTION_START_Y);
+}
+
+/**
  * Resolves the visual grid for dashboard sections. Section cards can grow
  * independently, so each following row starts below the tallest section in
  * the previous row instead of relying on a fixed row offset.
@@ -73,7 +85,7 @@ export function resolveDashboardSectionLayouts(
 ): Map<string, DashboardWidgetConfig['layout']> {
   const sections = widgets.filter((widget) => widget.type === 'section');
   const layouts = new Map<string, DashboardWidgetConfig['layout']>();
-  let rowY = DASHBOARD_SECTION_START_Y;
+  let rowY = getDashboardSectionStartY(widgets);
 
   for (let rowStart = 0; rowStart < sections.length; rowStart += DASHBOARD_SECTION_COLUMNS) {
     const rowSections = sections.slice(rowStart, rowStart + DASHBOARD_SECTION_COLUMNS);

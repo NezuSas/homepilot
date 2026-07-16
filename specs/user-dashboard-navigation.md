@@ -34,6 +34,8 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 11.1. Cuando la entidad multimedia importada publique una portada local (`entity_picture_local`) o remota (`entity_picture`), HomePilot debe priorizar la ruta local y mostrarla en la tarjeta mediante un proxy autenticado. Los tokens efímeros incluidos por Home Assistant en `entity_picture_local` no pueden persistirse ni exponerse al navegador: HomePilot debe obtener la imagen con el token administrativo del bridge. La portada debe entregarse como una respuesta de imagen completa con `Content-Length`, compatible con el túnel de acceso externo. El preview debe reutilizar exactamente la misma tarjeta sin recortar sus controles.
 12. En modo edición, el placeholder para crear una nueva zona debe colocarse en una fila completa inmediatamente después de la zona más baja del tablero; no puede compartir ni superponerse a una fila de zonas existente, incluso cuando una zona contiene tarjetas altas como cámaras, relojes o reproductores multimedia. La posición y el alto del canvas deben calcularse desde el contenido actual y no desde alturas heredadas de secciones antiguas.
 13. Las tarjetas internas de una zona deben adaptar sus columnas al ancho real de la zona. Sus selectores solo pueden mostrar entidades locales compatibles con el tipo de tarjeta.
+14. El fondo configurado de una vista debe cubrir como mínimo toda el área visible del tablero, detrás del contenido y sin recortarse al alto inicial de sus widgets.
+15. El placeholder para la primera zona debe ubicarse inmediatamente después del área de título real, incluso si un tablero existente tiene un título más alto que el tamaño predeterminado.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -64,3 +66,5 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC26:** La tarjeta multimedia ejecuta `turn_on`, `turn_off`, `media_play` o `media_pause` únicamente cuando el dispositivo los soporta, y refresca el snapshot local tras una ejecución satisfactoria.
 - **AC27:** Tras crear cuatro o más zonas, el control para añadir la siguiente zona aparece debajo de todas las zonas existentes y la nueva zona se inserta sin solapar contenido previo.
 - **AC28:** Con cuatro zonas en el tablero, las tarjetas pequeñas no desbordan su título ni su estado; el selector de Luz/Cortina/Cámara/Sensor/Multimedia presenta únicamente dispositivos locales del tipo respectivo.
+- **AC29:** Con un fondo configurado, el tablero cubre al menos la altura visible completa del área de contenido sin dejar un lienzo plano debajo de sus widgets.
+- **AC30:** Un tablero con un título alto muestra el placeholder de su primera zona debajo del título sin requerir redimensionar la ventana ni solaparlo.

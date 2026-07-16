@@ -369,7 +369,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
   const activeTab = active?.tabs[activeTabIdx];
 
   return (
-    <div className="relative flex min-h-full flex-col gap-0 animate-in fade-in duration-700">
+    <div className="relative isolate flex min-h-screen-dvh flex-col gap-0 animate-in fade-in duration-700">
       {activeTab?.background && (
         <div 
           className="absolute inset-0 z-0 transition-all duration-700 pointer-events-none"
