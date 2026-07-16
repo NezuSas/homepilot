@@ -107,6 +107,10 @@ describe('MediaPlayerRoutes', () => {
       '/api/media_player_proxy/media_player.office_screen?cache=cover-version',
       expect.any(AbortSignal),
     );
-    expect(response.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/jpeg' }));
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({
+      'Content-Type': 'image/jpeg',
+      'Content-Length': 3,
+    }));
+    expect(response.end).toHaveBeenCalledWith(Buffer.from([1, 2, 3]));
   });
 });

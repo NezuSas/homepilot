@@ -114,18 +114,16 @@ export class MediaPlayerRoutes extends ApiRoutes {
         return;
       }
 
+      const artworkBytes = Buffer.from(await upstream.arrayBuffer());
+      if (res.destroyed) return;
+
       res.writeHead(200, {
         'Content-Type': contentType,
+        'Content-Length': artworkBytes.length,
         'Cache-Control': 'private, max-age=300',
         'X-Content-Type-Options': 'nosniff',
       });
-      const reader = upstream.body.getReader();
-      while (!res.destroyed) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        res.write(chunk.value);
-      }
-      if (!res.destroyed) res.end();
+      res.end(artworkBytes);
     } catch (error: unknown) {
       if (!abortController.signal.aborted && !res.destroyed) {
         this.sendError(res, 502, 'HA_CONNECTION_ERROR', error instanceof Error ? error.message : 'Media artwork proxy failed');
