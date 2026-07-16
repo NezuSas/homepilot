@@ -354,6 +354,8 @@
         "media_pause": "Pause",
         "media_turn_on": "Turn on player",
         "media_turn_off": "Turn off player",
+        "media_previous": "Previous track",
+        "media_next": "Next track",
         "energy_label": "Energy",
         "room_label": "Room",
         "room_access": "Room access",

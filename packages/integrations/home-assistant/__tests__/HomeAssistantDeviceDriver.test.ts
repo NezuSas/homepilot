@@ -171,9 +171,13 @@ describe('HomeAssistantDeviceDriver', () => {
 
     const playResult = await driver.executeCommand(mediaPlayer, { name: 'media_play' }, { userId: 'u1', correlationId: 'c1' });
     const pauseResult = await driver.executeCommand(mediaPlayer, { name: 'media_pause' }, { userId: 'u1', correlationId: 'c2' });
+    await driver.executeCommand(mediaPlayer, { name: 'media_previous_track' }, { userId: 'u1', correlationId: 'c3' });
+    await driver.executeCommand(mediaPlayer, { name: 'media_next_track' }, { userId: 'u1', correlationId: 'c4' });
 
     expect(mockClient.callService).toHaveBeenNthCalledWith(1, 'media_player', 'media_play', 'media_player.z_tech_speaker', undefined);
     expect(mockClient.callService).toHaveBeenNthCalledWith(2, 'media_player', 'media_pause', 'media_player.z_tech_speaker', undefined);
+    expect(mockClient.callService).toHaveBeenNthCalledWith(3, 'media_player', 'media_previous_track', 'media_player.z_tech_speaker', undefined);
+    expect(mockClient.callService).toHaveBeenNthCalledWith(4, 'media_player', 'media_next_track', 'media_player.z_tech_speaker', undefined);
     expect(playResult.newState).toMatchObject({ state: 'playing', on: true });
     expect(pauseResult.newState).toMatchObject({ state: 'paused', on: true });
   });

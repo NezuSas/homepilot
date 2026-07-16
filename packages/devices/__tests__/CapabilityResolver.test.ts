@@ -67,6 +67,8 @@ describe('CapabilityResolver', () => {
       'turn_off',
       'media_play',
       'media_pause',
+      'media_previous_track',
+      'media_next_track',
     ]);
   });
 

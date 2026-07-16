@@ -1,9 +1,12 @@
-import { Music2, Pause, Play, Power, Volume2 } from 'lucide-react';
+import { Music2, Pause, Play, Power, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_BASE_URL } from '../../../config';
+import { apiFetch } from '../../../lib/apiClient';
 import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 
-export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause';
+export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track';
 
 interface MediaPlayerCardProps {
   device?: SnapshotDevice;
@@ -18,6 +21,10 @@ interface MediaPresentation {
   mediaTitle: string | null;
   mediaArtist: string | null;
   volume: number | null;
+}
+
+interface MediaArtworkSession {
+  readonly artworkPath: string | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -74,8 +81,20 @@ function isUnavailable(state: string) {
   return state === 'unavailable' || state === 'unknown' || state === 'none';
 }
 
+function isMediaArtworkSession(value: unknown): value is MediaArtworkSession {
+  return value !== null
+    && typeof value === 'object'
+    && 'artworkPath' in value
+    && ((value as { artworkPath?: unknown }).artworkPath === null || typeof (value as { artworkPath?: unknown }).artworkPath === 'string');
+}
+
+function absoluteApiUrl(path: string): string {
+  return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
+}
+
 export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand }: MediaPlayerCardProps) {
   const { t } = useTranslation();
+  const [artworkPath, setArtworkPath] = useState<string | null>(null);
   const presentation = getMediaPlayerPresentation(device, isPreview);
   const commands = supportedCommands(device);
   const isPlaying = presentation.state === 'playing';
@@ -89,6 +108,8 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     : commands.has('turn_off') ? 'turn_off' : null;
   const canAct = Boolean(onCommand) && !isProcessing && !unavailable;
   const displayTitle = presentation.mediaTitle || title;
+  const hasPrevious = commands.has('media_previous_track');
+  const hasNext = commands.has('media_next_track');
   const stateLabel = unavailable
     ? t('dashboard.editor.sections.media_unavailable')
     : isPlaying
@@ -104,32 +125,62 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     onCommand?.(command);
   };
 
+  useEffect(() => {
+    let active = true;
+    if (!device?.id) {
+      setArtworkPath(null);
+      return () => { active = false; };
+    }
+
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/media/session`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`MEDIA_ARTWORK_SESSION_${response.status}`);
+        return response.json() as Promise<unknown>;
+      })
+      .then((payload) => {
+        if (active && isMediaArtworkSession(payload)) setArtworkPath(payload.artworkPath);
+      })
+      .catch(() => {
+        if (active) setArtworkPath(null);
+      });
+
+    return () => { active = false; };
+  }, [device?.id, device?.updatedAt]);
+
+  const artworkUrl = artworkPath ? absoluteApiUrl(artworkPath) : null;
+
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-4 text-foreground shadow-surface-card ring-1 ring-background/45">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_0%,hsl(var(--primary)/0.18),transparent_38%)]" />
-      <div className="relative flex items-start justify-between gap-3">
+    <div className="relative flex h-full min-h-[12rem] flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
+      {artworkUrl && <img src={artworkUrl} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70" />}
+      <div className={cn(
+        'pointer-events-none absolute inset-0',
+        artworkUrl
+          ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.98)_0%,hsl(var(--card)/0.84)_49%,hsl(var(--card)/0.18)_100%)]'
+          : 'bg-[radial-gradient(circle_at_92%_8%,hsl(var(--primary)/0.22),transparent_39%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--card)/0.74))]',
+      )} />
+      <div className="relative flex items-start justify-between gap-3 px-4 pt-4">
+        <div className="min-w-0">
+          <span className="flex items-center gap-2 text-caption font-semibold text-foreground">
+            <Music2 className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate">{title}</span>
+          </span>
+        </div>
         <span className={cn(
-          'grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-sm',
-          isPlaying && 'shadow-primary-warm ring-1 ring-primary/25',
-        )}>
-          <Music2 className="h-5 w-5" />
-        </span>
-        <span className={cn(
-          'rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-control',
+          'shrink-0 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-control backdrop-blur-sm',
           isPlaying ? 'border-primary/35 bg-primary/10 text-primary' : 'border-border/55 bg-background/75 text-muted-foreground',
         )}>
           {stateLabel}
         </span>
       </div>
 
-      <div className="relative mt-auto min-w-0 pt-4">
+      <div className="relative mt-auto min-w-0 px-4 pt-5">
         <span className="block line-clamp-2 text-card-title font-black leading-tight text-foreground">{displayTitle}</span>
         <span className="mt-1 block truncate text-caption font-semibold text-muted-foreground">
           {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
         </span>
       </div>
 
-      <div className="relative mt-4 flex items-center gap-2">
+      <div className="relative mt-4 flex items-center gap-2 px-4">
         <button
           type="button"
           disabled={!canAct || !powerCommand}
@@ -138,10 +189,21 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             invoke(powerCommand);
           }}
           aria-label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/65 text-muted-foreground transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
         >
           <Power className="h-4 w-4" />
         </button>
+        {hasPrevious && (
+          <button
+            type="button"
+            disabled={!canAct}
+            onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
+            aria-label={t('dashboard.editor.sections.media_previous')}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <SkipBack className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           disabled={!canAct || !playPauseCommand}
@@ -150,13 +212,27 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             invoke(playPauseCommand);
           }}
           aria-label={t(isPlaying ? 'dashboard.editor.sections.media_pause' : 'dashboard.editor.sections.media_play')}
-          className="grid h-10 flex-1 place-items-center rounded-xl bg-primary text-primary-foreground shadow-primary-warm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+          className="grid h-10 min-w-12 flex-1 place-items-center rounded-xl bg-primary text-primary-foreground shadow-primary-warm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </button>
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/65 text-muted-foreground" title={presentation.volume === null ? undefined : `${presentation.volume}%`}>
+        {hasNext && (
+          <button
+            type="button"
+            disabled={!canAct}
+            onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
+            aria-label={t('dashboard.editor.sections.media_next')}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/45 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <SkipForward className="h-4 w-4" />
+          </button>
+        )}
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm" title={presentation.volume === null ? undefined : `${presentation.volume}%`}>
           <Volume2 className="h-4 w-4" />
         </span>
+      </div>
+      <div className="relative mx-4 mb-4 mt-3 h-1 overflow-hidden rounded-full bg-background/70 backdrop-blur-sm">
+        <span className="block h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${presentation.volume ?? 0}%` }} />
       </div>
     </div>
   );

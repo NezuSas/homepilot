@@ -31,6 +31,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 9. Cuando el sensor represente batería, la tarjeta debe mostrar un indicador porcentual legible; las mediciones y estados no numéricos deben conservar su valor sin inventar una lectura.
 10. El catálogo de tarjetas debe incluir un reproductor multimedia para entidades `media_player` ya importadas al inventario local de HomePilot.
 11. La tarjeta multimedia debe mostrar el último estado y metadatos sincronizados localmente; sus controles de encendido, reproducción y pausa solo estarán disponibles si el perfil local del dispositivo declara el comando correspondiente.
+11.1. Cuando la entidad multimedia importada publique una portada (`entity_picture`), HomePilot debe mostrarla como fondo de la tarjeta mediante un proxy autenticado local, sin exponer el token de Home Assistant al navegador. El preview debe reutilizar exactamente la misma tarjeta.
 12. En modo edición, el placeholder para crear una nueva zona debe colocarse en una fila completa después de la zona más baja del tablero; no puede compartir ni superponerse a una fila de zonas existente.
 13. Las tarjetas internas de una zona deben adaptar sus columnas al ancho real de la zona. Sus selectores solo pueden mostrar entidades locales compatibles con el tipo de tarjeta.
 

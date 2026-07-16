@@ -354,6 +354,8 @@
         "media_pause": "Pausar",
         "media_turn_on": "Encender reproductor",
         "media_turn_off": "Apagar reproductor",
+        "media_previous": "Pista anterior",
+        "media_next": "Siguiente pista",
         "energy_label": "Energía",
         "room_label": "Habitación",
         "room_access": "Acceso por estancia",

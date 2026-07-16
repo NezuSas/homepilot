@@ -15,6 +15,7 @@ import { DeviceRoutes } from './routes/DeviceRoutes';
 import { DashboardRoutes } from './routes/DashboardRoutes';
 
 import { MediaRoutes } from './routes/MediaRoutes';
+import { MediaPlayerRoutes } from './routes/MediaPlayerRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
 import { NativeCameraRoutes } from './routes/NativeCameraRoutes';
@@ -34,6 +35,7 @@ export class OperatorConsoleServer {
   constructor(container: BootstrapContainer, dbPath: string, port: number = 3000) {
       const handlers: RouteHandler[] = [
         new MediaRoutes(),
+        new MediaPlayerRoutes(),
         new NativeCameraRoutes(dbPath),
         new CameraRoutes(dbPath),
         new SystemRoutes(),

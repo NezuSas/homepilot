@@ -73,6 +73,8 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
     { name: 'turn_off' },
     { name: 'media_play' },
     { name: 'media_pause' },
+    { name: 'media_previous_track' },
+    { name: 'media_next_track' },
   ],
   'camera': []
 };

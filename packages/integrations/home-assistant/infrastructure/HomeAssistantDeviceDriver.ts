@@ -62,6 +62,12 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     } else if (dispatchedCommand === 'media_pause' && haDomain === 'media_player') {
       domain = 'media_player';
       service = 'media_pause';
+    } else if (dispatchedCommand === 'media_previous_track' && haDomain === 'media_player') {
+      domain = 'media_player';
+      service = 'media_previous_track';
+    } else if (dispatchedCommand === 'media_next_track' && haDomain === 'media_player') {
+      domain = 'media_player';
+      service = 'media_next_track';
     }
     else if (dispatchedCommand === 'open' && haDomain === 'cover') {
       domain = 'cover';

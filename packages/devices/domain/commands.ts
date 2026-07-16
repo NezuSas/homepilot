@@ -12,7 +12,9 @@ export type DeviceCommandV1 =
   | 'stop'
   | 'set_position'
   | 'media_play'
-  | 'media_pause';
+  | 'media_pause'
+  | 'media_previous_track'
+  | 'media_next_track';
 
 /**
  * DeviceCommandRequest
@@ -45,6 +47,8 @@ export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
     'set_position',
     'media_play',
     'media_pause',
+    'media_previous_track',
+    'media_next_track',
   ];
   return validCommands.includes(cmd as DeviceCommandV1);
 }

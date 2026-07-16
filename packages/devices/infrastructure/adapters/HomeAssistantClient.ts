@@ -135,6 +135,27 @@ export class HomeAssistantClient {
   }
 
   /**
+   * Obtiene una portada que Home Assistant expone para una entidad multimedia.
+   * La ruta debe pertenecer al propio Home Assistant; nunca se usa como proxy
+   * abierto hacia hosts externos.
+   */
+  public async getMediaArtwork(artworkPath: string, signal?: AbortSignal): Promise<Response> {
+    const homeAssistantOrigin = new URL(this.baseUrl).origin;
+    const artworkUrl = new URL(artworkPath, this.baseUrl);
+    if (artworkUrl.origin !== homeAssistantOrigin || !artworkUrl.pathname.startsWith('/api/')) {
+      throw new Error('MEDIA_ARTWORK_PATH_INVALID');
+    }
+
+    return fetch(artworkUrl, {
+      signal,
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+    });
+  }
+
+  /**
    * Solicita a Home Assistant el stream HLS que utiliza su propio frontend.
    */
   public async getCameraHlsStreamPath(entityId: string): Promise<string | null> {
