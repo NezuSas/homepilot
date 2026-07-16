@@ -23,7 +23,10 @@ function resolveArtworkPath(device: Device | null): string | null {
   if (!device || device.type !== 'media_player') return null;
   const state = asRecord(device.lastKnownState);
   const attributes = asRecord(state.attributes);
-  const artworkPath = attributes.entity_picture ?? state.entity_picture;
+  const artworkPath = attributes.entity_picture_local
+    ?? attributes.entity_picture
+    ?? state.entity_picture_local
+    ?? state.entity_picture;
   return typeof artworkPath === 'string' && artworkPath.trim() ? artworkPath.trim() : null;
 }
 

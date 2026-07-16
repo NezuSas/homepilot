@@ -18,7 +18,10 @@ const mediaPlayer: Device = {
   invertState: false,
   lastKnownState: {
     state: 'playing',
-    attributes: { entity_picture: '/api/media_proxy/media_player.office_screen?token=cover-token' },
+    attributes: {
+      entity_picture_local: '/api/media_player_proxy/media_player.office_screen?token=local-cover-token',
+      entity_picture: 'https://cdn.example.invalid/cover.jpg',
+    },
   },
   entityVersion: 1,
   createdAt: '2026-07-16T00:00:00.000Z',
@@ -70,7 +73,7 @@ describe('MediaPlayerRoutes', () => {
 
     const payload = JSON.parse(response.end.mock.calls[0][0] as string) as { artworkPath: string };
     expect(payload.artworkPath).toContain('/api/v1/devices/media-1/media/artwork?token=');
-    expect(payload.artworkPath).not.toContain('cover-token');
+    expect(payload.artworkPath).not.toContain('local-cover-token');
   });
 
   it('proxies artwork bytes only through a valid signed session', async () => {
@@ -97,7 +100,7 @@ describe('MediaPlayerRoutes', () => {
     );
 
     expect(container.adapters.homeAssistantClient.getMediaArtwork).toHaveBeenCalledWith(
-      '/api/media_proxy/media_player.office_screen?token=cover-token',
+      '/api/media_player_proxy/media_player.office_screen?token=local-cover-token',
       expect.any(AbortSignal),
     );
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/jpeg' }));

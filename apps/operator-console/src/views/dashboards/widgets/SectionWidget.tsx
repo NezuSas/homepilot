@@ -1163,7 +1163,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'small' && "h-section-card-sm w-full max-w-copy-xl",
         span === 'medium' && "h-section-card-md w-full max-w-form-md",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
         <CardPreview
           kind={kind}

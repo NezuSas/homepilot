@@ -150,12 +150,12 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const artworkUrl = artworkPath ? absoluteApiUrl(artworkPath) : null;
 
   return (
-    <div className="relative flex h-full min-h-[12rem] flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
-      {artworkUrl && <img src={artworkUrl} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70" />}
+    <div className="relative flex h-full min-h-media-card flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
+      {artworkUrl && <img src={artworkUrl} alt="" className="pointer-events-none absolute inset-y-0 right-0 h-full w-2/5 object-cover" />}
       <div className={cn(
         'pointer-events-none absolute inset-0',
         artworkUrl
-          ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.98)_0%,hsl(var(--card)/0.84)_49%,hsl(var(--card)/0.18)_100%)]'
+          ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.99)_0%,hsl(var(--card)/0.95)_42%,hsl(var(--card)/0.58)_64%,hsl(var(--card)/0.08)_100%)]'
           : 'bg-[radial-gradient(circle_at_92%_8%,hsl(var(--primary)/0.22),transparent_39%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--card)/0.74))]',
       )} />
       <div className="relative flex items-start justify-between gap-3 px-4 pt-4">
