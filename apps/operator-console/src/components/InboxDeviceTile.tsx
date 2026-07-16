@@ -121,7 +121,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
       onClick={onInspect}
       className={cn(
         'relative group cursor-pointer transition-all duration-500',
-        'aspect-square min-w-inbox-device p-4 rounded-2xl flex flex-col justify-between border-2 hover:-translate-y-1 hover:shadow-xl',
+        'min-w-inbox-device rounded-2xl border-2 p-3.5 transition-all duration-500 sm:p-4 aspect-square flex flex-col justify-between hover:-translate-y-1 hover:shadow-xl',
         'bg-card hover:border-border',
         isOn && isAssigned && !unavailable ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20' : 'border-border shadow-md',
         (!isAssigned && isSonoff) ? 'border-success/30 bg-success/5 shadow-lg shadow-success/10 animate-in fade-in zoom-in-95 duration-700' : '',
@@ -168,19 +168,19 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
 
       <div className={cn('flex flex-col gap-1 overflow-hidden transition-opacity', (isProcessing || error) && 'opacity-30')}>
         <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-caption font-black uppercase tracking-tighter truncate opacity-60">{device.type}</span>
+          <span className="text-micro font-semibold uppercase tracking-control truncate opacity-60">{device.type}</span>
           {isSonoff && (
-            <span className="text-micro font-black uppercase tracking-micro bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-full shadow-success-pill shrink-0">{t('inbox.native_local')}</span>
+            <span className="shrink-0 rounded-full border border-success/30 bg-success/20 px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-success shadow-success-pill">{t('inbox.native_local')}</span>
           )}
           {unavailable && (
-            <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-micro font-black uppercase tracking-micro text-danger">
+            <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-danger">
               {t('device_states.unavailable')}
             </span>
           )}
         </div>
         <h4 className="text-card-title font-bold truncate">{device.name}</h4>
         {!isAssigned && isSonoff && (
-          <span className="text-micro font-black uppercase tracking-widest text-success/70 mt-0.5 animate-pulse">
+          <span className="mt-0.5 text-micro font-semibold uppercase tracking-control text-success/70 animate-pulse">
             {t('inbox.discovered_locally')}
           </span>
         )}
@@ -188,13 +188,13 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         {isAssigned ? (
           <div className="flex items-center gap-1.5 mt-1">
             <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', isOn ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30')} />
-            <span className={cn('text-label font-black uppercase tracking-widest min-w-0 truncate', isOn ? 'text-primary' : 'text-muted-foreground')}>
+            <span className={cn('min-w-0 truncate text-micro font-semibold uppercase tracking-control', isOn ? 'text-primary' : 'text-muted-foreground')}>
               {isOn ? t('device_states.on') : t('device_states.off')}
             </span>
             {isSonoff && (
               <>
                 <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                <span className={cn('text-micro font-black uppercase tracking-widest shrink-0', isOnline ? 'text-success' : 'text-destructive opacity-80')}>
+                <span className={cn('shrink-0 text-nano font-semibold uppercase tracking-control', isOnline ? 'text-success' : 'text-destructive opacity-80')}>
                   {isOnline ? t('common.online') : t('common.offline')}
                 </span>
               </>
@@ -221,7 +221,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
               onClick={handleAssign}
               disabled={!selectedRoomId || isProcessing}
               className={cn(
-                'w-full text-label py-1 h-auto font-black uppercase tracking-widest shadow-sm transition-all',
+                'w-full text-micro uppercase tracking-label',
                 isSonoff ? 'bg-success text-success-foreground hover:bg-success/90 shadow-success/10' : '',
               )}
               isLoading={isProcessing}

@@ -137,29 +137,29 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
               const isError = isErrorEvent(event.eventType);
 
               return (
-                <div key={group.id} className={cn("p-5 flex flex-col gap-4 hover:bg-muted/50 transition-colors", isError ? "bg-danger/5 hover:bg-danger/10" : "")}>
+                <div key={group.id} className={cn("flex flex-col gap-3 p-4 transition-colors hover:bg-muted/50", isError ? "bg-danger/5 hover:bg-danger/10" : "")}>
                   <div
                     className="flex gap-4 cursor-pointer"
                     onClick={() => onToggleExpand(group.id)}
                   >
-                    <div className="w-24 shrink-0 text-micro text-muted-foreground font-mono font-bold mt-1">
+                    <div className="w-20 shrink-0 pt-0.5 text-nano font-mono font-semibold text-muted-foreground sm:w-24">
                       {new Date(event.occurredAt).toLocaleTimeString()}
                     </div>
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className={cn("px-2 py-0.5 rounded text-micro font-black uppercase tracking-widest", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={cn("rounded px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
                           {t(`diagnostics.categories.${event.category}`, { defaultValue: event.category })}
                         </span>
-                        <span className={cn("font-bold text-body tracking-tight", isError ? "text-danger" : "")}>
+                        <span className={cn("text-body-compact font-semibold tracking-tight", isError ? "text-danger" : "")}>
                           {t(`common.events.${event.eventType}`, { defaultValue: event.eventType })}
                         </span>
                         {(hasChildren || hasData) && (
-                          <span className="text-micro uppercase font-bold text-muted-foreground px-2 py-0.5 border rounded-full">
+                          <span className="rounded-full border px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-muted-foreground">
                             {isExpanded ? t('diagnostics.hide_details') : t('diagnostics.view_details')}
                           </span>
                         )}
                       </div>
-                      <p className="text-body font-medium text-foreground/70">{getMainEventMessage(event, t)}</p>
+                      <p className="text-caption leading-relaxed text-foreground/70">{getMainEventMessage(event, t)}</p>
                     </div>
                   </div>
 

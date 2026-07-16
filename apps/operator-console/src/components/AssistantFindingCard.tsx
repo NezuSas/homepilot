@@ -84,14 +84,14 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
   return (
     <div
       className={cn(
-        'group relative flex flex-col p-6 rounded-panel border transition-all duration-500',
+        'group relative flex flex-col rounded-panel border p-4 transition-all duration-300 sm:p-5',
         isProactiveType(finding.type)
           ? 'bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-xl shadow-primary/5 hover:shadow-primary/10 hover:-translate-y-1'
           : 'bg-card border-border hover:border-primary/30'
       )}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 rounded-2xl bg-muted/50 text-foreground group-hover:scale-110 transition-transform">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="rounded-xl bg-muted/50 p-2.5 text-foreground transition-transform group-hover:scale-105">
           {getIcon(finding.type)}
         </div>
         <StatusPill
@@ -101,16 +101,16 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
         </StatusPill>
       </div>
 
-      <h3 className="text-body font-black tracking-tight mb-2 group-hover:text-primary transition-colors">
+      <h3 className="mb-1.5 text-body-compact font-bold tracking-tight transition-colors group-hover:text-primary">
         {t(`assistant.types.${finding.type}`)}
       </h3>
-      <p className="text-caption text-muted-foreground leading-relaxed mb-6 font-medium">
+      <p className="mb-4 text-caption leading-relaxed text-muted-foreground">
         {description}
       </p>
 
       {reasonKey !== '' && (
-        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 mb-6 font-primary">
-          <p className="text-micro font-bold text-primary italic leading-normal flex items-center gap-2">
+        <div className="mb-4 rounded-xl border border-primary/10 bg-primary/5 p-2.5 font-primary">
+          <p className="flex items-center gap-2 text-micro font-semibold italic leading-normal text-primary">
             <Info className="w-3 h-3" />
             {t(`assistant.types.reasons.${reasonKey}`)}
           </p>
@@ -118,7 +118,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
       )}
 
       {finding.metadata.ready === true && (
-        <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl bg-success/10 border border-success/20 text-success">
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-2.5 py-2 text-success">
           <Sparkles className="w-3 h-3" />
           <span className="text-micro font-black uppercase tracking-wider">
             {t('assistant.draft.ready')}
@@ -132,7 +132,8 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
             key={`${finding.id}-${action.type}-${index}`}
             variant={index === 0 ? 'primary' : 'secondary'}
             onClick={() => onAction(finding, action)}
-            className="flex-1 text-micro uppercase tracking-widest h-auto py-3"
+            size="sm"
+            className="flex-1 text-micro uppercase tracking-label"
           >
             {t(action.label)}
           </Button>
@@ -140,7 +141,8 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
         <Button
           variant="ghost"
           onClick={(event) => onDismiss(finding.id, event)}
-          className="px-3 hover:text-danger hover:bg-danger/10"
+          size="sm"
+          className="px-3 hover:bg-danger/10 hover:text-danger"
         >
           <CheckCircle2 className="w-5 h-5" />
         </Button>
