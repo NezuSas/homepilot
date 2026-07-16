@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DashboardWidgetConfig } from '../types';
 
 interface DashboardTitleWidgetProps {
   config: DashboardWidgetConfig;
   isEditing: boolean;
+  isSelected?: boolean;
+  onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
 }
 
 type TitleAlign = 'left' | 'center' | 'right';
@@ -155,8 +157,9 @@ function markdownToBlocks(markdown: string) {
   });
 }
 
-export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidgetProps) {
+export function DashboardTitleWidget({ config, isEditing, isSelected = false, onUpdate }: DashboardTitleWidgetProps) {
   const { t } = useTranslation();
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const markdown =
     typeof config.extra?.markdown === 'string' && config.extra.markdown.trim()
@@ -174,6 +177,15 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
 
   const rendered = useMemo(() => renderTemplate(markdown), [markdown]);
   const blocks = useMemo(() => markdownToBlocks(rendered), [rendered]);
+  const [draftMarkdown, setDraftMarkdown] = useState(markdown);
+
+  useEffect(() => {
+    setDraftMarkdown(markdown);
+  }, [markdown]);
+
+  useEffect(() => {
+    if (isEditing && isSelected) setIsEditorOpen(true);
+  }, [isEditing, isSelected]);
 
   const alignmentClass = align === 'left'
     ? 'items-start text-left'
@@ -197,6 +209,48 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
       className={`flex h-full w-full min-w-0 flex-col justify-center overflow-hidden rounded-section border border-border/35 bg-background/10 px-widget-pad-x py-widget-pad-y ${alignmentClass}`}
       style={{ containerType: 'inline-size' }}
     >
+      {isEditing && isEditorOpen ? (
+        <form
+          className="flex h-full w-full min-w-0 flex-col justify-center gap-2"
+          onClick={(event) => event.stopPropagation()}
+          onSubmit={(event) => {
+            event.preventDefault();
+            onUpdate?.({
+              extra: {
+                ...config.extra,
+                markdown: draftMarkdown.trim() || markdown,
+              },
+            });
+            setIsEditorOpen(false);
+          }}
+        >
+          <label className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground" htmlFor="dashboard-title-markdown">
+            {t('dashboard.editor.sections.title_markdown')}
+          </label>
+          <textarea
+            id="dashboard-title-markdown"
+            value={draftMarkdown}
+            onChange={(event) => setDraftMarkdown(event.target.value)}
+            className="min-h-16 w-full resize-none rounded-field border border-border bg-background/85 px-3 py-2 text-body leading-snug text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            aria-label={t('dashboard.editor.sections.title_markdown')}
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDraftMarkdown(markdown);
+                setIsEditorOpen(false);
+              }}
+              className="rounded-button border border-border px-3 py-1.5 text-caption font-semibold text-muted-foreground transition hover:bg-muted"
+            >
+              {t('common.cancel')}
+            </button>
+            <button type="submit" className="rounded-button bg-primary px-3 py-1.5 text-caption font-semibold text-primary-foreground transition hover:bg-primary/90">
+              {t('common.save')}
+            </button>
+          </div>
+        </form>
+      ) : (
       <div className="min-w-0 max-w-full space-y-[clamp(0.18rem,0.6cqi,0.45rem)]">
         {blocks.map((block) => {
           if (block.type === 'space') {
@@ -246,6 +300,7 @@ export function DashboardTitleWidget({ config, isEditing }: DashboardTitleWidget
           );
         })}
       </div>
+      )}
     </div>
   );
 }

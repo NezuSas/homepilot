@@ -33,7 +33,7 @@ interface DashboardWidgetNodeProps {
 }
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, onClick, onConfigChange }: { widget: DashboardWidget; isEditing: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void }) {
+export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void }) {
   const { t } = useTranslation();
 
   switch (widget.type) {
@@ -55,7 +55,14 @@ export function WidgetContent({ widget, isEditing, onClick, onConfigChange }: { 
     case 'clock_display':
       return <ClockWidget config={widget.config} />;
     case 'dashboard_title':
-      return <DashboardTitleWidget config={widget.config} isEditing={isEditing} />;
+      return (
+        <DashboardTitleWidget
+          config={widget.config}
+          isEditing={isEditing}
+          isSelected={isSelected}
+          onUpdate={(config) => onConfigChange?.(widget.id, config)}
+        />
+      );
     case 'section':
       return (
         <SectionWidget
@@ -149,14 +156,20 @@ export function DashboardWidgetNode({
     >
       {/* Content */}
       <div className="h-full w-full min-h-0">
-        <WidgetContent widget={widget} isEditing={isEditing} onClick={onClick} onConfigChange={onConfigChange} />
+        <WidgetContent
+          widget={widget}
+          isEditing={isEditing}
+          isSelected={isSelected}
+          onClick={onClick}
+          onConfigChange={onConfigChange}
+        />
       </div>
 
       {/* Edit Mode Controls (not in overlay, not for section except delete) */}
       {isEditing && !isOverlay && (
         <>
           {/* Drag Handle (full area, not for sections) */}
-          {!isSection && canDrag && (
+          {!isSection && !isTitleWidget && canDrag && (
             <div 
               {...attributes} 
               {...listeners}
@@ -174,10 +187,10 @@ export function DashboardWidgetNode({
               >
                 <Pencil className="w-3 h-3" />
               </button>
-              {!isSection && canDrag && (
+              {!isSection && !isTitleWidget && canDrag && (
                 <div className="w-px h-4 bg-border/40 mx-0.5" />
               )}
-              {!isSection && canDrag && (
+              {!isSection && !isTitleWidget && canDrag && (
                 <div className="grid h-9 w-7 place-items-center text-muted-foreground/50">
                   <GripVertical className="w-3 h-3" />
                 </div>

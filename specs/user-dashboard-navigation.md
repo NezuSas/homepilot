@@ -36,6 +36,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 13. Las tarjetas internas de una zona deben adaptar sus columnas al ancho real de la zona. Sus selectores solo pueden mostrar entidades locales compatibles con el tipo de tarjeta.
 14. El fondo configurado de una vista debe cubrir como mínimo toda el área visible del tablero, detrás del contenido y sin recortarse al alto inicial de sus widgets.
 15. El placeholder para la primera zona debe ubicarse inmediatamente después del área de título real, incluso si un tablero existente tiene un título más alto que el tamaño predeterminado.
+16. En modo edición, el lápiz del título del tablero debe abrir un editor que persista el contenido Markdown local de ese título. La ejecución de una acción multimedia debe mostrar únicamente un indicador pequeño, sin desenfocar ni bloquear visualmente la tarjeta.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -68,3 +69,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC28:** Con cuatro zonas en el tablero, las tarjetas pequeñas no desbordan su título ni su estado; el selector de Luz/Cortina/Cámara/Sensor/Multimedia presenta únicamente dispositivos locales del tipo respectivo.
 - **AC29:** Con un fondo configurado, el tablero cubre al menos la altura visible completa del área de contenido sin dejar un lienzo plano debajo de sus widgets.
 - **AC30:** Un tablero con un título alto muestra el placeholder de su primera zona debajo del título sin requerir redimensionar la ventana ni solaparlo.
+- **AC31:** El lápiz del título permite editar y guardar el texto que se muestra en el encabezado del tablero; al ejecutar un control del reproductor, la tarjeta conserva visible su contenido y solo muestra un indicador compacto de procesamiento.
