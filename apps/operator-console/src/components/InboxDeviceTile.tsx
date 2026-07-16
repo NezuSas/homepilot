@@ -179,12 +179,6 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
           )}
         </div>
         <h4 className="text-card-title font-bold truncate">{device.name}</h4>
-        {!isAssigned && isSonoff && (
-          <span className="mt-0.5 text-micro font-semibold uppercase tracking-control text-success/70 animate-pulse">
-            {t('inbox.discovered_locally')}
-          </span>
-        )}
-
         {isAssigned ? (
           <div className="flex items-center gap-1.5 mt-1">
             <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', isOn ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30')} />
