@@ -19,7 +19,7 @@ const mediaPlayer: Device = {
   lastKnownState: {
     state: 'playing',
     attributes: {
-      entity_picture_local: '/api/media_player_proxy/media_player.office_screen?token=local-cover-token',
+      entity_picture_local: '/api/media_player_proxy/media_player.office_screen?token=local-cover-token&cache=cover-version',
       entity_picture: 'https://cdn.example.invalid/cover.jpg',
     },
   },
@@ -59,7 +59,7 @@ function createContainer(): BootstrapContainer {
 }
 
 describe('MediaPlayerRoutes', () => {
-  it('creates a signed local artwork path without exposing the Home Assistant artwork token', async () => {
+  it('uses the authenticated local proxy path without persisting a short-lived Home Assistant artwork token', async () => {
     const routes = new MediaPlayerRoutes();
     const response = new MockResponse();
 
@@ -74,6 +74,10 @@ describe('MediaPlayerRoutes', () => {
     const payload = JSON.parse(response.end.mock.calls[0][0] as string) as { artworkPath: string };
     expect(payload.artworkPath).toContain('/api/v1/devices/media-1/media/artwork?token=');
     expect(payload.artworkPath).not.toContain('local-cover-token');
+    const signedToken = new URL(payload.artworkPath, 'http://localhost').searchParams.get('token') || '';
+    const signedPayload = Buffer.from(signedToken.split('.')[0], 'base64url').toString('utf8');
+    expect(signedPayload).toContain('/api/media_player_proxy/media_player.office_screen?cache=cover-version');
+    expect(signedPayload).not.toContain('local-cover-token');
   });
 
   it('proxies artwork bytes only through a valid signed session', async () => {
@@ -100,7 +104,7 @@ describe('MediaPlayerRoutes', () => {
     );
 
     expect(container.adapters.homeAssistantClient.getMediaArtwork).toHaveBeenCalledWith(
-      '/api/media_player_proxy/media_player.office_screen?token=local-cover-token',
+      '/api/media_player_proxy/media_player.office_screen?cache=cover-version',
       expect.any(AbortSignal),
     );
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/jpeg' }));

@@ -27,7 +27,14 @@ function resolveArtworkPath(device: Device | null): string | null {
     ?? attributes.entity_picture
     ?? state.entity_picture_local
     ?? state.entity_picture;
-  return typeof artworkPath === 'string' && artworkPath.trim() ? artworkPath.trim() : null;
+  if (typeof artworkPath !== 'string' || !artworkPath.trim()) return null;
+
+  const normalizedPath = artworkPath.trim();
+  if (!normalizedPath.startsWith('/api/media_player_proxy/')) return normalizedPath;
+
+  const localArtworkUrl = new URL(normalizedPath, 'http://homepilot.local');
+  localArtworkUrl.searchParams.delete('token');
+  return `${localArtworkUrl.pathname}${localArtworkUrl.search}`;
 }
 
 export class MediaPlayerRoutes extends ApiRoutes {
