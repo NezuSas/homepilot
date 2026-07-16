@@ -26,8 +26,8 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 4. La visibilidad de dashboards y vistas debe resolverse por usuario: ser propietario o estar incluido explícitamente en `visibility.users`.
 5. El rol `admin` no debe dar visibilidad automática a dashboards o vistas de otros usuarios.
 6. La vista de tablero debe permitir seguir creando, renombrando, editando, agregando pestañas y eliminando con los flujos existentes.
-7. El catálogo de tarjetas de una sección debe incluir una tarjeta de sensor para entidades `sensor` y `binary_sensor` importadas desde Home Assistant.
-8. La tarjeta de sensor debe ser informativa: muestra el último estado sincronizado, su unidad y el contexto disponible sin exponer acciones de encendido o apagado.
+7. El catálogo de tarjetas de una sección debe incluir una tarjeta de sensor para dispositivos `sensor` y `binary_sensor` ya importados al inventario local de HomePilot.
+8. La tarjeta de sensor debe ser informativa: muestra el último estado local sincronizado, su unidad y el contexto disponible sin exponer acciones de encendido o apagado.
 9. Cuando el sensor represente batería, la tarjeta debe mostrar un indicador porcentual legible; las mediciones y estados no numéricos deben conservar su valor sin inventar una lectura.
 
 ## Criterios de Aceptación
@@ -52,6 +52,6 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC19:** Al borrar una pestaña de tablero o remover su fondo, los archivos físicos del fondo en `data/media/dashboards/<dashboardId>/<tabId>` se eliminan.
 - **AC20:** Los tableros visibles se ordenan priorizando el tablero propio del usuario autenticado para que un invitado no aterrice por defecto en un tablero compartido ajeno.
 - **AC21:** Un usuario `guest` puede leer hogares y habitaciones del appliance local para renderizar Inicio/Espacios/Tableros, pero no puede crear, renombrar ni eliminar hogares o habitaciones.
-- **AC22:** El catálogo permite crear una tarjeta `Sensor`; su selector solo lista dispositivos semánticos `sensor` o entidades `binary_sensor` importadas.
-- **AC23:** Una tarjeta de sensor muestra el último `state` sincronizado y, cuando existe, `unit_of_measurement`; las tarjetas de batería usan un indicador de 0 a 100 sin enviar comandos al dispositivo.
+- **AC22:** El catálogo permite crear una tarjeta `Sensor`; su selector solo lista dispositivos semánticos `sensor` o `binary_sensor` presentes en el inventario local de HomePilot.
+- **AC23:** Una tarjeta de sensor muestra el último `state` sincronizado localmente y, cuando existe, `unit_of_measurement`; las tarjetas de batería usan un indicador de 0 a 100 sin enviar comandos al dispositivo.
 - **AC24:** Si un sensor no tiene lectura o Home Assistant lo reporta como no disponible, la tarjeta muestra un estado no disponible y no fabrica un valor numérico.

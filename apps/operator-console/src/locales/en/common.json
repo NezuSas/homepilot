@@ -289,7 +289,7 @@
         "section_card_camera": "Camera",
         "section_card_camera_desc": "Camera view or quick video access.",
         "section_card_sensor": "Sensor",
-        "section_card_sensor_desc": "Battery, measurement, or state reading synchronized from Home Assistant.",
+        "section_card_sensor_desc": "Battery, measurement, or state reading available in HomePilot.",
         "section_card_room": "Room",
         "section_card_room_desc": "Visual room summary.",
         "section_card_scene": "Scene",
