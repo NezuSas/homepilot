@@ -10,6 +10,7 @@ import { DashboardsLoadingState } from '../components/DashboardsLoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
+import { resolveDashboardSectionLayouts } from './dashboards/dashboardUtils';
 import { generateId } from '../utils/generateId';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import ConfirmModal from '../components/ConfirmModal';
@@ -240,34 +241,13 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       return;
     }
 
-    const getSectionLayout = (sectionIndex: number, sectionCount: number) => {
-      const row = Math.floor(sectionIndex / 4);
-      const indexInRow = sectionIndex % 4;
-      const rowStart = row * 4;
-      const itemsInRow = Math.min(4, sectionCount - rowStart);
-      const isLastRow = rowStart + itemsInRow >= sectionCount;
-      const effectiveCount = isLastRow && itemsInRow < 4 ? Math.min(4, itemsInRow + 1) : Math.max(1, itemsInRow);
-      const width = Math.floor(12 / effectiveCount);
-
-      return {
-        x: indexInRow * width,
-        y: 2 + row * 2,
-        w: width,
-        h: 2,
-      };
-    };
-
     const isBrokenSectionTitle = (value: unknown) =>
       typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
 
-    const sectionWidgets = currentTab.widgets.filter(widget => widget.type === 'section');
-    const nextSectionCount = sectionWidgets.length + (isSection ? 1 : 0);
-    const sectionLayout = getSectionLayout(sectionWidgets.length, Math.max(1, nextSectionCount));
-
-    const widgetW = isDashboardTitle ? 12 : isSection ? sectionLayout.w : (size?.w ?? 4);
-    const widgetH = isDashboardTitle ? 2 : isSection ? sectionLayout.h : (size?.h ?? 4);
-    const widgetX = isDashboardTitle ? 0 : isSection ? sectionLayout.x : 0;
-    const widgetY = isDashboardTitle ? 0 : isSection ? sectionLayout.y : Math.max(2, maxY);
+    const widgetW = isDashboardTitle ? 12 : isSection ? 6 : (size?.w ?? 4);
+    const widgetH = isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4);
+    const widgetX = isDashboardTitle ? 0 : 0;
+    const widgetY = isDashboardTitle ? 0 : isSection ? 2 : Math.max(2, maxY);
 
     const defaultConfig: DashboardWidgetConfig = {
       layout: { x: widgetX, y: widgetY, w: widgetW, h: widgetH },
@@ -296,16 +276,14 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       if (idx !== activeTabIdx) return tab;
 
       const nextWidgets = [...tab.widgets, { id: widgetId, type, config: defaultConfig }];
-      const totalSections = nextWidgets.filter(widget => widget.type === 'section').length;
-      let sectionIndex = 0;
+      const sectionLayouts = resolveDashboardSectionLayouts(nextWidgets, true);
 
       return {
         ...tab,
         widgets: nextWidgets.map((widget) => {
           if (widget.type !== 'section') return widget;
 
-          const layout = getSectionLayout(sectionIndex, totalSections);
-          sectionIndex += 1;
+          const layout = sectionLayouts.get(widget.id) ?? widget.config.layout;
 
           return {
             ...widget,

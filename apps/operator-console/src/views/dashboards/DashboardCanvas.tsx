@@ -12,7 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
-import { sanitizeWidget } from './dashboardUtils';
+import {
+  getDashboardSectionPlaceholderY,
+  resolveDashboardSectionLayouts,
+  sanitizeWidget,
+} from './dashboardUtils';
 
 interface DashboardCanvasProps {
   widgets: DashboardWidget[];
@@ -71,53 +75,16 @@ export function DashboardCanvas({
     return () => observer.disconnect();
   }, []);
 
-  const dashboardSectionStartY = 2;
-const dashboardSectionRows = 2;
-
-function getDashboardSectionLayout(sectionIndex: number, sectionCount: number, sectionHeight = dashboardSectionRows) {
-  const row = Math.floor(sectionIndex / 4);
-  const indexInRow = sectionIndex % 4;
-  const rowStart = row * 4;
-  const itemsInRow = Math.min(4, Math.max(0, sectionCount - rowStart));
-  const isLastRow = rowStart + itemsInRow >= sectionCount;
-  const effectiveCount = isLastRow && itemsInRow < 4
-    ? Math.min(4, itemsInRow + 1)
-    : Math.max(1, itemsInRow);
-  const width = Math.floor(12 / effectiveCount);
-
-  return {
-    x: indexInRow * width,
-    y: dashboardSectionStartY + row * dashboardSectionRows,
-    w: width,
-    h: sectionHeight,
-  };
-}
-
 const sanitizedWidgets = useMemo(() => {
   const baseWidgets = widgets.map(sanitizeWidget);
-
-  const sectionCount = baseWidgets.filter(widget => widget.type === 'section').length;
+  const sectionLayouts = resolveDashboardSectionLayouts(baseWidgets, isEditing);
 
   const isBrokenSectionTitle = (value: unknown) =>
     typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
 
-  let sectionIndex = 0;
-
   return baseWidgets.map((widget) => {
     if (widget.type !== 'section') return widget;
-
-    const sectionCards = Array.isArray(widget.config.extra?.cards)
-      ? widget.config.extra.cards
-      : [];
-    const internalItems = Math.max(1, sectionCards.length + (isEditing ? 1 : 0));
-    const internalRows = Math.ceil(internalItems / 2);
-    const requestedHeight = Math.max(
-      widget.config.layout?.h ?? dashboardSectionRows,
-      dashboardSectionRows,
-      1 + internalRows * 3,
-    );
-    const layout = getDashboardSectionLayout(sectionIndex, sectionCount, requestedHeight);
-    sectionIndex += 1;
+    const layout = sectionLayouts.get(widget.id) ?? widget.config.layout;
 
     return {
       ...widget,
@@ -155,13 +122,7 @@ const sanitizedWidgets = useMemo(() => {
 const virtualPlaceholders = useMemo(() => {
   if (!canEditLayout) return [];
 
-  const sections = sanitizedWidgets
-    .filter(widget => widget.type === 'section')
-    .sort((a, b) => {
-      const byY = a.config.layout.y - b.config.layout.y;
-      if (byY !== 0) return byY;
-      return a.config.layout.x - b.config.layout.x;
-    });
+  const sections = sanitizedWidgets.filter(widget => widget.type === 'section');
 
   const hasDashboardTitle = sanitizedWidgets.some(widget => widget.type === 'dashboard_title');
 
@@ -191,35 +152,14 @@ const virtualPlaceholders = useMemo(() => {
     return placeholders;
   }
 
-  const lastRowIndex = Math.floor(sections.length / 4);
-  const sectionsInCurrentRow = sections.length % 4;
-
-  if (sectionsInCurrentRow === 0) {
-    placeholders.push({
-      key: 'add_section_final',
-      x: 0,
-      y: 2 + lastRowIndex * 2,
-      w: 12,
-      h: 1,
-      type: 'add_section',
-    });
-
-    return placeholders;
-  }
-
-  const currentRowStart = lastRowIndex * 4;
-  const currentRowSections = sections.slice(currentRowStart);
-  const rowY = currentRowSections[0]?.config.layout.y ?? 2;
-
-  const slotCount = Math.min(4, sectionsInCurrentRow + 1);
-  const slotW = Math.floor(12 / slotCount);
-
   placeholders.push({
     key: 'add_section_final',
-    x: sectionsInCurrentRow * slotW,
-    y: rowY,
-    w: slotW,
-    h: dashboardSectionRows,
+    x: 0,
+    y: getDashboardSectionPlaceholderY(
+      new Map(sections.map((section) => [section.id, section.config.layout])),
+    ),
+    w: 12,
+    h: 1,
     type: 'add_section',
   });
 

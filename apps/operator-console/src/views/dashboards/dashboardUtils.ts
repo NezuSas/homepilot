@@ -2,6 +2,68 @@ import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
+const DASHBOARD_SECTION_COLUMNS = 4;
+const DASHBOARD_SECTION_START_Y = 2;
+const DASHBOARD_SECTION_MIN_ROWS = 2;
+
+/**
+ * Resolves the visual grid for dashboard sections. Section cards can grow
+ * independently, so each following row starts below the tallest section in
+ * the previous row instead of relying on a fixed row offset.
+ */
+export function resolveDashboardSectionLayouts(
+  widgets: DashboardWidget[],
+  isEditing: boolean,
+): Map<string, DashboardWidgetConfig['layout']> {
+  const sections = widgets.filter((widget) => widget.type === 'section');
+  const layouts = new Map<string, DashboardWidgetConfig['layout']>();
+  let rowY = DASHBOARD_SECTION_START_Y;
+
+  for (let rowStart = 0; rowStart < sections.length; rowStart += DASHBOARD_SECTION_COLUMNS) {
+    const rowSections = sections.slice(rowStart, rowStart + DASHBOARD_SECTION_COLUMNS);
+    const rowCount = rowSections.length;
+    const effectiveColumnCount = rowCount < DASHBOARD_SECTION_COLUMNS
+      ? Math.min(DASHBOARD_SECTION_COLUMNS, rowCount + 1)
+      : DASHBOARD_SECTION_COLUMNS;
+    const width = Math.floor(12 / effectiveColumnCount);
+    const heights = rowSections.map((section) => {
+      const cards = Array.isArray(section.config.extra?.cards) ? section.config.extra.cards : [];
+      const internalItems = Math.max(1, cards.length + (isEditing ? 1 : 0));
+      const internalRows = Math.ceil(internalItems / 2);
+
+      return Math.max(
+        section.config.layout.h,
+        DASHBOARD_SECTION_MIN_ROWS,
+        1 + internalRows * 3,
+      );
+    });
+
+    rowSections.forEach((section, index) => {
+      layouts.set(section.id, {
+        x: index * width,
+        y: rowY,
+        w: width,
+        h: heights[index],
+      });
+    });
+
+    rowY += Math.max(...heights) + 1;
+  }
+
+  return layouts;
+}
+
+export function getDashboardSectionPlaceholderY(
+  layouts: Map<string, DashboardWidgetConfig['layout']>,
+): number {
+  const bottom = Array.from(layouts.values()).reduce(
+    (max, layout) => Math.max(max, layout.y + layout.h),
+    DASHBOARD_SECTION_START_Y - 1,
+  );
+
+  return bottom + 1;
+}
+
 /**
  * Determines if a device is "Active" (ON, OPEN, or has BRIGHTNESS/VALUE)
  * based on the core system logic.
