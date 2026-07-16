@@ -69,6 +69,10 @@ export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): P
       connectionProvider.hasClient()
         ? connectionProvider.getClient().getCameraMedia(entityId, kind, signal)
         : Promise.resolve(new Response(null, { status: 503 })),
+    getMediaArtwork: (artworkPath, signal) =>
+      connectionProvider.hasClient()
+        ? connectionProvider.getClient().getMediaArtwork(artworkPath, signal)
+        : Promise.resolve(new Response(null, { status: 503 })),
     getCameraHlsStreamPath: (entityId) =>
       connectionProvider.hasClient()
         ? connectionProvider.getClient().getCameraHlsStreamPath(entityId)
