@@ -57,7 +57,9 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           <span
             className={cn(
               'tracking-tight text-left leading-none whitespace-nowrap overflow-hidden transition-[opacity,width,margin] duration-base',
-              nested ? 'text-caption' : 'text-body-compact',
+              // Navigation hierarchy is communicated by indentation and icon size,
+              // never by a different text scale.
+              'text-body-compact',
               active ? 'font-semibold text-primary' : 'font-medium',
               collapsedOnDesktop && 'xl:w-0 xl:opacity-0 xl:ml-0'
             )}

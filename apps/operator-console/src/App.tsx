@@ -788,7 +788,7 @@ function App() {
                     <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeDashboardsSection ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
                         <BarChart2 className="h-4 w-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 overflow-hidden whitespace-nowrap text-left font-medium leading-none tracking-tight transition-[opacity,width] duration-200", activeDashboardsSection && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.dashboards')}</span>
+                    <span className={cn("flex-1 overflow-hidden whitespace-nowrap text-left text-body-compact font-medium leading-none tracking-tight transition-[opacity,width] duration-200", activeDashboardsSection && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.dashboards')}</span>
                     {!isSidebarContentCollapsed && (isDashboardsExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
@@ -899,7 +899,7 @@ function App() {
                     <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeSystemSection ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
                         <Settings className="h-4 w-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 overflow-hidden whitespace-nowrap text-left font-medium leading-none tracking-tight transition-[opacity,width] duration-200", activeSystemSection && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.system')}</span>
+                    <span className={cn("flex-1 overflow-hidden whitespace-nowrap text-left text-body-compact font-medium leading-none tracking-tight transition-[opacity,width] duration-200", activeSystemSection && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.system')}</span>
                     {!isSidebarContentCollapsed && (isSystemExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />

@@ -329,6 +329,7 @@
         "scene_action_one": "action",
         "scene_action_other": "actions",
         "camera_unassigned": "No camera assigned",
+        "camera_live": "Live",
         "camera_live_snapshot": "Live view / snapshot",
         "energy_label": "Energy",
         "room_label": "Room",
@@ -340,11 +341,14 @@
         "room_active": "Active",
         "scene_label": "Scene",
         "scene_list": "List",
+        "scene_control": "Control",
+        "scene_one_tap": "One tap",
         "scene_description": "Direct access to run an ambiance",
         "signals": "Signals",
         "ready": "Ready",
         "assigned": "Assigned",
         "smart_summary": "Smart summary",
+        "assistant_badge": "AI",
         "assignment_note": "This assignment is saved inside the section card."
       },
       "catalog": {

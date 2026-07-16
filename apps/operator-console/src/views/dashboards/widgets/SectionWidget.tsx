@@ -558,7 +558,7 @@ function CardPreview({
 
         <div className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-micro font-black text-foreground shadow-sm">
           <span className="mr-1 text-primary">●</span>
-          En vivo
+          {t('dashboard.editor.sections.camera_live')}
         </div>
 
         <div className="absolute bottom-3 left-3 right-3">
@@ -602,7 +602,7 @@ function CardPreview({
         </div>
 
         <div className="relative min-w-0 py-2">
-          <span className="block line-clamp-2 text-section-title font-black leading-tight text-foreground sm:text-panel-title">{title}</span>
+          <span className="block line-clamp-2 text-card-title font-black leading-tight text-foreground">{title}</span>
           <span className="mt-1 block line-clamp-2 text-micro font-black uppercase tracking-status text-muted-foreground sm:text-micro">
             {t('dashboard.editor.sections.room_access')}
           </span>
@@ -643,14 +643,14 @@ function CardPreview({
         </div>
         <div className="mt-auto min-w-0">
           <span className="block text-micro font-black uppercase tracking-label-wide text-primary/80">{t('dashboard.editor.sections.scene_label')}</span>
-          <span className="mt-1 block line-clamp-2 text-body-lg font-black leading-tight text-foreground">{title}</span>
+          <span className="mt-1 block line-clamp-2 text-card-title font-black leading-tight text-foreground">{title}</span>
           <span className="mt-2 block line-clamp-2 text-micro font-semibold leading-snug text-muted-foreground">
             {subtitle || t('dashboard.editor.sections.scene_description')}
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between rounded-2xl border border-border/45 bg-background/35 px-3 py-2">
-          <span className="text-micro font-black uppercase tracking-status text-muted-foreground">Control</span>
-          <span className="text-micro font-black uppercase tracking-status text-primary">1 toque</span>
+          <span className="text-micro font-black uppercase tracking-status text-muted-foreground">{t('dashboard.editor.sections.scene_control')}</span>
+          <span className="text-micro font-black uppercase tracking-status text-primary">{t('dashboard.editor.sections.scene_one_tap')}</span>
         </div>
       </div>
     );
@@ -664,7 +664,7 @@ function CardPreview({
             <Icon className="h-5 w-5" />
           </span>
           <span className="rounded-full border border-border/45 bg-background/45 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
-            IA
+            {t('dashboard.editor.sections.assistant_badge')}
           </span>
         </div>
         <div className="mt-auto min-w-0">
@@ -716,7 +716,7 @@ function CardPreview({
       {isAssigned ? (
         <span
           className={cn(
-            "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-semibold leading-none tracking-tight normal-case",
+            "mt-2 max-w-full rounded-full border px-2 py-0.5 text-nano font-semibold uppercase leading-none tracking-control",
             isActive
               ? "border-primary/50 bg-primary text-primary-foreground shadow-primary-room-icon"
               : "border-border/55 bg-muted/60 text-muted-foreground"

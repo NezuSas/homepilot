@@ -329,6 +329,7 @@
         "scene_action_one": "acción",
         "scene_action_other": "acciones",
         "camera_unassigned": "Sin cámara asignada",
+        "camera_live": "En vivo",
         "camera_live_snapshot": "Vista en vivo / snapshot",
         "energy_label": "Energía",
         "room_label": "Habitación",
@@ -340,11 +341,14 @@
         "room_active": "Activos",
         "scene_label": "Escena",
         "scene_list": "Lista",
+        "scene_control": "Control",
+        "scene_one_tap": "1 toque",
         "scene_description": "Acceso directo para ejecutar ambiente",
         "signals": "Señales",
         "ready": "Listo",
         "assigned": "Asignado",
         "smart_summary": "Resumen inteligente",
+        "assistant_badge": "IA",
         "assignment_note": "Esta asignación queda guardada dentro de la tarjeta de la sección."
       },
       "catalog": {
