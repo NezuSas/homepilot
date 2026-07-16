@@ -289,9 +289,9 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
       <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-2xl bg-card border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-500">
-        <div className="p-8 bg-muted/30 border-b border-border relative">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
+        <div className="relative border-b border-border bg-muted/30 p-4 sm:p-6 xl:p-8">
+          <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="p-3 bg-primary/10 text-primary rounded-xl">
                 <RadioTower className="w-6 h-6" />
               </div>
@@ -333,19 +333,19 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
             </div>
             <button
               onClick={onClose}
-              className="p-3 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all hover:bg-destructive/10 hover:text-destructive"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
 
-          <div className="flex gap-4 p-1 bg-muted/50 rounded-2xl border border-border/50">
+          <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted/50 p-1">
             {(['info', 'logs', 'state'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  'flex-1 py-3 rounded-xl text-micro font-black uppercase tracking-widest transition-all',
+                  'min-h-10 rounded-xl px-2 py-2 text-label font-black uppercase tracking-control transition-all',
                   activeTab === tab
                     ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -357,7 +357,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-6 xl:p-8">
           {activeTab === 'info' && (
             <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-4 duration-500">
               {unavailable && (

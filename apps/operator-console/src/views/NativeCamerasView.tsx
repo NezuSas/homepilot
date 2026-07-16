@@ -347,7 +347,7 @@ export const NativeCamerasView: React.FC = () => {
       />
 
       {notice && (
-        <div className="fixed right-4 top-4 z-[140] w-native-camera-toast">
+        <div className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[140] w-auto sm:left-auto sm:right-6 sm:top-6 sm:w-native-camera-toast">
           <AlertBanner
             variant={notice.variant}
             icon={AlertTriangle}

@@ -1057,9 +1057,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         ) : null}
 
         {isEditing ? (
-          <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
+          <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100 [@media(hover:none)]:opacity-100">
             <span
-              className="grid h-8 w-8 cursor-grab place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg active:cursor-grabbing"
+              className="grid h-9 w-9 cursor-grab place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md active:cursor-grabbing"
               title={t('dashboard.editor.sections.move_card')}
               onClick={(event) => event.stopPropagation()}
             >
@@ -1071,7 +1071,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 event.stopPropagation();
                 openCardEditor(card);
               }}
-              className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-primary"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md transition hover:text-primary"
               aria-label={t('dashboard.editor.sections.edit_card')}
             >
               <Pencil className="h-4 w-4" />
@@ -1082,7 +1082,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 event.stopPropagation();
                 removeCard(card.id);
               }}
-              className="grid h-8 w-8 place-items-center rounded-xl bg-background/90 text-muted-foreground shadow-lg transition hover:text-destructive"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md transition hover:text-destructive"
               aria-label={t('dashboard.editor.sections.remove_card')}
             >
               <Trash2 className="h-4 w-4" />
