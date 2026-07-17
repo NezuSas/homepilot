@@ -8,19 +8,52 @@ import {
   AlignHorizontalJustifyStart,
   AlignLeft,
   AlignRight,
+  Clock,
+  Plus,
+  X,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { generateId } from '../../../utils/generateId';
+import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
+import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
+import { getWeatherCategory, WeatherScene } from './clock/designs/WeatherScene';
+import { useCuencaWeather } from './clock/useCuencaWeather';
 import type { DashboardWidgetConfig } from '../types';
+
+interface DashboardTitleTabRef {
+  id: string;
+  title: string;
+  icon?: string;
+}
 
 interface DashboardTitleWidgetProps {
   config: DashboardWidgetConfig;
   isEditing: boolean;
   isSelected?: boolean;
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
+  /** Other tabs of this dashboard, so a badge can jump straight to one of them. */
+  tabs?: DashboardTitleTabRef[];
+  currentTabId?: string;
+  onSelectTab?: (tabId: string) => void;
 }
 
 type TitleAlign = 'left' | 'center' | 'right';
 type TitleWidthMode = 'full' | 'half' | 'third';
+
+interface TitleBadge {
+  id: string;
+  kind: 'weather' | 'time' | 'tab';
+  tabId?: string;
+}
+
+function parseBadges(value: unknown): TitleBadge[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is TitleBadge => {
+    if (!item || typeof item !== 'object') return false;
+    const record = item as Record<string, unknown>;
+    return typeof record.id === 'string' && (record.kind === 'weather' || record.kind === 'time' || record.kind === 'tab');
+  });
+}
 
 function getStoredUserName() {
   if (typeof window === 'undefined') return 'Usuario';
@@ -168,7 +201,105 @@ function markdownToBlocks(markdown: string) {
   });
 }
 
-export function DashboardTitleWidget({ config, isEditing, isSelected = false, onUpdate }: DashboardTitleWidgetProps) {
+const badgePillClass = 'flex shrink-0 items-center gap-1.5 rounded-full border border-border/55 bg-background/40 px-3 py-1 text-clock-label-fluid font-black uppercase tracking-micro text-foreground shadow-inner transition hover:border-primary/50 hover:bg-primary/10';
+
+/** Brief weather + temperature badge, Home Assistant dashboard-badge style. */
+function WeatherBadgeContent() {
+  const { weather, status } = useCuencaWeather(getClockLocale());
+  const isReady = Boolean(weather) && status === 'ready';
+
+  if (!isReady) return null;
+
+  const category = getWeatherCategory(weather!.code, isDaytimeHour(new Date()));
+
+  return (
+    <span className={badgePillClass}>
+      <WeatherScene category={category} size="sm" className="h-4 w-4" />
+      <span>{formatTemperature(weather!.temperature)}</span>
+    </span>
+  );
+}
+
+/** Live HH:MM badge; updates every 30s, which is plenty for a minute-resolution clock. */
+function TimeBadgeContent() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const time = new Intl.DateTimeFormat(getClockLocale(), { hour: '2-digit', minute: '2-digit' }).format(now);
+
+  return (
+    <span className={badgePillClass}>
+      <Clock className="h-4 w-4" aria-hidden="true" />
+      <span>{time}</span>
+    </span>
+  );
+}
+
+/** Jumps straight to another tab of this dashboard when clicked. */
+function TabBadgeContent({ tab, onSelectTab }: { tab: DashboardTitleTabRef; onSelectTab?: (tabId: string) => void }) {
+  useMdiCatalogLoaded();
+  const Icon = tab.icon ? getDashboardIconComponent(tab.icon) : null;
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => { event.stopPropagation(); onSelectTab?.(tab.id); }}
+      className={badgePillClass}
+    >
+      {Icon ? <Icon className="h-4 w-4" /> : null}
+      <span className="max-w-24 truncate normal-case">{tab.title}</span>
+    </button>
+  );
+}
+
+function TitleBadgeRow({
+  badges,
+  tabs,
+  isEditing,
+  onSelectTab,
+  onRemoveBadge,
+}: {
+  badges: TitleBadge[];
+  tabs: DashboardTitleTabRef[];
+  isEditing: boolean;
+  onSelectTab?: (tabId: string) => void;
+  onRemoveBadge?: (id: string) => void;
+}) {
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="mb-1 flex flex-wrap items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+      {badges.map((badge) => {
+        const tab = badge.kind === 'tab' ? tabs.find((candidate) => candidate.id === badge.tabId) : undefined;
+        if (badge.kind === 'tab' && !tab) return null;
+
+        return (
+          <span key={badge.id} className="relative inline-flex">
+            {badge.kind === 'weather' ? <WeatherBadgeContent /> : null}
+            {badge.kind === 'time' ? <TimeBadgeContent /> : null}
+            {badge.kind === 'tab' && tab ? <TabBadgeContent tab={tab} onSelectTab={onSelectTab} /> : null}
+            {isEditing && onRemoveBadge ? (
+              <button
+                type="button"
+                onClick={() => onRemoveBadge(badge.id)}
+                className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-destructive text-destructive-foreground shadow"
+                aria-label="Remove badge"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            ) : null}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DashboardTitleWidget({ config, isEditing, isSelected = false, onUpdate, tabs = [], currentTabId, onSelectTab }: DashboardTitleWidgetProps) {
   const { t } = useTranslation();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
@@ -197,6 +328,24 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
   const setAlign = (value: TitleAlign) => onUpdate?.({ extra: { ...config.extra, align: value } });
   const setWidthMode = (value: TitleWidthMode) => onUpdate?.({ extra: { ...config.extra, widthMode: value } });
   const setBlockAlign = (value: TitleAlign) => onUpdate?.({ extra: { ...config.extra, blockAlign: value } });
+
+  const badges = useMemo(() => parseBadges(config.extra?.badges), [config.extra?.badges]);
+  const hasWeatherBadge = badges.some((badge) => badge.kind === 'weather');
+  const hasTimeBadge = badges.some((badge) => badge.kind === 'time');
+  const linkableTabs = tabs.filter((candidate) => candidate.id !== currentTabId);
+  const availableTabsForBadge = linkableTabs.filter(
+    (candidate) => !badges.some((badge) => badge.kind === 'tab' && badge.tabId === candidate.id),
+  );
+
+  const setBadges = (next: TitleBadge[]) => onUpdate?.({ extra: { ...config.extra, badges: next } });
+  const toggleWeatherBadge = () => setBadges(
+    hasWeatherBadge ? badges.filter((badge) => badge.kind !== 'weather') : [...badges, { id: generateId(), kind: 'weather' as const }],
+  );
+  const toggleTimeBadge = () => setBadges(
+    hasTimeBadge ? badges.filter((badge) => badge.kind !== 'time') : [...badges, { id: generateId(), kind: 'time' as const }],
+  );
+  const addTabBadge = (tabId: string) => setBadges([...badges, { id: generateId(), kind: 'tab' as const, tabId }]);
+  const removeBadge = (id: string) => setBadges(badges.filter((badge) => badge.id !== id));
 
   const rendered = useMemo(() => renderTemplate(markdown), [markdown]);
   const blocks = useMemo(() => markdownToBlocks(rendered), [rendered]);
@@ -239,6 +388,13 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
         alignmentClass,
       )}
       style={{ containerType: 'inline-size' }}
+      onClick={() => {
+        // Reopening only relied on `isSelected` flipping false -> true, so a
+        // second click on an already-selected title (selection never cleared
+        // after the first save) silently did nothing. Open directly on click
+        // instead, regardless of prior selection state.
+        if (isEditing && !isEditorOpen) setIsEditorOpen(true);
+      }}
     >
       {isEditing && isEditorOpen ? (
         <form
@@ -303,6 +459,65 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
             )}
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t('dashboard.editor.sections.title_badges')}
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={toggleWeatherBadge}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-caption font-semibold transition',
+                  hasWeatherBadge ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted',
+                )}
+              >
+                {t('dashboard.editor.sections.badge_weather')}
+              </button>
+              <button
+                type="button"
+                onClick={toggleTimeBadge}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-caption font-semibold transition',
+                  hasTimeBadge ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted',
+                )}
+              >
+                {t('dashboard.editor.sections.badge_time')}
+              </button>
+
+              {badges.filter((badge) => badge.kind === 'tab').map((badge) => {
+                const linkedTab = linkableTabs.find((candidate) => candidate.id === badge.tabId);
+                return (
+                  <span
+                    key={badge.id}
+                    className="flex items-center gap-1.5 rounded-full border border-primary bg-primary/10 px-3 py-1.5 text-caption font-semibold text-primary"
+                  >
+                    {linkedTab?.title ?? badge.tabId}
+                    <button type="button" onClick={() => removeBadge(badge.id)} aria-label="Remove">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })}
+
+              {availableTabsForBadge.length > 0 && (
+                <label className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-caption font-semibold text-muted-foreground hover:bg-muted">
+                  <Plus className="h-3 w-3" />
+                  <select
+                    value=""
+                    onChange={(event) => { if (event.target.value) addTabBadge(event.target.value); }}
+                    className="bg-transparent outline-none"
+                  >
+                    <option value="" disabled>{t('dashboard.editor.sections.badge_add_tab')}</option>
+                    {availableTabsForBadge.map((candidate) => (
+                      <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
@@ -321,6 +536,13 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
         </form>
       ) : (
       <div className="min-w-0 max-w-full space-y-[clamp(0.18rem,0.6cqi,0.45rem)]">
+        <TitleBadgeRow
+          badges={badges}
+          tabs={linkableTabs}
+          isEditing={isEditing}
+          onSelectTab={onSelectTab}
+          onRemoveBadge={removeBadge}
+        />
         {blocks.map((block) => {
           if (block.type === 'space') {
             return <div key={block.key} className="h-widget-spacer" />;

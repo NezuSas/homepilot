@@ -20,6 +20,12 @@ const API = `${API_BASE_URL}/api/v1`;
 
 // Main dashboard view
 
+/** The tab marked as default opens on load/reload instead of the first tab. */
+function getDefaultTabIndex(dashboard: Dashboard): number {
+  const idx = dashboard.tabs.findIndex(tab => tab.isDefault);
+  return idx >= 0 ? idx : 0;
+}
+
 interface DashboardsViewProps {
   initialDashboardId?: string | null;
   onDashboardCatalogChange?: (dashboards: Dashboard[]) => void;
@@ -94,8 +100,9 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
         setError('');
         if (data.length > 0) {
           if (isInitial) {
-            setActive(data.find(dashboard => dashboard.id === initialDashboardId) ?? data[0]);
-            setActiveTabIdx(0);
+            const initialDashboard = data.find(dashboard => dashboard.id === initialDashboardId) ?? data[0];
+            setActive(initialDashboard);
+            setActiveTabIdx(getDefaultTabIndex(initialDashboard));
           } else {
             const current = data.find(d => d.id === active?.id);
             if (current) setActive(current);
@@ -117,7 +124,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     const selected = dashboards.find(dashboard => dashboard.id === initialDashboardId);
     if (!selected) return;
     setActive(selected);
-    setActiveTabIdx(0);
+    setActiveTabIdx(getDefaultTabIndex(selected));
     setEditingTitle(false);
     setSelectedWidgetId(null);
   }, [active?.id, dashboards, initialDashboardId]);
@@ -195,8 +202,11 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     background?: string | null;
     backgroundOpacity?: number;
     visibility?: { users: string[] };
+    isDefault?: boolean;
   }) => {
     if (!active) return;
+    // Only one tab can be default at a time: setting it here clears the flag
+    // on every other tab of this dashboard.
     const updatedTabs = active.tabs.map((tab, idx) => (
       idx === tabIdx ? {
         ...tab,
@@ -206,7 +216,8 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
         background: fields.background === null ? undefined : fields.background,
         backgroundOpacity: fields.backgroundOpacity,
         visibility: fields.visibility,
-      } : tab
+        isDefault: fields.isDefault ?? false,
+      } : (fields.isDefault ? { ...tab, isDefault: false } : tab)
     ));
     await patch(active.id, { tabs: updatedTabs });
   };
@@ -472,6 +483,14 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                       onLayoutChange={handleLayoutChange} onWidgetConfigChange={handleUpdateWidgetConfig}
                       onAddSectionClick={() => {
                          void handleAddWidget('section');
+                      }}
+                      tabs={visibleTabs.map(vt => ({ id: vt.id, title: vt.title, icon: vt.icon }))}
+                      currentTabId={activeTab.id}
+                      onSelectTab={(tabId) => {
+                        const targetIdx = active.tabs.findIndex(t => t.id === tabId);
+                        if (targetIdx < 0) return;
+                        setActiveTabIdx(targetIdx);
+                        setSelectedWidgetId(null);
                       }}
                    />
                    )}

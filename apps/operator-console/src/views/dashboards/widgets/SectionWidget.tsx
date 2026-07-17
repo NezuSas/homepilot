@@ -1258,11 +1258,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <ModalPortal>
       <div
         className="fixed inset-0 z-[99999] grid place-items-center overflow-y-auto bg-black/55 px-3 py-4 backdrop-blur-sm sm:px-4 sm:py-6"
-        onClick={() => setEditingCardId(null)}
       >
         <div
           className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-panel border border-border/60 bg-card shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
-          onClick={(event) => event.stopPropagation()}
         >
           <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-5 py-4">
             <div>

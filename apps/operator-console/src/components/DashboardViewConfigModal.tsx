@@ -21,6 +21,7 @@ interface DashboardViewConfigModalProps {
     background?: string;
     backgroundOpacity?: number;
     visibility?: { users: string[] };
+    isDefault?: boolean;
   };
   onClose: () => void;
   onSave: (fields: {
@@ -29,6 +30,7 @@ interface DashboardViewConfigModalProps {
     background?: string | null;
     backgroundOpacity?: number;
     visibility?: { users: string[] };
+    isDefault?: boolean;
   }) => void;
   onDelete: () => void;
 }
@@ -51,6 +53,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   const [iconQuery, setIconQuery] = useState(tab.icon || '');
+  const [isDefaultTab, setIsDefaultTab] = useState(tab.isDefault ?? false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Sync state with props when modal opens or tab changes
@@ -61,6 +64,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
     setBackgroundImg(tab.background || null);
     setAllowedUsers(tab.visibility?.users || []);
     setIconQuery(tab.icon || '');
+    setIsDefaultTab(tab.isDefault ?? false);
     setActiveTab('settings');
 
     // Fetch users for visibility tab
@@ -138,6 +142,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
       background: backgroundImg,
       backgroundOpacity,
       visibility: { users: allowedUsers },
+      isDefault: isDefaultTab,
     });
   };
 
@@ -218,6 +223,30 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 />
                 <span className="mt-1 block text-caption text-muted-foreground">{t('dashboards.view_config.url_hint')}</span>
               </label>
+
+              <button
+                type="button"
+                onClick={() => setIsDefaultTab(prev => !prev)}
+                className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/45 px-4 py-3 text-left"
+              >
+                <span className="min-w-0">
+                  <span className="block text-body font-bold text-foreground">{t('dashboards.view_config.default_view')}</span>
+                  <span className="mt-0.5 block text-caption text-muted-foreground">{t('dashboards.view_config.default_view_hint')}</span>
+                </span>
+                <span
+                  className={cn(
+                    'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+                    isDefaultTab ? 'bg-primary' : 'bg-border/70'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
+                      isDefaultTab ? 'translate-x-5' : 'translate-x-0.5'
+                    )}
+                  />
+                </span>
+              </button>
             </div>
           )}
 

@@ -31,6 +31,10 @@ interface DashboardCanvasProps {
   onWidgetConfigChange?: (widgetId: string, config: Partial<DashboardWidgetConfig>) => void;
   onAddSectionClick?: () => void;
   onAddTitleClick?: () => void;
+  /** Other tabs of this dashboard, used by the title widget's tab-link badges. */
+  tabs?: Array<{ id: string; title: string; icon?: string }>;
+  currentTabId?: string;
+  onSelectTab?: (tabId: string) => void;
 }
 
 // Fine row unit used to measure each zone's real height (Home Assistant style
@@ -154,7 +158,8 @@ export function DashboardCanvas({
   isEditing,
   onWidgetClick,
   selectedWidgetId,
-  onLayoutChange, onWidgetConfigChange, onAddSectionClick, onAddTitleClick }: DashboardCanvasProps) {
+  onLayoutChange, onWidgetConfigChange, onAddSectionClick, onAddTitleClick,
+  tabs, currentTabId, onSelectTab }: DashboardCanvasProps) {
   const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -274,6 +279,9 @@ export function DashboardCanvas({
               isSelected={isEditing && selectedWidgetId === titleWidget.id}
               onClick={() => { if (isEditing) onWidgetClick(titleWidget.id); }}
               onConfigChange={onWidgetConfigChange}
+              titleBadgeTabs={tabs}
+              currentTabId={currentTabId}
+              onSelectTab={onSelectTab}
             />
           </CanvasFlowItem>
         ) : canEditLayout ? (

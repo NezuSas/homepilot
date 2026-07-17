@@ -33,10 +33,14 @@ interface DashboardWidgetNodeProps {
   dragHandleListeners?: DraggableSyntheticListeners;
   /** Current breakpoint's column count, used to clamp the span picker. */
   columns?: number;
+  /** Other tabs of this dashboard, forwarded to the title widget's tab-link badges. */
+  titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>;
+  currentTabId?: string;
+  onSelectTab?: (tabId: string) => void;
 }
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void }) {
+export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void }) {
   const { t } = useTranslation();
 
   switch (widget.type) {
@@ -64,6 +68,9 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
           isEditing={isEditing}
           isSelected={isSelected}
           onUpdate={(config) => onConfigChange?.(widget.id, config)}
+          tabs={titleBadgeTabs}
+          currentTabId={currentTabId}
+          onSelectTab={onSelectTab}
         />
       );
     case 'section':
@@ -95,6 +102,9 @@ export function DashboardWidgetNode({
   dragHandleAttributes,
   dragHandleListeners,
   columns = 3,
+  titleBadgeTabs,
+  currentTabId,
+  onSelectTab,
 }: DashboardWidgetNodeProps) {
   const { t } = useTranslation();
 
@@ -147,6 +157,9 @@ export function DashboardWidgetNode({
           isSelected={isSelected}
           onClick={onClick}
           onConfigChange={onConfigChange}
+          titleBadgeTabs={titleBadgeTabs}
+          currentTabId={currentTabId}
+          onSelectTab={onSelectTab}
         />
       </div>
 

@@ -13,6 +13,8 @@ export interface DashboardTab {
   background?: string;
   backgroundOpacity?: number;
   visibility?: { users: string[] };
+  /** When true, this tab opens automatically on page load/reload instead of the first tab. */
+  isDefault?: boolean;
 }
 
 export interface DashboardVisibility {
