@@ -1,6 +1,7 @@
 import type { ClockDesignProps } from '../clockTypes';
-import { formatDateLine, getDayProgress, pad } from '../clockUtils';
-import { ClockLabel, ClockProgress, ClockShell, TimeText, WeatherPill } from './ClockShared';
+import { formatDateLine, formatTemperature, formatWeather, getDayProgress, isDaytimeHour, pad } from '../clockUtils';
+import { ClockLabel, ClockProgress, ClockShell, TimeText } from './ClockShared';
+import { getWeatherCategory, WeatherScene } from './WeatherScene';
 
 export function MinimalClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const hours = pad(now.getHours());
@@ -9,6 +10,9 @@ export function MinimalClock({ now, locale, copy, weather, weatherStatus }: Cloc
   const blink = now.getSeconds() % 2 === 0;
   const dayProgress = getDayProgress(now);
   const dateLine = formatDateLine(now, locale);
+  const isReady = Boolean(weather) && weatherStatus === 'ready';
+  const category = isReady ? getWeatherCategory(weather!.code, isDaytimeHour(now)) : null;
+  const conditionLabel = formatWeather(weather, weatherStatus, copy, 'full');
 
   return (
     <ClockShell className="p-clock-shell-roomy">
@@ -23,12 +27,27 @@ export function MinimalClock({ now, locale, copy, weather, weatherStatus }: Cloc
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 place-items-center py-clock-section-y-compact">
-          <TimeText hours={hours} minutes={minutes} blink={blink} size="hero" />
+        {/* Weather takes center stage, Home Assistant weather-card style: a
+            big animated scene next to the condition, with the clock itself
+            shrunk down beside it instead of dominating the card. */}
+        <div className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-center gap-4 py-clock-section-y-compact">
+          <WeatherScene category={category ?? 'cloudy'} size="lg" />
+          <div className="min-w-0">
+            <TimeText hours={hours} minutes={minutes} blink={blink} size="medium" align="left" />
+            {isReady && (
+              <div className="mt-1 truncate text-clock-caption-fluid font-black text-foreground">
+                {weather!.label} &middot; {formatTemperature(weather!.temperature)}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} mode="full" />
+          <div className="min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-widget-pad-x py-widget-spacer shadow-inner">
+            <span className="block min-w-0 truncate text-clock-label-fluid font-black uppercase tracking-micro text-foreground">
+              {conditionLabel}
+            </span>
+          </div>
           <ClockProgress value={dayProgress} label={copy.dayProgress} />
         </div>
       </div>

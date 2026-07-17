@@ -234,11 +234,60 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── Weather scene animations ─────────────────────────────── */
+  @keyframes weather-cloud-drift-a {
+    0%, 100% { transform: translateX(-4%); }
+    50%       { transform: translateX(4%); }
+  }
+  @keyframes weather-cloud-drift-b {
+    0%, 100% { transform: translateX(3%); }
+    50%       { transform: translateX(-3%); }
+  }
+  @keyframes weather-sun-pulse {
+    0%, 100% { opacity: 0.85; transform: scale(1);    }
+    50%       { opacity: 1;    transform: scale(1.08); }
+  }
+  @keyframes weather-sun-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes weather-rain-fall {
+    0%   { transform: translateY(-3px); opacity: 0; }
+    25%  { opacity: 1; }
+    100% { transform: translateY(11px); opacity: 0; }
+  }
+  @keyframes weather-snow-fall {
+    0%   { transform: translate(0, -3px); opacity: 0; }
+    20%  { opacity: 1; }
+    100% { transform: translate(3px, 13px); opacity: 0; }
+  }
+  @keyframes weather-flash {
+    0%, 90%, 100% { opacity: 0; }
+    93%, 96%       { opacity: 1; }
+  }
+  @keyframes weather-twinkle {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 1;    }
+  }
+  @keyframes weather-fog-drift {
+    0%, 100% { transform: translateX(-6%); opacity: 0.5; }
+    50%       { transform: translateX(6%);  opacity: 0.85; }
+  }
+
   /* ── Animation classes ────────────────────────────────────── */
   .animate-luxury-ripple  { animation: luxury-ripple 1.5s var(--ease-out) forwards; }
   .animate-pulse-slow     { animation: pulse-slow 3s var(--ease-in-out) infinite; }
   .animate-pulse-beacon   { animation: pulse-beacon 2s ease-in-out infinite; }
   .animate-slide-up-fade  { animation: slide-up-fade var(--duration-slow) var(--ease-out) both; }
+  .animate-weather-cloud-a { animation: weather-cloud-drift-a 6s ease-in-out infinite; }
+  .animate-weather-cloud-b { animation: weather-cloud-drift-b 7s ease-in-out infinite; }
+  .animate-weather-sun-pulse { animation: weather-sun-pulse 4s ease-in-out infinite; }
+  .animate-weather-sun-spin  { animation: weather-sun-spin 24s linear infinite; }
+  .animate-weather-rain { animation: weather-rain-fall 1s linear infinite; }
+  .animate-weather-snow { animation: weather-snow-fall 3s linear infinite; }
+  .animate-weather-flash { animation: weather-flash 5s ease-in-out infinite; }
+  .animate-weather-twinkle { animation: weather-twinkle 2.4s ease-in-out infinite; }
+  .animate-weather-fog { animation: weather-fog-drift 8s ease-in-out infinite; }
 
   /* ── Status dots ──────────────────────────────────────────── */
   .status-dot-synced {
