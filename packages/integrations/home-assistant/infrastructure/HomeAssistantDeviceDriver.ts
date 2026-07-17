@@ -68,6 +68,20 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     } else if (dispatchedCommand === 'media_next_track' && haDomain === 'media_player') {
       domain = 'media_player';
       service = 'media_next_track';
+    } else if (dispatchedCommand === 'volume_set' && haDomain === 'media_player') {
+      const requestedVolume = command.params?.volume;
+
+      // Validación estricta de parámetros
+      if (requestedVolume === undefined || requestedVolume === null) {
+        return { success: false, error: 'Parámetro volume es requerido para volume_set' };
+      }
+      if (typeof requestedVolume !== 'number' || requestedVolume < 0 || requestedVolume > 100) {
+        return { success: false, error: 'Parámetro volume debe ser un número entre 0 y 100' };
+      }
+
+      domain = 'media_player';
+      service = 'volume_set';
+      data = { volume_level: requestedVolume / 100 };
     }
     else if (dispatchedCommand === 'open' && haDomain === 'cover') {
       domain = 'cover';
@@ -169,6 +183,9 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     } else if (command === 'media_pause') {
       newState.state = 'paused';
       newState.on = true;
+    } else if (command === 'volume_set') {
+      const volume = params?.volume as number;
+      newState.volume_level = volume / 100;
     }
 
     return newState;

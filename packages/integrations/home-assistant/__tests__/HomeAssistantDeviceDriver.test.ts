@@ -182,6 +182,49 @@ describe('HomeAssistantDeviceDriver', () => {
     expect(pauseResult.newState).toMatchObject({ state: 'paused', on: true });
   });
 
+  it('should execute volume_set for a media player correctly', async () => {
+    const mediaPlayer = {
+      ...mockDevice,
+      externalId: 'ha:media_player.z_tech_speaker',
+      type: 'media_player',
+      lastKnownState: { state: 'playing', volume_level: 0.2 },
+    };
+
+    const result = await driver.executeCommand(
+      mediaPlayer,
+      { name: 'volume_set', params: { volume: 65 } },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockClient.callService).toHaveBeenCalledWith('media_player', 'volume_set', 'media_player.z_tech_speaker', { volume_level: 0.65 });
+    expect(result.newState).toMatchObject({ volume_level: 0.65 });
+  });
+
+  it('should reject volume_set without volume param', async () => {
+    const mediaPlayer = { ...mockDevice, externalId: 'ha:media_player.z_tech_speaker', type: 'media_player' };
+    const result = await driver.executeCommand(
+      mediaPlayer,
+      { name: 'volume_set' },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Parámetro volume es requerido');
+  });
+
+  it('should reject volume_set with out of range volume', async () => {
+    const mediaPlayer = { ...mockDevice, externalId: 'ha:media_player.z_tech_speaker', type: 'media_player' };
+    const result = await driver.executeCommand(
+      mediaPlayer,
+      { name: 'volume_set', params: { volume: 150 } },
+      { userId: 'u1', correlationId: 'c1' }
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('número entre 0 y 100');
+  });
+
   it('should return error if connection is not configured', async () => {
     mockConnectionProvider.hasClient.mockReturnValue(false);
     const result = await driver.executeCommand(mockDevice, { name: 'turn_on' }, { userId: 'u1', correlationId: 'c1' });

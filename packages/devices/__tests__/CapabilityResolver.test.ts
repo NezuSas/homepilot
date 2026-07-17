@@ -69,6 +69,7 @@ describe('CapabilityResolver', () => {
       'media_pause',
       'media_previous_track',
       'media_next_track',
+      'volume_set',
     ]);
   });
 

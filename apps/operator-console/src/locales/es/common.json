@@ -361,6 +361,8 @@
         "media_turn_off": "Apagar reproductor",
         "media_previous": "Pista anterior",
         "media_next": "Siguiente pista",
+        "media_volume_down": "Bajar volumen",
+        "media_volume_up": "Subir volumen",
         "energy_label": "Energía",
         "room_label": "Habitación",
         "room_access": "Acceso por estancia",

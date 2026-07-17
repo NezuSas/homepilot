@@ -1,4 +1,4 @@
-import { Cast, MoreVertical, Pause, Play, Power, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { Cast, MinusCircle, MoreVertical, Pause, Play, PlusCircle, Power, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../../config';
@@ -6,14 +6,17 @@ import { apiFetch } from '../../../lib/apiClient';
 import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 
-export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track';
+export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
+
+// Matches Home Assistant's default media control step (10%).
+const VOLUME_STEP = 10;
 
 interface MediaPlayerCardProps {
   device?: SnapshotDevice;
   title: string;
   isPreview?: boolean;
   isProcessing?: boolean;
-  onCommand?: (command: MediaPlayerCommand) => void;
+  onCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
 }
 
 interface MediaPresentation {
@@ -110,10 +113,21 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const displayTitle = presentation.mediaTitle || title;
   const hasPrevious = commands.has('media_previous_track');
   const hasNext = commands.has('media_next_track');
+  const hasVolumeControl = commands.has('volume_set');
+  const currentVolume = presentation.volume;
   const invoke = (command: MediaPlayerCommand | null) => {
     if (!command || !canAct) return;
     onCommand?.(command);
   };
+  const changeVolume = (delta: number) => {
+    if (!canAct || !hasVolumeControl || currentVolume === null) return;
+    const nextVolume = Math.max(0, Math.min(100, currentVolume + delta));
+    if (nextVolume === currentVolume) return;
+    onCommand?.('volume_set', { volume: nextVolume });
+  };
+  const VolumeIcon = currentVolume === null || currentVolume === 0
+    ? VolumeX
+    : currentVolume < 50 ? Volume1 : Volume2;
 
   useEffect(() => {
     let active = true;
@@ -212,9 +226,31 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             <SkipForward className="h-4 w-4" />
           </button>
         )}
-        <span className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={presentation.volume === null ? undefined : `${presentation.volume}%`}>
-          <Volume2 className="h-4 w-4" />
+        <span className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={currentVolume === null ? undefined : `${currentVolume}%`}>
+          <VolumeIcon className="h-4 w-4" />
         </span>
+        {hasVolumeControl && (
+          <>
+            <button
+              type="button"
+              disabled={!canAct || currentVolume === null || currentVolume <= 0}
+              onClick={(event) => { event.stopPropagation(); changeVolume(-VOLUME_STEP); }}
+              aria-label={t('dashboard.editor.sections.media_volume_down')}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <MinusCircle className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              disabled={!canAct || currentVolume === null || currentVolume >= 100}
+              onClick={(event) => { event.stopPropagation(); changeVolume(VOLUME_STEP); }}
+              aria-label={t('dashboard.editor.sections.media_volume_up')}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <PlusCircle className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
       <div className="relative mx-4 mb-4 mt-2 h-1 overflow-hidden rounded-full bg-foreground/20">
         <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${presentation.volume ?? 0}%` }} />

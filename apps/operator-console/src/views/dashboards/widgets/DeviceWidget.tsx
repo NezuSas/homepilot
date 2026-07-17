@@ -9,12 +9,15 @@ import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
-import { getDashboardIconComponent } from '../components/IconPicker';
+import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 
 const API = `${API_BASE_URL}/api/v1`;
 
 export function DeviceWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
+  // The MDI icon set loads lazily; this re-renders once it's ready so an
+  // already-saved mdi:* icon resolves instead of staying on its fallback.
+  useMdiCatalogLoaded();
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const device = devices.find(d => d.id === config.binding.entityId);
   const [isProcessing, setIsProcessing] = useState(false);

@@ -22,7 +22,7 @@ import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
-import { IconPicker, getDashboardIconComponent } from '../components/IconPicker';
+import { IconPicker, getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
 import { SensorMetricCard } from './SensorMetricCard';
@@ -530,11 +530,14 @@ function CardPreview({
   device?: SnapshotDevice;
   isPreview?: boolean;
   isMediaProcessing?: boolean;
-  onMediaCommand?: (command: MediaPlayerCommand) => void;
+  onMediaCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
   roomDeviceCount?: number;
   roomActiveCount?: number;
 }) {
   const { t } = useTranslation();
+  // The MDI icon set loads lazily; this re-renders once it's ready so an
+  // already-saved mdi:* card icon resolves instead of staying on its fallback.
+  useMdiCatalogLoaded();
   const normalized = normalizeKind(kind);
   const Icon = iconForIconKey(icon ?? getDefaultIcon(normalized));
   const isSmall = span === 'small';
@@ -983,7 +986,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     }
   };
 
-  const handleMediaCardAction = async (card: NormalizedSectionCardItem, command: MediaPlayerCommand) => {
+  const handleMediaCardAction = async (card: NormalizedSectionCardItem, command: MediaPlayerCommand, params?: Record<string, unknown>) => {
     if (isEditing || !card.entityId) return;
 
     const device = devices.find((candidate) => candidate.id === card.entityId);
@@ -994,7 +997,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command }),
+        body: JSON.stringify({ command: params ? { name: command, params } : command }),
       });
       if (!response.ok) throw new Error(`MEDIA_COMMAND_${response.status}`);
       await refreshSnapshot();
@@ -1076,7 +1079,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           device={assignedDevice}
           isMediaProcessing={processingCardId === card.id}
           onMediaCommand={normalizedKind === 'media'
-            ? (command) => { void handleMediaCardAction(card, command); }
+            ? (command, params) => { void handleMediaCardAction(card, command, params); }
             : undefined}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}

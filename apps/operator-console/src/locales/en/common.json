@@ -361,6 +361,8 @@
         "media_turn_off": "Turn off player",
         "media_previous": "Previous track",
         "media_next": "Next track",
+        "media_volume_down": "Volume down",
+        "media_volume_up": "Volume up",
         "energy_label": "Energy",
         "room_label": "Room",
         "room_access": "Room access",
