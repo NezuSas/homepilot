@@ -989,7 +989,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const device = devices.find((candidate) => candidate.id === card.entityId);
     if (!device) return;
 
-    setProcessingCardId(card.id);
+    // Volume shows its own instant optimistic feedback in the card, so it
+    // skips the processing lock — otherwise a rapid tap would sit disabled
+    // for the whole round trip of a full snapshot refresh.
+    const isVolumeChange = command === 'volume_set';
+    if (!isVolumeChange) setProcessingCardId(card.id);
     try {
       const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
         method: 'POST',
@@ -997,11 +1001,15 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         body: JSON.stringify({ command: params ? { name: command, params } : command }),
       });
       if (!response.ok) throw new Error(`MEDIA_COMMAND_${response.status}`);
-      await refreshSnapshot();
+      if (isVolumeChange) {
+        void refreshSnapshot();
+      } else {
+        await refreshSnapshot();
+      }
     } catch (error) {
       console.error('[SectionWidget] Failed to execute media card action:', error);
     } finally {
-      setProcessingCardId(null);
+      if (!isVolumeChange) setProcessingCardId(null);
     }
   };
 

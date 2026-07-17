@@ -98,6 +98,9 @@ function absoluteApiUrl(path: string): string {
 export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand }: MediaPlayerCardProps) {
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
+  // Volume changes render instantly instead of waiting for the next device
+  // snapshot; cleared once a fresh snapshot arrives (see effect below).
+  const [optimisticVolume, setOptimisticVolume] = useState<number | null>(null);
   const presentation = getMediaPlayerPresentation(device, isPreview);
   const commands = supportedCommands(device);
   const isPlaying = presentation.state === 'playing';
@@ -114,20 +117,30 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const hasPrevious = commands.has('media_previous_track');
   const hasNext = commands.has('media_next_track');
   const hasVolumeControl = commands.has('volume_set');
-  const currentVolume = presentation.volume;
+  const currentVolume = optimisticVolume ?? presentation.volume;
+  // Volume has its own instant feedback, so it isn't gated by isProcessing
+  // (which tracks play/pause/track changes on this same card).
+  const canActVolume = Boolean(onCommand) && !unavailable && hasVolumeControl;
   const invoke = (command: MediaPlayerCommand | null) => {
     if (!command || !canAct) return;
     onCommand?.(command);
   };
   const changeVolume = (delta: number) => {
-    if (!canAct || !hasVolumeControl || currentVolume === null) return;
+    if (!canActVolume || currentVolume === null) return;
     const nextVolume = Math.max(0, Math.min(100, currentVolume + delta));
     if (nextVolume === currentVolume) return;
+    setOptimisticVolume(nextVolume);
     onCommand?.('volume_set', { volume: nextVolume });
   };
   const VolumeIcon = currentVolume === null || currentVolume === 0
     ? VolumeX
     : currentVolume < 50 ? Volume1 : Volume2;
+
+  useEffect(() => {
+    // A fresh snapshot is the source of truth; drop the optimistic override
+    // so the real volume takes over (they usually already match).
+    setOptimisticVolume(null);
+  }, [device?.updatedAt]);
 
   useEffect(() => {
     let active = true;
@@ -155,6 +168,17 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
 
   return (
     <div className="relative flex h-full min-h-media-card flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
+      {artworkUrl && (
+        // Ambient bleed: a blurred, oversized copy of the artwork fills the
+        // whole card so the color to the left of the cover matches it,
+        // Home Assistant style, instead of a flat card-color gradient.
+        <img
+          src={artworkUrl}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-80 blur-2xl saturate-150"
+        />
+      )}
       {artworkUrl && <img src={artworkUrl} alt="" className="pointer-events-none absolute inset-y-0 right-0 h-full w-[48%] object-cover" />}
       <div className={cn(
         'pointer-events-none absolute inset-0',
@@ -233,7 +257,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           <>
             <button
               type="button"
-              disabled={!canAct || currentVolume === null || currentVolume <= 0}
+              disabled={!canActVolume || currentVolume === null || currentVolume <= 0}
               onClick={(event) => { event.stopPropagation(); changeVolume(-VOLUME_STEP); }}
               aria-label={t('dashboard.editor.sections.media_volume_down')}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
@@ -242,7 +266,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             </button>
             <button
               type="button"
-              disabled={!canAct || currentVolume === null || currentVolume >= 100}
+              disabled={!canActVolume || currentVolume === null || currentVolume >= 100}
               onClick={(event) => { event.stopPropagation(); changeVolume(VOLUME_STEP); }}
               aria-label={t('dashboard.editor.sections.media_volume_up')}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
@@ -253,7 +277,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
         )}
       </div>
       <div className="relative mx-4 mb-4 mt-2 h-1 overflow-hidden rounded-full bg-foreground/20">
-        <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${presentation.volume ?? 0}%` }} />
+        <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
       </div>
     </div>
   );
