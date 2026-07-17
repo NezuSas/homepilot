@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -26,14 +27,27 @@ function getDefaultTabIndex(dashboard: Dashboard): number {
   return idx >= 0 ? idx : 0;
 }
 
+/** The URL's tab id wins over the "default tab" flag: it reflects exactly
+ * where the user was (or the link they were given), not just a static pick. */
+function getInitialTabIndex(dashboard: Dashboard, preferredTabId?: string | null): number {
+  if (preferredTabId) {
+    const idx = dashboard.tabs.findIndex(tab => tab.id === preferredTabId);
+    if (idx >= 0) return idx;
+  }
+  return getDefaultTabIndex(dashboard);
+}
+
 interface DashboardsViewProps {
   initialDashboardId?: string | null;
+  initialTabId?: string | null;
   onDashboardCatalogChange?: (dashboards: Dashboard[]) => void;
   onOpenMobileMenu?: () => void;
 }
 
-export function DashboardsView({ initialDashboardId = null, onDashboardCatalogChange, onOpenMobileMenu }: DashboardsViewProps) {
+export function DashboardsView({ initialDashboardId = null, initialTabId = null, onDashboardCatalogChange, onOpenMobileMenu }: DashboardsViewProps) {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const [active, setActive]             = useState<Dashboard | null>(null);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
@@ -102,7 +116,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
           if (isInitial) {
             const initialDashboard = data.find(dashboard => dashboard.id === initialDashboardId) ?? data[0];
             setActive(initialDashboard);
-            setActiveTabIdx(getDefaultTabIndex(initialDashboard));
+            setActiveTabIdx(getInitialTabIndex(initialDashboard, initialTabId));
           } else {
             const current = data.find(d => d.id === active?.id);
             if (current) setActive(current);
@@ -113,7 +127,7 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       setError(error_ instanceof Error ? error_.message : t('dashboards.error_load'));
     }
     finally { setLoading(false); }
-  }, [active?.id, initialDashboardId, onDashboardCatalogChange, t]);
+  }, [active?.id, initialDashboardId, initialTabId, onDashboardCatalogChange, t]);
 
   useEffect(() => { 
     fetchDashboards(true);
@@ -124,10 +138,32 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
     const selected = dashboards.find(dashboard => dashboard.id === initialDashboardId);
     if (!selected) return;
     setActive(selected);
-    setActiveTabIdx(getDefaultTabIndex(selected));
+    setActiveTabIdx(getInitialTabIndex(selected, initialTabId));
     setEditingTitle(false);
     setSelectedWidgetId(null);
-  }, [active?.id, dashboards, initialDashboardId]);
+  }, [active?.id, dashboards, initialDashboardId, initialTabId]);
+
+  // Browser back/forward (or a link straight to a specific tab) changes
+  // `initialTabId` without changing the dashboard: follow it.
+  useEffect(() => {
+    if (!active || !initialTabId) return;
+    const idx = active.tabs.findIndex(tab => tab.id === initialTabId);
+    if (idx >= 0 && idx !== activeTabIdx) setActiveTabIdx(idx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to the URL's tab id changing, not every activeTabIdx change (that would fight the effect below)
+  }, [initialTabId, active]);
+
+  // Keep the URL in sync with whatever tab is actually showing (user clicked
+  // a tab, a badge jumped to another tab, a tab was added/removed, etc.) so
+  // reloading — or sharing the link — lands back on this exact tab.
+  useEffect(() => {
+    if (!active) return;
+    const tab = active.tabs[activeTabIdx];
+    if (!tab) return;
+    const targetPath = `/dashboards/${active.id}/${tab.id}`;
+    if (location.pathname !== targetPath) {
+      navigate(targetPath, { replace: true });
+    }
+  }, [active, activeTabIdx, location.pathname, navigate]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     try {

@@ -1,4 +1,5 @@
-import { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
+import { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Home,
@@ -127,6 +128,64 @@ function isSystemView(view: View): boolean {
 }
 
 /**
+ * URL <-> View mapping. This is the whole reload-persistence story: the
+ * browser URL is the source of truth for navigation instead of plain React
+ * state, so a reload (or a shared link) lands back on the same section —
+ * and, for Tableros, the exact dashboard + tab — instead of resetting to
+ * Home. nginx already serves index.html for any unknown path (SPA
+ * fallback), so no deployment changes are needed for these routes to work.
+ */
+const DASHBOARDS_TAB_PATTERN = '/dashboards/:dashboardId/:tabId';
+const DASHBOARDS_ONE_PATTERN = '/dashboards/:dashboardId';
+
+function viewToPath(view: View): string {
+  switch (view) {
+    case 'dashboard': return '/';
+    case 'spaces': return '/spaces';
+    case 'scenes': return '/scenes';
+    case 'automations': return '/automations';
+    case 'assistant': return '/assistant';
+    case 'energy': return '/energy';
+    case 'resilience-showcase': return '/resilience-showcase';
+    case 'home-conversation': return '/home-conversation';
+    case 'dashboards': return '/dashboards';
+    case 'system-devices': return '/system/devices';
+    case 'system-inbox': return '/system/inbox';
+    case 'system-diagnostics': return '/system/diagnostics';
+    case 'system-audit': return '/system/audit';
+    case 'system-executions': return '/system/executions';
+    case 'system-users': return '/system/users';
+    case 'system-ha': return '/system/ha';
+    case 'system-cameras': return '/system/cameras';
+    case 'system-onboarding': return '/system/onboarding';
+    default: return '/';
+  }
+}
+
+function pathToView(pathname: string): View {
+  if (pathname.startsWith('/dashboards')) return 'dashboards';
+  switch (pathname) {
+    case '/spaces': return 'spaces';
+    case '/scenes': return 'scenes';
+    case '/automations': return 'automations';
+    case '/assistant': return 'assistant';
+    case '/energy': return 'energy';
+    case '/resilience-showcase': return 'resilience-showcase';
+    case '/home-conversation': return 'home-conversation';
+    case '/system/devices': return 'system-devices';
+    case '/system/inbox': return 'system-inbox';
+    case '/system/diagnostics': return 'system-diagnostics';
+    case '/system/audit': return 'system-audit';
+    case '/system/executions': return 'system-executions';
+    case '/system/users': return 'system-users';
+    case '/system/ha': return 'system-ha';
+    case '/system/cameras': return 'system-cameras';
+    case '/system/onboarding': return 'system-onboarding';
+    default: return 'dashboard';
+  }
+}
+
+/**
  * App Component
  * Aplicación principal de la Operator Console V1.
  * Gestiona el enrutamiento básico y el layout global.
@@ -142,7 +201,18 @@ interface SetupStatus {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  // The URL is the source of truth for navigation (reload/back/forward/share
+  // all just work), instead of plain component state that resets on reload.
+  const currentView = useMemo(() => pathToView(location.pathname), [location.pathname]);
+  const dashboardsTabMatch = useMemo(() => matchPath(DASHBOARDS_TAB_PATTERN, location.pathname), [location.pathname]);
+  const dashboardsOneMatch = useMemo(
+    () => (dashboardsTabMatch ? null : matchPath(DASHBOARDS_ONE_PATTERN, location.pathname)),
+    [dashboardsTabMatch, location.pathname],
+  );
+  const urlDashboardId = dashboardsTabMatch?.params.dashboardId ?? dashboardsOneMatch?.params.dashboardId ?? null;
+  const urlTabId = dashboardsTabMatch?.params.tabId ?? null;
   const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string; interactionMode: 'voice' } | null>(null);
   const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNoticeModel | null>(null);
   const [isGlobalWakeProcessing, setIsGlobalWakeProcessing] = useState(false);
@@ -158,7 +228,7 @@ function App() {
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
   const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
   const [sidebarDashboards, setSidebarDashboards] = useState<Array<{ id: string; ownerId: string; title: string }>>([]);
-  const [selectedSidebarDashboardId, setSelectedSidebarDashboardId] = useState<string | null>(null);
+  const selectedSidebarDashboardId = urlDashboardId;
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [localProfile, setLocalProfile] = useState<{ displayName: string | null; avatarDataUri: string | null }>(() => {
     try {
@@ -269,7 +339,6 @@ function App() {
   const refreshSidebarDashboards = useCallback(async () => {
     if (!canAccessDashboards) {
       setSidebarDashboards([]);
-      setSelectedSidebarDashboardId(null);
       return;
     }
 
@@ -283,16 +352,20 @@ function App() {
         ownerId: dashboard.ownerId,
         title: dashboard.title
       })));
-      setSelectedSidebarDashboardId(current => {
-        if (current && data.some(dashboard => dashboard.id === current)) return current;
+
+      // The URL is the source of truth: only pick a fallback dashboard (and
+      // make it canonical via a history-replacing redirect) when the URL
+      // doesn't already point at one of the visible dashboards.
+      if (!urlDashboardId || !data.some(dashboard => dashboard.id === urlDashboardId)) {
         const ownedDashboard = data.find(dashboard => dashboard.ownerId === user?.id);
-        return ownedDashboard?.id ?? data[0]?.id ?? null;
-      });
+        const fallbackId = ownedDashboard?.id ?? data[0]?.id ?? null;
+        if (fallbackId) navigate(`/dashboards/${fallbackId}`, { replace: true });
+      }
     } catch (error) {
       console.warn('[AppShell] Failed to refresh sidebar dashboards:', error);
       setSidebarDashboards([]);
     }
-  }, [canAccessDashboards, user?.id]);
+  }, [canAccessDashboards, user?.id, urlDashboardId, navigate]);
 
   // Check setup status before login only to detect factory state without users.
   useEffect(() => {
@@ -587,7 +660,7 @@ function App() {
 
   const navigateTo = (view: View) => {
     const resolved = resolveView(view);
-    setCurrentView(resolved);
+    navigate(viewToPath(resolved));
     setIsSidebarOpen(false);
     // Auto-expand system section when a system view is activated
     if (isSystemView(resolved)) {
@@ -805,8 +878,9 @@ function App() {
                          label={dashboard.title}
                          active={currentView === 'dashboards' && selectedSidebarDashboardId === dashboard.id}
                          onClick={() => {
-                           setSelectedSidebarDashboardId(dashboard.id);
-                           navigateTo('dashboards');
+                           navigate(`/dashboards/${dashboard.id}`);
+                           setIsSidebarOpen(false);
+                           setIsDashboardsExpanded(true);
                          }}
                          nested
                        />
@@ -1144,6 +1218,7 @@ function App() {
                  {currentView === 'dashboards' && (
                   <DashboardsView
                     initialDashboardId={selectedSidebarDashboardId}
+                    initialTabId={urlTabId}
                     onOpenMobileMenu={() => setIsSidebarOpen(true)}
                     onDashboardCatalogChange={(dashboards) => {
                       setSidebarDashboards(dashboards.map(dashboard => ({
@@ -1151,10 +1226,9 @@ function App() {
                         ownerId: dashboard.ownerId,
                         title: dashboard.title
                       })));
-                      setSelectedSidebarDashboardId(current => {
-                        if (current && dashboards.some(dashboard => dashboard.id === current)) return current;
-                        return dashboards[0]?.id ?? null;
-                      });
+                      if ((!urlDashboardId || !dashboards.some(dashboard => dashboard.id === urlDashboardId)) && dashboards[0]?.id) {
+                        navigate(`/dashboards/${dashboards[0].id}`, { replace: true });
+                      }
                     }}
                   />
                 )}
