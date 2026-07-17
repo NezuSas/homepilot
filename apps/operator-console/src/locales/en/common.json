@@ -284,6 +284,7 @@
         "badge_weather": "Weather",
         "badge_time": "Time",
         "badge_add_tab": "Add tab link",
+        "badge_position": "Badge position",
         "section_title": "Section title",
         "section_title_placeholder": "My section",
         "edit_section_title": "Edit section name",

@@ -9,11 +9,11 @@ import {
   AlignLeft,
   AlignRight,
   Clock,
-  Plus,
   X,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { generateId } from '../../../utils/generateId';
+import { SelectField } from '../../../components/ui/SelectField';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
 import { getWeatherCategory, WeatherScene } from './clock/designs/WeatherScene';
@@ -262,17 +262,21 @@ function TitleBadgeRow({
   isEditing,
   onSelectTab,
   onRemoveBadge,
+  align = 'left',
 }: {
   badges: TitleBadge[];
   tabs: DashboardTitleTabRef[];
   isEditing: boolean;
   onSelectTab?: (tabId: string) => void;
   onRemoveBadge?: (id: string) => void;
+  align?: TitleAlign;
 }) {
   if (badges.length === 0) return null;
 
+  const justifyClass = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
+
   return (
-    <div className="mb-1 flex flex-wrap items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+    <div className={cn('flex w-full flex-wrap items-center gap-1.5', justifyClass)} onClick={(event) => event.stopPropagation()}>
       {badges.map((badge) => {
         const tab = badge.kind === 'tab' ? tabs.find((candidate) => candidate.id === badge.tabId) : undefined;
         if (badge.kind === 'tab' && !tab) return null;
@@ -336,6 +340,13 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
   const availableTabsForBadge = linkableTabs.filter(
     (candidate) => !badges.some((badge) => badge.kind === 'tab' && badge.tabId === candidate.id),
   );
+
+  // Badges always sit in their own row at the bottom, full width; only their
+  // horizontal position within that row is configurable.
+  const badgeAlign = (config.extra?.badgeAlign === 'left' || config.extra?.badgeAlign === 'right' || config.extra?.badgeAlign === 'center')
+    ? config.extra.badgeAlign as TitleAlign
+    : 'left';
+  const setBadgeAlign = (value: TitleAlign) => onUpdate?.({ extra: { ...config.extra, badgeAlign: value } });
 
   const setBadges = (next: TitleBadge[]) => onUpdate?.({ extra: { ...config.extra, badges: next } });
   const toggleWeatherBadge = () => setBadges(
@@ -501,21 +512,30 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
               })}
 
               {availableTabsForBadge.length > 0 && (
-                <label className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-caption font-semibold text-muted-foreground hover:bg-muted">
-                  <Plus className="h-3 w-3" />
-                  <select
-                    value=""
-                    onChange={(event) => { if (event.target.value) addTabBadge(event.target.value); }}
-                    className="bg-transparent outline-none"
-                  >
-                    <option value="" disabled>{t('dashboard.editor.sections.badge_add_tab')}</option>
-                    {availableTabsForBadge.map((candidate) => (
-                      <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField
+                  value=""
+                  onChange={(value) => { if (value) addTabBadge(value); }}
+                  options={availableTabsForBadge.map((candidate) => ({ value: candidate.id, label: candidate.title }))}
+                  placeholder={t('dashboard.editor.sections.badge_add_tab')}
+                  variant="small"
+                  fullWidth={false}
+                  className="w-auto"
+                />
               )}
             </div>
+
+            {badges.length > 0 && (
+              <TitleOptionGroup
+                label={t('dashboard.editor.sections.badge_position')}
+                value={badgeAlign}
+                onChange={setBadgeAlign}
+                options={[
+                  { value: 'left', icon: AlignHorizontalJustifyStart, label: t('dashboard.editor.sections.align_left') },
+                  { value: 'center', icon: AlignHorizontalJustifyCenter, label: t('dashboard.editor.sections.align_center') },
+                  { value: 'right', icon: AlignHorizontalJustifyEnd, label: t('dashboard.editor.sections.align_right') },
+                ]}
+              />
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2">
@@ -536,13 +556,6 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
         </form>
       ) : (
       <div className="min-w-0 max-w-full space-y-[clamp(0.18rem,0.6cqi,0.45rem)]">
-        <TitleBadgeRow
-          badges={badges}
-          tabs={linkableTabs}
-          isEditing={isEditing}
-          onSelectTab={onSelectTab}
-          onRemoveBadge={removeBadge}
-        />
         {blocks.map((block) => {
           if (block.type === 'space') {
             return <div key={block.key} className="h-widget-spacer" />;
@@ -590,6 +603,14 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
             </p>
           );
         })}
+        <TitleBadgeRow
+          badges={badges}
+          tabs={linkableTabs}
+          isEditing={isEditing}
+          onSelectTab={onSelectTab}
+          onRemoveBadge={removeBadge}
+          align={badgeAlign}
+        />
       </div>
       )}
     </div>

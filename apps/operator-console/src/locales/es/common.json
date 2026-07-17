@@ -284,6 +284,7 @@
         "badge_weather": "Clima",
         "badge_time": "Hora",
         "badge_add_tab": "Añadir enlace a pestaña",
+        "badge_position": "Posición de las insignias",
         "section_title": "Título de sección",
         "section_title_placeholder": "Mi sección",
         "edit_section_title": "Editar nombre de sección",
