@@ -729,18 +729,7 @@ function CardPreview({
         "line-clamp-2 min-w-0 font-black leading-tight text-foreground",
         isSmall ? "text-caption" : "text-body"
       )}>{title}</span>
-      {isAssigned && normalized !== 'light' ? (
-        <span
-          className={cn(
-            "mt-1.5 max-w-full shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-nano font-black uppercase leading-none tracking-control sm:mt-2",
-            isActive
-              ? "border-primary bg-primary text-primary-foreground shadow-primary-room-icon"
-              : "border-border/55 bg-background/90 text-muted-foreground"
-          )}
-        >
-          {t(isActive ? 'device_statuses.on' : 'device_statuses.off')}
-        </span>
-      ) : !isSmall ? (
+      {!isAssigned && !isSmall ? (
         <span className="mt-1 line-clamp-2 text-micro font-bold leading-tight text-muted-foreground">
           {subtitle || t('dashboard.editor.sections.unassigned')}
         </span>
