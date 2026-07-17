@@ -167,130 +167,130 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const artworkUrl = artworkPath ? absoluteApiUrl(artworkPath) : null;
 
   return (
-    <div className="relative flex h-full min-h-media-card flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
-      {artworkUrl && (
-        // Ambient bleed: a blurred, oversized copy of the artwork fills the
-        // whole card so the color to the left of the cover matches it,
-        // Home Assistant style, instead of a flat card-color gradient.
-        <img
-          src={artworkUrl}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full scale-150 object-cover opacity-100 blur-3xl saturate-200"
-        />
-      )}
-      {artworkUrl && (
-        // The sharp cover fades into the blurred bleed on its left edge
-        // instead of cutting off hard, so the seam between them disappears.
-        <img
-          src={artworkUrl}
-          alt=""
-          className="pointer-events-none absolute inset-y-0 right-0 h-full w-[52%] object-cover"
-          style={{
-            maskImage: 'linear-gradient(to left, black 55%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to left, black 55%, transparent 100%)',
-          }}
-        />
-      )}
-      <div className={cn(
-        'pointer-events-none absolute inset-0',
-        artworkUrl
-          ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.92)_0%,hsl(var(--card)/0.72)_35%,hsl(var(--card)/0.32)_65%,hsl(var(--card)/0.05)_100%)]'
-          : 'bg-[radial-gradient(circle_at_92%_8%,hsl(var(--primary)/0.22),transparent_39%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--card)/0.74))]',
-      )} />
-      <div className="relative flex items-start justify-between gap-3 px-4 pt-4">
-        <div className="min-w-0">
-          <span className="flex items-center gap-2 text-caption font-semibold text-foreground">
-            <Cast className="h-4 w-4 shrink-0 text-primary" />
-            <span className="truncate">{title}</span>
-          </span>
+    <div className="relative flex h-full min-h-media-card overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
+      {/* Left: all text and controls. The artwork column stays untouched — no overlay, no gradient over the image itself. */}
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        {artworkUrl && (
+          // Ambient bleed: a blurred, oversized copy of the artwork fills this
+          // column so its color matches the cover, Home Assistant style,
+          // instead of a flat card-color gradient. Confined to this column
+          // only, so it never touches the clean artwork on the right.
+          <img
+            src={artworkUrl}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full scale-150 object-cover opacity-100 blur-3xl saturate-200"
+          />
+        )}
+        <div className={cn(
+          'pointer-events-none absolute inset-0',
+          artworkUrl
+            ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.92)_0%,hsl(var(--card)/0.65)_60%,hsl(var(--card)/0.4)_100%)]'
+            : 'bg-[radial-gradient(circle_at_92%_8%,hsl(var(--primary)/0.22),transparent_39%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--card)/0.74))]',
+        )} />
+
+        <div className="relative flex h-full min-w-0 flex-col p-4">
+          <div className="flex items-start justify-between gap-3">
+            <span className="flex items-center gap-2 text-caption font-semibold text-foreground">
+              <Cast className="h-4 w-4 shrink-0 text-primary" />
+              <span className="truncate">{title}</span>
+            </span>
+            <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />
+          </div>
+
+          <div className="flex flex-1 flex-col justify-center gap-3 min-w-0">
+            <div className="min-w-0">
+              <span className="block line-clamp-2 text-card-title font-bold leading-tight text-foreground">{displayTitle}</span>
+              <span className="mt-1 block truncate text-caption font-semibold text-muted-foreground">
+                {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={!canAct || !powerCommand}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  invoke(powerCommand);
+                }}
+                aria-label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <Power className="h-4 w-4" />
+              </button>
+              {hasPrevious && (
+                <button
+                  type="button"
+                  disabled={!canAct}
+                  onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
+                  aria-label={t('dashboard.editor.sections.media_previous')}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <SkipBack className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={!canAct || !playPauseCommand}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  invoke(playPauseCommand);
+                }}
+                aria-label={t(isPlaying ? 'dashboard.editor.sections.media_pause' : 'dashboard.editor.sections.media_play')}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </button>
+              {hasNext && (
+                <button
+                  type="button"
+                  disabled={!canAct}
+                  onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
+                  aria-label={t('dashboard.editor.sections.media_next')}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <SkipForward className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {hasVolumeControl && (
+              <div className="flex items-center gap-1.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={currentVolume === null ? undefined : `${currentVolume}%`}>
+                  <VolumeIcon className="h-4 w-4" />
+                </span>
+                <button
+                  type="button"
+                  disabled={!canActVolume || currentVolume === null || currentVolume <= 0}
+                  onClick={(event) => { event.stopPropagation(); changeVolume(-VOLUME_STEP); }}
+                  aria-label={t('dashboard.editor.sections.media_volume_down')}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <MinusCircle className="h-4 w-4" />
+                </button>
+                <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/20">
+                  <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
+                </div>
+                <button
+                  type="button"
+                  disabled={!canActVolume || currentVolume === null || currentVolume >= 100}
+                  onClick={(event) => { event.stopPropagation(); changeVolume(VOLUME_STEP); }}
+                  aria-label={t('dashboard.editor.sections.media_volume_up')}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />
       </div>
 
-      <div className="relative mt-auto min-w-0 px-4 pt-4">
-        <span className="block line-clamp-2 text-card-title font-bold leading-tight text-foreground">{displayTitle}</span>
-        <span className="mt-1 block truncate text-caption font-semibold text-muted-foreground">
-          {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
-        </span>
-      </div>
-
-      <div className="relative mt-3 flex items-center gap-1.5 px-4">
-        <button
-          type="button"
-          disabled={!canAct || !powerCommand}
-          onClick={(event) => {
-            event.stopPropagation();
-            invoke(powerCommand);
-          }}
-          aria-label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          <Power className="h-4 w-4" />
-        </button>
-        {hasPrevious && (
-          <button
-            type="button"
-            disabled={!canAct}
-            onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
-            aria-label={t('dashboard.editor.sections.media_previous')}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <SkipBack className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          type="button"
-          disabled={!canAct || !playPauseCommand}
-          onClick={(event) => {
-            event.stopPropagation();
-            invoke(playPauseCommand);
-          }}
-          aria-label={t(isPlaying ? 'dashboard.editor.sections.media_pause' : 'dashboard.editor.sections.media_play')}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        </button>
-        {hasNext && (
-          <button
-            type="button"
-            disabled={!canAct}
-            onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
-            aria-label={t('dashboard.editor.sections.media_next')}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <SkipForward className="h-4 w-4" />
-          </button>
-        )}
-        <span className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={currentVolume === null ? undefined : `${currentVolume}%`}>
-          <VolumeIcon className="h-4 w-4" />
-        </span>
-        {hasVolumeControl && (
-          <>
-            <button
-              type="button"
-              disabled={!canActVolume || currentVolume === null || currentVolume <= 0}
-              onClick={(event) => { event.stopPropagation(); changeVolume(-VOLUME_STEP); }}
-              aria-label={t('dashboard.editor.sections.media_volume_down')}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              <MinusCircle className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              disabled={!canActVolume || currentVolume === null || currentVolume >= 100}
-              onClick={(event) => { event.stopPropagation(); changeVolume(VOLUME_STEP); }}
-              aria-label={t('dashboard.editor.sections.media_volume_up')}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              <PlusCircle className="h-4 w-4" />
-            </button>
-          </>
-        )}
-      </div>
-      <div className="relative mx-4 mb-4 mt-2 h-1 overflow-hidden rounded-full bg-foreground/20">
-        <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
-      </div>
+      {/* Right: the artwork, untouched — nothing rendered on top of it. */}
+      {artworkUrl && (
+        <img src={artworkUrl} alt="" className="h-full w-[42%] shrink-0 object-cover" />
+      )}
     </div>
   );
 }
