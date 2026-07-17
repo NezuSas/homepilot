@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  AlignCenter,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignHorizontalJustifyStart,
+  AlignLeft,
+  AlignRight,
+} from 'lucide-react';
+import { cn } from '../../../lib/utils';
 import type { DashboardWidgetConfig } from '../types';
 
 interface DashboardTitleWidgetProps {
@@ -10,6 +20,7 @@ interface DashboardTitleWidgetProps {
 }
 
 type TitleAlign = 'left' | 'center' | 'right';
+type TitleWidthMode = 'full' | 'half' | 'third';
 
 function getStoredUserName() {
   if (typeof window === 'undefined') return 'Usuario';
@@ -175,6 +186,18 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
     ? config.extra.align as TitleAlign
     : 'center';
 
+  const widthMode = (config.extra?.widthMode === 'half' || config.extra?.widthMode === 'third')
+    ? config.extra.widthMode as TitleWidthMode
+    : 'full';
+
+  const blockAlign = (config.extra?.blockAlign === 'left' || config.extra?.blockAlign === 'right' || config.extra?.blockAlign === 'center')
+    ? config.extra.blockAlign as TitleAlign
+    : 'center';
+
+  const setAlign = (value: TitleAlign) => onUpdate?.({ extra: { ...config.extra, align: value } });
+  const setWidthMode = (value: TitleWidthMode) => onUpdate?.({ extra: { ...config.extra, widthMode: value } });
+  const setBlockAlign = (value: TitleAlign) => onUpdate?.({ extra: { ...config.extra, blockAlign: value } });
+
   const rendered = useMemo(() => renderTemplate(markdown), [markdown]);
   const blocks = useMemo(() => markdownToBlocks(rendered), [rendered]);
   const [draftMarkdown, setDraftMarkdown] = useState(markdown);
@@ -193,6 +216,9 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
       ? 'items-end text-right'
       : 'items-center text-center';
 
+  const widthClass = widthMode === 'half' ? 'w-1/2' : widthMode === 'third' ? 'w-1/3' : 'w-full';
+  const blockJustifyClass = blockAlign === 'left' ? 'justify-start' : blockAlign === 'right' ? 'justify-end' : 'justify-center';
+
   if (isEditing && !markdown.trim()) {
     return (
       <div className="flex h-full w-full items-center justify-center rounded-section border-2 border-dashed border-border/60 bg-background/10 px-5 py-4">
@@ -205,8 +231,13 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
   }
 
   return (
+    <div className={cn('flex h-full w-full', blockJustifyClass)}>
     <div
-      className={`flex h-full w-full min-w-0 flex-col justify-center overflow-hidden rounded-section border border-border/35 bg-background/10 px-widget-pad-x py-widget-pad-y ${alignmentClass}`}
+      className={cn(
+        'flex h-full min-w-0 flex-col justify-center overflow-hidden rounded-section border border-border/35 bg-background/10 px-widget-pad-x py-widget-pad-y',
+        widthClass,
+        alignmentClass,
+      )}
       style={{ containerType: 'inline-size' }}
     >
       {isEditing && isEditorOpen ? (
@@ -234,6 +265,44 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
             className="min-h-16 w-full resize-none rounded-field border border-border bg-background/85 px-3 py-2 text-body leading-snug text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             aria-label={t('dashboard.editor.sections.title_markdown')}
           />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <TitleOptionGroup
+              label={t('dashboard.editor.sections.title_alignment')}
+              value={align}
+              onChange={setAlign}
+              options={[
+                { value: 'left', icon: AlignLeft, label: t('dashboard.editor.sections.align_left') },
+                { value: 'center', icon: AlignCenter, label: t('dashboard.editor.sections.align_center') },
+                { value: 'right', icon: AlignRight, label: t('dashboard.editor.sections.align_right') },
+              ]}
+            />
+
+            <TitleOptionGroup
+              label={t('dashboard.editor.sections.title_width')}
+              value={widthMode}
+              onChange={setWidthMode}
+              options={[
+                { value: 'full', label: t('dashboard.editor.sections.width_full') },
+                { value: 'half', label: t('dashboard.editor.sections.width_half') },
+                { value: 'third', label: t('dashboard.editor.sections.width_third') },
+              ]}
+            />
+
+            {widthMode !== 'full' && (
+              <TitleOptionGroup
+                label={t('dashboard.editor.sections.title_position')}
+                value={blockAlign}
+                onChange={setBlockAlign}
+                options={[
+                  { value: 'left', icon: AlignHorizontalJustifyStart, label: t('dashboard.editor.sections.align_left') },
+                  { value: 'center', icon: AlignHorizontalJustifyCenter, label: t('dashboard.editor.sections.align_center') },
+                  { value: 'right', icon: AlignHorizontalJustifyEnd, label: t('dashboard.editor.sections.align_right') },
+                ]}
+              />
+            )}
+          </div>
+
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
@@ -301,6 +370,47 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
         })}
       </div>
       )}
+    </div>
+    </div>
+  );
+}
+
+/** Small segmented control used for text alignment / width / block position pickers. */
+function TitleOptionGroup<TValue extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: TValue;
+  onChange: (value: TValue) => void;
+  options: Array<{ value: TValue; label: string; icon?: ComponentType<{ className?: string }> }>;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-0.5 rounded-lg bg-muted/40 p-0.5">
+        {options.map((option) => {
+          const Icon = option.icon;
+          const isActive = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              title={option.label}
+              onClick={(event) => { event.stopPropagation(); onChange(option.value); }}
+              className={cn(
+                'grid h-8 place-items-center rounded text-micro font-black transition-colors',
+                Icon ? 'w-8' : 'px-2.5',
+                isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
+              )}
+            >
+              {Icon ? <Icon className="h-3.5 w-3.5" /> : option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
