@@ -213,6 +213,18 @@ function App() {
   );
   const urlDashboardId = dashboardsTabMatch?.params.dashboardId ?? dashboardsOneMatch?.params.dashboardId ?? null;
   const urlTabId = dashboardsTabMatch?.params.tabId ?? null;
+  // In-memory only (not sessionStorage/localStorage): survives switching
+  // around the sidebar within this page load, but is gone after an actual
+  // reload — exactly where the "default tab" flag should take over instead.
+  const lastDashboardTabRef = useRef<{ dashboardId: string; tabId: string } | null>(null);
+  useEffect(() => {
+    if (dashboardsTabMatch?.params.dashboardId && dashboardsTabMatch?.params.tabId) {
+      lastDashboardTabRef.current = {
+        dashboardId: dashboardsTabMatch.params.dashboardId,
+        tabId: dashboardsTabMatch.params.tabId,
+      };
+    }
+  }, [dashboardsTabMatch]);
   const [pendingHomeConversationPrompt, setPendingHomeConversationPrompt] = useState<{ id: string; text: string; interactionMode: 'voice' } | null>(null);
   const [globalWakeNotice, setGlobalWakeNotice] = useState<GlobalWakeNoticeModel | null>(null);
   const [isGlobalWakeProcessing, setIsGlobalWakeProcessing] = useState(false);
@@ -355,11 +367,20 @@ function App() {
 
       // The URL is the source of truth: only pick a fallback dashboard (and
       // make it canonical via a history-replacing redirect) when the URL
-      // doesn't already point at one of the visible dashboards.
+      // doesn't already point at one of the visible dashboards. Prefer
+      // whatever dashboard+tab was last visited this session (e.g. the user
+      // clicked away to another sidebar section and back) over recomputing
+      // the "default tab" — that flag is only meant to kick in on an actual
+      // reload / first-ever visit, not on in-app navigation.
       if (!urlDashboardId || !data.some(dashboard => dashboard.id === urlDashboardId)) {
-        const ownedDashboard = data.find(dashboard => dashboard.ownerId === user?.id);
-        const fallbackId = ownedDashboard?.id ?? data[0]?.id ?? null;
-        if (fallbackId) navigate(`/dashboards/${fallbackId}`, { replace: true });
+        const remembered = lastDashboardTabRef.current;
+        if (remembered && data.some(dashboard => dashboard.id === remembered.dashboardId)) {
+          navigate(`/dashboards/${remembered.dashboardId}/${remembered.tabId}`, { replace: true });
+        } else {
+          const ownedDashboard = data.find(dashboard => dashboard.ownerId === user?.id);
+          const fallbackId = ownedDashboard?.id ?? data[0]?.id ?? null;
+          if (fallbackId) navigate(`/dashboards/${fallbackId}`, { replace: true });
+        }
       }
     } catch (error) {
       console.warn('[AppShell] Failed to refresh sidebar dashboards:', error);
@@ -878,7 +899,14 @@ function App() {
                          label={dashboard.title}
                          active={currentView === 'dashboards' && selectedSidebarDashboardId === dashboard.id}
                          onClick={() => {
-                           navigate(`/dashboards/${dashboard.id}`);
+                           // Re-clicking the same dashboard you were just on
+                           // (e.g. after visiting another sidebar section)
+                           // returns to the exact tab, not the default one.
+                           const remembered = lastDashboardTabRef.current;
+                           const path = remembered && remembered.dashboardId === dashboard.id
+                             ? `/dashboards/${remembered.dashboardId}/${remembered.tabId}`
+                             : `/dashboards/${dashboard.id}`;
+                           navigate(path);
                            setIsSidebarOpen(false);
                            setIsDashboardsExpanded(true);
                          }}
@@ -1226,8 +1254,13 @@ function App() {
                         ownerId: dashboard.ownerId,
                         title: dashboard.title
                       })));
-                      if ((!urlDashboardId || !dashboards.some(dashboard => dashboard.id === urlDashboardId)) && dashboards[0]?.id) {
-                        navigate(`/dashboards/${dashboards[0].id}`, { replace: true });
+                      if (!urlDashboardId || !dashboards.some(dashboard => dashboard.id === urlDashboardId)) {
+                        const remembered = lastDashboardTabRef.current;
+                        if (remembered && dashboards.some(dashboard => dashboard.id === remembered.dashboardId)) {
+                          navigate(`/dashboards/${remembered.dashboardId}/${remembered.tabId}`, { replace: true });
+                        } else if (dashboards[0]?.id) {
+                          navigate(`/dashboards/${dashboards[0].id}`, { replace: true });
+                        }
                       }
                     }}
                   />
