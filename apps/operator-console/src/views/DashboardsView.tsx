@@ -345,21 +345,24 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
   const activeTab = active?.tabs[activeTabIdx];
 
   return (
-    <div className="relative isolate flex min-h-screen-dvh flex-col gap-0 animate-in fade-in duration-700">
+    <div className="relative isolate flex min-h-screen-dvh flex-col gap-0">
       {activeTab?.background && (
-        <div 
-          className="absolute inset-0 z-0 transition-all duration-700 pointer-events-none"
+        // Pinned to the true viewport (not the content wrapper below, whose
+        // height shrinks to fit short dashboards) so the background always
+        // covers the whole visible screen, not just the top sliver of it.
+        <div
+          className="fixed inset-0 z-0 transition-all duration-700 pointer-events-none"
           style={{
             backgroundImage: `url(${activeTab.background.startsWith('/') ? `${API_BASE_URL}${activeTab.background}` : activeTab.background})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            backgroundAttachment: 'fixed',
             opacity: (activeTab.backgroundOpacity ?? 100) / 100,
           }}
         />
       )}
 
+      <div className="relative isolate flex min-h-screen-dvh flex-1 flex-col gap-0 animate-in fade-in duration-700">
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
 
       {/* Dashboard creation form */}
@@ -522,6 +525,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
         variant="danger"
         isSubmitting={isDeleting}
       />
+      </div>
     </div>
   );
 }
