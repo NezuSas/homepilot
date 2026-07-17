@@ -1,25 +1,23 @@
 import type { DashboardWidget } from './types';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import {
+  clampSectionSpan,
   getAssignableDevicesForSectionCard,
-  getDashboardCanvasColumns,
-  getDashboardSectionPlaceholderY,
-  getDashboardSectionStartY,
-  resolveDashboardSectionLayouts,
+  getDashboardSectionColumns,
+  getSectionSpan,
+  sanitizeWidgetConfig,
 } from './dashboardUtils';
 
-function createSection(id: string, cardCount: number): DashboardWidget {
+function createSection(id: string, span?: number, legacyW?: number): DashboardWidget {
   return {
     id,
     type: 'section',
     config: {
-      layout: { x: 0, y: 2, w: 3, h: 2 },
+      layout: { x: 0, y: 0, w: legacyW ?? 4, h: 2, span },
       binding: { entityId: '', entityType: 'system' },
       visibility: { rules: [], defaultState: 'show' },
       appearance: { title: id, showTitle: true },
-      extra: {
-        cards: Array.from({ length: cardCount }, (_, index) => ({ id: `${id}-card-${index}` })),
-      },
+      extra: {},
     },
   };
 }
@@ -47,68 +45,52 @@ function createDevice(id: string, name: string, type: string, category?: string)
   };
 }
 
-describe('dashboard section layout', () => {
-  it('keeps the desktop grid for a regular canvas width after sidebar space', () => {
-    expect(getDashboardCanvasColumns(1024)).toBe(12);
-    expect(getDashboardCanvasColumns(1180)).toBe(12);
-    expect(getDashboardCanvasColumns(1023)).toBe(6);
-    expect(getDashboardCanvasColumns(639)).toBe(1);
+describe('dashboard canvas columns', () => {
+  it('flows 1 column on mobile, 2 on tablet, 3 on desktop, by container width', () => {
+    expect(getDashboardSectionColumns(320)).toBe(1);
+    expect(getDashboardSectionColumns(639)).toBe(1);
+    expect(getDashboardSectionColumns(640)).toBe(2);
+    expect(getDashboardSectionColumns(1023)).toBe(2);
+    expect(getDashboardSectionColumns(1024)).toBe(3);
+    expect(getDashboardSectionColumns(1440)).toBe(3);
+  });
+});
+
+describe('dashboard section span', () => {
+  it('clamps a span to the number of columns available at the current breakpoint', () => {
+    expect(clampSectionSpan(3, 3)).toBe(3);
+    expect(clampSectionSpan(3, 2)).toBe(2);
+    expect(clampSectionSpan(3, 1)).toBe(1);
+    expect(clampSectionSpan(0, 3)).toBe(1);
   });
 
-  it('places the fifth section and add-section placeholder below the tallest first row', () => {
-    const firstRow = Array.from({ length: 4 }, (_, index) => createSection(`section-${index}`, 3));
-    const sections = [...firstRow, createSection('section-4', 0)];
-    const layouts = resolveDashboardSectionLayouts(sections, true);
-
-    expect(layouts.get('section-0')).toMatchObject({ y: 2, h: 7 });
-    expect(layouts.get('section-4')).toMatchObject({ x: 0, y: 10, h: 3 });
-    expect(getDashboardSectionPlaceholderY(layouts)).toBe(14);
+  it('reads the persisted span when present', () => {
+    expect(getSectionSpan(createSection('a', 2))).toBe(2);
   });
 
-  it('reserves the full visual height of wide media cards before placing the next zone', () => {
-    const section = createSection('section-media', 0);
-    section.config.extra = {
-      cards: [
-        { id: 'light-a', kind: 'light', span: 'small' },
-        { id: 'light-b', kind: 'light', span: 'small' },
-        { id: 'media', kind: 'media', span: 'full' },
-      ],
-    };
-    const nextSection = createSection('section-next', 0);
-    const layouts = resolveDashboardSectionLayouts([section, nextSection], true);
+  it('derives a span from legacy absolute-layout width when no span was ever saved', () => {
+    expect(getSectionSpan(createSection('a', undefined, 12))).toBe(3);
+    expect(getSectionSpan(createSection('a', undefined, 6))).toBe(2);
+    expect(getSectionSpan(createSection('a', undefined, 3))).toBe(1);
+  });
+});
 
-    expect(layouts.get('section-media')).toMatchObject({ y: 2, h: 9 });
-    expect(getDashboardSectionPlaceholderY(layouts)).toBe(12);
+describe('sanitizeWidgetConfig', () => {
+  it('clamps out-of-range legacy width/height instead of letting zones overflow the grid', () => {
+    const sanitized = sanitizeWidgetConfig({ layout: { x: 0, y: -5, w: 40, h: 0 } });
+    expect(sanitized.layout.w).toBe(12);
+    expect(sanitized.layout.h).toBe(1);
+    expect(sanitized.layout.y).toBe(0);
   });
 
-  it('reclaims stale section height before placing the add-section placeholder', () => {
-    const section = createSection('section-legacy-height', 0);
-    section.config.layout.h = 18;
-
-    const layouts = resolveDashboardSectionLayouts([section], true);
-
-    expect(layouts.get('section-legacy-height')).toMatchObject({ y: 2, h: 3 });
-    expect(getDashboardSectionPlaceholderY(layouts)).toBe(6);
+  it('clamps a persisted span to the 1..3 column range', () => {
+    expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2, span: 9 } }).layout.span).toBe(3);
+    expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2, span: 0 } }).layout.span).toBe(1);
+    expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2 } }).layout.span).toBeUndefined();
   });
+});
 
-  it('places the first zone below a taller dashboard title', () => {
-    const title: DashboardWidget = {
-      id: 'title',
-      type: 'dashboard_title',
-      config: {
-        layout: { x: 0, y: 0, w: 12, h: 4 },
-        binding: { entityId: '', entityType: 'system' },
-        visibility: { rules: [], defaultState: 'show' },
-        appearance: { title: 'Hola', showTitle: true },
-        extra: {},
-      },
-    };
-    const section = createSection('section-after-title', 0);
-
-    expect(getDashboardSectionStartY([title])).toBe(4);
-    expect(resolveDashboardSectionLayouts([title, section], true).get(section.id)).toMatchObject({ y: 4 });
-  });
-
+describe('dashboard section devices', () => {
   it('lists only compatible local entities for each card kind', () => {
     const devices = [
       createDevice('light-1', 'Luz', 'light'),

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
 import { InlineTabCreator } from './InlineTabCreator';
+import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
 
 interface DashboardTabsNavProps {
   tabs: Dashboard['tabs'];
@@ -43,10 +44,11 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
 
   const getTabIcon = (tab: Dashboard['tabs'][number], index: number) => {
     if (tab.icon) {
-      let name = tab.icon.trim();
-      if (name.toLowerCase().startsWith('mdi:')) {
-        name = name.substring(4);
-      }
+      const raw = tab.icon.trim();
+      const withoutPrefix = raw.replace(/^mdi:/i, '');
+
+      // Legacy Spanish aliases stored before the shared MDI+Lucide catalog
+      // existed; kept so previously saved tab icons keep resolving.
       const translations: Record<string, string> = {
         gata: 'Cat', gato: 'Cat', perro: 'Dog', perra: 'Dog',
         luz: 'Lightbulb', foco: 'Lightbulb', interruptor: 'Power',
@@ -55,10 +57,12 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
         candado: 'Lock', escudo: 'Shield', termometro: 'Thermometer',
         aire: 'Wind', ventilador: 'Fan'
       };
-      const key = name.toLowerCase();
-      const resolvedName = translations[key] || Object.keys(Icons).find(k => k.toLowerCase() === key) || name;
-      const matchKey = Object.keys(Icons).find(k => k.toLowerCase() === resolvedName.toLowerCase());
-      if (matchKey) return (Icons as any)[matchKey];
+
+      const alias = translations[withoutPrefix.toLowerCase()];
+      // Shared resolver: understands both `mdi:*` (Home Assistant Material
+      // Design Icons) and plain Lucide names, unlike the old Lucide-only lookup.
+      const resolved = getDashboardIconComponent(alias ?? raw);
+      if (resolved !== Icons.CircleHelp) return resolved;
     }
 
     if (index === 0) return Icons.Home;

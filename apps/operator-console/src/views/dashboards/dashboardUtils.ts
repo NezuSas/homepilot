@@ -2,147 +2,46 @@ import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
-const DASHBOARD_SECTION_COLUMNS = 4;
-const DASHBOARD_SECTION_START_Y = 2;
-const DASHBOARD_SECTION_MIN_ROWS = 2;
-const DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH = 1024;
 const DASHBOARD_TABLET_CANVAS_MIN_WIDTH = 640;
+const DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH = 1024;
+const DASHBOARD_MAX_SECTION_SPAN = 3;
 
 /**
  * Resolves the canvas column count from the actual available content width.
  * The sidebar is excluded from this width, so desktop editing must not wait
- * for the full browser viewport to reach the desktop breakpoint.
+ * for the full browser viewport to reach the desktop breakpoint. Zones flow
+ * into these columns by array order, Home Assistant "Sections" style, instead
+ * of being positioned at absolute coordinates.
  */
-export function getDashboardCanvasColumns(width: number): 1 | 6 | 12 {
+export function getDashboardSectionColumns(width: number): 1 | 2 | 3 {
   if (width > 0 && width < DASHBOARD_TABLET_CANVAS_MIN_WIDTH) return 1;
-  if (width > 0 && width < DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH) return 6;
-  return 12;
-}
-
-type SectionCardSpan = 'small' | 'medium' | 'full';
-
-interface SectionCardLayoutInput {
-  readonly kind?: unknown;
-  readonly span?: unknown;
-}
-
-function getSectionCardSpan(card: SectionCardLayoutInput): SectionCardSpan {
-  if (card.span === 'small' || card.span === 'medium' || card.span === 'full') return card.span;
-  if (card.kind === 'camera' || card.kind === 'media' || card.kind === 'clock_analog_minimal' || card.kind === 'clock_analog_premium' || card.kind === 'clock_digital_compact') {
-    return 'full';
-  }
-  if (card.kind === 'sensor' || card.kind === 'room' || card.kind === 'scene') return 'medium';
-  return 'small';
-}
-
-function getSectionCardHeight(card: SectionCardLayoutInput, span: SectionCardSpan): number {
-  if (card.kind === 'camera' || card.kind === 'media' || card.kind === 'clock_analog_minimal' || card.kind === 'clock_analog_premium' || card.kind === 'clock_digital_compact') return 4;
-  return span === 'small' ? 2 : 3;
+  if (width > 0 && width < DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH) return 2;
+  return 3;
 }
 
 /**
- * The internal section grid adapts to the actual width of a section, but it
- * always guarantees room for two compact cards. This packing estimate is used
- * only for the outer dashboard grid so subsequent zones and its placeholder
- * cannot overlap taller cards such as cameras, clocks or media players.
+ * Clamps a zone's column-span to whatever the current breakpoint can offer,
+ * without mutating the persisted span so it is restored once the canvas
+ * widens again.
  */
-function getSectionContentRows(cards: SectionCardLayoutInput[], isEditing: boolean): number {
-  const items: Array<SectionCardLayoutInput | null> = [...cards, ...(isEditing ? [null] : [])];
-  let occupiedColumns = 0;
-  let currentRowHeight = 0;
-  let totalRows = 0;
-
-  for (const card of items) {
-    const span = card === null ? 'full' : getSectionCardSpan(card);
-    const width = span === 'small' ? 1 : 2;
-    const height = card === null ? 2 : getSectionCardHeight(card, span);
-
-    if (occupiedColumns > 0 && occupiedColumns + width > 2) {
-      totalRows += currentRowHeight;
-      occupiedColumns = 0;
-      currentRowHeight = 0;
-    }
-
-    occupiedColumns += width;
-    currentRowHeight = Math.max(currentRowHeight, height);
-    if (occupiedColumns === 2) {
-      totalRows += currentRowHeight;
-      occupiedColumns = 0;
-      currentRowHeight = 0;
-    }
-  }
-
-  return totalRows + currentRowHeight;
+export function clampSectionSpan(span: number, columns: number): number {
+  const safeColumns = Math.max(1, columns);
+  return Math.max(1, Math.min(span, safeColumns));
 }
 
 /**
- * Zones always start directly below the title area. Older dashboards can have
- * a taller title widget, so deriving this position prevents the first
- * add-zone placeholder from being hidden underneath it.
+ * Reads a widget's column-span, deriving it from the legacy absolute-layout
+ * width when a dashboard was persisted before the flow-based grid existed.
  */
-export function getDashboardSectionStartY(widgets: DashboardWidget[]): number {
-  return widgets.reduce((startY, widget) => {
-    if (widget.type !== 'dashboard_title') return startY;
-    return Math.max(startY, widget.config.layout.y + widget.config.layout.h);
-  }, DASHBOARD_SECTION_START_Y);
-}
-
-/**
- * Resolves the visual grid for dashboard sections. Section cards can grow
- * independently, so each following row starts below the tallest section in
- * the previous row instead of relying on a fixed row offset.
- */
-export function resolveDashboardSectionLayouts(
-  widgets: DashboardWidget[],
-  isEditing: boolean,
-): Map<string, DashboardWidgetConfig['layout']> {
-  const sections = widgets.filter((widget) => widget.type === 'section');
-  const layouts = new Map<string, DashboardWidgetConfig['layout']>();
-  let rowY = getDashboardSectionStartY(widgets);
-
-  for (let rowStart = 0; rowStart < sections.length; rowStart += DASHBOARD_SECTION_COLUMNS) {
-    const rowSections = sections.slice(rowStart, rowStart + DASHBOARD_SECTION_COLUMNS);
-    const rowCount = rowSections.length;
-    const effectiveColumnCount = rowCount < DASHBOARD_SECTION_COLUMNS
-      ? Math.min(DASHBOARD_SECTION_COLUMNS, rowCount + 1)
-      : DASHBOARD_SECTION_COLUMNS;
-    const width = Math.floor(12 / effectiveColumnCount);
-    const heights = rowSections.map((section) => {
-      const cards = Array.isArray(section.config.extra?.cards)
-        ? section.config.extra.cards.filter((card): card is SectionCardLayoutInput => card !== null && typeof card === 'object' && !Array.isArray(card))
-        : [];
-      const internalRows = Math.max(1, getSectionContentRows(cards, isEditing));
-
-      return Math.max(
-        DASHBOARD_SECTION_MIN_ROWS,
-        1 + internalRows,
-      );
-    });
-
-    rowSections.forEach((section, index) => {
-      layouts.set(section.id, {
-        x: index * width,
-        y: rowY,
-        w: width,
-        h: heights[index],
-      });
-    });
-
-    rowY += Math.max(...heights) + 1;
+export function getSectionSpan(widget: DashboardWidget): number {
+  const explicitSpan = widget.config.layout.span;
+  if (typeof explicitSpan === 'number' && Number.isFinite(explicitSpan)) {
+    return Math.max(1, Math.min(Math.round(explicitSpan), DASHBOARD_MAX_SECTION_SPAN));
   }
 
-  return layouts;
-}
-
-export function getDashboardSectionPlaceholderY(
-  layouts: Map<string, DashboardWidgetConfig['layout']>,
-): number {
-  const bottom = Array.from(layouts.values()).reduce(
-    (max, layout) => Math.max(max, layout.y + layout.h),
-    DASHBOARD_SECTION_START_Y - 1,
-  );
-
-  return bottom + 1;
+  const legacyWidth = widget.config.layout.w;
+  const derivedSpan = legacyWidth >= 12 ? 3 : legacyWidth >= 6 ? 2 : 1;
+  return derivedSpan;
 }
 
 /**
@@ -223,12 +122,18 @@ export function sanitizeWidgetConfig(config: Partial<DashboardWidgetConfig> = {}
   // If the config is already fully populated and structured, we should avoid changing the reference
   // if possible. However, for safety and simplicity, we ensure all defaults are present.
   
+  const rawSpan = config.layout?.span;
+  const clampedSpan = typeof rawSpan === 'number' && Number.isFinite(rawSpan)
+    ? Math.max(1, Math.min(Math.round(rawSpan), DASHBOARD_MAX_SECTION_SPAN))
+    : undefined;
+
   return {
     layout: {
       x: config.layout?.x ?? 0,
-      y: config.layout?.y ?? 0,
-      w: config.layout?.w ?? 4,
-      h: config.layout?.h ?? 4,
+      y: Math.max(0, config.layout?.y ?? 0),
+      w: Math.max(1, Math.min(config.layout?.w ?? 4, 12)),
+      h: Math.max(1, config.layout?.h ?? 4),
+      span: clampedSpan,
     },
     binding: {
       entityId: config.binding?.entityId ?? '',

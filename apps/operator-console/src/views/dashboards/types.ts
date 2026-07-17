@@ -17,6 +17,12 @@ export interface WidgetLayout {
   y: number;
   w: number;
   h: number;
+  /**
+   * Column-span within the flow-based canvas grid (1..3), Home Assistant
+   * "Sections" style. x/y/w are kept for backward compatibility with data
+   * persisted before this model existed, but no longer drive positioning.
+   */
+  span?: number;
 }
 
 export interface VisibilityRule {

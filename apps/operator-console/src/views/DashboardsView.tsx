@@ -10,7 +10,6 @@ import { DashboardsLoadingState } from '../components/DashboardsLoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
-import { resolveDashboardSectionLayouts } from './dashboards/dashboardUtils';
 import { generateId } from '../utils/generateId';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import ConfirmModal from '../components/ConfirmModal';
@@ -227,11 +226,6 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
     const currentTab = active.tabs[activeTabIdx];
 
-    const maxY = currentTab.widgets.reduce(
-      (max, widget) => Math.max(max, widget.config.layout.y + widget.config.layout.h),
-      0,
-    );
-
     const isDashboardTitle = type === 'dashboard_title';
     const isSection = type === 'section';
 
@@ -241,16 +235,15 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
       return;
     }
 
-    const isBrokenSectionTitle = (value: unknown) =>
-      typeof value === 'string' && /[\u00c3\u00c2\u00e2\u00c6\u20ac]/.test(value);
-
-    const widgetW = isDashboardTitle ? 12 : isSection ? 6 : (size?.w ?? 4);
+    // Legacy x/y/w/h are kept for backward compatibility with older data, but
+    // positioning on the canvas is now driven by array order + `span`
+    // (Home Assistant "Sections" style flow), not by these coordinates.
+    const widgetW = isDashboardTitle ? 12 : isSection ? 4 : (size?.w ?? 4);
     const widgetH = isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4);
-    const widgetX = isDashboardTitle ? 0 : 0;
-    const widgetY = isDashboardTitle ? 0 : isSection ? 2 : Math.max(2, maxY);
+    const widgetSpan = isDashboardTitle ? undefined : 1;
 
     const defaultConfig: DashboardWidgetConfig = {
-      layout: { x: widgetX, y: widgetY, w: widgetW, h: widgetH },
+      layout: { x: 0, y: 0, w: widgetW, h: widgetH, span: widgetSpan },
       binding: { entityId: '', entityType: 'system' },
       visibility: { rules: [], defaultState: 'show' },
       appearance: {
@@ -272,34 +265,17 @@ export function DashboardsView({ initialDashboardId = null, onDashboardCatalogCh
 
     const widgetId = generateId();
 
+    // The new title is pinned first; new zones/widgets append to the end of
+    // the flow, matching where the add-section placeholder is rendered.
     const updatedTabs = active.tabs.map((tab, idx) => {
       if (idx !== activeTabIdx) return tab;
 
-      const nextWidgets = [...tab.widgets, { id: widgetId, type, config: defaultConfig }];
-      const sectionLayouts = resolveDashboardSectionLayouts(nextWidgets, true);
+      const newWidget = { id: widgetId, type, config: defaultConfig };
+      const nextWidgets = isDashboardTitle
+        ? [newWidget, ...tab.widgets]
+        : [...tab.widgets, newWidget];
 
-      return {
-        ...tab,
-        widgets: nextWidgets.map((widget) => {
-          if (widget.type !== 'section') return widget;
-
-          const layout = sectionLayouts.get(widget.id) ?? widget.config.layout;
-
-          return {
-            ...widget,
-            config: {
-              ...widget.config,
-              layout,
-              appearance: {
-                ...widget.config.appearance,
-                title: isBrokenSectionTitle(widget.config.appearance?.title)
-                  ? t('dashboard.editor.sections.new_section')
-                  : widget.config.appearance?.title,
-              },
-            },
-          };
-        }),
-      };
+      return { ...tab, widgets: nextWidgets };
     });
 
     const saved = await patch(active.id, { tabs: updatedTabs });
@@ -491,9 +467,6 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                         setSelectedWidgetId(id); 
                       }}
                       onLayoutChange={handleLayoutChange} onWidgetConfigChange={handleUpdateWidgetConfig}
-                      onAddCardClick={() => {
-                         void handleAddWidget('section');
-                      }}
                       onAddSectionClick={() => {
                          void handleAddWidget('section');
                       }}

@@ -2,26 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import { createPortal } from 'react-dom';
 import * as LucideIcons from 'lucide-react';
 import { CircleHelp } from 'lucide-react';
-import {
-  mdiBattery,
-  mdiBlinds,
-  mdiCamera,
-  mdiCctv,
-  mdiCeilingLight,
-  mdiClock,
-  mdiDoor,
-  mdiFan,
-  mdiGauge,
-  mdiHome,
-  mdiLamp,
-  mdiLightbulb,
-  mdiLightbulbOutline,
-  mdiMusic,
-  mdiPower,
-  mdiRemote,
-  mdiSpeaker,
-  mdiTelevision,
-} from '@mdi/js';
+import * as MdiIcons from '@mdi/js';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 
@@ -87,30 +68,35 @@ function isRenderableLucideExport(name: string, value: unknown) {
   return false;
 }
 
-const MDI_ICONS: IconEntry[] = [
-  ['mdi:lightbulb', mdiLightbulb],
-  ['mdi:lightbulb-outline', mdiLightbulbOutline],
-  ['mdi:ceiling-light', mdiCeilingLight],
-  ['mdi:lamp', mdiLamp],
-  ['mdi:blinds', mdiBlinds],
-  ['mdi:camera', mdiCamera],
-  ['mdi:cctv', mdiCctv],
-  ['mdi:gauge', mdiGauge],
-  ['mdi:music', mdiMusic],
-  ['mdi:speaker', mdiSpeaker],
-  ['mdi:home', mdiHome],
-  ['mdi:clock', mdiClock],
-  ['mdi:power', mdiPower],
-  ['mdi:television', mdiTelevision],
-  ['mdi:fan', mdiFan],
-  ['mdi:door', mdiDoor],
-  ['mdi:battery', mdiBattery],
-  ['mdi:remote', mdiRemote],
-].map(([name, path]) => ({
-  name,
-  icon: createMdiIcon(path),
-  normalized: normalizeIconName(name),
-}));
+/**
+ * Converts an `@mdi/js` export name (e.g. `mdiCeilingLightMultiple`) into the
+ * `mdi:kebab-case` icon key used throughout the dashboard (e.g.
+ * `mdi:ceiling-light-multiple`).
+ */
+function mdiExportNameToIconName(exportName: string): string | null {
+  if (!exportName.startsWith('mdi') || exportName.length <= 3) return null;
+  const rest = exportName.slice(3);
+  if (!/^[A-Z0-9]/.test(rest)) return null;
+
+  const kebab = rest
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase();
+
+  return `mdi:${kebab}`;
+}
+
+// The full Home Assistant Material Design Icons set, enumerated dynamically
+// from @mdi/js (the same icon paths HA itself ships), mirroring how Lucide's
+// catalog is built below.
+const MDI_ICONS: IconEntry[] = Object.entries(MdiIcons)
+  .map(([exportName, path]) => {
+    const name = mdiExportNameToIconName(exportName);
+    if (!name || typeof path !== 'string') return null;
+    return { name, icon: createMdiIcon(path), normalized: normalizeIconName(name) };
+  })
+  .filter((entry): entry is IconEntry => entry !== null)
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const LUCIDE_ICONS: IconEntry[] = Object.entries(LucideIcons)
   .filter(([name, value]) => isRenderableLucideExport(name, value))

@@ -16,7 +16,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - Mantener la pantalla de tablero minimalista, responsiva y alineada al design system de HomePilot.
 
 ## Fuera de Alcance
-- Implementar drag-and-drop nuevo o un motor de layout distinto.
+- Balanceo masonry por "columna más corta" (se usa flujo por orden con dense-packing sobre CSS Grid, técnica equivalente a Home Assistant "Sections"); el balanceo estricto por altura de columna queda como mejora futura.
 - Crear dashboards multi-home avanzados.
 
 ## Requisitos Funcionales
@@ -37,8 +37,9 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 14. El fondo configurado de una vista debe cubrir como mínimo toda el área visible del tablero, detrás del contenido y sin recortarse al alto inicial de sus widgets.
 15. El placeholder para la primera zona debe ubicarse inmediatamente después del área de título real, incluso si un tablero existente tiene un título más alto que el tamaño predeterminado.
 16. En modo edición, el lápiz del título del tablero debe abrir un editor que persista el contenido Markdown local de ese título. La ejecución de una acción multimedia debe mostrar únicamente un indicador pequeño, sin desenfocar ni bloquear visualmente la tarjeta.
-17. El modo de edición de escritorio debe conservar el grid de 12 columnas y los placeholders de creación cuando el área útil del lienzo mida al menos 1024px, incluso si el sidebar reduce el ancho disponible de la ventana.
+17. El modo de edición de escritorio debe conservar el grid de 3 columnas y los placeholders de creación cuando el área útil del lienzo mida al menos 1024px, incluso si el sidebar reduce el ancho disponible de la ventana.
 18. Las tarjetas de control de dispositivos deben comunicar encendido y apagado mediante su color, borde e icono, sin mostrar una etiqueta textual de estado. El selector de iconos de las tarjetas debe incluir Material Design Icons de Home Assistant y conservar los iconos Lucide almacenados previamente.
+19. El canvas del tablero debe fluir en columnas responsivas por orden (1 columna en móvil, 2 en tablet, 3 en escritorio), al estilo de las "Sections" de Home Assistant: cada zona ocupa un ancho de columna discreto (1..N) y el usuario puede reordenar zonas arrastrándolas, en cualquier tamaño de pantalla.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -52,7 +53,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC9:** El sidebar no muestra separadores ni encabezados de grupo para `Personalización`; los accesos se listan como items normales.
 - **AC10:** Presionar la flecha del grupo `Tableros` abre o cierra sus hijos sin bloquearse por la navegación.
 - **AC11:** Presionar el lápiz de una vista abre un modal de configuración con pestañas internas de configuración, fondo y visibilidad.
-- **AC12:** Los placeholders de creación de widgets/secciones se alinean con el mismo CSS Grid que las tarjetas reales, sin posicionamiento absoluto que ignore los gaps del layout.
+- **AC12:** Los placeholders de creación de widgets/secciones se alinean con el mismo CSS Grid que las tarjetas reales, fluyendo en el mismo orden que las zonas, sin posicionamiento absoluto que ignore los gaps del layout.
 - **AC13:** Las tarjetas dentro de una sección son responsivas y accionables: luces/dispositivos/cortinas ejecutan su comando local y refrescan estado; cámaras abren el visor completo sin mantener doble reproducción.
 - **AC14:** El catálogo de tarjetas de sección no expone la tarjeta legacy `system`; si existe data antigua persistida con esa tarjeta, la normalización debe ignorarla sin romper el tablero.
 - **AC15:** El flujo de edición no expone el inspector legacy de widgets ni presets `XS/S/M/L/XL`; las tarjetas se gestionan desde secciones con dimensiones de filas/columnas.
@@ -67,10 +68,12 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC24:** Si un sensor no tiene lectura o Home Assistant lo reporta como no disponible, la tarjeta muestra un estado no disponible y no fabrica un valor numérico.
 - **AC25:** El selector de una tarjeta multimedia solo lista entidades `media_player` ya importadas a HomePilot; no consulta ni depende de la interfaz de Home Assistant.
 - **AC26:** La tarjeta multimedia ejecuta `turn_on`, `turn_off`, `media_play` o `media_pause` únicamente cuando el dispositivo los soporta, y refresca el snapshot local tras una ejecución satisfactoria.
-- **AC27:** Tras crear cuatro o más zonas, el control para añadir la siguiente zona aparece debajo de todas las zonas existentes y la nueva zona se inserta sin solapar contenido previo.
+- **AC27:** Tras crear cuatro o más zonas, el control para añadir la siguiente zona aparece debajo de todas las zonas existentes (siempre es el último elemento del flujo) y la nueva zona se inserta al final sin solapar contenido previo.
 - **AC28:** Con cuatro zonas en el tablero, las tarjetas pequeñas no desbordan su título ni su estado; el selector de Luz/Cortina/Cámara/Sensor/Multimedia presenta únicamente dispositivos locales del tipo respectivo.
 - **AC29:** Con un fondo configurado, el tablero cubre al menos la altura visible completa del área de contenido sin dejar un lienzo plano debajo de sus widgets.
-- **AC30:** Un tablero con un título alto muestra el placeholder de su primera zona debajo del título sin requerir redimensionar la ventana ni solaparlo.
+- **AC30:** Un tablero con un título alto muestra el placeholder de su primera zona debajo del título sin requerir redimensionar la ventana ni solaparlo (el título ocupa su propia fila completa y el flujo continúa inmediatamente debajo).
 - **AC31:** El lápiz del título permite editar y guardar el texto que se muestra en el encabezado del tablero; al ejecutar un control del reproductor, la tarjeta conserva visible su contenido y solo muestra un indicador compacto de procesamiento.
-- **AC32:** Con una ventana de escritorio al 100% de zoom y un lienzo de al menos 1024px, el tablero no cambia a la composición de tablet: mantiene el grid de 12 columnas, sus zonas y el placeholder de creación visibles.
+- **AC32:** Con una ventana de escritorio al 100% de zoom y un lienzo de al menos 1024px, el tablero no cambia a la composición de tablet: mantiene el grid de 3 columnas, sus zonas y el placeholder de creación visibles.
 - **AC33:** Una tarjeta de control activa se distingue visualmente de una apagada sin un chip de texto `Encendido/Apagado`, y sus iconos pueden seleccionarse desde el catálogo Material Design Icons sin invalidar iconos existentes.
+- **AC34:** En cualquier tamaño de pantalla (móvil, tablet, escritorio), arrastrar una zona por su asa de arrastre la reordena dentro del flujo y el nuevo orden persiste tras recargar.
+- **AC35:** El ancho de una zona se controla con un selector discreto (1..N columnas según el breakpoint activo); el valor persiste aunque un breakpoint más angosto lo clamée visualmente sin sobrescribir el dato guardado.

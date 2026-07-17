@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { Eye, Image, MoreVertical, SlidersHorizontal, Trash2, X, Loader2, HelpCircle } from 'lucide-react';
+import { Eye, Image, MoreVertical, SlidersHorizontal, Trash2, X, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
-import * as Icons from 'lucide-react';
+import { IconPicker } from '../views/dashboards/components/IconPicker';
 
 
 const MAX_BG_PX = 1920;
@@ -52,9 +51,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   const [iconQuery, setIconQuery] = useState(tab.icon || '');
-  const iconInputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Sync state with props when modal opens or tab changes
   useEffect(() => {
@@ -78,64 +75,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
       .catch(() => {})
       .finally(() => setLoadingUsers(false));
   }, [isOpen, tab]);
-
-  const computeDropdownPos = () => {
-    if (!iconInputRef.current) return;
-    const rect = iconInputRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-  };
-
-  const SelectedIconComponent = useMemo(() => {
-    if (!iconQuery) return null;
-    let clean = iconQuery.trim();
-    if (clean.toLowerCase().startsWith('mdi:')) {
-      clean = clean.substring(4);
-    }
-    const translations: Record<string, string> = {
-      gata: 'Cat', gato: 'Cat', perro: 'Dog', perra: 'Dog',
-      luz: 'Lightbulb', foco: 'Lightbulb', interruptor: 'Power',
-      enchufe: 'Plug', camara: 'Camera', tv: 'Tv', musica: 'Music',
-      bocina: 'Speaker', parlante: 'Speaker', llave: 'Key',
-      candado: 'Lock', escudo: 'Shield', termometro: 'Thermometer',
-      aire: 'Wind', ventilador: 'Fan'
-    };
-    const key = clean.toLowerCase();
-    const resolvedName = translations[key] || Object.keys(Icons).find(k => k.toLowerCase() === key) || clean;
-    const matchKey = Object.keys(Icons).find(k => k.toLowerCase() === resolvedName.toLowerCase());
-    return matchKey ? (Icons as any)[matchKey] : null;
-  }, [iconQuery]);
-
-  const matchingIcons = useMemo(() => {
-    if (!iconQuery || iconQuery.length < 2) return [];
-    let clean = iconQuery.trim();
-    if (clean.toLowerCase().startsWith('mdi:')) {
-      clean = clean.substring(4);
-    }
-    const translations: Record<string, string> = {
-      gata: 'cat', gato: 'cat', perro: 'dog', perra: 'dog',
-      luz: 'lightbulb', foco: 'lightbulb', interruptor: 'power',
-      enchufe: 'plug', camara: 'camera', tv: 'tv', musica: 'music',
-      bocina: 'speaker', parlante: 'speaker', llave: 'key',
-      candado: 'lock', escudo: 'shield', termometro: 'thermometer',
-      aire: 'wind', ventilador: 'fan'
-    };
-    const searchKey = clean.toLowerCase();
-    const translatedSearchKey = translations[searchKey] || searchKey;
-
-    const allKeys = Object.keys(Icons).filter(key => {
-      const val = (Icons as any)[key];
-      return (
-        key[0] === key[0].toUpperCase() &&
-        key[0] !== '_' &&
-        key !== 'Icons' &&
-        (typeof val === 'function' || (typeof val === 'object' && val !== null))
-      );
-    });
-
-    return allKeys
-      .filter(key => key.toLowerCase().includes(translatedSearchKey))
-      .slice(0, 12);
-  }, [iconQuery]);
 
   const routeSlug = useMemo(() => {
     const source = draftTitle.trim() || tab.title || 'view';
@@ -260,37 +199,14 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
               </label>
 
               <div className="rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-caption font-semibold text-muted-foreground">{t('dashboards.view_config.icon')}</span>
-                <div className="relative mt-2 flex items-center">
-                  {SelectedIconComponent ? (
-                    <SelectedIconComponent className="absolute left-3 w-5 h-5 text-primary" />
-                  ) : (
-                    <HelpCircle className="absolute left-3 w-5 h-5 text-muted-foreground/30" />
-                  )}
-                  <input
-                    ref={iconInputRef}
-                    type="text"
-                    className="w-full h-10 pl-10 pr-10 bg-transparent text-body font-bold text-foreground outline-none"
-                    placeholder={t('dashboards.view_config.icon_placeholder')}
-                    value={iconQuery}
-                    onFocus={computeDropdownPos}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setIconQuery(val);
-                      setTimeout(computeDropdownPos, 0);
-                    }}
-                    onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
-                  />
-                  {iconQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setIconQuery('')}
-                      className="absolute right-3 p-1 rounded-full hover:bg-muted text-muted-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
+                {/* Shared picker: Home Assistant Material Design Icons + Lucide,
+                    same catalog and resolver used by dashboard cards. */}
+                <IconPicker
+                  value={iconQuery}
+                  onChange={setIconQuery}
+                  label={t('dashboards.view_config.icon')}
+                  placeholder={t('dashboards.view_config.icon_placeholder')}
+                />
               </div>
 
               <label className="block rounded-xl bg-muted/45 px-4 py-3">
@@ -414,40 +330,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           </button>
         </footer>
       </div>
-
-      {/* Portal icon autocomplete suggestions dropdown */}
-      {activeTab === 'settings' && dropdownPos && matchingIcons.length > 0 && createPortal(
-        <div
-          style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            zIndex: 9999,
-          }}
-          className="max-h-48 overflow-y-auto rounded-xl border border-border/60 bg-card shadow-2xl p-1.5 space-y-0.5"
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          {matchingIcons.map(iconName => {
-            const IconComponent = (Icons as any)[iconName];
-            return (
-              <button
-                key={iconName}
-                type="button"
-                onClick={() => {
-                  setIconQuery(iconName);
-                  setDropdownPos(null);
-                }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-caption font-semibold hover:bg-primary/10 hover:text-primary transition-colors text-foreground/80"
-              >
-                {IconComponent && <IconComponent className="w-5 h-5 shrink-0" />}
-                <span>{iconName}</span>
-              </button>
-            );
-          })}
-        </div>,
-        document.body
-      )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
+import { getDashboardIconComponent } from '../components/IconPicker';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -59,13 +60,11 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
 
   const getIcon = (): React.ElementType => {
     if (config.appearance.icon) {
-      let name = config.appearance.icon.trim();
-      
-      // Remove mdi: prefix
-      if (name.toLowerCase().startsWith('mdi:')) {
-        name = name.substring(4);
-      }
-      
+      const raw = config.appearance.icon.trim();
+      const withoutPrefix = raw.replace(/^mdi:/i, '');
+
+      // Legacy Spanish aliases stored before the shared MDI+Lucide catalog
+      // existed; kept so previously saved icons keep resolving.
       const customMap: Record<string, string> = {
         gata: 'Cat',
         cat: 'Cat',
@@ -78,20 +77,12 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         recessed: 'Lightbulb',
         'light-recessed': 'Lightbulb'
       };
-      
-      const lower = name.toLowerCase();
-      let pascalName = '';
-      if (customMap[lower]) {
-        pascalName = customMap[lower];
-      } else {
-        // Convert kebab-case or snake_case to PascalCase
-        pascalName = name
-          .replace(/[-_]([a-z])/g, (_, g) => g.toUpperCase())
-          .replace(/^\w/, (c) => c.toUpperCase());
-      }
 
-      const ResolvedIcon = (Icons as any)[pascalName];
-      if (ResolvedIcon) return ResolvedIcon;
+      const alias = customMap[withoutPrefix.toLowerCase()];
+      // Shared resolver: understands both `mdi:*` (Home Assistant Material
+      // Design Icons) and plain Lucide names, unlike the old Lucide-only lookup.
+      const resolved = getDashboardIconComponent(alias ?? raw);
+      if (resolved !== Icons.CircleHelp) return resolved;
     }
 
     switch (device.type) {
