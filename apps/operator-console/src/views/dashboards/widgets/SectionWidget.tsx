@@ -723,7 +723,7 @@ function CardPreview({
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
-        <Icon className={cn(isSmall ? "h-10 w-10 sm:h-12 sm:w-12" : "h-16 w-16")} />
+        <Icon className={cn(isSmall ? "h-12 w-12 sm:h-14 sm:w-14" : "h-20 w-20")} />
       </span>
       <span className={cn(
         "line-clamp-2 min-w-0 font-black leading-tight text-foreground",
