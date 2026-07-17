@@ -5,6 +5,19 @@ import { generateId } from '../../utils/generateId';
 const DASHBOARD_SECTION_COLUMNS = 4;
 const DASHBOARD_SECTION_START_Y = 2;
 const DASHBOARD_SECTION_MIN_ROWS = 2;
+const DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH = 1024;
+const DASHBOARD_TABLET_CANVAS_MIN_WIDTH = 640;
+
+/**
+ * Resolves the canvas column count from the actual available content width.
+ * The sidebar is excluded from this width, so desktop editing must not wait
+ * for the full browser viewport to reach the desktop breakpoint.
+ */
+export function getDashboardCanvasColumns(width: number): 1 | 6 | 12 {
+  if (width > 0 && width < DASHBOARD_TABLET_CANVAS_MIN_WIDTH) return 1;
+  if (width > 0 && width < DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH) return 6;
+  return 12;
+}
 
 type SectionCardSpan = 'small' | 'medium' | 'full';
 

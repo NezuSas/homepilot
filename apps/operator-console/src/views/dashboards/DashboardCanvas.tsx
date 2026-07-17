@@ -15,6 +15,7 @@ import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
 import {
   getDashboardSectionPlaceholderY,
   getDashboardSectionStartY,
+  getDashboardCanvasColumns,
   resolveDashboardSectionLayouts,
   sanitizeWidget,
 } from './dashboardUtils';
@@ -38,12 +39,6 @@ const MOBILE_GRID_COLS = 1;
 const MIN_ROW_HEIGHT = 40;
 const MAX_ROW_HEIGHT = 80;
 
-function getCanvasColumns(width: number): number {
-  if (width > 0 && width < 640) return MOBILE_GRID_COLS;
-  if (width > 0 && width < 1280) return TABLET_GRID_COLS;
-  return DESKTOP_GRID_COLS;
-}
-
 export function DashboardCanvas({ 
   widgets, 
   isEditing, 
@@ -57,7 +52,7 @@ export function DashboardCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
 // Track live column width so drag calculations and DragOverlay stay accurate.
   const [containerWidth, setContainerWidth] = useState(0);
-  const gridCols = useMemo(() => getCanvasColumns(containerWidth), [containerWidth]);
+  const gridCols = useMemo(() => getDashboardCanvasColumns(containerWidth), [containerWidth]);
   const isResponsiveLayout = gridCols !== DESKTOP_GRID_COLS;
   const canEditLayout = isEditing && !isResponsiveLayout;
   const colWidth = containerWidth > 0 ? containerWidth / gridCols : 0;

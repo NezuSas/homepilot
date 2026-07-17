@@ -37,6 +37,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 14. El fondo configurado de una vista debe cubrir como mínimo toda el área visible del tablero, detrás del contenido y sin recortarse al alto inicial de sus widgets.
 15. El placeholder para la primera zona debe ubicarse inmediatamente después del área de título real, incluso si un tablero existente tiene un título más alto que el tamaño predeterminado.
 16. En modo edición, el lápiz del título del tablero debe abrir un editor que persista el contenido Markdown local de ese título. La ejecución de una acción multimedia debe mostrar únicamente un indicador pequeño, sin desenfocar ni bloquear visualmente la tarjeta.
+17. El modo de edición de escritorio debe conservar el grid de 12 columnas y los placeholders de creación cuando el área útil del lienzo mida al menos 1024px, incluso si el sidebar reduce el ancho disponible de la ventana.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -70,3 +71,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC29:** Con un fondo configurado, el tablero cubre al menos la altura visible completa del área de contenido sin dejar un lienzo plano debajo de sus widgets.
 - **AC30:** Un tablero con un título alto muestra el placeholder de su primera zona debajo del título sin requerir redimensionar la ventana ni solaparlo.
 - **AC31:** El lápiz del título permite editar y guardar el texto que se muestra en el encabezado del tablero; al ejecutar un control del reproductor, la tarjeta conserva visible su contenido y solo muestra un indicador compacto de procesamiento.
+- **AC32:** Con una ventana de escritorio al 100% de zoom y un lienzo de al menos 1024px, el tablero no cambia a la composición de tablet: mantiene el grid de 12 columnas, sus zonas y el placeholder de creación visibles.

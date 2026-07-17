@@ -2,6 +2,7 @@ import type { DashboardWidget } from './types';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import {
   getAssignableDevicesForSectionCard,
+  getDashboardCanvasColumns,
   getDashboardSectionPlaceholderY,
   getDashboardSectionStartY,
   resolveDashboardSectionLayouts,
@@ -47,6 +48,13 @@ function createDevice(id: string, name: string, type: string, category?: string)
 }
 
 describe('dashboard section layout', () => {
+  it('keeps the desktop grid for a regular canvas width after sidebar space', () => {
+    expect(getDashboardCanvasColumns(1024)).toBe(12);
+    expect(getDashboardCanvasColumns(1180)).toBe(12);
+    expect(getDashboardCanvasColumns(1023)).toBe(6);
+    expect(getDashboardCanvasColumns(639)).toBe(1);
+  });
+
   it('places the fifth section and add-section placeholder below the tallest first row', () => {
     const firstRow = Array.from({ length: 4 }, (_, index) => createSection(`section-${index}`, 3));
     const sections = [...firstRow, createSection('section-4', 0)];
