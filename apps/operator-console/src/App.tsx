@@ -348,6 +348,14 @@ function App() {
   const canAccessDashboards = canAccessBasicHomeViews;
   const canAccessSystem = user?.role ? SYSTEM_ROLES.has(user.role) : false;
 
+  // Only fetches the list for the sidebar's nested menu — no navigation side
+  // effects here. Kept deliberately stable (deps: just canAccessDashboards)
+  // so it doesn't change identity on every navigation; it used to depend on
+  // urlDashboardId, which made its identity change on every route change,
+  // which in turn re-fired the "on auth" effect below on every single
+  // navigation — including navigating AWAY from Tableros — and that effect
+  // used to call this function expecting it to redirect, so leaving Tableros
+  // for another section immediately bounced back.
   const refreshSidebarDashboards = useCallback(async () => {
     if (!canAccessDashboards) {
       setSidebarDashboards([]);
@@ -364,29 +372,30 @@ function App() {
         ownerId: dashboard.ownerId,
         title: dashboard.title
       })));
-
-      // The URL is the source of truth: only pick a fallback dashboard (and
-      // make it canonical via a history-replacing redirect) when the URL
-      // doesn't already point at one of the visible dashboards. Prefer
-      // whatever dashboard+tab was last visited this session (e.g. the user
-      // clicked away to another sidebar section and back) over recomputing
-      // the "default tab" — that flag is only meant to kick in on an actual
-      // reload / first-ever visit, not on in-app navigation.
-      if (!urlDashboardId || !data.some(dashboard => dashboard.id === urlDashboardId)) {
-        const remembered = lastDashboardTabRef.current;
-        if (remembered && data.some(dashboard => dashboard.id === remembered.dashboardId)) {
-          navigate(`/dashboards/${remembered.dashboardId}/${remembered.tabId}`, { replace: true });
-        } else {
-          const ownedDashboard = data.find(dashboard => dashboard.ownerId === user?.id);
-          const fallbackId = ownedDashboard?.id ?? data[0]?.id ?? null;
-          if (fallbackId) navigate(`/dashboards/${fallbackId}`, { replace: true });
-        }
-      }
     } catch (error) {
       console.warn('[AppShell] Failed to refresh sidebar dashboards:', error);
       setSidebarDashboards([]);
     }
-  }, [canAccessDashboards, user?.id, urlDashboardId, navigate]);
+  }, [canAccessDashboards]);
+
+  // Landing on bare /dashboards (no specific dashboard in the URL) needs a
+  // fallback — but ONLY while actually viewing Tableros. Gating on
+  // `currentView` is what keeps this from ever redirecting the user while
+  // they're looking at a completely different section.
+  useEffect(() => {
+    if (currentView !== 'dashboards' || urlDashboardId) return;
+    if (sidebarDashboards.length === 0) return;
+
+    const remembered = lastDashboardTabRef.current;
+    if (remembered && sidebarDashboards.some(dashboard => dashboard.id === remembered.dashboardId)) {
+      navigate(`/dashboards/${remembered.dashboardId}/${remembered.tabId}`, { replace: true });
+      return;
+    }
+
+    const ownedDashboard = sidebarDashboards.find(dashboard => dashboard.ownerId === user?.id);
+    const fallbackId = ownedDashboard?.id ?? sidebarDashboards[0]?.id ?? null;
+    if (fallbackId) navigate(`/dashboards/${fallbackId}`, { replace: true });
+  }, [currentView, urlDashboardId, sidebarDashboards, user?.id, navigate]);
 
   // Check setup status before login only to detect factory state without users.
   useEffect(() => {
@@ -1249,19 +1258,14 @@ function App() {
                     initialTabId={urlTabId}
                     onOpenMobileMenu={() => setIsSidebarOpen(true)}
                     onDashboardCatalogChange={(dashboards) => {
+                      // Just updates the list; the dedicated effect above
+                      // (gated on currentView === 'dashboards') handles
+                      // redirecting to a fallback when needed.
                       setSidebarDashboards(dashboards.map(dashboard => ({
                         id: dashboard.id,
                         ownerId: dashboard.ownerId,
                         title: dashboard.title
                       })));
-                      if (!urlDashboardId || !dashboards.some(dashboard => dashboard.id === urlDashboardId)) {
-                        const remembered = lastDashboardTabRef.current;
-                        if (remembered && dashboards.some(dashboard => dashboard.id === remembered.dashboardId)) {
-                          navigate(`/dashboards/${remembered.dashboardId}/${remembered.tabId}`, { replace: true });
-                        } else if (dashboards[0]?.id) {
-                          navigate(`/dashboards/${dashboards[0].id}`, { replace: true });
-                        }
-                      }
                     }}
                   />
                 )}
