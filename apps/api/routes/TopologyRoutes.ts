@@ -8,6 +8,7 @@ import { renameRoomUseCase } from '../../../packages/topology/application/rename
 import { ForbiddenError, NotFoundError } from '../../../packages/topology/application/errors';
 import { InvalidHomeNameError, InvalidRoomNameError } from '../../../packages/topology/domain/errors';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
+import { DeviceCommandV1 } from '../../../packages/devices/domain/commands';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
@@ -366,7 +367,7 @@ export class TopologyRoutes extends ApiRoutes {
           targetDevices.map((d) =>
             executeDeviceCommandUseCase(
               d.id,
-              commandStr,
+              commandStr as DeviceCommandV1,
               req.user!.id,
               correlationId,
               {

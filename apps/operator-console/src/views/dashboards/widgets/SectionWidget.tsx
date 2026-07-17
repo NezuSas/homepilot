@@ -714,9 +714,6 @@ function CardPreview({
           : "border-border/60 bg-card/95 shadow-surface-card ring-1 ring-background/45"
       )}
     >
-      {isActive && (
-        <span className="absolute inset-x-5 top-3 h-1 rounded-full bg-primary/70 shadow-primary-warm" />
-      )}
       <span
         className={cn(
           "mb-2 grid place-items-center rounded-full transition-all sm:mb-3",
@@ -726,7 +723,7 @@ function CardPreview({
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
-        <Icon className={cn(isSmall ? "h-8 w-8 sm:h-10 sm:w-10" : "h-14 w-14")} />
+        <Icon className={cn(isSmall ? "h-10 w-10 sm:h-12 sm:w-12" : "h-16 w-16")} />
       </span>
       <span className={cn(
         "line-clamp-2 min-w-0 font-black leading-tight text-foreground",

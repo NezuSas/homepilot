@@ -253,7 +253,9 @@ export class DeviceRoutes extends ApiRoutes {
         const correlationId = crypto.randomUUID();
         await executeDeviceCommandUseCase(
           commandMatch[1],
-          payload.command as DeviceCommandV1, // El use case ya soporta ambos por CommandDispatcher
+          typeof payload.command === 'string'
+            ? (payload.command as DeviceCommandV1)
+            : { name: payload.command.name as DeviceCommandV1, params: payload.command.params },
           req.user!.id,
           correlationId,
           {

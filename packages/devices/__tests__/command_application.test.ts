@@ -59,7 +59,7 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
   it('debe lanzar InvalidDeviceCommandError (400) si el comando no pertenece al diccionario V1', async () => {
     await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1' });
     
-    await expect(executeDeviceCommandUseCase('d1', 'invalid_cmd', 'u1', 'c1', {
+    await expect(executeDeviceCommandUseCase('d1', 'invalid_cmd' as never, 'u1', 'c1', {
       deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(InvalidDeviceCommandError);
   });
@@ -106,6 +106,28 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     
     // El caso de uso no debe haber lanzado error pese al fallo del publisher
     expect(true).toBe(true);
+  });
+
+  it('debe validar y despachar comandos parametrizados ({ name, params }) preservando los params', async () => {
+    await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1', type: 'cover' });
+
+    const dispatchSpy = jest.spyOn(dispatcher, 'dispatch');
+
+    await executeDeviceCommandUseCase('d1', { name: 'set_position', params: { position: 40 } }, 'u1', 'c1', {
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith('d1', { name: 'set_position', params: { position: 40 } });
+    const events = publisher.getEvents();
+    expect(events[0].eventType).toBe('DeviceCommandDispatchedEvent');
+  });
+
+  it('debe lanzar InvalidDeviceCommandError si el nombre dentro de un comando parametrizado no es válido', async () => {
+    await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1' });
+
+    await expect(executeDeviceCommandUseCase('d1', { name: 'invalid_cmd' as never, params: {} }, 'u1', 'c1', {
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
+    })).rejects.toThrow(InvalidDeviceCommandError);
   });
 
   it('debe lanzar DispatchIntegrationError aunque la publicación del evento de fallo también falle', async () => {

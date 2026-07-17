@@ -1,5 +1,6 @@
 import { AuthenticatedHttpRequest, HttpResponse } from '../../../topology/api/core/http';
 import { executeDeviceCommandUseCase } from '../../application/executeDeviceCommandUseCase';
+import { DeviceCommandV1 } from '../../domain/commands';
 import { handleError } from '../core/errorHandler';
 import { DeviceRepository } from '../../domain/repositories';
 import { DeviceEventPublisher } from '../../domain/events';
@@ -58,7 +59,7 @@ export class CommandController {
 
       await executeDeviceCommandUseCase(
         deviceId,
-        command.trim(),
+        command.trim() as DeviceCommandV1,
         req.userId,
         correlationId,
         {

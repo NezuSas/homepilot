@@ -3,11 +3,12 @@ import { DeviceEventPublisher } from '../domain/events/DeviceEventPublisher';
 import { ActivityLogRepository } from '../domain/repositories/ActivityLogRepository';
 import { TopologyReferencePort } from './ports/TopologyReferencePort';
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
-import { 
-  isValidCommand, 
-  InvalidDeviceCommandError, 
-  canDeviceExecuteCommand, 
-  UnsupportedCommandError 
+import { DeviceCommandV1, DeviceCommandRequest } from '../domain/commands';
+import {
+  isValidCommand,
+  InvalidDeviceCommandError,
+  canDeviceExecuteCommand,
+  UnsupportedCommandError
 } from '../domain';
 import { 
   DeviceNotFoundError, 
@@ -36,7 +37,7 @@ export interface ExecuteDeviceCommandDependencies {
  */
 export async function executeDeviceCommandUseCase(
   deviceId: string,
-  command: string,
+  command: DeviceCommandV1 | DeviceCommandRequest,
   userId: string,
   correlationId: string,
   deps: ExecuteDeviceCommandDependencies,
@@ -62,14 +63,20 @@ export async function executeDeviceCommandUseCase(
     throw new DevicePendingStateError(deviceId);
   }
 
+  // Los comandos parametrizados (ej. set_position, volume_set) llegan como
+  // objeto { name, params }; el diccionario V1 y las capacidades se validan
+  // por nombre, mientras que el objeto completo (con params) se conserva
+  // para el despacho físico más abajo.
+  const commandName = typeof command === 'string' ? command : command.name;
+
   // 4. Validación de Diccionario V1
-  if (!isValidCommand(command)) {
-    throw new InvalidDeviceCommandError(command);
+  if (!isValidCommand(commandName)) {
+    throw new InvalidDeviceCommandError(commandName);
   }
 
   // 5. Validación de Capacidades (Hardware)
-  if (!canDeviceExecuteCommand(device.type, command)) {
-    throw new UnsupportedCommandError(device.type, command);
+  if (!canDeviceExecuteCommand(device.type, commandName)) {
+    throw new UnsupportedCommandError(device.type, commandName);
   }
 
   // 6. Ejecución del Efecto (Despacho físico)
@@ -81,7 +88,7 @@ export async function executeDeviceCommandUseCase(
     // Telemetría: Publicación del evento de fallo
     try {
       const failedEvent = createDeviceCommandFailedEvent(
-        { deviceId: device.id, homeId: device.homeId, command, reason },
+        { deviceId: device.id, homeId: device.homeId, command: commandName, reason },
         correlationId,
         { idGenerator: deps.idGenerator, clock: deps.clock }
       );
@@ -96,8 +103,8 @@ export async function executeDeviceCommandUseCase(
           timestamp: deps.clock.now(),
           deviceId: device.id,
           type: 'COMMAND_FAILED',
-          description: `Command ${command} failed. Reason: ${reason}`,
-          data: { command, reason, isAutomation: false }
+          description: `Command ${commandName} failed. Reason: ${reason}`,
+          data: { command: commandName, reason, isAutomation: false }
         });
       } catch (_logErr) { /* silenciar */ }
     }
@@ -111,7 +118,7 @@ export async function executeDeviceCommandUseCase(
   // Publicar evento de despacho exitoso
   try {
     const dispatchedEvent = createDeviceCommandDispatchedEvent(
-      { deviceId: device.id, homeId: device.homeId, command },
+      { deviceId: device.id, homeId: device.homeId, command: commandName },
       correlationId,
       { idGenerator: deps.idGenerator, clock: deps.clock }
     );
@@ -124,8 +131,8 @@ export async function executeDeviceCommandUseCase(
       timestamp: now,
       deviceId: device.id,
       type: 'COMMAND_DISPATCHED',
-      description: options?.customDescription || `Command ${command} dispatched correctly to gateway.`,
-      data: options?.data || { command, isAutomation: !!options?.isAutomation, correlationId }
+      description: options?.customDescription || `Command ${commandName} dispatched correctly to gateway.`,
+      data: options?.data || { command: commandName, isAutomation: !!options?.isAutomation, correlationId }
     });
   } catch (_logErr) { /* silenciar */ }
 }
