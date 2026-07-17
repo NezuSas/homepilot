@@ -2,6 +2,27 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import { createPortal } from 'react-dom';
 import * as LucideIcons from 'lucide-react';
 import { CircleHelp } from 'lucide-react';
+import {
+  mdiBattery,
+  mdiBlinds,
+  mdiCamera,
+  mdiCctv,
+  mdiCeilingLight,
+  mdiClock,
+  mdiDoor,
+  mdiFan,
+  mdiGauge,
+  mdiHome,
+  mdiLamp,
+  mdiLightbulb,
+  mdiLightbulbOutline,
+  mdiMusic,
+  mdiPower,
+  mdiRemote,
+  mdiSpeaker,
+  mdiTelevision,
+} from '@mdi/js';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 
 interface IconPickerProps {
@@ -13,6 +34,12 @@ interface IconPickerProps {
 }
 
 type IconComponent = ComponentType<{ className?: string }>;
+
+interface IconEntry {
+  name: string;
+  icon: IconComponent;
+  normalized: string;
+}
 
 const BLOCKED_EXPORTS = new Set([
   'default',
@@ -26,11 +53,21 @@ const BLOCKED_EXPORTS = new Set([
 function normalizeIconName(value: string) {
   return value
     .trim()
-    .replace(/^lucide[-_\s]*/i, '')
+    .replace(/^(lucide|mdi)[:\-_\s]*/i, '')
     .replace(/[-_\s]+(.)/g, (_match, letter: string) => letter.toUpperCase())
     .replace(/[^a-zA-Z0-9]/g, '')
     .replace(/Icon$/i, '')
     .toLowerCase();
+}
+
+function createMdiIcon(path: string): IconComponent {
+  return function MdiIcon({ className }) {
+    return (
+      <svg aria-hidden="true" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d={path} />
+      </svg>
+    );
+  };
 }
 
 function isRenderableLucideExport(name: string, value: unknown) {
@@ -50,7 +87,32 @@ function isRenderableLucideExport(name: string, value: unknown) {
   return false;
 }
 
-const ICONS = Object.entries(LucideIcons)
+const MDI_ICONS: IconEntry[] = [
+  ['mdi:lightbulb', mdiLightbulb],
+  ['mdi:lightbulb-outline', mdiLightbulbOutline],
+  ['mdi:ceiling-light', mdiCeilingLight],
+  ['mdi:lamp', mdiLamp],
+  ['mdi:blinds', mdiBlinds],
+  ['mdi:camera', mdiCamera],
+  ['mdi:cctv', mdiCctv],
+  ['mdi:gauge', mdiGauge],
+  ['mdi:music', mdiMusic],
+  ['mdi:speaker', mdiSpeaker],
+  ['mdi:home', mdiHome],
+  ['mdi:clock', mdiClock],
+  ['mdi:power', mdiPower],
+  ['mdi:television', mdiTelevision],
+  ['mdi:fan', mdiFan],
+  ['mdi:door', mdiDoor],
+  ['mdi:battery', mdiBattery],
+  ['mdi:remote', mdiRemote],
+].map(([name, path]) => ({
+  name,
+  icon: createMdiIcon(path),
+  normalized: normalizeIconName(name),
+}));
+
+const LUCIDE_ICONS: IconEntry[] = Object.entries(LucideIcons)
   .filter(([name, value]) => isRenderableLucideExport(name, value))
   .map(([name, component]) => ({
     name,
@@ -59,7 +121,9 @@ const ICONS = Object.entries(LucideIcons)
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 
-export function getLucideIconComponent(value?: string): IconComponent {
+const ICONS = [...MDI_ICONS, ...LUCIDE_ICONS];
+
+export function getDashboardIconComponent(value?: string): IconComponent {
   const normalized = normalizeIconName(value || '');
   if (!normalized) return CircleHelp;
 
@@ -74,10 +138,11 @@ export function getLucideIconComponent(value?: string): IconComponent {
 export function IconPicker({
   value = '',
   onChange,
-  placeholder = 'Ej: Lightbulb, Power, Tv, Cat, Dog',
-  label = 'Icono (opcional)',
+  placeholder,
+  label,
   className,
 }: IconPickerProps) {
+  const { t } = useTranslation();
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const [iconQuery, setIconQuery] = useState(value);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
@@ -86,7 +151,9 @@ export function IconPicker({
     setIconQuery(value);
   }, [value]);
 
-  const SelectedIcon = getLucideIconComponent(iconQuery);
+  const SelectedIcon = getDashboardIconComponent(iconQuery);
+  const resolvedPlaceholder = placeholder ?? t('dashboard.editor.sections.icon_picker_placeholder');
+  const resolvedLabel = label ?? t('dashboard.editor.sections.icon_picker_label');
 
   const filteredIcons = useMemo(() => {
     const q = normalizeIconName(iconQuery);
@@ -161,7 +228,7 @@ export function IconPicker({
             })
           ) : (
             <div className="px-3 py-6 text-center text-body font-semibold text-muted-foreground">
-              No se encontraron iconos.
+              {t('dashboard.editor.sections.icon_picker_empty')}
             </div>
           )}
         </div>,
@@ -171,9 +238,9 @@ export function IconPicker({
 
   return (
     <div className={cn('space-y-2', className)}>
-      {label ? (
+      {resolvedLabel ? (
         <span className="text-caption font-black uppercase tracking-label text-muted-foreground">
-          {label}
+          {resolvedLabel}
         </span>
       ) : null}
 
@@ -182,7 +249,7 @@ export function IconPicker({
           ref={iconInputRef}
           type="text"
           className="h-10 w-full rounded-xl border border-border/60 bg-card pl-10 pr-3 text-body text-foreground transition-colors focus:border-primary/50 focus:outline-none"
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           value={iconQuery}
           onFocus={computeDropdownPos}
           onChange={(event) => {

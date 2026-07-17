@@ -22,7 +22,7 @@ import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
-import { IconPicker, getLucideIconComponent } from '../components/IconPicker';
+import { IconPicker, getDashboardIconComponent } from '../components/IconPicker';
 import { DashboardSelect } from '../components/DashboardSelect';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
 import { SensorMetricCard } from './SensorMetricCard';
@@ -236,7 +236,7 @@ function isBindableKind(kind: SectionCardKind) {
 function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
   switch (normalizeKind(kind)) {
     case 'light':
-      return 'Lightbulb';
+      return 'mdi:lightbulb';
     case 'cover':
       return 'Blinds';
     case 'camera':
@@ -265,7 +265,7 @@ function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
 }
 
 function iconForIconKey(icon: SectionCardIcon) {
-  return getLucideIconComponent(icon);
+  return getDashboardIconComponent(icon);
 }
 
 function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSectionCardItem[] {
@@ -707,7 +707,7 @@ function CardPreview({
       className={cn(
         "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-section border p-3 text-center text-foreground transition-all sm:p-4",
         isActive
-          ? "border-primary/80 bg-primary/15 shadow-primary-warm ring-2 ring-primary/30 dark:bg-device-active-dark"
+          ? "border-primary/80 bg-primary/20 shadow-primary-warm ring-2 ring-primary/30 dark:bg-device-active-dark"
           : "border-border/60 bg-card/95 shadow-surface-card ring-1 ring-background/45"
       )}
     >
@@ -717,19 +717,19 @@ function CardPreview({
       <span
         className={cn(
           "mb-2 grid place-items-center rounded-full transition-all sm:mb-3",
-          isSmall ? "h-12 w-12 sm:h-14 sm:w-14" : "h-24 w-24",
+          isSmall ? "h-14 w-14 sm:h-16 sm:w-16" : "h-24 w-24",
           isActive
             ? "bg-primary text-primary-foreground shadow-primary-room-icon ring-1 ring-primary/35"
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
-        <Icon className={cn(isSmall ? "h-7 w-7 sm:h-8 sm:w-8" : "h-14 w-14")} />
+        <Icon className={cn(isSmall ? "h-8 w-8 sm:h-10 sm:w-10" : "h-14 w-14")} />
       </span>
       <span className={cn(
         "line-clamp-2 min-w-0 font-black leading-tight text-foreground",
         isSmall ? "text-caption" : "text-body"
       )}>{title}</span>
-      {isAssigned ? (
+      {isAssigned && normalized !== 'light' ? (
         <span
           className={cn(
             "mt-1.5 max-w-full shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-nano font-black uppercase leading-none tracking-control sm:mt-2",
