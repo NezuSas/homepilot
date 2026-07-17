@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ClockCopy, ClockWeather } from '../clockTypes';
-import { formatWeather } from '../clockUtils';
+import { formatWeather, getWeatherIcon, isDaytimeHour } from '../clockUtils';
+import { getDashboardIconComponent, useMdiCatalogLoaded } from '../../../components/IconPicker';
 
 export function ClockShell({
   children,
@@ -68,11 +69,16 @@ export function WeatherPill({
   className?: string;
 }) {
   const label = formatWeather(weather, status, copy, mode);
+  // The MDI icon set loads lazily; this re-renders once it's ready so the
+  // weather glyph resolves instead of staying on the plain accent dot.
+  useMdiCatalogLoaded();
+  const isReady = Boolean(weather) && status === 'ready';
+  const WeatherIcon = isReady ? getDashboardIconComponent(getWeatherIcon(weather!.code, isDaytimeHour(new Date()))) : null;
 
   return (
     <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-widget-pad-x py-widget-spacer shadow-inner ${className}`}>
       <div className="flex min-w-0 items-center gap-1.5">
-        <AccentDot />
+        {WeatherIcon ? <WeatherIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /> : <AccentDot />}
         <span className="min-w-0 truncate text-clock-label-fluid font-black uppercase tracking-micro text-foreground">
           {label}
         </span>

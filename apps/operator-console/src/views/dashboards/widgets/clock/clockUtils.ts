@@ -143,6 +143,29 @@ export function getWeatherDescription(code: number, locale: string): string {
   return isEnglish ? 'Weather' : 'Clima';
 }
 
+/**
+ * Maps an Open-Meteo WMO weather code to an `mdi:weather-*` icon name
+ * (Home Assistant's Material Design Icons set), swapping to the night
+ * variant for clear/partly-cloudy conditions after dusk.
+ */
+export function getWeatherIcon(code: number, isDaytime = true): string {
+  if (code === 0) return isDaytime ? 'mdi:weather-sunny' : 'mdi:weather-night';
+  if ([1, 2].includes(code)) return isDaytime ? 'mdi:weather-partly-cloudy' : 'mdi:weather-night-partly-cloudy';
+  if (code === 3) return 'mdi:weather-cloudy';
+  if ([45, 48].includes(code)) return 'mdi:weather-fog';
+  if ([51, 53, 55, 56, 57].includes(code)) return 'mdi:weather-rainy';
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'mdi:weather-pouring';
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return 'mdi:weather-snowy';
+  if ([95, 96, 99].includes(code)) return 'mdi:weather-lightning-rainy';
+
+  return 'mdi:weather-cloudy';
+}
+
+export function isDaytimeHour(now: Date): boolean {
+  const hour = now.getHours();
+  return hour >= 6 && hour < 19;
+}
+
 export function formatTemperature(value: number): string {
   return `${Math.round(value)}\u00b0C`;
 }
