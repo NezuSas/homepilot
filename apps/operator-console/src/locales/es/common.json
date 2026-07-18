@@ -1504,6 +1504,7 @@
     "configure": "Configurar",
     "reorder": "Arrastrar para reordenar",
     "select_option": "Seleccionar opción...",
+    "no_results": "No se encontraron resultados",
     "retry_failed": "No se pudo reintentar",
     "not_available": "N/D",
     "password_mask": "••••••••",

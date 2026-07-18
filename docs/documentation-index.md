@@ -15,8 +15,10 @@ La documentacion principal ya cubre vision, arquitectura, frontend modular, vali
 | `docs/homepilot-technical-guide.md` | Guia tecnica completa: backend, frontend, DB, Docker, Home Assistant y WSL | Actualizado |
 | `docs/design-system.md` | Tokens visuales, primitives UI y reglas de uso | Actualizado |
 | `docs/operator-console-frontend.md` | Modularidad UI, patrones y checklist frontend | Actualizado |
+| `docs/operator-console-component-catalog.md` y `docs/components/` | Catálogo y fichas individuales de componentes UI reutilizables | Actualizado |
 | `docs/local-wsl-workflow.md` | Flujo Windows local, push a main y pull en WSL | Actualizado |
 | `docs/release-readiness-v1.md` | Estado de preparacion V1 y deuda conocida | Actualizado |
+| `docs/spec-coverage-matrix.md` | Trazabilidad obligatoria entre dominios, rutas, consola y specs | Actualizado |
 | `specs/` | Especificaciones y acceptance criteria | Fuente funcional |
 
 ## Que Leer Por Tipo de Cambio

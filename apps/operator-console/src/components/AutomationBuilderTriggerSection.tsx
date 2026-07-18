@@ -1,8 +1,8 @@
 import React from 'react';
 import { Clock, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import Select from '../views/Select';
 import { cn } from '../lib/utils';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 import { humanize } from '../lib/naming-utils';
 import type { AutomationBuilderDevice, AutomationTriggerConfig } from './AutomationBuilderTypes';
 
@@ -68,7 +68,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
             <label className="hp-type-label ml-1">{t('automations.form.source_device')}</label>
-            <Select
+            <SearchableSelectField
               searchable
               value={triggerConfig.deviceId || ''}
               onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, deviceId: value })}
@@ -79,7 +79,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           <div className="grid grid-cols-5 gap-3">
             <div className="space-y-2 col-span-3">
               <label className="hp-type-label ml-1">{t('automations.form.state_key')}</label>
-              <Select
+              <SearchableSelectField
                 value={triggerConfig.stateKey || 'state'}
                 onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, stateKey: value })}
                 options={[
@@ -106,7 +106,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           <div className="space-y-2">
             <label className="hp-type-label ml-1">{t('automations.form.time_label')}</label>
             <div className="flex items-center gap-2">
-              <Select
+              <SearchableSelectField
                 value={selectedTime.split(':')[0]}
                 onChange={(hour: string) => {
                   const minute = selectedTime.split(':')[1] || '00';
@@ -116,7 +116,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 className="flex-1 text-center"
               />
               <span className="hp-type-card-title text-muted-foreground/35">:</span>
-              <Select
+              <SearchableSelectField
                 value={selectedTime.split(':')[1] || '00'}
                 onChange={(minute: string) => {
                   const hour = selectedTime.split(':')[0] || '12';

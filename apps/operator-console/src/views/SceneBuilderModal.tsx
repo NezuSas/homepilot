@@ -6,7 +6,7 @@ import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
-import Select from './Select';
+import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 
@@ -174,7 +174,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                 </div>
                 <div className="space-y-2">
                   <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
-                  <Select 
+                  <SearchableSelectField
                     searchable
                     value={roomId || ''} 
                     onChange={(val) => {

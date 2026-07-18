@@ -1,0 +1,21 @@
+# Button
+
+**Fuente:** `apps/operator-console/src/components/ui/Button.tsx`  
+**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+
+## Propósito
+
+Acción textual principal, secundaria, neutra o destructiva. Se usa para confirmar una intención; no para navegación puramente icónica.
+
+## Contrato
+
+`ButtonProps` extiende atributos nativos de botón y añade `variant`, `size` e `isLoading`. `isLoading` deshabilita la acción y muestra el indicador sin cambiar su tamaño.
+
+## Uso
+
+Usar `primary` para la acción principal, `danger` solo para operación destructiva y `IconButton` cuando no haya texto visible. El texto proviene de i18n del consumidor.
+
+## Estados y aceptación
+
+Soporta normal, hover/focus, disabled y loading; mantiene foco visible y área táctil definida por tokens.
+

@@ -23,7 +23,7 @@ import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
-import { DashboardSelect } from '../components/DashboardSelect';
+import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
 import { SensorMetricCard } from './SensorMetricCard';
 import { MediaPlayerCard, type MediaPlayerCommand } from './MediaPlayerCard';
@@ -1302,7 +1302,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             </label>
 
             {isClockKind(cardDraft.kind) ? (
-              <DashboardSelect
+              <SearchableSelectField
                 label={t('dashboard.editor.sections.clock_design')}
                 value={cardDraft.kind}
                 options={clockCardOptions.map((option) => ({
@@ -1322,7 +1322,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 }}
               />
             ) : (
-              <DashboardSelect
+              <SearchableSelectField
                 label={t('dashboard.editor.sections.card_type')}
                 value={cardDraft.kind}
                 options={cardKinds
@@ -1345,7 +1345,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               />
             )}
 
-            <DashboardSelect
+            <SearchableSelectField
               label={t('dashboard.editor.sections.card_size')}
               value={cardDraft.span}
               placement="down"
@@ -1372,7 +1372,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             {isBindableKind(cardDraft.kind) ? (
               <div className="space-y-2">
                 {normalizeKind(cardDraft.kind) === 'scene' ? (
-                  <DashboardSelect
+                  <SearchableSelectField
                     label={t('dashboard.editor.sections.assigned_scene')}
                     value={cardDraft.entityId}
                     placeholder={t('dashboard.editor.sections.unassigned')}
@@ -1393,7 +1393,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                     }}
                   />
                 ) : normalizeKind(cardDraft.kind) === 'room' ? (
-                  <DashboardSelect
+                  <SearchableSelectField
                     label={t('dashboard.editor.sections.assigned_room')}
                     value={cardDraft.entityId}
                     placeholder={t('dashboard.editor.sections.unassigned')}
@@ -1414,7 +1414,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                     }}
                   />
                 ) : (
-                  <DashboardSelect
+                  <SearchableSelectField
                     label={t('dashboard.editor.sections.assigned_device')}
                     value={cardDraft.entityId}
                     placeholder={t('dashboard.editor.sections.unassigned')}

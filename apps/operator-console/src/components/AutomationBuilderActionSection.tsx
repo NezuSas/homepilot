@@ -1,8 +1,8 @@
 import React from 'react';
 import { AlertCircle, ArrowRight, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import Select from '../views/Select';
 import { SegmentedControl } from './ui/SegmentedControl';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 import { humanize } from '../lib/naming-utils';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene } from './AutomationBuilderTypes';
 
@@ -48,7 +48,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
             <label className="hp-type-label-accent ml-1">{t('automations.form.target_device')}</label>
-            <Select
+            <SearchableSelectField
               searchable
               value={actionConfig.targetDeviceId || ''}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, targetDeviceId: value })}
@@ -58,7 +58,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
           </div>
           <div className="space-y-2">
             <label className="hp-type-label-accent ml-1">{t('automations.form.action_type')}</label>
-            <Select
+            <SearchableSelectField
               value={actionConfig.command || 'turn_on'}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, command: value })}
               options={[
@@ -73,7 +73,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
             <label className="hp-type-label-accent ml-1">{t('automations.form.select_scene')}</label>
-            <Select
+            <SearchableSelectField
               searchable
               value={actionConfig.sceneId || ''}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, sceneId: value })}
