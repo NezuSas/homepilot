@@ -43,6 +43,11 @@ The stack will consist of three main services managed by `docker-compose`:
 -   **homepilot-api**: `curl -f http://localhost:3000/api/v1/system/setup-status` (Checks if the server is accepting requests).
 -   **homeassistant**: `curl -f http://localhost:8123/` (Checks if HA is alive).
 
+## Build Reliability
+-   API and UI images install Node dependencies with `npm ci`, using the committed `package-lock.json` rather than resolving mutable dependency ranges during a build.
+-   Docker BuildKit retains the npm download cache between builds to reduce registry traffic on Edge MiniPCs.
+-   Dependency fetches retry transient network failures such as `ECONNRESET` before the build is considered failed.
+
 ## Operational Flows
 1.  **Boot**: `docker-compose up` initializes the stack.
 2.  **Bootstrap Admin**: If the database is empty, the system automatically generates an `admin` user. The initial password is printed **only once** in the `homepilot-api` container logs.

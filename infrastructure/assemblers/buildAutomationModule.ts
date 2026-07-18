@@ -188,7 +188,9 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
     console.log('[Bootstrap] Self-correcting minute heartbeat scheduled.');
   };
 
-  startHeartbeat();
+  if (process.env.NODE_ENV !== 'test') {
+    startHeartbeat();
+  }
 
   return { automationEngine, sceneExecutionService };
 }

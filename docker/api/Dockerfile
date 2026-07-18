@@ -1,11 +1,19 @@
+# syntax=docker/dockerfile:1.7
+
 # Stage 1: Build
 FROM node:20 AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Use the lockfile and retain the npm download cache between Docker builds.
+# Retry transient registry failures (for example ECONNRESET on an Edge MiniPC).
 COPY . .
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --no-audit --no-fund --prefer-offline \
+      --fetch-retries=5 \
+      --fetch-retry-factor=2 \
+      --fetch-retry-mintimeout=10000 \
+      --fetch-retry-maxtimeout=120000
 RUN npm run build
 
 # Stage 2: Production Runtime

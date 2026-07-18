@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Stage 1: Build React app
 FROM node:20 AS builder
 
@@ -10,7 +12,12 @@ ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_HOME_CITY=$VITE_HOME_CITY
 
 COPY . .
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --no-audit --no-fund --prefer-offline \
+      --fetch-retries=5 \
+      --fetch-retry-factor=2 \
+      --fetch-retry-mintimeout=10000 \
+      --fetch-retry-maxtimeout=120000
 
 # Build the UI
 RUN npm run build --workspace=apps/operator-console
