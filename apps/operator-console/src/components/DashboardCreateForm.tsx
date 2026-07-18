@@ -29,7 +29,8 @@ export const DashboardCreateForm: React.FC<DashboardCreateFormProps> = ({
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
       <Input
         autoFocus
-        className="flex-1 rounded-2xl border-border/80 px-5 py-3 font-bold shadow-inner"
+        containerClassName="flex-1"
+        className="rounded-2xl border-border/80 px-5 py-3 font-bold shadow-inner"
         placeholder={placeholder}
         value={value}
         onChange={event => onValueChange(event.target.value)}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { X, Save, PlayCircle, List, Settings, Search } from 'lucide-react';
+import { X, Save, PlayCircle, List, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -9,6 +9,7 @@ import { humanize } from '../lib/naming-utils';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
+import { Input, SearchInput } from '../components/ui/Input';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 
@@ -161,17 +162,15 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.name')}</label>
-                  <input 
-                    type="text" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t('scenes.builder.placeholders.name')}
-                    className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-body-lg font-black tracking-tight focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-35"
-                    autoFocus
-                  />
-                </div>
+                <Input
+                  label={t('scenes.builder.placeholders.name')}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('scenes.builder.placeholders.name')}
+                  className="h-12 border-foreground/10 bg-foreground/[0.03] px-4 text-body-lg font-black tracking-tight placeholder:opacity-35"
+                  autoFocus
+                />
                 <div className="space-y-2">
                   <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
                   <SearchableSelectField
@@ -189,16 +188,15 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                 </div>
              </div>
 
-             <div className="space-y-2 mt-2">
-                <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.placeholders.description')}</label>
-                <input 
-                  type="text" 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t('scenes.builder.placeholders.description')}
-                  className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-xl px-4 py-3 text-body font-medium focus:border-primary/50 focus:ring-0 transition-all placeholder:opacity-20"
-                />
-             </div>
+             <Input
+               containerClassName="mt-2"
+               label={t('scenes.builder.placeholders.description')}
+               type="text"
+               value={description}
+               onChange={(e) => setDescription(e.target.value)}
+               placeholder={t('scenes.builder.placeholders.description')}
+               className="h-12 border-foreground/10 bg-foreground/[0.03] px-4 text-body font-medium placeholder:opacity-20"
+             />
           </div>
 
           {/* Device Selection Section */}
@@ -212,16 +210,13 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                     {t('scenes.builder.select_units', { count: actions.length })}
                   </label>
                 </div>
-                <div className="relative w-full min-[460px]:w-auto">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-primary/40" />
-                   <input 
-                    type="text"
-                    value={deviceSearch}
-                    onChange={(e) => setDeviceSearch(e.target.value)}
-                    placeholder={t('common.search')}
-                    className="w-full rounded-lg border-none bg-primary/5 py-2 pl-8 pr-3 text-caption font-bold outline-none transition-all focus:ring-1 focus:ring-primary/20 min-[460px]:w-36 min-[460px]:focus:w-52"
-                   />
-                </div>
+                <SearchInput
+                  containerClassName="w-full min-[460px]:w-52"
+                  value={deviceSearch}
+                  onChange={(e) => setDeviceSearch(e.target.value)}
+                  placeholder={t('common.search')}
+                  className="h-9 rounded-lg border-none bg-primary/5 text-caption font-bold focus-visible:ring-1"
+                />
              </div>
 
              {availableDevices.length === 0 ? (

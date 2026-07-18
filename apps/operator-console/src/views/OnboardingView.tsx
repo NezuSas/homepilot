@@ -16,6 +16,7 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 interface SetupStatus {
   isInitialized: boolean;
@@ -251,38 +252,32 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
 
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <label className="hp-type-label">{t('onboarding.step2.url')}</label>
-                    <div className="relative">
-                      <Server className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="url"
-                        placeholder={t('onboarding.step2.url_placeholder')}
-                        value={haUrl}
-                        onChange={(event) => {
-                          setHaUrl(event.target.value);
-                          setTestResult('idle');
-                        }}
-                        className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body-compact font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                      />
-                    </div>
+                    <Input
+                      type="url"
+                      label={t('onboarding.step2.url')}
+                      icon={<Server className="h-4 w-4" />}
+                      placeholder={t('onboarding.step2.url_placeholder')}
+                      value={haUrl}
+                      onChange={(event) => {
+                        setHaUrl(event.target.value);
+                        setTestResult('idle');
+                      }}
+                    />
                     <p className="text-caption font-semibold text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('onboarding.step2.docker_hint') }} />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="hp-type-label">{t('onboarding.step2.token')}</label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="password"
-                        placeholder={t('onboarding.step2.token_placeholder')}
-                        value={haToken}
-                        onChange={(event) => {
-                          setHaToken(event.target.value);
-                          setTestResult('idle');
-                        }}
-                        className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body-compact font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                      />
-                    </div>
+                    <Input
+                      type="password"
+                      label={t('onboarding.step2.token')}
+                      icon={<KeyRound className="h-4 w-4" />}
+                      placeholder={t('onboarding.step2.token_placeholder')}
+                      value={haToken}
+                      onChange={(event) => {
+                        setHaToken(event.target.value);
+                        setTestResult('idle');
+                      }}
+                    />
                   </div>
                 </div>
 

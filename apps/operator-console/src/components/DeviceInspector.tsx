@@ -24,6 +24,7 @@ import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from './ConfirmModal';
 import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
 
@@ -307,8 +308,9 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
                 {isRenaming ? (
                   <div className="flex items-center gap-2 mt-1">
-                    <input
-                      className="bg-background border border-primary/40 rounded px-2 py-1 text-section-title font-black outline-none focus:ring-2 focus:ring-primary/20"
+                    <Input
+                      containerClassName="w-44"
+                      className="h-8 rounded border-primary/40 px-2 py-1 text-section-title font-black"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       autoFocus

@@ -6,7 +6,7 @@ import { apiFetch, readApiError } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
-import { SearchInput } from '../components/ui/Input';
+import { Input, SearchInput } from '../components/ui/Input';
 
 interface Home {
   id: string;
@@ -360,13 +360,14 @@ export const TopologyView: React.FC = () => {
 
         <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="text"
+              containerClassName="min-w-0 flex-1"
               placeholder={t('topology.home_placeholder')}
               value={newHomeName}
               onChange={(event) => setNewHomeName(event.target.value)}
               onKeyDown={(event) => { if (event.key === 'Enter') void handleAddHome(); }}
-              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-caption outline-none transition-all focus:ring-1 focus:ring-primary"
+              className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
             />
             <button
               type="button"
@@ -418,11 +419,12 @@ export const TopologyView: React.FC = () => {
                               onSubmit={(event) => { void handleRenameHome(event, home); }}
                               onClick={(event) => event.stopPropagation()}
                             >
-                              <input
+                              <Input
                                 autoFocus
                                 value={homeNameDraft}
                                 onChange={(event) => setHomeNameDraft(event.target.value)}
-                                className="w-36 rounded-lg border border-primary/40 bg-background px-2 py-1 text-caption font-bold text-foreground outline-none"
+                                containerClassName="w-36"
+                                className="h-7 rounded-lg border-primary/40 px-2 py-1 text-caption font-bold text-foreground"
                                 aria-label={t('topology.rename_home')}
                               />
                               <button
@@ -494,12 +496,13 @@ export const TopologyView: React.FC = () => {
                 {t('topology.rooms_in')} <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
               </h3>
               <div className="flex w-full items-center gap-2 sm:w-auto">
-                <input 
+                <Input
                   type="text"
+                  containerClassName="min-w-0 flex-1 sm:w-52"
                   placeholder={t('topology.placeholder')}
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-caption outline-none transition-all focus:ring-1 focus:ring-primary sm:w-52"
+                  className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
                 />
                 <button 
@@ -597,9 +600,10 @@ export const TopologyView: React.FC = () => {
                           </p>
                           {selectedRoom && editingRoomId === selectedRoom.id ? (
                             <form className="mt-2 flex items-center gap-2" onSubmit={handleRenameRoom}>
-                              <input
+                              <Input
                                 autoFocus
-                                className="min-w-0 flex-1 rounded-xl border border-primary/40 bg-background px-3 py-2 text-body font-bold outline-none ring-2 ring-primary/10"
+                                containerClassName="min-w-0 flex-1"
+                                className="rounded-xl border-primary/40 px-3 py-2 text-body font-bold ring-2 ring-primary/10"
                                 maxLength={80}
                                 value={roomNameDraft}
                                 onChange={(event) => setRoomNameDraft(event.target.value)}

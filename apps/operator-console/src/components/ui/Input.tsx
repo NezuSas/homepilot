@@ -7,14 +7,18 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   helperText?: string;
   icon?: React.ReactNode;
+  containerClassName?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, helperText, icon, disabled, ...props }, ref) => {
+  ({ className, containerClassName, label, error, helperText, icon, disabled, id, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
+
     return (
-      <div className="flex flex-col gap-1.5 w-full">
+      <div className={cn("flex w-full flex-col gap-1.5", containerClassName)}>
         {label && (
-          <label className={cn("text-micro font-black uppercase tracking-widest ml-1", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
+          <label htmlFor={inputId} className={cn("text-micro font-black uppercase tracking-widest ml-1", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
             {label}
           </label>
         )}
@@ -26,6 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            id={inputId}
             disabled={disabled}
             className={cn(
               "surface-transition flex h-10 w-full rounded-xl border bg-background px-3 py-2 text-body shadow-sm",
