@@ -9,7 +9,7 @@ Contenedor de diálogo dentro del shell de aplicación para formularios, detalle
 
 ## Contrato
 
-`ModalProps` recibe `isOpen`, `onClose`, título, descripción, children, variante y control del cierre. Bloquea el scroll del body mientras está abierto.
+`ModalProps` recibe `isOpen`, `onClose`, título, descripción, children, variante y control del cierre. `headerAlign`, `headerClassName` y `contentClassName` permiten adaptar una composición de formulario amplia sin duplicar overlay, foco, scroll ni botón de cierre. `layerClassName` ajusta la capa del portal cuando un flujo necesita precedencia explícita. `closeLabel` resuelve su etiqueta desde i18n en el consumidor o usa `common.close`. Bloquea el scroll del body mientras está abierto.
 
 ## Uso
 
@@ -18,4 +18,3 @@ El contenido debe ser desplazable y sus acciones deben quedar visibles. Usar `Co
 ## Estados y aceptación
 
 Respeta variantes default/danger/warning/success, backdrop, escape mediante consumidor cuando aplique y viewport móvil/tablet/escritorio.
-

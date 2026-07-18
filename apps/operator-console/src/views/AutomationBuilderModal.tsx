@@ -5,9 +5,9 @@ import { apiFetch, readApiError } from '../lib/apiClient';
 import { AutomationBuilderActionSection } from '../components/AutomationBuilderActionSection';
 import { AutomationBuilderError } from '../components/AutomationBuilderError';
 import { AutomationBuilderIdentityField } from '../components/AutomationBuilderIdentityField';
-import { AutomationBuilderModalFrame } from '../components/AutomationBuilderModalFrame';
 import { AutomationBuilderSubmitButton } from '../components/AutomationBuilderSubmitButton';
 import { AutomationBuilderTriggerSection } from '../components/AutomationBuilderTriggerSection';
+import { Modal } from '../components/ui/Modal';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene, AutomationRuleDraft, AutomationTriggerConfig } from '../components/AutomationBuilderTypes';
 
 interface AutomationBuilderModalProps {
@@ -157,10 +157,17 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   };
 
   return (
-    <AutomationBuilderModalFrame
+    <Modal
+      isOpen
       title={existingAutomation ? t('automations.builder.title_edit') : t('automations.builder.title_create')}
-      subtitle={t('automations.builder.cockpit_subtitle')}
+      description={t('automations.builder.cockpit_subtitle')}
       onClose={onClose}
+      headerAlign="start"
+      closeLabel={t('common.close')}
+      layerClassName="z-[200]"
+      className="max-w-4xl rounded-panel border-border/55 bg-card/95 shadow-modal-premium ring-1 ring-background/50 backdrop-blur-2xl dark:border-border/35"
+      headerClassName="border-b border-border/45 px-5 py-5 sm:px-8 sm:py-6"
+      contentClassName="max-h-sheet space-y-6 p-5 sm:p-8"
     >
       <AutomationBuilderIdentityField
         label={t('automations.builder.naming_label')}
@@ -198,7 +205,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         disabled={isSubmitDisabled}
         onClick={handleSubmit}
       />
-    </AutomationBuilderModalFrame>
+    </Modal>
   );
 };
 

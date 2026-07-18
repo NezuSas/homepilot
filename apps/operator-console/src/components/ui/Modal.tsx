@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { X, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { IconButton } from './IconButton';
@@ -11,7 +12,12 @@ export interface ModalProps {
   description?: string;
   children: React.ReactNode;
   variant?: 'default' | 'danger' | 'warning' | 'success';
+  layerClassName?: string;
   className?: string;
+  headerClassName?: string;
+  contentClassName?: string;
+  headerAlign?: 'center' | 'start';
+  closeLabel?: string;
   hideCloseButton?: boolean;
 }
 
@@ -29,9 +35,15 @@ export const Modal: React.FC<ModalProps> = ({
   description,
   children,
   variant = 'default',
+  layerClassName,
   className,
+  headerClassName,
+  contentClassName,
+  headerAlign = 'center',
+  closeLabel,
   hideCloseButton = false
 }) => {
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (isOpen) {
@@ -49,7 +61,7 @@ export const Modal: React.FC<ModalProps> = ({
   const Icon = variantConfig[variant].icon;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 py-4 sm:items-center sm:p-4 sm:py-6">
+    <div className={cn('fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 py-4 sm:items-center sm:p-4 sm:py-6', layerClassName)}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-base"
@@ -64,7 +76,11 @@ export const Modal: React.FC<ModalProps> = ({
         )}
       >
         <div className="min-h-0 w-full overflow-y-auto custom-scrollbar">
-            {(title || description || variant !== 'default') && <div className={cn("flex flex-col items-center p-5 pb-4 text-center sm:p-8 sm:pb-6")}>
+            {(title || description || variant !== 'default') && <div className={cn(
+              "flex flex-col p-5 pb-4 sm:p-8 sm:pb-6",
+              headerAlign === 'start' ? 'items-start pr-14 text-left sm:pr-16' : 'items-center text-center',
+              headerClassName,
+            )}>
                 {variant !== 'default' && (
                     <div className={cn("mb-4 rounded-2xl p-3 sm:mb-6 sm:p-4", variantConfig[variant].colorClass)}>
                         <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
@@ -76,7 +92,7 @@ export const Modal: React.FC<ModalProps> = ({
                 </p>}
             </div>}
 
-            <div className={cn("px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8")}>
+            <div className={cn("px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8", contentClassName)}>
                 {children}
             </div>
         </div>
@@ -84,7 +100,7 @@ export const Modal: React.FC<ModalProps> = ({
         {!hideCloseButton && onClose && (
           <IconButton
             icon={X}
-            label="Close modal"
+            label={closeLabel ?? t('common.close')}
             onClick={onClose}
             variant="ghost"
             className="absolute right-4 top-4 z-10 rounded-pill sm:right-6 sm:top-6"
