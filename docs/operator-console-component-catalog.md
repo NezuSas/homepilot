@@ -8,7 +8,8 @@ Este documento operacional complementa la spec `operator-console-modular-compone
 |---|---|---|
 | Acción textual o destructiva | `ui/Button` | Navegación de icono sin texto |
 | Acción compacta de icono | `ui/IconButton` | Acción principal sin etiqueta accesible |
-| Texto o valor editable | `ui/Input` | Selectores con opciones |
+| Texto o valor editable de una línea | `ui/Input` | Selectores con opciones o contenido multilínea |
+| Texto editable de varias líneas | `ui/Textarea` | Compositor conversacional con comportamiento operativo propio |
 | Selección de opciones | `ui/SearchableSelectField` | Selects nativos, menús ad hoc y selectores paralelos |
 | Búsqueda | `ui/SearchFilterBar` | Inputs locales duplicados |
 | Confirmación crítica | `ConfirmModal` | `window.confirm` |
@@ -23,7 +24,7 @@ Cada componente modular tiene una ficha de propósito, contrato, uso y criterios
 aceptación en `docs/components/`:
 
 `AlertBanner`, `AssistantCard`, `Button`, `Card`, `DeviceTileBase`,
-`DeviceTileShell`, `EmptyState`, `IconButton`, `Input`, `Modal`, `PageFrame`,
+`DeviceTileShell`, `EmptyState`, `IconButton`, `Input`, `Textarea`, `Modal`, `PageFrame`,
 `SearchFilterBar`, `SectionHeader`, `SegmentedControl`, `SearchableSelectField`,
 `SidebarItem`, `StatusPill`, `ConfirmModal`, `CoverPositionControl`,
 `AudioInputPicker` e `InlineTabCreator`.

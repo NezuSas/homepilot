@@ -45,7 +45,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 | Familia | Implementación principal | Responsabilidad | Estados mínimos |
 |---|---|---|---|
 | Acciones | `ui/Button.tsx`, `ui/IconButton.tsx` | Ejecutar una intención del usuario | normal, hover/focus, disabled, loading, destructive |
-| Campos | `ui/Input.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
+| Campos | `ui/Input.tsx`, `ui/Textarea.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
 | Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal abierto, error/empty slot |
 | Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |

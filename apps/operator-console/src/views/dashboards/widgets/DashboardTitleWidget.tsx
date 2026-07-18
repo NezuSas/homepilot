@@ -14,6 +14,7 @@ import {
 import { cn } from '../../../lib/utils';
 import { generateId } from '../../../utils/generateId';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
+import { Textarea } from '../../../components/ui/Textarea';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
 import { getWeatherCategory, WeatherScene } from './clock/designs/WeatherScene';
@@ -422,14 +423,12 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
             setIsEditorOpen(false);
           }}
         >
-          <label className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground" htmlFor="dashboard-title-markdown">
-            {t('dashboard.editor.sections.title_markdown')}
-          </label>
-          <textarea
+          <Textarea
             id="dashboard-title-markdown"
+            label={t('dashboard.editor.sections.title_markdown')}
             value={draftMarkdown}
             onChange={(event) => setDraftMarkdown(event.target.value)}
-            className="min-h-16 w-full resize-none rounded-field border border-border bg-background/85 px-3 py-2 text-body leading-snug text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="min-h-16 resize-none rounded-field bg-background/85 leading-snug text-foreground"
             aria-label={t('dashboard.editor.sections.title_markdown')}
           />
 

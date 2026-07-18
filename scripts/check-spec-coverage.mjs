@@ -6,7 +6,7 @@ const sourceRoots = ['apps/api', 'apps/operator-console/src', 'packages'];
 const sourceExtensions = new Set(['.ts', '.tsx']);
 const modularComponentDocs = [
   'AlertBanner', 'AssistantCard', 'Button', 'Card', 'DeviceTileBase', 'DeviceTileShell',
-  'EmptyState', 'IconButton', 'Input', 'Modal', 'PageFrame', 'SearchFilterBar',
+  'EmptyState', 'IconButton', 'Input', 'Textarea', 'Modal', 'PageFrame', 'SearchFilterBar',
   'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
   'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator',
 ];
