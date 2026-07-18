@@ -75,7 +75,7 @@ export function DashboardSelect({
       window.removeEventListener('resize', reposition);
       window.removeEventListener('scroll', reposition, true);
     };
-  }, [dropdownPos]);
+  }, [dropdownPos]); // eslint-disable-line react-hooks/exhaustive-deps -- Recompute from the active trigger while open.
 
   const dropdown = isOpen && typeof document !== 'undefined'
     ? createPortal(

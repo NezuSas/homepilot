@@ -25,7 +25,7 @@ interface AutomationRule {
     type: 'device_state_changed' | 'time';
     deviceId?: string;
     stateKey?: string;
-    expectedValue?: any;
+    expectedValue?: string;
     time?: string;
     timeLocal?: string;
     timezone?: string;
@@ -52,6 +52,9 @@ interface Scene {
   name: string;
   actions?: { deviceId: string; command: string }[];
 }
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
 
 const AutomationsView: React.FC = () => {
   const { t } = useTranslation();
@@ -107,14 +110,16 @@ const AutomationsView: React.FC = () => {
       if (Array.isArray(devicesData)) setDevices(devicesData);
       if (Array.isArray(scenesData)) setScenes(scenesData);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || t('common.errors.connection_error'));
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, t('common.errors.connection_error')));
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // Initial load only; interaction handlers update the local rule list afterwards.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void fetchData(); }, []);
 
   const toggleRule = async (id: string, currentlyEnabled: boolean) => {
     if (processingId) return;
@@ -123,8 +128,8 @@ const AutomationsView: React.FC = () => {
     try {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}/${action}`, { method: 'PATCH' });
       setRules(rules.map(r => r.id === id ? { ...r, enabled: !currentlyEnabled } : r));
-    } catch (err: any) {
-      setError(err.message || t('common.errors.operation_failed'));
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, t('common.errors.operation_failed')));
     } finally {
       setProcessingId(null);
     }
@@ -140,8 +145,8 @@ const AutomationsView: React.FC = () => {
       setFavoriteIds((current) => current.filter((favoriteId) => favoriteId !== id));
       setConfirmDeleteId(null);
       setNotification({ message: t('automations.notifications.deleted'), type: 'success' });
-    } catch (err: any) {
-      setError(err.message || t('common.errors.operation_failed'));
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, t('common.errors.operation_failed')));
     } finally {
       setIsDeleting(false);
       setDeletingId(null);

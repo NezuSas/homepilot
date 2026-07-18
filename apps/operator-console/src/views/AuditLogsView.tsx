@@ -47,7 +47,7 @@ export const AuditLogsView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchLogs();

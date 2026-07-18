@@ -241,9 +241,9 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                       src={avatarPreview.startsWith('/') ? `${API_BASE_URL}${avatarPreview}` : avatarPreview} 
                       alt="Avatar" 
                       className="w-full h-full object-cover" 
-                      onError={(e) => {
+                      onError={(event) => {
                          // If image fails to load, clear preview to show fallback
-                         (e.target as any).style.display = 'none';
+                         event.currentTarget.style.display = 'none';
                          setAvatarPreview(null);
                       }}
                     />

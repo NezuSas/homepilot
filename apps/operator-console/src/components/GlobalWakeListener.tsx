@@ -119,7 +119,9 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       clearWakeCycleTimeout();
       stopRecording();
     };
-  }, [enabled]);
+  // The wake-cycle functions intentionally read callback refs so an active microphone
+  // session is not restarted whenever parent callbacks change identity.
+  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clearRecordingTimeout = () => {
     if (recordingTimeoutRef.current !== null) {

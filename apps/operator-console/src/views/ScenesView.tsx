@@ -113,7 +113,7 @@ const ScenesView: React.FC<{
     };
 
     fetchData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Mutations refresh local scene state.
 
   const handleExecute = async (scene: Scene) => {
     setExecutingId(scene.id);

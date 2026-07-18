@@ -28,7 +28,7 @@ export const ExecutionLogsView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchRecords();

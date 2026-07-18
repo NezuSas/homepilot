@@ -2,9 +2,15 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Cpu, Lock, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import type { UserContext } from '../lib/useSession';
 
 interface LoginViewProps {
-  onLoginSuccess: (token: string, user: any) => void;
+  onLoginSuccess: (token: string, user: UserContext) => void;
+}
+
+interface LoginResponse {
+  token: string;
+  user: UserContext;
 }
 
 export function LoginView({ onLoginSuccess }: LoginViewProps) {
@@ -32,10 +38,10 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         throw new Error(t('login.error_credentials', { defaultValue: 'Invalid credentials' }));
       }
 
-      const data = await resp.json();
+      const data = await resp.json() as LoginResponse;
       onLoginSuccess(data.token, data.user);
-    } catch (e: any) {
-      setError(e.message || t('login.error_failed', { defaultValue: 'Login failed. Please verify your credentials.' }));
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : t('login.error_failed', { defaultValue: 'Login failed. Please verify your credentials.' }));
     } finally {
       setLoading(false);
     }

@@ -13,11 +13,13 @@ export interface RealtimeEventMessage {
 }
 
 function isAssistantSummary(value: unknown): value is AssistantSummary {
+  const candidate = value as Record<string, unknown>;
+
   return (
     typeof value === 'object' &&
     value !== null &&
     'totalOpen' in value &&
-    typeof (value as any).totalOpen === 'number'
+    typeof candidate.totalOpen === 'number'
   );
 }
 

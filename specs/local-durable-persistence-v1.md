@@ -48,6 +48,7 @@ HomePilot opera actualmente utilizando repositorios `In-Memory`. Si bien esto ha
 *   **NFR-02: Zero-Dependency**: No se requiere de un servidor de base de datos externo instalado en el SO (SQLite es embebido en el binario/proceso).
 *   **NFR-03: Performance Realista**: La latencia para operaciones de escritura atómicas debe ser inferior a **5ms (p95)** en hardware típico de miniPC local (ej. Raspberry Pi 4/5 o similar), asegurando que el sistema se sienta "instántaneo" para el usuario final.
 *   **NFR-04: Integridad Arquitectónica**: La persistencia debe implementarse como adaptadores (`SQLite...Repository`) de los puertos definidos en el dominio, sin contaminar las capas de aplicación o dominio.
+*   **NFR-05: Journal Configurable**: El modo de journal SQLite debe configurarse mediante `HOMEPILOT_SQLITE_JOURNAL_MODE`. El valor predeterminado es `WAL` para la miniPC Linux; `DELETE` debe estar disponible para bind mounts de Docker Desktop sobre Windows, sin cambiar el archivo de datos principal.
 
 ## 6. Modelo Conceptual de Datos
 
@@ -92,6 +93,7 @@ HomePilot contará con un sistema básico de migraciones:
 *   **AC2: Persistencia de Estado**: Dado un dispositivo con un estado específico, cuando el sistema se apaga y se enciende, el valor de `lastKnownState` debe ser recuperado íntegro de la DB local.
 *   **AC3: Auditoría Expandida Post-Reinicio**: El `ActivityLog` debe mostrar registros realizados antes del reinicio, incluyendo el campo `data` JSON con el payload original.
 *   **AC4: Robustez de Arranque**: El sistema debe ser capaz de crear su propia base de datos (.db) desde cero en un entorno de miniPC recién instalado.
+*   **AC5: Compatibilidad de Volumen**: Con `HOMEPILOT_SQLITE_JOURNAL_MODE=DELETE`, la API debe abrir la misma base SQLite desde un bind mount de Docker sin requerir archivos `-wal` o `-shm` compartidos.
 
 ## 11. Notas Técnicas y Arquitectura
 

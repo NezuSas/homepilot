@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentType } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import * as LucideIcons from 'lucide-react';
 import { CircleHelp } from 'lucide-react';
@@ -67,24 +67,6 @@ function isRenderableLucideExport(name: string, value: unknown) {
   return false;
 }
 
-/**
- * Converts an `@mdi/js` export name (e.g. `mdiCeilingLightMultiple`) into the
- * `mdi:kebab-case` icon key used throughout the dashboard (e.g.
- * `mdi:ceiling-light-multiple`).
- */
-function mdiExportNameToIconName(exportName: string): string | null {
-  if (!exportName.startsWith('mdi') || exportName.length <= 3) return null;
-  const rest = exportName.slice(3);
-  if (!/^[A-Z0-9]/.test(rest)) return null;
-
-  const kebab = rest
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
-    .toLowerCase();
-
-  return `mdi:${kebab}`;
-}
-
 const LUCIDE_ICONS: IconEntry[] = Object.entries(LucideIcons)
   .filter(([name, value]) => isRenderableLucideExport(name, value))
   .map(([name, component]) => ({
@@ -94,54 +76,56 @@ const LUCIDE_ICONS: IconEntry[] = Object.entries(LucideIcons)
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 
-// The full Home Assistant Material Design Icons set (~7000 entries) is loaded
-// lazily via a dynamic import instead of a static `import * as MdiIcons from
-// '@mdi/js'`. A static import would bundle the whole set into every route
-// that renders a dashboard card, inflating that chunk by ~800KB gzipped just
-// to resolve icon names. The dynamic import lets the bundler split it into
-// its own chunk, fetched once (cached) in parallel with the rest of the app
-// instead of blocking/bloating the main dashboard chunk.
+function mdiExportNameToIconName(exportName: string): string | null {
+  if (!exportName.startsWith('mdi') || exportName.length <= 3) return null;
+
+  const rest = exportName.slice(3);
+  if (!/^[A-Z0-9]/.test(rest)) return null;
+
+  return `mdi:${rest
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase()}`;
+}
+
 let mdiCatalog: IconEntry[] = [];
-let mdiCatalogLoaded = false;
 let mdiCatalogPromise: Promise<void> | null = null;
-const mdiCatalogListeners = new Set<() => void>();
 
 function loadMdiCatalog(): Promise<void> {
   if (mdiCatalogPromise) return mdiCatalogPromise;
 
-  mdiCatalogPromise = import('@mdi/js').then((mod) => {
-    mdiCatalog = Object.entries(mod)
+  mdiCatalogPromise = import('@mdi/js').then((module) => {
+    mdiCatalog = Object.entries(module)
       .map(([exportName, path]) => {
         const name = mdiExportNameToIconName(exportName);
         if (!name || typeof path !== 'string') return null;
+
         return { name, icon: createMdiIcon(path), normalized: normalizeIconName(name) };
       })
       .filter((entry): entry is IconEntry => entry !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
-    mdiCatalogLoaded = true;
-    mdiCatalogListeners.forEach((listener) => listener());
   });
 
   return mdiCatalogPromise;
 }
 
-// Kick off the lazy load as soon as any icon-consuming module runs. This is
-// still "immediate", but as a separate async chunk it doesn't block parsing
-// or first paint of the dashboard route the way the static import did.
-void loadMdiCatalog();
-
-function subscribeToMdiCatalog(listener: () => void): () => void {
-  mdiCatalogListeners.add(listener);
-  return () => mdiCatalogListeners.delete(listener);
-}
-
-function getMdiCatalogSnapshot(): boolean {
-  return mdiCatalogLoaded;
-}
-
-/** Forces a re-render once the lazily-loaded MDI catalog resolves. */
+/** Loads the complete Home Assistant-compatible MDI catalog once per session. */
 export function useMdiCatalogLoaded(): boolean {
-  return useSyncExternalStore(subscribeToMdiCatalog, getMdiCatalogSnapshot, () => false);
+  const [isLoaded, setIsLoaded] = useState(mdiCatalog.length > 0);
+
+  useEffect(() => {
+    let active = true;
+
+    void loadMdiCatalog().then(() => {
+      if (active) setIsLoaded(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return isLoaded;
 }
 
 function getIconCatalog(): IconEntry[] {
@@ -172,9 +156,7 @@ export function IconPicker({
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const [iconQuery, setIconQuery] = useState(value);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
-  // Re-renders once the lazily-loaded MDI catalog resolves, so the picker
-  // (opened during editing) picks up the full set instead of just Lucide.
-  const mdiLoaded = useMdiCatalogLoaded();
+  useMdiCatalogLoaded();
 
   useEffect(() => {
     setIconQuery(value);
@@ -184,8 +166,10 @@ export function IconPicker({
   const resolvedPlaceholder = placeholder ?? t('dashboard.editor.sections.icon_picker_placeholder');
   const resolvedLabel = label ?? t('dashboard.editor.sections.icon_picker_label');
 
+  const iconCatalog = getIconCatalog();
+
   const filteredIcons = useMemo(() => {
-    const icons = getIconCatalog();
+    const icons = iconCatalog;
     const q = normalizeIconName(iconQuery);
 
     if (!q) return icons.slice(0, 120);
@@ -194,8 +178,7 @@ export function IconPicker({
     const includes = icons.filter((item) => !item.normalized.startsWith(q) && item.normalized.includes(q));
 
     return [...startsWith, ...includes].slice(0, 120);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mdiLoaded triggers a recompute once the lazy catalog resolves
-  }, [iconQuery, mdiLoaded]);
+  }, [iconCatalog, iconQuery]);
 
   const computeDropdownPos = () => {
     const rect = iconInputRef.current?.getBoundingClientRect();

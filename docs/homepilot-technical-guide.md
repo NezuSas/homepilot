@@ -545,6 +545,7 @@ Detalle de uso:
 |---|---|---|
 | `HOMEPILOT_DEV_BOOTSTRAP` | `true` | Crea `admin/admin` si la DB esta vacia. Solo desarrollo local. |
 | `HOMEPILOT_DB_PATH` | `./data/homepilot.db` | Ruta SQLite cuando se corre fuera del contenedor o desde entorno WSL local. En contenedor normalmente se usa `/app/data/homepilot.db`. |
+| `HOMEPILOT_SQLITE_JOURNAL_MODE` | `WAL` | Modo de journal SQLite. Use `WAL` en la miniPC Linux; use `DELETE` solo si Docker monta `data/` desde el filesystem de Windows. |
 | `OLLAMA_ENABLED` | `true` | Activa llamadas del asistente a Ollama. |
 | `OLLAMA_BASE_URL` | `http://ollama:11434` | URL interna Docker para el servicio Ollama. |
 | `OLLAMA_MODEL` | `phi3` | Modelo principal del asistente. |

@@ -50,6 +50,23 @@ interface DiagnosticEvent {
   correlationId?: string;
 }
 
+interface DiagnosticScene {
+  id?: string;
+  actions?: { deviceId: string }[];
+}
+
+interface DiagnosticAutomation {
+  trigger?: {
+    type?: string;
+    deviceId?: string;
+  };
+  action?: {
+    type?: string;
+    targetDeviceId?: string;
+    sceneId?: string;
+  };
+}
+
 const TIMEZONE_VALUES = [
   'America/Guayaquil',
   'America/Bogota',
@@ -82,8 +99,8 @@ export function DiagnosticsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [scenes, setScenes] = useState<any[]>([]);
-  const [automations, setAutomations] = useState<any[]>([]);
+  const [scenes, setScenes] = useState<DiagnosticScene[]>([]);
+  const [automations, setAutomations] = useState<DiagnosticAutomation[]>([]);
   const [updatingTz, setUpdatingTz] = useState(false);
   
   const devices = useDeviceSnapshotStore(state => state.devices);
@@ -148,7 +165,7 @@ export function DiagnosticsView() {
     fetchDiagnostics();
     const interval = setInterval(fetchDiagnostics, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Keep one polling subscription for this screen lifecycle.
 
   if (loading && !snapshot) {
     return <DiagnosticsLoadingState label={t('diagnostics.loading')} />;

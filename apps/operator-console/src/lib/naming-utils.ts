@@ -23,7 +23,7 @@ export const humanize = (id: string, name?: string): string => {
   // 3. Convert snake_case or-kebab-case to Title Case
   // e.g. master_bedroom_light -> Master Bedroom Light
   let humanized = base
-    .split(/[_\-\.]/)
+    .split(/[_.-]/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
     .trim();

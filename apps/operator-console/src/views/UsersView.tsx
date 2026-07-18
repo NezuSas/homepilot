@@ -49,7 +49,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Users are loaded once when this screen opens.
 
   const resetCreateForm = () => {
     setShowCreate(false);

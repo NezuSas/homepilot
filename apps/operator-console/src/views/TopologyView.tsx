@@ -106,7 +106,7 @@ export const TopologyView: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Home selection controls later room refreshes.
 
   const handleSelectHome = async (home: Home) => {
     setSelectedHome(home);

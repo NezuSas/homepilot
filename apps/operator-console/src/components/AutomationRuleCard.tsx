@@ -10,7 +10,7 @@ interface AutomationRule {
   trigger: {
     type: 'device_state_changed' | 'time';
     deviceId?: string;
-    expectedValue?: unknown;
+    expectedValue?: string;
     time?: string;
     timeLocal?: string;
   };

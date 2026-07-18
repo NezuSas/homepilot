@@ -36,15 +36,15 @@ export const HomeAssistantSettingsView: React.FC = () => {
       const data = await response.json();
       setStatus(data);
       setBaseUrl(data.baseUrl || '');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching HA status:', error);
-      setError(error.message || t('common.errors.connection_error'));
+      setError(error instanceof Error ? error.message : t('common.errors.connection_error'));
     }
   };
 
   useEffect(() => {
     fetchStatus();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Saves refresh the status explicitly.
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +65,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
         const msg = err.error?.message || (typeof err.error === 'string' ? err.error : t('ha_settings.messages.save_error'));
         setMessage({ type: 'error', text: msg });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: t('ha_settings.messages.network_error') });
     } finally {
       setLoading(false);
@@ -86,7 +86,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
       if (data.success) {
         fetchStatus();
       }
-    } catch (error) {
+    } catch {
       setTestResult({ success: false, message: t('ha_settings.messages.network_error') });
     } finally {
       setTesting(false);

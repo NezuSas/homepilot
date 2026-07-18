@@ -140,7 +140,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
             void tryPlay();
           });
           
-          let watchdog = setTimeout(() => {
+          const watchdog = setTimeout(() => {
             if (cancelled || hasReadyFrameRef.current) return;
             console.warn('[CameraMediaFrame] HLS watchdog timeout, retrying...');
             clearTimeout(watchdog);

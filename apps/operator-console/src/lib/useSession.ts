@@ -15,7 +15,7 @@ import { useAppShellStore } from '../stores/useAppShellStore';
 
 export type SessionStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
-interface UserContext {
+export interface UserContext {
   id: string;
   username: string;
   role: string;

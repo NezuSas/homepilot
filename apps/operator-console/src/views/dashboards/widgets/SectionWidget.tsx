@@ -806,14 +806,14 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     };
   }, [cardDraft.kind, isCatalogOpen]);
 
-  const catalogItems = useMemo(() => cardKinds.map((kind) => ({
+  const catalogItems = cardKinds.map((kind) => ({
     kind,
     title: catalogLabel(kind),
     description: catalogDescription(kind),
     widgetType: getWidgetType(kind),
     span: getDefaultSpan(kind),
     icon: getDefaultIcon(kind),
-  })), [t]);
+  }));
 
   const filteredCatalog = catalogItems.filter((item) => {
     const normalizedQuery = query.trim().toLowerCase();

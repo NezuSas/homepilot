@@ -131,7 +131,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
   useEffect(() => { 
     fetchDashboards(true);
-  }, []); // Run ONLY once on mount.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Run only once on mount.
 
   useEffect(() => {
     if (!initialDashboardId || active?.id === initialDashboardId) return;

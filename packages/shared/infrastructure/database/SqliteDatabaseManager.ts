@@ -10,6 +10,18 @@ import Database, { Database as SqliteDatabase } from 'better-sqlite3';
 export class SqliteDatabaseManager {
   private static readonly instances = new Map<string, SqliteDatabase>();
 
+  private static resolveJournalMode(): 'WAL' | 'DELETE' {
+    const configuredMode = process.env.HOMEPILOT_SQLITE_JOURNAL_MODE?.trim().toUpperCase();
+
+    if (!configuredMode || configuredMode === 'WAL') return 'WAL';
+    if (configuredMode === 'DELETE') return 'DELETE';
+
+    console.warn(
+      `[SQLite] HOMEPILOT_SQLITE_JOURNAL_MODE=${configuredMode} is not supported. Falling back to WAL.`
+    );
+    return 'WAL';
+  }
+
   /**
    * Obtiene la conexión a la base de datos para una ruta específica.
    * 
@@ -26,8 +38,9 @@ export class SqliteDatabaseManager {
         verbose: verbose ? console.log : undefined,
       });
       
-      // Optimizaciones recomendadas para SQLite en Edge (miniPC)
-      db.pragma('journal_mode = WAL'); 
+      // WAL is ideal for the Linux miniPC. DELETE avoids shared-memory journal
+      // files on Docker Desktop bind mounts backed by Windows file systems.
+      db.pragma(`journal_mode = ${this.resolveJournalMode()}`);
       db.pragma('foreign_keys = ON'); 
       
       this.instances.set(fullPath, db);

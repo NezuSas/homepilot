@@ -5,13 +5,30 @@ import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 
+interface ShowcaseScene {
+  id?: string;
+  actions?: { deviceId: string }[];
+}
+
+interface ShowcaseAutomation {
+  trigger?: {
+    type?: string;
+    deviceId?: string;
+  };
+  action?: {
+    type?: string;
+    targetDeviceId?: string;
+    sceneId?: string;
+  };
+}
+
 const ResilienceShowcaseView: React.FC = () => {
   const { t } = useTranslation();
   const devices = useDeviceSnapshotStore(state => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
   
-  const [scenes, setScenes] = useState<any[]>([]);
-  const [automations, setAutomations] = useState<any[]>([]);
+  const [scenes, setScenes] = useState<ShowcaseScene[]>([]);
+  const [automations, setAutomations] = useState<ShowcaseAutomation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,8 +56,8 @@ const ResilienceShowcaseView: React.FC = () => {
     
     const autonomousScenes = scenes.filter(s => {
       const actions = s.actions || [];
-      return actions.length > 0 && actions.every((a: any) => 
-        devices.find(d => d.id === a.deviceId)?.integrationSource === 'sonoff'
+      return actions.length > 0 && actions.every((action) =>
+        devices.find(device => device.id === action.deviceId)?.integrationSource === 'sonoff'
       );
     });
 
@@ -53,7 +70,7 @@ const ResilienceShowcaseView: React.FC = () => {
         actionIsLocal = isLocal(rule.action?.targetDeviceId);
       } else if (rule.action?.type === 'execute_scene') {
         const targetScene = scenes.find(s => s.id === rule.action?.sceneId);
-        actionIsLocal = targetScene?.actions?.every((a: any) => isLocal(a.deviceId)) ?? false;
+        actionIsLocal = targetScene?.actions?.every((action) => isLocal(action.deviceId)) ?? false;
       }
       return triggerIsLocal && actionIsLocal;
     });

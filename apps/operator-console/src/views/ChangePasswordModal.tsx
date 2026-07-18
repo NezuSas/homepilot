@@ -61,8 +61,8 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
         onSuccess();
       }, 1500);
 
-    } catch (e: any) {
-      setError(e.message || t('change_password.error_generic'));
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : t('change_password.error_generic'));
     } finally {
       setLoading(false);
     }

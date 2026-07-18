@@ -136,7 +136,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     conversationAbortRef.current?.abort();
     conversationAbortRef.current = null;
     stopProfessionalSpeech();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Cleanup uses the current audio refs on unmount.
 
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
@@ -182,7 +182,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     return () => {
       window.removeEventListener(HOME_CONVERSATION_STOP_SPEECH_EVENT, handleStopSpeech);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- The global stop event binds once for this conversation.
 
   const speakAssistantResponse = async (text: string) => {
     if (!speechEnabledRef.current || !text.trim()) return;
@@ -282,7 +282,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     void handleSend(pendingPrompt.text, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, true, pendingPrompt.interactionMode).then(() => {
       onPendingPromptConsumed?.(pendingPrompt.id);
     });
-  }, [pendingPrompt, onPendingPromptConsumed]);
+  }, [pendingPrompt, onPendingPromptConsumed]); // eslint-disable-line react-hooks/exhaustive-deps -- Consume each routed prompt exactly once.
 
   const stopSilenceDetection = () => {
     if (silenceAnimationFrameRef.current !== null) {

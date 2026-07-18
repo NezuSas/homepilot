@@ -169,8 +169,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     if (hour < 19) return 'afternoon';
     return 'evening';
   }, []);
-  const favoriteSceneIds = useMemo(() => readFavoriteIds(SCENE_FAVORITES_STORAGE_KEY), [scenes]);
-  const favoriteAutomationIds = useMemo(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY), [automations]);
+  const favoriteSceneIds = useMemo(() => readFavoriteIds(SCENE_FAVORITES_STORAGE_KEY), []);
+  const favoriteAutomationIds = useMemo(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY), []);
 
   if (snapshotLoading && allDevices.length === 0) return <DashboardLoadingState />;
 

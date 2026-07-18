@@ -126,7 +126,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch devices for form', err);
     }
-  }, []);
+  }, [API_URL]);
 
   useEffect(() => {
     fetchRules();
