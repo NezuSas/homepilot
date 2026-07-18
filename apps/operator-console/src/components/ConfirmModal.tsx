@@ -2,6 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -64,31 +66,30 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 gap-3 p-5 pt-0 min-[380px]:grid-cols-2 sm:p-8 sm:pt-0">
-          <button
+          <Button
             disabled={isSubmitting}
             onClick={onClose}
-            className="rounded-xl border border-foreground/10 px-5 py-3 text-body font-bold text-foreground/60 transition-all hover:bg-foreground/5 disabled:opacity-50"
+            variant="outline"
+            className="w-full rounded-xl px-5 py-3 text-body font-bold text-foreground/60"
           >
             {displayCancel}
-          </button>
-          <button
-            disabled={isSubmitting}
+          </Button>
+          <Button
             onClick={onConfirm}
-            className={`flex items-center justify-center rounded-xl px-5 py-3 text-body font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 ${variantColors[variant]}`}
-          >
-            {isSubmitting ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : displayConfirm}
-          </button>
+            isLoading={isSubmitting}
+            className={`w-full rounded-xl px-5 py-3 text-body font-bold shadow-lg ${variantColors[variant]}`}
+          >{displayConfirm}</Button>
         </div>
 
-        <button
+        <IconButton
+          icon={X}
+          label={t('common.close')}
+          variant="ghost"
+          size="md"
           disabled={isSubmitting}
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 transition-colors hover:bg-foreground/5 group sm:right-6 sm:top-6"
-        >
-          <X className="w-5 h-5 text-foreground/20 group-hover:text-foreground/40" />
-        </button>
+          className="absolute right-4 top-4 rounded-full text-foreground/30 sm:right-6 sm:top-6"
+        />
       </div>
     </div>,
     document.body

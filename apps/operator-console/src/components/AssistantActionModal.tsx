@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { X, Check, Loader2, ChevronRight } from 'lucide-react';
+import { X, Check, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import type { AssistantFindingAction } from '../stores/useAssistantStore';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 
 interface AssistantActionModalProps {
   findingId: string;
@@ -77,9 +79,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
         <header className="p-6 border-b border-muted">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-panel-title font-black tracking-tight">{t(action.label)}</h2>
-            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <IconButton icon={X} label={t('common.close')} onClick={onClose} variant="ghost" size="md" className="rounded-full" />
           </div>
           {deviceName && (
             <p className="text-micro font-bold text-muted-foreground uppercase tracking-label px-1">
@@ -153,20 +153,22 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
           )}
 
           <div className="flex gap-3 pt-4">
-            <button 
+            <Button
               onClick={onClose}
-              className="flex-1 py-4 rounded-2xl font-black uppercase tracking-wider text-caption hover:bg-muted transition-colors"
+              variant="ghost"
+              className="flex-1 rounded-2xl py-4 font-black uppercase tracking-wider text-caption"
             >
               {t('common.cancel')}
-            </button>
-            <button 
-              disabled={loading || (action.type === 'assign_room' && !selectedRoomId) || (action.type === 'rename_device' && !newName)}
+            </Button>
+            <Button
+              disabled={(action.type === 'assign_room' && !selectedRoomId) || (action.type === 'rename_device' && !newName)}
               onClick={handleSubmit}
-              className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-wider text-caption hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
+              isLoading={loading}
+              className="flex-1 rounded-2xl py-4 font-black uppercase tracking-wider text-caption shadow-xl shadow-primary/20"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+              {!loading && <ChevronRight className="w-4 h-4" />}
               {t('common.confirm')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

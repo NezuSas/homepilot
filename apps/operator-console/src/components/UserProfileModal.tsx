@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Camera, X, Check, Loader2, UserCircle2, ZoomIn, Move } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 
 interface UserProfile {
   id: string;
@@ -193,7 +195,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
             <h3 className="font-black tracking-tight">{t('users.profile.title', 'Mi Perfil')}</h3>
             <p className="text-micro uppercase font-black tracking-widest text-muted-foreground mt-0.5">{roleLabel}</p>
           </div>
-          <button onClick={onClose} className="p-2 bg-muted/60 rounded-xl hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
+          <IconButton icon={X} label={t('common.close')} onClick={onClose} variant="default" size="sm" />
         </div>
         {loading ? (
           <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
@@ -298,14 +300,14 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
         )}
 
         <div className="px-6 py-5 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 text-body font-black uppercase tracking-widest bg-muted text-muted-foreground hover:bg-muted/80 rounded-2xl border border-border transition-all">{t('common.cancel', 'Cancelar')}</button>
-          <button
-            onClick={handleSave} disabled={saving || loading}
-            className="flex items-center gap-2 px-6 py-2.5 text-body font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-lg shadow-primary/20 transition-all disabled:opacity-60"
+          <Button onClick={onClose} variant="secondary" className="rounded-2xl px-5 py-2.5 text-body font-black uppercase tracking-widest">{t('common.cancel', 'Cancelar')}</Button>
+          <Button
+            onClick={handleSave} disabled={loading} isLoading={saving}
+            className="rounded-2xl px-6 py-2.5 text-body font-black uppercase tracking-widest shadow-lg shadow-primary/20"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            {!saving && <Check className="w-4 h-4" />}
             {t('common.save', 'Guardar')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

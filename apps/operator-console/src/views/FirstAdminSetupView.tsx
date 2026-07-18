@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { CheckCircle2, Cpu, KeyRound, Loader2, ShieldCheck, UserRound } from 'lucide-react';
+import { CheckCircle2, Cpu, KeyRound, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
+import { Button } from '../components/ui/Button';
 
 interface FirstAdminUser {
   id: string;
@@ -174,14 +175,15 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               <p className="text-body font-bold text-warning">{passwordError}</p>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={!canSubmit}
-              className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-caption font-black uppercase tracking-widest text-primary-foreground shadow-lg transition hover:bg-primary/90 disabled:opacity-50"
+              isLoading={loading}
+              className="mt-2 h-12 rounded-xl px-6 text-caption font-black uppercase tracking-widest shadow-lg"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {!loading && <ShieldCheck className="h-4 w-4" />}
               {t('first_admin_setup.submit')}
-            </button>
+            </Button>
           </form>
         </section>
 

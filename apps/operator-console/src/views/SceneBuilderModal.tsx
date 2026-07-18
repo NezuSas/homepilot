@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { X, Save, PlayCircle, Loader2, List, Settings, Search } from 'lucide-react';
+import { X, Save, PlayCircle, List, Settings, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 
@@ -138,9 +140,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
               {t('scenes.builder.subtitle')}
             </p>
           </div>
-          <button onClick={onClose} className="shrink-0 rounded-xl bg-muted/40 p-3 transition-all hover:bg-muted">
-            <X className="w-5 h-5 text-muted-foreground" />
-          </button>
+          <IconButton icon={X} label={t('common.close')} onClick={onClose} variant="default" size="md" className="shrink-0" />
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-5 pt-2 custom-scrollbar sm:space-y-6 sm:p-8 sm:pt-2">
@@ -289,14 +289,15 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
 
           {/* Footer - Integrated Action Button */}
           <div className="pt-2 pb-4">
-            <button 
-              disabled={saving || !name || actions.length === 0}
+            <Button
+              disabled={!name || actions.length === 0}
               onClick={handleSave}
-              className="w-full bg-primary text-primary-foreground py-5 rounded-panel font-black text-caption uppercase tracking-label-wider transition-all hover:scale-[1.02] active:scale-95 premium-glow shadow-primary/20 flex items-center justify-center gap-4 disabled:opacity-30 disabled:hover:scale-100"
+              isLoading={saving}
+              className="w-full py-5 rounded-panel font-black text-caption uppercase tracking-label-wider premium-glow shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
             >
-              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              {!saving && <Save className="w-5 h-5" />}
               {t('scenes.builder.commit')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

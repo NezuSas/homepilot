@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cpu, Lock, Loader2 } from 'lucide-react';
+import { Cpu, Lock } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import type { UserContext } from '../lib/useSession';
+import { Button } from '../components/ui/Button';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: UserContext) => void;
@@ -98,13 +99,13 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
             />
           </div>
 
-          <button 
+          <Button
             type="submit" 
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-md text-body font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-4"
+            isLoading={loading}
+            className="mt-4 w-full rounded-md text-body font-medium"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('login.button')}
-          </button>
+            {t('login.button')}
+          </Button>
         </form>
       </div>
     </div>

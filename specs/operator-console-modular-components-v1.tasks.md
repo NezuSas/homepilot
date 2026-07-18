@@ -6,6 +6,7 @@
 - [x] Contratos de responsive, accesibilidad, i18n, loading y tokens.
 - [x] Mapeo de cobertura de los componentes compartidos.
 - [x] Consolidación de todos los selectores generales de Escenas, Automatizaciones, editor de tableros, usuarios, cámaras e inspección en `SearchableSelectField`.
+- [x] Consolidación de acciones textuales generales de autenticación, confirmación, perfil, escenas y automatizaciones en `Button`; las acciones exclusivamente icónicas usan `IconButton`.
 
 ## Verificación obligatoria ante cambios
 

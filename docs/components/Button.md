@@ -13,9 +13,8 @@ Acción textual principal, secundaria, neutra o destructiva. Se usa para confirm
 
 ## Uso
 
-Usar `primary` para la acción principal, `danger` solo para operación destructiva y `IconButton` cuando no haya texto visible. El texto proviene de i18n del consumidor.
+Usar `primary` para la acción principal, `danger` solo para operación destructiva y `IconButton` cuando no haya texto visible. Los selectores, tabs, tarjetas interactivas y controles de arrastre conservan sus componentes semánticos especializados. El texto proviene de i18n del consumidor.
 
 ## Estados y aceptación
 
 Soporta normal, hover/focus, disabled y loading; mantiene foco visible y área táctil definida por tokens.
-

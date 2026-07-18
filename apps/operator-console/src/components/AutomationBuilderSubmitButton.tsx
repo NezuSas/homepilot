@@ -1,5 +1,6 @@
 import React from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import { Button } from './ui/Button';
 
 interface AutomationBuilderSubmitButtonProps {
   label: string;
@@ -15,13 +16,14 @@ export const AutomationBuilderSubmitButton: React.FC<AutomationBuilderSubmitButt
   onClick
 }) => (
   <div className="pb-4 pt-2">
-    <button
+    <Button
       disabled={disabled}
       onClick={onClick}
-      className="hp-type-control flex w-full items-center justify-center gap-4 rounded-panel bg-primary py-5 text-primary-foreground shadow-primary-button transition-all hover:translate-y-[-1px] hover:shadow-primary-button-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+      isLoading={isSubmitting}
+      className="hp-type-control w-full gap-4 rounded-panel py-5 shadow-primary-button hover:translate-y-[-1px] hover:shadow-primary-button-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-none"
     >
-      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+      {!isSubmitting && <Save className="w-5 h-5" />}
       {label}
-    </button>
+    </Button>
   </div>
 );
