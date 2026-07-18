@@ -175,7 +175,6 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                 <div className="space-y-2">
                   <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
                   <SearchableSelectField
-                    searchable
                     value={roomId || ''} 
                     onChange={(val) => {
                       setRoomId(val || null);

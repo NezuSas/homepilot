@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { generateId } from '../../../utils/generateId';
-import { SelectField } from '../../../components/ui/SelectField';
+import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
 import { getWeatherCategory, WeatherScene } from './clock/designs/WeatherScene';
@@ -512,12 +512,12 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
               })}
 
               {availableTabsForBadge.length > 0 && (
-                <SelectField
+                <SearchableSelectField
                   value=""
                   onChange={(value) => { if (value) addTabBadge(value); }}
                   options={availableTabsForBadge.map((candidate) => ({ value: candidate.id, label: candidate.title }))}
                   placeholder={t('dashboard.editor.sections.badge_add_tab')}
-                  variant="small"
+                  size="small"
                   fullWidth={false}
                   className="w-auto"
                 />

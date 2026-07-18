@@ -9,8 +9,7 @@ Este documento operacional complementa la spec `operator-console-modular-compone
 | Acción textual o destructiva | `ui/Button` | Navegación de icono sin texto |
 | Acción compacta de icono | `ui/IconButton` | Acción principal sin etiqueta accesible |
 | Texto o valor editable | `ui/Input` | Selectores con opciones |
-| Selección corta | `ui/Select` / `ui/SelectField` | Menús ad hoc sin teclado |
-| Selección buscable o descriptiva | `ui/SearchableSelectField` | Portales de selección implementados dentro de una vista |
+| Selección de opciones | `ui/SearchableSelectField` | Selects nativos, menús ad hoc y selectores paralelos |
 | Búsqueda | `ui/SearchFilterBar` | Inputs locales duplicados |
 | Confirmación crítica | `ConfirmModal` | `window.confirm` |
 | Modal dentro de la app | `ui/Modal` | Overlay global fuera del shell |
@@ -25,8 +24,7 @@ aceptación en `docs/components/`:
 
 `AlertBanner`, `AssistantCard`, `Button`, `Card`, `DeviceTileBase`,
 `DeviceTileShell`, `EmptyState`, `IconButton`, `Input`, `Modal`, `PageFrame`,
-`SearchFilterBar`, `SectionHeader`, `SegmentedControl`, `Select`, `SelectField`,
-`SearchableSelectField`,
+`SearchFilterBar`, `SectionHeader`, `SegmentedControl`, `SearchableSelectField`,
 `SidebarItem`, `StatusPill`, `ConfirmModal`, `CoverPositionControl`,
 `AudioInputPicker` e `InlineTabCreator`.
 

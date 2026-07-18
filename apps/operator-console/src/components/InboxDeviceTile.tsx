@@ -15,7 +15,7 @@ import { cn } from '../lib/utils';
 import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
-import { SelectField } from './ui/SelectField';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 
 interface DeviceState {
   on?: boolean;
@@ -200,8 +200,8 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <SelectField
-              variant="small"
+            <SearchableSelectField
+              size="small"
               fullWidth
               disabled={isProcessing}
               value={selectedRoomId}

@@ -24,7 +24,7 @@ import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from './ConfirmModal';
 import { Button } from './ui/Button';
-import { SelectField } from './ui/SelectField';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
 
 type InspectableDevice = Device & {
@@ -394,7 +394,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   <span className="text-micro font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
                     <Zap className="w-3 h-3" /> {t('inbox.device_inspector.device_function')}
                   </span>
-                  <SelectField
+                  <SearchableSelectField
                     disabled={isActionLoading}
                     loading={isActionLoading}
                     value={device.semanticType || 'automatic'}
@@ -543,8 +543,8 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
                   <div className="pt-4 border-t border-border/10 flex flex-col gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <SelectField
-                        variant="small"
+                      <SearchableSelectField
+                        size="small"
                         fullWidth
                         value={device.roomId || ''}
                         onChange={handleMove}

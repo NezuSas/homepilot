@@ -18,7 +18,12 @@ export interface SearchableSelectFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  searchable?: boolean;
+  required?: boolean;
+  helperText?: string;
+  loading?: boolean;
+  size?: 'default' | 'small';
+  fullWidth?: boolean;
+  title?: string;
   placement?: 'auto' | 'down';
   className?: string;
 }
@@ -33,8 +38,8 @@ interface DropdownPosition {
 /**
  * SearchableSelectField
  *
- * Shared portal-based selector for long or descriptive option lists. Feature
- * views must use this component instead of implementing custom select menus.
+ * Canonical portal-based selector for every general option list. It always
+ * exposes search so feature views never need a separate select implementation.
  */
 export function SearchableSelectField({
   id,
@@ -44,7 +49,12 @@ export function SearchableSelectField({
   onChange,
   placeholder,
   disabled = false,
-  searchable = false,
+  required = false,
+  helperText,
+  loading = false,
+  size = 'default',
+  fullWidth = true,
+  title,
   placement = 'auto',
   className,
 }: SearchableSelectFieldProps) {
@@ -113,13 +123,13 @@ export function SearchableSelectField({
 
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    if (!searchable || !normalizedQuery) return options;
+    if (!normalizedQuery) return options;
 
     return options.filter((option) => (
       option.label.toLocaleLowerCase().includes(normalizedQuery)
       || option.description?.toLocaleLowerCase().includes(normalizedQuery)
     ));
-  }, [options, query, searchable]);
+  }, [options, query]);
 
   const closeDropdown = () => {
     setDropdownPosition(null);
@@ -127,7 +137,7 @@ export function SearchableSelectField({
   };
 
   const handleToggle = () => {
-    if (disabled) return;
+    if (disabled || loading) return;
     if (isOpen) {
       closeDropdown();
       return;
@@ -147,19 +157,17 @@ export function SearchableSelectField({
             maxHeight: dropdownPosition.maxHeight,
           }}
         >
-          {searchable ? (
-            <div className="relative border-b border-border/50 p-1.5">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                autoFocus
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('common.search')}
-                className="h-9 w-full rounded-control bg-muted/50 py-2 pl-8 pr-3 text-caption font-medium text-foreground outline-none transition focus:ring-2 focus:ring-primary/35"
-              />
-            </div>
-          ) : null}
+          <div className="relative border-b border-border/50 p-1.5">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              autoFocus
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t('common.search')}
+              className="h-9 w-full rounded-control bg-muted/50 py-2 pl-8 pr-3 text-caption font-medium text-foreground outline-none transition focus:ring-2 focus:ring-primary/35"
+            />
+          </div>
 
           <div id={listboxId} role="listbox" aria-label={label ?? resolvedPlaceholder} className="max-h-[inherit] overflow-y-auto p-1">
             {filteredOptions.length > 0 ? filteredOptions.map((option) => {
@@ -201,10 +209,10 @@ export function SearchableSelectField({
     : null;
 
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('space-y-2', !fullWidth && 'w-auto', className)}>
       {label ? (
         <label htmlFor={id} className="block text-caption font-black uppercase tracking-label text-muted-foreground">
-          {label}
+          {label}{required ? <span aria-hidden="true"> *</span> : null}
         </label>
       ) : null}
 
@@ -212,20 +220,24 @@ export function SearchableSelectField({
         ref={triggerRef}
         id={id}
         type="button"
-        disabled={disabled}
+        disabled={disabled || loading}
+        title={title}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={isOpen ? listboxId : undefined}
         onClick={handleToggle}
         className={cn(
-          'flex h-11 w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-4 text-left text-body font-semibold text-foreground outline-none transition',
+          'flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-4 text-left text-body font-semibold text-foreground outline-none transition',
+          size === 'small' ? 'h-9 text-caption' : 'h-11',
           'hover:border-primary/45 focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/30',
-          disabled && 'cursor-not-allowed opacity-50',
+          (disabled || loading) && 'cursor-not-allowed opacity-50',
         )}
       >
         <span className={cn('min-w-0 truncate', !selected && 'text-muted-foreground')}>{selected?.label ?? resolvedPlaceholder}</span>
-        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180', loading && 'animate-pulse')} />
       </button>
+
+      {helperText ? <p className="text-label text-muted-foreground">{helperText}</p> : null}
 
       {dropdown}
     </div>

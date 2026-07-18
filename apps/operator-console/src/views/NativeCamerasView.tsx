@@ -7,7 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
-import { SelectField } from '../components/ui/SelectField';
+import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { StatusPill } from '../components/ui/StatusPill';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { API_BASE_URL } from '../config';
@@ -564,7 +564,7 @@ export const NativeCamerasView: React.FC = () => {
           )}
 
           {!editingDevice && (
-            <SelectField
+            <SearchableSelectField
               label={t('native_cameras.form.field_home')}
               value={formData.homeId}
               onChange={(value) => setFormData({...formData, homeId: value})}
@@ -572,7 +572,7 @@ export const NativeCamerasView: React.FC = () => {
             />
           )}
 
-          <SelectField
+          <SearchableSelectField
             label={t('native_cameras.form.field_source_type')}
             value={formData.sourceType}
             onChange={handleSourceTypeChange}

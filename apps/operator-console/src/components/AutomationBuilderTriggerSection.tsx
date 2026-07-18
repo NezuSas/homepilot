@@ -69,7 +69,6 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
           <div className="space-y-2">
             <label className="hp-type-label ml-1">{t('automations.form.source_device')}</label>
             <SearchableSelectField
-              searchable
               value={triggerConfig.deviceId || ''}
               onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, deviceId: value })}
               options={devices.map(device => ({ value: device.id, label: humanize(device.id, device.name) }))}

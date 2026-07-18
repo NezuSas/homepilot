@@ -45,7 +45,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 | Familia | Implementación principal | Responsabilidad | Estados mínimos |
 |---|---|---|---|
 | Acciones | `ui/Button.tsx`, `ui/IconButton.tsx` | Ejecutar una intención del usuario | normal, hover/focus, disabled, loading, destructive |
-| Campos | `ui/Input.tsx`, `ui/Select.tsx`, `ui/SelectField.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
+| Campos | `ui/Input.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
 | Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal abierto, error/empty slot |
 | Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |
@@ -59,7 +59,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC3: Los componentes de entrada y navegación no recortan texto crítico en los breakpoints soportados.
 - [x] AC4: Los modales tienen contenido desplazable y acciones visibles dentro del viewport de la aplicación.
 - [x] AC5: Cada estado de error, vacío o carga conserva accesibilidad y traducción ES/EN.
-- [x] AC6: Las vistas usan selectores modulares; los selectores buscables o descriptivos usan `SearchableSelectField`.
+- [x] AC6: Las vistas usan el selector modular único `SearchableSelectField` para toda opción de negocio; el buscador está siempre disponible.
 
 ## 8. Notas Técnicas y Arquitectura
 

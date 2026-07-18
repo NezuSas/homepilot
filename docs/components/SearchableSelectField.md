@@ -5,7 +5,7 @@
 
 ## Propósito
 
-Selector modular para listas extensas, opciones con descripción o contextos que requieren búsqueda. Sustituye menús de selección implementados dentro de vistas y widgets.
+Selector modular canónico para toda selección general de opciones. El buscador se presenta siempre, por lo que sustituye tanto los menús cortos como los selectores implementados dentro de vistas y widgets.
 
 ## Contrato
 
@@ -13,7 +13,7 @@ Recibe `value`, opciones tipadas, callback, placeholder traducido y configuraci�
 
 ## Uso
 
-Usar para listas largas de dispositivos, escenas, habitaciones, tipos o tamaños de tarjeta. Usar `SelectField` para listas nativas cortas sin búsqueda. No crear selectores portal ad hoc en una vista.
+Usar para dispositivos, escenas, habitaciones, tipos, zonas horarias y tamaños de tarjeta. No crear selectores portal ad hoc ni usar selects nativos para opciones de negocio. Los pickers especializados de iconos y audio permanecen separados porque resuelven catálogos y previsualizaciones propios.
 
 ## Estados y aceptación
 

@@ -5,7 +5,7 @@
 - [x] Catálogo de primitivos, navegación, feedback, contenedores y dispositivos comunes.
 - [x] Contratos de responsive, accesibilidad, i18n, loading y tokens.
 - [x] Mapeo de cobertura de los componentes compartidos.
-- [x] Consolidación de los selectores buscables de Escenas, Automatizaciones y editor de tableros en `SearchableSelectField`.
+- [x] Consolidación de todos los selectores generales de Escenas, Automatizaciones, editor de tableros, usuarios, cámaras e inspección en `SearchableSelectField`.
 
 ## Verificación obligatoria ante cambios
 

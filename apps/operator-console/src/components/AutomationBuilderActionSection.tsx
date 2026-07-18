@@ -49,7 +49,6 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
           <div className="space-y-2">
             <label className="hp-type-label-accent ml-1">{t('automations.form.target_device')}</label>
             <SearchableSelectField
-              searchable
               value={actionConfig.targetDeviceId || ''}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, targetDeviceId: value })}
               options={devices.map(device => ({ value: device.id, label: humanize(device.id, device.name) }))}
@@ -74,7 +73,6 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
           <div className="space-y-2">
             <label className="hp-type-label-accent ml-1">{t('automations.form.select_scene')}</label>
             <SearchableSelectField
-              searchable
               value={actionConfig.sceneId || ''}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, sceneId: value })}
               options={scenes.map(scene => ({ value: scene.id, label: scene.name }))}

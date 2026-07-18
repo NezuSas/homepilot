@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Input } from './ui/Input';
-import { SelectField } from './ui/SelectField';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 
 export type UserRole = 'admin' | 'parent' | 'child' | 'guest' | 'operator';
 
@@ -83,7 +83,7 @@ export const UserCreateForm: React.FC<UserCreateFormProps> = ({
           />
         </div>
         <div className="col-span-1">
-          <SelectField
+          <SearchableSelectField
             label={roleLabel}
             value={role}
             onChange={value => onRoleChange(value as UserRole)}

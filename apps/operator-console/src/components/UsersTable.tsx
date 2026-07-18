@@ -2,7 +2,7 @@ import React from 'react';
 import { Activity, KeyRound, Power, Shield, ShieldCheck, UserMinus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { Card } from './ui/Card';
-import { SelectField } from './ui/SelectField';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 import type { UserRole } from './UserCreateForm';
 
 export interface PublicUserDto {
@@ -97,8 +97,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           </div>
 
           <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
-            <SelectField
-              variant="small"
+            <SearchableSelectField
+              size="small"
               className="w-full min-w-0 min-[430px]:col-span-2"
               value={user.role}
               onChange={(selectedRole) => {
@@ -201,8 +201,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                     <Power className="w-4 h-4" />
                   </button>
 
-                  <SelectField
-                    variant="small"
+                  <SearchableSelectField
+                    size="small"
                     className="w-44"
                     value={user.role}
                     onChange={(selectedRole) => {

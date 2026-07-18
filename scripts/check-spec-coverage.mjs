@@ -7,7 +7,7 @@ const sourceExtensions = new Set(['.ts', '.tsx']);
 const modularComponentDocs = [
   'AlertBanner', 'AssistantCard', 'Button', 'Card', 'DeviceTileBase', 'DeviceTileShell',
   'EmptyState', 'IconButton', 'Input', 'Modal', 'PageFrame', 'SearchFilterBar',
-  'SectionHeader', 'SegmentedControl', 'Select', 'SelectField', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
+  'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
   'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator',
 ];
 

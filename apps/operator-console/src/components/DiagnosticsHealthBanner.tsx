@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { SelectField } from './ui/SelectField';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 
 interface DiagnosticsHealthBannerProps {
   status: 'healthy' | 'degraded' | 'offline';
@@ -62,8 +62,8 @@ export const DiagnosticsHealthBanner: React.FC<DiagnosticsHealthBannerProps> = (
             {isAdmin && (
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-micro uppercase font-bold text-muted-foreground/50 tracking-tighter">{t('diagnostics.timezone')}</span>
-                <SelectField
-                  variant="small"
+                <SearchableSelectField
+                  size="small"
                   fullWidth={false}
                   className="w-auto"
                   value={systemTimezone}

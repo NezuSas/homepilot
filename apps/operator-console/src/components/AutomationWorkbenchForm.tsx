@@ -3,7 +3,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, Play, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { SelectField } from './ui/SelectField';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 
 export interface AutomationWorkbenchDevice {
   id: string;
@@ -70,7 +70,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               <Play className="w-3 h-3 fill-current" /> {t('automations.form.trigger_config')}
             </span>
 
-            <SelectField
+            <SearchableSelectField
               label={t('automations.form.source_device')}
               required
               value={formData.triggerDeviceId}
@@ -104,7 +104,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               <Zap className="w-3 h-3 fill-current" /> {t('automations.form.action_result')}
             </span>
 
-            <SelectField
+            <SearchableSelectField
               label={t('automations.form.target_device')}
               required
               value={formData.targetDeviceId}
@@ -113,10 +113,9 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
               options={deviceOptions}
             />
 
-            <SelectField
+            <SearchableSelectField
               label={t('automations.form.command')}
               required
-              variant="primary"
               value={formData.command}
               onChange={value => onChange({ ...formData, command: value })}
               options={[
