@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
+import { Input } from './ui/Input';
 
 interface UserProfile {
   id: string;
@@ -286,14 +287,12 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('users.profile.display_name', 'Nombre a Mostrar')}</label>
-              <input
-                type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
-                placeholder={user.username} maxLength={40}
-                className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-body font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
-              />
-            </div>
+            <Input
+              label={t('users.profile.display_name', 'Nombre a Mostrar')}
+              type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
+              placeholder={user.username} maxLength={40}
+              className="h-12 rounded-2xl px-4 font-bold shadow-inner"
+            />
 
             {error && <p className="text-body text-destructive font-bold text-center bg-destructive/5 py-2 rounded-xl border border-destructive/10">{error}</p>}
           </div>

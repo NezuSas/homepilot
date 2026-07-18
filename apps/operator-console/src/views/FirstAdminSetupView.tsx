@@ -3,6 +3,7 @@ import { CheckCircle2, Cpu, KeyRound, ShieldCheck, UserRound } from 'lucide-reac
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 interface FirstAdminUser {
   id: string;
@@ -103,72 +104,56 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               </div>
             )}
 
-            <label className="grid gap-2">
-              <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.display_name')}</span>
-              <div className="relative">
-                <UserRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
-                <input
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  disabled={loading}
-                  className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-                  placeholder="Oscar"
-                />
-              </div>
-            </label>
+            <Input
+              label={t('first_admin_setup.display_name')}
+              icon={<UserRound className="h-4 w-4" />}
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              disabled={loading}
+              className="h-12 rounded-xl pl-11 pr-4 font-semibold"
+              placeholder="Oscar"
+            />
 
-            <label className="grid gap-2">
-              <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.username')}</span>
-              <div className="relative">
-                <Cpu className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
-                <input
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  disabled={loading}
-                  required
-                  minLength={3}
-                  pattern="[a-zA-Z0-9._-]+"
-                  className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-                  placeholder="admin"
-                />
-              </div>
-              <span className="text-caption font-semibold text-muted-foreground">{t('first_admin_setup.username_hint')}</span>
-            </label>
+            <Input
+              label={t('first_admin_setup.username')}
+              icon={<Cpu className="h-4 w-4" />}
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              disabled={loading}
+              required
+              minLength={3}
+              pattern="[a-zA-Z0-9._-]+"
+              className="h-12 rounded-xl pl-11 pr-4 font-semibold"
+              placeholder="admin"
+              helperText={t('first_admin_setup.username_hint')}
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.password')}</span>
-                <div className="relative">
-                  <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    disabled={loading}
-                    required
-                    minLength={10}
-                    className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-                    placeholder={t('first_admin_setup.password_placeholder')}
-                  />
-                </div>
-              </label>
+              <Input
+                label={t('first_admin_setup.password')}
+                icon={<KeyRound className="h-4 w-4" />}
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={loading}
+                required
+                minLength={10}
+                className="h-12 rounded-xl pl-11 pr-4 font-semibold"
+                placeholder={t('first_admin_setup.password_placeholder')}
+              />
 
-              <label className="grid gap-2">
-                <span className="text-caption font-black uppercase tracking-widest text-muted-foreground">{t('first_admin_setup.confirm_password')}</span>
-                <div className="relative">
-                  <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="password"
-                    value={passwordConfirmation}
-                    onChange={(event) => setPasswordConfirmation(event.target.value)}
-                    disabled={loading}
-                    required
-                    minLength={10}
-                    className="flex h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-body font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-                    placeholder={t('first_admin_setup.confirm_password_placeholder')}
-                  />
-                </div>
-              </label>
+              <Input
+                label={t('first_admin_setup.confirm_password')}
+                icon={<KeyRound className="h-4 w-4" />}
+                type="password"
+                value={passwordConfirmation}
+                onChange={(event) => setPasswordConfirmation(event.target.value)}
+                disabled={loading}
+                required
+                minLength={10}
+                className="h-12 rounded-xl pl-11 pr-4 font-semibold"
+                placeholder={t('first_admin_setup.confirm_password_placeholder')}
+              />
             </div>
 
             {passwordError && (

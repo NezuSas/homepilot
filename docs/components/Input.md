@@ -13,9 +13,8 @@ Extiende atributos nativos de `input`, con variantes visuales comunes. Su valor,
 
 ## Uso
 
-Usar con label accesible, placeholder traducido y estado de error explicado fuera o junto al campo. No crear inputs visualmente duplicados.
+Usar con label accesible, placeholder traducido y estado de error explicado fuera o junto al campo. Se aplica a campos generales de texto, contraseña e identidad. No reemplaza rangos, archivos, áreas de texto, búsqueda contextual ni entradas especializadas del dominio.
 
 ## Estados y aceptación
 
 Vacío, foco, valor, disabled y error mantienen contraste, foco visible y soporte de texto largo.
-

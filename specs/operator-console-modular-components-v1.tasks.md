@@ -7,6 +7,7 @@
 - [x] Mapeo de cobertura de los componentes compartidos.
 - [x] Consolidación de todos los selectores generales de Escenas, Automatizaciones, editor de tableros, usuarios, cámaras e inspección en `SearchableSelectField`.
 - [x] Consolidación de acciones textuales generales de autenticación, confirmación, perfil, escenas y automatizaciones en `Button`; las acciones exclusivamente icónicas usan `IconButton`.
+- [x] Consolidación de campos generales de texto y contraseña en `Input`; los rangos, archivos, áreas de texto y entradas de dominio mantienen controles especializados.
 
 ## Verificación obligatoria ante cambios
 

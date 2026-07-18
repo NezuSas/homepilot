@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/apiClient';
 import type { AssistantFindingAction } from '../stores/useAssistantStore';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
+import { Input } from './ui/Input';
 
 interface AssistantActionModalProps {
   findingId: string;
@@ -115,19 +116,15 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
           )}
 
           {action.type === 'rename_device' && (
-            <div className="space-y-3">
-              <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">
-                {t('devices.new_name')}
-              </label>
-              <input
+            <Input
+                label={t('devices.new_name')}
                 autoFocus
                 type="text"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 placeholder={t('devices.name_placeholder')}
-                className="w-full bg-muted/50 border-2 border-muted focus:border-primary rounded-2xl px-5 py-4 font-bold outline-none transition-all"
+                className="h-14 rounded-2xl bg-muted/50 px-5 font-bold"
               />
-            </div>
           )}
 
           {action.type === 'import_device' && (

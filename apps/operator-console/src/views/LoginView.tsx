@@ -4,6 +4,7 @@ import { Cpu, Lock } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import type { UserContext } from '../lib/useSession';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: UserContext) => void;
@@ -69,35 +70,27 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="text-body font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              {t('login.username')}
-            </label>
-            <input 
-              type="text" 
+          <Input
+              label={t('login.username')}
+              type="text"
               required
               disabled={loading}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-body ring-offset-background file:border-0 file:bg-transparent file:text-body file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md"
               placeholder="admin"
             />
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-body font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              {t('login.password')}
-            </label>
-            <input 
+          <Input
+              label={t('login.password')}
               type="password"
               required
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-body ring-offset-background file:border-0 file:bg-transparent file:text-body file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md"
               placeholder="••••••••••••"
             />
-          </div>
 
           <Button
             type="submit" 
