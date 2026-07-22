@@ -19,6 +19,7 @@ apps/operator-console/src/
   App.tsx
   views/
     DashboardView.tsx
+    RoutinesView.tsx
     InboxView.tsx
     AutomationsView.tsx
     AutomationBuilderModal.tsx
@@ -27,8 +28,7 @@ apps/operator-console/src/
     HomeConversationView.tsx
     UsersView.tsx
   components/
-    DashboardScenesSection.tsx
-    DashboardAutomationsSection.tsx
+    DashboardRoutinesSection.tsx
     DashboardInsightsSection.tsx
     HomeClimateSummary.tsx
     ManagedDeviceTile.tsx

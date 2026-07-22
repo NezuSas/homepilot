@@ -15,6 +15,7 @@ Las escenas y automatizaciones son dos formas complementarias de operar el hogar
 - Organizar Escenas y Automatizaciones en pestañas dentro de Rutinas.
 - Conservar los contratos, los datos y los permisos existentes de ambos dominios.
 - Mantener los enlaces heredados `/scenes` y `/automations` funcionales, resolviéndolos en la pestaña correspondiente de Rutinas.
+- Componer en Inicio una única sección de Rutinas favoritas que diferencia acciones manuales y reglas automáticas.
 
 ## 3. Fuera de Alcance
 
@@ -29,6 +30,7 @@ Las escenas y automatizaciones son dos formas complementarias de operar el hogar
 - **REQ-03:** La pestaña Automatizaciones solo se muestra a los roles que ya poseen control administrativo.
 - **REQ-04:** Los enlaces internos y las URL heredadas de Escenas o Automatizaciones abren la pestaña correspondiente.
 - **REQ-05:** Ejecutar una escena desde Rutinas conserva la reconciliación global del estado de dispositivos.
+- **REQ-06:** Inicio lista los favoritos de escenas y automatizaciones como Rutinas favoritas, con el tipo y la acción correspondiente visibles.
 
 ## 5. Requisitos No Funcionales
 
@@ -43,3 +45,4 @@ Las escenas y automatizaciones son dos formas complementarias de operar el hogar
 - [x] AC3: Un rol sin gestión administrativa no puede abrir ni ver la pestaña de Automatizaciones mediante la UI.
 - [x] AC4: `/scenes`, `/automations`, `/routines/scenes` y `/routines/automations` conservan una ruta funcional.
 - [x] AC5: La composición conserva las pantallas y contratos existentes de Escenas y Automatizaciones.
+- [x] AC6: Inicio no duplica secciones; muestra una sola colección de Rutinas favoritas y conserva la ejecución manual o alternancia de cada elemento.

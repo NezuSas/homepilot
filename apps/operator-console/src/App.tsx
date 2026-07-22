@@ -312,10 +312,10 @@ function App() {
       view: 'dashboard'
     },
     {
-      id: 'scenes',
-      target: '[data-demo="dashboard-scenes"]',
-      titleKey: 'demo.steps.scenes.title',
-      descriptionKey: 'demo.steps.scenes.description',
+      id: 'routines',
+      target: '[data-demo="dashboard-routines"]',
+      titleKey: 'demo.steps.routines.title',
+      descriptionKey: 'demo.steps.routines.description',
       view: 'dashboard'
     },
     {
@@ -1230,6 +1230,7 @@ function App() {
                     }}
                     onNavigate={navigateTo}
                     displayName={localProfile.displayName || user?.username || null}
+                    canManageAutomations={canAccessAdminControl}
                   />
                 )}
                {/* Spaces = TopologyView (user-facing room management) */}

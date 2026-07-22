@@ -200,6 +200,15 @@
     "resident": "Oscar",
     "home_calm": "Everything is under control.",
     "active_summary": "{{active}} of {{total}} devices active",
+    "favorite_routines": "Favorite routines",
+    "favorite_routines_hint": "Manual actions and automatic rules you use frequently.",
+    "manage_routines": "Manage routines",
+    "no_favorite_routines": "No favorite routines yet",
+    "no_favorite_routines_hint": "Mark a scene or automation as favorite to show it here.",
+    "routine_manual": "Manual",
+    "routine_automatic": "Automatic",
+    "routine_scene_actions_one": "{{count}} action",
+    "routine_scene_actions_other": "{{count}} actions",
     "quick_scenes": "Favorite scenes",
     "scene_create": "Create Scene",
     "atmosphere_recipes": "Scenes",
@@ -1502,6 +1511,10 @@
       "scenes": {
         "title": "Scenes Ready to Execute",
         "description": "Scenes group commands across devices. HomePilot shows how many endpoints each scene touches and whether it can run with local resilience."
+      },
+      "routines": {
+        "title": "Routines for Every Moment",
+        "description": "Bring favorite manual actions and automatic rules together in one place to control the home quickly."
       },
       "conversation": {
         "title": "Talk to Your Home",

@@ -3,12 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
 import {
-  DashboardAutomationsSection,
-  type DashboardAutomation,
-} from '../components/DashboardAutomationsSection';
+  DashboardRoutinesSection,
+  type DashboardRoutineAutomation,
+} from '../components/DashboardRoutinesSection';
 import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
 import { DashboardLoadingState } from '../components/DashboardLoadingState';
-import { DashboardScenesSection } from '../components/DashboardScenesSection';
 import { HomeClimateSummary } from '../components/HomeClimateSummary';
 import { API_BASE_URL } from '../config';
 import {
@@ -21,7 +20,6 @@ import type { View } from '../types';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
-import { SceneBuilderModal } from './SceneBuilderModal';
 
 interface SceneAction {
   deviceId: string;
@@ -51,20 +49,18 @@ interface DashboardViewProps {
   onActionExecute?: (label: string) => void;
   onNavigate?: (view: View, params?: unknown) => void;
   displayName?: string | null;
+  canManageAutomations: boolean;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, onNavigate, displayName }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, onNavigate, displayName, canManageAutomations }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
-  const [automations, setAutomations] = useState<DashboardAutomation[]>([]);
+  const [automations, setAutomations] = useState<DashboardRoutineAutomation[]>([]);
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [isSceneModalOpen, setIsSceneModalOpen] = useState(false);
   const [luxuryRipple, setLuxuryRipple] = useState(false);
   const allDevices = useDeviceSnapshotStore((state) => state.devices);
-  const devices = useMemo(() => allDevices.filter((device) => device.status === 'ASSIGNED'), [allDevices]);
   const homes = useDeviceSnapshotStore((state) => state.homes);
-  const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const findings = useAssistantStore((state) => state.findings);
@@ -72,24 +68,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
   const homeId = homes[0]?.id || null;
-  const rooms = useMemo(() => homeId ? roomsByHome[homeId] || [] : [], [homeId, roomsByHome]);
-
   const fetchData = useCallback(async () => {
     try {
       await Promise.all([refreshSnapshot(), refreshFindings()]);
       if (!homeId) return;
 
-      const [scenesResponse, automationsResponse] = await Promise.all([
-        apiFetch(`${API_URL}/scenes?homeId=${homeId}`),
-        apiFetch(`${API_URL}/automations`),
-      ]);
+      const scenesResponse = await apiFetch(`${API_URL}/scenes?homeId=${homeId}`);
       if (scenesResponse.ok) setScenes(await scenesResponse.json() as Scene[]);
-      if (automationsResponse.ok) setAutomations(await automationsResponse.json() as DashboardAutomation[]);
+      if (!canManageAutomations) {
+        setAutomations([]);
+        return;
+      }
+
+      const automationsResponse = await apiFetch(`${API_URL}/automations`);
+      if (automationsResponse.ok) setAutomations(await automationsResponse.json() as DashboardRoutineAutomation[]);
     } catch {
       setScenes([]);
       setAutomations([]);
     }
-  }, [homeId, refreshFindings, refreshSnapshot]);
+  }, [canManageAutomations, homeId, refreshFindings, refreshSnapshot]);
 
   useEffect(() => {
     void fetchData();
@@ -104,7 +101,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     return response.ok ? await response.json() as SnapshotDevice : null;
   }, []);
 
-  const handleSceneExecute = async (scene: Scene) => {
+  const handleSceneExecute = async (scene: Pick<Scene, 'id' | 'name'>) => {
     if (processingId) return;
     setProcessingId(`scene_${scene.id}`);
     setLuxuryRipple(true);
@@ -118,7 +115,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     }
   };
 
-  const handleAutomationToggle = async (automation: DashboardAutomation) => {
+  const handleAutomationToggle = async (automation: DashboardRoutineAutomation) => {
     if (processingId) return;
     setProcessingId(automation.id);
     try {
@@ -189,36 +186,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         <HomeClimateSummary devices={allDevices} />
       </header>
 
-      <DashboardScenesSection
+      <DashboardRoutinesSection
         scenes={scenes}
-        favoriteSceneIds={favoriteSceneIds}
-        allDevices={allDevices}
-        roomProcessing={processingId}
-        onCreateScene={() => setIsSceneModalOpen(true)}
-        onManageScenes={() => onNavigate?.('scenes')}
-        onSceneExecute={handleSceneExecute}
-      />
-
-      <DashboardAutomationsSection
         automations={automations}
+        favoriteSceneIds={favoriteSceneIds}
         favoriteAutomationIds={favoriteAutomationIds}
+        canManageAutomations={canManageAutomations}
         processingId={processingId}
-        onToggle={handleAutomationToggle}
-        onCreate={() => onNavigate?.('automations')}
-        onManage={() => onNavigate?.('automations')}
+        onSceneExecute={handleSceneExecute}
+        onAutomationToggle={handleAutomationToggle}
+        onManage={() => onNavigate?.('routines')}
       />
 
       <DashboardInsightsSection findings={prioritizedFindings} onAction={handleAction} />
-
-      {isSceneModalOpen && homeId && (
-        <SceneBuilderModal
-          onClose={() => setIsSceneModalOpen(false)}
-          onSaved={() => { void fetchData(); setIsSceneModalOpen(false); }}
-          homeId={homeId}
-          rooms={rooms}
-          devices={devices}
-        />
-      )}
 
       {activeAction && (
         <AssistantActionModal

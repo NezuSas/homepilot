@@ -200,6 +200,15 @@
     "resident": "Oscar",
     "home_calm": "Todo está bajo control.",
     "active_summary": "{{active}} de {{total}} dispositivos activos",
+    "favorite_routines": "Rutinas favoritas",
+    "favorite_routines_hint": "Acciones manuales y reglas automáticas que usas con frecuencia.",
+    "manage_routines": "Gestionar rutinas",
+    "no_favorite_routines": "Aún no hay rutinas favoritas",
+    "no_favorite_routines_hint": "Marca una escena o automatización como favorita para verla aquí.",
+    "routine_manual": "Manual",
+    "routine_automatic": "Automática",
+    "routine_scene_actions_one": "{{count}} acción",
+    "routine_scene_actions_other": "{{count}} acciones",
     "quick_scenes": "Escenas favoritas",
     "scene_create": "Crear Escena",
     "atmosphere_recipes": "Escenas",
@@ -1502,6 +1511,10 @@
       "scenes": {
         "title": "Escenas listas para ejecutar",
         "description": "Las escenas agrupan comandos de varios dispositivos. HomePilot muestra cuántos puntos toca y si pueden ejecutarse con resiliencia local."
+      },
+      "routines": {
+        "title": "Rutinas para cada momento",
+        "description": "Reúne acciones manuales y reglas automáticas favoritas en un único espacio para controlar el hogar con rapidez."
       },
       "conversation": {
         "title": "Habla con tu casa",
