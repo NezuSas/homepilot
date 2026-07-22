@@ -5,6 +5,7 @@ import { PageFrame } from '../components/ui/PageFrame';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
@@ -353,13 +354,15 @@ export const NativeCamerasView: React.FC = () => {
             icon={AlertTriangle}
             message={notice.message}
             action={(
-              <button
+              <Button
                 type="button"
-                className="rounded-pill border border-current/20 px-3 py-1 text-caption font-semibold"
+                variant="outline"
+                size="xs"
+                className="border-current/20 text-current hover:bg-current/10"
                 onClick={() => setNotice(null)}
               >
                 {t('common.close', 'Cerrar')}
-              </button>
+              </Button>
             )}
           />
         </div>
@@ -405,18 +408,20 @@ export const NativeCamerasView: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
+                    <IconButton
+                      icon={Edit2}
+                      label={t('common.edit')}
                       onClick={() => handleOpenEditModal(camera)}
-                      className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button 
+                      variant="ghost"
+                      size="sm"
+                    />
+                    <IconButton
+                      icon={Trash2}
+                      label={t('common.delete')}
                       onClick={() => handleDelete(camera.deviceId)}
-                      className="p-2 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      variant="danger"
+                      size="sm"
+                    />
                   </div>
                 </div>
 

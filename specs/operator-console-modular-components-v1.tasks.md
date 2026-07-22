@@ -24,6 +24,7 @@
 - [x] Consolidación de controles internos de tarjetas agrupadas del Asistente con `Button` e `IconButton`; el encabezado expandible conserva semántica de divulgación accesible sin anidar botones.
 - [x] Consolidación de acciones convencionales de Auditoría, Registros de ejecución y Energía con `Button`; los controles especializados conservan su semántica propia.
 - [x] Consolidación de tarjetas ejecutables de Rutinas favoritas con `Button`, preservando ejecución de escenas, alternancia de automatizaciones y estados de procesamiento.
+- [x] Consolidación de acciones de aviso y administración de tarjetas de cámaras nativas con `Button` e `IconButton`, reutilizando etiquetas traducidas y estados visuales compartidos.
 
 ## Verificación obligatoria ante cambios
 
