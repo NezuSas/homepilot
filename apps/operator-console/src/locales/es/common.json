@@ -830,6 +830,12 @@
       "paused": "Pausada",
       "system_rule": "Regla de Monitoreo del Sistema",
       "inactive_automation": "Automatización Inactiva",
+      "verified_hardware_autonomy": "Autonomía de hardware verificada",
+      "resilience": {
+        "autonomous": "Autónoma",
+        "edge_capable": "Compatible con Edge",
+        "bridged": "Puenteada"
+      },
       "clock_hits": "El reloj marca las {{time}}",
       "if": "SI",
       "then": "ENTONCES",

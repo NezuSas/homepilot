@@ -834,6 +834,12 @@
       "action_label": "SYSTEM EXECUTION",
       "system_rule": "System Monitoring Rule",
       "inactive_automation": "Inactive Automation",
+      "verified_hardware_autonomy": "Verified hardware autonomy",
+      "resilience": {
+        "autonomous": "Autonomous",
+        "edge_capable": "Edge capable",
+        "bridged": "Bridged"
+      },
       "clock_hits": "The clock hits {{time}}"
     },
     "notifications": {

@@ -1,7 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, Cpu, Loader2, Pencil, Star, Trash2, Zap } from 'lucide-react';
+import { Clock, Cpu, Pencil, Star, Trash2, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 
 interface AutomationRule {
   id: string;
@@ -81,7 +83,9 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
 
   const isFullyAutonomous = triggerIsLocal && actionIsLocal;
   isEdgeCapable = isEdgeCapable || triggerIsLocal || actionIsLocal;
-  const resilienceLabel = isFullyAutonomous ? 'Autonomous' : (isEdgeCapable ? 'Edge Capable' : 'Bridged');
+  const resilienceLabel = isFullyAutonomous
+    ? t('automations.summary.resilience.autonomous')
+    : (isEdgeCapable ? t('automations.summary.resilience.edge_capable') : t('automations.summary.resilience.bridged'));
 
   return (
     <div
@@ -130,43 +134,49 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
+          <IconButton
+            icon={Star}
+            label={t(isFavorite ? 'automations.remove_favorite' : 'automations.add_favorite')}
             onClick={() => onToggleFavorite(rule.id)}
-            className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-xl border transition-colors',
-              isFavorite ? 'border-primary/25 bg-primary/10 text-primary' : 'border-transparent bg-muted/40 text-muted-foreground hover:border-border',
-            )}
-            title={isFavorite ? t('automations.remove_favorite') : t('automations.add_favorite')}
-            aria-label={isFavorite ? t('automations.remove_favorite') : t('automations.add_favorite')}
             aria-pressed={isFavorite}
-          >
-            <Star className={cn('h-4 w-4', isFavorite && 'fill-current')} />
-          </button>
-          <button
-            onClick={() => onToggle(rule.id, isEnabled)}
-            disabled={isWorking}
+            variant={isFavorite ? 'primary' : 'ghost'}
+            size="md"
             className={cn(
-              'h-10 px-4 rounded-xl font-black text-micro uppercase tracking-widest transition-all shadow-sm',
+              'rounded-xl',
+              isFavorite ? 'border-primary/25 bg-primary/10 text-primary' : 'border-transparent bg-muted/40 text-muted-foreground hover:border-border',
+              isFavorite && '[&_svg]:fill-current',
+            )}
+          />
+          <Button
+            onClick={() => onToggle(rule.id, isEnabled)}
+            isLoading={isWorking}
+            variant={isEnabled ? 'outline' : 'secondary'}
+            size="sm"
+            className={cn(
+              'min-w-24 font-black uppercase tracking-widest',
               isEnabled
-                ? (isFullyAutonomous ? 'bg-success/10 text-success border border-success/10' : 'bg-primary/10 text-primary border border-primary/10')
+                ? (isFullyAutonomous ? 'border-success/10 bg-success/10 text-success hover:bg-success/15' : 'border-primary/10 bg-primary/10 text-primary hover:bg-primary/15')
                 : 'bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary'
             )}
           >
-            {isWorking ? <Loader2 className="w-4 h-4 animate-spin" /> : (isEnabled ? t('automations.summary.active') : t('automations.summary.paused'))}
-          </button>
-          <button
+            {isEnabled ? t('automations.summary.active') : t('automations.summary.paused')}
+          </Button>
+          <IconButton
+            icon={Pencil}
+            label={t('common.edit')}
             onClick={() => onEdit(rule)}
-            className="w-10 h-10 flex items-center justify-center bg-muted/40 hover:bg-muted rounded-xl transition-all border border-transparent hover:border-border/20"
-          >
-            <Pencil className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
+            variant="default"
+            size="md"
+            className="rounded-xl bg-muted/40"
+          />
+          <IconButton
+            icon={Trash2}
+            label={t('common.delete')}
             onClick={() => onDelete(rule.id)}
-            className="w-10 h-10 flex items-center justify-center hover:bg-destructive/10 hover:text-destructive rounded-xl transition-all opacity-0 group-hover:opacity-100"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            variant="danger"
+            size="md"
+            className="rounded-xl opacity-0 group-hover:opacity-100"
+          />
         </div>
       </div>
 
@@ -233,7 +243,9 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
             isEnabled ? (isFullyAutonomous ? 'bg-success animate-pulse shadow-success-beacon' : 'bg-primary animate-pulse shadow-primary-beacon') : 'bg-muted-foreground/20'
           )} />
           <span className="text-nano font-black uppercase tracking-control text-muted-foreground opacity-40">
-            {isFullyAutonomous ? 'Verified Hardware Autonomy' : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_automation'))}
+            {isFullyAutonomous
+              ? t('automations.summary.verified_hardware_autonomy')
+              : (isEnabled ? t('automations.summary.system_rule') : t('automations.summary.inactive_automation'))}
           </span>
         </div>
         <div className="flex items-center gap-1.5 opacity-10 grayscale">
