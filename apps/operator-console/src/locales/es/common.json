@@ -1063,7 +1063,15 @@
     "scan_logs": "Escanear registros Edge",
     "realtime_observability": "Observabilidad Edge en tiempo real",
     "sync_now": "Sincronizar ahora",
-    "end_of_records": "Fin del historial"
+    "end_of_records": "Fin del historial",
+    "action_details": "Detalle de acciones",
+    "expand_details": "Expandir detalle",
+    "collapse_details": "Contraer detalle",
+    "execution_fallback": "Ejecución {{id}}",
+    "total": "Total",
+    "success": "Correctas",
+    "failed": "Fallidas",
+    "skipped": "Omitidas"
   },
   "users": {
     "loading": "Cargando directorio de usuarios...",

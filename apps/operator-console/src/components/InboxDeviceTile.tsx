@@ -139,17 +139,20 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         </div>
 
         {supportsCommands && isAssigned && !unavailable && !hideControls && (
-          <button
+          <Button
+            type="button"
             onClick={handleToggle}
             disabled={isProcessing}
+            size="icon"
+            variant="outline"
             className={cn(
-              'p-2 rounded-full border-2 transition-all flex items-center justify-center',
-              isOn ? 'bg-primary border-primary text-primary-foreground shadow-md' : 'bg-background border-border text-muted-foreground hover:border-primary/50',
+              'rounded-full border-2',
+              isOn ? 'bg-primary border-primary text-primary-foreground shadow-md hover:bg-primary/90' : 'bg-background border-border text-muted-foreground hover:border-primary/50',
               isProcessing && 'bg-muted border-primary/20',
             )}
           >
             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className={cn('w-4 h-4', isOn && 'rotate-180')} />}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -157,12 +160,15 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-micro rounded-2xl p-2 text-center">
           <AlertCircle className="w-5 h-5 text-destructive mb-1" />
           <span className="text-micro font-black uppercase text-destructive leading-tight">{error}</span>
-          <button
+          <Button
+            type="button"
             onClick={(e) => { e.stopPropagation(); setError(null); }}
-            className="mt-1 text-micro font-black uppercase text-muted-foreground border-b border-muted-foreground/30"
+            variant="ghost"
+            size="xs"
+            className="mt-1 rounded-none border-b border-muted-foreground/30 px-0 text-micro font-black uppercase text-muted-foreground"
           >
             {t('common.cancel')}
-          </button>
+          </Button>
         </div>
       )}
 

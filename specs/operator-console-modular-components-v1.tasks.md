@@ -18,6 +18,7 @@
 - [x] Consolidación de la selección de estancia dentro de las acciones del Asistente con `Button`, manteniendo el estado seleccionado y el indicador de confirmación.
 - [x] Consolidación del selector de imagen del perfil de usuario con `IconButton`; el control de recorte continuo mantiene el rango nativo por requerir entrada gradual.
 - [x] Consolidación de los controles internos de `AudioInputPicker` con `Button`, conservando los roles de lista, selección y cierre del selector de audio.
+- [x] Consolidación de acciones de usuarios, tarjetas de dispositivos y registros de ejecución con `Button` e `IconButton`, preservando asignación, cambio de estado, reintento y acciones de seguridad existentes.
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.
 - [x] Consolidación de controles internos de tarjetas agrupadas del Asistente con `Button` e `IconButton`; el encabezado expandible conserva semántica de divulgación accesible sin anidar botones.

@@ -1063,7 +1063,15 @@
     "scan_logs": "Scan Edge Logs",
     "realtime_observability": "Edge Real-time Observability",
     "sync_now": "Sync Now",
-    "end_of_records": "End of Records"
+    "end_of_records": "End of Records",
+    "action_details": "Action Details",
+    "expand_details": "Expand details",
+    "collapse_details": "Collapse details",
+    "execution_fallback": "Execution {{id}}",
+    "total": "Total",
+    "success": "Succeeded",
+    "failed": "Failed",
+    "skipped": "Skipped"
   },
   "users": {
     "loading": "Loading user directory...",

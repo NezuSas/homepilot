@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SceneActionResult } from '../types/executions';
 import { cn } from '../lib/utils';
-import { CheckCircle2, XCircle, Slash, RefreshCcw, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Slash, RefreshCcw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { Button } from './ui/Button';
 
 interface ExecutionDetailProps {
   executionId: string;
@@ -47,7 +48,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
   return (
     <div className="flex flex-col gap-2 mt-4 p-4 bg-background/50 rounded-section border border-border/40 animate-in slide-in-from-top-2 duration-300">
       <h4 className="text-micro font-black uppercase tracking-widest text-muted-foreground/60 mb-2 px-1">
-        Action Details
+        {t('execution_logs.action_details')}
       </h4>
       <div className="grid gap-2">
         {actions.map((action, idx) => (
@@ -103,21 +104,17 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
               )}
 
               {action.status === 'failed' && (
-                <button
+                <Button
                   onClick={() => handleRetry(idx)}
                   disabled={retryingIdx !== null}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all text-micro font-black uppercase tracking-widest",
-                    retryingIdx === idx && "opacity-50 cursor-not-allowed"
-                  )}
+                  variant="outline"
+                  size="xs"
+                  isLoading={retryingIdx === idx}
+                  className="border-primary/20 bg-primary/5 text-micro font-black uppercase tracking-widest text-primary hover:bg-primary/10"
                 >
-                  {retryingIdx === idx ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <RefreshCcw className="w-3 h-3" />
-                  )}
+                  {retryingIdx !== idx && <RefreshCcw className="w-3 h-3" />}
                   {t('common.retry')}
-                </button>
+                </Button>
               )}
               
               <div className={cn(

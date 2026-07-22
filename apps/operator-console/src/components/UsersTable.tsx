@@ -2,6 +2,8 @@ import React from 'react';
 import { Activity, KeyRound, Power, Shield, ShieldCheck, UserMinus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import type { UserRole } from './UserCreateForm';
 
@@ -108,29 +110,35 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               options={roleOptions}
               title={labels.swapRoleTitle(user.role)}
             />
-            <button
+            <Button
               onClick={() => onToggleActive(user)}
-              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-micro font-bold text-muted-foreground transition-colors hover:text-foreground"
+              variant="outline"
+              size="sm"
+              className="min-w-0 text-micro text-muted-foreground hover:text-foreground"
             >
               <Power className="h-4 w-4 shrink-0" />
               <span className="truncate">{user.isActive ? labels.suspendTitle : labels.restoreTitle}</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => onRevokeSessions(user)}
               disabled={!user.hasActiveSessions}
-              className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-micro font-bold text-muted-foreground transition-colors disabled:opacity-35"
+              variant="outline"
+              size="sm"
+              className="min-w-0 text-micro text-muted-foreground"
             >
               <UserMinus className="h-4 w-4 shrink-0" />
               <span className="truncate">{labels.revokeTitle}</span>
-            </button>
+            </Button>
             {user.id !== currentUserId && (
-              <button
+              <Button
                 onClick={() => onResetPassword(user)}
-                className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-micro font-bold text-primary min-[430px]:col-span-2"
+                variant="outline"
+                size="sm"
+                className="min-w-0 border-primary/20 bg-primary/5 text-micro text-primary hover:bg-primary/10 min-[430px]:col-span-2"
               >
                 <KeyRound className="h-4 w-4 shrink-0" />
                 <span className="truncate">{labels.resetPasswordTitle}</span>
-              </button>
+              </Button>
             )}
           </div>
         </article>
@@ -189,17 +197,18 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               </td>
               <td className="px-5 py-4 text-right">
                 <div className="flex flex-wrap items-center justify-end gap-2 transition-all">
-                  <button
+                  <IconButton
                     onClick={() => onToggleActive(user)}
-                    className={`p-2 rounded-lg border transition-all ${
+                    icon={Power}
+                    label={user.isActive ? labels.suspendTitle : labels.restoreTitle}
+                    size="sm"
+                    className={`h-9 w-9 rounded-lg ${
                       user.isActive
                         ? 'bg-background hover:bg-danger/10 border-border hover:border-danger/30 hover:text-danger text-muted-foreground shadow-sm'
                         : 'bg-background hover:bg-success/10 border-border hover:border-success/30 hover:text-success text-muted-foreground shadow-sm'
                     }`}
                     title={user.isActive ? labels.suspendTitle : labels.restoreTitle}
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
+                  />
 
                   <SearchableSelectField
                     size="small"
@@ -214,23 +223,25 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                     title={labels.swapRoleTitle(user.role)}
                   />
 
-                  <button
+                  <IconButton
                     onClick={() => onRevokeSessions(user)}
-                    className="p-2 bg-background border border-border text-muted-foreground hover:bg-warning/10 hover:border-warning/30 hover:text-warning rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                    icon={UserMinus}
+                    label={labels.revokeTitle}
+                    size="sm"
+                    className="h-9 w-9 rounded-lg bg-background border-border text-muted-foreground hover:bg-warning/10 hover:border-warning/30 hover:text-warning shadow-sm"
                     disabled={!user.hasActiveSessions}
                     title={labels.revokeTitle}
-                  >
-                    <UserMinus className="w-4 h-4" />
-                  </button>
+                  />
 
                   {user.id !== currentUserId && (
-                    <button
+                    <IconButton
                       onClick={() => onResetPassword(user)}
-                      className="rounded-lg border border-border bg-background p-2 text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                      icon={KeyRound}
+                      label={labels.resetPasswordTitle}
+                      size="sm"
+                      className="h-9 w-9 rounded-lg border-border bg-background text-muted-foreground shadow-sm hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
                       title={labels.resetPasswordTitle}
-                    >
-                      <KeyRound className="h-4 w-4" />
-                    </button>
+                    />
                   )}
                 </div>
               </td>

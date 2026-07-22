@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ExecutionRecord } from '../types/executions';
 import { cn } from '../lib/utils';
 import { Clock, Zap, ChevronDown, ChevronUp, Play, Cog, Fingerprint } from 'lucide-react';
 import { ExecutionDetail } from './ExecutionDetail';
+import { IconButton } from './ui/IconButton';
 
 interface ExecutionCardProps {
   record: ExecutionRecord;
@@ -10,6 +12,7 @@ interface ExecutionCardProps {
 }
 
 export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuccess }) => {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   
   const statusColors = {
@@ -58,7 +61,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
               </span>
             </div>
             <h3 className="text-body font-black tracking-tight text-foreground/90 truncate">
-              {record.summary || `Execution ID ${record.id.slice(0, 8)}`}
+              {record.summary || t('execution_logs.execution_fallback', { id: record.id.slice(0, 8) })}
             </h3>
           </div>
         </div>
@@ -66,21 +69,21 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
         {/* Aggregate Stats */}
         <div className="hidden md:flex items-center gap-6 px-6 border-x border-border/10">
           <div className="flex flex-col items-center">
-            <span className="text-micro font-black opacity-30 uppercase tracking-widest">Total</span>
+            <span className="text-micro font-black opacity-30 uppercase tracking-widest">{t('execution_logs.total')}</span>
             <span className="text-caption font-black">{record.actionCount}</span>
           </div>
           <div className="flex flex-col items-center">
             <span className={cn("text-caption font-black", record.successCount > 0 ? "text-success" : "opacity-30")}>
               {record.successCount}
             </span>
-            <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">Success</span>
+            <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">{t('execution_logs.success')}</span>
           </div>
           {record.failedCount > 0 && (
             <div className="flex flex-col items-center">
               <span className="text-caption font-black text-destructive">
                 {record.failedCount}
               </span>
-              <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">Failed</span>
+              <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">{t('execution_logs.failed')}</span>
             </div>
           )}
           {record.skippedCount > 0 && (
@@ -88,7 +91,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
               <span className="text-caption font-black opacity-60">
                 {record.skippedCount}
               </span>
-              <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">Skip</span>
+              <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">{t('execution_logs.skipped')}</span>
             </div>
           )}
         </div>
@@ -114,13 +117,14 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
         </div>
 
         {/* Interaction Trigger */}
-        <button 
+        <IconButton
           onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2.5 hover:bg-foreground/5 rounded-2xl transition-all ml-2 border border-transparent hover:border-border/40"
-          aria-label={isExpanded ? "Collapse" : "Expand"}
-        >
-          {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-        </button>
+          icon={isExpanded ? ChevronUp : ChevronDown}
+          label={isExpanded ? t('execution_logs.collapse_details') : t('execution_logs.expand_details')}
+          variant="ghost"
+          size="md"
+          className="ml-2 rounded-2xl hover:border-border/40"
+        />
       </div>
 
       {/* Expandable Action History */}

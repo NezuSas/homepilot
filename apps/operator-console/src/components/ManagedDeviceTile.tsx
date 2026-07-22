@@ -6,6 +6,7 @@ import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { CameraDeviceTile } from './CameraDeviceTile';
 import { CurtainDeviceTile } from './CurtainDeviceTile';
 import { DashDeviceTile } from './DashDeviceTile';
+import { Button } from './ui/Button';
 
 interface ManagedDeviceTileProps {
   device: SnapshotDevice;
@@ -57,14 +58,16 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
         />
       )}
 
-      <button
+      <Button
         type="button"
         onClick={onInspect}
-        className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/55 px-3 text-caption font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+        variant="outline"
+        size="md"
+        className="w-full border-border/60 bg-card/55 text-caption text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
       >
         <Settings2 className="h-4 w-4" />
         {t('inbox.manage_device')}
-      </button>
+      </Button>
     </article>
   );
 };
