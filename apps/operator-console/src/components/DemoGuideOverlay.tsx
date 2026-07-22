@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useDemoGuideStore } from '../stores/useDemoGuideStore';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import { X, ChevronRight } from 'lucide-react';
 import type { View } from '../types';
 
@@ -194,9 +195,14 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
                 <span className="text-micro font-black uppercase tracking-label text-primary/60">
                   {t('demo.controls.label')} • {t('demo.controls.step_of', { current: currentStepIndex + 1, total: steps.length })}
                 </span>
-                <button onClick={endDemo} className="p-1 -mr-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                   <X className="w-3.5 h-3.5" />
-                </button>
+                <IconButton
+                  icon={X}
+                  label={t('common.close')}
+                  variant="ghost"
+                  size="sm"
+                  onClick={endDemo}
+                  className="-mr-1.5"
+                />
              </div>
              
              <h3 className="text-body-lg font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
@@ -213,12 +219,14 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
                   {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
                   <ChevronRight className="w-3 h-3" />
                 </Button>
-                <button 
+                <Button
                   onClick={endDemo}
-                  className="px-1 text-micro font-black uppercase tracking-widest text-muted-foreground/30 hover:text-muted-foreground transition-all"
+                  variant="ghost"
+                  size="xs"
+                  className="px-1 text-micro font-black uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground"
                 >
                   {t('demo.controls.skip')}
-                </button>
+                </Button>
              </div>
           </div>
         </div>
