@@ -41,7 +41,8 @@ export default function RoutinesView({
           options={options}
           onChange={onSectionChange}
           tone="primary"
-          className="w-full shrink-0 sm:w-[min(100%,20rem)]"
+          className="w-full shrink-0 sm:w-[min(100%,23rem)]"
+          optionClassName="min-w-[8.5rem]"
         />
       </section>
 
