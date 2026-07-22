@@ -12,7 +12,7 @@ La documentacion principal ya cubre vision, arquitectura, frontend modular, vali
 | `AGENTS.md` | Reglas estrictas para agentes y cambios asistidos | Fuente normativa |
 | `docs/project-overview.md` | Vision de producto, principios y no-objetivos | Actualizado |
 | `docs/architecture.md` | Arquitectura Edge/Cloud, runtime actual y limites | Actualizado |
-| `docs/homepilot-technical-guide.md` | Guia tecnica completa: backend, frontend, DB, Docker, Home Assistant y WSL | Actualizado |
+| `docs/homepilot-technical-guide.md` | Guia técnica completa: backend, frontend, DB, Docker, perfiles Home Assistant/nativo y WSL | Actualizado |
 | `docs/design-system.md` | Tokens visuales, primitives UI y reglas de uso | Actualizado |
 | `docs/operator-console-frontend.md` | Modularidad UI, patrones y checklist frontend | Actualizado |
 | `docs/operator-console-component-catalog.md` y `docs/components/` | Catálogo y fichas individuales de componentes UI reutilizables | Actualizado |

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+profile="bridge_ha"
 compose_file="docker-compose.office.yml"
+compose_explicit=false
 keep_storage="2GB"
 deploy=false
 clean_only=false
@@ -38,17 +40,33 @@ Opciones:
   --deploy                 Limpia cache, construye/inicia HomePilot y limpia otra vez.
   --clean                  Solo limpia residuos seguros de Docker.
   --status                 Solo muestra espacio y consumo de Docker.
-  --compose FILE           Compose a usar. Default: docker-compose.office.yml
+  --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
+  --compose FILE           Compose personalizado. Sobrescribe el compose del perfil.
   --keep-storage SIZE      Cache maximo para BuildKit/buildx. Default: 2GB
   --truncate-logs          Vacia logs json de Docker. Puede pedir sudo.
   --yes                    No pide confirmacion.
   --help                   Muestra esta ayuda.
 
 Ejemplos:
-  bash scripts/homepilot-maintenance.sh --deploy --yes
+  bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
+  bash scripts/homepilot-maintenance.sh --profile native_only --deploy --yes
   bash scripts/homepilot-maintenance.sh --clean --keep-storage 1GB --yes
   bash scripts/homepilot-maintenance.sh --status
 EOF
+}
+
+configure_profile() {
+  case "$profile" in
+    bridge_ha|native_only)
+      [[ "$compose_explicit" == true ]] || compose_file="docker-compose.office.yml"
+      ;;
+    ha_companion)
+      [[ "$compose_explicit" == true ]] || compose_file="docker-compose.yml"
+      ;;
+    *)
+      fail "Perfil no válido: ${profile}. Usa bridge_ha, native_only o ha_companion."
+      ;;
+  esac
 }
 
 banner() {
@@ -59,7 +77,7 @@ banner() {
   printf '%s\n' '  | |\  | |___ / /_ | |_| |'
   printf '%s\n' '  |_| \_|_____/____| \___/'
   printf '%b\n' "${NC}${BOLD}   H O M E P I L O T   M A I N T E N A N C E${NC}"
-  printf '%b\n' "${DIM}   Limpieza segura de buildx, imagenes y contenedores detenidos${NC}"
+  printf '%b\n' "${DIM}   Perfil ${profile} · limpieza segura de buildx, imágenes y contenedores detenidos${NC}"
   divider
 }
 
@@ -127,6 +145,16 @@ check_requirements() {
   [[ -f "$compose_file" ]] || fail "No existe ${compose_file} en el directorio actual."
 }
 
+validate_profile_environment() {
+  [[ -f .env ]] || fail "No existe .env. Ejecuta primero scripts/install-edge-office.sh con el perfil deseado."
+
+  local configured_profile
+  configured_profile="$(sed -n 's/^HOMEPILOT_INSTALLATION_PROFILE=//p' .env | tail -n 1)"
+  configured_profile="${configured_profile:-bridge_ha}"
+
+  [[ "$configured_profile" == "$profile" ]] || fail ".env declara el perfil ${configured_profile}; ejecuta este comando con --profile ${configured_profile}."
+}
+
 clean_docker_residue() {
   section "Limpieza segura de residuos Docker"
   info "BuildKit/buildx conservara hasta ${keep_storage} de cache util."
@@ -154,6 +182,7 @@ clean_docker_residue() {
 deploy_homepilot() {
   section "Despliegue HomePilot"
   info "Compose: ${compose_file}"
+  info "Perfil: ${profile}"
   info "COMPOSE_BAKE=false evita que Compose use bake si no hace falta."
   COMPOSE_BAKE=false docker compose -f "$compose_file" up -d --build
   docker compose -f "$compose_file" ps
@@ -163,6 +192,11 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --deploy)
       deploy=true
+      ;;
+    --profile)
+      shift
+      [[ $# -gt 0 ]] || fail "--profile requiere bridge_ha, native_only o ha_companion."
+      profile="$1"
       ;;
     --clean)
       clean_only=true
@@ -174,6 +208,7 @@ while [[ $# -gt 0 ]]; do
       shift
       [[ $# -gt 0 ]] || fail "--compose requiere un archivo."
       compose_file="$1"
+      compose_explicit=true
       ;;
     --keep-storage)
       shift
@@ -201,8 +236,10 @@ if [[ "$deploy" == false && "$clean_only" == false && "$status_only" == false ]]
   status_only=true
 fi
 
+configure_profile
 banner
 check_requirements
+validate_profile_environment
 show_disk
 
 if [[ "$status_only" == true ]]; then

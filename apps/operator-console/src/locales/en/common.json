@@ -1215,13 +1215,16 @@
       "step": "Step {{count}}",
       "diagnostics": "Diagnostics",
       "bridge": "HA Bridge",
+      "native": "Native",
       "activation": "Activation"
     },
     "side": {
       "title": "Delivery criteria",
       "local": "Local control is validated before opening the workspace.",
       "secure": "The token is protected and used only to bind the bridge.",
-      "recoverable": "The system can be revalidated from settings if Home Assistant changes."
+      "recoverable": "The system can be revalidated from settings if Home Assistant changes.",
+      "native_secure": "HomePilot runs locally without requiring an external bridge.",
+      "native_recoverable": "Native integrations are added and managed from HomePilot."
     },
     "step1": {
       "title": "System Diagnostic",
@@ -1237,7 +1240,9 @@
       "unknown": "Unknown / Unreachable",
       "operator_note_title": "Installer note",
       "operator_note": "Activation requires an active administrator. If Home Assistant is not configured yet, the next step prepares the bridge and tests the live connection.",
-      "continue": "Continue to Integration"
+      "native_operator_note": "Activation requires an active administrator. You can then add native integrations from HomePilot.",
+      "continue": "Continue to Integration",
+      "native_continue": "Continue to Activation"
     },
     "step2": {
       "title": "Home Assistant Core",
@@ -1257,11 +1262,15 @@
     },
     "step3": {
       "kicker": "Bridge confirmed",
+      "native_kicker": "Native control confirmed",
       "title": "System Ready",
       "subtitle": "Your HomePilot appliance is configured and securely bonded with your Home Assistant network.",
+      "native_subtitle": "Your HomePilot appliance is ready to add and operate local integrations natively.",
       "next_1": "Import devices",
+      "native_next_1": "Add integrations",
       "next_2": "Assign spaces",
       "next_3": "Test scenes",
+      "native_next_3": "Create routines",
       "complete": "Complete Setup & Boot Workspace"
     }
   },

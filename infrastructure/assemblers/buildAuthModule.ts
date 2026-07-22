@@ -12,6 +12,7 @@ import { AuthGuard } from '../../packages/auth/infrastructure/AuthGuard';
 import { SqliteSystemSetupRepository } from '../../packages/system-setup/infrastructure/SqliteSystemSetupRepository';
 import { SystemSetupService } from '../../packages/system-setup/application/SystemSetupService';
 import { UserManagementService } from '../../packages/auth/application/UserManagementService';
+import { getInstallationProfile } from '../../packages/shared/config/getInstallationProfile';
 
 import type { SqliteDatabaseManager } from '../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import type { SQLiteHomeRepository } from '../../packages/topology/infrastructure/repositories/SQLiteHomeRepository';
@@ -72,7 +73,8 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
     homeRepository,
     settingsRepository,
     settingsService,
-    activityLogRepository
+    activityLogRepository,
+    getInstallationProfile()
   );
 
   // -- INIT USER MANAGEMENT V2 --

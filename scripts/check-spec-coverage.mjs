@@ -12,6 +12,7 @@ const modularComponentDocs = [
 ];
 
 const rules = [
+  ['installation-profiles-v1.md', /(?:getInstallationProfile|SystemSetupService|OnboardingView)/i],
   ['media-player-local-control-v1.md', /(?:MediaPlayer|MediaRoutes|MediaService)/i],
   ['native-camera-local-integration-v1.md', /(?:NativeCamera|OnvifDiscovery)/i],
   ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice)/i],

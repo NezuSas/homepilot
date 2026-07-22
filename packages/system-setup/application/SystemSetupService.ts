@@ -6,6 +6,7 @@ import { HomeRepository } from '../../topology/domain/repositories/HomeRepositor
 import { Home } from '../../topology/domain/types';
 
 import { SettingsRepository } from '../../integrations/home-assistant/domain/SettingsRepository';
+import { InstallationProfile, installationProfileRequiresHomeAssistant } from '../../shared/config/getInstallationProfile';
 
 export interface SetupStatusResponse {
   isInitialized: boolean;
@@ -13,6 +14,8 @@ export interface SetupStatusResponse {
   hasAdminUser: boolean;
   hasHAConfig: boolean;
   haConnectionValid: boolean;
+  installationProfile: InstallationProfile;
+  requiresHomeAssistant: boolean;
 }
 
 export class SystemSetupService {
@@ -22,7 +25,8 @@ export class SystemSetupService {
     private readonly homeRepository: HomeRepository,
     private readonly settingsRepository: SettingsRepository,
     private readonly homeAssistantSettingsService: HomeAssistantSettingsService,
-    private readonly activityLogRepository: ActivityLogRepository
+    private readonly activityLogRepository: ActivityLogRepository,
+    private readonly installationProfile: InstallationProfile
   ) {}
 
   /**
@@ -34,14 +38,19 @@ export class SystemSetupService {
     const adminCount = await this.userRepository.count();
     const hasAdminUser = adminCount > 0;
 
-    const haStatus = await this.homeAssistantSettingsService.getStatus();
+    const requiresHomeAssistant = installationProfileRequiresHomeAssistant(this.installationProfile);
+    const haStatus = requiresHomeAssistant
+      ? await this.homeAssistantSettingsService.getStatus()
+      : null;
 
     return {
       isInitialized: state.isInitialized,
       requiresOnboarding: !state.isInitialized,
       hasAdminUser,
-      hasHAConfig: haStatus.activeSource === 'database' && haStatus.hasToken,
-      haConnectionValid: haStatus.connectivityStatus === 'reachable'
+      hasHAConfig: haStatus?.activeSource === 'database' && haStatus.hasToken === true,
+      haConnectionValid: haStatus?.connectivityStatus === 'reachable',
+      installationProfile: this.installationProfile,
+      requiresHomeAssistant
     };
   }
 
@@ -65,27 +74,27 @@ export class SystemSetupService {
       data: { userId }
     });
 
-    const haSettings = await this.settingsRepository.getSettings();
+    if (installationProfileRequiresHomeAssistant(this.installationProfile)) {
+      const haSettings = await this.settingsRepository.getSettings();
 
-    // 1. Validar HA Configuration Presente
-    if (!haSettings || !haSettings.baseUrl || !haSettings.accessToken) {
-      throw new Error('NO_CONFIG');
-    }
+      if (!haSettings || !haSettings.baseUrl || !haSettings.accessToken) {
+        throw new Error('NO_CONFIG');
+      }
 
-    // 2. Ejecutar validación viva (LIVE VALIDATION).
-    const testResult = await this.homeAssistantSettingsService.testConnection(haSettings.baseUrl, haSettings.accessToken);
+      const testResult = await this.homeAssistantSettingsService.testConnection(haSettings.baseUrl, haSettings.accessToken);
 
-    await this.activityLogRepository.saveActivity({
-      deviceId: 'system-setup',
-      type: 'ONBOARDING_HA_TESTED',
-      timestamp: new Date().toISOString(),
-      description: 'System Onboarding: Home Assistant connection tested',
-      data: { userId, success: testResult.success, endpoint: haSettings.baseUrl, apiStatus: testResult.status }
-    });
+      await this.activityLogRepository.saveActivity({
+        deviceId: 'system-setup',
+        type: 'ONBOARDING_HA_TESTED',
+        timestamp: new Date().toISOString(),
+        description: 'System Onboarding: Home Assistant connection tested',
+        data: { userId, success: testResult.success, endpoint: haSettings.baseUrl, apiStatus: testResult.status }
+      });
 
-    if (!testResult.success) {
-      if (testResult.status === 'auth_error') throw new Error('AUTH_ERROR');
-      else throw new Error('UNREACHABLE');
+      if (!testResult.success) {
+        if (testResult.status === 'auth_error') throw new Error('AUTH_ERROR');
+        throw new Error('UNREACHABLE');
+      }
     }
 
     // 3. Status is fully verified. Commit local rule to DB.
@@ -107,7 +116,7 @@ export class SystemSetupService {
       type: 'ONBOARDING_COMPLETED',
       timestamp: new Date().toISOString(),
       description: 'System Onboarding Completed Successfully',
-      data: { completedByUserId: userId, result: 'success', homeId: 'local-home' }
+      data: { completedByUserId: userId, result: 'success', homeId: 'local-home', installationProfile: this.installationProfile }
     });
   }
 }

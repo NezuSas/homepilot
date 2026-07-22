@@ -201,6 +201,8 @@ interface SetupStatus {
   hasAdminUser: boolean;
   hasHAConfig: boolean;
   haConnectionValid: boolean;
+  installationProfile: 'bridge_ha' | 'native_only' | 'ha_companion';
+  requiresHomeAssistant: boolean;
 }
 
 function App() {

@@ -248,23 +248,57 @@ Para validar la instalacion desde la miniPC:
 bash scripts/check-edge-install.sh docker-compose.office.yml
 ```
 
-### Instalador de cliente con Home Assistant existente
+### Perfiles de instalación de HomePilot
+
+HomePilot se instala con un perfil explícito. El perfil queda almacenado en `HOMEPILOT_INSTALLATION_PROFILE` y el onboarding aplica solamente los requisitos de dicho perfil.
+
+| Perfil | Cuándo usarlo | Compose | Home Assistant |
+|---|---|---|---|
+| `bridge_ha` | El cliente ya tiene Home Assistant. | `docker-compose.office.yml` | Se conserva y se enlaza mediante token. |
+| `native_only` | El cliente empieza desde cero con integraciones nativas. | `docker-compose.office.yml` | No se instala ni se exige. |
+| `ha_companion` | El cliente solicita expresamente Home Assistant junto a HomePilot. | `docker-compose.yml` | Lo administra ese compose. |
+
+No se debe cambiar de perfil editando un sistema en funcionamiento sin revisar la topología y el `.env`. El instalador falla de forma segura cuando `--profile` no coincide con el perfil ya guardado.
+
+#### Cliente con Home Assistant existente (`bridge_ha`)
 
 El repositorio incluye un compose separado para cliente: `docker-compose.office.yml`. No declara un servicio `homeassistant`; por ello no crea, actualiza ni reemplaza el Home Assistant existente. La preparacion se hace desde la raiz del repositorio en la miniPC:
 
 ```bash
 git pull --ff-only
-bash scripts/install-edge-office.sh --clean --start
+bash scripts/install-edge-office.sh --profile bridge_ha --clean --start
 ```
 
 El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
+
+#### Instalación nativa sin Home Assistant (`native_only`)
+
+Para una miniPC sin Home Assistant, HomePilot queda listo para integrar protocolos locales compatibles desde su propia consola. El onboarding no pedirá URL ni token de Home Assistant:
+
+```bash
+git pull --ff-only
+bash scripts/install-edge-office.sh --profile native_only --clean --start
+```
+
+El script crea `.env` desde `.env.native.example` cuando no existe y usa el mismo compose liviano que no declara un servicio `homeassistant`.
+
+#### Home Assistant opcional administrado por HomePilot (`ha_companion`)
+
+Este perfil debe usarse únicamente cuando el cliente solicita expresamente el companion. Inicia el servicio incluido en `docker-compose.yml` y usa `.env.example`:
+
+```bash
+git pull --ff-only
+bash scripts/install-edge-office.sh --profile ha_companion --clean --start
+```
+
+No se debe seleccionar este perfil sobre una miniPC que ya tiene un Home Assistant de cliente sin revisar antes puertos, datos y la topología existente.
 
 #### Diagnostico operativo con `--status`
 
 La opcion `--status` sirve para revisar una instalacion existente sin modificarla:
 
 ```bash
-bash scripts/install-edge-office.sh --status
+bash scripts/install-edge-office.sh --profile bridge_ha --status
 ```
 
 Esta opcion no limpia Docker, no construye imagenes, no crea archivos y no inicia ni reinicia contenedores. Comprueba:
@@ -273,7 +307,7 @@ Esta opcion no limpia Docker, no construye imagenes, no crea archivos y no inici
 - Puerto host configurado para API, UI, Ollama, STT y TTS, y puerto comprobado para Home Assistant.
 - Healthchecks disponibles para API, STT y TTS.
 - Respuesta HTTP de API, UI, STT y TTS.
-- Conectividad con el Home Assistant existente configurado para el cliente.
+- Conectividad con Home Assistant solo en perfiles que lo requieren; en `native_only` informa que no es necesario.
 
 Si todos los componentes responden correctamente, el script termina con codigo de salida `0`. Si falta un servicio, un healthcheck falla o un endpoint no responde, termina con un codigo distinto de `0`; esto permite usarlo tanto de forma manual como en monitoreo o automatizacion.
 
@@ -293,7 +327,7 @@ El prefijo `bash` solo es necesario cuando el archivo todavia no tiene permiso d
 En miniPCs con disco limitado, Docker puede acumular cache de `buildx`, capas intermedias, imagenes antiguas y contenedores detenidos. Para evitar que cada compilacion deje residuos, el repositorio incluye:
 
 ```bash
-bash scripts/homepilot-maintenance.sh --deploy --yes
+bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
 ```
 
 Ese comando ejecuta un ciclo seguro:
@@ -308,33 +342,34 @@ Ese comando ejecuta un ciclo seguro:
 Por defecto conserva hasta `2GB` de cache util:
 
 ```bash
-bash scripts/homepilot-maintenance.sh --deploy --keep-storage 2GB --yes
+bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --keep-storage 2GB --yes
 ```
 
 Para solo limpiar sin reconstruir:
 
 ```bash
-bash scripts/homepilot-maintenance.sh --clean --yes
+bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --yes
 ```
 
 Para diagnosticar sin modificar nada:
 
 ```bash
-bash scripts/homepilot-maintenance.sh --status
+bash scripts/homepilot-maintenance.sh --profile bridge_ha --status
 ```
 
 El script no ejecuta `docker volume prune` y no borra bases de datos ni volumenes. Si los logs de Docker crecieron demasiado, se puede vaciarlos explicitamente:
 
 ```bash
-bash scripts/homepilot-maintenance.sh --clean --truncate-logs --yes
+bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --truncate-logs --yes
 ```
 
 El comando `--truncate-logs` solo trunca archivos `*-json.log`; no borra contenedores ni datos persistentes.
 
-La plantilla `.env.office.example` contiene todas las variables operativas. Sus campos que deben verificarse por instalacion son:
+Usa la plantilla correspondiente al perfil: `.env.office.example` para `bridge_ha`, `.env.native.example` para `native_only` y `.env.example` para `ha_companion`. Sus campos que deben verificarse por instalación son:
 
 | Variable | Uso |
 |---|---|
+| `HOMEPILOT_INSTALLATION_PROFILE` | Perfil explícito de la instalación: `bridge_ha`, `native_only` o `ha_companion`. |
 | `INTERNAL_HA_URL` | `http://host.docker.internal:8123` si HA esta disponible desde el host de la miniPC. Cambiarla si la topologia del cliente usa otra ruta local. |
 | `VITE_API_URL` | Vacia por defecto: UI, API y WebSocket comparten el origen de HomePilot. Definirla solo para una API publicada por separado; cambiarla exige reconstruir `homepilot-ui`. |
 | `HOMEPILOT_*_PORT` | Puertos publicados; ajustarlos solo si el diagnostico indica conflicto. |

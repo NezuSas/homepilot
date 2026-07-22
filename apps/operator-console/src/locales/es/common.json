@@ -1215,13 +1215,16 @@
       "step": "Paso {{count}}",
       "diagnostics": "Diagnóstico",
       "bridge": "Bridge HA",
+      "native": "Nativo",
       "activation": "Activación"
     },
     "side": {
       "title": "Criterios de entrega",
       "local": "Control local validado antes de abrir el workspace.",
       "secure": "Token protegido y usado solo para enlazar el bridge.",
-      "recoverable": "El sistema puede revalidarse desde configuración si Home Assistant cambia."
+      "recoverable": "El sistema puede revalidarse desde configuración si Home Assistant cambia.",
+      "native_secure": "HomePilot funciona localmente sin requerir un bridge externo.",
+      "native_recoverable": "Las integraciones nativas se agregan y administran desde HomePilot."
     },
     "step1": {
       "title": "Diagnóstico del Sistema",
@@ -1237,7 +1240,9 @@
       "unknown": "Desconocida / Inalcanzable",
       "operator_note_title": "Nota de instalación",
       "operator_note": "La activación requiere un administrador activo. Si Home Assistant aún no está configurado, el siguiente paso prepara el enlace y prueba la conexión en vivo.",
-      "continue": "Continuar a la Integración"
+      "native_operator_note": "La activación requiere un administrador activo. Luego podrás añadir integraciones nativas desde HomePilot.",
+      "continue": "Continuar a la Integración",
+      "native_continue": "Continuar a la Activación"
     },
     "step2": {
       "title": "Home Assistant Core",
@@ -1257,11 +1262,15 @@
     },
     "step3": {
       "kicker": "Bridge confirmado",
+      "native_kicker": "Control nativo confirmado",
       "title": "Sistema Listo",
       "subtitle": "Tu appliance HomePilot está configurado y vinculado de forma segura con tu red de Home Assistant.",
+      "native_subtitle": "Tu appliance HomePilot está listo para incorporar y operar integraciones locales de forma nativa.",
       "next_1": "Importar dispositivos",
+      "native_next_1": "Añadir integraciones",
       "next_2": "Asignar espacios",
       "next_3": "Probar escenas",
+      "native_next_3": "Crear rutinas",
       "complete": "Finalizar Configuración e Iniciar Workspace"
     }
   },

@@ -24,6 +24,8 @@ interface SetupStatus {
   hasAdminUser: boolean;
   hasHAConfig: boolean;
   haConnectionValid: boolean;
+  installationProfile: 'bridge_ha' | 'native_only' | 'ha_companion';
+  requiresHomeAssistant: boolean;
 }
 
 interface OnboardingViewProps {
@@ -47,12 +49,13 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isAdmin = userContext?.role === 'admin';
+  const isNativeOnly = statusProvider?.installationProfile === 'native_only';
   const trimmedHaUrl = haUrl.trim();
   const trimmedHaToken = haToken.trim();
   const canTestConnection = trimmedHaUrl.length > 0 && trimmedHaToken.length > 0 && !testingHA && !loading;
   const progressItems = [
     { index: 1, label: t('onboarding.progress.diagnostics') },
-    { index: 2, label: t('onboarding.progress.bridge') },
+    { index: 2, label: t(isNativeOnly ? 'onboarding.progress.native' : 'onboarding.progress.bridge') },
     { index: 3, label: t('onboarding.progress.activation') }
   ];
   const readinessItems = [
@@ -61,17 +64,19 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
       value: isAdmin ? `${t('onboarding.step1.ok')} (${userContext?.username})` : t('onboarding.step1.missing'),
       status: isAdmin ? 'success' : 'error'
     },
-    {
-      label: t('onboarding.step1.ha_config'),
-      value: statusProvider?.hasHAConfig ? t('onboarding.step1.config_present') : t('onboarding.step1.config_missing'),
-      status: statusProvider?.hasHAConfig ? 'success' : 'warning'
-    },
-    {
-      label: t('onboarding.step1.connection'),
-      value: statusProvider?.haConnectionValid ? t('onboarding.step1.valid') : t('onboarding.step1.unknown'),
-      status: statusProvider?.haConnectionValid ? 'success' : 'warning'
-    }
-  ] as const;
+    ...(!isNativeOnly ? [
+      {
+        label: t('onboarding.step1.ha_config'),
+        value: statusProvider?.hasHAConfig ? t('onboarding.step1.config_present') : t('onboarding.step1.config_missing'),
+        status: statusProvider?.hasHAConfig ? 'success' : 'warning'
+      },
+      {
+        label: t('onboarding.step1.connection'),
+        value: statusProvider?.haConnectionValid ? t('onboarding.step1.valid') : t('onboarding.step1.unknown'),
+        status: statusProvider?.haConnectionValid ? 'success' : 'warning'
+      }
+    ] : [])
+  ];
 
   const handleTestConnection = async () => {
     setTestingHA(true);
@@ -222,17 +227,17 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
 
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                   <p className="hp-type-label-accent">{t('onboarding.step1.operator_note_title')}</p>
-                  <p className="hp-type-body mt-2">{t('onboarding.step1.operator_note')}</p>
+                  <p className="hp-type-body mt-2">{t(isNativeOnly ? 'onboarding.step1.native_operator_note' : 'onboarding.step1.operator_note')}</p>
                 </div>
 
                 <div className="flex justify-end pt-2">
                   <Button
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(isNativeOnly ? 3 : 2)}
                     disabled={!isAdmin}
                     size="md"
                     className="w-full uppercase tracking-label sm:w-auto"
                   >
-                    {t('onboarding.step1.continue')}
+                    {t(isNativeOnly ? 'onboarding.step1.native_continue' : 'onboarding.step1.continue')}
                   </Button>
                 </div>
               </div>
@@ -324,15 +329,19 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
                 <div>
-                  <p className="hp-type-label-accent text-success">{t('onboarding.step3.kicker')}</p>
+                  <p className="hp-type-label-accent text-success">{t(isNativeOnly ? 'onboarding.step3.native_kicker' : 'onboarding.step3.kicker')}</p>
                   <h2 className="mt-2 text-view-title font-bold tracking-tight">{t('onboarding.step3.title')}</h2>
                   <p className="hp-type-body mx-auto mt-2 max-w-lg">
-                    {t('onboarding.step3.subtitle')}
+                    {t(isNativeOnly ? 'onboarding.step3.native_subtitle' : 'onboarding.step3.subtitle')}
                   </p>
                 </div>
 
                 <div className="grid gap-3 text-left sm:grid-cols-3">
-                  {[t('onboarding.step3.next_1'), t('onboarding.step3.next_2'), t('onboarding.step3.next_3')].map(item => (
+                  {[
+                    t(isNativeOnly ? 'onboarding.step3.native_next_1' : 'onboarding.step3.next_1'),
+                    t('onboarding.step3.next_2'),
+                    t(isNativeOnly ? 'onboarding.step3.native_next_3' : 'onboarding.step3.next_3')
+                  ].map(item => (
                     <div key={item} className="rounded-xl border border-border/70 bg-muted/25 p-4 text-micro font-semibold uppercase tracking-control text-muted-foreground">
                       {item}
                     </div>
@@ -356,7 +365,11 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
             <p className="hp-type-label">{t('onboarding.side.title')}</p>
             <div className="mt-4 grid gap-3">
-              {[t('onboarding.side.local'), t('onboarding.side.secure'), t('onboarding.side.recoverable')].map(item => (
+              {[
+                t('onboarding.side.local'),
+                t(isNativeOnly ? 'onboarding.side.native_secure' : 'onboarding.side.secure'),
+                t(isNativeOnly ? 'onboarding.side.native_recoverable' : 'onboarding.side.recoverable')
+              ].map(item => (
                 <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 p-3">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-body-compact text-muted-foreground">{item}</span>

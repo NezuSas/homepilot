@@ -23,7 +23,7 @@ El comando falla si un archivo no se puede asignar a una spec existente.
 | Dominio o superficie | Código principal | Spec primaria |
 |---|---|---|
 | Autenticación, roles y usuarios | `packages/auth`, `AuthRoutes`, `AdminRoutes`, `UsersView` | `auth-rbac-v1-local-edge-security.md`, `user-management-v2-admin-user-administration.md` |
-| Onboarding y primer administrador | `packages/system-setup`, `SystemRoutes`, `FirstAdminSetupView`, `OnboardingView` | `first-run-setup-edge-onboarding-v1.md`, `edge-customer-installation-v1.md` |
+| Onboarding, perfiles de instalación y primer administrador | `packages/system-setup`, `SystemRoutes`, `FirstAdminSetupView`, `OnboardingView`, `getInstallationProfile` | `first-run-setup-edge-onboarding-v1.md`, `edge-customer-installation-v1.md`, `installation-profiles-v1.md` |
 | Topología de hogares y habitaciones | `packages/topology`, `TopologyRoutes`, `TopologyView` | `home-room-management.md` |
 | Dashboards, pestañas, secciones y widgets | `DashboardRoutes`, `DashboardView`, `DashboardsView`, `views/dashboards` | `dashboard-layout-and-widgets-v1.md`, `user-dashboard-navigation.md` |
 | Dispositivos, comandos y estado | `packages/devices`, `DeviceRoutes`, gestor e inbox | `device-command-execution.md`, `device-capabilities-command-validation.md`, `device-state-sync-observability.md` |

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly COMPOSE_FILE="docker-compose.office.yml"
 readonly ENV_FILE=".env"
-readonly ENV_TEMPLATE=".env.office.example"
+profile="bridge_ha"
+compose_file="docker-compose.office.yml"
+env_template=".env.office.example"
+ha_port="8123"
+ha_management_label="existente, preservado"
+requires_home_assistant=true
 
 clean=false
 start=false
@@ -37,6 +41,33 @@ divider() {
   printf '%b\n' "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
 }
 
+configure_profile() {
+  case "$profile" in
+    bridge_ha)
+      compose_file="docker-compose.office.yml"
+      env_template=".env.office.example"
+      ha_port="8123"
+      ha_management_label="existente, preservado"
+      requires_home_assistant=true
+      ;;
+    native_only)
+      compose_file="docker-compose.office.yml"
+      env_template=".env.native.example"
+      ha_port=""
+      ha_management_label="no requerido"
+      requires_home_assistant=false
+      ;;
+    ha_companion)
+      compose_file="docker-compose.yml"
+      env_template=".env.example"
+      ha_port="18123"
+      ha_management_label="companion administrado por este compose"
+      requires_home_assistant=true
+      ;;
+    *) fail "Perfil no válido: ${profile}. Usa bridge_ha, native_only o ha_companion." ;;
+  esac
+}
+
 banner() {
   if [[ -t 1 ]]; then
     clear
@@ -49,7 +80,7 @@ banner() {
   printf '%s\n' '   ██║ ╚████║███████╗███████╗╚██████╔╝'
   printf '%s\n' '   ╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝ '
   printf '%b\n' "${NC}${BOLD}   H O M E P I L O T   E D G E${NC}"
-  printf '%b\n' "${BLUE}   Consola de instalación · Home Assistant existente${NC}"
+  printf '%b\n' "${BLUE}   Consola de instalación · Perfil ${profile}${NC}"
   divider
 }
 
@@ -57,10 +88,12 @@ usage() {
   cat <<'EOF'
 Uso: bash scripts/install-edge-office.sh [opciones]
 
-Prepara HomePilot en una miniPC que ya tiene Home Assistant. Nunca crea,
-detiene ni borra Home Assistant, contenedores existentes, volumenes o datos.
+Prepara HomePilot con un perfil de instalación explícito.
 
 Opciones:
+  --profile PERFIL      bridge_ha (defecto), native_only o ha_companion.
+                       bridge_ha conserva HA existente; native_only no exige HA;
+                       ha_companion inicia el HA incluido en docker-compose.yml.
   --clean              Limpia solamente cache de build e imagenes Docker colgantes.
   --start              Construye e inicia los servicios de HomePilot al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
@@ -204,13 +237,17 @@ show_runtime_status() {
   check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
   check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
   check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
-  check_endpoint "Home Assistant existente · puerto 8123" "http://127.0.0.1:8123/" "200,301,302,401,403"
+  if [[ "$requires_home_assistant" == true ]]; then
+    check_endpoint "Home Assistant · puerto ${ha_port}" "http://127.0.0.1:${ha_port}/" "200,301,302,401,403"
+  else
+    ok "Home Assistant: no requerido por el perfil native_only."
+  fi
 
   if (( runtime_failures == 0 )); then
     ok "Sistema operativo: todos los servicios verificados correctamente."
   else
     warn "Sistema requiere atención: ${runtime_failures} comprobación(es) falló/fallaron."
-    info "Diagnóstico detallado: docker compose -f ${COMPOSE_FILE} logs --tail=100 <servicio>"
+    info "Diagnóstico detallado: docker compose -f ${compose_file} logs --tail=100 <servicio>"
   fi
 }
 
@@ -230,6 +267,11 @@ while [[ $# -gt 0 ]]; do
     --start) start=true ;;
     --status) status_only=true ;;
     --yes) assume_yes=true ;;
+    --profile)
+      shift
+      [[ $# -gt 0 ]] || fail "--profile requiere un perfil."
+      profile="$1"
+      ;;
     --api-url)
       shift
       [[ $# -gt 0 ]] || fail "--api-url necesita una URL."
@@ -245,14 +287,15 @@ if [[ "$status_only" == true && ( "$clean" == true || "$start" == true || -n "$a
   fail "--status no se combina con --clean, --start ni --api-url."
 fi
 
-[[ -f "$COMPOSE_FILE" ]] || fail "Ejecuta el script desde la raiz del repositorio HomePilot."
-[[ -f "$ENV_TEMPLATE" ]] || fail "No existe $ENV_TEMPLATE."
+configure_profile
+[[ -f "$compose_file" ]] || fail "Ejecuta el script desde la raiz del repositorio HomePilot."
+[[ -f "$env_template" ]] || fail "No existe $env_template."
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta disponible para este usuario."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta disponible."
 
 banner
 info "Directorio de instalación: $(pwd)"
-info "Compose de cliente: $COMPOSE_FILE · Home Assistant no se gestiona aquí"
+info "Compose: $compose_file · Home Assistant: $ha_management_label"
 
 if [[ "$status_only" == true ]]; then
   show_runtime_status
@@ -266,20 +309,25 @@ section "Diagnóstico de espacio"
 df -h .
 docker system df || warn "No se pudo consultar el uso de Docker."
 
-section "Home Assistant del cliente · solo lectura"
-ha_container="$(docker ps -a --format '{{.Names}}' | grep -Fx 'homeassistant' || true)"
-if [[ -n "$ha_container" ]]; then
-  ha_status="$(docker inspect --format '{{.State.Status}}' homeassistant 2>/dev/null || true)"
-  ok "Contenedor homeassistant detectado (estado: ${ha_status:-desconocido}). No sera modificado."
-else
-  warn "No se encontro un contenedor llamado homeassistant."
-fi
+if [[ "$requires_home_assistant" == true ]]; then
+  section "Home Assistant · solo lectura"
+  ha_container="$(docker ps -a --format '{{.Names}}' | grep -Fx 'homeassistant' || true)"
+  if [[ -n "$ha_container" ]]; then
+    ha_status="$(docker inspect --format '{{.State.Status}}' homeassistant 2>/dev/null || true)"
+    ok "Contenedor homeassistant detectado (estado: ${ha_status:-desconocido})."
+  else
+    warn "No se encontró un contenedor llamado homeassistant."
+  fi
 
-ha_status_code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 http://127.0.0.1:8123/ || true)"
-if [[ "$ha_status_code" != "000" && -n "$ha_status_code" ]]; then
-  ok "Home Assistant responde en http://127.0.0.1:8123 (HTTP $ha_status_code)."
+  ha_status_code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 "http://127.0.0.1:${ha_port}/" || true)"
+  if [[ "$ha_status_code" != "000" && -n "$ha_status_code" ]]; then
+    ok "Home Assistant responde en http://127.0.0.1:${ha_port} (HTTP $ha_status_code)."
+  else
+    warn "No hubo respuesta HTTP en 127.0.0.1:${ha_port}. Verifica la URL local antes del onboarding."
+  fi
 else
-  warn "No hubo respuesta HTTP en 127.0.0.1:8123. Verifica la URL local antes del onboarding."
+  section "Perfil nativo"
+  ok "No se requiere Home Assistant. Las integraciones se añaden desde HomePilot."
 fi
 
 section "Puertos requeridos por HomePilot"
@@ -309,26 +357,38 @@ section "Configuración de entorno"
 if [[ -f "$ENV_FILE" ]]; then
   ok ".env ya existe y se conserva sin cambios."
 else
-  cp "$ENV_TEMPLATE" "$ENV_FILE"
+  cp "$env_template" "$ENV_FILE"
   if [[ -n "$api_url" ]]; then
     sed -i "s#^VITE_API_URL=.*#VITE_API_URL=${api_url}#" "$ENV_FILE"
   fi
-  ok ".env creado desde $ENV_TEMPLATE."
+  ok ".env creado desde $env_template."
 fi
 
-grep -q '^INTERNAL_HA_URL=http://host.docker.internal:8123$' "$ENV_FILE" \
-  && ok "INTERNAL_HA_URL apunta al Home Assistant existente del host." \
-  || warn "Revisa INTERNAL_HA_URL en .env para que apunte al Home Assistant real del cliente."
+configured_profile="$(env_value HOMEPILOT_INSTALLATION_PROFILE '')"
+if [[ "$configured_profile" != "$profile" ]]; then
+  fail ".env declara ${configured_profile:-ningún perfil}; ajusta HOMEPILOT_INSTALLATION_PROFILE=${profile} antes de continuar."
+fi
+ok "Perfil de instalación configurado: ${profile}."
+
+if [[ "$profile" == bridge_ha ]]; then
+  grep -q '^INTERNAL_HA_URL=http://host.docker.internal:8123$' "$ENV_FILE" \
+    && ok "INTERNAL_HA_URL apunta al Home Assistant existente del host." \
+    || warn "Revisa INTERNAL_HA_URL en .env para que apunte al Home Assistant real del cliente."
+fi
 
 mkdir -p data backups
-docker compose -f "$COMPOSE_FILE" config --quiet
-ok "Compose de cliente valido: no declara un servicio Home Assistant."
+docker compose -f "$compose_file" config --quiet
+if [[ "$profile" == ha_companion ]]; then
+  ok "Compose companion válido: administra Home Assistant junto a HomePilot."
+else
+  ok "Compose válido: no declara un servicio Home Assistant."
+fi
 
 if [[ "$start" == true ]]; then
   section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
-    docker compose -f "$COMPOSE_FILE" up --build -d
-    docker compose -f "$COMPOSE_FILE" ps
+    docker compose -f "$compose_file" up --build -d
+    docker compose -f "$compose_file" ps
     if ! wait_for_runtime_ready; then
       startup_failed=true
     fi
@@ -344,9 +404,13 @@ ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
 api_port="$(env_value HOMEPILOT_API_PORT 3000)"
 printf '%b\n' "${BOLD}  HomePilot UI${NC}       http://127.0.0.1:${ui_port}"
 printf '%b\n' "${BOLD}  HomePilot API${NC}      http://127.0.0.1:${api_port}/health"
-printf '%b\n' "${BOLD}  Home Assistant${NC}     http://127.0.0.1:8123 ${DIM}(existente, preservado)${NC}"
-printf '%b\n' "${BOLD}  Compose${NC}            ${COMPOSE_FILE} ${DIM}(sin servicio homeassistant)${NC}"
-printf '%b\n' "${DIM}  Inicio manual: docker compose -f ${COMPOSE_FILE} up --build -d${NC}"
+if [[ "$requires_home_assistant" == true ]]; then
+  printf '%b\n' "${BOLD}  Home Assistant${NC}     http://127.0.0.1:${ha_port} ${DIM}(${ha_management_label})${NC}"
+else
+  printf '%b\n' "${BOLD}  Home Assistant${NC}     ${DIM}(no requerido por native_only)${NC}"
+fi
+printf '%b\n' "${BOLD}  Compose${NC}            ${compose_file} ${DIM}(${profile})${NC}"
+printf '%b\n' "${DIM}  Inicio manual: docker compose -f ${compose_file} up --build -d${NC}"
 divider
 
 if [[ "$start" == true && ( "$startup_failed" == true || "$runtime_failures" -gt 0 ) ]]; then
