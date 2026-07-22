@@ -13,7 +13,7 @@ Extiende atributos nativos de `input`, con variantes visuales comunes. `containe
 
 ## Uso
 
-Usar con label accesible, placeholder traducido y estado de error explicado fuera o junto al campo. Se aplica a campos generales de texto, contraseña, identidad, onboarding, nombres de hogar/estancia y escenas. `SearchInput` se usa para búsquedas modulares simples. No reemplaza rangos, archivos, áreas de texto, radios ni entradas especializadas del dominio.
+Usar con label accesible, placeholder traducido y estado de error explicado fuera o junto al campo. Se aplica a campos generales de texto, contraseña, identidad, onboarding, nombres de hogar/estancia y escenas. `SearchInput` se usa para búsquedas modulares simples. No reemplaza rangos, archivos, áreas de texto, radios ni entradas especializadas del dominio. Cuando comparte una fila con una acción primaria, usar `Button size="md"` o `IconButton` con `h-10 w-10`, para conservar la altura base de `h-10` del campo.
 
 ## Estados y aceptación
 

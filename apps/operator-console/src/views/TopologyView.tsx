@@ -6,6 +6,8 @@ import { apiFetch, readApiError } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
 import { Input, SearchInput } from '../components/ui/Input';
 
 interface Home {
@@ -369,15 +371,15 @@ export const TopologyView: React.FC = () => {
               onKeyDown={(event) => { if (event.key === 'Enter') void handleAddHome(); }}
               className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
             />
-            <button
-              type="button"
+            <IconButton
+              icon={isCreatingHome ? Loader2 : Plus}
+              label={t('topology.add_home')}
               onClick={() => { void handleAddHome(); }}
               disabled={isCreatingHome || !newHomeName.trim()}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-              title={t('topology.add_home')}
-            >
-              {isCreatingHome ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            </button>
+              variant="primary"
+              size="md"
+              className={cn('h-10 w-10', isCreatingHome && '[&_svg]:animate-spin')}
+            />
           </div>
         </div>
         
@@ -505,13 +507,15 @@ export const TopologyView: React.FC = () => {
                   className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
                 />
-                <button 
+                <Button
                   onClick={handleAddRoom}
                   disabled={isCreatingRoom || !newRoomName.trim()}
-                  className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-caption font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
+                  isLoading={isCreatingRoom}
+                  size="md"
+                  className="shrink-0"
                 >
-                  {isCreatingRoom ? <Loader2 className="w-3 h-3 animate-spin" /> : t('topology.add_room')}
-                </button>
+                  {t('topology.add_room')}
+                </Button>
               </div>
             </div>
 
@@ -609,23 +613,24 @@ export const TopologyView: React.FC = () => {
                                 onChange={(event) => setRoomNameDraft(event.target.value)}
                                 aria-label={t('topology.rename_room_title')}
                               />
-                              <button
+                              <IconButton
+                                icon={isRenamingRoom ? Loader2 : CheckCircle2}
+                                label={t('topology.rename_room_save')}
                                 type="submit"
                                 disabled={isRenamingRoom || !roomNameDraft.trim()}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-50"
-                                title={t('topology.rename_room_save')}
-                              >
-                                {isRenamingRoom ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                              </button>
-                              <button
-                                type="button"
+                                variant="primary"
+                                size="md"
+                                className={cn('h-10 w-10', isRenamingRoom && '[&_svg]:animate-spin')}
+                              />
+                              <IconButton
+                                icon={X}
+                                label={t('common.cancel')}
                                 onClick={cancelRoomRename}
                                 disabled={isRenamingRoom}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground disabled:opacity-50"
-                                title={t('common.cancel')}
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
+                                variant="default"
+                                size="md"
+                                className="h-10 w-10"
+                              />
                             </form>
                           ) : (
                             <div className="mt-1 flex items-center gap-2">

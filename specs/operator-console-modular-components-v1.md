@@ -31,6 +31,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-05:** Componentes de navegación deben conservar etiquetas legibles, área táctil suficiente y colapsado usable en móvil/tablet/escritorio.
 - **REQ-06:** Texto visible, labels, títulos, estados, placeholders y mensajes deben resolverse mediante i18n ES/EN o datos de dominio ya traducidos.
 - **REQ-07:** Una tarjeta genérica solo debe presentar controles soportados por las capacidades entregadas por su dominio.
+- **REQ-08:** Una fila que combine un `Input` y una acción primaria debe usar primitivas modulares y conservar una altura visual común.
 
 ## 5. Requisitos No Funcionales
 
@@ -60,6 +61,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC4: Los modales tienen contenido desplazable y acciones visibles dentro del viewport de la aplicación.
 - [x] AC5: Cada estado de error, vacío o carga conserva accesibilidad y traducción ES/EN.
 - [x] AC6: Las vistas usan el selector modular único `SearchableSelectField` para toda opción de negocio; el buscador está siempre disponible.
+- [x] AC7: Las filas de creación y renombrado de hogares o estancias alinean inputs y acciones con la altura base del design system.
 
 ## 8. Notas Técnicas y Arquitectura
 

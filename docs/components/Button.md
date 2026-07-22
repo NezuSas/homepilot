@@ -9,7 +9,7 @@ Acción textual principal, secundaria, neutra o destructiva. Se usa para confirm
 
 ## Contrato
 
-`ButtonProps` extiende atributos nativos de botón y añade `variant`, `size` e `isLoading`. `isLoading` deshabilita la acción y muestra el indicador sin cambiar su tamaño.
+`ButtonProps` extiende atributos nativos de botón y añade `variant`, `size` e `isLoading`. `isLoading` deshabilita la acción y muestra el indicador sin cambiar su tamaño. `size="md"` comparte la altura base `h-10` de `Input` para acciones textuales en línea.
 
 ## Uso
 
