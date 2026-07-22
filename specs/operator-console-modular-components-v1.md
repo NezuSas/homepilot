@@ -32,6 +32,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-06:** Texto visible, labels, títulos, estados, placeholders y mensajes deben resolverse mediante i18n ES/EN o datos de dominio ya traducidos.
 - **REQ-07:** Una tarjeta genérica solo debe presentar controles soportados por las capacidades entregadas por su dominio.
 - **REQ-08:** Una fila que combine un `Input` y una acción primaria debe usar primitivas modulares y conservar una altura visual común.
+- **REQ-09:** Cada clave literal de traducción usada por la consola existe en ambos catálogos ES/EN; las etiquetas de tipos de dispositivo se presentan traducidas y no como valores técnicos de dominio.
 
 ## 5. Requisitos No Funcionales
 
@@ -62,6 +63,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC5: Cada estado de error, vacío o carga conserva accesibilidad y traducción ES/EN.
 - [x] AC6: Las vistas usan el selector modular único `SearchableSelectField` para toda opción de negocio; el buscador está siempre disponible.
 - [x] AC7: Las filas de creación y renombrado de hogares o estancias alinean inputs y acciones con la altura base del design system.
+- [x] AC8: `npm run check:i18n` valida paridad ES/EN y referencias literales de i18n en la consola antes de una entrega.
 
 ## 8. Notas Técnicas y Arquitectura
 

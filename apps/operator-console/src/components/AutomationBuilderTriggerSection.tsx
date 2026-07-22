@@ -45,7 +45,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
         onChange={onTriggerTypeChange}
         options={[
           { value: 'device_state_changed', label: t('automations.builder.properties.state'), icon: Zap },
-          { value: 'time', label: t('common.time', { defaultValue: 'Time' }), icon: Clock },
+          { value: 'time', label: t('common.time'), icon: Clock },
         ]}
       />
 

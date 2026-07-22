@@ -37,13 +37,13 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
       });
 
       if (!resp.ok) {
-        throw new Error(t('login.error_credentials', { defaultValue: 'Invalid credentials' }));
+        throw new Error(t('login.error_credentials'));
       }
 
       const data = await resp.json() as LoginResponse;
       onLoginSuccess(data.token, data.user);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : t('login.error_failed', { defaultValue: 'Login failed. Please verify your credentials.' }));
+      setError(error instanceof Error ? error.message : t('login.error_failed'));
     } finally {
       setLoading(false);
     }

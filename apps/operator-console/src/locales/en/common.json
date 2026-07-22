@@ -193,6 +193,7 @@
     }
   },
   "dashboard": {
+    "scene_no_devices": "No devices are available for this scene.",
     "home_label": "My home",
     "greeting_morning": "Good morning, {{name}}",
     "greeting_afternoon": "Good afternoon, {{name}}",
@@ -512,7 +513,8 @@
       "save_button": "Save Changes",
       "active_source": "Configuration Source",
       "last_checked": "Last Verification",
-      "error_title": "Loading Error"
+      "error_title": "Loading Error",
+      "error": "Home Assistant connection could not be verified."
     },
     "config": {
       "title": "Link Parameters",
@@ -542,6 +544,7 @@
     }
   },
   "diagnostics": {
+    "timeline": "Timeline",
     "loading": "Gathering diagnostics heartbeat...",
     "error_loading": "Failed to load diagnostics",
     "system_status": "System Status: {{status}}",
@@ -621,6 +624,7 @@
     "subtitle": "Premium Local Control",
     "toggle_sidebar": "Show or hide menu",
     "status": {
+      "live": "Live",
       "online": "System Online",
       "stable": "System stable",
       "syncing": "Synchronizing system",
@@ -630,7 +634,9 @@
     },
     "tooltips": {
       "switch_language": "Switch Language",
-      "change_password": "Change password"
+      "change_password": "Change password",
+      "light_mode": "Light mode",
+      "dark_mode": "Dark mode"
     }
   },
   "inbox": {
@@ -718,6 +724,7 @@
       "cluster_info": "Structural identifier of the hardware cluster assigned to this home in the Edge."
     },
     "discovery": {
+      "search_placeholder": "Search entities by name...",
       "title": "Manual Discovery",
       "discover_hint": "Search for compatible entities in Home Assistant",
       "discover_button": "Discover Entities",
@@ -757,9 +764,14 @@
     "placeholder": "Room name...",
     "creating": "Creating...",
     "no_homes": "No homes registered.",
+    "room_details": "Room details",
+    "delete_room": "Delete room",
+    "delete_room_title": "Delete room?",
+    "delete_room_description": "Only the room will be removed. Assigned devices will remain unassigned in HomePilot and can be placed again later.",
     "no_rooms": "No rooms associated with this environment.",
     "select_home": "Select a home to manage its spaces.",
     "select_home_hint": "No Home Selected",
+    "select_room_hint": "Select a room",
     "room_select": "Select Room",
     "rename_room": "Rename room",
     "rename_room_title": "Edit name",
@@ -786,6 +798,10 @@
   "automations": {
     "add_favorite": "Add to favorites",
     "remove_favorite": "Remove from favorites",
+    "title": "Automations",
+    "rule_updated": "Automation updated",
+    "update_button": "Update automation",
+    "save_button": "Save automation",
     "header": {
       "title": "Automations",
       "subtitle": "{{count}} Active Intelligence Rules • Local Execution"
@@ -828,7 +844,17 @@
       "device_label": "Device:",
       "target_label": "Target:",
       "target_device": "Target Device",
-      "source_device": "Source Device"
+      "source_device": "Source Device",
+      "trigger_config": "Trigger configuration",
+      "value_label": "Value",
+      "action_result": "Action result",
+      "select_target": "Select target...",
+      "command": "Command"
+    },
+    "rule": {
+      "inactive": "Inactive",
+      "if_trigger": "If this happens",
+      "then_action": "Then run"
     },
     "summary": {
       "at_time": "At {{time}}",
@@ -1157,7 +1183,9 @@
       "display_name": "Display Name",
       "display_name_hint": "If left empty, your username will be displayed.",
       "username_label": "Username",
-      "role_label": "Role"
+      "role_label": "Role",
+      "zoom": "Zoom",
+      "adjust": "Drag to adjust"
     }
   },
   "login": {
@@ -1484,6 +1512,7 @@
       "action_hide": "Hide"
     },
     "editor": {
+      "visibility_hint": "Select which users can see this view in navigation.",
       "widget_management": "Widget Management",
       "add_device_control": "Device",
       "add_room_overview": "Room",
@@ -1536,6 +1565,12 @@
     "back": "Back",
     "save": "Save",
     "cancel": "Cancel",
+    "close": "Close",
+    "hide": "Hide",
+    "time": "Time",
+    "coming_soon": "Coming soon",
+    "error_invalid_response_shape": "The system response has an invalid format.",
+    "device_unavailable_hint": "This device is unavailable. You can refresh it, remove the local import, or wait for it to appear again.",
     "delete": "Delete",
     "confirm": "Confirm",
     "continue": "Continue",
@@ -1612,6 +1647,7 @@
       "fetch_failed": "Failed to fetch data"
     },
     "cover": {
+      "position": "Blind position",
       "open": "Open",
       "closed": "Closed",
       "opening": "Opening",

@@ -193,6 +193,7 @@
     }
   },
   "dashboard": {
+    "scene_no_devices": "No hay dispositivos disponibles para esta escena.",
     "home_label": "Mi hogar",
     "greeting_morning": "Buenos días, {{name}}",
     "greeting_afternoon": "Buenas tardes, {{name}}",
@@ -512,7 +513,8 @@
       "save_button": "Guardar Cambios",
       "active_source": "Origen de Configuración",
       "last_checked": "Última Verificación",
-      "error_title": "Error de Carga"
+      "error_title": "Error de Carga",
+      "error": "No se pudo comprobar la conexión con Home Assistant."
     },
     "config": {
       "title": "Parámetros de Enlace",
@@ -542,6 +544,7 @@
     }
   },
   "diagnostics": {
+    "timeline": "Línea de tiempo",
     "loading": "Recuperando pulso de diagnósticos...",
     "error_loading": "Error al cargar diagnósticos",
     "system_status": "Estado del Sistema: {{status}}",
@@ -621,6 +624,7 @@
     "subtitle": "Control Local Premium",
     "toggle_sidebar": "Mostrar u ocultar menú",
     "status": {
+      "live": "En vivo",
       "online": "Sistema en línea",
       "stable": "Sistema estable",
       "syncing": "Sincronizando sistema",
@@ -630,7 +634,9 @@
     },
     "tooltips": {
       "switch_language": "Cambiar Idioma",
-      "change_password": "Cambiar contraseña"
+      "change_password": "Cambiar contraseña",
+      "light_mode": "Modo claro",
+      "dark_mode": "Modo oscuro"
     }
   },
   "inbox": {
@@ -718,6 +724,7 @@
       "cluster_info": "Identificador estructural del clúster de hardware asignado a este hogar en el Edge."
     },
     "discovery": {
+      "search_placeholder": "Buscar entidades por nombre...",
       "title": "Descubrimiento Manual",
       "discover_hint": "Buscar entidades compatibles en Home Assistant",
       "discover_button": "Descubrir Entidades",
@@ -757,9 +764,14 @@
     "placeholder": "Nombre de la estancia...",
     "creating": "Creando...",
     "no_homes": "No hay hogares registrados.",
+    "room_details": "Detalle de la estancia",
+    "delete_room": "Eliminar estancia",
+    "delete_room_title": "¿Eliminar estancia?",
+    "delete_room_description": "Solo se eliminará la estancia. Los dispositivos asignados permanecerán sin asignar en HomePilot y podrás ubicarlos nuevamente después.",
     "no_rooms": "No hay estancias asociadas a este entorno.",
     "select_home": "Por favor, selecciona un hogar a la izquierda para gestionar sus estancias.",
     "select_home_hint": "Sin Hogar Seleccionado",
+    "select_room_hint": "Selecciona una estancia",
     "room_select": "Seleccionar Estancia",
     "rename_room": "Renombrar estancia",
     "rename_room_title": "Editar nombre",
@@ -786,6 +798,10 @@
   "automations": {
     "add_favorite": "Añadir a favoritas",
     "remove_favorite": "Quitar de favoritas",
+    "title": "Automatizaciones",
+    "rule_updated": "Automatización actualizada",
+    "update_button": "Actualizar automatización",
+    "save_button": "Guardar automatización",
     "header": {
       "title": "Automatizaciones",
       "subtitle": "{{count}} Reglas de Inteligencia Activas • Ejecución Local"
@@ -828,7 +844,17 @@
       "device_label": "Dispositivo:",
       "target_label": "Objetivo:",
       "target_device": "Dispositivo Objetivo",
-      "source_device": "Dispositivo de Origen"
+      "source_device": "Dispositivo de Origen",
+      "trigger_config": "Configuración del disparador",
+      "value_label": "Valor",
+      "action_result": "Resultado de la acción",
+      "select_target": "Seleccionar objetivo...",
+      "command": "Comando"
+    },
+    "rule": {
+      "inactive": "Inactiva",
+      "if_trigger": "Si se cumple",
+      "then_action": "Entonces ejecutar"
     },
     "summary": {
       "at_time": "A las {{time}}",
@@ -1157,7 +1183,9 @@
       "display_name": "Nombre a Mostrar",
       "display_name_hint": "Si lo dejas vacío, se mostrará tu nombre de usuario.",
       "username_label": "Usuario",
-      "role_label": "Rol"
+      "role_label": "Rol",
+      "zoom": "Zoom",
+      "adjust": "Arrastra para ajustar"
     }
   },
   "login": {
@@ -1484,6 +1512,7 @@
       "action_hide": "Ocultar"
     },
     "editor": {
+      "visibility_hint": "Selecciona qué usuarios pueden ver esta vista en la navegación.",
       "widget_management": "Gestión de Widgets",
       "add_device_control": "Dispositivo",
       "add_room_overview": "Habitación",
@@ -1536,6 +1565,12 @@
     "back": "Volver",
     "save": "Guardar",
     "cancel": "Cancelar",
+    "close": "Cerrar",
+    "hide": "Ocultar",
+    "time": "Hora",
+    "coming_soon": "Próximamente",
+    "error_invalid_response_shape": "La respuesta del sistema tiene un formato no válido.",
+    "device_unavailable_hint": "Este dispositivo no está disponible. Puedes actualizarlo, eliminar la importación local o esperar a que vuelva a aparecer.",
     "delete": "Eliminar",
     "confirm": "Confirmar",
     "continue": "Continuar",
@@ -1612,6 +1647,7 @@
       "fetch_failed": "Error al recuperar datos"
     },
     "cover": {
+      "position": "Posición de la persiana",
       "open": "Abierta",
       "closed": "Cerrada",
       "opening": "Abriendo",

@@ -46,6 +46,10 @@ const isLightDevice = (device: Device): boolean => (
   device.semanticType?.toLowerCase() === 'light' || device.type.toLowerCase() === 'light'
 );
 
+const getDeviceTypeTranslationKey = (device: Device) => (
+  device.semanticType?.toLowerCase() || device.type.toLowerCase()
+);
+
 export const TopologyView: React.FC = () => {
   const { t } = useTranslation();
   const [homes, setHomes] = useState<Home[]>([]);
@@ -586,7 +590,7 @@ export const TopologyView: React.FC = () => {
                               <div className="min-w-0 flex-1">
                                 <span className="block truncate font-semibold text-foreground">{room.name}</span>
                                 <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
-                                  {t('topology.room_device_count', { count: roomDevices.length, defaultValue: `${roomDevices.length} devices` })}
+                                  {t('topology.room_device_count', { count: roomDevices.length })}
                                 </span>
                               </div>
                               {isRoomSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
@@ -600,7 +604,7 @@ export const TopologyView: React.FC = () => {
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
-                            {t('topology.room_details', { defaultValue: 'Room details' })}
+                            {t('topology.room_details')}
                           </p>
                           {selectedRoom && editingRoomId === selectedRoom.id ? (
                             <form className="mt-2 flex items-center gap-2" onSubmit={handleRenameRoom}>
@@ -635,7 +639,7 @@ export const TopologyView: React.FC = () => {
                           ) : (
                             <div className="mt-1 flex items-center gap-2">
                               <h4 className="min-w-0 truncate text-section-title font-black tracking-tight text-foreground">
-                                {selectedRoom?.name || t('topology.select_room_hint', { defaultValue: 'Select a room' })}
+                                {selectedRoom?.name || t('topology.select_room_hint')}
                               </h4>
                               {selectedRoom && (
                                 <button
@@ -708,7 +712,9 @@ export const TopologyView: React.FC = () => {
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="truncate text-body font-bold text-foreground">{device.name}</p>
-                                    <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">{device.type}</p>
+                                    <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
+                                      {t(`device_types.${getDeviceTypeTranslationKey(device)}`, { defaultValue: t('device_types.none') })}
+                                    </p>
                                   </div>
                                   <span className={cn(
                                     "shrink-0 rounded-full px-2 py-1 text-micro font-black uppercase tracking-widest",
@@ -749,7 +755,7 @@ export const TopologyView: React.FC = () => {
                           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-micro font-black uppercase tracking-widest text-danger transition-all hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
-                          {t('topology.delete_room', { defaultValue: 'Delete room' })}
+                          {t('topology.delete_room')}
                         </button>
                       )}
                     </aside>}
@@ -763,7 +769,7 @@ export const TopologyView: React.FC = () => {
             <div className="p-4 bg-muted rounded-full mb-4 opacity-50">
               <HomeIcon className="w-8 h-8" />
             </div>
-            <p className="text-body font-medium text-foreground">{t('topology.select_home_hint', { defaultValue: 'No Home Selected' })}</p>
+            <p className="text-body font-medium text-foreground">{t('topology.select_home_hint')}</p>
             <p className="text-caption mt-1.5 opacity-80 max-w-xs text-center">{t('topology.select_home')}</p>
           </div>
         )}
@@ -775,10 +781,8 @@ export const TopologyView: React.FC = () => {
           if (!isDeletingRoom) setRoomPendingDelete(null);
         }}
         onConfirm={handleDeleteRoom}
-        title={t('topology.delete_room_title', { defaultValue: 'Delete room?' })}
-        description={t('topology.delete_room_description', {
-          defaultValue: 'This removes the room only. Assigned devices will remain in HomePilot as unassigned and can be placed again later.',
-        })}
+        title={t('topology.delete_room_title')}
+        description={t('topology.delete_room_description')}
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
         variant="danger"
