@@ -2,7 +2,9 @@ import React from 'react';
 import { Clock, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
+import { SegmentedControl } from './ui/SegmentedControl';
 import { humanize } from '../lib/naming-utils';
 import type { AutomationBuilderDevice, AutomationTriggerConfig } from './AutomationBuilderTypes';
 
@@ -37,32 +39,15 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
         <label className="hp-type-label">{t('automations.builder.trigger_subtitle')}</label>
       </div>
 
-      <div className="flex gap-2 rounded-2xl border border-border/55 bg-background/75 p-1.5 shadow-inner">
-        <button
-          type="button"
-          onClick={() => onTriggerTypeChange('device_state_changed')}
-          className={cn(
-            "hp-type-control flex flex-1 items-center justify-center gap-2 rounded-xl py-2 transition-all",
-            triggerType === 'device_state_changed'
-              ? "bg-primary text-primary-foreground shadow-primary-soft"
-              : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-          )}
-        >
-          <Zap className="w-3 h-3" /> {t('automations.builder.properties.state')}
-        </button>
-        <button
-          type="button"
-          onClick={() => onTriggerTypeChange('time')}
-          className={cn(
-            "hp-type-control flex flex-1 items-center justify-center gap-2 rounded-xl py-2 transition-all",
-            triggerType === 'time'
-              ? "bg-primary text-primary-foreground shadow-primary-soft"
-              : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-          )}
-        >
-          <Clock className="w-3 h-3" /> {t('common.time', { defaultValue: 'Time' })}
-        </button>
-      </div>
+      <SegmentedControl
+        value={triggerType}
+        tone="primary"
+        onChange={onTriggerTypeChange}
+        options={[
+          { value: 'device_state_changed', label: t('automations.builder.properties.state'), icon: Zap },
+          { value: 'time', label: t('common.time', { defaultValue: 'Time' }), icon: Clock },
+        ]}
+      />
 
       {triggerType === 'device_state_changed' ? (
         <div className="space-y-4 animate-in fade-in duration-300">
@@ -90,12 +75,11 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
             </div>
             <div className="space-y-2 col-span-2">
               <label className="hp-type-label ml-1">{t('automations.form.expected_value')}</label>
-              <input
-                type="text"
+              <Input
                 value={triggerConfig.expectedValue || ''}
                 onChange={(event) => onTriggerConfigChange({ ...triggerConfig, expectedValue: event.target.value })}
                 placeholder={t('automations.builder.placeholders.expected_value')}
-                className="hp-type-field h-11 w-full translate-y-[1px] rounded-xl border border-border/55 bg-background/80 px-4 outline-none transition-all placeholder:text-muted-foreground/40 focus:border-primary/55 focus:bg-card focus:shadow-primary-focus"
+                className="hp-type-field h-11 translate-y-[1px] rounded-xl border-border/55 bg-background/80 px-4 focus-visible:border-primary/55 focus-visible:bg-card focus-visible:shadow-primary-focus"
               />
             </div>
           </div>

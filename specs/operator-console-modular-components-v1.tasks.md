@@ -13,6 +13,7 @@
 - [x] Consolidación de las acciones e input en línea de la navegación de tableros con `Button`, `IconButton` e `Input`, incluyendo etiquetas accesibles traducidas para confirmar y cancelar.
 - [x] Consolidación de acciones e inputs de la configuración de vistas de tableros con `Button`, `IconButton` e `Input`; los controles de rango, archivo, selección de visibilidad y pestañas conservan su semántica especializada.
 - [x] Consolidación de acciones compactas del inspector de dispositivos con `Button` e `IconButton`; el switch de inversión de cortinas conserva su semántica de control especializado.
+- [x] Consolidación del selector de disparador y campo de valor esperado del constructor de automatizaciones con `SegmentedControl` e `Input`; el selector múltiple de días mantiene su interacción especializada.
 
 ## Verificación obligatoria ante cambios
 
