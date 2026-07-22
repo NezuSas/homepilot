@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { IconButton } from './ui/IconButton';
 
 interface SceneAction {
   deviceId: string;
@@ -105,29 +106,36 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         </div>
       </div>
 
-      <button
+      <IconButton
+        icon={Heart}
+        label={t(isFavorite ? 'scenes.remove_favorite' : 'scenes.add_favorite')}
         onClick={(event) => onToggleFavorite(scene.id, event)}
+        variant={isFavorite ? 'danger' : 'ghost'}
+        size="md"
         className={cn(
-          'absolute right-4 top-4 z-20 rounded-full p-2.5 transition-all duration-300 sm:right-6 sm:top-6 sm:p-3 lg:right-8 lg:top-8',
-          isFavorite ? 'text-danger bg-danger/10 shadow-lg shadow-danger/20' : 'text-muted-foreground/40 hover:bg-muted hover:text-danger'
+          'absolute right-4 top-4 z-20 rounded-full transition-all duration-300 sm:right-6 sm:top-6 lg:right-8 lg:top-8',
+          isFavorite ? 'shadow-lg shadow-danger/20' : 'text-muted-foreground/40 hover:text-danger',
+          isFavorite && '[&_svg]:fill-current'
         )}
-      >
-        <Heart className={cn('w-5 h-5', isFavorite && 'fill-current')} />
-      </button>
+      />
 
       <div className="absolute bottom-4 right-4 z-20 flex gap-2 transition-all sm:bottom-6 sm:right-6 lg:right-8">
-        <button
+        <IconButton
+          icon={Edit2}
+          label={t('common.edit')}
           onClick={(event) => onEdit(scene, event)}
-          className="p-3 bg-muted/40 hover:bg-muted border border-border/40 rounded-2xl hover:text-primary transition-all"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
-        <button
+          variant="default"
+          size="md"
+          className="rounded-2xl bg-muted/40 hover:text-primary"
+        />
+        <IconButton
+          icon={Trash2}
+          label={t('common.delete')}
           onClick={(event) => onDelete(scene.id, event)}
-          className="p-3 bg-muted/40 hover:bg-muted border border-border/40 rounded-2xl hover:text-destructive transition-all"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+          variant="danger"
+          size="md"
+          className="rounded-2xl"
+        />
       </div>
     </div>
   );

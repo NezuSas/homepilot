@@ -475,6 +475,8 @@
       "available": "{{count}} Escenas Disponibles"
     },
     "favorites": "Entornos Favoritos",
+    "add_favorite": "Añadir a favoritas",
+    "remove_favorite": "Quitar de favoritas",
     "recents": "Historial de Comandos",
     "all_scenes": "Todas las Escenas del Sistema",
     "point_count_one": "1 Punto",

@@ -475,6 +475,8 @@
       "available": "{{count}} Scenes Available"
     },
     "favorites": "Favorite Environments",
+    "add_favorite": "Add to favorites",
+    "remove_favorite": "Remove from favorites",
     "recents": "Command History",
     "all_scenes": "All System Scenes",
     "point_count_one": "1 Point",
