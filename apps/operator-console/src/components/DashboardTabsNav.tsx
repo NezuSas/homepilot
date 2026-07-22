@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
 import { InlineTabCreator } from './InlineTabCreator';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../views/dashboards/components/IconPicker';
 
 interface DashboardTabsNavProps {
@@ -77,15 +79,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
     <div className="border-b border-border/60">
       <div className="flex min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
         {onOpenMobileMenu && (
-          <button
-            type="button"
-            onClick={onOpenMobileMenu}
-            className="mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/80 text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary lg:hidden"
-            aria-label={t('shell.toggle_sidebar')}
-            title={t('shell.toggle_sidebar')}
-          >
-            <Icons.Menu className="h-5 w-5" />
-          </button>
+          <IconButton icon={Icons.Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/80 shadow-sm backdrop-blur-md lg:hidden" />
         )}
         {tabs.map((tab, index) => {
           const Icon = getTabIcon(tab, index);
@@ -106,44 +100,37 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   <span className="truncate">{tab.title}</span>
                 </button>
               {isEditing && (
-                <button
-                  type="button"
+                <IconButton
+                  icon={Icons.Pencil}
+                  label={`${configureLabel}: ${tab.title}`}
                   onClick={() => {
                     onSelectTab(index);
                     onConfigureTab(index);
                   }}
-                  className={cn(
-                    "mr-1 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-muted hover:text-primary",
-                    isActive && "bg-primary/15 text-primary"
-                  )}
-                  aria-label={`${configureLabel}: ${tab.title}`}
-                  title={configureLabel}
-                >
-                  <Icons.Pencil className="h-4 w-4" />
-                </button>
+                  variant="ghost"
+                  size="md"
+                  className={cn("mr-1 rounded-full", isActive && "bg-primary/15 text-primary")}
+                />
               )}
             </div>
           );
         })}
         {isAddingTab && (
-          <InlineTabCreator placeholder={placeholder} onConfirm={onAddTab} onCancel={onCancelAddingTab} />
+          <InlineTabCreator placeholder={placeholder} confirmLabel={t('common.confirm')} cancelLabel={t('common.cancel')} onConfirm={onAddTab} onCancel={onCancelAddingTab} />
         )}
         {!isAddingTab && onStartAddingTab && (
-          <button
+          <Button
             type="button"
             onClick={onStartAddingTab}
-            className={cn(
-              "ml-1 flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-3 text-caption font-semibold tracking-tight normal-case transition-colors",
-              isEditing
-                ? "border-primary/30 bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
-                : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
+            variant={isEditing ? 'primary' : 'secondary'}
+            size="sm"
+            className="ml-1 shrink-0 rounded-full"
             title={addLabel}
             aria-label={addLabel}
           >
             <Icons.Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{addLabel}</span>
-          </button>
+          </Button>
         )}
         
         {/* Fill available space to push the edit button to the right */}
@@ -151,15 +138,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
 
         {/* Edit Button (HA Style) when not editing */}
         {!isEditing && onToggleEditing && (
-          <button
-            type="button"
-            onClick={onToggleEditing}
-            className="ml-auto mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-muted hover:text-primary"
-            title={editLabel}
-            aria-label={editLabel}
-          >
-            <Icons.Pencil className="h-5 w-5" />
-          </button>
+          <IconButton icon={Icons.Pencil} label={editLabel ?? addLabel} onClick={onToggleEditing} variant="ghost" size="md" className="ml-auto mr-1 rounded-full" />
         )}
       </div>
     </div>

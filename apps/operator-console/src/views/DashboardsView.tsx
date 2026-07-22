@@ -452,6 +452,8 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                   newLabel={t('dashboards.action_new')}
                   helpLabel={t('common.help')}
                   moreLabel={t('common.more')}
+                  confirmLabel={t('common.confirm')}
+                  cancelLabel={t('common.cancel')}
                   onToggleEditing={() => {
                     setIsEditing(!isEditing);
                     if (isEditing) {
