@@ -5,7 +5,6 @@ import {
   Home,
   BarChart2,
   Zap,
-  PlaySquare,
   Sparkles,
   Settings,
   ShieldAlert,
@@ -57,12 +56,11 @@ import { GlobalWakeNotice, type GlobalWakeNoticeModel, type GlobalWakeStatus } f
 const DashboardView = lazy(() => import('./views/DashboardView').then(module => ({ default: module.DashboardView })));
 const TopologyView = lazy(() => import('./views/TopologyView').then(module => ({ default: module.TopologyView })));
 const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
-const AutomationsView = lazy(() => import('./views/AutomationsView'));
 const AuditLogsView = lazy(() => import('./views/AuditLogsView').then(module => ({ default: module.AuditLogsView })));
 const HomeAssistantSettingsView = lazy(() => import('./views/HomeAssistantSettingsView').then(module => ({ default: module.HomeAssistantSettingsView })));
 const DiagnosticsView = lazy(() => import('./views/DiagnosticsView').then(module => ({ default: module.DiagnosticsView })));
 const UsersView = lazy(() => import('./views/UsersView').then(module => ({ default: module.UsersView })));
-const ScenesView = lazy(() => import('./views/ScenesView'));
+const RoutinesView = lazy(() => import('./views/RoutinesView'));
 const AssistantView = lazy(() => import('./views/AssistantView').then(module => ({ default: module.AssistantView })));
 const DashboardsView = lazy(() => import('./views/DashboardsView').then(module => ({ default: module.DashboardsView })));
 const ResilienceShowcaseView = lazy(() => import('./views/ResilienceShowcaseView'));
@@ -87,7 +85,7 @@ function ViewLoadingState() {
 /**
  * Union de vistas posibles para tipado estricto.
  *
- * Primary:         dashboard | spaces | scenes | automations | assistant
+ * Primary:         dashboard | spaces | routines | assistant
  * Personalization: dashboards (placeholder) | energy (placeholder)
  * System:          system-devices | system-inbox | system-diagnostics |
  *                  system-audit | system-users | system-ha
@@ -104,6 +102,8 @@ function ViewLoadingState() {
 /** Resolve legacy view names to canonical ones. */
 function resolveView(view: View): View {
   switch (view) {
+    case 'scenes':      return 'routines';
+    case 'automations': return 'routines';
     case 'topology':    return 'spaces';
     case 'inbox':       return 'system-inbox';
     case 'audit-logs':  return 'system-audit';
@@ -142,8 +142,9 @@ function viewToPath(view: View): string {
   switch (view) {
     case 'dashboard': return '/';
     case 'spaces': return '/spaces';
-    case 'scenes': return '/scenes';
-    case 'automations': return '/automations';
+    case 'routines': return '/routines/scenes';
+    case 'scenes': return '/routines/scenes';
+    case 'automations': return '/routines/automations';
     case 'assistant': return '/assistant';
     case 'energy': return '/energy';
     case 'resilience-showcase': return '/resilience-showcase';
@@ -166,8 +167,11 @@ function pathToView(pathname: string): View {
   if (pathname.startsWith('/dashboards')) return 'dashboards';
   switch (pathname) {
     case '/spaces': return 'spaces';
-    case '/scenes': return 'scenes';
-    case '/automations': return 'automations';
+    case '/routines':
+    case '/routines/scenes':
+    case '/routines/automations':
+    case '/scenes':
+    case '/automations': return 'routines';
     case '/assistant': return 'assistant';
     case '/energy': return 'energy';
     case '/resilience-showcase': return 'resilience-showcase';
@@ -323,7 +327,7 @@ function App() {
     },
     {
       id: 'automations',
-      target: '[data-demo="nav-automations"]',
+      target: '[data-demo="nav-routines"]',
       titleKey: 'demo.steps.automations.title',
       descriptionKey: 'demo.steps.automations.description',
       view: 'automations'
@@ -690,7 +694,7 @@ function App() {
 
   const navigateTo = (view: View) => {
     const resolved = resolveView(view);
-    navigate(viewToPath(resolved));
+    navigate(viewToPath(view === 'scenes' || view === 'automations' ? view : resolved));
     setIsSidebarOpen(false);
     // Auto-expand system section when a system view is activated
     if (isSystemView(resolved)) {
@@ -934,21 +938,12 @@ function App() {
                collapsedOnDesktop={isSidebarContentCollapsed}
              />
              {canAccessFamilyControl && (
-               <SidebarItem 
-                 icon={Monitor} 
-                 label={t('nav.scenes')} 
-                 active={currentView === 'scenes'} 
-                 onClick={() => navigateTo('scenes')} 
-                 collapsedOnDesktop={isSidebarContentCollapsed}
-               />
-             )}
-             {canAccessAdminControl && (
-               <SidebarItem 
-                 icon={PlaySquare} 
-                 label={t('nav.automations')} 
-                 active={currentView === 'automations'} 
-                 onClick={() => navigateTo('automations')} 
-                 data-demo="nav-automations"
+               <SidebarItem
+                 icon={Zap}
+                 label={t('nav.routines')}
+                 active={currentView === 'routines'}
+                 onClick={() => navigateTo('routines')}
+                 data-demo="nav-routines"
                  collapsedOnDesktop={isSidebarContentCollapsed}
                />
              )}
@@ -1239,15 +1234,19 @@ function App() {
                 )}
                {/* Spaces = TopologyView (user-facing room management) */}
                {currentView === 'spaces' && <TopologyView />}
-                {currentView === 'scenes' && (
-                  <ScenesView
-                    onActionExecute={() => {
-                       pulseSyncStatus();
-                       void refreshDeviceSnapshot();
-                    }}
-                  />
-                )}
-               {currentView === 'automations' && <AutomationsView />}
+               {currentView === 'routines' && (
+                 <RoutinesView
+                   section={canAccessAdminControl && (location.pathname === '/automations' || location.pathname === '/routines/automations')
+                     ? 'automations'
+                     : 'scenes'}
+                   canManageAutomations={canAccessAdminControl}
+                   onSectionChange={(section) => navigate(`/routines/${section}`)}
+                   onSceneActionExecute={() => {
+                     pulseSyncStatus();
+                     void refreshDeviceSnapshot();
+                   }}
+                 />
+               )}
                {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
                {currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
 

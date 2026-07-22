@@ -15,6 +15,7 @@ Una escena debe encapsular un conjunto nombrado de acciones sobre dispositivos p
 - Definir acciones por dispositivo usando las capacidades que HomePilot conoce.
 - Marcar escenas favoritas para su uso en Inicio y exponerlas a automatizaciones y al asistente.
 - Registrar ejecución y propagar los cambios de estado resultantes a los consumidores de tiempo real.
+- Componer el acceso de consola dentro de Rutinas, junto a Automatizaciones, sin mezclar sus contratos de dominio.
 
 ## 3. Fuera de Alcance
 

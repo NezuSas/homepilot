@@ -5,6 +5,8 @@ export type View =
   // Primary
   | 'dashboard'
   | 'spaces'
+  | 'routines'
+  // Backward-compatible routine section aliases.
   | 'scenes'
   | 'automations'
   | 'assistant'

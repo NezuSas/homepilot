@@ -13,6 +13,7 @@ HomePilot permite actualmente el control manual de dispositivos y la visualizaci
 *   **Acciones de Comando**: Ejecutar comandos (`turn_on`, `turn_off`, `toggle`) de forma automática, pasando por todas las validaciones de ownership y capacidades.
 *   **Gestión de Reglas (CRUD)**: Endpoints para crear, listar y eliminar reglas por hogar.
 *   **Evaluación Determinista**: La evaluación ocurre como respuesta a un cambio de estado efectivo y confirmado en el sistema.
+*   **Composición de Consola**: La UI presenta las reglas bajo Rutinas junto a Escenas, conservando modelos, permisos y endpoints separados.
 
 ## 3. Fuera de Alcance (Out of Scope)
 *   **Lógica Compleja**: No se soportan operadores AND/OR, reglas anidadas o múltiples condiciones.

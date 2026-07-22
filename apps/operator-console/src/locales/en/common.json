@@ -5,6 +5,7 @@
     "topology": "Topology",
     "inbox": "Device Manager",
     "automations": "Automations",
+    "routines": "Routines",
     "audit_logs": "Security Audit",
     "ha_settings": "HA Settings",
     "automations_hint": "Local event-driven logic workbench for reactive edge behaviors.",
@@ -888,6 +889,13 @@
         "expected_value": "e.g. on"
       }
     }
+  },
+  "routines": {
+    "eyebrow": "HOME CONTROL",
+    "title": "Routines",
+    "description": "Organize manual actions and automatic rules in one place.",
+    "scenes_tab": "Scenes",
+    "automations_tab": "Automations"
   },
   "device_states": {
     "on": "On",

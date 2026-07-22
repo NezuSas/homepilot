@@ -5,6 +5,7 @@
     "topology": "Topología",
     "inbox": "Administrador de Dispositivos",
     "automations": "Automatizaciones",
+    "routines": "Rutinas",
     "audit_logs": "Auditoría de Seguridad",
     "ha_settings": "Configuración HA",
     "automations_hint": "Workbench de lógica local basada en eventos para comportamientos reactivos en el edge.",
@@ -888,6 +889,13 @@
         "expected_value": "Ej: on"
       }
     }
+  },
+  "routines": {
+    "eyebrow": "CONTROL DEL HOGAR",
+    "title": "Rutinas",
+    "description": "Organiza acciones manuales y reglas automáticas en un mismo lugar.",
+    "scenes_tab": "Escenas",
+    "automations_tab": "Automatizaciones"
   },
   "device_states": {
     "on": "Encendido",
