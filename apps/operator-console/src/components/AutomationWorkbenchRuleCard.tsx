@@ -1,7 +1,9 @@
 import React from 'react';
-import { AlertCircle, ArrowRight, Cpu, Edit2, Loader2, Pause, Play, Trash2, Zap } from 'lucide-react';
+import { AlertCircle, ArrowRight, Cpu, Edit2, Loader2, Pause, Play, Trash2, X, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import { StatusPill } from './ui/StatusPill';
 
 export interface AutomationWorkbenchRule {
@@ -74,38 +76,44 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         </div>
 
         <div className="flex flex-col w-full gap-2">
-          <button
+          <Button
+            variant={rule.enabled ? 'danger' : 'primary'}
+            size="sm"
             disabled={rule._processing}
             onClick={() => onToggle(rule.id, rule.enabled)}
             className={cn(
-              "w-full py-2.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all active:scale-95",
-              rule.enabled ? "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" : "bg-primary text-primary-foreground"
+              "w-full font-black uppercase tracking-widest",
+              rule.enabled && "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground"
             )}
           >
             {rule.enabled ? t('common.disable') : t('common.enable')}
-          </button>
+          </Button>
 
           <div className="flex flex-col gap-1.5 pt-1.5 border-t border-border/40 mt-1.5">
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => onEdit(rule)}
               disabled={rule._processing}
-              className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-xl text-micro font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
+              className="w-full bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary font-black uppercase"
             >
               <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
-            </button>
+            </Button>
 
             {rule._confirmingDelete ? (
               <div className="flex items-center gap-2 animate-in slide-in-from-bottom-2">
-                <button onClick={() => onDelete(rule.id)} className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-xl text-caption font-black uppercase tracking-control shadow-lg shadow-destructive/20">{t('common.confirm')}</button>
-                <button onClick={() => onConfirmingDeleteChange(rule.id, false)} className="px-3 py-2.5 bg-muted text-foreground rounded-xl text-micro font-black uppercase transition-colors hover:bg-muted/80">X</button>
+                <Button variant="danger" size="sm" onClick={() => onDelete(rule.id)} className="flex-1 font-black uppercase tracking-control">{t('common.confirm')}</Button>
+                <IconButton icon={X} label={t('common.cancel')} variant="default" size="sm" onClick={() => onConfirmingDeleteChange(rule.id, false)} />
               </div>
             ) : (
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() => onConfirmingDeleteChange(rule.id, true)}
-                className="w-full py-2 bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl text-micro font-black uppercase flex items-center justify-center gap-2 transition-colors active:scale-95"
+                className="w-full bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive font-black uppercase"
               >
                 <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
