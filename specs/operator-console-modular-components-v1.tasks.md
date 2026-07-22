@@ -11,6 +11,7 @@
 - [x] Consolidación de texto multilínea general en `Textarea`; el compositor conversacional conserva su control especializado por voz, atajos y envío.
 - [x] Consolidación del marco de automatizaciones en `Modal`, con cabecera alineada, contenido desplazable y etiqueta de cierre traducida.
 - [x] Consolidación de las acciones e input en línea de la navegación de tableros con `Button`, `IconButton` e `Input`, incluyendo etiquetas accesibles traducidas para confirmar y cancelar.
+- [x] Consolidación de acciones e inputs de la configuración de vistas de tableros con `Button`, `IconButton` e `Input`; los controles de rango, archivo, selección de visibilidad y pestañas conservan su semántica especializada.
 
 ## Verificación obligatoria ante cambios
 

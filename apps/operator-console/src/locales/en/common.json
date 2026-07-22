@@ -1334,6 +1334,8 @@
       "default_view": "Open on load",
       "default_view_hint": "Show this tab first when the page loads or reloads, instead of the first tab.",
       "icon_placeholder": "e.g. Home, Lightbulb, Tv",
+      "no_image": "No image selected",
+      "upload_image": "Upload image",
       "clear_image": "Clear image",
       "background_settings": "Background configuration",
       "background_opacity": "Background opacity",

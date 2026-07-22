@@ -5,6 +5,9 @@ import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { IconPicker } from '../views/dashboards/components/IconPicker';
+import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
+import { Input } from './ui/Input';
 
 
 const MAX_BG_PX = 1920;
@@ -150,24 +153,11 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/70 backdrop-blur-sm p-4">
       <div className="relative flex max-h-viewport-modal w-full max-w-2xl flex-col overflow-hidden rounded-card border border-border/70 bg-card text-foreground shadow-2xl animate-in zoom-in-95 duration-200">
         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border/60 px-5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={t('common.close')}
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <IconButton icon={X} label={t('common.close')} variant="ghost" onClick={onClose} />
           <h2 className="min-w-0 flex-1 truncate text-section-title font-semibold tracking-tight">
             {t('dashboards.view_config.title', { title: tab.title })}
           </h2>
-          <button
-            type="button"
-            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={t('common.more', { defaultValue: 'More' })}
-          >
-            <MoreVertical className="h-5 w-5" />
-          </button>
+          <IconButton icon={MoreVertical} label={t('common.more')} variant="ghost" />
         </header>
 
         <nav className="grid shrink-0 grid-cols-3 border-b border-border/60">
@@ -194,14 +184,13 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
         <div className="min-h-0 flex-1 overflow-y-auto p-5 no-scrollbar">
           {activeTab === 'settings' && (
             <div className="space-y-5">
-              <label className="block rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-caption font-semibold text-muted-foreground">{t('dashboards.view_config.view_title')}</span>
-                <input
-                  value={draftTitle}
-                  onChange={event => setDraftTitle(event.target.value)}
-                  className="mt-1 w-full bg-transparent text-body-lg font-bold text-foreground outline-none"
-                />
-              </label>
+              <Input
+                label={t('dashboards.view_config.view_title')}
+                value={draftTitle}
+                onChange={event => setDraftTitle(event.target.value)}
+                containerClassName="rounded-xl bg-muted/45 px-4 py-3"
+                className="h-auto border-0 bg-transparent p-0 text-body-lg font-bold shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none"
+              />
 
               <div className="rounded-xl bg-muted/45 px-4 py-3">
                 {/* Shared picker: Home Assistant Material Design Icons + Lucide,
@@ -214,15 +203,14 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 />
               </div>
 
-              <label className="block rounded-xl bg-muted/45 px-4 py-3">
-                <span className="block text-caption font-semibold text-muted-foreground">{t('dashboards.view_config.route_label')}</span>
-                <input
-                  value={routeSlug}
-                  readOnly
-                  className="mt-1 w-full cursor-default bg-transparent text-body-lg font-semibold text-foreground outline-none"
-                />
-                <span className="mt-1 block text-caption text-muted-foreground">{t('dashboards.view_config.url_hint')}</span>
-              </label>
+              <Input
+                label={t('dashboards.view_config.route_label')}
+                value={routeSlug}
+                readOnly
+                helperText={t('dashboards.view_config.url_hint')}
+                containerClassName="rounded-xl bg-muted/45 px-4 py-3"
+                className="h-auto cursor-default border-0 bg-transparent p-0 text-body-lg font-semibold shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none"
+              />
 
               <button
                 type="button"
@@ -261,25 +249,17 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                   />
                 ) : (
                   <div className="mx-auto aspect-video max-w-md rounded-lg bg-gradient-to-br from-muted via-card to-primary/10 opacity-70 border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground/45 text-caption font-semibold">
-                    No hay imagen seleccionada
+                    {t('dashboards.view_config.no_image')}
                   </div>
                 )}
                 <div className="mt-4 flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    className="text-caption font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/95 rounded-2xl px-5 py-2.5 shadow-lg shadow-primary/20 transition-all"
-                  >
-                    Subir Imagen
-                  </button>
+                  <Button size="sm" onClick={() => fileRef.current?.click()}>
+                    {t('dashboards.view_config.upload_image')}
+                  </Button>
                   {backgroundImg && (
-                    <button
-                      type="button"
-                      onClick={() => setBackgroundImg(null)}
-                      className="text-caption font-black uppercase tracking-widest bg-destructive/10 text-destructive hover:bg-destructive/15 rounded-2xl px-5 py-2.5 transition-all"
-                    >
+                    <Button variant="danger" size="sm" onClick={() => setBackgroundImg(null)}>
                       {t('dashboards.view_config.clear_image')}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -342,21 +322,13 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
         </div>
 
         <footer className="flex shrink-0 items-center justify-between border-t border-border/60 px-5 py-4">
-          <button
-            type="button"
-            onClick={onDelete}
-            className="flex items-center gap-2 text-body font-semibold text-destructive"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="px-0 text-destructive hover:bg-transparent hover:text-destructive">
             <Trash2 className="h-4 w-4" />
             {t('dashboards.view_config.delete_view')}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded-full bg-primary px-6 py-2.5 text-body font-bold text-primary-foreground transition-opacity disabled:opacity-40"
-          >
+          </Button>
+          <Button type="button" onClick={handleSave}>
             {t('common.save')}
-          </button>
+          </Button>
         </footer>
       </div>
     </div>

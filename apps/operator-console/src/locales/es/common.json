@@ -1334,6 +1334,8 @@
       "default_view": "Abrir al cargar",
       "default_view_hint": "Mostrar esta pestaña primero al cargar o recargar la página, en vez de la primera pestaña.",
       "icon_placeholder": "Ej: Home, Lightbulb, Tv",
+      "no_image": "No hay imagen seleccionada",
+      "upload_image": "Subir imagen",
       "clear_image": "Limpiar imagen",
       "background_settings": "Configuración del fondo",
       "background_opacity": "Opacidad de fondo",
