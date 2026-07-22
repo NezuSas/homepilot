@@ -257,14 +257,14 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                 </div>
                 
                 {/* Camera Button (Clearly outside the clipping radius of the square corners) */}
-                <button
-                  type="button"
+                <IconButton
+                  icon={Camera}
+                  label={t('users.profile.change_avatar')}
                   onClick={() => fileRef.current?.click()}
-                  className="absolute bottom-1 right-1 p-3.5 bg-primary text-primary-foreground rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all z-30 border-4 border-card"
-                  title={t('users.profile.change_avatar')}
-                >
-                  <Camera className="w-5 h-5 shadow-sm" />
-                </button>
+                  variant="primary"
+                  size="lg"
+                  className="absolute bottom-1 right-1 z-30 h-12 w-12 rounded-2xl border-4 border-card shadow-xl"
+                />
               </div>
 
               {rawImage && (
