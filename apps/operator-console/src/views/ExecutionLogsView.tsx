@@ -85,13 +85,15 @@ export const ExecutionLogsView: React.FC = () => {
               {t('execution_logs.realtime_observability')}
             </span>
          </div>
-         <button 
+         <Button
+            variant="ghost"
+            size="sm"
             onClick={fetchRecords} 
-            className="group flex items-center gap-2 text-micro font-black text-muted-foreground hover:text-primary transition-colors"
+            className="group h-auto min-h-0 px-0 py-0 text-micro font-black text-muted-foreground hover:text-primary"
          >
             <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-700" />
             {t('execution_logs.sync_now')}
-         </button>
+         </Button>
       </div>
 
       <div className="grid gap-4">

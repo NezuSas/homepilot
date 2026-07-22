@@ -4,6 +4,7 @@ import { Zap, Cpu, TrendingDown, AlertTriangle, Leaf, ChevronRight, Activity } f
 import type { View } from '../types';
 import { useEnergyStore } from '../stores/useEnergyStore';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 interface EnergyViewProps {
   onNavigate?: (view: View) => void;
@@ -194,15 +195,17 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
             </div>
             <p className="text-caption text-muted-foreground leading-relaxed">{t('energy.insight_hint')}</p>
             {onNavigate && (
-              <button
+              <Button
+                variant="outline"
+                size="md"
                 onClick={() => onNavigate('assistant')}
-                className="flex items-center justify-between gap-2 w-full px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 group active:scale-[0.98]"
+                className="group w-full justify-between border-primary/20 bg-primary/5 text-primary/80 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
               >
                 <span className="text-caption font-black uppercase tracking-widest text-primary/80 group-hover:text-primary">
                   {t('energy.go_to_assistant')}
                 </span>
                 <ChevronRight className="w-3.5 h-3.5 text-primary/50 group-hover:translate-x-0.5 transition-transform shrink-0" />
-              </button>
+              </Button>
             )}
           </Card>
         </div>

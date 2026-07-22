@@ -22,6 +22,7 @@
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.
 - [x] Consolidación de controles internos de tarjetas agrupadas del Asistente con `Button` e `IconButton`; el encabezado expandible conserva semántica de divulgación accesible sin anidar botones.
+- [x] Consolidación de acciones convencionales de Auditoría, Registros de ejecución y Energía con `Button`; los controles especializados conservan su semántica propia.
 
 ## Verificación obligatoria ante cambios
 

@@ -108,10 +108,10 @@ export const AuditLogsView: React.FC = () => {
             <Info className="w-5 h-5 text-primary opacity-40 px-0.5" />
             <span className="text-micro font-black text-muted-foreground uppercase tracking-label">{t('audit_logs.v1_title')}</span>
          </div>
-         <button onClick={fetchLogs} className="text-micro font-black text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+         <Button variant="ghost" size="sm" onClick={fetchLogs} className="h-auto min-h-0 px-0 py-0 text-micro font-black text-muted-foreground hover:text-primary">
             <RefreshCw className="w-3.5 h-3.5" />
             {t('audit_logs.live_update')}
-         </button>
+         </Button>
       </div>
 
       <div className="grid gap-3">
