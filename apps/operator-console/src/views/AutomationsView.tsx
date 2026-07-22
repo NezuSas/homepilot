@@ -175,7 +175,7 @@ const AutomationsView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-12 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="flex flex-col gap-6 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-700 sm:gap-7">
       <AutomationsHeader
         activeCount={rules.filter(r => r.enabled).length}
         onCreate={() => setIsBuilderOpen(true)}
@@ -191,7 +191,7 @@ const AutomationsView: React.FC = () => {
       {rules.length === 0 ? (
         <AutomationsEmptyState onCreate={() => setIsBuilderOpen(true)} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {rules.map((rule) => (
             <AutomationRuleCard
               key={rule.id}

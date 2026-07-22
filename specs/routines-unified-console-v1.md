@@ -31,6 +31,7 @@ Las escenas y automatizaciones son dos formas complementarias de operar el hogar
 - **REQ-04:** Los enlaces internos y las URL heredadas de Escenas o Automatizaciones abren la pestaña correspondiente.
 - **REQ-05:** Ejecutar una escena desde Rutinas conserva la reconciliación global del estado de dispositivos.
 - **REQ-06:** Inicio lista los favoritos de escenas y automatizaciones como Rutinas favoritas, con el tipo y la acción correspondiente visibles.
+- **REQ-07:** La superficie de Rutinas presenta una cabecera compacta y tarjetas densas, sin espacios decorativos desproporcionados entre grupos.
 
 ## 5. Requisitos No Funcionales
 
@@ -46,3 +47,4 @@ Las escenas y automatizaciones son dos formas complementarias de operar el hogar
 - [x] AC4: `/scenes`, `/automations`, `/routines/scenes` y `/routines/automations` conservan una ruta funcional.
 - [x] AC5: La composición conserva las pantallas y contratos existentes de Escenas y Automatizaciones.
 - [x] AC6: Inicio no duplica secciones; muestra una sola colección de Rutinas favoritas y conserva la ejecución manual o alternancia de cada elemento.
+- [x] AC7: Rutinas mantiene una jerarquía de título, selector y contenido legible en móvil, tablet y escritorio sin tarjetas de escala hero heredadas.

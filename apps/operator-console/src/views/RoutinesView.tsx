@@ -29,19 +29,19 @@ export default function RoutinesView({
   ];
 
   return (
-    <div className="flex flex-col gap-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <section className="flex flex-col gap-4 rounded-panel border border-border/70 bg-card/65 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <div className="flex flex-col gap-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 sm:gap-7 sm:pb-16">
+      <section className="flex flex-col gap-4 border-b border-border/60 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-micro font-semibold uppercase tracking-control text-primary">{t('routines.eyebrow')}</p>
-          <h1 className="text-section-title font-bold tracking-tight text-foreground">{t('routines.title')}</h1>
-          <p className="max-w-2xl text-body text-muted-foreground">{t('routines.description')}</p>
+          <h1 className="text-view-title font-semibold tracking-display-tight text-foreground">{t('routines.title')}</h1>
+          <p className="max-w-xl text-body text-muted-foreground">{t('routines.description')}</p>
         </div>
         <SegmentedControl
           value={activeSection}
           options={options}
           onChange={onSectionChange}
           tone="primary"
-          className="w-full shrink-0 sm:w-[min(100%,22rem)]"
+          className="w-full shrink-0 sm:w-[min(100%,20rem)]"
         />
       </section>
 

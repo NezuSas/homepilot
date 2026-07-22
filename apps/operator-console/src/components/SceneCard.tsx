@@ -77,29 +77,29 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     <div
       onClick={() => onExecute(scene)}
       className={cn(
-        'group relative bg-card/40 backdrop-blur-2xl border-2 rounded-panel p-4 transition-all duration-700 cursor-pointer overflow-hidden sm:rounded-hero sm:p-6 lg:rounded-scene lg:p-8',
-        isSuccessful ? 'border-primary bg-primary/5 premium-glow shadow-primary/10 scale-[1.02]' : 'border-border/40 hover:border-primary/40',
+        'group relative min-h-40 cursor-pointer overflow-hidden rounded-card border bg-card/55 p-4 shadow-depth-1 surface-transition interactive-lift sm:p-5',
+        isSuccessful ? 'border-primary bg-primary/5 premium-glow shadow-primary/10' : 'border-border/60 hover:border-primary/45',
         isExecuting && 'animate-premium-pulse'
       )}
     >
-      <div className="relative z-10 flex items-start gap-4 sm:gap-6 lg:gap-8">
+      <div className="relative z-10 flex items-start gap-3">
         <div className={cn(
-          'rounded-section p-4 transition-all duration-700 transform group-hover:scale-110 sm:rounded-panel sm:p-5 lg:rounded-dashboard lg:p-6',
+          'rounded-panel p-3 transition-transform duration-300 group-hover:scale-105',
           isSuccessful ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/40' : 'bg-primary/10 text-primary group-hover:bg-primary/20'
         )}>
-          {isExecuting ? <Loader2 className="h-6 w-6 animate-spin sm:h-8 sm:w-8" /> : <Icon className="h-6 w-6 sm:h-8 sm:w-8" />}
+          {isExecuting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Icon className="h-6 w-6" />}
         </div>
-        <div className="flex-1 flex flex-col gap-2 min-w-0 pt-1">
-          <h4 className="truncate text-section-title font-black tracking-tight luxury-text-gradient sm:text-panel-title">{scene.name}</h4>
-          <p className="line-clamp-2 text-body font-medium leading-tight text-muted-foreground opacity-60">
+        <div className="min-w-0 flex-1 pt-0.5">
+          <h4 className="truncate text-card-title font-semibold tracking-tight text-foreground">{scene.name}</h4>
+          <p className="mt-1 line-clamp-2 text-caption leading-relaxed text-muted-foreground">
             {description}
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4 sm:gap-3">
-            <span className="text-micro font-black uppercase tracking-label text-primary/60">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-micro font-semibold uppercase tracking-label text-primary/75">
               {roomName || t('scenes.global_scene')}
             </span>
             <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <span className="text-micro font-black uppercase tracking-label text-muted-foreground opacity-40">
+            <span className="text-micro font-semibold uppercase tracking-label text-muted-foreground/70">
               {t('scenes.point_count', { count: scene.actions.length })}
             </span>
           </div>
@@ -113,28 +113,28 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         variant={isFavorite ? 'danger' : 'ghost'}
         size="md"
         className={cn(
-          'absolute right-4 top-4 z-20 rounded-full transition-all duration-300 sm:right-6 sm:top-6 lg:right-8 lg:top-8',
+          'absolute right-3 top-3 z-20 rounded-full transition-all duration-300',
           isFavorite ? 'shadow-lg shadow-danger/20' : 'text-muted-foreground/40 hover:text-danger',
           isFavorite && '[&_svg]:fill-current'
         )}
       />
 
-      <div className="absolute bottom-4 right-4 z-20 flex gap-2 transition-all sm:bottom-6 sm:right-6 lg:right-8">
+      <div className="absolute bottom-3 right-3 z-20 flex gap-1.5 transition-all">
         <IconButton
           icon={Edit2}
           label={t('common.edit')}
           onClick={(event) => onEdit(scene, event)}
           variant="default"
-          size="md"
-          className="rounded-2xl bg-muted/40 hover:text-primary"
+          size="sm"
+          className="rounded-panel bg-muted/50 hover:text-primary"
         />
         <IconButton
           icon={Trash2}
           label={t('common.delete')}
           onClick={(event) => onDelete(scene.id, event)}
           variant="danger"
-          size="md"
-          className="rounded-2xl"
+          size="sm"
+          className="rounded-panel"
         />
       </div>
     </div>
