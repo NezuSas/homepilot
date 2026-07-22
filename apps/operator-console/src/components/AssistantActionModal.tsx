@@ -97,11 +97,13 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
               </label>
               <div className="grid gap-2 max-h-picker overflow-y-auto pr-2 custom-scrollbar">
                 {rooms.map(room => (
-                  <button
+                  <Button
                     key={room.id}
+                    variant="outline"
+                    size="md"
                     onClick={() => setSelectedRoomId(room.id)}
                     className={cn(
-                      "flex items-center justify-between p-4 rounded-2xl border transition-all font-bold text-body",
+                      "w-full justify-between min-h-14 rounded-2xl p-4 font-bold text-body",
                       selectedRoomId === room.id 
                         ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
                         : "bg-muted/30 border-muted hover:border-primary/40"
@@ -109,7 +111,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
                   >
                     {room.name}
                     {selectedRoomId === room.id && <Check className="w-4 h-4" />}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
