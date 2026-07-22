@@ -72,6 +72,7 @@
     "scanning": "Escaneando...",
     "group_hint": "{{count}} instancias consolidadas para mayor claridad",
     "card": {
+      "open_action": "Abrir acción",
       "related_to": "Relacionado con"
     },
     "learning": {

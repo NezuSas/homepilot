@@ -72,6 +72,7 @@
     "scanning": "Scanning...",
     "group_hint": "{{count}} instances consolidated for clarity",
     "card": {
+      "open_action": "Open action",
       "related_to": "Related to"
     },
     "learning": {

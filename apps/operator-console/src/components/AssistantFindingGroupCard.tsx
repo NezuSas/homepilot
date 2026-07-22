@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 
 interface AssistantFindingSubGroup {
@@ -97,8 +98,17 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
         'rounded-panel border bg-card transition-all duration-300 overflow-hidden',
         isExpanded ? 'border-primary/40 shadow-2xl shadow-primary/5' : 'border-border hover:border-primary/20'
       )}>
-        <button
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
           onClick={() => onToggleGroup(group.id)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onToggleGroup(group.id);
+            }
+          }}
           className="w-full flex items-center justify-between p-6 hover:bg-primary/5 transition-colors"
         >
           <div className="flex items-center gap-4">
@@ -139,7 +149,7 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
             ))}
             <ChevronDown className={cn('w-5 h-5 text-muted-foreground transition-transform duration-300', isExpanded && 'rotate-180')} />
           </div>
-        </button>
+        </div>
 
         {isExpanded && (
           <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-muted/20">
@@ -177,20 +187,24 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
 
                       <div className="flex items-center gap-2">
                         {count > 1 ? (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={() => onToggleSubGroup(subGroupId)}
-                            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-all flex items-center gap-1 text-micro font-bold uppercase tracking-wider"
+                            className="text-muted-foreground"
                           >
                             {isSubExpanded ? t('common.hide') : t('common.more')}
                             <ChevronDown className={cn('w-3 h-3 transition-transform', isSubExpanded && 'rotate-180')} />
-                          </button>
+                          </Button>
                         ) : (
-                          <button
+                          <IconButton
+                            icon={ArrowRight}
+                            label={t('assistant.card.open_action')}
                             onClick={() => primaryFinding.actions[0] && onAction(primaryFinding, primaryFinding.actions[0])}
-                            className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all"
-                          >
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-lg text-primary hover:bg-primary/10"
+                          />
                         )}
                       </div>
                     </div>
@@ -202,12 +216,14 @@ export const AssistantFindingGroupCard: React.FC<AssistantFindingGroupCardProps>
                             <span className="text-label font-bold text-foreground">
                               {getMetadataText(finding.metadata, ['friendlyName', 'deviceName'], finding.id)}
                             </span>
-                            <button
+                            <IconButton
+                              icon={ArrowRight}
+                              label={t('assistant.card.open_action')}
                               onClick={() => finding.actions[0] && onAction(finding, finding.actions[0])}
-                              className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
-                            >
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                            />
                           </div>
                         ))}
                       </div>
