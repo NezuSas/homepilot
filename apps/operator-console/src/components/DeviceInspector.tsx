@@ -24,6 +24,7 @@ import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from './ConfirmModal';
 import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
@@ -316,30 +317,38 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                       autoFocus
                       onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                     />
-                    <button onClick={handleRename} className="p-1 px-2 bg-primary text-primary-foreground text-micro font-black rounded uppercase">{t('common.save')}</button>
-                    <button onClick={() => { setIsRenaming(false); setNewName(device.name); }} className="text-micro uppercase font-bold text-muted-foreground group">
-                      <span className="border-b border-transparent group-hover:border-muted-foreground transition-all ml-1">{t('common.cancel')}</span>
-                    </button>
+                    <Button size="xs" onClick={handleRename}>{t('common.save')}</Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => { setIsRenaming(false); setNewName(device.name); }}
+                    >
+                      {t('common.cancel')}
+                    </Button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 group/title">
                     <h2 className="text-view-title font-black tracking-tight">{device.name}</h2>
-                    <button
+                    <IconButton
+                      icon={Settings}
+                      label={t('common.edit')}
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setIsRenaming(true)}
-                      className="p-1 opacity-0 group-hover/title:opacity-100 transition-opacity hover:bg-muted rounded text-muted-foreground"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </button>
+                      className="opacity-0 group-hover/title:opacity-100"
+                    />
                   </div>
                 )}
               </div>
             </div>
-            <button
+            <IconButton
+              icon={X}
+              label={t('common.close')}
+              variant="ghost"
+              size="lg"
               onClick={onClose}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="w-6 h-6" />
-            </button>
+              className="hover:bg-destructive/10 hover:text-destructive"
+            />
           </div>
 
           <SegmentedControl
@@ -558,14 +567,16 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     </div>
 
                     {device.status === 'ASSIGNED' && (
-                      <button
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => setShowUnassignConfirm(true)}
                         disabled={isActionLoading}
-                        className="w-full py-2.5 rounded-xl text-micro font-black uppercase tracking-widest bg-destructive/5 text-destructive border border-destructive/10 hover:bg-destructive/10 transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-destructive/5 text-destructive border-destructive/10 hover:bg-destructive/10"
                       >
                         <X className="w-3.5 h-3.5" />
                         {t('inbox.inspector.actions.unassign')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
