@@ -78,13 +78,15 @@ export function DashboardRoutinesSection({
             if (routine.type === 'scene') {
               const isProcessing = processingId === `scene_${routine.value.id}`;
               return (
-                <button
+                <Button
                   key={`scene_${routine.value.id}`}
                   type="button"
+                  variant="ghost"
+                  size="md"
                   onClick={() => onSceneExecute(routine.value)}
                   disabled={processingId !== null}
                   className={cn(
-                    'group relative flex min-h-28 items-center gap-3 rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition interactive-lift active:scale-[0.98] disabled:opacity-60',
+                    'group relative flex min-h-28 w-full items-center justify-start gap-3 rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
                     isProcessing ? 'border-primary bg-primary text-primary-foreground shadow-depth-2' : 'border-border/65 hover:border-primary/35',
                   )}
                 >
@@ -100,20 +102,22 @@ export function DashboardRoutinesSection({
                       {routine.value.description || t('dashboard.routine_scene_actions', { count: routine.value.actions.length })}
                     </span>
                   </span>
-                </button>
+                </Button>
               );
             }
 
             const isProcessing = processingId === routine.value.id;
             const TriggerIcon = routine.value.trigger.type === 'time' ? Clock3 : Zap;
             return (
-              <button
+              <Button
                 key={`automation_${routine.value.id}`}
                 type="button"
+                variant="ghost"
+                size="md"
                 onClick={() => onAutomationToggle(routine.value)}
                 disabled={processingId !== null}
                 className={cn(
-                  'group relative flex min-h-28 items-center gap-3 rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition interactive-lift active:scale-[0.98] disabled:opacity-60',
+                  'group relative flex min-h-28 w-full items-center justify-start gap-3 rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
                   routine.value.enabled ? 'border-primary/35 hover:border-primary/55' : 'border-border/65 hover:border-primary/35',
                 )}
               >
@@ -129,7 +133,7 @@ export function DashboardRoutinesSection({
                     {routine.value.enabled ? t('automations.summary.active') : t('automations.summary.paused')}
                   </span>
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
