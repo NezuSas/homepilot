@@ -33,6 +33,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-07:** Una tarjeta genérica solo debe presentar controles soportados por las capacidades entregadas por su dominio.
 - **REQ-08:** Una fila que combine un `Input` y una acción primaria debe usar primitivas modulares y conservar una altura visual común.
 - **REQ-09:** Cada clave literal de traducción usada por la consola existe en ambos catálogos ES/EN; las etiquetas de tipos de dispositivo se presentan traducidas y no como valores técnicos de dominio.
+- **REQ-10:** Los controles segmentados con etiquetas largas deben conservar una escala tipográfica compacta, una sola línea por opción y etiquetas legibles sin desborde en móvil, tablet y escritorio.
+- **REQ-11:** La navegación lateral debe usar la escala tipográfica compartida; las variantes compactas de marca, guía y rol no pueden recortar información crítica ni reutilizar descripciones extensas de otras vistas.
 
 ## 5. Requisitos No Funcionales
 
@@ -64,6 +66,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC6: Las vistas usan el selector modular único `SearchableSelectField` para toda opción de negocio; el buscador está siempre disponible.
 - [x] AC7: Las filas de creación y renombrado de hogares o estancias alinean inputs y acciones con la altura base del design system.
 - [x] AC8: `npm run check:i18n` valida paridad ES/EN y referencias literales de i18n en la consola antes de una entrega.
+- [x] AC9: El selector de Rutinas muestra Escenas y Automatizaciones con la misma jerarquía tipográfica, sin saltos de línea ni recorte visual.
+- [x] AC10: El sidebar presenta etiqueta de marca, navegación, guía y perfil con texto compacto, truncado seguro y roles breves traducidos para su contexto.
 
 ## 8. Notas Técnicas y Arquitectura
 

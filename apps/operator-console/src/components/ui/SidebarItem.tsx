@@ -56,7 +56,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           {/* Label */}
           <span
             className={cn(
-              'min-w-0 overflow-hidden text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
+              'min-w-0 truncate text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
               // Navigation hierarchy is communicated by indentation and icon size,
               // never by a different text scale.
               active ? 'font-semibold text-primary' : 'font-medium',

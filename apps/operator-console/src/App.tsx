@@ -856,7 +856,7 @@ function App() {
             >
               <Menu className="h-3.5 w-3.5" />
             </button>
-            <span className="text-micro uppercase font-black tracking-label text-muted-foreground/35">{t('shell.subtitle')}</span>
+            <span className="text-nano uppercase font-semibold tracking-label text-muted-foreground/50">{t('shell.sidebar_subtitle')}</span>
           </div>
         </div>
         
@@ -1102,10 +1102,10 @@ function App() {
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div className={cn("flex min-w-0 flex-1 flex-col text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>
-              <span className="text-micro font-black uppercase tracking-widest whitespace-nowrap">
+              <span className="text-micro font-semibold uppercase tracking-control whitespace-nowrap">
                 {t('demo.start_button')}
               </span>
-              <span className="mt-0.5 truncate text-micro font-bold uppercase tracking-control text-primary/60">
+              <span className="mt-0.5 truncate text-nano font-semibold uppercase tracking-normal text-primary/70">
                 {t('demo.sidebar_summary', { count: DEMO_STEPS.length })}
               </span>
             </div>
@@ -1132,9 +1132,9 @@ function App() {
                 }
               </div>
               <div className={cn("flex flex-col min-w-0 text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0")}>
-                <span className="text-caption font-black tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
-                <span className="text-micro text-muted-foreground truncate uppercase font-bold tracking-tighter opacity-70">
-                   {user?.role ? t(`users.roles.${user.role}`) : 'User'}
+                <span className="text-caption font-semibold tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
+                <span className="text-nano text-muted-foreground truncate uppercase font-semibold tracking-normal opacity-70">
+                   {user?.role ? t(`shell.compact_roles.${user.role}`) : t('common.roles.guest')}
                 </span>
               </div>
               <ChevronRight className={cn("w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors", isSidebarContentCollapsed && "xl:hidden")} />

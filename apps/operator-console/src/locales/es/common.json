@@ -622,6 +622,14 @@
     "app_title": "HomePilot",
     "app_edge": "Edge",
     "subtitle": "Control Local Premium",
+    "sidebar_subtitle": "Control local",
+    "compact_roles": {
+      "admin": "Admin",
+      "operator": "Operador",
+      "parent": "Padre",
+      "child": "Hijo",
+      "guest": "Invitado"
+    },
     "toggle_sidebar": "Mostrar u ocultar menú",
     "status": {
       "live": "En vivo",

@@ -41,8 +41,8 @@ export default function RoutinesView({
           options={options}
           onChange={onSectionChange}
           tone="primary"
-          className="w-full shrink-0 sm:w-[min(100%,23rem)]"
-          optionClassName="min-w-[8.5rem]"
+          className="w-full shrink-0 gap-1 p-1 sm:w-[min(100%,23rem)]"
+          optionClassName="min-h-9 min-w-0 gap-1 px-2 py-1.5 text-micro font-semibold leading-none tracking-normal [&>svg]:h-3.5 [&>svg]:w-3.5 [&>span]:overflow-hidden [&>span]:text-ellipsis [&>span]:whitespace-nowrap"
         />
       </section>
 
