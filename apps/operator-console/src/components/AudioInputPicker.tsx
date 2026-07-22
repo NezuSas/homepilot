@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Button } from './ui/Button';
 
 export interface AudioInputOption {
   id: string;
@@ -76,8 +77,9 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
 
   return (
     <div ref={containerRef} className="relative block shrink-0">
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
         disabled={disabled}
         aria-label={label}
         aria-haspopup="listbox"
@@ -85,10 +87,8 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
         title={selectedLabel}
         onClick={() => setIsOpen(current => !current)}
         className={cn(
-          'control-transition flex h-10 w-audio-picker-sm items-center gap-2 rounded-xl border px-3 sm:w-audio-picker-md md:w-audio-picker-lg',
-          'border-transparent bg-background/55 text-foreground shadow-sm hover:border-primary/35 hover:bg-background/80',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-          'disabled:pointer-events-none disabled:opacity-50'
+          'h-10 w-audio-picker-sm justify-start rounded-xl border-transparent bg-background/55 px-3 shadow-sm hover:border-primary/35 hover:bg-background/80',
+          'sm:w-audio-picker-md md:w-audio-picker-lg'
         )}
       >
         <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -96,7 +96,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
           {selectedLabel}
         </span>
         <ChevronUp className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="absolute bottom-full right-0 z-[80] mb-2 w-popover-responsive overflow-hidden rounded-panel border border-border/70 bg-popover/95 shadow-depth-3 backdrop-blur-xl">
@@ -109,9 +109,10 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
               const deviceLabel = normalizeAudioInputLabel(device.label);
 
               return (
-                <button
+                <Button
                   key={device.id}
-                  type="button"
+                  variant="ghost"
+                  size="sm"
                   role="option"
                   aria-selected={isSelected}
                   title={device.label}
@@ -120,14 +121,14 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'control-transition flex w-full items-center gap-2 rounded-control px-3 py-2.5 text-left',
-                    'text-caption font-semibold text-foreground hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-none',
+                    'w-full justify-start gap-2 rounded-control px-3 py-2.5 text-left',
+                    'text-caption font-semibold text-foreground hover:bg-muted/70 focus-visible:bg-muted/70',
                     isSelected && 'bg-primary/12 text-primary shadow-inner'
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{deviceLabel}</span>
                   {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
+                </Button>
               );
             })}
           </div>
