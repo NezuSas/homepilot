@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { generateId } from '../../../utils/generateId';
+import { Button } from '../../../components/ui/Button';
+import { IconButton } from '../../../components/ui/IconButton';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { Textarea } from '../../../components/ui/Textarea';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
@@ -272,6 +274,8 @@ function TitleBadgeRow({
   onRemoveBadge?: (id: string) => void;
   align?: TitleAlign;
 }) {
+  const { t } = useTranslation();
+
   if (badges.length === 0) return null;
 
   const justifyClass = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
@@ -288,14 +292,14 @@ function TitleBadgeRow({
             {badge.kind === 'time' ? <TimeBadgeContent /> : null}
             {badge.kind === 'tab' && tab ? <TabBadgeContent tab={tab} onSelectTab={onSelectTab} /> : null}
             {isEditing && onRemoveBadge ? (
-              <button
-                type="button"
+              <IconButton
                 onClick={() => onRemoveBadge(badge.id)}
-                className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-destructive text-destructive-foreground shadow"
-                aria-label="Remove badge"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
+                icon={X}
+                label={t('common.delete')}
+                variant="danger"
+                size="sm"
+                className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full p-0 shadow"
+              />
             ) : null}
           </span>
         );
@@ -474,26 +478,30 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
               {t('dashboard.editor.sections.title_badges')}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
-              <button
+              <Button
                 type="button"
                 onClick={toggleWeatherBadge}
+                variant={hasWeatherBadge ? 'primary' : 'outline'}
+                size="xs"
                 className={cn(
-                  'rounded-full border px-3 py-1.5 text-caption font-semibold transition',
+                  'rounded-full',
                   hasWeatherBadge ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted',
                 )}
               >
                 {t('dashboard.editor.sections.badge_weather')}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={toggleTimeBadge}
+                variant={hasTimeBadge ? 'primary' : 'outline'}
+                size="xs"
                 className={cn(
-                  'rounded-full border px-3 py-1.5 text-caption font-semibold transition',
+                  'rounded-full',
                   hasTimeBadge ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted',
                 )}
               >
                 {t('dashboard.editor.sections.badge_time')}
-              </button>
+              </Button>
 
               {badges.filter((badge) => badge.kind === 'tab').map((badge) => {
                 const linkedTab = linkableTabs.find((candidate) => candidate.id === badge.tabId);
@@ -503,9 +511,14 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
                     className="flex items-center gap-1.5 rounded-full border border-primary bg-primary/10 px-3 py-1.5 text-caption font-semibold text-primary"
                   >
                     {linkedTab?.title ?? badge.tabId}
-                    <button type="button" onClick={() => removeBadge(badge.id)} aria-label="Remove">
-                      <X className="h-3 w-3" />
-                    </button>
+                    <IconButton
+                      icon={X}
+                      label={t('common.delete')}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBadge(badge.id)}
+                      className="h-4 w-4 rounded-full p-0 text-primary hover:bg-primary/15 hover:text-primary"
+                    />
                   </span>
                 );
               })}
@@ -538,19 +551,20 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
           </div>
 
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setDraftMarkdown(markdown);
                 setIsEditorOpen(false);
               }}
-              className="rounded-button border border-border px-3 py-1.5 text-caption font-semibold text-muted-foreground transition hover:bg-muted"
+              variant="outline"
+              size="sm"
             >
               {t('common.cancel')}
-            </button>
-            <button type="submit" className="rounded-button bg-primary px-3 py-1.5 text-caption font-semibold text-primary-foreground transition hover:bg-primary/90">
+            </Button>
+            <Button type="submit" size="sm">
               {t('common.save')}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
