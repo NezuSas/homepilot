@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlignCenter,
@@ -10,12 +9,14 @@ import {
   AlignRight,
   Clock,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { generateId } from '../../../utils/generateId';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
+import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Textarea } from '../../../components/ui/Textarea';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
@@ -641,31 +642,19 @@ function TitleOptionGroup<TValue extends string>({
   label: string;
   value: TValue;
   onChange: (value: TValue) => void;
-  options: Array<{ value: TValue; label: string; icon?: ComponentType<{ className?: string }> }>;
+  options: Array<{ value: TValue; label: string; icon?: LucideIcon }>;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-0.5 rounded-lg bg-muted/40 p-0.5">
-        {options.map((option) => {
-          const Icon = option.icon;
-          const isActive = option.value === value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              title={option.label}
-              onClick={(event) => { event.stopPropagation(); onChange(option.value); }}
-              className={cn(
-                'grid h-8 place-items-center rounded text-micro font-black transition-colors',
-                Icon ? 'w-8' : 'px-2.5',
-                isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
-              )}
-            >
-              {Icon ? <Icon className="h-3.5 w-3.5" /> : option.label}
-            </button>
-          );
-        })}
+      <div onClick={(event) => event.stopPropagation()}>
+        <SegmentedControl
+          value={value}
+          options={options}
+          onChange={onChange}
+          className="gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
+          optionClassName="min-h-8 min-w-8 flex-none rounded px-2 py-1 text-micro font-black"
+        />
       </div>
     </div>
   );
