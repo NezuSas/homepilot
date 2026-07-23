@@ -76,8 +76,8 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   };
 
   return (
-    <div className="border-b border-border/60">
-      <div className="flex min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
+    <div className="min-w-0 border-b border-border/60">
+      <div className="flex min-w-0 min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
         {onOpenMobileMenu && (
           <IconButton icon={Icons.Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/80 shadow-sm backdrop-blur-md lg:hidden" />
         )}
@@ -90,6 +90,8 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   type="button"
                   onClick={() => onSelectTab(index)}
                   aria-current={isActive ? 'page' : undefined}
+                  aria-label={tab.title}
+                  title={tab.title}
                   variant="ghost"
                   size="md"
                   className={cn(
@@ -100,7 +102,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{tab.title}</span>
+                  <span className="max-w-28 truncate sm:max-w-44">{tab.title}</span>
                 </Button>
               {isEditing && (
                 <IconButton

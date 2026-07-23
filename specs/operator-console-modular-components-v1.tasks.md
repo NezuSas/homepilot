@@ -80,6 +80,7 @@
 - [x] Refuerzo responsive de `DeviceTileShell` y `AssistantCard`: reducción segura en grids, semántica accesible, padding adaptativo y acciones largas envolventes.
 - [x] Refuerzo de interacción responsiva de `SegmentedControl`, `IconButton` y `Modal`: selección anunciada, respuesta táctil y composición segura para textos, cierre y acciones largas.
 - [x] Refuerzo responsive de creación rápida y selector de audio: campos, trigger y menú ajustados al viewport, conservando teclado, selección y cierre existentes.
+- [x] Consolidación responsive de navegación de tableros y compositor conversacional: títulos extensos, acciones móviles, área segura y controles de voz adaptados sin modificar sus flujos.
 
 ## Verificación obligatoria ante cambios
 
