@@ -52,22 +52,23 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 rounded-panel border p-5 backdrop-blur-xl',
+        'flex min-w-0 flex-col items-stretch gap-4 rounded-panel border p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5',
         config.className,
         className
       )}
+      role={variant === 'danger' || variant === 'warning' ? 'alert' : 'status'}
       {...props}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control', config.iconClassName)}>
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          {title && <p className="text-body font-black text-foreground">{title}</p>}
-          <p className="text-label font-black uppercase tracking-widest opacity-70">{message}</p>
+          {title && <p className="break-words text-body font-black text-foreground">{title}</p>}
+          <p className="break-words text-caption font-medium leading-relaxed opacity-80">{message}</p>
         </div>
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="flex w-full shrink-0 sm:w-auto sm:justify-end">{action}</div>}
     </div>
   );
 };

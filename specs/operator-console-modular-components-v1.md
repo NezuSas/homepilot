@@ -45,6 +45,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-19:** Los errores generales de una vista deben usar `AlertBanner`; las tarjetas o formularios pueden conservar feedback localizado cuando el error pertenece a una acción concreta.
 - **REQ-20:** `SectionHeader` debe preservar el ancho disponible para títulos y subtítulos, permitir acciones contextuales envolventes y presentar dichas acciones a ancho completo en móvil, sin desborde ni recorte en tablet o escritorio.
 - **REQ-21:** `EmptyState` debe ajustar de forma segura texto largo y acción contextual, reducir su espacio vertical en móvil y conservar una jerarquía centrada en tablet y escritorio sin provocar overflow horizontal.
+- **REQ-22:** `AlertBanner` debe mantener mensajes legibles sin capitalización excesiva, anunciar su severidad de forma accesible y reorganizar contenido y acción sin solapamiento desde 320px.
 
 ## 5. Requisitos No Funcionales
 
@@ -92,6 +93,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC21: Automatizaciones y Diagnósticos presentan errores generales mediante `AlertBanner`, con jerarquía, iconografía y escala tipográfica compartidas.
 - [x] AC22: Los encabezados de vista, sección y grupo conservan títulos y subtítulos largos legibles; las acciones se ajustan al ancho disponible, se envuelven cuando es necesario y no provocan overflow horizontal desde 320px.
 - [x] AC23: Los estados vacíos conservan icono, título, descripción y acción legibles desde 320px; el espacio vertical es compacto en móvil y la acción se adapta al ancho disponible sin recorte.
+- [x] AC24: Los avisos muestran texto largo con ajuste seguro, acción a ancho completo en móvil y alineación horizontal desde tablet; advertencias/errores usan `role="alert"` e información/éxito usan `role="status"`.
 
 ## 8. Notas Técnicas y Arquitectura
 
