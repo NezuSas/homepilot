@@ -22,8 +22,8 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
         disabled={isDisabled}
         className={cn(
           // Base
-          'control-transition relative w-full flex items-center justify-between rounded-xl group',
-          nested ? 'py-1.5 px-2' : 'py-2 px-3',
+          'control-transition relative flex w-full min-w-0 items-center justify-between rounded-xl group',
+          nested ? 'px-2 py-1.5' : 'px-3 py-2',
           // Active state (uses sidebar-item-active from index.css for the left bar)
           active
             ? 'sidebar-item-active text-primary'
@@ -38,8 +38,9 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
         )}
         {...props}
         title={collapsedOnDesktop ? label : props.title}
+        aria-current={active ? 'page' : undefined}
       >
-        <div className={cn("flex items-center gap-2.5 min-w-0", collapsedOnDesktop && "xl:justify-center")}>
+        <div className={cn("flex min-w-0 flex-1 items-center gap-2.5", collapsedOnDesktop && "xl:justify-center")}>
           {/* Icon container */}
           <span
             className={cn(
@@ -56,11 +57,11 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           {/* Label */}
           <span
             className={cn(
-              'min-w-0 truncate text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
+              'min-w-0 flex-1 break-words text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
               // Navigation hierarchy is communicated by indentation and icon size,
               // never by a different text scale.
               active ? 'font-semibold text-primary' : 'font-medium',
-              collapsedOnDesktop && 'xl:w-0 xl:opacity-0 xl:ml-0'
+              collapsedOnDesktop && 'xl:w-0 xl:flex-none xl:opacity-0 xl:ml-0 xl:overflow-hidden'
             )}
           >
             {label}

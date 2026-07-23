@@ -17,5 +17,4 @@ Usar para cada opción del sidebar y sus subopciones; no definir tamaños de tex
 
 ## Estados y aceptación
 
-Normal, activo, expandido, colapsado y foco deben conservar etiqueta visible o accesible en todos los breakpoints.
-
+Normal, activo, expandido, colapsado y foco deben conservar etiqueta visible o accesible en todos los breakpoints. En el sidebar expandido, etiquetas largas se ajustan dentro del ancho disponible en lugar de truncarse; al colapsarse en escritorio, la etiqueta se oculta visualmente y se conserva mediante `title`. El ítem activo expone `aria-current="page"`.
