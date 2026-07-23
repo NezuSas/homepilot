@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import { DiagnosticsErrorState } from '../components/DiagnosticsErrorState';
 import { DiagnosticsHealthBanner } from '../components/DiagnosticsHealthBanner';
 import { DiagnosticsIssuesList } from '../components/DiagnosticsIssuesList';
-import { DiagnosticsLoadingState } from '../components/DiagnosticsLoadingState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { DiagnosticsProbeGrid } from '../components/DiagnosticsProbeGrid';
 import { DiagnosticsResilienceSummary } from '../components/DiagnosticsResilienceSummary';
 import { DiagnosticsTimeline } from '../components/DiagnosticsTimeline';
@@ -168,7 +168,7 @@ export function DiagnosticsView() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Keep one polling subscription for this screen lifecycle.
 
   if (loading && !snapshot) {
-    return <DiagnosticsLoadingState label={t('diagnostics.loading')} />;
+    return <LoadingState label={t('diagnostics.loading')} className="h-64" size="md" />;
   }
 
   if (error || !snapshot) {

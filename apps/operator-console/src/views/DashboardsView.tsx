@@ -7,7 +7,7 @@ import { DashboardCreateForm } from '../components/DashboardCreateForm';
 import { DashboardTabsNav } from '../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../components/DashboardTitleBar';
 import { DashboardViewConfigModal } from '../components/DashboardViewConfigModal';
-import { DashboardsLoadingState } from '../components/DashboardsLoadingState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
@@ -386,7 +386,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
   };
 
   if (loading) {
-    return <DashboardsLoadingState label={t('dashboards.loading')} />;
+    return <LoadingState label={t('dashboards.loading')} className="min-h-empty-sm" size="md" />;
   }
 
   const activeTab = active?.tabs[activeTabIdx];

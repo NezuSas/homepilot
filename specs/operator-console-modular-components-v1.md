@@ -41,6 +41,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-15:** Las confirmaciones y errores visibles deben usar `ConfirmModal`, `AlertBanner` u otro componente modular de feedback; no se permiten diálogos nativos del navegador en la consola.
 - **REQ-16:** Los rangos especializados de la consola deben usar `RangeInput`, manteniendo el callback continuo, la confirmación diferida cuando aplique y un foco/estado deshabilitado consistente.
 - **REQ-17:** `Modal` debe establecer foco al abrir, devolverlo al cerrar, cerrar con Escape cuando existe `onClose` y mantener la navegación Tab dentro de su contenido.
+- **REQ-18:** Los estados de carga iniciales de las vistas deben usar `LoadingState`, exponer estado accesible, mantener una escala visual única y recibir su mensaje desde i18n. Las actualizaciones posteriores deben conservar los datos visibles.
 
 ## 5. Requisitos No Funcionales
 
@@ -58,7 +59,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 | Acciones | `ui/Button.tsx`, `ui/IconButton.tsx`, `ui/ToggleSwitch.tsx` | Ejecutar una intención del usuario o cambiar un valor booleano | normal, hover/focus, disabled, loading, destructive, checked |
 | Campos | `ui/Input.tsx`, `ui/Textarea.tsx`, `ui/RangeInput.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
 | Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal abierto, error/empty slot |
-| Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
+| Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/LoadingState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |
 | Dispositivos comunes | `ui/DeviceTileBase.tsx`, `ui/DeviceTileShell.tsx`, `ConfirmModal.tsx`, `CoverPositionControl.tsx` | Presentar acciones permitidas sin conocer el driver | disponible, activo, offline, unsupported, pending |
 | Tokens | `design-system/tokens.ts`, `index.css` | Escala visual única y responsive | light, dark, compact, touch |
@@ -84,6 +85,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC17: Los rangos de posición, opacidad y recorte consumen `RangeInput`, conservan los límites y no ejecutan el comando de cortina más de una vez para un valor confirmado; `check:ui-primitives` evita rangos nativos fuera de UI.
 - [x] AC18: La configuración de vistas de tablero consume `Modal`, respeta `isOpen` y mantiene guardar/eliminar en un pie fijo fuera del contenido desplazable.
 - [x] AC19: Los modales compartidos exponen `role="dialog"`, `aria-modal`, títulos y descripciones asociados, foco inicial/restaurado y navegación de teclado contenida.
+- [x] AC20: Las vistas de Automatizaciones, Workbench, Inicio, Tableros, Usuarios y Diagnósticos usan `LoadingState` para su carga inicial, con mensaje traducido, `role="status"` y sin reemplazar contenido previamente cargado durante refresh.
 
 ## 8. Notas Técnicas y Arquitectura
 

@@ -8,7 +8,7 @@ import { AutomationNotification } from '../components/AutomationNotification';
 import { AutomationRuleCard } from '../components/AutomationRuleCard';
 import { AutomationsEmptyState } from '../components/AutomationsEmptyState';
 import { AutomationsHeader } from '../components/AutomationsHeader';
-import { AutomationsLoadingState } from '../components/AutomationsLoadingState';
+import { LoadingState } from '../components/ui/LoadingState';
 import ConfirmModal from '../components/ConfirmModal';
 import { humanize } from '../lib/naming-utils';
 import {
@@ -166,7 +166,7 @@ const AutomationsView: React.FC = () => {
   };
 
   if (isLoading && rules.length === 0) {
-    return <AutomationsLoadingState label={t('common.loading')} />;
+    return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
   }
 
   const openEditAutomation = (rule: AutomationRule) => {

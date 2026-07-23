@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { AutomationWorkbenchEmptyState } from '../components/AutomationWorkbenchEmptyState';
 import { AutomationWorkbenchErrorToast } from '../components/AutomationWorkbenchErrorToast';
 import { AutomationWorkbenchForm } from '../components/AutomationWorkbenchForm';
-import { AutomationWorkbenchLoadingState } from '../components/AutomationWorkbenchLoadingState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { AutomationWorkbenchRuleCard, type AutomationWorkbenchRule } from '../components/AutomationWorkbenchRuleCard';
 
 
@@ -234,7 +234,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     }
   };
 
-  if (loading && rules.length === 0) return <AutomationWorkbenchLoadingState label={t('automations.loading')} />;
+  if (loading && rules.length === 0) return <LoadingState label={t('automations.loading')} className="min-h-empty-sm py-20" />;
 
   return (
     <div className="flex flex-col gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">

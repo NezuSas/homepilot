@@ -7,7 +7,7 @@ import {
   type DashboardRoutineAutomation,
 } from '../components/DashboardRoutinesSection';
 import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
-import { DashboardLoadingState } from '../components/DashboardLoadingState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { HomeClimateSummary } from '../components/HomeClimateSummary';
 import { API_BASE_URL } from '../config';
 import {
@@ -169,7 +169,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const favoriteSceneIds = useMemo(() => readFavoriteIds(SCENE_FAVORITES_STORAGE_KEY), []);
   const favoriteAutomationIds = useMemo(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY), []);
 
-  if (snapshotLoading && allDevices.length === 0) return <DashboardLoadingState />;
+  if (snapshotLoading && allDevices.length === 0) return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
 
   return (
     <div className="flex flex-col gap-6 pb-10 animate-in fade-in duration-500 sm:gap-8 sm:pb-12">
