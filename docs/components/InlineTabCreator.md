@@ -17,5 +17,4 @@ Usar únicamente en creación/renombrado de pestañas. La validación de unicida
 
 ## Estados y aceptación
 
-Enter confirma un valor no vacío, Escape cancela y el botón de confirmación no permite títulos vacíos.
-
+Enter confirma un valor no vacío, Escape cancela y el botón de confirmación no permite títulos vacíos. El campo puede reducirse dentro de la navegación horizontal sin forzar overflow ni separar las acciones de confirmar/cancelar.

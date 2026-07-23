@@ -17,5 +17,4 @@ Usar solo en el flujo de voz. La enumeración de dispositivos la obtiene el cons
 
 ## Estados y aceptación
 
-Cierra al hacer clic fuera o Escape, usa listbox accesible, trunca etiquetas extensas y no se sale del viewport.
-
+Cierra al hacer clic fuera o Escape, usa listbox accesible asociado al trigger, trunca etiquetas extensas y limita tanto trigger como menú al viewport.

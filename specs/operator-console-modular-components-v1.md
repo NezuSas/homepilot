@@ -60,6 +60,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-34:** `DeviceTileBase` debe conservar el contenido, estados y acciones de una tarjeta de dispositivo en móvil, tablet y escritorio; textos largos se ajustan y las acciones contextuales siguen disponibles sin depender exclusivamente de hover.
 - **REQ-35:** `DeviceTileShell` y `AssistantCard` deben reducirse con seguridad dentro de grids y paneles responsivos, preservando estados accesibles, jerarquía visual y acciones largas en móvil, tablet y escritorio.
 - **REQ-36:** `SegmentedControl`, `IconButton` y `Modal` deben conservar interacción táctil, estado accesible y composición segura dentro del viewport, sin competir entre controles, textos y acciones en pantallas angostas.
+- **REQ-37:** Los flujos modulares de creación rápida y selección de audio deben limitar campo, trigger y menú al ancho disponible, manteniendo teclado, cierre y selección accesibles sin alterar sus contratos.
 
 ## 5. Requisitos No Funcionales
 
@@ -122,6 +123,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC36: La tarjeta base de dispositivo reduce padding en móvil, ajusta títulos y subtítulos largos sin overflow, y mantiene las acciones contextuales accesibles tanto con puntero como en superficies táctiles.
 - [x] AC37: Las tarjetas estructurales y del asistente no crean overflow horizontal desde 320px; conservan acciones envolventes, contenido largo legible y estado deshabilitado accesible cuando corresponde.
 - [x] AC38: Los controles segmentados anuncian su selección, los botones de icono responden de forma táctil y los modales reservan espacio para cierre, texto largo y acciones envolventes desde 320px.
+- [x] AC39: El creador de pestañas y selector de audio se reducen dentro de navegación o composición móvil; el menú de audio permanece dentro del viewport y está asociado semánticamente con su trigger.
 
 ## 8. Notas Técnicas y Arquitectura
 
