@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { X, Check, ChevronRight } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_ENDPOINTS } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import type { AssistantFindingAction } from '../stores/useAssistantStore';
 import { Button } from './ui/Button';
-import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
+import { Modal } from './ui/Modal';
 
 interface AssistantActionModalProps {
   findingId: string;
@@ -74,22 +73,39 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="w-full max-w-md bg-card border border-muted rounded-modal shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-        <header className="p-6 border-b border-muted">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-panel-title font-black tracking-tight">{t(action.label)}</h2>
-            <IconButton icon={X} label={t('common.close')} onClick={onClose} variant="ghost" size="md" className="rounded-full" />
-          </div>
-          {deviceName && (
-            <p className="text-micro font-bold text-muted-foreground uppercase tracking-label px-1">
-              {deviceName}
-            </p>
-          )}
-        </header>
-
-        <div className="p-8 space-y-6">
+  return (
+    <Modal
+      isOpen
+      onClose={loading ? undefined : onClose}
+      title={t(action.label)}
+      description={deviceName}
+      headerAlign="start"
+      headerClassName="pb-4"
+      className="max-w-md"
+      hideCloseButton={loading}
+      footer={(
+        <div className="grid w-full grid-cols-1 gap-3 p-5 min-[380px]:grid-cols-2 sm:p-6">
+          <Button
+            disabled={loading}
+            onClick={onClose}
+            variant="ghost"
+            className="w-full rounded-2xl py-4 text-caption font-black uppercase tracking-wider"
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            disabled={(action.type === 'assign_room' && !selectedRoomId) || (action.type === 'rename_device' && !newName)}
+            onClick={handleSubmit}
+            isLoading={loading}
+            className="w-full rounded-2xl py-4 text-caption font-black uppercase tracking-wider shadow-xl shadow-primary/20"
+          >
+            {!loading && <ChevronRight className="h-4 w-4" />}
+            {t('common.confirm')}
+          </Button>
+        </div>
+      )}
+    >
+      <div className="space-y-6">
           {action.type === 'assign_room' && (
             <div className="space-y-3">
               <label className="text-caption font-black uppercase tracking-widest text-muted-foreground">
@@ -151,27 +167,7 @@ export const AssistantActionModal: React.FC<AssistantActionModalProps> = ({
             </div>
           )}
 
-          <div className="flex gap-3 pt-4">
-            <Button
-              onClick={onClose}
-              variant="ghost"
-              className="flex-1 rounded-2xl py-4 font-black uppercase tracking-wider text-caption"
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              disabled={(action.type === 'assign_room' && !selectedRoomId) || (action.type === 'rename_device' && !newName)}
-              onClick={handleSubmit}
-              isLoading={loading}
-              className="flex-1 rounded-2xl py-4 font-black uppercase tracking-wider text-caption shadow-xl shadow-primary/20"
-            >
-              {!loading && <ChevronRight className="w-4 h-4" />}
-              {t('common.confirm')}
-            </Button>
-          </div>
-        </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 };
