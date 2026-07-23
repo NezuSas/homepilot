@@ -16,6 +16,8 @@ export interface ModalProps {
   className?: string;
   headerClassName?: string;
   contentClassName?: string;
+  footer?: React.ReactNode;
+  footerClassName?: string;
   headerAlign?: 'center' | 'start';
   closeLabel?: string;
   hideCloseButton?: boolean;
@@ -39,6 +41,8 @@ export const Modal: React.FC<ModalProps> = ({
   className,
   headerClassName,
   contentClassName,
+  footer,
+  footerClassName,
   headerAlign = 'center',
   closeLabel,
   hideCloseButton = false
@@ -96,6 +100,12 @@ export const Modal: React.FC<ModalProps> = ({
                 {children}
             </div>
         </div>
+
+        {footer && (
+          <footer className={cn('flex shrink-0 items-center border-t border-border/60', footerClassName)}>
+            {footer}
+          </footer>
+        )}
 
         {!hideCloseButton && onClose && (
           <IconButton

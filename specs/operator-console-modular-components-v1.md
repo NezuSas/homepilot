@@ -27,7 +27,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-01:** Todo componente reutilizable debe recibir datos y callbacks explícitos; no debe acceder a reglas de negocio de forma implícita.
 - **REQ-02:** Primitivos visuales deben utilizar tokens del design system y no tamaños, colores o tipografías hardcodeadas fuera de excepciones documentadas.
 - **REQ-03:** Botones, inputs, selects, modales, filtros, tarjetas y estados deben contemplar estados normal, activo, hover/focus, deshabilitado, loading, error y vacío cuando aplique.
-- **REQ-04:** Los modales deben permanecer dentro del contenedor de aplicación, preservar foco, permitir cierre explícito y no ocultar acciones críticas fuera del viewport.
+- **REQ-04:** Los modales deben permanecer dentro del contenedor de aplicación, preservar foco, permitir cierre explícito y no ocultar acciones críticas fuera del viewport. Cuando una acción debe permanecer disponible, se usará el `footer` fijo del `Modal`.
 - **REQ-05:** Componentes de navegación deben conservar etiquetas legibles, área táctil suficiente y colapsado usable en móvil/tablet/escritorio.
 - **REQ-06:** Texto visible, labels, títulos, estados, placeholders y mensajes deben resolverse mediante i18n ES/EN o datos de dominio ya traducidos.
 - **REQ-07:** Una tarjeta genérica solo debe presentar controles soportados por las capacidades entregadas por su dominio.
@@ -81,6 +81,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC15: `npm run check:ui-primitives` evita escalas tipográficas arbitrarias fuera de los primitivos UI, conservando la jerarquía compartida entre vistas.
 - [x] AC16: `npm run check:ui-primitives` evita `alert`, `confirm` y `prompt` nativos fuera de los primitivos UI; usuarios y cámaras presentan feedback mediante componentes del design system.
 - [x] AC17: Los rangos de posición, opacidad y recorte consumen `RangeInput`, conservan los límites y no ejecutan el comando de cortina más de una vez para un valor confirmado; `check:ui-primitives` evita rangos nativos fuera de UI.
+- [x] AC18: La configuración de vistas de tablero consume `Modal`, respeta `isOpen` y mantiene guardar/eliminar en un pie fijo fuera del contenido desplazable.
 
 ## 8. Notas Técnicas y Arquitectura
 

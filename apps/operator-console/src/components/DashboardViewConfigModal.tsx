@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { Eye, Image, MoreVertical, SlidersHorizontal, Trash2, X, Loader2, type LucideIcon } from 'lucide-react';
+import { Eye, Image, SlidersHorizontal, Trash2, Loader2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { IconPicker } from '../views/dashboards/components/IconPicker';
 import { Button } from './ui/Button';
-import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { ToggleSwitch } from './ui/ToggleSwitch';
 import { RangeInput } from './ui/RangeInput';
+import { Modal } from './ui/Modal';
 
 
 const MAX_BG_PX = 1920;
@@ -152,16 +152,29 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/70 backdrop-blur-sm p-4">
-      <div className="relative flex max-h-viewport-modal w-full max-w-2xl flex-col overflow-hidden rounded-card border border-border/70 bg-card text-foreground shadow-2xl animate-in zoom-in-95 duration-200">
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border/60 px-5">
-          <IconButton icon={X} label={t('common.close')} variant="ghost" onClick={onClose} />
-          <h2 className="min-w-0 flex-1 truncate text-section-title font-semibold tracking-tight">
-            {t('dashboards.view_config.title', { title: tab.title })}
-          </h2>
-          <IconButton icon={MoreVertical} label={t('common.more')} variant="ghost" />
-        </header>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('dashboards.view_config.title', { title: tab.title })}
+      headerAlign="start"
+      closeLabel={t('common.close')}
+      layerClassName="z-[120]"
+      className="max-w-2xl border-border/70"
+      headerClassName="border-b border-border/60 px-5 py-4 sm:px-6 sm:py-5"
+      contentClassName="p-0"
+      footer={(
+        <>
+          <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="px-0 text-destructive hover:bg-transparent hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+            {t('dashboards.view_config.delete_view')}
+          </Button>
+          <Button type="button" onClick={handleSave}>
+            {t('common.save')}
+          </Button>
+        </>
+      )}
+      footerClassName="justify-between px-5 py-4 sm:px-6"
+    >
         <nav className="shrink-0 border-b border-border/60 px-5 py-3">
           <SegmentedControl
             value={activeTab}
@@ -172,7 +185,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           />
         </nav>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-5 no-scrollbar">
+        <div className="p-5 sm:p-6">
           {activeTab === 'settings' && (
             <div className="space-y-5">
               <Input
@@ -301,17 +314,6 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
             </div>
           )}
         </div>
-
-        <footer className="flex shrink-0 items-center justify-between border-t border-border/60 px-5 py-4">
-          <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="px-0 text-destructive hover:bg-transparent hover:text-destructive">
-            <Trash2 className="h-4 w-4" />
-            {t('dashboards.view_config.delete_view')}
-          </Button>
-          <Button type="button" onClick={handleSave}>
-            {t('common.save')}
-          </Button>
-        </footer>
-      </div>
-    </div>
+    </Modal>
   );
 };
