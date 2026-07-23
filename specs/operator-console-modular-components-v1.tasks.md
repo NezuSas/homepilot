@@ -51,6 +51,7 @@
 - [x] Consolidación de controles de reproducción y volumen en la tarjeta multimedia con `IconButton`, preservando permisos, comandos y feedback de volumen.
 - [x] Consolidación del área ejecutable de la tarjeta de escena con `Button` y etiqueta accesible basada en el nombre de la escena.
 - [x] Refuerzo de `check:i18n` para validar claves literales escritas con comillas o template literals sin interpolación, manteniendo paridad obligatoria ES/EN.
+- [x] Creación de `check:ui-primitives` y ejecución en CI para evitar botones HTML convencionales fuera de los primitivos modulares.
 
 ## Verificación obligatoria ante cambios
 
