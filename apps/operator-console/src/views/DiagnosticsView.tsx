@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
-import { DiagnosticsErrorState } from '../components/DiagnosticsErrorState';
 import { DiagnosticsHealthBanner } from '../components/DiagnosticsHealthBanner';
 import { DiagnosticsIssuesList } from '../components/DiagnosticsIssuesList';
 import { LoadingState } from '../components/ui/LoadingState';
 import { DiagnosticsProbeGrid } from '../components/DiagnosticsProbeGrid';
 import { DiagnosticsResilienceSummary } from '../components/DiagnosticsResilienceSummary';
 import { DiagnosticsTimeline } from '../components/DiagnosticsTimeline';
+import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 interface DiagnosticsCounters {
@@ -172,12 +172,7 @@ export function DiagnosticsView() {
   }
 
   if (error || !snapshot) {
-    return (
-      <DiagnosticsErrorState
-        title={t('diagnostics.error_loading')}
-        message={error || t('common.errors.unknown')}
-      />
-    );
+    return <AlertBanner variant="danger" title={t('diagnostics.error_loading')} message={error || t('common.errors.unknown')} />;
   }
 
   // --- Helpers ---

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -10,6 +9,7 @@ import { AutomationsEmptyState } from '../components/AutomationsEmptyState';
 import { AutomationsHeader } from '../components/AutomationsHeader';
 import { LoadingState } from '../components/ui/LoadingState';
 import ConfirmModal from '../components/ConfirmModal';
+import { AlertBanner } from '../components/ui/AlertBanner';
 import { humanize } from '../lib/naming-utils';
 import {
   AUTOMATION_FAVORITES_STORAGE_KEY,
@@ -181,12 +181,7 @@ const AutomationsView: React.FC = () => {
         onCreate={() => setIsBuilderOpen(true)}
       />
 
-      {error && (
-        <div className="p-6 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 text-destructive animate-shake">
-          <AlertCircle className="w-6 h-6 shrink-0" />
-          <p className="font-black text-caption uppercase tracking-wider">{error}</p>
-        </div>
-      )}
+      {error && <AlertBanner variant="danger" message={error} className="animate-shake" />}
 
       {rules.length === 0 ? (
         <AutomationsEmptyState onCreate={() => setIsBuilderOpen(true)} />

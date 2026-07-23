@@ -42,6 +42,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-16:** Los rangos especializados de la consola deben usar `RangeInput`, manteniendo el callback continuo, la confirmación diferida cuando aplique y un foco/estado deshabilitado consistente.
 - **REQ-17:** `Modal` debe establecer foco al abrir, devolverlo al cerrar, cerrar con Escape cuando existe `onClose` y mantener la navegación Tab dentro de su contenido.
 - **REQ-18:** Los estados de carga iniciales de las vistas deben usar `LoadingState`, exponer estado accesible, mantener una escala visual única y recibir su mensaje desde i18n. Las actualizaciones posteriores deben conservar los datos visibles.
+- **REQ-19:** Los errores generales de una vista deben usar `AlertBanner`; las tarjetas o formularios pueden conservar feedback localizado cuando el error pertenece a una acción concreta.
 
 ## 5. Requisitos No Funcionales
 
@@ -86,6 +87,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC18: La configuración de vistas de tablero consume `Modal`, respeta `isOpen` y mantiene guardar/eliminar en un pie fijo fuera del contenido desplazable.
 - [x] AC19: Los modales compartidos exponen `role="dialog"`, `aria-modal`, títulos y descripciones asociados, foco inicial/restaurado y navegación de teclado contenida.
 - [x] AC20: Las vistas de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos y Asistente, además de la transición de navegación diferida, usan `LoadingState` para su carga inicial, con mensaje traducido, `role="status"` y sin reemplazar contenido previamente cargado durante refresh.
+- [x] AC21: Automatizaciones y Diagnósticos presentan errores generales mediante `AlertBanner`, con jerarquía, iconografía y escala tipográfica compartidas.
 
 ## 8. Notas Técnicas y Arquitectura
 

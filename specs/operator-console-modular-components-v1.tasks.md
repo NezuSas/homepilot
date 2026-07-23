@@ -61,6 +61,7 @@
 - [x] Consolidación de la configuración de vistas de tablero en `Modal`, con pie fijo para acciones de guardar y eliminar.
 - [x] Refuerzo de accesibilidad de `Modal`: foco inicial/restaurado, Escape, ciclo de Tab y semántica de diálogo asociada a título y descripción.
 - [x] Consolidación de los estados de carga iniciales de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos, Asistente y navegación diferida en `LoadingState`, con mensajes i18n y semántica accesible compartida.
+- [x] Consolidación de los errores generales de Automatizaciones y Diagnósticos en `AlertBanner`; los errores de formulario y acción localizada conservan su contexto de dominio.
 
 ## Verificación obligatoria ante cambios
 
