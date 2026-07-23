@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { Home, Power, Loader2 } from 'lucide-react';
+import { Home, Power } from 'lucide-react';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { isDeviceActive, getDevicesInRoom } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
+import { Button } from '../../../components/ui/Button';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -111,14 +112,15 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
       </div>
 
       {onCount > 0 && (
-        <button
+        <Button
           onClick={handleToggleAll}
-          disabled={isProcessing}
-          className="relative mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/5 py-3 text-micro font-black uppercase tracking-label text-destructive transition-all duration-300 hover:border-transparent hover:bg-destructive hover:text-destructive-foreground active:scale-95"
+          isLoading={isProcessing}
+          variant="danger"
+          className="relative mt-6 w-full rounded-2xl border border-destructive/20 bg-destructive/5 py-3 text-micro font-black uppercase tracking-label text-destructive hover:border-transparent hover:bg-destructive hover:text-destructive-foreground"
         >
-          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+          {!isProcessing && <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}
-        </button>
+        </Button>
       )}
     </div>
   );
