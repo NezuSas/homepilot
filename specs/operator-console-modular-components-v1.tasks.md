@@ -55,6 +55,7 @@
 - [x] Extensión de `check:ui-primitives` para impedir inputs y áreas de texto genéricos fuera de `Input` y `Textarea`, manteniendo excepciones explícitas para controles especializados.
 - [x] Extensión de `check:ui-primitives` para impedir selects nativos fuera de los primitivos UI y preservar `SearchableSelectField` como selector único de negocio.
 - [x] Integración de cobertura i18n, specs y primitivos UI en CI para impedir regresiones antes de cada entrega.
+- [x] Protección de CI contra utilidades tipográficas arbitrarias fuera de los primitivos UI; la consola consume únicamente escalas tipográficas con nombre.
 
 ## Verificación obligatoria ante cambios
 

@@ -29,11 +29,12 @@ for (const filePath of listSourceFiles(sourceRoot)) {
   if (/<textarea(?:\s|>)/.test(source) && !specializedTextareaFiles.has(relativePath.replaceAll(sep, '/'))) {
     fileViolations.push('textarea');
   }
+  if (/\btext-\[[^\]]+\]/.test(source)) fileViolations.push('arbitrary text size');
   if (fileViolations.length > 0) violations.push(`${relativePath} (${fileViolations.join(', ')})`);
 }
 
 if (violations.length > 0) {
-  console.error('UI primitive coverage failed: use shared UI primitives for conventional actions, fields and selects outside components/ui.');
+  console.error('UI primitive coverage failed: use shared UI primitives and named design-system typography tokens outside components/ui.');
   for (const filePath of violations) console.error(`- ${filePath}`);
   process.exit(1);
 }
