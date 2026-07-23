@@ -65,7 +65,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC5: Cada estado de error, vacío o carga conserva accesibilidad y traducción ES/EN.
 - [x] AC6: Las vistas usan el selector modular único `SearchableSelectField` para toda opción de negocio; el buscador está siempre disponible.
 - [x] AC7: Las filas de creación y renombrado de hogares o estancias alinean inputs y acciones con la altura base del design system.
-- [x] AC8: `npm run check:i18n` valida paridad ES/EN y referencias literales de i18n en la consola antes de una entrega.
+- [x] AC8: `npm run check:i18n` valida paridad ES/EN y referencias literales de i18n, incluidas las expresadas con template literals sin interpolación, en la consola antes de una entrega.
 - [x] AC9: El selector de Rutinas muestra Escenas y Automatizaciones con la misma jerarquía tipográfica, sin saltos de línea ni recorte visual.
 - [x] AC10: El sidebar presenta etiqueta de marca, navegación, guía y perfil con texto compacto, truncado seguro y roles breves traducidos para su contexto.
 

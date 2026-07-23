@@ -34,13 +34,18 @@ for (const key of spanishKeys) {
   if (!englishKeys.has(key)) errors.push(`Missing English key: ${key}`);
 }
 
-const literalKeyPattern = /\bt\(\s*(['"])([^'"`]+)\1/g;
+const literalKeyPatterns = [
+  /\bt\(\s*(['"])([^'"`]+)\1/g,
+  /\bt\(\s*`([^`$]+)`/g,
+];
 for (const filePath of listSourceFiles(sourceRoot)) {
   const source = readFileSync(filePath, 'utf8');
-  for (const match of source.matchAll(literalKeyPattern)) {
-    const key = match[2];
-    if (!hasTranslationKey(englishKeys, key) || !hasTranslationKey(spanishKeys, key)) {
-      errors.push(`Unknown translation key in ${relative(root, filePath)}: ${key}`);
+  for (const pattern of literalKeyPatterns) {
+    for (const match of source.matchAll(pattern)) {
+      const key = match[2] ?? match[1];
+      if (!hasTranslationKey(englishKeys, key) || !hasTranslationKey(spanishKeys, key)) {
+        errors.push(`Unknown translation key in ${relative(root, filePath)}: ${key}`);
+      }
     }
   }
 }
