@@ -249,14 +249,17 @@ function TabBadgeContent({ tab, onSelectTab }: { tab: DashboardTitleTabRef; onSe
   const Icon = tab.icon ? getDashboardIconComponent(tab.icon) : null;
 
   return (
-    <button
+    <Button
       type="button"
       onClick={(event) => { event.stopPropagation(); onSelectTab?.(tab.id); }}
-      className={badgePillClass}
+      aria-label={tab.title}
+      variant="ghost"
+      size="sm"
+      className={`${badgePillClass} h-auto min-h-0`}
     >
       {Icon ? <Icon className="h-4 w-4" /> : null}
       <span className="max-w-24 truncate normal-case">{tab.title}</span>
-    </button>
+    </Button>
   );
 }
 
