@@ -10,6 +10,7 @@ import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
+import { Button } from '../../../components/ui/Button';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -100,7 +101,10 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
 
   if (isCompact) {
     return (
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="md"
         className={cn(
           "relative h-full w-full min-w-0 min-h-0 flex flex-row items-center gap-3 px-3 py-2 @md:px-4 transition-all duration-300 select-none group focus:outline-none"
         )}
@@ -132,12 +136,15 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
             <Icons.Loader2 className="w-4 h-4 animate-spin text-primary" />
           </div>
         )}
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
+      type="button"
+      variant="ghost"
+      size="md"
       className={cn(
         "relative h-full w-full min-w-0 min-h-0 flex flex-col items-center justify-center p-3 @md:p-4 transition-all duration-300 select-none group focus:outline-none"
       )}
@@ -169,6 +176,6 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
           <Icons.Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       )}
-    </button>
+    </Button>
   );
 }
