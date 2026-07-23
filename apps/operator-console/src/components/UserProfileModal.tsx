@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Camera, X, Check, Loader2, UserCircle2, ZoomIn, Move } from 'lucide-react';
+import { Camera, Check, Loader2, UserCircle2, ZoomIn, Move } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
+import { Modal } from './ui/Modal';
 import { RangeInput } from './ui/RangeInput';
 
 interface UserProfile {
@@ -185,25 +185,49 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
   };
 
   const roleLabel = user.role === 'admin'
-    ? t('users.roles.admin', 'Administrador (Padre)')
+    ? t('users.roles.admin')
     : t('users.roles.operator');
 
-  return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-card border border-border/60 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 flex items-center justify-between border-b border-border/40 bg-muted/30">
-          <div>
-            <h3 className="font-black tracking-tight">{t('users.profile.title', 'Mi Perfil')}</h3>
-            <p className="text-micro uppercase font-black tracking-widest text-muted-foreground mt-0.5">{roleLabel}</p>
-          </div>
-          <IconButton icon={X} label={t('common.close')} onClick={onClose} variant="default" size="sm" />
+  return (
+    <Modal
+      isOpen
+      onClose={saving ? undefined : onClose}
+      title={t('users.profile.title')}
+      description={roleLabel}
+      headerAlign="start"
+      headerClassName="pb-4"
+      className="max-w-md"
+      layerClassName="z-[200]"
+      hideCloseButton={saving}
+      footer={(
+        <div className="grid w-full grid-cols-1 gap-3 p-5 min-[380px]:grid-cols-2 sm:p-6">
+          <Button
+            disabled={saving}
+            onClick={onClose}
+            variant="secondary"
+            className="w-full rounded-2xl px-5 py-2.5 text-body font-black uppercase tracking-widest"
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={loading}
+            isLoading={saving}
+            className="w-full rounded-2xl px-6 py-2.5 text-body font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+          >
+            {!saving && <Check className="h-4 w-4" />}
+            {t('common.save')}
+          </Button>
         </div>
-        {loading ? (
-          <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-        ) : (
-          <div className="p-6 flex flex-col gap-6">
-            <div className="flex flex-col items-center gap-4">
+      )}
+    >
+      {loading ? (
+        <div className="flex items-center justify-center p-7 sm:p-10">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col items-center gap-4">
               <div 
                 className="relative w-56 h-56 touch-none"
               >
@@ -230,7 +254,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                     >
                       <img 
                         src={rawImage.src} 
-                        alt="Crop target" 
+                        alt={t('users.profile.crop_target_alt')}
                         draggable={false}
                         className="max-w-none transition-transform duration-75 ease-out"
                         style={{ 
@@ -243,7 +267,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                   ) : avatarPreview ? (
                     <img 
                       src={avatarPreview.startsWith('/') ? `${API_BASE_URL}${avatarPreview}` : avatarPreview} 
-                      alt="Avatar" 
+                      alt={t('users.profile.avatar_alt')}
                       className="w-full h-full object-cover" 
                       onError={(event) => {
                          // If image fails to load, clear preview to show fallback
@@ -271,8 +295,8 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
               {rawImage && (
                 <div className="w-full flex flex-col gap-2">
                   <div className="flex items-center justify-between text-micro font-black uppercase tracking-widest text-muted-foreground px-1">
-                    <div className="flex items-center gap-2"><ZoomIn className="w-3 h-3" /> {t('users.profile.zoom', 'Zoom')}</div>
-                    <div className="flex items-center gap-2"><Move className="w-3 h-3" /> {t('users.profile.adjust', 'Arrastra para ajustar')}</div>
+                    <div className="flex items-center gap-2"><ZoomIn className="w-3 h-3" /> {t('users.profile.zoom')}</div>
+                    <div className="flex items-center gap-2"><Move className="w-3 h-3" /> {t('users.profile.adjust')}</div>
                   </div>
                   <RangeInput
                     aria-label={t('users.profile.zoom')}
@@ -292,28 +316,15 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
             </div>
 
             <Input
-              label={t('users.profile.display_name', 'Nombre a Mostrar')}
+              label={t('users.profile.display_name')}
               type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
               placeholder={user.username} maxLength={40}
               className="h-12 rounded-2xl px-4 font-bold shadow-inner"
             />
 
             {error && <p className="text-body text-destructive font-bold text-center bg-destructive/5 py-2 rounded-xl border border-destructive/10">{error}</p>}
-          </div>
-        )}
-
-        <div className="px-6 py-5 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
-          <Button onClick={onClose} variant="secondary" className="rounded-2xl px-5 py-2.5 text-body font-black uppercase tracking-widest">{t('common.cancel', 'Cancelar')}</Button>
-          <Button
-            onClick={handleSave} disabled={loading} isLoading={saving}
-            className="rounded-2xl px-6 py-2.5 text-body font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-          >
-            {!saving && <Check className="w-4 h-4" />}
-            {t('common.save', 'Guardar')}
-          </Button>
         </div>
-      </div>
-    </div>,
-    document.body
+      )}
+    </Modal>
   );
 }

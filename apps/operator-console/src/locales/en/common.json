@@ -1194,7 +1194,9 @@
       "username_label": "Username",
       "role_label": "Role",
       "zoom": "Zoom",
-      "adjust": "Drag to adjust"
+      "adjust": "Drag to adjust",
+      "crop_target_alt": "Selected image for cropping",
+      "avatar_alt": "User avatar"
     }
   },
   "login": {

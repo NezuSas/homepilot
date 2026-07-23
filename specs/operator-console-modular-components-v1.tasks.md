@@ -83,6 +83,7 @@
 - [x] Consolidación responsive de navegación de tableros y compositor conversacional: títulos extensos, acciones móviles, área segura y controles de voz adaptados sin modificar sus flujos.
 - [x] Consolidación de confirmaciones y posición de cortina: `ConfirmModal` reutiliza `Modal` y `CoverPositionControl` recibe accesibilidad traducida obligatoria.
 - [x] Consolidación del modal de acciones del asistente: reutiliza `Modal` y conserva formularios tipados, pie fijo y bloqueo durante ejecución.
+- [x] Consolidación del perfil de usuario: reutiliza `Modal`, preserva recorte local de avatar y elimina fallbacks o etiquetas accesibles hardcodeadas.
 
 ## Verificación obligatoria ante cambios
 

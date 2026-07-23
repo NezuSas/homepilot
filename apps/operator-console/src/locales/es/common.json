@@ -1194,7 +1194,9 @@
       "username_label": "Usuario",
       "role_label": "Rol",
       "zoom": "Zoom",
-      "adjust": "Arrastra para ajustar"
+      "adjust": "Arrastra para ajustar",
+      "crop_target_alt": "Imagen seleccionada para recortar",
+      "avatar_alt": "Avatar de usuario"
     }
   },
   "login": {

@@ -64,6 +64,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-38:** La navegación de pestañas y el compositor de conversación deben adaptarse al viewport con títulos largos, acciones móviles y área segura, manteniendo visibles las acciones esenciales durante la interacción.
 - **REQ-39:** Las confirmaciones sensibles deben reutilizar el diálogo modular para foco, teclado y viewport; los controles de posición no deben introducir etiquetas en un idioma fijo y deben recibirlas traducidas desde su consumidor.
 - **REQ-40:** Las acciones sugeridas por el asistente deben reutilizar el diálogo modular, mantener sus formularios de dominio aislados y bloquear cierre o doble envío mientras se ejecuta una intención.
+- **REQ-41:** La edición de perfil debe reutilizar el diálogo modular, conservar recorte local de avatar y exponer todos sus textos y etiquetas accesibles desde i18n ES/EN.
 
 ## 5. Requisitos No Funcionales
 
@@ -130,6 +131,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC40: Las pestañas de tablero conservan selección, títulos accesibles y desplazamiento horizontal seguro; el compositor permanece visible, conserva el foco y envuelve sus controles sin overflow desde 320px.
 - [x] AC41: Confirmaciones críticas comparten portal, foco, cierre y composición responsive con `Modal`; controles de posición exigen etiqueta accesible traducida y no ejecutan confirmaciones duplicadas.
 - [x] AC42: Las acciones del asistente comparten portal, foco, cierre, scroll y pie responsive con `Modal`; su ejecución bloquea cierre y reintentos hasta finalizar.
+- [x] AC43: El perfil de usuario comparte portal, foco, cierre, scroll y pie responsive con `Modal`; bloquea reintentos durante guardado y sus etiquetas visibles o accesibles existen en ES/EN.
 
 ## 8. Notas Técnicas y Arquitectura
 
