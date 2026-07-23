@@ -17,5 +17,4 @@ Usar para hallazgos interpretados; no para emitir comandos directamente ni mostr
 
 ## Estados y aceptación
 
-Mantiene información, acción, vacío y loading con jerarquía compacta y traducciones del consumidor.
-
+Mantiene información, acción, vacío y loading con jerarquía compacta y traducciones del consumidor. Reduce padding en móvil y permite que categoría, severidad, texto y acciones largas se ajusten o envuelvan sin provocar overflow.

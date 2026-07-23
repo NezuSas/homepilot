@@ -38,7 +38,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
       <div
         ref={ref}
         className={cn(
-          "relative border-2 rounded-panel p-6 overflow-hidden transition-all duration-500 flex flex-col md:flex-row gap-6",
+          "relative flex min-w-0 flex-col gap-4 overflow-hidden rounded-panel border-2 p-4 transition-all duration-500 sm:gap-5 sm:p-5 md:flex-row md:gap-6 md:p-6",
           isDismissed ? "opacity-0 translate-x-12 scale-95 pointer-events-none" : "hover:-translate-y-1 hover:shadow-xl",
           !severity ? "border-primary/30 bg-gradient-to-br from-card via-card to-primary/10 shadow-lg shadow-primary/10 hover:shadow-primary/20" : "bg-card border-border shadow-md",
           className
@@ -49,7 +49,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
         {!severity && <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-primary/20 to-transparent rounded-full blur-3xl -z-10" />}
 
         {/* Header Icon + Severity */}
-        <div className="flex flex-col items-start gap-4">
+        <div className="flex shrink-0 flex-col items-start gap-4">
           <div className={cn(
             "p-4 rounded-2xl border shadow-inner",
             severity ? severityClasses[severity] : "border-primary/20 bg-primary/10 text-primary shadow-primary/20"
@@ -59,16 +59,16 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col justify-center">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
+            <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                 <span className={cn(
-                    "px-2 py-0.5 rounded text-micro font-black uppercase tracking-widest bg-muted text-muted-foreground"
+                    "max-w-full break-words rounded bg-muted px-2 py-0.5 text-micro font-black uppercase tracking-widest text-muted-foreground"
                 )}>
                     {category}
                 </span>
                 {severity && (
                     <span className={cn(
-                        "text-micro font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                        "max-w-full break-words rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-widest",
                         severityClasses[severity]
                     )}>
                         {t(`common.severity_${severity}`, { defaultValue: severity })}
@@ -76,8 +76,8 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
                  )}
             </div>
             
-            <h3 className={cn("text-section-title font-bold tracking-tight mb-2", severity ? severityTextClasses[severity] : "text-foreground")}>{title}</h3>
-            <p className="text-body font-medium text-muted-foreground/80 leading-relaxed mb-6">
+            <h3 className={cn("mb-2 break-words text-section-title font-bold tracking-tight", severity ? severityTextClasses[severity] : "text-foreground")}>{title}</h3>
+            <p className="mb-4 break-words text-body font-medium leading-relaxed text-muted-foreground/80 sm:mb-6">
                 {description}
             </p>
 
@@ -85,7 +85,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
             
             {/* Actions */}
             {actions && (
-                <div className="flex items-center gap-3 mt-4">
+                <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
                     {actions}
                 </div>
             )}

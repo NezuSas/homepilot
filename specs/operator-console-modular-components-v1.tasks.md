@@ -77,6 +77,7 @@
 - [x] Consolidación y documentación de `ToggleSwitch`: semántica de estado explícita, interacción táctil y contrato modular para preferencias booleanas.
 - [x] Refuerzo responsive de `SearchFilterBar`: búsqueda y filtros pueden reducirse dentro de paneles angostos sin alterar filtrado, foco ni navegación de opciones.
 - [x] Refuerzo responsive de `DeviceTileBase`: padding adaptativo, textos largos ajustables y acciones contextuales disponibles también en dispositivos táctiles.
+- [x] Refuerzo responsive de `DeviceTileShell` y `AssistantCard`: reducción segura en grids, semántica accesible, padding adaptativo y acciones largas envolventes.
 
 ## Verificación obligatoria ante cambios
 
