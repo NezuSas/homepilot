@@ -1225,11 +1225,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             {filteredCatalog.length > 0 ? (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {filteredCatalog.map((item) => (
-                  <button
+                  <Button
                     key={item.kind}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => addCard(item)}
-                    className="rounded-card border border-border/50 bg-background/30 p-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
+                    className="h-auto w-full flex-col items-stretch justify-start rounded-card border border-border/50 bg-background/30 p-3 text-left hover:border-primary/50 hover:bg-primary/5"
                   >
                     {renderCatalogPreview(item.kind, item.title, item.span, item.icon)}
                     <div className="px-2 pb-1 pt-3">
@@ -1241,7 +1243,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                         {t(`dashboard.editor.sections.card_size_${item.span}`)}
                       </span>
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : (
@@ -1476,20 +1478,20 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       {cards.map(renderCard)}
 
       {isEditing ? (
-        <button
-          type="button"
+        <IconButton
+          icon={Plus}
+          label={t('dashboard.editor.sections.add_card')}
+          variant="ghost"
+          size="lg"
           onClick={(event) => {
             event.stopPropagation();
             setIsCatalogOpen(true);
           }}
           className={cn(
-            "inline-flex min-h-section-card-sm items-center justify-center rounded-section border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary transition-all duration-200 hover:bg-primary/10",
+            "h-auto w-auto min-h-section-card-sm rounded-section border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary hover:bg-primary/10 [&>svg]:h-6 [&>svg]:w-6",
             cards.length === 0 ? "col-span-full" : "col-span-1"
           )}
-          aria-label={t('dashboard.editor.sections.add_card')}
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        />
       ) : null}
     </div>
   );

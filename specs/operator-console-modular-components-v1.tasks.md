@@ -43,6 +43,7 @@
 - [x] Consolidación de los desplegables Tableros y Sistema del sidebar con `Button`, incorporando estado `aria-expanded` y conservando navegación, carga y colapso existentes.
 - [x] Consolidación de los controles de la carcasa principal: marca, plegado del sidebar, demo guiada, perfil y menú móvil usan `Button` o `IconButton`, manteniendo navegación y comportamiento visual existente.
 - [x] Consolidación del agarre de reordenamiento de secciones del tablero con `IconButton`, preservando atributos y listeners de arrastre.
+- [x] Consolidación de las tarjetas del catálogo y placeholder para añadir tarjetas de sección con `Button` e `IconButton`, preservando selección, catálogo y distribución del grid.
 - [x] Consolidación de acciones convencionales de hogares, estancias y luces en Espacios con `Button` e `IconButton`; las tarjetas seleccionables conservan su interacción especializada.
 - [x] Consolidación de controles de reproducción y volumen en la tarjeta multimedia con `IconButton`, preservando permisos, comandos y feedback de volumen.
 - [x] Consolidación del área ejecutable de la tarjeta de escena con `Button` y etiqueta accesible basada en el nombre de la escena.
