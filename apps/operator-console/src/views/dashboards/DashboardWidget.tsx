@@ -7,6 +7,8 @@ import {
   GripVertical
 } from 'lucide-react';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
+import { IconButton } from '../../components/ui/IconButton';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { clampSectionSpan, getSectionSpan } from './dashboardUtils';
 
 // Sub-widgets
@@ -169,40 +171,30 @@ export function DashboardWidgetNode({
           {/* Floating control bar appears on hover */}
           <div className="pointer-events-auto absolute right-2 top-2 z-30 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
-              <button
+              <IconButton
+                icon={Pencil}
+                label={t('common.configure')}
+                variant="ghost"
+                size="sm"
                 onClick={(e) => { e.stopPropagation(); onClick(); }}
-                className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                title={t('common.configure')}
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
+                className="hover:bg-primary/10 hover:text-primary"
+              />
               {!isTitleWidget && canDrag && onConfigChange && (
                 <div className="w-px h-4 bg-border/40 mx-0.5" />
               )}
               {/* Discrete column-span picker: 1..N columns, Home Assistant Sections style. */}
               {!isTitleWidget && canDrag && onConfigChange && (
-                <div className="flex items-center gap-0.5 rounded-lg bg-muted/40 p-0.5">
-                  {Array.from({ length: Math.max(1, columns) }, (_, index) => index + 1).map((option) => {
-                    const currentSpan = clampSectionSpan(getSectionSpan(widget), Math.max(1, columns));
-                    const isActive = currentSpan === option;
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onConfigChange(widget.id, { layout: { ...widget.config.layout, span: option } });
-                        }}
-                        title={t('dashboard.editor.sections.span_columns', { count: option })}
-                        className={cn(
-                          "grid h-8 w-6 place-items-center rounded text-micro font-black transition-colors",
-                          isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                        )}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
+                <div onClick={(event) => event.stopPropagation()}>
+                  <SegmentedControl<string>
+                    value={String(clampSectionSpan(getSectionSpan(widget), Math.max(1, columns)))}
+                    onChange={(value) => onConfigChange(widget.id, { layout: { ...widget.config.layout, span: Number(value) } })}
+                    options={Array.from({ length: Math.max(1, columns) }, (_, index) => index + 1).map((option) => ({
+                      value: String(option),
+                      label: String(option),
+                    }))}
+                    className="gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
+                    optionClassName="min-h-8 min-w-6 flex-none rounded px-1 py-1 text-micro font-black"
+                  />
                 </div>
               )}
               {!isTitleWidget && canDrag && (

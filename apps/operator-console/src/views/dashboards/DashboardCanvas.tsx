@@ -13,6 +13,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
+import { Button } from '../../components/ui/Button';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
 import {
@@ -286,17 +287,19 @@ export function DashboardCanvas({
           </CanvasFlowItem>
         ) : canEditLayout ? (
           <CanvasFlowItem span={columns} gap={gap}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="md"
               onClick={onAddTitleClick}
               aria-label={t('dashboard.editor.sections.add_title')}
-              className="flex min-h-0 w-full items-center justify-center rounded-section border-2 border-dashed border-border/60 bg-background/10 text-primary transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+              className="min-h-0 w-full rounded-section border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
             >
               <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
                 <span className="text-panel-title leading-none">+</span>
                 <span>{t('dashboard.editor.sections.add_title')}</span>
               </span>
-            </button>
+            </Button>
           </CanvasFlowItem>
         ) : null}
 
@@ -318,16 +321,18 @@ export function DashboardCanvas({
 
         {canEditLayout && (
           <CanvasFlowItem span={hasSections ? columns : Math.min(2, columns)} gap={gap}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="md"
               onClick={onAddSectionClick}
               aria-label={t('dashboard.editor.sections.add_section')}
-              className="flex min-h-0 w-full items-center justify-center rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+              className="min-h-0 w-full rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
             >
               <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-panel-title font-light leading-none text-primary">
                 +
               </span>
-            </button>
+            </Button>
           </CanvasFlowItem>
         )}
 
