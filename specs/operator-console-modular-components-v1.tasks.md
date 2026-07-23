@@ -53,6 +53,7 @@
 - [x] Refuerzo de `check:i18n` para validar claves literales escritas con comillas o template literals sin interpolación, manteniendo paridad obligatoria ES/EN.
 - [x] Creación de `check:ui-primitives` y ejecución en CI para evitar botones HTML convencionales fuera de los primitivos modulares.
 - [x] Extensión de `check:ui-primitives` para impedir inputs y áreas de texto genéricos fuera de `Input` y `Textarea`, manteniendo excepciones explícitas para controles especializados.
+- [x] Extensión de `check:ui-primitives` para impedir selects nativos fuera de los primitivos UI y preservar `SearchableSelectField` como selector único de negocio.
 
 ## Verificación obligatoria ante cambios
 

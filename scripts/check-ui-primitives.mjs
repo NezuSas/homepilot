@@ -25,6 +25,7 @@ for (const filePath of listSourceFiles(sourceRoot)) {
   if (/<input\b(?:(?!\/?>)[\s\S])*?\btype\s*=\s*["'](?:text|password|email|search)["']/.test(source)) {
     fileViolations.push('text input');
   }
+  if (/<select(?:\s|>)/.test(source) || /<option(?:\s|>)/.test(source)) fileViolations.push('select');
   if (/<textarea(?:\s|>)/.test(source) && !specializedTextareaFiles.has(relativePath.replaceAll(sep, '/'))) {
     fileViolations.push('textarea');
   }
@@ -32,7 +33,7 @@ for (const filePath of listSourceFiles(sourceRoot)) {
 }
 
 if (violations.length > 0) {
-  console.error('UI primitive coverage failed: use shared UI primitives for conventional actions and text fields outside components/ui.');
+  console.error('UI primitive coverage failed: use shared UI primitives for conventional actions, fields and selects outside components/ui.');
   for (const filePath of violations) console.error(`- ${filePath}`);
   process.exit(1);
 }
