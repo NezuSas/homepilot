@@ -68,6 +68,7 @@
 - [x] Refuerzo responsive de `StatusPill`: escala compacta, ancho limitado y etiquetas largas con ajuste seguro dentro de la superficie disponible.
 - [x] Refuerzo responsive de `Card`: contenido mínimo flexible, padding adaptativo y textos/acciones largos sin overflow dentro de cabecera, contenido o pie.
 - [x] Refuerzo responsive y accesible de `SidebarItem`: etiqueta flexible sin truncado en navegación expandida, colapso visual seguro en escritorio y ubicación activa anunciada con `aria-current`.
+- [x] Refuerzo responsive de `PageFrame`: ancho máximo seguro y base flexible que evita que vistas o paneles generen desplazamiento horizontal por restricciones del contenedor.
 
 ## Verificación obligatoria ante cambios
 

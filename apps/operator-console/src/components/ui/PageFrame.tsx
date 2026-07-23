@@ -17,7 +17,7 @@ export const PageFrame = React.forwardRef<HTMLDivElement, PageFrameProps>(
     <div
       ref={ref}
       className={cn(
-        'mx-auto w-full',
+        'mx-auto min-w-0 w-full max-w-full',
         immersive
           ? 'min-h-full max-w-none'
           : 'min-h-full px-3 py-4 sm:px-5 md:px-6 md:py-6 xl:px-8 xl:py-8 animate-slide-up-fade',

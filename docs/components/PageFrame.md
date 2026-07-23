@@ -17,5 +17,4 @@ Usar como raíz de vistas de sidebar para evitar márgenes y breakpoints paralel
 
 ## Estados y aceptación
 
-El contenido mantiene scroll vertical, padding adaptativo y ningún overflow horizontal intencional.
-
+El contenido mantiene scroll vertical, padding adaptativo y ningún overflow horizontal intencional. El marco limita su ancho al viewport disponible y permite que sus hijos flexibles reduzcan su ancho antes de generar desplazamiento lateral.
