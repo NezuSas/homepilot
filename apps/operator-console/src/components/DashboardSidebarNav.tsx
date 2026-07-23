@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, LayoutDashboard } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
+import { Button } from './ui/Button';
 
 interface DashboardSidebarNavProps {
   dashboards: Dashboard[];
@@ -25,11 +26,15 @@ export const DashboardSidebarNav: React.FC<DashboardSidebarNavProps> = ({
       {dashboards.map(dashboard => {
         const isActive = activeDashboardId === dashboard.id;
         return (
-          <button
+          <Button
             key={dashboard.id}
+            type="button"
             onClick={() => onSelect(dashboard)}
+            aria-current={isActive ? 'page' : undefined}
+            variant="ghost"
+            size="sm"
             className={cn(
-              'group flex items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-300',
+              'group h-auto w-full justify-start gap-3 rounded-2xl border p-3 text-left transition-all duration-300',
               isActive
                 ? 'bg-primary/5 border-primary/20 shadow-inner'
                 : 'bg-card border-border/40 hover:bg-muted/40 hover:border-border'
@@ -43,7 +48,7 @@ export const DashboardSidebarNav: React.FC<DashboardSidebarNavProps> = ({
             </div>
             <span className={cn('flex-1 text-body font-bold truncate', isActive ? 'text-primary' : 'text-foreground')}>{dashboard.title}</span>
             {isActive && <ChevronRight className="w-4 h-4 text-primary/30" />}
-          </button>
+          </Button>
         );
       })}
     </div>

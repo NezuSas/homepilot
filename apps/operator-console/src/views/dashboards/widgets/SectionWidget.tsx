@@ -1108,28 +1108,28 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             >
               <GripVertical className="h-4 w-4" />
             </span>
-            <button
-              type="button"
+            <IconButton
+              icon={Pencil}
+              label={t('dashboard.editor.sections.edit_card')}
               onClick={(event) => {
                 event.stopPropagation();
                 openCardEditor(card);
               }}
-              className="grid h-9 w-9 place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md transition hover:text-primary"
-              aria-label={t('dashboard.editor.sections.edit_card')}
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+              variant="default"
+              size="md"
+              className="bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+            />
+            <IconButton
+              icon={Trash2}
+              label={t('dashboard.editor.sections.remove_card')}
               onClick={(event) => {
                 event.stopPropagation();
                 removeCard(card.id);
               }}
-              className="grid h-9 w-9 place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md transition hover:text-destructive"
-              aria-label={t('dashboard.editor.sections.remove_card')}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+              variant="danger"
+              size="md"
+              className="bg-background/95 shadow-lg backdrop-blur-md"
+            />
           </div>
         ) : null}
       </div>

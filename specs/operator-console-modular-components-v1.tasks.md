@@ -38,6 +38,7 @@
 - [x] Consolidación de selectores exclusivos de alineación, ancho y posición del encabezado de tablero con `SegmentedControl`, preservando iconos y selección activa.
 - [x] Consolidación de búsqueda y selección del catálogo compartido de iconos con `Input` y `Button`, conservando catálogo MDI, filtrado y menú flotante.
 - [x] Consolidación de la insignia navegable de pestañas del encabezado de tablero con `Button`, manteniendo navegación directa, icono y etiqueta accesible.
+- [x] Consolidación de edición y eliminación de tarjetas de sección con `IconButton`, y de selección de tableros laterales con `Button`, preservando acciones, estado activo y navegación.
 - [x] Consolidación de acciones convencionales de hogares, estancias y luces en Espacios con `Button` e `IconButton`; las tarjetas seleccionables conservan su interacción especializada.
 - [x] Consolidación de controles de reproducción y volumen en la tarjeta multimedia con `IconButton`, preservando permisos, comandos y feedback de volumen.
 - [x] Consolidación del área ejecutable de la tarjeta de escena con `Button` y etiqueta accesible basada en el nombre de la escena.
