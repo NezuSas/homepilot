@@ -214,13 +214,13 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
                 className={cn('transition-[stroke-dashoffset] duration-500', toneClassName)}
               />
             </svg>
-            <span className="absolute text-[clamp(0.85rem,7cqi,1.15rem)] font-black tabular-nums text-foreground">
+            <span className="absolute text-sensor-ring-value-fluid font-black tabular-nums text-foreground">
               {isUnavailable ? '—' : `${Math.round(percentage)}%`}
             </span>
           </div>
         ) : (
           <div className="min-w-0 shrink-0">
-            <span className={cn('block text-[clamp(1.5rem,14cqi,2.25rem)] font-black leading-none tabular-nums', isUnavailable ? 'text-foreground' : toneClassName)}>
+            <span className={cn('block text-sensor-value-fluid font-black tabular-nums', isUnavailable ? 'text-foreground' : toneClassName)}>
               {reading.value ?? '—'}
             </span>
             {reading.unit ? (
@@ -230,7 +230,7 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
         )}
 
         <div className="min-w-0 flex-1">
-          <span className="block line-clamp-2 text-[clamp(0.85rem,4.5cqi,1.05rem)] font-black leading-tight text-foreground">{title}</span>
+          <span className="block line-clamp-2 text-sensor-title-fluid font-black text-foreground">{title}</span>
           <span className="mt-1 block line-clamp-2 text-caption font-semibold leading-snug text-muted-foreground">
             {isUnavailable ? t('dashboard.editor.sections.sensor_unavailable') : categoryLabel}
           </span>

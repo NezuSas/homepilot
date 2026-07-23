@@ -241,6 +241,11 @@ export default {
         'widget-body-fluid': ['clamp(0.75rem,2.2cqi,0.875rem)', { lineHeight: '1.25' }],
         'widget-body-lg-fluid': ['clamp(0.8125rem,2.4cqi,0.9375rem)', { lineHeight: '1.25' }],
         'widget-metric-fluid': ['clamp(1.75rem,18cqi,2.25rem)', { lineHeight: '1' }],
+        // Sensor readings use named container-query tokens so the visual scale
+        // remains consistent with the rest of the dashboard widgets.
+        'sensor-ring-value-fluid': ['clamp(0.85rem,7cqi,1.15rem)', { lineHeight: '1' }],
+        'sensor-value-fluid': ['clamp(1.5rem,14cqi,2.25rem)', { lineHeight: '1' }],
+        'sensor-title-fluid': ['clamp(0.85rem,4.5cqi,1.05rem)', { lineHeight: '1.2' }],
         'clock-caption-fluid': ['clamp(0.55rem,1.3cqi,0.82rem)', { lineHeight: '1.15' }],
         'clock-label-fluid': ['clamp(0.49rem,1.2cqi,0.72rem)', { lineHeight: '1.1' }],
         'clock-micro-fluid': ['clamp(0.48rem,1.18cqi,0.66rem)', { lineHeight: '1.1' }],

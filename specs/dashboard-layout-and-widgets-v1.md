@@ -37,6 +37,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-02:** El encabezado del tablero permanece accesible durante scroll normal y de edición.
 - **NFR-03:** Ningún widget debe introducir cadenas visibles fuera de i18n ES/EN.
 - **NFR-04:** Los iconos se resuelven a través del catálogo MDI cargado bajo demanda.
+- **NFR-05:** Las métricas de sensores usan tokens tipográficos responsive con nombre semántico; los widgets no definen escalas de texto arbitrarias en línea.
 
 ## 6. Criterios de Aceptación
 
@@ -45,6 +46,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC3: El selector de entidad muestra solo tipos compatibles con la tarjeta elegida.
 - [x] AC4: Los placeholders aparecen al final de la grilla disponible y no cubren tarjetas existentes.
 - [x] AC5: Cámara, media, reloj, sensor y control mantienen una presentación válida en los tres breakpoints.
+- [x] AC6: Los valores, porcentajes y títulos de sensores conservan una jerarquía legible mediante tokens responsive compartidos.
 
 ## 7. Notas Técnicas y Arquitectura
 
