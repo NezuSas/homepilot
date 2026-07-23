@@ -65,6 +65,7 @@
 - [x] Refuerzo responsive de `SectionHeader`: contenido flexible, textos largos con ajuste seguro y acciones contextuales a ancho completo en móvil, envolventes y alineadas en tablet/escritorio.
 - [x] Refuerzo responsive de `EmptyState`: espacio vertical compacto en móvil, textos largos con ajuste seguro y acción contextual centrada con ancho disponible.
 - [x] Refuerzo responsive y accesible de `AlertBanner`: composición vertical en móvil, mensaje legible, acción adaptable y severidad anunciada mediante roles semánticos.
+- [x] Refuerzo responsive de `StatusPill`: escala compacta, ancho limitado y etiquetas largas con ajuste seguro dentro de la superficie disponible.
 
 ## Verificación obligatoria ante cambios
 

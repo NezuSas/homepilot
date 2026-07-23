@@ -17,5 +17,4 @@ Usar junto al título o detalle, nunca como único indicador de una acción crí
 
 ## Estados y aceptación
 
-Texto corto, contraste suficiente, sin desbordar tarjetas compactas y con color no exclusivo para comunicar estado.
-
+Texto corto, contraste suficiente, sin desbordar tarjetas compactas y con color no exclusivo para comunicar estado. Las etiquetas largas se ajustan dentro del ancho disponible sin expandir su contenedor ni interferir con iconos o acciones cercanas.

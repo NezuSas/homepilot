@@ -59,7 +59,7 @@ export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
       <span
         ref={ref}
         className={cn(
-          'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-micro font-semibold normal-case tracking-normal border',
+          'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-semibold normal-case tracking-normal',
           cfg.pill,
           className
         )}
@@ -76,7 +76,7 @@ export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
             <span className={cn('relative inline-flex rounded-full h-1.5 w-1.5', cfg.dot)} />
           </span>
         )}
-        {children}
+        <span className="min-w-0 break-words">{children}</span>
       </span>
     );
   }
