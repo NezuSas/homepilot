@@ -4,6 +4,8 @@ import * as LucideIcons from 'lucide-react';
 import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
+import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
 
 interface IconPickerProps {
   value?: string;
@@ -221,7 +223,7 @@ export function IconPicker({
               const selected = item.normalized === normalizeIconName(iconQuery);
 
               return (
-                <button
+                <Button
                   key={item.name}
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
@@ -231,13 +233,13 @@ export function IconPicker({
                     setDropdownPos(null);
                   }}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-body font-black transition',
+                    'w-full justify-start gap-3 rounded-xl px-3 text-left text-body font-black',
                     selected ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-muted/60'
                   )}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
                   <span>{item.name}</span>
-                </button>
+                </Button>
               );
             })
           ) : (
@@ -252,31 +254,23 @@ export function IconPicker({
 
   return (
     <div className={cn('space-y-2', className)}>
-      {resolvedLabel ? (
-        <span className="text-caption font-black uppercase tracking-label text-muted-foreground">
-          {resolvedLabel}
-        </span>
-      ) : null}
-
-      <div className="relative">
-        <input
-          ref={iconInputRef}
-          type="text"
-          className="h-10 w-full rounded-xl border border-border/60 bg-card pl-10 pr-3 text-body text-foreground transition-colors focus:border-primary/50 focus:outline-none"
-          placeholder={resolvedPlaceholder}
-          value={iconQuery}
-          onFocus={computeDropdownPos}
-          onChange={(event) => {
-            const val = event.target.value;
-            setIconQuery(val);
-            onChange(val);
-            setTimeout(computeDropdownPos, 0);
-          }}
-          onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
-        />
-
-        <SelectedIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-      </div>
+      <Input
+        ref={iconInputRef}
+        type="text"
+        label={resolvedLabel}
+        placeholder={resolvedPlaceholder}
+        value={iconQuery}
+        icon={<SelectedIcon className="h-5 w-5" />}
+        onFocus={computeDropdownPos}
+        onChange={(event) => {
+          const val = event.target.value;
+          setIconQuery(val);
+          onChange(val);
+          setTimeout(computeDropdownPos, 0);
+        }}
+        onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
+        className="border-border/60 bg-card text-foreground"
+      />
 
       {dropdown}
     </div>
