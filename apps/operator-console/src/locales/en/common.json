@@ -1155,6 +1155,7 @@
     },
     "protection_rule": "System Protection Rule: HomePilot requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout.",
     "actions": {
+      "confirm_title": "Confirm action",
       "confirm_suspend": "WARNING: Are you sure you want to SUSPEND this user? Suspension instantly kills all active sessions.",
       "confirm_restore": "Are you sure you want to RESTORE this user?",
       "confirm_role": "Confirm ROLE CHANGE for \"{{username}}\"? Elevating or demoting accounts affects system-wide permissions.",

@@ -245,11 +245,11 @@ export const NativeCamerasView: React.FC = () => {
       if (res.ok) {
         setCameras(prev => prev.filter(c => c.deviceId !== deviceToDelete));
       } else {
-        alert(t('native_cameras.messages.delete_failed'));
+        setNotice({ variant: 'danger', message: t('native_cameras.messages.delete_failed') });
       }
     } catch (err) {
       console.error(err);
-      alert(t('native_cameras.messages.delete_failed'));
+      setNotice({ variant: 'danger', message: t('native_cameras.messages.delete_failed') });
     } finally {
       setDeviceToDelete(null);
     }

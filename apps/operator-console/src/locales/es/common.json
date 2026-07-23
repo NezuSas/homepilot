@@ -1155,6 +1155,7 @@
     },
     "protection_rule": "Regla de Protección del Sistema: HomePilot requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
     "actions": {
+      "confirm_title": "Confirmar acción",
       "confirm_suspend": "¿Está seguro de que desea SUSPENDER a este usuario? La suspensión matará instantáneamente todas las sesiones activas.",
       "confirm_restore": "¿Está seguro de que desea RESTAURAR a este usuario?",
       "confirm_role": "¿Confirmar CAMBIO DE ROL para \"{{username}}\"? Elevar o degradar cuentas afecta los permisos en todo el sistema.",

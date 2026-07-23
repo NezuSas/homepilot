@@ -9,11 +9,17 @@ import { UsersLoadingState } from '../components/UsersLoadingState';
 import { UsersProtectionNote } from '../components/UsersProtectionNote';
 import { UsersTable, type PublicUserDto } from '../components/UsersTable';
 import { ResetUserPasswordModal } from '../components/ResetUserPasswordModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const ROLE_VALUES: UserRole[] = ['admin', 'parent', 'child', 'guest', 'operator'];
 
 interface UsersViewProps {
   currentUserId: string | null;
+}
+
+interface PendingUserAction {
+  confirmMessage: string;
+  execute: () => Promise<Response>;
 }
 
 export function UsersView({ currentUserId }: UsersViewProps) {
@@ -27,6 +33,8 @@ export function UsersView({ currentUserId }: UsersViewProps) {
   const [newRole, setNewRole] = useState<UserRole>('operator');
   const [createError, setCreateError] = useState('');
   const [passwordResetUser, setPasswordResetUser] = useState<PublicUserDto | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingUserAction | null>(null);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
   const roleOptions = ROLE_VALUES.map(role => ({ value: role, label: t(`users.roles.${role}`) }));
 
@@ -85,11 +93,17 @@ export function UsersView({ currentUserId }: UsersViewProps) {
     }
   };
 
-  const handleAction = async (actionFn: () => Promise<Response>, confirmMsg: string) => {
-    if (!window.confirm(confirmMsg)) return;
+  const handleAction = (actionFn: () => Promise<Response>, confirmMsg: string) => {
+    setPendingAction({ confirmMessage: confirmMsg, execute: actionFn });
+  };
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) return;
+
+    setIsConfirmingAction(true);
     try {
       setError('');
-      const res = await actionFn();
+      const res = await pendingAction.execute();
       if (!res.ok) {
         const errData = await res.json();
         const msg = errData.error?.message || (typeof errData.error === 'string' ? errData.error : t('common.errors.operation_failed'));
@@ -98,6 +112,9 @@ export function UsersView({ currentUserId }: UsersViewProps) {
       await fetchUsers();
     } catch (error_: unknown) {
       setError(error_ instanceof Error ? error_.message : t('common.errors.unknown'));
+    } finally {
+      setIsConfirmingAction(false);
+      setPendingAction(null);
     }
   };
 
@@ -200,6 +217,16 @@ export function UsersView({ currentUserId }: UsersViewProps) {
         user={passwordResetUser}
         onClose={() => setPasswordResetUser(null)}
         onSaved={fetchUsers}
+      />
+
+      <ConfirmModal
+        isOpen={pendingAction !== null}
+        onClose={() => setPendingAction(null)}
+        onConfirm={confirmPendingAction}
+        title={t('users.actions.confirm_title')}
+        description={pendingAction?.confirmMessage ?? ''}
+        variant="warning"
+        isSubmitting={isConfirmingAction}
       />
     </div>
   );

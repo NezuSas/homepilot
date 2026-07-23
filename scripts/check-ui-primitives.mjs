@@ -30,11 +30,12 @@ for (const filePath of listSourceFiles(sourceRoot)) {
     fileViolations.push('textarea');
   }
   if (/\btext-\[[^\]]+\]/.test(source)) fileViolations.push('arbitrary text size');
+  if (/\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/.test(source)) fileViolations.push('native browser dialog');
   if (fileViolations.length > 0) violations.push(`${relativePath} (${fileViolations.join(', ')})`);
 }
 
 if (violations.length > 0) {
-  console.error('UI primitive coverage failed: use shared UI primitives and named design-system typography tokens outside components/ui.');
+  console.error('UI primitive coverage failed: use shared UI primitives, named typography tokens and modular feedback outside components/ui.');
   for (const filePath of violations) console.error(`- ${filePath}`);
   process.exit(1);
 }

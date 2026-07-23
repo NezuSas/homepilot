@@ -56,6 +56,7 @@
 - [x] Extensión de `check:ui-primitives` para impedir selects nativos fuera de los primitivos UI y preservar `SearchableSelectField` como selector único de negocio.
 - [x] Integración de cobertura i18n, specs y primitivos UI en CI para impedir regresiones antes de cada entrega.
 - [x] Protección de CI contra utilidades tipográficas arbitrarias fuera de los primitivos UI; la consola consume únicamente escalas tipográficas con nombre.
+- [x] Consolidación de confirmaciones y fallos de Usuarios y Cámaras IP en `ConfirmModal` y `AlertBanner`, con protección de CI contra diálogos nativos del navegador.
 
 ## Verificación obligatoria ante cambios
 
