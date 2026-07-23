@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Typecheck, Build & Test
+    name: Quality gates
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +35,12 @@ jobs:
 
       - name: Verify shared UI primitives
         run: npm run check:ui-primitives
+
+      - name: Verify ES/EN translation coverage
+        run: npm run check:i18n
+
+      - name: Verify specification coverage
+        run: npm run check:spec-coverage
 
       - name: Run tests
         run: npm test

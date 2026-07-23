@@ -45,6 +45,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **NFR-03:** Los componentes deben funcionar con teclado, foco visible y atributos accesibles apropiados.
 - **NFR-04:** La composición debe adaptarse a 320px+, tablet y escritorio sin overflow horizontal no intencional.
 - **NFR-05:** El componente no debe utilizar `any` para ocultar contratos incompletos.
+- **NFR-06:** La CI debe validar tipos, compilación, pruebas, traducciones, cobertura de specs y adopción de primitivos UI antes de aceptar cambios.
 
 ## 6. Catálogo de Contratos
 
@@ -73,6 +74,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC11: `npm run check:ui-primitives` evita botones HTML convencionales fuera de `components/ui`, preservando la adopción del sistema modular.
 - [x] AC12: `npm run check:ui-primitives` evita campos de texto y áreas de texto genéricos fuera de los primitivos UI, con la excepción explícita del compositor conversacional.
 - [x] AC13: `npm run check:ui-primitives` evita `select` y `option` nativos fuera de los primitivos UI, preservando el selector de negocio único con búsqueda.
+- [x] AC14: La CI ejecuta `check:i18n`, `check:spec-coverage` y `check:ui-primitives` junto con tipos, builds y pruebas.
 
 ## 8. Notas Técnicas y Arquitectura
 
