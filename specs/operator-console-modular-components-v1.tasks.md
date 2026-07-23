@@ -33,6 +33,7 @@
 - [x] Consolidación de acciones convencionales del editor de encabezados de tablero con `Button` e `IconButton`; los controles de alineación y navegación por pestaña preservan su semántica especializada.
 - [x] Consolidación de la visibilidad por usuario de las vistas de tablero con `ToggleSwitch`, preservando la lista local de usuarios autorizados.
 - [x] Consolidación de las pestañas de configuración de vistas de tablero con `SegmentedControl`, manteniendo secciones de ajustes, fondo y visibilidad.
+- [x] Consolidación de accesos rápidos de tema, idioma, contraseña y salida del sidebar con `IconButton`, conservando etiquetas traducidas y áreas táctiles compactas.
 - [x] Consolidación de acciones convencionales de hogares, estancias y luces en Espacios con `Button` e `IconButton`; las tarjetas seleccionables conservan su interacción especializada.
 - [x] Consolidación de controles de reproducción y volumen en la tarjeta multimedia con `IconButton`, preservando permisos, comandos y feedback de volumen.
 - [x] Consolidación del área ejecutable de la tarjeta de escena con `Button` y etiqueta accesible basada en el nombre de la escena.

@@ -40,6 +40,7 @@ import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
 import { AlertBanner } from './components/ui/AlertBanner';
 import { Button } from './components/ui/Button';
+import { IconButton } from './components/ui/IconButton';
 import { PageFrame } from './components/ui/PageFrame';
 import { SidebarItem } from './components/ui/SidebarItem';
 import type { View } from './types';
@@ -1147,35 +1148,35 @@ function App() {
               "flex items-center justify-around px-1 py-1 bg-muted/20 rounded-xl border border-border/30 transition-all duration-300",
               isSidebarContentCollapsed && "xl:flex-col xl:gap-1 xl:px-1"
             )}>
-              <button 
+              <IconButton
+                icon={theme === 'dark' ? Sun : Moon}
+                label={theme === 'dark' ? t('shell.tooltips.light_mode', 'Modo Claro') : t('shell.tooltips.dark_mode', 'Modo Oscuro')}
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="text-muted-foreground hover:text-foreground hover:bg-background hover:shadow-sm transition-all p-2 rounded-lg"
-                title={theme === 'dark' ? t('shell.tooltips.light_mode', 'Modo Claro') : t('shell.tooltips.dark_mode', 'Modo Oscuro')}
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-              <button 
+                variant="ghost"
+                size="sm"
+              />
+              <IconButton
+                icon={Globe}
+                label={t('shell.tooltips.switch_language')}
                 onClick={toggleLanguage}
-                className="text-muted-foreground hover:text-foreground hover:bg-background hover:shadow-sm transition-all p-2 rounded-lg"
-                title={t('shell.tooltips.switch_language')}
-              >
-                <Globe className="w-4 h-4" />
-              </button>
-              <button 
+                variant="ghost"
+                size="sm"
+              />
+              <IconButton
+                icon={KeyRound}
+                label={t('shell.tooltips.change_password')}
                 onClick={() => setShowPwdModal(true)}
-                className="text-muted-foreground hover:text-foreground hover:bg-background hover:shadow-sm transition-all p-2 rounded-lg"
-                title={t('shell.tooltips.change_password')}
-              >
-                <KeyRound className="w-4 h-4" />
-              </button>
+                variant="ghost"
+                size="sm"
+              />
               <div className={cn("w-px h-4 bg-border/40 mx-0.5", isSidebarContentCollapsed && "xl:w-4 xl:h-px xl:mx-0 xl:my-0.5")} />
-              <button 
+              <IconButton
+                icon={LogOut}
+                label={t('nav.logout')}
                 onClick={onLogout}
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all p-2 rounded-lg"
-                title={t('nav.logout')}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+                variant="danger"
+                size="sm"
+              />
             </div>
           </div>
         </div>
