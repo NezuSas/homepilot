@@ -17,5 +17,4 @@ Usar después de que terminó la carga inicial; no sustituir datos previos duran
 
 ## Estados y aceptación
 
-El mensaje es traducible, no bloquea scroll y la acción conserva foco visible.
-
+El mensaje es traducible, no bloquea scroll y la acción conserva foco visible. En móvil reduce el espacio vertical, ajusta títulos y descripciones largas sin desborde y ofrece la acción con el ancho disponible; desde tablet conserva su tamaño natural y centrado.

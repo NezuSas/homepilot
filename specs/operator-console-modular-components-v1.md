@@ -44,6 +44,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-18:** Los estados de carga iniciales de las vistas deben usar `LoadingState`, exponer estado accesible, mantener una escala visual única y recibir su mensaje desde i18n. Las actualizaciones posteriores deben conservar los datos visibles.
 - **REQ-19:** Los errores generales de una vista deben usar `AlertBanner`; las tarjetas o formularios pueden conservar feedback localizado cuando el error pertenece a una acción concreta.
 - **REQ-20:** `SectionHeader` debe preservar el ancho disponible para títulos y subtítulos, permitir acciones contextuales envolventes y presentar dichas acciones a ancho completo en móvil, sin desborde ni recorte en tablet o escritorio.
+- **REQ-21:** `EmptyState` debe ajustar de forma segura texto largo y acción contextual, reducir su espacio vertical en móvil y conservar una jerarquía centrada en tablet y escritorio sin provocar overflow horizontal.
 
 ## 5. Requisitos No Funcionales
 
@@ -90,6 +91,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC20: Las vistas de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos y Asistente, además de la transición de navegación diferida, usan `LoadingState` para su carga inicial, con mensaje traducido, `role="status"` y sin reemplazar contenido previamente cargado durante refresh.
 - [x] AC21: Automatizaciones y Diagnósticos presentan errores generales mediante `AlertBanner`, con jerarquía, iconografía y escala tipográfica compartidas.
 - [x] AC22: Los encabezados de vista, sección y grupo conservan títulos y subtítulos largos legibles; las acciones se ajustan al ancho disponible, se envuelven cuando es necesario y no provocan overflow horizontal desde 320px.
+- [x] AC23: Los estados vacíos conservan icono, título, descripción y acción legibles desde 320px; el espacio vertical es compacto en móvil y la acción se adapta al ancho disponible sin recorte.
 
 ## 8. Notas Técnicas y Arquitectura
 
