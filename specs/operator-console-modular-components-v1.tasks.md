@@ -33,6 +33,7 @@
 - [x] Consolidación de acciones convencionales del editor de encabezados de tablero con `Button` e `IconButton`; los controles de alineación y navegación por pestaña preservan su semántica especializada.
 - [x] Consolidación de la visibilidad por usuario de las vistas de tablero con `ToggleSwitch`, preservando la lista local de usuarios autorizados.
 - [x] Consolidación de acciones convencionales de hogares, estancias y luces en Espacios con `Button` e `IconButton`; las tarjetas seleccionables conservan su interacción especializada.
+- [x] Consolidación de controles de reproducción y volumen en la tarjeta multimedia con `IconButton`, preservando permisos, comandos y feedback de volumen.
 
 ## Verificación obligatoria ante cambios
 

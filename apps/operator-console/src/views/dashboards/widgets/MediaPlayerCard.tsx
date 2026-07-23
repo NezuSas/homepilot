@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../../../config';
 import { apiFetch } from '../../../lib/apiClient';
 import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
+import { IconButton } from '../../../components/ui/IconButton';
 
 export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
 
@@ -216,51 +217,51 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
       </div>
 
       <div className={cn("relative mt-3 flex items-center gap-1.5 px-4", !hasVolumeControl && "mb-4")}>
-        <button
-          type="button"
+        <IconButton
+          icon={Power}
+          label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
           disabled={!canAct || !powerCommand}
           onClick={(event) => {
             event.stopPropagation();
             invoke(powerCommand);
           }}
-          aria-label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          <Power className="h-4 w-4" />
-        </button>
+          variant="ghost"
+          size="md"
+          className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+        />
         {hasPrevious && (
-          <button
-            type="button"
+          <IconButton
+            icon={SkipBack}
+            label={t('dashboard.editor.sections.media_previous')}
             disabled={!canAct}
             onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
-            aria-label={t('dashboard.editor.sections.media_previous')}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <SkipBack className="h-4 w-4" />
-          </button>
+            variant="ghost"
+            size="md"
+            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+          />
         )}
-        <button
-          type="button"
+        <IconButton
+          icon={isPlaying ? Pause : Play}
+          label={t(isPlaying ? 'dashboard.editor.sections.media_pause' : 'dashboard.editor.sections.media_play')}
           disabled={!canAct || !playPauseCommand}
           onClick={(event) => {
             event.stopPropagation();
             invoke(playPauseCommand);
           }}
-          aria-label={t(isPlaying ? 'dashboard.editor.sections.media_pause' : 'dashboard.editor.sections.media_play')}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        </button>
+          variant="ghost"
+          size="md"
+          className="h-9 w-9 rounded-lg text-foreground hover:bg-foreground/10 hover:text-primary"
+        />
         {hasNext && (
-          <button
-            type="button"
+          <IconButton
+            icon={SkipForward}
+            label={t('dashboard.editor.sections.media_next')}
             disabled={!canAct}
             onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
-            aria-label={t('dashboard.editor.sections.media_next')}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <SkipForward className="h-4 w-4" />
-          </button>
+            variant="ghost"
+            size="md"
+            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+          />
         )}
       </div>
 
@@ -269,27 +270,27 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={currentVolume === null ? undefined : `${currentVolume}%`}>
             <VolumeIcon className="h-4 w-4" />
           </span>
-          <button
-            type="button"
+          <IconButton
+            icon={MinusCircle}
+            label={t('dashboard.editor.sections.media_volume_down')}
             disabled={!canActVolume || currentVolume === null || currentVolume <= 0}
             onClick={(event) => { event.stopPropagation(); changeVolume(-VOLUME_STEP); }}
-            aria-label={t('dashboard.editor.sections.media_volume_down')}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <MinusCircle className="h-4 w-4" />
-          </button>
+            variant="ghost"
+            size="md"
+            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+          />
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/20">
             <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
           </div>
-          <button
-            type="button"
+          <IconButton
+            icon={PlusCircle}
+            label={t('dashboard.editor.sections.media_volume_up')}
             disabled={!canActVolume || currentVolume === null || currentVolume >= 100}
             onClick={(event) => { event.stopPropagation(); changeVolume(VOLUME_STEP); }}
-            aria-label={t('dashboard.editor.sections.media_volume_up')}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85 transition hover:bg-foreground/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <PlusCircle className="h-4 w-4" />
-          </button>
+            variant="ghost"
+            size="md"
+            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+          />
         </div>
       )}
     </div>
