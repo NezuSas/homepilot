@@ -3,6 +3,7 @@ import { Clock, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { Input } from './ui/Input';
+import { Button } from './ui/Button';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { humanize } from '../lib/naming-utils';
@@ -117,22 +118,25 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 const selectedDays = triggerConfig.days || [0, 1, 2, 3, 4, 5, 6];
                 const isSelected = selectedDays.includes(index);
                 return (
-                  <button
+                  <Button
                     type="button"
                     key={index}
+                    variant={isSelected ? 'primary' : 'outline'}
+                    size="md"
+                    aria-pressed={isSelected}
                     onClick={() => {
                       const next = isSelected ? selectedDays.filter(dayIndex => dayIndex !== index) : [...selectedDays, index];
                       onTriggerConfigChange({ ...triggerConfig, days: next });
                     }}
                     className={cn(
-                      "hp-type-control flex aspect-square w-full items-center justify-center rounded-xl border transition-all",
+                      "hp-type-control flex aspect-square w-full items-center justify-center rounded-xl",
                       isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-primary-soft"
+                        ? "shadow-primary-soft"
                         : "border-border/55 bg-background/70 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )}
                   >
                     {day}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
