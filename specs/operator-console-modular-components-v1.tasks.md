@@ -52,6 +52,7 @@
 - [x] Consolidación del área ejecutable de la tarjeta de escena con `Button` y etiqueta accesible basada en el nombre de la escena.
 - [x] Refuerzo de `check:i18n` para validar claves literales escritas con comillas o template literals sin interpolación, manteniendo paridad obligatoria ES/EN.
 - [x] Creación de `check:ui-primitives` y ejecución en CI para evitar botones HTML convencionales fuera de los primitivos modulares.
+- [x] Extensión de `check:ui-primitives` para impedir inputs y áreas de texto genéricos fuera de `Input` y `Textarea`, manteniendo excepciones explícitas para controles especializados.
 
 ## Verificación obligatoria ante cambios
 
