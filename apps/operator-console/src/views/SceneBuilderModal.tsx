@@ -9,6 +9,7 @@ import { humanize } from '../lib/naming-utils';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { Input, SearchInput } from '../components/ui/Input';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
@@ -250,29 +251,23 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                         </div>
 
                         {isSelected && (
-                          <div className="grid w-full grid-cols-2 gap-1 min-[520px]:w-auto" onClick={e => e.stopPropagation()}>
-                            <button 
-                              onClick={() => setCommand(d.id, isCoverDevice(d) ? 'open' : 'turn_on')}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-nano font-black uppercase tracking-widest transition-all border",
-                                action?.command === 'turn_on' || action?.command === 'open' 
-                                  ? "bg-primary border-primary text-primary-foreground shadow-lg" 
-                                  : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
+                          <div className="w-full min-[520px]:w-52" onClick={e => e.stopPropagation()}>
+                            <SegmentedControl<'activate' | 'deactivate'>
+                              value={action?.command === 'turn_on' || action?.command === 'open' ? 'activate' : 'deactivate'}
+                              onChange={(value) => setCommand(
+                                d.id,
+                                value === 'activate'
+                                  ? (isCoverDevice(d) ? 'open' : 'turn_on')
+                                  : (isCoverDevice(d) ? 'close' : 'turn_off'),
                               )}
-                            >
-                               {isCoverDevice(d) ? t('common.actions.open') : t('common.on')}
-                            </button>
-                            <button 
-                              onClick={() => setCommand(d.id, isCoverDevice(d) ? 'close' : 'turn_off')}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-nano font-black uppercase tracking-widest transition-all border",
-                                action?.command === 'turn_off' || action?.command === 'close' 
-                                  ? "bg-primary border-primary text-primary-foreground shadow-lg" 
-                                  : "bg-background border-border/40 text-foreground/40 hover:text-foreground"
-                              )}
-                            >
-                               {isCoverDevice(d) ? t('common.actions.close') : t('common.off')}
-                            </button>
+                              options={[
+                                { value: 'activate', label: isCoverDevice(d) ? t('common.actions.open') : t('common.on') },
+                                { value: 'deactivate', label: isCoverDevice(d) ? t('common.actions.close') : t('common.off') },
+                              ]}
+                              tone="primary"
+                              className="w-full rounded-lg p-1"
+                              optionClassName="min-h-9 px-2 py-1.5 text-nano font-black tracking-widest"
+                            />
                           </div>
                         )}
                       </div>

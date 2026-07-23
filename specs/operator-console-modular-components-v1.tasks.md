@@ -27,6 +27,7 @@
 - [x] Consolidación de acciones de aviso y administración de tarjetas de cámaras nativas con `Button` e `IconButton`, reutilizando etiquetas traducidas y estados visuales compartidos.
 - [x] Consolidación de acciones de cierre y omisión del Demo Guiado con `IconButton` y `Button`, preservando navegación, área táctil y traducciones compartidas.
 - [x] Creación de `ToggleSwitch` accesible y migración de configuración de vista e inversión de cortina en el inspector, evitando implementaciones booleanas duplicadas.
+- [x] Consolidación de la selección exclusiva de comandos en el constructor de escenas con `SegmentedControl`, preservando comandos de energía y cortina por capacidad.
 
 ## Verificación obligatoria ante cambios
 
