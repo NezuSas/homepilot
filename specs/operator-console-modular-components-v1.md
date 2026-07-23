@@ -52,6 +52,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-26:** `PageFrame` debe actuar como límite de ancho de una vista, permitiendo que los hijos flexibles se reduzcan dentro del viewport y evitando overflow horizontal no intencional.
 - **REQ-27:** `Input` debe mantener su altura base tokenizada y permitir reducción dentro de composiciones flexibles; sus etiquetas, ayudas y errores deben adaptarse a texto largo sin desborde.
 - **REQ-28:** `Textarea` debe mantener su altura mínima tokenizada y permitir reducción dentro de composiciones flexibles; sus etiquetas, ayudas y errores deben adaptarse a texto largo sin desborde.
+- **REQ-29:** `RangeInput` debe permitir reducción dentro de composiciones flexibles y distribuir sus límites y valor actual sin desborde horizontal.
 
 ## 5. Requisitos No Funcionales
 
@@ -106,6 +107,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC28: El marco de página se limita al ancho del viewport desde 320px y no impide que las composiciones flexibles internas reduzcan su tamaño disponible.
 - [x] AC29: Campos generales conservan altura visual `h-10` y foco visible en todos los breakpoints; dentro de filas o grids flexibles no crean overflow horizontal y sus textos auxiliares se ajustan con seguridad.
 - [x] AC30: Campos multilínea conservan altura mínima y foco visible en todos los breakpoints; dentro de grids o filas flexibles no crean overflow horizontal y sus textos auxiliares se ajustan con seguridad.
+- [x] AC31: Los rangos conservan foco y control continuo; al presentar límites, priorizan el valor actual y no desbordan la superficie desde 320px.
 
 ## 8. Notas Técnicas y Arquitectura
 

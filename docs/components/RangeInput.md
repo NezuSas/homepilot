@@ -17,4 +17,4 @@ Usar para rangos nativos especializados. El consumidor conserva las reglas de do
 
 ## Estados y aceptación
 
-Mantiene foco visible, estado deshabilitado y área táctil consistente. No ejecuta lógica de negocio ni crea estado global.
+Mantiene foco visible, estado deshabilitado y área táctil consistente. El control y los límites se adaptan al ancho disponible; el valor central conserva prioridad y los extremos no provocan overflow. No ejecuta lógica de negocio ni crea estado global.

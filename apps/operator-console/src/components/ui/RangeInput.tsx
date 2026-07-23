@@ -35,7 +35,7 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
     const commitValue = () => onValueCommit?.(value);
 
     return (
-      <div className={cn('flex w-full flex-col gap-2', className)}>
+      <div className={cn('flex min-w-0 w-full flex-col gap-2', className)}>
         <input
           {...props}
           ref={ref}
@@ -63,17 +63,17 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
             commitValue();
           }}
           className={cn(
-            'h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary',
+            'h-1.5 min-w-0 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary',
             'focus:outline-none focus:ring-2 focus:ring-primary/20',
             'disabled:cursor-not-allowed disabled:opacity-30',
             trackClassName,
           )}
         />
         {showBounds && (
-          <div className="flex justify-between text-nano font-black uppercase tracking-widest text-muted-foreground/40">
-            <span>{formatValue(min)}</span>
-            <span>{formatValue(value)}</span>
-            <span>{formatValue(max)}</span>
+          <div className="flex min-w-0 items-center justify-between gap-2 text-nano font-black uppercase tracking-widest text-muted-foreground/40">
+            <span className="min-w-0 truncate">{formatValue(min)}</span>
+            <span className="min-w-0 flex-1 truncate text-center">{formatValue(value)}</span>
+            <span className="min-w-0 truncate text-right">{formatValue(max)}</span>
           </div>
         )}
       </div>
