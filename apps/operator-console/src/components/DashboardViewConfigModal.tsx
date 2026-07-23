@@ -284,22 +284,23 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 <div className="space-y-1.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
                   {users.map(user => {
                     const isChecked = allowedUsers.includes(user.id);
+                    const userLabel = user.displayName || user.username;
                     return (
-                      <label key={user.id} className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-muted/35 cursor-pointer transition-colors border border-border/10 bg-muted/10">
-                        <span className="text-body font-bold">{user.displayName || user.username}</span>
-                        <input
-                          type="checkbox"
+                      <div key={user.id} className="flex items-center justify-between rounded-xl border border-border/10 bg-muted/10 px-3 py-2.5 transition-colors hover:bg-muted/35">
+                        <span className="text-body font-bold">{userLabel}</span>
+                        <ToggleSwitch
                           checked={isChecked}
-                          onChange={e => {
-                            if (e.target.checked) {
+                          onCheckedChange={checked => {
+                            if (checked) {
                               setAllowedUsers(prev => [...prev, user.id]);
                             } else {
                               setAllowedUsers(prev => prev.filter(id => id !== user.id));
                             }
                           }}
-                          className="h-5 w-5 accent-primary rounded-lg"
+                          label={userLabel}
+                          size="sm"
                         />
-                      </label>
+                      </div>
                     );
                   })}
                   {users.length === 0 && (

@@ -31,6 +31,7 @@
 - [x] Consolidación de placeholders y controles flotantes del lienzo de tableros con `Button`, `IconButton` y `SegmentedControl`; el agarre de arrastre conserva su semántica especializada.
 - [x] Consolidación de la acción de apagar dispositivos activos de la tarjeta de habitación con `Button` y estado de carga compartido.
 - [x] Consolidación de acciones convencionales del editor de encabezados de tablero con `Button` e `IconButton`; los controles de alineación y navegación por pestaña preservan su semántica especializada.
+- [x] Consolidación de la visibilidad por usuario de las vistas de tablero con `ToggleSwitch`, preservando la lista local de usuarios autorizados.
 
 ## Verificación obligatoria ante cambios
 
