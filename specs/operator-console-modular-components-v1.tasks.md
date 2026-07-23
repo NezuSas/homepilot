@@ -74,6 +74,7 @@
 - [x] Refuerzo responsive de `RangeInput`: ancho flexible y distribución segura de límites y valor actual sin overflow horizontal.
 - [x] Refuerzo responsive de `SearchableSelectField`: trigger, buscador, etiqueta y ayuda flexibles, preservando el menú portal y la búsqueda única de opciones de negocio.
 - [x] Refuerzo responsive de `Button`: ancho flexible y etiquetas largas ajustables sin alterar variantes, loading ni áreas táctiles compartidas.
+- [x] Consolidación y documentación de `ToggleSwitch`: semántica de estado explícita, interacción táctil y contrato modular para preferencias booleanas.
 
 ## Verificación obligatoria ante cambios
 

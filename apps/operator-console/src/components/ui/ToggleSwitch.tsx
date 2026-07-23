@@ -30,10 +30,11 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      data-state={checked ? 'checked' : 'unchecked'}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'relative shrink-0 rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+        'relative shrink-0 touch-manipulation rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
         checked ? 'border-primary/40 bg-primary/25' : 'border-border bg-muted/60',
         'disabled:pointer-events-none disabled:opacity-45',
         sizeStyles[size],
