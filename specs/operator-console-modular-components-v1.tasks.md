@@ -62,6 +62,7 @@
 - [x] Refuerzo de accesibilidad de `Modal`: foco inicial/restaurado, Escape, ciclo de Tab y semántica de diálogo asociada a título y descripción.
 - [x] Consolidación de los estados de carga iniciales de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos, Asistente y navegación diferida en `LoadingState`, con mensajes i18n y semántica accesible compartida.
 - [x] Consolidación de los errores generales de Automatizaciones y Diagnósticos en `AlertBanner`; los errores de formulario y acción localizada conservan su contexto de dominio.
+- [x] Refuerzo responsive de `SectionHeader`: contenido flexible, textos largos con ajuste seguro y acciones contextuales a ancho completo en móvil, envolventes y alineadas en tablet/escritorio.
 
 ## Verificación obligatoria ante cambios
 

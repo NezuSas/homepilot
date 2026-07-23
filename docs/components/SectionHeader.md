@@ -17,5 +17,4 @@ Usar en páginas y paneles que necesiten jerarquía; no duplicar títulos visual
 
 ## Estados y aceptación
 
-Soporta texto largo, acciones envolventes y layout vertical en móvil.
-
+Soporta texto largo, acciones envolventes y layout vertical en móvil. El bloque de contenido conserva el ancho disponible y las acciones ocupan el ancho completo en móvil; desde tablet se ajustan a su contenido, se envuelven sin recortes y quedan alineadas al final del encabezado.

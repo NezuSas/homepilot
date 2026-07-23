@@ -22,7 +22,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
       <div
         ref={ref}
         className={cn(
-          'surface-transition flex flex-col sm:flex-row sm:items-center justify-between gap-4',
+          'surface-transition flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center',
           level === 'view'    && 'mb-8 rounded-panel border border-border/50 bg-card/35 p-5 shadow-depth-1 backdrop-blur-md',
           level === 'section' && 'mb-6',
           level === 'group'   && 'mb-3',
@@ -30,10 +30,10 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
         )}
         {...props}
       >
-        <div className="min-w-0 flex flex-col">
+        <div className="min-w-0 flex-1 flex flex-col">
           {/* Eyebrow — only for section level with subtitle */}
           {subtitle && level !== 'group' && (
-            <span className="text-label font-black uppercase tracking-label text-muted-foreground/60 mb-1.5">
+            <span className="mb-1.5 break-words text-label font-black uppercase tracking-label text-muted-foreground/60">
               {subtitle}
             </span>
           )}
@@ -69,7 +69,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
                 {title}
               </h3>
             ) : (
-              <span className="text-label font-black uppercase tracking-label text-muted-foreground/55">
+              <span className="min-w-0 break-words text-label font-black uppercase tracking-label text-muted-foreground/55">
                 {title}
               </span>
             )}
@@ -77,14 +77,14 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
 
           {/* Subtitle — inline for group level */}
           {subtitle && level === 'group' && (
-            <span className="text-caption font-medium text-muted-foreground/60 mt-0.5 ml-5">
+            <span className="ml-5 mt-0.5 break-words text-caption font-medium text-muted-foreground/60">
               {subtitle}
             </span>
           )}
         </div>
 
         {action && (
-          <div className="flex w-full shrink-0 sm:w-auto">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:max-w-[min(100%,32rem)] sm:justify-end">
             {action}
           </div>
         )}
