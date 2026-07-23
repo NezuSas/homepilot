@@ -47,6 +47,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-21:** `EmptyState` debe ajustar de forma segura texto largo y acción contextual, reducir su espacio vertical en móvil y conservar una jerarquía centrada en tablet y escritorio sin provocar overflow horizontal.
 - **REQ-22:** `AlertBanner` debe mantener mensajes legibles sin capitalización excesiva, anunciar su severidad de forma accesible y reorganizar contenido y acción sin solapamiento desde 320px.
 - **REQ-23:** `StatusPill` debe conservar su escala compacta y limitarse al ancho disponible, permitiendo etiquetas largas con ajuste seguro sin expandir tarjetas o desplazar controles adyacentes.
+- **REQ-24:** `Card` y sus subcomponentes deben preservar contenido, títulos, descripciones y acciones dentro del ancho disponible; su padding debe adaptarse entre móvil y escritorio sin crear scroll horizontal.
 
 ## 5. Requisitos No Funcionales
 
@@ -96,6 +97,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC23: Los estados vacíos conservan icono, título, descripción y acción legibles desde 320px; el espacio vertical es compacto en móvil y la acción se adapta al ancho disponible sin recorte.
 - [x] AC24: Los avisos muestran texto largo con ajuste seguro, acción a ancho completo en móvil y alineación horizontal desde tablet; advertencias/errores usan `role="alert"` e información/éxito usan `role="status"`.
 - [x] AC25: Las insignias de estado conservan su tamaño compacto y presentan etiquetas largas sin overflow horizontal dentro de tarjetas, listados y cabeceras responsivas.
+- [x] AC26: Las tarjetas compartidas reducen padding en móvil, permiten títulos y descripciones largas y envuelven acciones del pie sin recortar contenido desde 320px.
 
 ## 8. Notas Técnicas y Arquitectura
 
