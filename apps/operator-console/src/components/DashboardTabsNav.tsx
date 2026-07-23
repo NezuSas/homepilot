@@ -86,11 +86,14 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
           const isActive = activeTabIdx === index;
           return (
             <div key={tab.id} className="group flex shrink-0 items-center">
-                <button
+                <Button
                   type="button"
                   onClick={() => onSelectTab(index)}
+                  aria-current={isActive ? 'page' : undefined}
+                  variant="ghost"
+                  size="md"
                   className={cn(
-                    "flex h-14 min-w-20 items-center justify-center gap-2 border-b-2 px-3 text-caption font-semibold transition-all sm:min-w-28",
+                    "h-14 min-w-20 justify-center gap-2 rounded-none border-b-2 px-3 text-caption font-semibold sm:min-w-28",
                     isActive
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-transparent text-muted-foreground hover:bg-muted/35 hover:text-foreground"
@@ -98,7 +101,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="truncate">{tab.title}</span>
-                </button>
+                </Button>
               {isEditing && (
                 <IconButton
                   icon={Icons.Pencil}
