@@ -203,15 +203,15 @@ export function DashboardWidgetNode({
               {/* Dedicated grip handle: reorders the zone without capturing clicks
                   on the cards/controls rendered inside it. */}
               {!isTitleWidget && canDrag && (
-                <button
-                  type="button"
+                <IconButton
+                  icon={GripVertical}
+                  label={t('common.reorder')}
+                  variant="ghost"
+                  size="sm"
                   {...dragHandleAttributes}
                   {...dragHandleListeners}
-                  title={t('common.reorder')}
-                  className="grid h-9 w-7 touch-none place-items-center text-muted-foreground/50 cursor-grab active:cursor-grabbing hover:text-primary"
-                >
-                  <GripVertical className="w-3 h-3" />
-                </button>
+                  className="h-9 w-7 touch-none cursor-grab text-muted-foreground/50 active:cursor-grabbing hover:text-primary"
+                />
               )}
             </div>
           </div>
