@@ -17,5 +17,4 @@ No sustituye un botón con texto cuando el significado no es universal. El consu
 
 ## Estados y aceptación
 
-Debe mostrar foco visible, no encogerse en touch y respetar normal, hover, focus y disabled.
-
+Debe mostrar foco visible, no encogerse en touch y respetar normal, hover, focus y disabled. Usa `touch-manipulation` para evitar demoras o gestos no deseados en acciones compactas móviles.

@@ -17,4 +17,4 @@ El contenido debe ser desplazable y sus acciones deben quedar visibles. Usar `Co
 
 ## Estados y aceptación
 
-Respeta variantes default/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo, además de viewport móvil/tablet/escritorio.
+Respeta variantes default/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo, además de viewport móvil/tablet/escritorio. El título y la descripción reservan espacio para el cierre, ajustan texto largo y el pie puede envolver acciones dentro del viewport.

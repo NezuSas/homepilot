@@ -122,15 +122,15 @@ export const Modal: React.FC<ModalProps> = ({
         tabIndex={-1}
         onKeyDown={handleDialogKeyDown}
         className={cn(
-          "surface-transition relative my-auto w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-modal-safe sm:max-h-modal-safe-lg",
+          "surface-transition relative my-auto flex min-h-0 min-w-0 w-full max-w-lg flex-col overflow-hidden rounded-modal border bg-card shadow-depth-3 animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base max-h-modal-safe sm:max-h-modal-safe-lg",
           variantConfig[variant].borderClass,
           className
         )}
       >
         <div className="min-h-0 w-full overflow-y-auto custom-scrollbar">
             {(title || description || variant !== 'default') && <div className={cn(
-              "flex flex-col p-5 pb-4 sm:p-8 sm:pb-6",
-              headerAlign === 'start' ? 'items-start pr-14 text-left sm:pr-16' : 'items-center text-center',
+              "flex min-w-0 flex-col p-5 pb-4 pr-14 sm:p-8 sm:pb-6 sm:pr-16",
+              headerAlign === 'start' ? 'items-start text-left' : 'items-center text-center',
               headerClassName,
             )}>
                 {variant !== 'default' && (
@@ -138,19 +138,19 @@ export const Modal: React.FC<ModalProps> = ({
                         <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
                     </div>
                 )}
-                {title && <h2 id={titleId} className="text-panel-title font-black text-foreground mb-2">{title}</h2>}
-                {description && <p id={descriptionId} className="text-body font-medium text-muted-foreground leading-relaxed">
+                {title && <h2 id={titleId} className="mb-2 break-words text-panel-title font-black text-foreground">{title}</h2>}
+                {description && <p id={descriptionId} className="break-words text-body font-medium leading-relaxed text-muted-foreground">
                     {description}
                 </p>}
             </div>}
 
-            <div className={cn("px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8", contentClassName)}>
+            <div className={cn("min-w-0 px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8", contentClassName)}>
                 {children}
             </div>
         </div>
 
         {footer && (
-          <footer className={cn('flex shrink-0 items-center border-t border-border/60', footerClassName)}>
+          <footer className={cn('flex shrink-0 flex-wrap items-center border-t border-border/60', footerClassName)}>
             {footer}
           </footer>
         )}

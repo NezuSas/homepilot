@@ -17,4 +17,4 @@ Usar para filtros o modos mutuamente excluyentes; usar `Select` si hay muchas op
 
 ## Estados y aceptación
 
-Activo, inactivo, disabled y foco conservan tamaño coherente. Las etiquetas no se truncan: cada opción puede crecer verticalmente o pasar a una nueva fila cuando el ancho disponible no permite mostrar su texto completo.
+Activo, inactivo, disabled y foco conservan tamaño coherente. El grupo puede recibir `label` accesible y cada opción expone `aria-pressed`. Las etiquetas no se truncan: cada opción puede crecer verticalmente o pasar a una nueva fila cuando el ancho disponible no permite mostrar su texto completo.

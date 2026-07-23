@@ -78,6 +78,7 @@
 - [x] Refuerzo responsive de `SearchFilterBar`: búsqueda y filtros pueden reducirse dentro de paneles angostos sin alterar filtrado, foco ni navegación de opciones.
 - [x] Refuerzo responsive de `DeviceTileBase`: padding adaptativo, textos largos ajustables y acciones contextuales disponibles también en dispositivos táctiles.
 - [x] Refuerzo responsive de `DeviceTileShell` y `AssistantCard`: reducción segura en grids, semántica accesible, padding adaptativo y acciones largas envolventes.
+- [x] Refuerzo de interacción responsiva de `SegmentedControl`, `IconButton` y `Modal`: selección anunciada, respuesta táctil y composición segura para textos, cierre y acciones largas.
 
 ## Verificación obligatoria ante cambios
 
