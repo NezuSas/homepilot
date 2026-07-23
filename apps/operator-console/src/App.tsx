@@ -878,7 +878,8 @@ function App() {
              />
              {canAccessDashboards && (
                <>
-                 <button
+                 <Button
+                    type="button"
                     onClick={() => {
                       setIsDashboardsExpanded(prev => {
                         const next = !prev;
@@ -886,8 +887,11 @@ function App() {
                         return next;
                       });
                     }}
+                    aria-expanded={isDashboardsExpanded}
+                    variant="ghost"
+                    size="sm"
                     className={cn(
-                      "control-transition group relative flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact transition-all",
+                      "group relative h-auto w-full justify-start gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact",
                       activeDashboardsSection
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
@@ -903,7 +907,7 @@ function App() {
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
                     )}
-                 </button>
+                 </Button>
                  {isDashboardsExpanded && !isSidebarContentCollapsed && (
                    <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
                      {sidebarDashboards.length === 0 ? (
@@ -994,10 +998,14 @@ function App() {
           {canAccessSystem && (
             <>
               <div className="flex flex-col gap-0.5">
-                <button
+                <Button
+                    type="button"
                     onClick={() => setIsSystemExpanded(prev => !prev)}
+                    aria-expanded={isSystemExpanded}
+                    variant="ghost"
+                    size="sm"
                     className={cn(
-                      "control-transition group relative flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact transition-all",
+                      "group relative h-auto w-full justify-start gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact",
                       activeSystemSection
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
@@ -1014,7 +1022,7 @@ function App() {
                       : <ChevronRight className="w-4 h-4 opacity-60" />
                     )
                     }
-                </button>
+                </Button>
 
                 {/* System sub-items — inline collapsible */}
                 {isSystemExpanded && !isSidebarContentCollapsed && (
