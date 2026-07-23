@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { Eye, Image, MoreVertical, SlidersHorizontal, Trash2, X, Loader2 } from 'lucide-react';
+import { Eye, Image, MoreVertical, SlidersHorizontal, Trash2, X, Loader2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { IconPicker } from '../views/dashboards/components/IconPicker';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
+import { SegmentedControl } from './ui/SegmentedControl';
 import { ToggleSwitch } from './ui/ToggleSwitch';
 
 
@@ -96,7 +96,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
   if (!isOpen) return null;
 
-  const tabs: Array<{ id: ConfigTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const tabs: Array<{ id: ConfigTab; label: string; icon: LucideIcon }> = [
     { id: 'settings', label: t('dashboards.view_config.settings'), icon: SlidersHorizontal },
     { id: 'background', label: t('dashboards.view_config.background'), icon: Image },
     { id: 'visibility', label: t('dashboards.view_config.visibility'), icon: Eye },
@@ -161,25 +161,14 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
           <IconButton icon={MoreVertical} label={t('common.more')} variant="ghost" />
         </header>
 
-        <nav className="grid shrink-0 grid-cols-3 border-b border-border/60">
-          {tabs.map(tabItem => {
-            const Icon = tabItem.icon;
-            const isActive = activeTab === tabItem.id;
-            return (
-              <button
-                key={tabItem.id}
-                type="button"
-                onClick={() => setActiveTab(tabItem.id)}
-                className={cn(
-                  'flex items-center justify-center gap-2 border-b-2 px-2 py-3 text-caption font-black transition-colors sm:text-body',
-                  isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground'
-                )}
-              >
-                <Icon className="hidden h-4 w-4 sm:block" />
-                <span>{tabItem.label}</span>
-              </button>
-            );
-          })}
+        <nav className="shrink-0 border-b border-border/60 px-5 py-3">
+          <SegmentedControl
+            value={activeTab}
+            options={tabs.map(({ id, label, icon }) => ({ value: id, label, icon }))}
+            onChange={setActiveTab}
+            className="w-full"
+            optionClassName="min-h-9 px-2 text-nano sm:min-h-10 sm:text-micro"
+          />
         </nav>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 no-scrollbar">
