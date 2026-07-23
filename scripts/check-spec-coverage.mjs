@@ -8,7 +8,7 @@ const modularComponentDocs = [
   'AlertBanner', 'AssistantCard', 'Button', 'Card', 'DeviceTileBase', 'DeviceTileShell',
   'EmptyState', 'IconButton', 'Input', 'Textarea', 'Modal', 'PageFrame', 'SearchFilterBar',
   'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
-  'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator',
+  'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator', 'RangeInput',
 ];
 
 const rules = [

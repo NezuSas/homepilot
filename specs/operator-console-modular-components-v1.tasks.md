@@ -7,7 +7,7 @@
 - [x] Mapeo de cobertura de los componentes compartidos.
 - [x] Consolidación de todos los selectores generales de Escenas, Automatizaciones, editor de tableros, usuarios, cámaras e inspección en `SearchableSelectField`.
 - [x] Consolidación de acciones textuales generales de autenticación, confirmación, perfil, escenas y automatizaciones en `Button`; las acciones exclusivamente icónicas usan `IconButton`.
-- [x] Consolidación de campos generales de texto y contraseña en `Input`, incluidos onboarding, topología, escenas e inspector; los rangos, archivos, áreas de texto, radios y entradas de dominio mantienen controles especializados.
+- [x] Consolidación de campos generales de texto y contraseña en `Input`, incluidos onboarding, topología, escenas e inspector; archivos, áreas de texto, radios y entradas de dominio mantienen controles especializados.
 - [x] Consolidación de texto multilínea general en `Textarea`; el compositor conversacional conserva su control especializado por voz, atajos y envío.
 - [x] Consolidación del marco de automatizaciones en `Modal`, con cabecera alineada, contenido desplazable y etiqueta de cierre traducida.
 - [x] Consolidación de las acciones e input en línea de la navegación de tableros con `Button`, `IconButton` e `Input`, incluyendo etiquetas accesibles traducidas para confirmar y cancelar.
@@ -57,6 +57,7 @@
 - [x] Integración de cobertura i18n, specs y primitivos UI en CI para impedir regresiones antes de cada entrega.
 - [x] Protección de CI contra utilidades tipográficas arbitrarias fuera de los primitivos UI; la consola consume únicamente escalas tipográficas con nombre.
 - [x] Consolidación de confirmaciones y fallos de Usuarios y Cámaras IP en `ConfirmModal` y `AlertBanner`, con protección de CI contra diálogos nativos del navegador.
+- [x] Consolidación de rangos de posición de cortina, opacidad de tablero y zoom de avatar en `RangeInput`, preservando confirmación diferida y control continuo.
 
 ## Verificación obligatoria ante cambios
 

@@ -25,6 +25,9 @@ for (const filePath of listSourceFiles(sourceRoot)) {
   if (/<input\b(?:(?!\/?>)[\s\S])*?\btype\s*=\s*["'](?:text|password|email|search)["']/.test(source)) {
     fileViolations.push('text input');
   }
+  if (/<input\b(?:(?!\/?>)[\s\S])*?\btype\s*=\s*["']range["']/.test(source)) {
+    fileViolations.push('range input');
+  }
   if (/<select(?:\s|>)/.test(source) || /<option(?:\s|>)/.test(source)) fileViolations.push('select');
   if (/<textarea(?:\s|>)/.test(source) && !specializedTextareaFiles.has(relativePath.replaceAll(sep, '/'))) {
     fileViolations.push('textarea');

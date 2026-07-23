@@ -36,9 +36,10 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-10:** Los controles segmentados con etiquetas largas deben conservar una escala tipográfica compacta, una sola línea por opción y etiquetas legibles sin desborde en móvil, tablet y escritorio.
 - **REQ-11:** La navegación lateral debe usar la escala tipográfica compartida; las variantes compactas de marca, guía y rol no pueden recortar información crítica ni reutilizar descripciones extensas de otras vistas.
 - **REQ-12:** Las acciones convencionales de la consola deben usar `Button` o `IconButton`; los elementos HTML nativos solo pueden residir dentro de los primitivos UI o corresponder a una semántica especializada documentada.
-- **REQ-13:** Los campos generales de texto, contraseña, correo, búsqueda y texto multilínea deben usar `Input` o `Textarea`; las selecciones de negocio deben usar `SearchableSelectField`; rango, archivo, radio y el compositor conversacional mantienen su control nativo especializado.
+- **REQ-13:** Los campos generales de texto, contraseña, correo, búsqueda y texto multilínea deben usar `Input` o `Textarea`; las selecciones de negocio deben usar `SearchableSelectField`; archivo, radio y el compositor conversacional mantienen su control nativo especializado.
 - **REQ-14:** La tipografía de vistas y componentes debe usar escalas con nombre del design system; las utilidades Tailwind arbitrarias `text-[…]` no se permiten fuera de `components/ui`.
 - **REQ-15:** Las confirmaciones y errores visibles deben usar `ConfirmModal`, `AlertBanner` u otro componente modular de feedback; no se permiten diálogos nativos del navegador en la consola.
+- **REQ-16:** Los rangos especializados de la consola deben usar `RangeInput`, manteniendo el callback continuo, la confirmación diferida cuando aplique y un foco/estado deshabilitado consistente.
 
 ## 5. Requisitos No Funcionales
 
@@ -54,7 +55,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 | Familia | Implementación principal | Responsabilidad | Estados mínimos |
 |---|---|---|---|
 | Acciones | `ui/Button.tsx`, `ui/IconButton.tsx`, `ui/ToggleSwitch.tsx` | Ejecutar una intención del usuario o cambiar un valor booleano | normal, hover/focus, disabled, loading, destructive, checked |
-| Campos | `ui/Input.tsx`, `ui/Textarea.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
+| Campos | `ui/Input.tsx`, `ui/Textarea.tsx`, `ui/RangeInput.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
 | Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal abierto, error/empty slot |
 | Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |
@@ -79,6 +80,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC14: La CI ejecuta `check:i18n`, `check:spec-coverage` y `check:ui-primitives` junto con tipos, builds y pruebas.
 - [x] AC15: `npm run check:ui-primitives` evita escalas tipográficas arbitrarias fuera de los primitivos UI, conservando la jerarquía compartida entre vistas.
 - [x] AC16: `npm run check:ui-primitives` evita `alert`, `confirm` y `prompt` nativos fuera de los primitivos UI; usuarios y cámaras presentan feedback mediante componentes del design system.
+- [x] AC17: Los rangos de posición, opacidad y recorte consumen `RangeInput`, conservan los límites y no ejecutan el comando de cortina más de una vez para un valor confirmado; `check:ui-primitives` evita rangos nativos fuera de UI.
 
 ## 8. Notas Técnicas y Arquitectura
 

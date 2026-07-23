@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
+import { RangeInput } from './ui/RangeInput';
 
 interface UserProfile {
   id: string;
@@ -273,10 +274,13 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
                     <div className="flex items-center gap-2"><ZoomIn className="w-3 h-3" /> {t('users.profile.zoom', 'Zoom')}</div>
                     <div className="flex items-center gap-2"><Move className="w-3 h-3" /> {t('users.profile.adjust', 'Arrastra para ajustar')}</div>
                   </div>
-                  <input 
-                    type="range" min="1" max="3" step="0.01" 
-                    value={zoom} onChange={e => setZoom(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  <RangeInput
+                    aria-label={t('users.profile.zoom')}
+                    min={1}
+                    max={3}
+                    step={0.01}
+                    value={zoom}
+                    onValueChange={setZoom}
                   />
                 </div>
               )}

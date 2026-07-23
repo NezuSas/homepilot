@@ -9,6 +9,7 @@ import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { ToggleSwitch } from './ui/ToggleSwitch';
+import { RangeInput } from './ui/RangeInput';
 
 
 const MAX_BG_PX = 1920;
@@ -249,13 +250,13 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 <label className="grid gap-3 text-body">
                   <span>{t('dashboards.view_config.background_opacity')}</span>
                   <div className="flex items-center gap-4">
-                    <input
-                      type="range"
+                    <RangeInput
+                      aria-label={t('dashboards.view_config.background_opacity')}
                       min={0}
                       max={100}
                       value={backgroundOpacity}
-                      onChange={event => setBackgroundOpacity(Number(event.target.value))}
-                      className="min-w-0 flex-1 accent-primary"
+                      onValueChange={setBackgroundOpacity}
+                      className="min-w-0 flex-1"
                     />
                     <span className="w-14 rounded-lg bg-muted px-3 py-2 text-center text-body">{backgroundOpacity}</span>
                   </div>
