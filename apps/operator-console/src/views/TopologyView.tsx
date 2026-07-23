@@ -433,21 +433,24 @@ export const TopologyView: React.FC = () => {
                                 className="h-7 rounded-lg border-primary/40 px-2 py-1 text-caption font-bold text-foreground"
                                 aria-label={t('topology.rename_home')}
                               />
-                              <button
+                              <IconButton
+                                icon={isRenamingHome ? Loader2 : CheckCircle2}
+                                label={t('common.save')}
                                 type="submit"
                                 disabled={isRenamingHome || !homeNameDraft.trim()}
-                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
-                              >
-                                {isRenamingHome ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                              </button>
-                              <button
-                                type="button"
+                                variant="primary"
+                                size="sm"
+                                className={cn('h-7 w-7 rounded-lg', isRenamingHome && '[&_svg]:animate-spin')}
+                              />
+                              <IconButton
+                                icon={X}
+                                label={t('common.cancel')}
                                 onClick={cancelHomeRename}
                                 disabled={isRenamingHome}
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground disabled:opacity-50"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                                variant="default"
+                                size="sm"
+                                className="h-7 w-7 rounded-lg"
+                              />
                             </form>
                           ) : (
                             <span className={cn(
@@ -462,17 +465,17 @@ export const TopologyView: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         {isSelected && editingHomeId !== home.id && (
-                          <button
-                            type="button"
+                          <IconButton
+                            icon={Pencil}
+                            label={t('topology.rename_home')}
                             onClick={(event) => {
                               event.stopPropagation();
                               beginHomeRename(home);
                             }}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:text-primary"
-                            title={t('topology.rename_home')}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
+                            variant="default"
+                            size="sm"
+                            className="h-7 w-7 rounded-lg hover:text-primary"
+                          />
                         )}
                         {isSelected && !loadingRooms && (
                           <CheckCircle2 className="w-3.5 h-3.5 text-primary opacity-50" />
@@ -642,14 +645,14 @@ export const TopologyView: React.FC = () => {
                                 {selectedRoom?.name || t('topology.select_room_hint')}
                               </h4>
                               {selectedRoom && (
-                                <button
-                                  type="button"
+                                <IconButton
+                                  icon={Pencil}
+                                  label={t('topology.rename_room')}
                                   onClick={() => beginRoomRename(selectedRoom)}
-                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
-                                  title={t('topology.rename_room')}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
+                                  variant="default"
+                                  size="sm"
+                                  className="h-8 w-8 rounded-lg hover:border-primary/30 hover:text-primary"
+                                />
                               )}
                             </div>
                           )}
@@ -659,14 +662,14 @@ export const TopologyView: React.FC = () => {
                           <div className="rounded-xl bg-primary/10 p-2 text-primary">
                             <Layers3 className="h-5 w-5" />
                           </div>
-                          <button
-                            type="button"
+                          <IconButton
+                            icon={X}
+                            label={t('topology.close_details')}
                             onClick={() => setSelectedRoomId(null)}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:text-foreground"
-                            title={t('topology.close_details')}
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                            variant="default"
+                            size="md"
+                            className="h-9 w-9 rounded-xl hover:text-foreground"
+                          />
                         </div>
                       </div>
 
@@ -723,21 +726,21 @@ export const TopologyView: React.FC = () => {
                                     {isActiveDevice(device) ? t('device_states.on') : t('device_states.off')}
                                   </span>
                                   {canToggleDevice(device) && (
-                                    <button
-                                      type="button"
+                                    <IconButton
+                                      icon={deviceProcessingId === device.id ? Loader2 : Power}
+                                      label={isActiveDevice(device) ? t('topology.turn_off_device') : t('topology.turn_on_device')}
                                       onClick={() => { void handleToggleDevice(device); }}
                                       disabled={deviceProcessingId !== null}
+                                      variant={isActiveDevice(device) ? 'primary' : 'default'}
+                                      size="sm"
                                       className={cn(
-                                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-50",
+                                        "h-8 w-8 rounded-xl",
                                         isActiveDevice(device)
-                                          ? "border-primary/30 bg-primary text-primary-foreground"
-                                          : "border-border bg-muted/30 text-muted-foreground hover:text-primary",
+                                          ? "border-primary/30"
+                                          : "bg-muted/30 hover:text-primary",
+                                        deviceProcessingId === device.id && '[&_svg]:animate-spin',
                                       )}
-                                      title={isActiveDevice(device) ? t('topology.turn_off_device') : t('topology.turn_on_device')}
-                                      aria-label={isActiveDevice(device) ? t('topology.turn_off_device') : t('topology.turn_on_device')}
-                                    >
-                                      {deviceProcessingId === device.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
-                                    </button>
+                                    />
                                   )}
                                 </div>
                               </div>
@@ -748,15 +751,16 @@ export const TopologyView: React.FC = () => {
                       </div>
 
                       {selectedRoom && (
-                        <button
-                          type="button"
+                        <Button
                           onClick={() => setRoomPendingDelete(selectedRoom)}
                           disabled={isDeletingRoom}
-                          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-micro font-black uppercase tracking-widest text-danger transition-all hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          variant="ghost"
+                          size="md"
+                          className="mt-5 w-full border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 hover:text-danger"
                         >
                           <Trash2 className="h-4 w-4" />
                           {t('topology.delete_room')}
-                        </button>
+                        </Button>
                       )}
                     </aside>}
                   </>
