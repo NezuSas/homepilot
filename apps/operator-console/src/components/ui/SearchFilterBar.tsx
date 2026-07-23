@@ -33,8 +33,8 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className={cn("flex w-full flex-col items-stretch gap-3 xl:flex-row xl:items-center", className)}>
-      <div className="w-full shrink-0 xl:w-search-panel">
+    <div className={cn("flex min-w-0 w-full flex-col items-stretch gap-3 xl:flex-row xl:items-center", className)}>
+      <div className="min-w-0 w-full shrink-0 xl:w-search-panel">
         <SearchInput 
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}

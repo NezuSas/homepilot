@@ -56,6 +56,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-30:** `SearchableSelectField` debe conservar búsqueda, foco y selección dentro del viewport, permitiendo reducción segura de trigger, etiqueta y ayuda en composiciones flexibles.
 - **REQ-31:** `Button` debe conservar su altura y área táctil tokenizadas, permitiendo que etiquetas largas se ajusten dentro del ancho disponible sin estirar filas, tarjetas o modales.
 - **REQ-32:** `ToggleSwitch` debe conservar su dimensión táctil, foco y semántica booleana dentro de filas responsivas, exponiendo su estado para estilos consistentes sin conocer la regla de negocio.
+- **REQ-33:** `SearchFilterBar` debe permitir que búsqueda y filtros se reduzcan dentro de paneles responsivos, conservando las opciones navegables sin provocar overflow horizontal de la vista.
 
 ## 5. Requisitos No Funcionales
 
@@ -114,6 +115,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC32: El selector con búsqueda no desborda formularios o grids desde 320px; trigger, buscador, etiqueta y ayuda respetan el ancho disponible y el menú conserva su posición portal dentro del viewport.
 - [x] AC33: Botones compartidos conservan foco, loading, variante y escala; sus etiquetas largas se ajustan sin overflow horizontal desde 320px.
 - [x] AC34: Interruptores compartidos conservan `role="switch"`, `aria-checked`, foco, área táctil y estado visual explícito, sin encogerse ni crear overflow desde 320px.
+- [x] AC35: La barra de búsqueda y filtros conserva foco, consulta y filtros disponibles desde 320px; sus columnas se reducen de forma segura y las opciones largas permanecen navegables sin desbordar la superficie.
 
 ## 8. Notas Técnicas y Arquitectura
 
