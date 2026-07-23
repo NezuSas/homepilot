@@ -10,8 +10,8 @@ export interface ModalProps {
   onClose?: () => void;
   title?: string;
   description?: string;
-  children: React.ReactNode;
-  variant?: 'default' | 'danger' | 'warning' | 'success';
+  children?: React.ReactNode;
+  variant?: 'default' | 'info' | 'danger' | 'warning' | 'success';
   layerClassName?: string;
   className?: string;
   headerClassName?: string;
@@ -25,6 +25,7 @@ export interface ModalProps {
 
 const variantConfig = {
   default: { icon: Info, colorClass: "text-primary bg-primary/10", borderClass: "border-border/40" },
+  info: { icon: Info, colorClass: "text-primary bg-primary/10", borderClass: "border-primary/20 shadow-primary/5" },
   danger: { icon: AlertTriangle, colorClass: "text-danger bg-danger/10", borderClass: "border-danger/20 shadow-danger/5" },
   warning: { icon: AlertTriangle, colorClass: "text-warning bg-warning/10", borderClass: "border-warning/20" },
   success: { icon: CheckCircle, colorClass: "text-success bg-success/10", borderClass: "border-success/20 shadow-success/5" }
@@ -144,9 +145,11 @@ export const Modal: React.FC<ModalProps> = ({
                 </p>}
             </div>}
 
-            <div className={cn("min-w-0 px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8", contentClassName)}>
-                {children}
-            </div>
+            {children && (
+              <div className={cn("min-w-0 px-5 pb-5 sm:px-8 sm:pb-8", !title && !description && variant === 'default' && "pt-5 sm:pt-8", contentClassName)}>
+                  {children}
+              </div>
+            )}
         </div>
 
         {footer && (

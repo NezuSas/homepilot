@@ -9,7 +9,7 @@ Contenedor de diálogo dentro del shell de aplicación para formularios, detalle
 
 ## Contrato
 
-`ModalProps` recibe `isOpen`, `onClose`, título, descripción, children, variante y control del cierre. `headerAlign`, `headerClassName` y `contentClassName` permiten adaptar una composición de formulario amplia sin duplicar overlay, foco, scroll ni botón de cierre. `footer` y `footerClassName` mantienen acciones críticas fijas fuera del área desplazable. `layerClassName` ajusta la capa del portal cuando un flujo necesita precedencia explícita. `closeLabel` resuelve su etiqueta desde i18n en el consumidor o usa `common.close`. Bloquea el scroll del body mientras está abierto.
+`ModalProps` recibe `isOpen`, `onClose`, título, descripción, children opcionales, variante y control del cierre. `headerAlign`, `headerClassName` y `contentClassName` permiten adaptar una composición de formulario amplia sin duplicar overlay, foco, scroll ni botón de cierre. `footer` y `footerClassName` mantienen acciones críticas fijas fuera del área desplazable. `layerClassName` ajusta la capa del portal cuando un flujo necesita precedencia explícita. `closeLabel` resuelve su etiqueta desde i18n en el consumidor o usa `common.close`. Bloquea el scroll del body mientras está abierto.
 
 ## Uso
 
@@ -17,4 +17,4 @@ El contenido debe ser desplazable y sus acciones deben quedar visibles. Usar `Co
 
 ## Estados y aceptación
 
-Respeta variantes default/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo, además de viewport móvil/tablet/escritorio. El título y la descripción reservan espacio para el cierre, ajustan texto largo y el pie puede envolver acciones dentro del viewport.
+Respeta variantes default/info/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo, además de viewport móvil/tablet/escritorio. Los `children` son opcionales para confirmaciones que solo muestran cabecera y pie compartidos. El título y la descripción reservan espacio para el cierre, ajustan texto largo y el pie puede envolver acciones dentro del viewport.

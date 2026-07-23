@@ -5,7 +5,7 @@ interface CoverPositionControlProps {
   initialPosition?: number;
   onPositionChange: (position: number) => void;
   disabled?: boolean;
-  ariaLabel?: string;
+  ariaLabel: string;
 }
 
 /**
@@ -16,7 +16,7 @@ export const CoverPositionControl: React.FC<CoverPositionControlProps> = ({
   initialPosition = 0,
   onPositionChange,
   disabled = false,
-  ariaLabel = 'Cover position'
+  ariaLabel,
 }) => {
   const [value, setValue] = useState(initialPosition);
   const lastCommittedValue = useRef(initialPosition);
@@ -35,7 +35,7 @@ export const CoverPositionControl: React.FC<CoverPositionControlProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full px-1">
+    <div className="flex min-w-0 w-full flex-col gap-2 px-1">
       <RangeInput
         min={0}
         max={100}
