@@ -824,8 +824,10 @@ function App() {
         {/* Logo area */}
           <div className={cn("px-4 py-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "xl:px-3")}>
           <div className={cn("flex items-center gap-2.5", isSidebarContentCollapsed && "xl:justify-center")}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => {
                 if (window.matchMedia('(min-width: 1280px)').matches) {
                   setIsDesktopSidebarOpen((current) => !current);
@@ -838,14 +840,17 @@ function App() {
               aria-label={t('shell.toggle_sidebar')}
             >
               <img src="/nezu.png" alt="Nezu" className={cn("h-10 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "xl:opacity-100")} />
-            </button>
+            </Button>
             <h2 className={cn("font-black tracking-tighter text-body-lg leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0")}>
               {t('shell.app_title')}
             </h2>
           </div>
           <div className={cn("mt-1 ml-brand-indent flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:h-0 xl:ml-0 xl:opacity-0")}>
-            <button
-              type="button"
+            <IconButton
+              icon={Menu}
+              label={t('shell.toggle_sidebar')}
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 if (window.matchMedia('(min-width: 1280px)').matches) {
                   setIsDesktopSidebarOpen((current) => !current);
@@ -853,12 +858,8 @@ function App() {
                   setIsSidebarOpen(false);
                 }
               }}
-              className="rounded-lg p-1 text-muted-foreground/45 transition-colors hover:bg-muted hover:text-foreground"
-              title={t('shell.toggle_sidebar')}
-              aria-label={t('shell.toggle_sidebar')}
-            >
-              <Menu className="h-3.5 w-3.5" />
-            </button>
+              className="h-6 w-6 text-muted-foreground/45"
+            />
             <span className="text-nano uppercase font-semibold tracking-label text-muted-foreground/50">{t('shell.sidebar_subtitle')}</span>
           </div>
         </div>
@@ -1100,10 +1101,13 @@ function App() {
         </nav>
         
         <div className={cn("p-4 border-t mt-auto flex flex-col gap-4 bg-background/40 transition-all duration-300", !isSidebarContentCollapsed && "xl:px-2 xl:py-3")}>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => startDemo(DEMO_STEPS)}
             className={cn(
-              "hidden xl:flex items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 control-transition interactive-lift group",
+              "hidden xl:flex h-auto items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 group",
               "hover:bg-primary/15 hover:border-primary/30",
               isSidebarContentCollapsed && "xl:justify-center xl:px-2 xl:py-2.5"
             )}
@@ -1120,14 +1124,17 @@ function App() {
                 {t('demo.sidebar_summary', { count: DEMO_STEPS.length })}
               </span>
             </div>
-          </button>
+          </Button>
 
           <div className="flex flex-col gap-3">
             {/* User Profile Card */}
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowProfileModal(true)}
               className={cn(
-                "flex items-center gap-3 w-full p-2 rounded-2xl bg-muted/30 hover:bg-muted/80 border border-border/40 transition-all group",
+                "h-auto flex items-center gap-3 w-full p-2 rounded-2xl bg-muted/30 hover:bg-muted/80 border border-border/40 group",
                 isSidebarContentCollapsed && "xl:justify-center"
               )}
               title={t('users.profile.title', 'Mi Perfil')}
@@ -1149,7 +1156,7 @@ function App() {
                 </span>
               </div>
               <ChevronRight className={cn("w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors", isSidebarContentCollapsed && "xl:hidden")} />
-            </button>
+            </Button>
 
             {/* Quick Actions Row */}
             <div className={cn(
@@ -1194,15 +1201,14 @@ function App() {
       <main className="flex min-h-screen-dvh min-w-0 flex-1 flex-col overflow-visible bg-background xl:h-full xl:overflow-hidden">
         
         {currentView !== 'dashboards' && (
-          <button
-            type="button"
+          <IconButton
+            icon={Menu}
+            label={t('shell.toggle_sidebar')}
+            variant="default"
+            size="lg"
             onClick={() => setIsSidebarOpen(true)}
-            className="fixed left-3 top-3 z-[35] flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-card/90 text-muted-foreground shadow-depth-1 backdrop-blur-md transition-colors hover:text-foreground xl:hidden"
-            title={t('shell.toggle_sidebar')}
-            aria-label={t('shell.toggle_sidebar')}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
+            className="fixed left-3 top-3 z-[35] h-10 w-10 rounded-xl border-border/70 bg-card/90 text-muted-foreground shadow-depth-1 backdrop-blur-md hover:text-foreground xl:hidden"
+          />
         )}
         
         <section className={cn(
