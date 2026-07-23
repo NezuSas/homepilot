@@ -17,4 +17,4 @@ Usar para dispositivos, escenas, habitaciones, tipos, zonas horarias y tamaños 
 
 ## Estados y aceptación
 
-Soporta valor vacío, valor seleccionado, búsqueda, opción con descripción, lista vacía, disabled, foco visible, Escape y cierre al hacer clic fuera. El menú se mantiene dentro del viewport en móvil, tablet y escritorio.
+Soporta valor vacío, valor seleccionado, búsqueda, opción con descripción, lista vacía, disabled, foco visible, Escape y cierre al hacer clic fuera. El menú se mantiene dentro del viewport en móvil, tablet y escritorio; el trigger, búsqueda, etiqueta y ayuda pueden reducirse dentro de grids o filas flexibles sin desbordar.

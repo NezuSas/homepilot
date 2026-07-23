@@ -72,6 +72,7 @@
 - [x] Refuerzo responsive de `Input`: contenedor y campo flexibles, altura base conservada y etiquetas, ayudas o errores largos con ajuste seguro.
 - [x] Refuerzo responsive de `Textarea`: contenedor y área editable flexibles, altura mínima conservada y etiquetas, ayudas o errores largos con ajuste seguro.
 - [x] Refuerzo responsive de `RangeInput`: ancho flexible y distribución segura de límites y valor actual sin overflow horizontal.
+- [x] Refuerzo responsive de `SearchableSelectField`: trigger, buscador, etiqueta y ayuda flexibles, preservando el menú portal y la búsqueda única de opciones de negocio.
 
 ## Verificación obligatoria ante cambios
 

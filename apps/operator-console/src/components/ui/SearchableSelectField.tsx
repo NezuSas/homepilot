@@ -149,7 +149,7 @@ export function SearchableSelectField({
     ? createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[100000] overflow-hidden rounded-panel border border-border/60 bg-popover/95 p-1.5 shadow-depth-3 backdrop-blur-xl"
+          className="fixed z-[100000] min-w-0 overflow-hidden rounded-panel border border-border/60 bg-popover/95 p-1.5 shadow-depth-3 backdrop-blur-xl"
           style={{
             left: dropdownPosition.left,
             top: dropdownPosition.top,
@@ -157,7 +157,7 @@ export function SearchableSelectField({
             maxHeight: dropdownPosition.maxHeight,
           }}
         >
-          <div className="relative border-b border-border/50 p-1.5">
+          <div className="relative min-w-0 border-b border-border/50 p-1.5">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               autoFocus
@@ -165,7 +165,7 @@ export function SearchableSelectField({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('common.search')}
-              className="h-9 w-full rounded-control bg-muted/50 py-2 pl-8 pr-3 text-caption font-medium text-foreground outline-none transition focus:ring-2 focus:ring-primary/35"
+              className="h-9 min-w-0 w-full rounded-control bg-muted/50 py-2 pl-8 pr-3 text-caption font-medium text-foreground outline-none transition focus:ring-2 focus:ring-primary/35"
             />
           </div>
 
@@ -209,9 +209,9 @@ export function SearchableSelectField({
     : null;
 
   return (
-    <div className={cn('space-y-2', !fullWidth && 'w-auto', className)}>
+    <div className={cn('min-w-0 space-y-2', !fullWidth && 'w-auto', className)}>
       {label ? (
-        <label htmlFor={id} className="block text-caption font-black uppercase tracking-label text-muted-foreground">
+        <label htmlFor={id} className="block break-words text-caption font-black uppercase tracking-label text-muted-foreground">
           {label}{required ? <span aria-hidden="true"> *</span> : null}
         </label>
       ) : null}
@@ -227,7 +227,7 @@ export function SearchableSelectField({
         aria-controls={isOpen ? listboxId : undefined}
         onClick={handleToggle}
         className={cn(
-          'flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-4 text-left text-body font-semibold text-foreground outline-none transition',
+          'flex min-w-0 w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-4 text-left text-body font-semibold text-foreground outline-none transition',
           size === 'small' ? 'h-9 text-caption' : 'h-11',
           'hover:border-primary/45 focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/30',
           (disabled || loading) && 'cursor-not-allowed opacity-50',
@@ -237,7 +237,7 @@ export function SearchableSelectField({
         <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180', loading && 'animate-pulse')} />
       </button>
 
-      {helperText ? <p className="text-label text-muted-foreground">{helperText}</p> : null}
+      {helperText ? <p className="break-words text-label text-muted-foreground">{helperText}</p> : null}
 
       {dropdown}
     </div>
