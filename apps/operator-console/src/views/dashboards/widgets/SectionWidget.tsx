@@ -24,6 +24,9 @@ import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { IconPicker, getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
+import { Button } from '../../../components/ui/Button';
+import { IconButton } from '../../../components/ui/IconButton';
+import { Input } from '../../../components/ui/Input';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
 import { SensorMetricCard } from './SensorMetricCard';
 import { MediaPlayerCard, type MediaPlayerCommand } from './MediaPlayerCard';
@@ -1199,25 +1202,23 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 {t('dashboard.editor.sections.card_catalog_title')}
               </h3>
             </div>
-            <button
-              type="button"
+            <IconButton
+              icon={X}
+              label={t('common.close')}
               onClick={() => setIsCatalogOpen(false)}
-              className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
+              variant="ghost"
+              size="md"
+            />
           </div>
 
           <div className="border-b border-border/40 px-6 py-4">
-            <div className="flex items-center gap-3 rounded-2xl border border-border/50 bg-background/50 px-4 py-3">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('dashboard.editor.sections.card_catalog_search')}
-                className="min-w-0 flex-1 bg-transparent text-body font-semibold text-foreground outline-none placeholder:text-muted-foreground/55"
-              />
-            </div>
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t('dashboard.editor.sections.card_catalog_search')}
+              icon={<Search className="h-4 w-4" />}
+              className="h-11 border-border/50 bg-background/50 font-semibold placeholder:text-muted-foreground/55"
+            />
           </div>
 
           <div className="max-h-section-editor overflow-y-auto p-6">
@@ -1272,13 +1273,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               </h3>
             </div>
 
-            <button
-              type="button"
+            <IconButton
+              icon={X}
+              label={t('common.close')}
               onClick={() => setEditingCardId(null)}
-              className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
+              variant="ghost"
+              size="md"
+            />
           </div>
 
           <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
@@ -1290,16 +1291,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' ? cardDraft.entityId : undefined,
             )}
 
-            <label className="block space-y-2">
-              <span className="text-caption font-black uppercase tracking-label text-muted-foreground">
-                {t('dashboard.editor.sections.name')}
-              </span>
-              <input
-                value={cardDraft.title}
-                onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.target.value }))}
-                className="w-full rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-body font-semibold text-foreground outline-none focus:border-primary/60"
-              />
-            </label>
+            <Input
+              label={t('dashboard.editor.sections.name')}
+              value={cardDraft.title}
+              onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.target.value }))}
+              className="h-12 rounded-2xl border-border/60 bg-background/60 px-4 font-semibold"
+            />
 
             {isClockKind(cardDraft.kind) ? (
               <SearchableSelectField
@@ -1444,21 +1441,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           </div>
 
           <div className="flex shrink-0 justify-end gap-3 border-t border-border/50 px-5 py-4">
-            <button
-              type="button"
-              onClick={() => setEditingCardId(null)}
-              className="rounded-2xl border border-border/50 px-5 py-2.5 text-body font-black text-muted-foreground transition hover:text-foreground"
-            >
+            <Button type="button" onClick={() => setEditingCardId(null)} variant="secondary" size="md">
               {t('dashboard.editor.sections.cancel')}
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onClick={saveCardEditor}
-              className="rounded-2xl bg-primary px-5 py-2.5 text-body font-black text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105"
-            >
+            <Button type="button" onClick={saveCardEditor} variant="primary" size="md">
               {t('dashboard.editor.sections.save')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -1533,7 +1522,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (
           isEditingTitle ? (
-            <input
+            <Input
               autoFocus
               value={draftTitle}
               onChange={(event) => setDraftTitle(event.target.value)}
@@ -1545,7 +1534,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                   setIsEditingTitle(false);
                 }
               }}
-              className="min-w-0 flex-1 rounded-xl border border-primary/40 bg-background/70 px-3 py-1.5 text-body-lg font-black text-foreground outline-none"
+              containerClassName="min-w-0 flex-1"
+              className="h-10 border-primary/40 bg-background/70 text-body-lg font-black"
               aria-label={t('dashboard.editor.sections.edit_section_title')}
             />
           ) : (
@@ -1553,18 +1543,17 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
                 {title}
               </h2>
-              <button
-                type="button"
+              <IconButton
+                icon={Pencil}
+                label={t('dashboard.editor.sections.edit_section_title')}
                 onClick={(event) => {
                   event.stopPropagation();
                   setDraftTitle(config.appearance?.title || title);
                   setIsEditingTitle(true);
                 }}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border/40 bg-background/60 text-muted-foreground transition-all hover:border-primary/50 hover:text-primary"
-                aria-label={t('dashboard.editor.sections.edit_section_title')}
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
+                variant="default"
+                size="sm"
+              />
             </>
           )
         ) : (
