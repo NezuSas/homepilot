@@ -567,15 +567,17 @@ export const TopologyView: React.FC = () => {
                         const hasActiveLight = roomDevices.some((device) => isLightDevice(device) && isActiveDevice(device));
 
                         return (
-                          <button
+                          <Button
                             key={room.id}
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setSelectedRoomId((currentRoomId) => currentRoomId === room.id ? null : room.id);
                               if (editingRoomId !== room.id) cancelRoomRename();
                             }}
                             className={cn(
-                              "group flex min-h-28 self-start items-stretch rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md sm:p-5",
+                              "group h-auto min-h-28 self-start justify-start rounded-xl border bg-card p-4 text-left shadow-sm hover:border-primary/50 hover:shadow-md sm:p-5",
                               isRoomSelected ? "border-primary bg-primary/5 shadow-primary/10" : "border-border",
                             )}
                           >
@@ -598,7 +600,7 @@ export const TopologyView: React.FC = () => {
                               </div>
                               {isRoomSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
                             </div>
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
