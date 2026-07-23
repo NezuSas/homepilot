@@ -17,4 +17,4 @@ Usar `primary` para la acción principal, `danger` solo para operación destruct
 
 ## Estados y aceptación
 
-Soporta normal, hover/focus, disabled y loading; mantiene foco visible y área táctil definida por tokens.
+Soporta normal, hover/focus, disabled y loading; mantiene foco visible y área táctil definida por tokens. Las etiquetas pueden ajustarse dentro del ancho disponible sin estirar filas, tarjetas o modales.
