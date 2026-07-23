@@ -50,6 +50,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-24:** `Card` y sus subcomponentes deben preservar contenido, títulos, descripciones y acciones dentro del ancho disponible; su padding debe adaptarse entre móvil y escritorio sin crear scroll horizontal.
 - **REQ-25:** `SidebarItem` debe distribuir icono, etiqueta y badge dentro del ancho disponible; etiquetas largas se ajustan en el sidebar expandido y el ítem activo comunica la ubicación actual de forma accesible.
 - **REQ-26:** `PageFrame` debe actuar como límite de ancho de una vista, permitiendo que los hijos flexibles se reduzcan dentro del viewport y evitando overflow horizontal no intencional.
+- **REQ-27:** `Input` debe mantener su altura base tokenizada y permitir reducción dentro de composiciones flexibles; sus etiquetas, ayudas y errores deben adaptarse a texto largo sin desborde.
 
 ## 5. Requisitos No Funcionales
 
@@ -102,6 +103,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC26: Las tarjetas compartidas reducen padding en móvil, permiten títulos y descripciones largas y envuelven acciones del pie sin recortar contenido desde 320px.
 - [x] AC27: Los ítems del sidebar conservan icono, etiqueta y badge sin overflow desde 320px; etiquetas largas se ajustan al ancho disponible y el ítem activo declara `aria-current="page"`.
 - [x] AC28: El marco de página se limita al ancho del viewport desde 320px y no impide que las composiciones flexibles internas reduzcan su tamaño disponible.
+- [x] AC29: Campos generales conservan altura visual `h-10` y foco visible en todos los breakpoints; dentro de filas o grids flexibles no crean overflow horizontal y sus textos auxiliares se ajustan con seguridad.
 
 ## 8. Notas Técnicas y Arquitectura
 

@@ -69,6 +69,7 @@
 - [x] Refuerzo responsive de `Card`: contenido mínimo flexible, padding adaptativo y textos/acciones largos sin overflow dentro de cabecera, contenido o pie.
 - [x] Refuerzo responsive y accesible de `SidebarItem`: etiqueta flexible sin truncado en navegación expandida, colapso visual seguro en escritorio y ubicación activa anunciada con `aria-current`.
 - [x] Refuerzo responsive de `PageFrame`: ancho máximo seguro y base flexible que evita que vistas o paneles generen desplazamiento horizontal por restricciones del contenedor.
+- [x] Refuerzo responsive de `Input`: contenedor y campo flexibles, altura base conservada y etiquetas, ayudas o errores largos con ajuste seguro.
 
 ## Verificación obligatoria ante cambios
 
