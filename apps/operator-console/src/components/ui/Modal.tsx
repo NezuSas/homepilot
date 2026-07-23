@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
@@ -48,17 +48,56 @@ export const Modal: React.FC<ModalProps> = ({
   hideCloseButton = false
 }) => {
   const { t } = useTranslation();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (!isOpen) return;
+
+    const previousFocusedElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusDialog = window.setTimeout(() => dialogRef.current?.focus(), 0);
+    document.body.style.overflow = 'hidden';
+
     return () => {
+      window.clearTimeout(focusDialog);
       document.body.style.overflow = 'unset';
+      if (previousFocusedElement && document.contains(previousFocusedElement)) {
+        previousFocusedElement.focus();
+      }
     };
   }, [isOpen]);
+
+  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape' && onClose) {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusableElements || focusableElements.length === 0) {
+      event.preventDefault();
+      dialogRef.current?.focus();
+      return;
+    }
+
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement = focusableElements[focusableElements.length - 1];
+    if (event.shiftKey && document.activeElement === firstFocusableElement) {
+      event.preventDefault();
+      lastFocusableElement.focus();
+    } else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
+      event.preventDefault();
+      firstFocusableElement.focus();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -73,7 +112,16 @@ export const Modal: React.FC<ModalProps> = ({
       />
       
       {/* Modal */}
-      <div className={cn(
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-describedby={description ? descriptionId : undefined}
+        aria-label={!title ? description ?? closeLabel ?? t('common.close') : undefined}
+        tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
+        className={cn(
           "surface-transition relative my-auto w-full max-w-lg bg-card border rounded-modal shadow-depth-3 overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base flex flex-col max-h-modal-safe sm:max-h-modal-safe-lg",
           variantConfig[variant].borderClass,
           className
@@ -90,8 +138,8 @@ export const Modal: React.FC<ModalProps> = ({
                         <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
                     </div>
                 )}
-                {title && <h2 className="text-panel-title font-black text-foreground mb-2">{title}</h2>}
-                {description && <p className="text-body font-medium text-muted-foreground leading-relaxed">
+                {title && <h2 id={titleId} className="text-panel-title font-black text-foreground mb-2">{title}</h2>}
+                {description && <p id={descriptionId} className="text-body font-medium text-muted-foreground leading-relaxed">
                     {description}
                 </p>}
             </div>}

@@ -59,6 +59,7 @@
 - [x] Consolidación de confirmaciones y fallos de Usuarios y Cámaras IP en `ConfirmModal` y `AlertBanner`, con protección de CI contra diálogos nativos del navegador.
 - [x] Consolidación de rangos de posición de cortina, opacidad de tablero y zoom de avatar en `RangeInput`, preservando confirmación diferida y control continuo.
 - [x] Consolidación de la configuración de vistas de tablero en `Modal`, con pie fijo para acciones de guardar y eliminar.
+- [x] Refuerzo de accesibilidad de `Modal`: foco inicial/restaurado, Escape, ciclo de Tab y semántica de diálogo asociada a título y descripción.
 
 ## Verificación obligatoria ante cambios
 

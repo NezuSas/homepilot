@@ -17,4 +17,4 @@ El contenido debe ser desplazable y sus acciones deben quedar visibles. Usar `Co
 
 ## Estados y aceptación
 
-Respeta variantes default/danger/warning/success, backdrop, escape mediante consumidor cuando aplique y viewport móvil/tablet/escritorio.
+Respeta variantes default/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo, además de viewport móvil/tablet/escritorio.
