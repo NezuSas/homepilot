@@ -17,4 +17,4 @@ Usar para texto general de varias líneas, como el contenido editable del títul
 
 ## Estados y aceptación
 
-Vacío, foco, valor, disabled y error conservan contraste, foco visible y soporte de texto largo sin overflow horizontal.
+Vacío, foco, valor, disabled y error conservan contraste, foco visible y soporte de texto largo sin overflow horizontal. El contenedor y el área editable pueden reducirse dentro de grids o filas flexibles; etiqueta, ayuda y error se ajustan al ancho disponible.
