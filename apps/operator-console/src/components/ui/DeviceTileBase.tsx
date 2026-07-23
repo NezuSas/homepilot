@@ -44,9 +44,9 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         onClick={isInteractive ? onClick : undefined}
         className={cn(
           // Base structure
-          'surface-transition relative rounded-card border overflow-hidden group flex flex-col justify-between',
+          'surface-transition relative min-w-0 rounded-card border overflow-hidden group flex flex-col justify-between',
           // Padding — slightly more breathing room
-          'p-5',
+          'p-4 sm:p-5',
           // Cursor
           isInteractive ? 'cursor-pointer' : '',
           // Disabled state
@@ -75,8 +75,8 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
         )}
 
         {/* Header row */}
-        <div className="flex items-center justify-between mb-4 relative z-10">
-          <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center justify-between gap-2 mb-4 relative z-10">
+          <div className="flex min-w-0 items-center gap-3">
             {/* Icon container */}
             <div
               className={cn(
@@ -106,12 +106,12 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
               )}
             </div>
 
-            {badge && <div>{badge}</div>}
+            {badge && <div className="min-w-0">{badge}</div>}
           </div>
 
           {rightAction && (
             <div
-              className="surface-transition z-10 opacity-0 group-hover:opacity-100"
+              className="surface-transition z-10 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
               onClick={(e) => { if (isInteractive) e.stopPropagation(); }}
             >
               {rightAction}
@@ -119,13 +119,13 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
           )}
         </div>
 
-        {children && <div className="mb-3 flex-1 relative z-10">{children}</div>}
+        {children && <div className="mb-3 min-w-0 flex-1 relative z-10">{children}</div>}
 
         {/* Label area */}
         <div className="mt-auto relative z-10">
           <h3
             className={cn(
-              'font-bold text-card-title tracking-tight leading-snug',
+              'break-words font-bold text-card-title tracking-tight leading-snug',
               error
                 ? 'text-danger'
                 : active
@@ -138,7 +138,7 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
           {subtitle && (
             <p
               className={cn(
-                'text-label font-medium mt-0.5 truncate',
+                'break-words text-label font-medium mt-0.5',
                 active ? 'text-muted-foreground' : 'text-muted-foreground/40'
               )}
             >

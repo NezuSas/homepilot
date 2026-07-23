@@ -57,6 +57,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-31:** `Button` debe conservar su altura y área táctil tokenizadas, permitiendo que etiquetas largas se ajusten dentro del ancho disponible sin estirar filas, tarjetas o modales.
 - **REQ-32:** `ToggleSwitch` debe conservar su dimensión táctil, foco y semántica booleana dentro de filas responsivas, exponiendo su estado para estilos consistentes sin conocer la regla de negocio.
 - **REQ-33:** `SearchFilterBar` debe permitir que búsqueda y filtros se reduzcan dentro de paneles responsivos, conservando las opciones navegables sin provocar overflow horizontal de la vista.
+- **REQ-34:** `DeviceTileBase` debe conservar el contenido, estados y acciones de una tarjeta de dispositivo en móvil, tablet y escritorio; textos largos se ajustan y las acciones contextuales siguen disponibles sin depender exclusivamente de hover.
 
 ## 5. Requisitos No Funcionales
 
@@ -116,6 +117,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC33: Botones compartidos conservan foco, loading, variante y escala; sus etiquetas largas se ajustan sin overflow horizontal desde 320px.
 - [x] AC34: Interruptores compartidos conservan `role="switch"`, `aria-checked`, foco, área táctil y estado visual explícito, sin encogerse ni crear overflow desde 320px.
 - [x] AC35: La barra de búsqueda y filtros conserva foco, consulta y filtros disponibles desde 320px; sus columnas se reducen de forma segura y las opciones largas permanecen navegables sin desbordar la superficie.
+- [x] AC36: La tarjeta base de dispositivo reduce padding en móvil, ajusta títulos y subtítulos largos sin overflow, y mantiene las acciones contextuales accesibles tanto con puntero como en superficies táctiles.
 
 ## 8. Notas Técnicas y Arquitectura
 

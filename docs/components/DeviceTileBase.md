@@ -17,5 +17,4 @@ Las tarjetas especializadas de luz, cortina, sensor o dispositivo reutilizan est
 
 ## Estados y aceptación
 
-Disponible, activo, offline/disabled, error y syncing tienen señal visual sin depender solo del color.
-
+Disponible, activo, offline/disabled, error y syncing tienen señal visual sin depender solo del color. En móvil reduce padding, permite texto largo con ajuste seguro y mantiene las acciones contextuales visibles cuando no existe hover; en escritorio se revelan al interactuar con la tarjeta.
