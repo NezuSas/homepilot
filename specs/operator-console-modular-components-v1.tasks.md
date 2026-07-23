@@ -60,7 +60,7 @@
 - [x] Consolidación de rangos de posición de cortina, opacidad de tablero y zoom de avatar en `RangeInput`, preservando confirmación diferida y control continuo.
 - [x] Consolidación de la configuración de vistas de tablero en `Modal`, con pie fijo para acciones de guardar y eliminar.
 - [x] Refuerzo de accesibilidad de `Modal`: foco inicial/restaurado, Escape, ciclo de Tab y semántica de diálogo asociada a título y descripción.
-- [x] Consolidación de los estados de carga iniciales de Automatizaciones, Workbench, Inicio, Tableros, Usuarios y Diagnósticos en `LoadingState`, con mensajes i18n y semántica accesible compartida.
+- [x] Consolidación de los estados de carga iniciales de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos, Asistente y navegación diferida en `LoadingState`, con mensajes i18n y semántica accesible compartida.
 
 ## Verificación obligatoria ante cambios
 

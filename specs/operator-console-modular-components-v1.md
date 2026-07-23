@@ -85,7 +85,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC17: Los rangos de posición, opacidad y recorte consumen `RangeInput`, conservan los límites y no ejecutan el comando de cortina más de una vez para un valor confirmado; `check:ui-primitives` evita rangos nativos fuera de UI.
 - [x] AC18: La configuración de vistas de tablero consume `Modal`, respeta `isOpen` y mantiene guardar/eliminar en un pie fijo fuera del contenido desplazable.
 - [x] AC19: Los modales compartidos exponen `role="dialog"`, `aria-modal`, títulos y descripciones asociados, foco inicial/restaurado y navegación de teclado contenida.
-- [x] AC20: Las vistas de Automatizaciones, Workbench, Inicio, Tableros, Usuarios y Diagnósticos usan `LoadingState` para su carga inicial, con mensaje traducido, `role="status"` y sin reemplazar contenido previamente cargado durante refresh.
+- [x] AC20: Las vistas de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos y Asistente, además de la transición de navegación diferida, usan `LoadingState` para su carga inicial, con mensaje traducido, `role="status"` y sin reemplazar contenido previamente cargado durante refresh.
 
 ## 8. Notas Técnicas y Arquitectura
 

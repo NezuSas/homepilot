@@ -41,6 +41,7 @@ import { OnboardingView } from './views/OnboardingView';
 import { AlertBanner } from './components/ui/AlertBanner';
 import { Button } from './components/ui/Button';
 import { IconButton } from './components/ui/IconButton';
+import { LoadingState } from './components/ui/LoadingState';
 import { PageFrame } from './components/ui/PageFrame';
 import { SidebarItem } from './components/ui/SidebarItem';
 import type { View } from './types';
@@ -76,10 +77,10 @@ const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
 const SYSTEM_ROLES = new Set(['admin', 'operator']);
 
 function ViewLoadingState() {
+  const { t } = useTranslation();
+
   return (
-    <div className="flex min-h-screen-half items-center justify-center text-muted-foreground">
-      <Monitor className="h-7 w-7 animate-pulse" />
-    </div>
+    <LoadingState label={t('common.loading')} className="min-h-screen-half" size="md" />
   );
 }
 
