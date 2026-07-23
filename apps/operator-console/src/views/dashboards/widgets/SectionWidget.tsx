@@ -403,6 +403,7 @@ function absoluteSessionUrl(path: string): string {
 }
 
 function SectionCameraCard({ deviceId, title }: { deviceId: string; title: string }) {
+  const { t } = useTranslation();
   const [session, setSession] = useState<CameraMediaSession | null>(null);
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
@@ -456,14 +457,16 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="md"
         className="relative h-full w-full overflow-hidden text-left"
         onClick={(event) => {
           event.stopPropagation();
           if (!hasFeedError) setIsViewerOpen(true);
         }}
-        aria-label={`Abrir ${title} en pantalla completa`}
+        aria-label={t('camera.open_viewer', { name: title })}
       >
         <CameraMediaFrame
           active={!isViewerOpen}
@@ -480,7 +483,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/65 text-white shadow-lg backdrop-blur-md">
           <Maximize2 className="h-4 w-4" />
         </span>
-      </button>
+      </Button>
 
       <CameraViewerModal
         isOpen={isViewerOpen}
