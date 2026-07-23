@@ -28,6 +28,7 @@ import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
+import { ToggleSwitch } from './ui/ToggleSwitch';
 
 type InspectableDevice = Device & {
   externalId: string;
@@ -437,27 +438,12 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                           {t('inbox.device_inspector.cover_inverted_hint')}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={device.invertState === true}
+                      <ToggleSwitch
+                        checked={device.invertState === true}
+                        onCheckedChange={handleInvertStateChange}
+                        label={t('inbox.device_inspector.cover_inverted')}
                         disabled={isActionLoading}
-                        onClick={() => handleInvertStateChange(device.invertState !== true)}
-                        className={cn(
-                          'relative h-8 w-14 shrink-0 rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-                          device.invertState
-                            ? 'border-primary/40 bg-primary/25'
-                            : 'border-border bg-muted/60',
-                          isActionLoading && 'pointer-events-none opacity-50',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'absolute top-1 h-6 w-6 rounded-full bg-background shadow-sm surface-transition',
-                            device.invertState ? 'left-7 bg-primary' : 'left-1',
-                          )}
-                        />
-                      </button>
+                      />
                     </div>
                   </div>
                 )}

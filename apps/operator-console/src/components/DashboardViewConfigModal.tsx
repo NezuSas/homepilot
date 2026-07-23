@@ -8,6 +8,7 @@ import { IconPicker } from '../views/dashboards/components/IconPicker';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
+import { ToggleSwitch } from './ui/ToggleSwitch';
 
 
 const MAX_BG_PX = 1920;
@@ -212,29 +213,18 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 className="h-auto cursor-default border-0 bg-transparent p-0 text-body-lg font-semibold shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none"
               />
 
-              <button
-                type="button"
-                onClick={() => setIsDefaultTab(prev => !prev)}
-                className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/45 px-4 py-3 text-left"
-              >
+              <div className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/45 px-4 py-3">
                 <span className="min-w-0">
                   <span className="block text-body font-bold text-foreground">{t('dashboards.view_config.default_view')}</span>
                   <span className="mt-0.5 block text-caption text-muted-foreground">{t('dashboards.view_config.default_view_hint')}</span>
                 </span>
-                <span
-                  className={cn(
-                    'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-                    isDefaultTab ? 'bg-primary' : 'bg-border/70'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
-                      isDefaultTab ? 'translate-x-5' : 'translate-x-0.5'
-                    )}
-                  />
-                </span>
-              </button>
+                <ToggleSwitch
+                  checked={isDefaultTab}
+                  onCheckedChange={setIsDefaultTab}
+                  label={t('dashboards.view_config.default_view')}
+                  size="sm"
+                />
+              </div>
             </div>
           )}
 
