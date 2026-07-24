@@ -17,4 +17,4 @@ Usar en la vista de conversación. La vista controla el ciclo de solicitud y evi
 
 ## Estados y aceptación
 
-Permanece anclado al borde inferior durante el desplazamiento, conserva el área segura móvil y permite que controles de voz se envuelvan dentro del ancho disponible. El campo mantiene el foco y la acción de envío no se separa del compositor.
+Permanece anclado al borde inferior durante el desplazamiento, conserva el área segura móvil y permite que controles de voz se envuelvan dentro del ancho disponible. El campo mantiene el foco, expone ayuda accesible y la acción de envío no se separa del compositor. Las etiquetas de estado no se truncan en anchos reducidos.

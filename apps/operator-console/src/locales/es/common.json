@@ -192,7 +192,9 @@
       "suggestion_4": "Quién eres",
       "user_fallback": "Usuario",
       "typing": "El asistente está escribiendo",
-      "product_label": "HomePilot Edge"
+      "product_label": "HomePilot Edge",
+      "edge_label": "Edge",
+      "local_label": "Local"
     }
   },
   "dashboard": {
