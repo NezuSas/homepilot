@@ -88,6 +88,7 @@
 - [x] Consolidación del visor de cámara: reutiliza `Modal`, conserva streaming y estados de error, y mantiene área de video con encabezado y pie visibles.
 - [x] Accesibilidad del selector de iconos: conserva catálogo MDI/Lucide, usa `Input` y limita el menú portal al viewport con estado y cierre por teclado.
 - [x] Consolidación del cajón lateral de dispositivos en `Drawer`, conservando pestañas, confirmaciones y contenido del inspector con foco, Escape, scroll y viewport compartidos.
+- [x] Refuerzo responsive de `DemoGuideOverlay`: conserva el paso guiado en móvil mediante tarjeta inferior, foco contenido, Escape y traducciones existentes.
 
 ## Verificación obligatoria ante cambios
 

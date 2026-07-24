@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemoGuideStore } from '../stores/useDemoGuideStore';
@@ -28,6 +28,9 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   const currentStep = steps[currentStepIndex];
 
@@ -101,7 +104,23 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
     };
   }, [isActive, currentStep, onNavigate, updatePosition, nextStep]);
 
-  if (!isActive || !currentStep || isMobile) return null;
+  useEffect(() => {
+    if (!isActive || !isReady) return;
+
+    const previousFocusedElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusTooltip = window.setTimeout(() => tooltipRef.current?.focus(), 0);
+
+    return () => {
+      window.clearTimeout(focusTooltip);
+      if (previousFocusedElement && document.contains(previousFocusedElement)) {
+        previousFocusedElement.focus();
+      }
+    };
+  }, [isActive, isReady]);
+
+  if (!isActive || !currentStep) return null;
 
   // Position Calculations for Padded Cutout and Tooltip
   const getLayout = () => {
@@ -147,6 +166,79 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
 
   const layout = getLayout();
 
+  const handleTooltipKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      endDemo();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusableElements = tooltipRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusableElements || focusableElements.length === 0) {
+      event.preventDefault();
+      tooltipRef.current?.focus();
+      return;
+    }
+
+    const firstFocusableElement = focusableElements[0];
+    const lastFocusableElement = focusableElements[focusableElements.length - 1];
+    if (event.shiftKey && document.activeElement === firstFocusableElement) {
+      event.preventDefault();
+      lastFocusableElement.focus();
+    } else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
+      event.preventDefault();
+      firstFocusableElement.focus();
+    }
+  };
+
+  const guideContent = (
+    <div className="bg-card/95 border border-primary/20 rounded-card p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
+      <div className="absolute top-0 left-0 h-0.5 bg-primary/20 transition-all duration-1000" style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }} />
+
+      <div className="flex items-center justify-between mb-3 mt-0.5">
+        <span className="text-micro font-black uppercase tracking-label text-primary/60">
+          {t('demo.controls.label')} • {t('demo.controls.step_of', { current: currentStepIndex + 1, total: steps.length })}
+        </span>
+        <IconButton
+          icon={X}
+          label={t('common.close')}
+          variant="ghost"
+          size="sm"
+          onClick={endDemo}
+          className="-mr-1.5"
+        />
+      </div>
+
+      <h3 id={titleId} className="text-body-lg font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
+      <p id={descriptionId} className="text-caption text-muted-foreground leading-relaxed mb-4 opacity-85 font-medium">
+        {t(currentStep.descriptionKey)}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          onClick={nextStep}
+          size="sm"
+          className="h-10 min-w-demo-button rounded-xl px-4 text-micro font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+        >
+          {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
+          <ChevronRight className="w-3 h-3" />
+        </Button>
+        <Button
+          onClick={endDemo}
+          variant="ghost"
+          size="xs"
+          className="px-1 text-micro font-black uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground"
+        >
+          {t('demo.controls.skip')}
+        </Button>
+      </div>
+    </div>
+  );
+
   return createPortal(
     <div className={cn(
       "fixed inset-0 z-[10000] pointer-events-none overflow-hidden font-sans transition-opacity duration-500",
@@ -179,56 +271,37 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
         />
       )}
 
-      {/* Desktop Tooltip z-60 */}
-      {isReady && layout && (
-        <div 
+      {isReady && layout && !isMobile && (
+        <div
+          ref={tooltipRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
+          tabIndex={-1}
+          onKeyDown={handleTooltipKeyDown}
           className="absolute pointer-events-auto transition-all duration-700 animate-in fade-in slide-in-from-bottom-4 zoom-in-95 ease-out outline-none z-[60]"
           style={{
             transform: `translate(${layout.tooltipL}px, ${layout.tooltipT}px)`,
             width: TOOLTIP_WIDTH,
           }}
         >
-          <div className="bg-card/95 border border-primary/20 rounded-card p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
-             <div className="absolute top-0 left-0 h-0.5 bg-primary/20 transition-all duration-1000" style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }} />
-             
-             <div className="flex items-center justify-between mb-3 mt-0.5">
-                <span className="text-micro font-black uppercase tracking-label text-primary/60">
-                  {t('demo.controls.label')} • {t('demo.controls.step_of', { current: currentStepIndex + 1, total: steps.length })}
-                </span>
-                <IconButton
-                  icon={X}
-                  label={t('common.close')}
-                  variant="ghost"
-                  size="sm"
-                  onClick={endDemo}
-                  className="-mr-1.5"
-                />
-             </div>
-             
-             <h3 className="text-body-lg font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
-             <p className="text-caption text-muted-foreground leading-relaxed mb-4 opacity-85 font-medium">
-                {t(currentStep.descriptionKey)}
-             </p>
-             
-             <div className="flex items-center gap-3">
-                <Button 
-                  onClick={nextStep} 
-                  size="sm"
-                  className="h-10 min-w-demo-button rounded-xl px-4 text-micro font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-                >
-                  {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
-                  <ChevronRight className="w-3 h-3" />
-                </Button>
-                <Button
-                  onClick={endDemo}
-                  variant="ghost"
-                  size="xs"
-                  className="px-1 text-micro font-black uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground"
-                >
-                  {t('demo.controls.skip')}
-                </Button>
-             </div>
-          </div>
+          {guideContent}
+        </div>
+      )}
+
+      {isReady && isMobile && (
+        <div
+          ref={tooltipRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
+          tabIndex={-1}
+          onKeyDown={handleTooltipKeyDown}
+          className="fixed bottom-3 left-3 right-3 z-[60] pointer-events-auto outline-none animate-in fade-in slide-in-from-bottom-4 duration-base"
+        >
+          {guideContent}
         </div>
       )}
     </div>,
