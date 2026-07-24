@@ -189,7 +189,10 @@
       "suggestion_1": "Apagar todo",
       "suggestion_2": "Activar escena cine",
       "suggestion_3": "Apaga las luces de la sala",
-      "suggestion_4": "Quién eres"
+      "suggestion_4": "Quién eres",
+      "user_fallback": "Usuario",
+      "typing": "El asistente está escribiendo",
+      "product_label": "HomePilot Edge"
     }
   },
   "dashboard": {

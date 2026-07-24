@@ -70,6 +70,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-44:** El selector de iconos debe reutilizar el campo modular, limitar su menú portal al viewport y exponer estado, lista y cierre mediante teclado de forma accesible.
 - **REQ-45:** Las superficies laterales deben reutilizar un cajón modular que preserve portal, foco, Escape, ciclo de Tab, cierre y viewport sin duplicar infraestructura por dominio.
 - **REQ-46:** La guía guiada debe mantener el paso visible tanto en escritorio como en móvil, con foco, teclado, textos i18n y una composición que no dependa de coordenadas disponibles en pantalla angosta.
+- **REQ-47:** Los estados y mensajes de conversación deben conservar jerarquía tipográfica tokenizada, opciones largas legibles e indicadores anunciables, sin textos visibles fijos fuera de i18n.
 
 ## 5. Requisitos No Funcionales
 
@@ -142,6 +143,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC46: El selector de iconos mantiene búsqueda y selección, limita su menú portal al ancho disponible y declara controles accesibles que permiten cerrarlo con Escape.
 - [x] AC47: El cajón lateral comparte portal, foco, cierre, scroll y viewport; el inspector de dispositivos conserva sus pestañas y confirmaciones sin infraestructura duplicada.
 - [x] AC48: La guía guiada mantiene el resaltado y explica el paso en escritorio; en móvil muestra una tarjeta inferior accesible, enfocada y cerrable con Escape.
+- [x] AC49: La conversación presenta mensajes, opciones y estado de escritura con texto uniforme, ajuste seguro y etiquetas ES/EN completas.
 
 ## 8. Notas Técnicas y Arquitectura
 

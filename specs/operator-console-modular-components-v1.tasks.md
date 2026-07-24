@@ -89,6 +89,7 @@
 - [x] Accesibilidad del selector de iconos: conserva catálogo MDI/Lucide, usa `Input` y limita el menú portal al viewport con estado y cierre por teclado.
 - [x] Consolidación del cajón lateral de dispositivos en `Drawer`, conservando pestañas, confirmaciones y contenido del inspector con foco, Escape, scroll y viewport compartidos.
 - [x] Refuerzo responsive de `DemoGuideOverlay`: conserva el paso guiado en móvil mediante tarjeta inferior, foco contenido, Escape y traducciones existentes.
+- [x] Normalización de mensajes de conversación: burbujas, estado vacío y escritura usan tipografía tokenizada, textos i18n y opciones largas sin truncado.
 
 ## Verificación obligatoria ante cambios
 

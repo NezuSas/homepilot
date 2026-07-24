@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronRight, Home, Lightbulb, MessageSquareText, ShieldCheck, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 
@@ -21,12 +22,15 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
   suggestionLabel,
   suggestions,
   onSuggestionClick
-}) => (
-  <div className="flex min-h-conversation-sm items-center justify-center py-4 md:min-h-conversation-md xl:min-h-conversation-lg">
-    <Card
-      variant="glass"
-      className="w-full max-w-6xl overflow-hidden rounded-panel border-border/60 bg-assistant-ready p-4 shadow-depth-2 md:p-6 xl:p-8"
-    >
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex min-h-conversation-sm items-center justify-center py-4 md:min-h-conversation-md xl:min-h-conversation-lg">
+      <Card
+        variant="glass"
+        className="w-full max-w-6xl overflow-hidden rounded-panel border-border/60 bg-assistant-ready p-4 shadow-depth-2 md:p-6 xl:p-8"
+      >
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:items-center">
         <div className="min-w-0 space-y-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -35,7 +39,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
             </div>
             <div className="min-w-0">
               <p className="text-micro font-black uppercase tracking-label-wide text-primary/75">
-                HomePilot Edge
+                {t('assistant.conversation.product_label')}
               </p>
               <h3 className="mt-2 max-w-2xl text-view-title font-black leading-display-tight tracking-tight text-foreground md:text-display-title xl:text-display-title">
                 {title}
@@ -96,6 +100,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
           </div>
         </div>
       </div>
-    </Card>
-  </div>
-);
+      </Card>
+    </div>
+  );
+};

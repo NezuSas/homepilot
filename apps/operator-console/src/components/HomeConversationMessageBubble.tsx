@@ -29,7 +29,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
   const isUserMessage = message.role === 'user';
   const isError = message.responseType === 'error';
   const isClarification = message.responseType === 'clarification';
-  const userLabel = user?.displayName || user?.username || 'Usuario';
+  const userLabel = user?.displayName || user?.username || t('assistant.conversation.user_fallback');
   const hasConfirmationOptions = message.options?.some(option => option.id === 'confirm' || option.id === 'cancel') ?? false;
 
   return (
@@ -75,7 +75,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                 ? "rounded-tl-md border-danger/25 bg-danger/5 text-foreground"
                 : "rounded-tl-md bg-card/90 text-foreground"
           )}>
-            <p className="whitespace-pre-wrap break-words text-body font-medium leading-relaxed md:text-card-title">
+            <p className="whitespace-pre-wrap break-words text-body font-medium leading-relaxed">
               {message.content}
             </p>
 
@@ -111,7 +111,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                       >
                         {isConfirm && <CheckCircle2 className="h-4 w-4" />}
                         {isCancel && <XCircle className="h-4 w-4" />}
-                        <span className="min-w-0 truncate">{option.label}</span>
+                        <span className="min-w-0 whitespace-normal break-words text-left">{option.label}</span>
                         {!isConfirm && !isCancel && <ChevronRight className="h-4 w-4" />}
                       </Button>
                     );

@@ -189,7 +189,10 @@
       "suggestion_1": "Turn everything off",
       "suggestion_2": "Activate cinema",
       "suggestion_3": "Turn off the living room lights",
-      "suggestion_4": "Who are you"
+      "suggestion_4": "Who are you",
+      "user_fallback": "User",
+      "typing": "The assistant is typing",
+      "product_label": "HomePilot Edge"
     }
   },
   "dashboard": {
