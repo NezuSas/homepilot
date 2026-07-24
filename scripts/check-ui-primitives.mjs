@@ -33,6 +33,7 @@ for (const filePath of listSourceFiles(sourceRoot)) {
     fileViolations.push('textarea');
   }
   if (/\btext-\[[^\]]+\]/.test(source)) fileViolations.push('arbitrary text size');
+  if (/\btracking-\[[^\]]+\]/.test(source)) fileViolations.push('arbitrary letter spacing');
   if (/\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/.test(source)) fileViolations.push('native browser dialog');
   if (fileViolations.length > 0) violations.push(`${relativePath} (${fileViolations.join(', ')})`);
 }

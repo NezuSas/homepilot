@@ -170,7 +170,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <div
                     key={item.index}
                     className={cn(
-                      'min-w-0 rounded-xl border px-2 py-2 text-nano font-semibold uppercase leading-tight tracking-[0.04em] transition-colors sm:px-2.5',
+                      'min-w-0 rounded-xl border px-2 py-2 text-nano font-semibold uppercase leading-tight tracking-micro transition-colors sm:px-2.5',
                       isCurrent && 'border-primary/60 bg-primary/10 text-primary',
                       isDone && 'border-success/30 bg-success/10 text-success',
                       !isCurrent && !isDone && 'border-border/60 bg-muted/30 text-muted-foreground'

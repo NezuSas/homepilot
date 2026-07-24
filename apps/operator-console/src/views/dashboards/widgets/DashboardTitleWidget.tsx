@@ -478,7 +478,7 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="text-micro font-semibold uppercase tracking-label-wider text-muted-foreground">
               {t('dashboard.editor.sections.title_badges')}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -649,7 +649,7 @@ function TitleOptionGroup<TValue extends string>({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+      <span className="text-micro font-semibold uppercase tracking-label-wider text-muted-foreground">{label}</span>
       <div onClick={(event) => event.stopPropagation()}>
         <SegmentedControl
           value={value}
