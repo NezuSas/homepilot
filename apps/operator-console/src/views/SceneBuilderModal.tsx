@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Save, PlayCircle, List, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -8,9 +7,9 @@ import { apiFetch, readApiError } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { Button } from '../components/ui/Button';
-import { IconButton } from '../components/ui/IconButton';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { Input, SearchInput } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 
@@ -126,26 +125,33 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
-      <div className="absolute inset-0 bg-background/60 backdrop-blur-3xl transition-opacity animate-in fade-in duration-500" onClick={onClose} />
-      
-      <div className="relative flex max-h-viewport-modal w-full max-w-2xl flex-col overflow-hidden rounded-panel border-2 border-border/40 bg-card/60 shadow-scene-modal backdrop-blur-2xl animate-in zoom-in-95 duration-500 sm:max-h-viewport-panel-sm sm:rounded-hero">
-        
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-4 px-5 pb-3 pt-5 sm:px-8 sm:pb-4 sm:pt-8">
-          <div className="min-w-0">
-            <h2 className="truncate text-panel-title font-black tracking-tighter sm:text-view-title">
-              {existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
-            </h2>
-            <p className="text-micro font-black uppercase tracking-label text-muted-foreground opacity-50 mt-1">
-              {t('scenes.builder.subtitle')}
-            </p>
-          </div>
-          <IconButton icon={X} label={t('common.close')} onClick={onClose} variant="default" size="md" className="shrink-0" />
+  return (
+    <Modal
+      isOpen
+      onClose={saving ? undefined : onClose}
+      title={existingScene ? t('scenes.builder.title_edit') : t('scenes.builder.title_create')}
+      description={t('scenes.builder.subtitle')}
+      headerAlign="start"
+      headerClassName="pb-3 sm:pb-4"
+      contentClassName="pt-2 sm:pt-2"
+      className="max-w-2xl"
+      layerClassName="z-[200]"
+      hideCloseButton={saving}
+      footer={(
+        <div className="w-full p-5 sm:p-6">
+          <Button
+            disabled={!name || actions.length === 0 || saving}
+            onClick={handleSave}
+            isLoading={saving}
+            className="w-full rounded-panel py-4 text-caption font-black uppercase tracking-label-wider shadow-primary/20 sm:py-5"
+          >
+            {!saving && <Save className="h-5 w-5" />}
+            {t('scenes.builder.commit')}
+          </Button>
         </div>
-
-        <div className="flex-1 space-y-5 overflow-y-auto p-5 pt-2 custom-scrollbar sm:space-y-6 sm:p-8 sm:pt-2">
+      )}
+    >
+      <div className="space-y-5 sm:space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive animate-shake">
               <X className="w-4 h-4 shrink-0" />
@@ -277,21 +283,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
              )}
           </div>
 
-          {/* Footer - Integrated Action Button */}
-          <div className="pt-2 pb-4">
-            <Button
-              disabled={!name || actions.length === 0}
-              onClick={handleSave}
-              isLoading={saving}
-              className="w-full py-5 rounded-panel font-black text-caption uppercase tracking-label-wider premium-glow shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
-            >
-              {!saving && <Save className="w-5 h-5" />}
-              {t('scenes.builder.commit')}
-            </Button>
-          </div>
-        </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 };

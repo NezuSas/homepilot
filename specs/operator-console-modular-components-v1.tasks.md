@@ -84,6 +84,7 @@
 - [x] Consolidación de confirmaciones y posición de cortina: `ConfirmModal` reutiliza `Modal` y `CoverPositionControl` recibe accesibilidad traducida obligatoria.
 - [x] Consolidación del modal de acciones del asistente: reutiliza `Modal` y conserva formularios tipados, pie fijo y bloqueo durante ejecución.
 - [x] Consolidación del perfil de usuario: reutiliza `Modal`, preserva recorte local de avatar y elimina fallbacks o etiquetas accesibles hardcodeadas.
+- [x] Consolidación del constructor de escenas: reutiliza `Modal`, conserva selección de acciones por capacidad y fija el guardado dentro del viewport.
 
 ## Verificación obligatoria ante cambios
 
