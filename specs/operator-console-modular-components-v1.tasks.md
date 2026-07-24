@@ -85,6 +85,7 @@
 - [x] Consolidación del modal de acciones del asistente: reutiliza `Modal` y conserva formularios tipados, pie fijo y bloqueo durante ejecución.
 - [x] Consolidación del perfil de usuario: reutiliza `Modal`, preserva recorte local de avatar y elimina fallbacks o etiquetas accesibles hardcodeadas.
 - [x] Consolidación del constructor de escenas: reutiliza `Modal`, conserva selección de acciones por capacidad y fija el guardado dentro del viewport.
+- [x] Consolidación del visor de cámara: reutiliza `Modal`, conserva streaming y estados de error, y mantiene área de video con encabezado y pie visibles.
 
 ## Verificación obligatoria ante cambios
 

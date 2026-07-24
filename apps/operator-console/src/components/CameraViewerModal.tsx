@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Maximize2, VideoOff, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
-import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
+import { Modal } from './ui/Modal';
 
 interface CameraViewerModalProps {
   isOpen: boolean;
@@ -34,20 +33,6 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   const [feedMode, setFeedMode] = useState<CameraFeedMode>(preferredMode);
 
   useEffect(() => {
-    if (!isOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
     if (!isOpen) {
       setHasLoaded(false);
       setHasError(false);
@@ -57,17 +42,23 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
 
   if (!isOpen) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/95 p-2 backdrop-blur-xl sm:p-4" role="dialog" aria-modal="true" aria-label={t('camera.viewer_label', { name })}>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="absolute inset-0 h-auto w-auto cursor-default rounded-none p-0 hover:bg-transparent"
-        aria-label={t('camera.close_viewer')}
-        onClick={onClose}
-      />
-      <section className="relative z-10 flex h-camera-viewer w-full max-w-camera-viewer flex-col overflow-hidden rounded-modal border border-border/70 bg-card shadow-depth-3 sm:h-camera-viewer-sm">
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel={t('camera.viewer_label', { name })}
+      hideCloseButton
+      layerClassName="z-[120] bg-background/95 p-2 backdrop-blur-xl sm:p-4"
+      className="h-camera-viewer max-w-camera-viewer rounded-modal border-border/70 sm:h-camera-viewer-sm"
+      contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+      footer={(
+        <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 text-caption text-muted-foreground sm:px-6">
+          <Maximize2 className="h-3.5 w-3.5" />
+          {feedMode === 'snapshot' ? t('camera.snapshot_hint') : t('camera.fullscreen_hint')}
+        </div>
+      )}
+    >
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
             <div className={cn('flex items-center gap-2 text-micro font-semibold uppercase tracking-status', feedMode === 'snapshot' ? 'text-warning' : 'text-success')}>
@@ -114,12 +105,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
           )}
         </div>
 
-        <footer className="flex shrink-0 items-center gap-2 border-t border-border/60 px-4 py-3 text-caption text-muted-foreground sm:px-6">
-          <Maximize2 className="h-3.5 w-3.5" />
-          {feedMode === 'snapshot' ? t('camera.snapshot_hint') : t('camera.fullscreen_hint')}
-        </footer>
       </section>
-    </div>,
-    document.body,
+    </Modal>
   );
 };

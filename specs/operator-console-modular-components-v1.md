@@ -66,6 +66,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-40:** Las acciones sugeridas por el asistente deben reutilizar el diálogo modular, mantener sus formularios de dominio aislados y bloquear cierre o doble envío mientras se ejecuta una intención.
 - **REQ-41:** La edición de perfil debe reutilizar el diálogo modular, conservar recorte local de avatar y exponer todos sus textos y etiquetas accesibles desde i18n ES/EN.
 - **REQ-42:** El constructor de escenas debe reutilizar el diálogo modular, conservar selección local de acciones compatibles y mantener el guardado disponible en un pie fijo sin duplicar infraestructura de modal.
+- **REQ-43:** El visor ampliado de cámara debe reutilizar el diálogo modular, conservar sus estados de streaming y error, y reservar un área flexible de video con encabezado y pie visibles dentro del viewport.
 
 ## 5. Requisitos No Funcionales
 
@@ -134,6 +135,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC42: Las acciones del asistente comparten portal, foco, cierre, scroll y pie responsive con `Modal`; su ejecución bloquea cierre y reintentos hasta finalizar.
 - [x] AC43: El perfil de usuario comparte portal, foco, cierre, scroll y pie responsive con `Modal`; bloquea reintentos durante guardado y sus etiquetas visibles o accesibles existen en ES/EN.
 - [x] AC44: El constructor de escenas comparte portal, foco, cierre, scroll y pie responsive con `Modal`; mantiene sus acciones compatibles, búsqueda y feedback localizados, y bloquea cierre o reintentos durante guardado.
+- [x] AC45: El visor de cámara comparte portal, foco, cierre y viewport con `Modal`; conserva modos HLS/stream/snapshot, estado de conexión o error, y acciones visibles en móvil, tablet y escritorio.
 
 ## 8. Notas Técnicas y Arquitectura
 
