@@ -73,6 +73,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-47:** Los estados y mensajes de conversación deben conservar jerarquía tipográfica tokenizada, opciones largas legibles e indicadores anunciables, sin textos visibles fijos fuera de i18n.
 - **REQ-48:** La cabecera y el compositor de conversación deben usar etiquetas localizadas, conservar ayudas accesibles y permitir títulos, subtítulos y estados largos sin truncado horizontal.
 - **REQ-49:** La escala de texto y el espaciado tipográfico deben consumir tokens con nombre; las utilidades arbitrarias de `text-[…]` o `tracking-[…]` no se permiten fuera de primitivas UI documentadas.
+- **REQ-50:** El selector de entrada de audio debe conservar sus opciones legibles dentro del viewport y permitir selección completa con teclado, sin alterar el flujo de captura de voz.
 
 ## 5. Requisitos No Funcionales
 
@@ -148,6 +149,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC49: La conversación presenta mensajes, opciones y estado de escritura con texto uniforme, ajuste seguro y etiquetas ES/EN completas.
 - [x] AC50: La cabecera y el compositor preservan etiquetas ES/EN, ayudas para lector de pantalla y composición legible desde móvil hasta escritorio.
 - [x] AC51: La activación y el editor de tableros usan tokens de tracking, y la validación de primitivas bloquea nuevos espaciados tipográficos arbitrarios fuera de UI.
+- [x] AC52: El selector de audio conserva nombres largos sin recorte en sus opciones, se cierra de forma predecible y permite navegar con flechas, Inicio, Fin y Escape desde móvil hasta escritorio.
 
 ## 8. Notas Técnicas y Arquitectura
 
