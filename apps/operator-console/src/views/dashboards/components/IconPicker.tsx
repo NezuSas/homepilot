@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import * as LucideIcons from 'lucide-react';
 import { CircleHelp } from 'lucide-react';
@@ -155,6 +155,7 @@ export function IconPicker({
   className,
 }: IconPickerProps) {
   const { t } = useTranslation();
+  const listboxId = useId();
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const [iconQuery, setIconQuery] = useState(value);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
@@ -186,10 +187,13 @@ export function IconPicker({
     const rect = iconInputRef.current?.getBoundingClientRect();
     if (!rect) return;
 
+    const maxWidth = Math.max(0, window.innerWidth - 24);
+    const width = Math.min(rect.width, maxWidth);
+
     setDropdownPos({
-      left: rect.left,
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
       top: rect.bottom + 8,
-      width: rect.width,
+      width,
     });
   };
 
@@ -210,6 +214,9 @@ export function IconPicker({
   const dropdown = dropdownPos && typeof document !== 'undefined'
     ? createPortal(
         <div
+          id={listboxId}
+          role="listbox"
+          aria-label={resolvedLabel}
           className="fixed z-[100000] max-h-64 overflow-y-auto rounded-2xl border border-border/60 bg-popover p-2 shadow-2xl"
           style={{
             left: dropdownPos.left,
@@ -226,6 +233,8 @@ export function IconPicker({
                 <Button
                   key={item.name}
                   type="button"
+                  role="option"
+                  aria-selected={selected}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     setIconQuery(item.name);
@@ -262,6 +271,20 @@ export function IconPicker({
         value={iconQuery}
         icon={<SelectedIcon className="h-5 w-5" />}
         onFocus={computeDropdownPos}
+        aria-autocomplete="list"
+        aria-controls={dropdownPos ? listboxId : undefined}
+        aria-expanded={Boolean(dropdownPos)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setDropdownPos(null);
+            return;
+          }
+
+          if (event.key === 'ArrowDown' && !dropdownPos) {
+            event.preventDefault();
+            computeDropdownPos();
+          }
+        }}
         onChange={(event) => {
           const val = event.target.value;
           setIconQuery(val);
