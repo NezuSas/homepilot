@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Activity,
@@ -29,6 +28,7 @@ import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { ToggleSwitch } from './ui/ToggleSwitch';
+import { Drawer } from './ui/Drawer';
 
 type InspectableDevice = Device & {
   externalId: string;
@@ -275,11 +275,17 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   };
 
   if (loading) {
-    return createPortal(
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-[100] flex items-center justify-center">
+    return (
+      <Drawer
+        isOpen
+        onClose={onClose}
+        ariaLabel={t('inbox.inspector.title')}
+        hideCloseButton
+      >
+        <div className="flex flex-1 items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>,
-      document.body
+        </div>
+      </Drawer>
     );
   }
 
@@ -288,11 +294,15 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
   const unavailable = isDeviceUnavailable(device);
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex justify-end animate-in fade-in duration-300">
-      <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" onClick={onClose} />
-
-      <div className="relative w-full max-w-2xl bg-card border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-500">
+  return (
+    <>
+      <Drawer
+        isOpen
+        onClose={onClose}
+        ariaLabel={t('inbox.inspector.title')}
+        hideCloseButton
+      >
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="relative border-b border-border bg-muted/30 p-4 sm:p-6 xl:p-8">
           <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
             <div className="flex min-w-0 items-center gap-3">
@@ -648,6 +658,8 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         </div>
       </div>
 
+      </Drawer>
+
       <ConfirmModal
         isOpen={showUnassignConfirm}
         onClose={() => setShowUnassignConfirm(false)}
@@ -667,7 +679,6 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         variant="danger"
         isSubmitting={isActionLoading}
       />
-    </div>,
-    document.body
+    </>
   );
 };

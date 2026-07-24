@@ -68,6 +68,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-42:** El constructor de escenas debe reutilizar el diálogo modular, conservar selección local de acciones compatibles y mantener el guardado disponible en un pie fijo sin duplicar infraestructura de modal.
 - **REQ-43:** El visor ampliado de cámara debe reutilizar el diálogo modular, conservar sus estados de streaming y error, y reservar un área flexible de video con encabezado y pie visibles dentro del viewport.
 - **REQ-44:** El selector de iconos debe reutilizar el campo modular, limitar su menú portal al viewport y exponer estado, lista y cierre mediante teclado de forma accesible.
+- **REQ-45:** Las superficies laterales deben reutilizar un cajón modular que preserve portal, foco, Escape, ciclo de Tab, cierre y viewport sin duplicar infraestructura por dominio.
 
 ## 5. Requisitos No Funcionales
 
@@ -84,7 +85,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 |---|---|---|---|
 | Acciones | `ui/Button.tsx`, `ui/IconButton.tsx`, `ui/ToggleSwitch.tsx` | Ejecutar una intención del usuario o cambiar un valor booleano | normal, hover/focus, disabled, loading, destructive, checked |
 | Campos | `ui/Input.tsx`, `ui/Textarea.tsx`, `ui/RangeInput.tsx`, `ui/SearchableSelectField.tsx`, `ui/SearchFilterBar.tsx` | Entrada y selección tipada | vacío, foco, valor, búsqueda, error, disabled, opción larga |
-| Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal abierto, error/empty slot |
+| Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/Drawer.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal/cajón abierto, error/empty slot |
 | Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/LoadingState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |
 | Dispositivos comunes | `ui/DeviceTileBase.tsx`, `ui/DeviceTileShell.tsx`, `ConfirmModal.tsx`, `CoverPositionControl.tsx` | Presentar acciones permitidas sin conocer el driver | disponible, activo, offline, unsupported, pending |
@@ -138,6 +139,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC44: El constructor de escenas comparte portal, foco, cierre, scroll y pie responsive con `Modal`; mantiene sus acciones compatibles, búsqueda y feedback localizados, y bloquea cierre o reintentos durante guardado.
 - [x] AC45: El visor de cámara comparte portal, foco, cierre y viewport con `Modal`; conserva modos HLS/stream/snapshot, estado de conexión o error, y acciones visibles en móvil, tablet y escritorio.
 - [x] AC46: El selector de iconos mantiene búsqueda y selección, limita su menú portal al ancho disponible y declara controles accesibles que permiten cerrarlo con Escape.
+- [x] AC47: El cajón lateral comparte portal, foco, cierre, scroll y viewport; el inspector de dispositivos conserva sus pestañas y confirmaciones sin infraestructura duplicada.
 
 ## 8. Notas Técnicas y Arquitectura
 

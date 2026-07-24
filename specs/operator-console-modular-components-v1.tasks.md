@@ -87,6 +87,7 @@
 - [x] Consolidación del constructor de escenas: reutiliza `Modal`, conserva selección de acciones por capacidad y fija el guardado dentro del viewport.
 - [x] Consolidación del visor de cámara: reutiliza `Modal`, conserva streaming y estados de error, y mantiene área de video con encabezado y pie visibles.
 - [x] Accesibilidad del selector de iconos: conserva catálogo MDI/Lucide, usa `Input` y limita el menú portal al viewport con estado y cierre por teclado.
+- [x] Consolidación del cajón lateral de dispositivos en `Drawer`, conservando pestañas, confirmaciones y contenido del inspector con foco, Escape, scroll y viewport compartidos.
 
 ## Verificación obligatoria ante cambios
 
