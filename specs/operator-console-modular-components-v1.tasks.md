@@ -19,6 +19,7 @@
 - [x] Consolidación del selector de imagen del perfil de usuario con `IconButton`; el control de recorte continuo mantiene el rango nativo por requerir entrada gradual.
 - [x] Consolidación de los controles internos de `AudioInputPicker` con `Button`, conservando los roles de lista, selección y cierre del selector de audio.
 - [x] Mejora de accesibilidad del selector de audio: navegación por teclado, restauración de foco, etiquetas extensas legibles y menú limitado al viewport.
+- [x] Creación de `SelectableOptionCard` y migración de perfiles y resultados de descubrimiento de cámaras nativas, preservando selección manual, descubrimiento ONVIF y formularios existentes.
 - [x] Consolidación de acciones de usuarios, tarjetas de dispositivos y registros de ejecución con `Button` e `IconButton`, preservando asignación, cambio de estado, reintento y acciones de seguridad existentes; las tarjetas ejecutables del tablero también usan `Button` para foco y estado deshabilitado compartidos.
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.

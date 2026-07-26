@@ -9,7 +9,7 @@ const modularComponentDocs = [
   'EmptyState', 'IconButton', 'Input', 'Textarea', 'Modal', 'PageFrame', 'SearchFilterBar',
   'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
   'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator', 'RangeInput',
-  'LoadingState',
+  'LoadingState', 'SelectableOptionCard',
 ];
 
 const rules = [

@@ -9,6 +9,7 @@ import { IconButton } from '../components/ui/IconButton';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
+import { SelectableOptionCard } from '../components/ui/SelectableOptionCard';
 import { StatusPill } from '../components/ui/StatusPill';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { API_BASE_URL } from '../config';
@@ -459,30 +460,23 @@ export const NativeCamerasView: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleDiscoverySubmit} className="space-y-6">
-            <div className="grid gap-3 md:grid-cols-3">
+            <div
+              role="radiogroup"
+              aria-label={t('native_cameras.form.field_source_type')}
+              className="grid gap-3 md:grid-cols-3"
+            >
               {(['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'] as NativeCameraSourceType[]).map(sourceType => (
-                <label
+                <SelectableOptionCard
                   key={sourceType}
-                  className={`flex min-h-native-camera-card cursor-pointer flex-col gap-2 rounded-card border p-4 transition-colors ${
-                    selectedSourceType === sourceType
-                      ? 'border-primary/60 bg-primary/10 text-foreground'
-                      : 'border-border/50 bg-card hover:bg-muted/30'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="native_camera_source_type"
-                    value={sourceType}
-                    checked={selectedSourceType === sourceType}
-                    onChange={() => {
+                  checked={selectedSourceType === sourceType}
+                  title={t(`native_cameras.source_types.${sourceType}`)}
+                  description={t(`native_cameras.discovery.profile_hints.${sourceType}`)}
+                  onClick={() => {
                       setSelectedSourceType(sourceType);
                       setSelectedDiscoveredCamera('manual');
-                    }}
-                    className="sr-only"
-                  />
-                  <span className="text-body font-semibold">{t(`native_cameras.source_types.${sourceType}`)}</span>
-                  <span className="text-caption leading-relaxed text-muted-foreground">{t(`native_cameras.discovery.profile_hints.${sourceType}`)}</span>
-                </label>
+                  }}
+                  className="min-h-native-camera-card items-start p-4"
+                />
               ))}
             </div>
 
@@ -494,49 +488,33 @@ export const NativeCamerasView: React.FC = () => {
                 />
               )}
 
-              <div className="grid max-h-camera-list gap-3 overflow-y-auto pr-1 custom-scrollbar lg:grid-cols-2">
-                  <label className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
-                    <input
-                      type="radio"
-                      name="discovered_camera"
-                      value="manual"
-                      checked={selectedDiscoveredCamera === 'manual' || discoveredCameras.length === 0}
-                      onChange={() => setSelectedDiscoveredCamera('manual')}
-                      className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-body font-medium text-foreground">
-                        {selectedSourceType === 'onvif-ptz'
-                          ? t('native_cameras.discovery.manual')
-                          : t('native_cameras.discovery.manual_rtsp')}
-                      </span>
-                      {selectedSourceType !== 'onvif-ptz' && (
-                        <span className="text-caption text-muted-foreground">
-                          {t(`native_cameras.discovery.manual_rtsp_hints.${selectedSourceType}`)}
-                        </span>
-                      )}
-                    </div>
-                  </label>
+              <div
+                role="radiogroup"
+                aria-label={t('native_cameras.discovery.title')}
+                className="grid max-h-camera-list gap-3 overflow-y-auto pr-1 custom-scrollbar lg:grid-cols-2"
+              >
+                  <SelectableOptionCard
+                    checked={selectedDiscoveredCamera === 'manual' || discoveredCameras.length === 0}
+                    title={selectedSourceType === 'onvif-ptz'
+                      ? t('native_cameras.discovery.manual')
+                      : t('native_cameras.discovery.manual_rtsp')}
+                    description={selectedSourceType !== 'onvif-ptz'
+                      ? t(`native_cameras.discovery.manual_rtsp_hints.${selectedSourceType}`)
+                      : undefined}
+                    onClick={() => setSelectedDiscoveredCamera('manual')}
+                  />
 
                   {discoveredCameras.map(cam => (
-                    <label key={cam.urn} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
-                      <input
-                        type="radio"
-                        name="discovered_camera"
-                        value={cam.urn}
-                        checked={selectedDiscoveredCamera === cam.urn}
-                        onChange={() => setSelectedDiscoveredCamera(cam.urn)}
-                        className="w-4 h-4 text-primary bg-background border-input focus:ring-primary focus:ring-2 focus:ring-offset-background"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-body font-medium text-foreground">{cam.name}</span>
-                        <span className="text-caption text-muted-foreground/80 font-mono">
-                          {selectedSourceType === 'onvif-ptz'
-                            ? `${cam.host}:${cam.onvifPort}`
-                            : `${cam.host} · ${t('native_cameras.discovery.detected_by_onvif')}`}
-                        </span>
-                      </div>
-                    </label>
+                    <SelectableOptionCard
+                      key={cam.urn}
+                      checked={selectedDiscoveredCamera === cam.urn}
+                      title={cam.name}
+                      description={selectedSourceType === 'onvif-ptz'
+                        ? `${cam.host}:${cam.onvifPort}`
+                        : `${cam.host} · ${t('native_cameras.discovery.detected_by_onvif')}`}
+                      descriptionClassName="font-mono text-muted-foreground/80"
+                      onClick={() => setSelectedDiscoveredCamera(cam.urn)}
+                    />
                   ))}
               </div>
             </div>
