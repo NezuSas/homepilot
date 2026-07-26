@@ -61,6 +61,8 @@ export function SearchableSelectField({
   const { t } = useTranslation();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const optionRefs = useRef(new Map<string, HTMLButtonElement>());
   const listboxId = useId();
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition | null>(null);
   const [query, setQuery] = useState('');
@@ -136,13 +138,28 @@ export function SearchableSelectField({
     setQuery('');
   };
 
+  const focusOption = (index: number) => {
+    if (filteredOptions.length === 0) {
+      return;
+    }
+
+    const normalizedIndex = (index + filteredOptions.length) % filteredOptions.length;
+    const option = filteredOptions[normalizedIndex];
+    optionRefs.current.get(option.value)?.focus();
+  };
+
+  const openDropdown = () => {
+    updateDropdownPosition();
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
+
   const handleToggle = () => {
     if (disabled || loading) return;
     if (isOpen) {
       closeDropdown();
       return;
     }
-    updateDropdownPosition();
+    openDropdown();
   };
 
   const dropdown = isOpen && dropdownPosition && typeof document !== 'undefined'
@@ -160,10 +177,25 @@ export function SearchableSelectField({
           <div className="relative min-w-0 border-b border-border/50 p-1.5">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
+              ref={searchInputRef}
               autoFocus
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  focusOption(0);
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  focusOption(filteredOptions.length - 1);
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  closeDropdown();
+                  triggerRef.current?.focus();
+                }
+              }}
               placeholder={t('common.search')}
               className="h-9 min-w-0 w-full rounded-control bg-muted/50 py-2 pl-8 pr-3 text-caption font-medium text-foreground outline-none transition focus:ring-2 focus:ring-primary/35"
             />
@@ -176,12 +208,40 @@ export function SearchableSelectField({
               return (
                 <button
                   key={option.value}
+                  ref={(element) => {
+                    if (element) {
+                      optionRefs.current.set(option.value, element);
+                    } else {
+                      optionRefs.current.delete(option.value);
+                    }
+                  }}
                   type="button"
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => {
                     onChange(option.value);
                     closeDropdown();
+                    triggerRef.current?.focus();
+                  }}
+                  onKeyDown={(event) => {
+                    const optionIndex = filteredOptions.findIndex((candidate) => candidate.value === option.value);
+
+                    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+                      event.preventDefault();
+                      const nextIndex = event.key === 'ArrowDown'
+                        ? optionIndex + 1
+                        : event.key === 'ArrowUp'
+                          ? optionIndex - 1
+                          : event.key === 'Home'
+                            ? 0
+                            : filteredOptions.length - 1;
+                      focusOption(nextIndex);
+                    } else if (event.key === 'Escape') {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      closeDropdown();
+                      triggerRef.current?.focus();
+                    }
                   }}
                   className={cn(
                     'flex w-full items-center justify-between gap-3 rounded-control px-3 py-2.5 text-left transition',
@@ -191,9 +251,9 @@ export function SearchableSelectField({
                   )}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-body font-semibold">{option.label}</span>
+                    <span className="block break-words text-body font-semibold leading-snug">{option.label}</span>
                     {option.description ? (
-                      <span className="mt-0.5 block truncate text-label text-muted-foreground">{option.description}</span>
+                      <span className="mt-0.5 block break-words text-label leading-snug text-muted-foreground">{option.description}</span>
                     ) : null}
                   </span>
                   {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
@@ -221,11 +281,19 @@ export function SearchableSelectField({
         id={id}
         type="button"
         disabled={disabled || loading}
-        title={title}
+        title={title ?? selected?.label}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={isOpen ? listboxId : undefined}
         onClick={handleToggle}
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+            return;
+          }
+
+          event.preventDefault();
+          openDropdown();
+        }}
         className={cn(
           'flex min-w-0 w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-4 text-left text-body font-semibold text-foreground outline-none transition',
           size === 'small' ? 'h-9 text-caption' : 'h-11',
