@@ -115,8 +115,12 @@ describe('Execution Observability V1', () => {
 
       expect(record.actions[0].command).toBeDefined();
       expect(record.actions[0].commandName).toBe('turn_on');
-      // @ts-ignore
-      expect(record.actions[0].command.name).toBe('turn_on');
+      const persistedCommand = record.actions[0].command;
+      expect(typeof persistedCommand).toBe('object');
+      if (typeof persistedCommand === 'string' || persistedCommand === undefined) {
+        throw new Error('Expected a persisted command payload.');
+      }
+      expect(persistedCommand.name).toBe('turn_on');
     });
 
     it('retry genera una nueva ejecución vinculada al origen', async () => {
