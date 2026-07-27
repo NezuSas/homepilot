@@ -206,6 +206,7 @@
     "greeting_morning": "Buenos días, {{name}}",
     "greeting_afternoon": "Buenas tardes, {{name}}",
     "greeting_evening": "Buenas noches, {{name}}",
+    "user_fallback": "Usuario",
     "resident": "Oscar",
     "home_calm": "Todo está bajo control.",
     "active_summary": "{{active}} de {{total}} dispositivos activos",

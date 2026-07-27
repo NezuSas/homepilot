@@ -19,6 +19,7 @@ import { SearchableSelectField } from '../../../components/ui/SearchableSelectFi
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Textarea } from '../../../components/ui/Textarea';
 import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
+import { getDashboardUserDisplayName } from '../dashboardUtils';
 import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
 import { getWeatherCategory, WeatherScene } from './clock/designs/WeatherScene';
 import { useCuencaWeather } from './clock/useCuencaWeather';
@@ -59,120 +60,19 @@ function parseBadges(value: unknown): TitleBadge[] {
   });
 }
 
-function getStoredUserName() {
-  if (typeof window === 'undefined') return 'Usuario';
+function getStoredUserName(fallback: string) {
+  if (typeof window === 'undefined') return fallback;
 
-  type Candidate = { value: string; score: number };
-  const candidates: Candidate[] = [];
-  const storages = [window.sessionStorage, window.localStorage];
-
-  const looksLikeToken = (value: string) => {
-    const clean = value.trim();
-    if (clean.includes('.') && clean.split('.').length >= 3) return true;
-    if (clean.length > 28 && /^[A-Za-z0-9_-]+$/.test(clean)) return true;
-    if (clean.length > 20 && /[A-Z]/.test(clean) && /[a-z]/.test(clean) && /\d/.test(clean)) return true;
-    return false;
-  };
-
-  const normalizeName = (value: unknown): string | null => {
-    if (typeof value !== 'string') return null;
-    const clean = value.trim();
-    if (!clean || clean.length > 80 || looksLikeToken(clean)) return null;
-    return clean.includes('@') ? clean.split('@')[0] : clean;
-  };
-
-  const addCandidate = (value: unknown, score: number) => {
-    const normalized = normalizeName(value);
-    if (!normalized) return;
-    candidates.push({
-      value: normalized,
-      score: normalized.toLowerCase() === 'gustavo' ? score - 80 : score,
-    });
-  };
-
-  const readNameFromObject = (input: unknown): string | null => {
-    if (!input || typeof input !== 'object') return null;
-
-    const stack: unknown[] = [input];
-    const seen = new Set<unknown>();
-
-    while (stack.length) {
-      const current = stack.shift();
-      if (!current || typeof current !== 'object' || seen.has(current)) continue;
-      seen.add(current);
-
-      const record = current as Record<string, unknown>;
-      const direct =
-        record.name ||
-        record.displayName ||
-        record.fullName ||
-        record.firstName ||
-        record.username ||
-        record.userName ||
-        record.email;
-
-      const normalized = normalizeName(direct);
-      if (normalized) return normalized;
-
-      for (const value of Object.values(record)) {
-        if (value && typeof value === 'object') stack.push(value);
-      }
-    }
-
-    return null;
-  };
-
-  const readJwtPayload = (value: string) => {
-    const payload = value.split('.')[1];
-    if (!payload) return null;
-
-    try {
-      return JSON.parse(window.atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-    } catch {
-      return null;
-    }
-  };
-
-  for (const storage of storages) {
-    for (let index = 0; index < storage.length; index += 1) {
-      const key = storage.key(index) || '';
-      const raw = storage.getItem(key);
-      if (!raw) continue;
-
-      const lowerKey = key.toLowerCase();
-      const isLikelyAuth = ['auth', 'session', 'current', 'profile', 'account', 'user', 'token', 'operator'].some((part) => lowerKey.includes(part));
-      if (!isLikelyAuth) continue;
-
-      const score =
-        lowerKey.includes('profile') ? 105 :
-        lowerKey.includes('account') ? 100 :
-        lowerKey.includes('current') ? 95 :
-        lowerKey.includes('session') ? 90 :
-        lowerKey.includes('auth') ? 85 :
-        lowerKey.includes('operator') ? 75 :
-        lowerKey.includes('user') ? 60 :
-        lowerKey.includes('token') ? 45 :
-        20;
-
-      const jwtPayload = readJwtPayload(raw);
-      if (jwtPayload) addCandidate(readNameFromObject(jwtPayload), score + 20);
-
-      try {
-        addCandidate(readNameFromObject(JSON.parse(raw)), score);
-      } catch {
-        if (!lowerKey.includes('token') && !lowerKey.includes('session') && !lowerKey.includes('auth')) {
-          addCandidate(raw, score - 30);
-        }
-      }
-    }
+  try {
+    const storedContext = window.localStorage.getItem('hp_user_ctx');
+    return getDashboardUserDisplayName(storedContext ? JSON.parse(storedContext) : null, fallback);
+  } catch {
+    return fallback;
   }
-
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0]?.value || 'Usuario';
 }
 
-function renderTemplate(markdown: string) {
-  const user = getStoredUserName();
+function renderTemplate(markdown: string, fallbackUserName: string) {
+  const user = getStoredUserName(fallbackUserName);
 
   return markdown
     .replace(/\{\{\s*user\s*\}\}/gi, user)
@@ -367,7 +267,7 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
   const addTabBadge = (tabId: string) => setBadges([...badges, { id: generateId(), kind: 'tab' as const, tabId }]);
   const removeBadge = (id: string) => setBadges(badges.filter((badge) => badge.id !== id));
 
-  const rendered = useMemo(() => renderTemplate(markdown), [markdown]);
+  const rendered = useMemo(() => renderTemplate(markdown, t('dashboard.user_fallback')), [markdown, t]);
   const blocks = useMemo(() => markdownToBlocks(rendered), [rendered]);
   const [draftMarkdown, setDraftMarkdown] = useState(markdown);
 

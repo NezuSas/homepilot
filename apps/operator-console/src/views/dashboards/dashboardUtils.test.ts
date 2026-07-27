@@ -4,6 +4,7 @@ import {
   clampSectionSpan,
   getAssignableDevicesForSectionCard,
   getDashboardSectionColumns,
+  getDashboardUserDisplayName,
   getSectionSpan,
   sanitizeWidgetConfig,
 } from './dashboardUtils';
@@ -53,6 +54,15 @@ describe('dashboard canvas columns', () => {
     expect(getDashboardSectionColumns(1023)).toBe(2);
     expect(getDashboardSectionColumns(1024)).toBe(3);
     expect(getDashboardSectionColumns(1440)).toBe(3);
+  });
+});
+
+describe('dashboard user identity', () => {
+  it('uses only the explicit authenticated context with a stable fallback', () => {
+    expect(getDashboardUserDisplayName({ displayName: 'Gustavo', username: 'gustavo' }, 'User')).toBe('Gustavo');
+    expect(getDashboardUserDisplayName({ username: 'oscar' }, 'User')).toBe('oscar');
+    expect(getDashboardUserDisplayName({ displayName: '   ', username: '   ' }, 'User')).toBe('User');
+    expect(getDashboardUserDisplayName('unrelated-storage-value', 'User')).toBe('User');
   });
 });
 

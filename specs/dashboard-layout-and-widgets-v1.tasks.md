@@ -6,6 +6,8 @@
 - [x] Canvas responsive, widgets tipados y catálogo MDI diferido.
 - [x] Controles por capacidad, cámaras, sensores, reloj, escena y media player.
 - [x] Tipografía de métricas de sensores centralizada en tokens responsive del design system.
+- [x] Placeholder de nueva sección en flujo secuencial, siempre posterior a las secciones existentes.
+- [x] Plantillas de título vinculadas únicamente al contexto autenticado local de HomePilot.
 
 ## Verificación obligatoria ante cambios
 

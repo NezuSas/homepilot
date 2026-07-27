@@ -30,6 +30,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **REQ-04:** Reordenar secciones o widgets debe persistir su orden sin superposición de placeholders.
 - **REQ-05:** El fondo cubre el viewport visible del tablero sin alterar el scroll de contenido.
 - **REQ-06:** Las tarjetas de control reflejan el estado real y ejecutan solo acciones soportadas por su entidad.
+- **REQ-07:** Las variables de identidad del título se resuelven exclusivamente desde el contexto autenticado de HomePilot.
 
 ## 5. Requisitos No Funcionales
 
@@ -38,6 +39,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-03:** Ningún widget debe introducir cadenas visibles fuera de i18n ES/EN.
 - **NFR-04:** Los iconos se resuelven a través del catálogo MDI cargado bajo demanda.
 - **NFR-05:** Las métricas de sensores usan tokens tipográficos responsive con nombre semántico; los widgets no definen escalas de texto arbitrarias en línea.
+- **NFR-06:** La grilla conserva flujo secuencial: el placeholder final no rellena huecos ni se superpone visualmente a otras zonas.
 
 ## 6. Criterios de Aceptación
 
@@ -47,6 +49,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC4: Los placeholders aparecen al final de la grilla disponible y no cubren tarjetas existentes.
 - [x] AC5: Cámara, media, reloj, sensor y control mantienen una presentación válida en los tres breakpoints.
 - [x] AC6: Los valores, porcentajes y títulos de sensores conservan una jerarquía legible mediante tokens responsive compartidos.
+- [x] AC7: El saludo del tablero utiliza el nombre visible o usuario de la sesión autenticada y conserva un fallback traducido.
 
 ## 7. Notas Técnicas y Arquitectura
 

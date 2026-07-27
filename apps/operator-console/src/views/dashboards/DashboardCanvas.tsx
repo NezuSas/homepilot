@@ -266,7 +266,7 @@ export function DashboardCanvas({
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
-          gridAutoFlow: 'row dense',
+          gridAutoFlow: 'row',
           alignItems: 'start',
           gap: `${gap}px`,
         }}

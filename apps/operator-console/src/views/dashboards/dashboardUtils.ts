@@ -7,6 +7,21 @@ const DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH = 1024;
 const DASHBOARD_MAX_SECTION_SPAN = 3;
 
 /**
+ * Resolves the display name from the explicit authenticated user context.
+ * Dashboard widgets must never inspect arbitrary browser storage because it
+ * can surface a stale or unrelated identity.
+ */
+export function getDashboardUserDisplayName(value: unknown, fallback: string): string {
+  if (!value || typeof value !== 'object') return fallback;
+
+  const context = value as Record<string, unknown>;
+  const displayName = typeof context.displayName === 'string' ? context.displayName.trim() : '';
+  const username = typeof context.username === 'string' ? context.username.trim() : '';
+
+  return displayName || username || fallback;
+}
+
+/**
  * Resolves the canvas column count from the actual available content width.
  * The sidebar is excluded from this width, so desktop editing must not wait
  * for the full browser viewport to reach the desktop breakpoint. Zones flow
