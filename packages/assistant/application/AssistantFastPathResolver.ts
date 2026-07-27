@@ -171,7 +171,9 @@ export class AssistantFastPathResolver {
 
   public resolve(prompt: string, devices: Device[]): FastPathResult | null {
     const skip = (reason: string) => {
-      console.info(`[ASSISTANT_FAST_PATH_SKIPPED] ${JSON.stringify({ prompt, reason })}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`[ASSISTANT_FAST_PATH_SKIPPED] ${JSON.stringify({ prompt, reason })}`);
+      }
       return null;
     };
 
@@ -268,13 +270,15 @@ export class AssistantFastPathResolver {
 
     const bestMatch = topMatches[0];
     
-    console.info(`[ASSISTANT_FAST_PATH_APPROVED] ${JSON.stringify({
-      prompt,
-      deviceId: bestMatch.device.id,
-      deviceName: bestMatch.device.name,
-      command: commandMatch.command,
-      confidence: bestMatch.score
-    })}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`[ASSISTANT_FAST_PATH_APPROVED] ${JSON.stringify({
+        prompt,
+        deviceId: bestMatch.device.id,
+        deviceName: bestMatch.device.name,
+        command: commandMatch.command,
+        confidence: bestMatch.score
+      })}`);
+    }
 
     return {
       deviceId: bestMatch.device.id,
