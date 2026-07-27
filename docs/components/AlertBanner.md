@@ -9,7 +9,7 @@ Comunica información, éxito, advertencia o error sin reemplazar el contenido e
 
 ## Contrato
 
-Recibe variante, mensaje y contenido opcional de acción. El consumidor decide cuándo mostrarlo y traduce sus textos.
+Recibe variante, mensaje y contenido opcional de acción. Asocia título y mensaje para lectores de pantalla y mantiene la iconografía como decorativa. El consumidor decide cuándo mostrarlo y traduce sus textos.
 
 ## Uso
 
@@ -17,4 +17,4 @@ Usar para estados relevantes de página o formulario. No usar como toast efímer
 
 ## Estados y aceptación
 
-Cada variante conserva icono, contraste y etiqueta semántica legible en ambos temas. En móvil el contenido y la acción se ordenan verticalmente, el mensaje puede ocupar varias líneas y la acción directa ocupa el ancho disponible; desde tablet recupera su ancho natural. Advertencias y errores anuncian `role="alert"`; información y éxito usan `role="status"`.
+Cada variante conserva icono, contraste y etiqueta semántica legible en ambos temas. En móvil el contenido y la acción se ordenan verticalmente, el mensaje puede ocupar varias líneas y la acción directa ocupa el ancho disponible; desde tablet recupera su ancho natural. Advertencias y errores anuncian `role="alert"`; información y éxito usan `role="status"`. El mensaje se expone siempre como descripción del estado y el título se asocia cuando existe.

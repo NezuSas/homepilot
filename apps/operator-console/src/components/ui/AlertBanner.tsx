@@ -48,6 +48,8 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
 }) => {
   const config = variantConfig[variant];
   const Icon = icon || config.icon;
+  const titleId = React.useId();
+  const messageId = React.useId();
 
   return (
     <div
@@ -57,15 +59,17 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
         className
       )}
       role={variant === 'danger' || variant === 'warning' ? 'alert' : 'status'}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={messageId}
       {...props}
     >
       <div className="flex min-w-0 items-start gap-3">
         <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control', config.iconClassName)}>
-          <Icon className="h-5 w-5" />
+          <Icon aria-hidden="true" className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          {title && <p className="break-words text-body font-black text-foreground">{title}</p>}
-          <p className="break-words text-caption font-medium leading-relaxed opacity-80">{message}</p>
+          {title && <p id={titleId} className="break-words text-body font-black text-foreground">{title}</p>}
+          <p id={messageId} className="break-words text-caption font-medium leading-relaxed opacity-80">{message}</p>
         </div>
       </div>
       {action && (
