@@ -31,7 +31,7 @@ export const DeviceTileShell = React.forwardRef<HTMLDivElement, DeviceTileShellP
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       onKeyDown?.(event);
-      if (event.defaultPrevented || !isInteractive) return;
+      if (event.defaultPrevented || !isInteractive || event.currentTarget !== event.target) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
 
       event.preventDefault();

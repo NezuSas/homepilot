@@ -17,4 +17,4 @@ Usar cuando una tarjeta requiere composición distinta pero debe conservar el si
 
 ## Estados y aceptación
 
-El contenido no se superpone, respeta altura mínima tokenizada y se adapta de una a varias columnas. Puede reducirse dentro de grids o paneles angostos, conserva interacción táctil cuando aplica y comunica el estado deshabilitado mediante `aria-disabled`.
+El contenido no se superpone, respeta altura mínima tokenizada y se adapta de una a varias columnas. Puede reducirse dentro de grids o paneles angostos, conserva interacción táctil cuando aplica y comunica el estado deshabilitado mediante `aria-disabled`. Si contiene controles internos, su teclado no activa la tarjeta contenedora de forma accidental.
