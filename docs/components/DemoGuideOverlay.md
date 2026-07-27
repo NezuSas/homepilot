@@ -17,4 +17,4 @@ En escritorio posiciona la explicación cerca del objetivo. En móvil mantiene l
 
 ## Estados y aceptación
 
-El overlay actualiza su posición ante scroll y resize, enfoca el diálogo al mostrarse, restaura el foco al cerrar y permite terminar con Escape. Sus acciones mantienen foco contenido y área táctil en móvil, tablet y escritorio.
+El overlay actualiza su posición ante scroll y resize, permite terminar con Escape y conserva acciones táctiles accesibles en móvil, tablet y escritorio. No atrapa foco ni bloquea scroll: la persona puede completar directamente la acción resaltada sin que la guía interfiera con la navegación.

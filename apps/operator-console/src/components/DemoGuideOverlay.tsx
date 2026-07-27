@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useDemoGuideStore } from '../stores/useDemoGuideStore';
@@ -28,7 +28,6 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
-  const tooltipRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
 
@@ -105,20 +104,17 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
   }, [isActive, currentStep, onNavigate, updatePosition, nextStep]);
 
   useEffect(() => {
-    if (!isActive || !isReady) return;
+    if (!isActive) return;
 
-    const previousFocusedElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const focusTooltip = window.setTimeout(() => tooltipRef.current?.focus(), 0);
-
-    return () => {
-      window.clearTimeout(focusTooltip);
-      if (previousFocusedElement && document.contains(previousFocusedElement)) {
-        previousFocusedElement.focus();
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        endDemo();
       }
     };
-  }, [isActive, isReady]);
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [endDemo, isActive]);
 
   if (!isActive || !currentStep) return null;
 
@@ -165,35 +161,6 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
   };
 
   const layout = getLayout();
-
-  const handleTooltipKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      endDemo();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-
-    const focusableElements = tooltipRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusableElements || focusableElements.length === 0) {
-      event.preventDefault();
-      tooltipRef.current?.focus();
-      return;
-    }
-
-    const firstFocusableElement = focusableElements[0];
-    const lastFocusableElement = focusableElements[focusableElements.length - 1];
-    if (event.shiftKey && document.activeElement === firstFocusableElement) {
-      event.preventDefault();
-      lastFocusableElement.focus();
-    } else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
-      event.preventDefault();
-      firstFocusableElement.focus();
-    }
-  };
 
   const guideContent = (
     <div className="bg-card/95 border border-primary/20 rounded-card p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
@@ -273,13 +240,9 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
 
       {isReady && layout && !isMobile && (
         <div
-          ref={tooltipRef}
-          role="dialog"
-          aria-modal="true"
+          role="region"
           aria-labelledby={titleId}
           aria-describedby={descriptionId}
-          tabIndex={-1}
-          onKeyDown={handleTooltipKeyDown}
           className="absolute pointer-events-auto transition-all duration-700 animate-in fade-in slide-in-from-bottom-4 zoom-in-95 ease-out outline-none z-[60]"
           style={{
             transform: `translate(${layout.tooltipL}px, ${layout.tooltipT}px)`,
@@ -292,13 +255,9 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
 
       {isReady && isMobile && (
         <div
-          ref={tooltipRef}
-          role="dialog"
-          aria-modal="true"
+          role="region"
           aria-labelledby={titleId}
           aria-describedby={descriptionId}
-          tabIndex={-1}
-          onKeyDown={handleTooltipKeyDown}
           className="fixed bottom-3 left-3 right-3 z-[60] pointer-events-auto outline-none animate-in fade-in slide-in-from-bottom-4 duration-base"
         >
           {guideContent}

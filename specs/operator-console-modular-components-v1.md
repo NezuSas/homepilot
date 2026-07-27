@@ -81,6 +81,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-55:** Los controles continuos o booleanos deben conservar un único contrato de cambio: el rango confirma una vez al finalizar interacción o explícitamente con Enter, y el interruptor no puede perder su cambio controlado por handlers adicionales.
 - **REQ-56:** Los encabezados compartidos deben entregar acciones directas táctiles a ancho completo en móvil y conservar alineación semántica entre icono, título y subtítulo cuando se usan como grupos.
 - **REQ-57:** Los controles segmentados de selección exclusiva deben exponer semántica de radio y permitir recorrer opciones disponibles con flechas, Inicio y Fin, conservando foco y selección visibles.
+- **REQ-58:** Las guías contextuales no modales deben permitir completar la acción resaltada sin atrapar foco ni bloquear scroll; deben conservar una salida explícita y cierre con Escape cuando no exista una superficie modal superior.
 
 ## 5. Requisitos No Funcionales
 
