@@ -272,7 +272,7 @@ export class AutomationEngine {
         this.totalSuccesses++;
         return;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const dispatchError = error instanceof Error ? error : new Error(String(error));
       this.totalFailures++;
       this.lastExecutionAt = new Date().toISOString();
