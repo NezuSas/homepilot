@@ -141,8 +141,8 @@ export class AuthRoutes extends ApiRoutes {
           role: updated.role,
           isActive: updated.isActive,
         });
-      } catch (e: any) {
-        this.sendError(res, 500, 'INTERNAL_ERROR', e.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'INTERNAL_ERROR', this.getErrorDetails(error).message);
       }
       return true;
     }
