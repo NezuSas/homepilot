@@ -1,6 +1,7 @@
 /// <reference types="jest" />
 import { converseWithAssistant, transcribeAssistantSpeech } from '../assistantApi';
 import { apiFetch } from '../apiClient';
+import i18n from '../../i18n';
 
 jest.mock('../apiClient');
 jest.mock('../../config', () => ({
@@ -91,7 +92,7 @@ describe('assistantApi', () => {
     const request = converseWithAssistant({ prompt: 'orden confusa' }, { timeoutMs: 5000 });
     jest.advanceTimersByTime(5000);
 
-    await expect(request).rejects.toThrow('No pude entenderte a tiempo. Inténtalo de nuevo.');
+    await expect(request).rejects.toThrow(i18n.t('assistant.conversation.voice_timeout'));
     jest.useRealTimers();
   });
 
