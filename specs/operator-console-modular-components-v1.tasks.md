@@ -29,6 +29,7 @@
 - [x] Ajuste de AssistantCard y DeviceTileBase: acciones directas a ancho táctil móvil y activación por teclado segura para tarjetas interactivas.
 - [x] Ajuste de SearchFilterBar: controles apilados en móvil y composición horizontal desde tablet para aprovechar el ancho disponible.
 - [x] Ajuste de IconButton: iconografía proporcional a las áreas táctiles compacta, estándar y amplia.
+- [x] Refuerzo de Input y Textarea: ayudas y errores asociados mediante `aria-describedby`, con `aria-invalid` para errores visibles.
 - [x] Consolidación de acciones de usuarios, tarjetas de dispositivos y registros de ejecución con `Button` e `IconButton`, preservando asignación, cambio de estado, reintento y acciones de seguridad existentes; las tarjetas ejecutables del tablero también usan `Button` para foco y estado deshabilitado compartidos.
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.

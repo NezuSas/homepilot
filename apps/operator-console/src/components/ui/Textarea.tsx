@@ -9,9 +9,11 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, containerClassName, label, error, helperText, disabled, id, ...props }, ref) => {
+  ({ className, containerClassName, label, error, helperText, disabled, id, 'aria-describedby': ariaDescribedBy, 'aria-invalid': ariaInvalid, ...props }, ref) => {
     const generatedId = React.useId();
     const textareaId = id ?? generatedId;
+    const messageId = `${textareaId}-message`;
+    const describedBy = [ariaDescribedBy, (error || helperText) && messageId].filter(Boolean).join(' ') || undefined;
 
     return (
       <div className={cn('flex min-w-0 w-full flex-col gap-1.5', containerClassName)}>
@@ -31,6 +33,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={textareaId}
           disabled={disabled}
+          aria-describedby={describedBy}
+          aria-invalid={error ? true : ariaInvalid}
           className={cn(
             'surface-transition min-h-24 min-w-0 w-full resize-y rounded-xl border border-border bg-background px-3 py-2 text-body shadow-sm',
             'placeholder:text-muted-foreground/40',
@@ -42,7 +46,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {(error || helperText) && (
-          <p className={cn('ml-1 break-words text-micro font-medium', error ? 'animate-shake text-danger' : 'text-muted-foreground opacity-70')}>
+          <p id={messageId} className={cn('ml-1 break-words text-micro font-medium', error ? 'animate-shake text-danger' : 'text-muted-foreground opacity-70')}>
             {error || helperText}
           </p>
         )}

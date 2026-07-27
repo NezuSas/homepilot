@@ -17,4 +17,4 @@ Usar con label accesible, placeholder traducido y estado de error explicado fuer
 
 ## Estados y aceptación
 
-Vacío, foco, valor, disabled y error mantienen contraste, foco visible y soporte de texto largo. Su contenedor y control pueden reducirse dentro de grids o filas flexibles; etiquetas y ayudas largas se ajustan sin desborde horizontal.
+Vacío, foco, valor, disabled y error mantienen contraste, foco visible y soporte de texto largo. Su contenedor y control pueden reducirse dentro de grids o filas flexibles; etiquetas y ayudas largas se ajustan sin desborde horizontal. Cuando hay ayuda o error, el campo los referencia mediante `aria-describedby`; el error también expone `aria-invalid`.

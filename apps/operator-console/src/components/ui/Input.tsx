@@ -11,9 +11,11 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, containerClassName, label, error, helperText, icon, disabled, id, ...props }, ref) => {
+  ({ className, containerClassName, label, error, helperText, icon, disabled, id, 'aria-describedby': ariaDescribedBy, 'aria-invalid': ariaInvalid, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
+    const messageId = `${inputId}-message`;
+    const describedBy = [ariaDescribedBy, (error || helperText) && messageId].filter(Boolean).join(' ') || undefined;
 
     return (
       <div className={cn("flex min-w-0 w-full flex-col gap-1.5", containerClassName)}>
@@ -32,6 +34,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             disabled={disabled}
+            aria-describedby={describedBy}
+            aria-invalid={error ? true : ariaInvalid}
             className={cn(
               "surface-transition flex h-10 min-w-0 w-full rounded-xl border bg-background px-3 py-2 text-body shadow-sm",
               "border-border placeholder:text-muted-foreground/40",
@@ -45,7 +49,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {(error || helperText) && (
-          <p className={cn("ml-1 break-words text-micro font-medium", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}>
+          <p id={messageId} className={cn("ml-1 break-words text-micro font-medium", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}>
             {error || helperText}
           </p>
         )}
