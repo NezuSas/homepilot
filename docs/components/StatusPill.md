@@ -9,7 +9,7 @@ Representa un estado corto y no interactivo: activo, apagado, disponible, error 
 
 ## Contrato
 
-Recibe etiqueta y variante semántica; no traduce ni infiere estado del dispositivo.
+Recibe etiqueta y variante semántica; no traduce ni infiere estado del dispositivo. La variante de solo punto recibe opcionalmente `dotLabel` para anunciar su contexto; sin ella se trata como decoración.
 
 ## Uso
 

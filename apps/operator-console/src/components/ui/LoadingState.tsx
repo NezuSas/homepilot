@@ -22,6 +22,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   <div
     role="status"
     aria-live="polite"
+    aria-atomic="true"
     aria-label={label}
     className={cn('flex flex-col items-center justify-center gap-4 text-center', className)}
     {...props}

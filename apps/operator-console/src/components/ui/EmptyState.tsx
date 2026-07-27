@@ -35,6 +35,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         {description}
       </p>
     )}
-    {action && <div className="mt-6 flex w-full justify-center sm:w-auto">{action}</div>}
+    {action && (
+      <div className="mt-6 flex w-full justify-center [&>*]:w-full sm:w-auto sm:[&>*]:w-auto">
+        {action}
+      </div>
+    )}
   </div>
 );

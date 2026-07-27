@@ -68,7 +68,11 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
           <p className="break-words text-caption font-medium leading-relaxed opacity-80">{message}</p>
         </div>
       </div>
-      {action && <div className="flex w-full shrink-0 sm:w-auto sm:justify-end">{action}</div>}
+      {action && (
+        <div className="flex w-full shrink-0 sm:w-auto sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
+          {action}
+        </div>
+      )}
     </div>
   );
 };

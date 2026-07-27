@@ -6,6 +6,8 @@ export interface StatusPillProps extends React.HTMLAttributes<HTMLSpanElement> {
   pulse?: boolean;
   /** Show as a compact dot-only pill (no text) */
   dot?: boolean;
+  /** Accessible context for a dot-only status indicator. */
+  dotLabel?: string;
 }
 
 const variantConfig: Record<
@@ -39,12 +41,19 @@ const variantConfig: Record<
 };
 
 export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
-  ({ className, variant = 'neutral', pulse = false, dot = false, children, ...props }, ref) => {
+  ({ className, variant = 'neutral', pulse = false, dot = false, dotLabel, children, ...props }, ref) => {
     const cfg = variantConfig[variant];
 
     if (dot) {
       return (
-        <span ref={ref} className={cn('relative flex items-center justify-center', className)} {...props}>
+        <span
+          ref={ref}
+          role={dotLabel ? 'status' : undefined}
+          aria-label={dotLabel}
+          aria-hidden={dotLabel ? undefined : true}
+          className={cn('relative flex items-center justify-center', className)}
+          {...props}
+        >
           {pulse && (
             <span
               className={cn('absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping', cfg.dot)}

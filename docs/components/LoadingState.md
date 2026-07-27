@@ -17,4 +17,4 @@ Usar únicamente mientras una vista aún no tiene datos que mostrar. Durante un 
 
 ## Estados y aceptación
 
-Mantiene centrado, escala tipográfica y contraste mediante tokens de diseño. No consulta datos, no crea estado global y no contiene texto hardcodeado.
+Mantiene centrado, escala tipográfica y contraste mediante tokens de diseño. El mensaje se anuncia de forma atómica a lectores de pantalla. No consulta datos, no crea estado global y no contiene texto hardcodeado.
