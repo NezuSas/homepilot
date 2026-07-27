@@ -1,9 +1,10 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cpu, ShieldCheck, Activity, Shield, Layers } from 'lucide-react';
+import { Cpu, ShieldCheck, Shield, Layers } from 'lucide-react';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { LoadingState } from '../components/ui/LoadingState';
 
 interface ShowcaseScene {
   id?: string;
@@ -90,12 +91,7 @@ const ResilienceShowcaseView: React.FC = () => {
   }, [devices, scenes, automations]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-empty-sm animate-pulse">
-        <Activity className="w-10 h-10 text-primary/40 mb-4" />
-        <p className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-40">{t('showcase.loading_pulse')}</p>
-      </div>
-    );
+    return <LoadingState label={t('showcase.loading_pulse')} className="min-h-empty-sm" size="md" />;
   }
 
   return (

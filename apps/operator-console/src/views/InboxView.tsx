@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Inbox,
-  Loader2,
   Settings,
   Cpu,
   Zap
@@ -14,6 +13,7 @@ import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscov
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
 import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
@@ -101,11 +101,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   }, {} as Record<string, { name: string, devices: Device[] }>);
 
   if (loading && devices.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full min-h-empty-sm">
-        <Loader2 className="w-10 h-10 animate-spin text-primary opacity-20" />
-      </div>
-    );
+    return <LoadingState label={t('common.loading')} className="min-h-empty-sm" size="md" />;
   }
 
   const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');

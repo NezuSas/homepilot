@@ -84,7 +84,7 @@
 - [x] Consolidación de rangos de posición de cortina, opacidad de tablero y zoom de avatar en `RangeInput`, preservando confirmación diferida y control continuo.
 - [x] Consolidación de la configuración de vistas de tablero en `Modal`, con pie fijo para acciones de guardar y eliminar.
 - [x] Refuerzo de accesibilidad de `Modal`: foco inicial/restaurado, Escape, ciclo de Tab y semántica de diálogo asociada a título y descripción.
-- [x] Consolidación de los estados de carga iniciales de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos, Asistente, auditoría, registros de ejecución y navegación diferida en `LoadingState`, con mensajes i18n y semántica accesible compartida.
+- [x] Consolidación de los estados de carga iniciales de Automatizaciones, Workbench, Inicio, Tableros, Usuarios, Diagnósticos, Asistente, auditoría, registros de ejecución, Descubrimiento/Gestor, Showcase de Resiliencia y navegación diferida en `LoadingState`, con mensajes i18n y semántica accesible compartida.
 - [x] Consolidación de los errores generales de Automatizaciones y Diagnósticos en `AlertBanner`; los errores de formulario y acción localizada conservan su contexto de dominio.
 - [x] Refuerzo responsive de `SectionHeader`: contenido flexible, textos largos con ajuste seguro y acciones contextuales a ancho completo en móvil, envolventes y alineadas en tablet/escritorio.
 - [x] Refuerzo responsive de `EmptyState`: espacio vertical compacto en móvil, textos largos con ajuste seguro y acción contextual centrada con ancho disponible.
