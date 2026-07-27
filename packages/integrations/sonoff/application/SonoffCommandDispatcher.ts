@@ -17,6 +17,10 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
     }
   }
 
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
   public async dispatch(deviceId: string, command: DeviceCommandV1): Promise<void> {
     const device = await this.deviceRepository.findDeviceById(deviceId);
     if (!device) throw new Error(`Dispositivo ${deviceId} no encontrado para despacho Sonoff LAN`);
@@ -76,20 +80,20 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
         if (!response.ok) {
           throw new Error(`Error de red HTTP ${response.status} en la comunicación Sonoff LAN`);
         }
-      } catch (e: any) {
+      } catch (error: unknown) {
         if (retryCount < 1) {
           this.logInfo(`[Sonoff-LAN] Fallo de red detectado, reintentando (1/1)...`);
           return dispatchWithRetry(retryCount + 1);
         }
-        throw e;
+        throw error;
       }
     };
 
     try {
       await dispatchWithRetry();
-    } catch (e) {
+    } catch (error: unknown) {
       // Throw cleanly to ensure failures are routed back to the invoker properly instead of failing silently 
-      throw new Error(`Error accediendo físicamente a ${targetIp}: ${(e as Error).message}`);
+      throw new Error(`Error accediendo físicamente a ${targetIp}: ${this.getErrorMessage(error)}`);
     }
 
     // Real state fetch V1 (Post-command synchronization)
