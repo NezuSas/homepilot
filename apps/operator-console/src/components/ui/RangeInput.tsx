@@ -27,6 +27,7 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
     showBounds = false,
     disabled,
     onBlur,
+    onKeyUp,
     onPointerUp,
     ...props
   }, ref) => {
@@ -55,6 +56,12 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
           onPointerUp={(event) => {
             onPointerUp?.(event);
             commitValue();
+          }}
+          onKeyUp={(event) => {
+            onKeyUp?.(event);
+            if (event.key === 'Enter' && !event.defaultPrevented) {
+              commitValue();
+            }
           }}
           onBlur={(event) => {
             onBlur?.(event);

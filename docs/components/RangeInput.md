@@ -9,7 +9,7 @@ Control modular para valores numéricos continuos o discretos: posición de cort
 
 ## Contrato
 
-Recibe `value`, `min`, `max`, `step`, `onValueChange` y opcionalmente `onValueCommit`. El cambio se comunica de forma continua; la confirmación se emite al finalizar el gesto con pointer o al abandonar el foco, evitando una confirmación por cada tecla. `formatValue` y `showBounds` permiten presentar límites y valor actual sin duplicar la estructura visual.
+Recibe `value`, `min`, `max`, `step`, `onValueChange` y opcionalmente `onValueCommit`. El cambio se comunica de forma continua; la confirmación se emite al finalizar el gesto con pointer, al abandonar el foco o de forma explícita con Enter, evitando una confirmación por cada tecla. `formatValue` y `showBounds` permiten presentar límites y valor actual sin duplicar la estructura visual.
 
 ## Uso
 
