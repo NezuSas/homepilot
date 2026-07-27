@@ -17,4 +17,4 @@ El contenido debe ser desplazable y sus acciones deben quedar visibles. Usar `Co
 
 ## Estados y aceptación
 
-Respeta variantes default/info/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo, además de viewport móvil/tablet/escritorio. Los `children` son opcionales para confirmaciones que solo muestran cabecera y pie compartidos. El título y la descripción reservan espacio para el cierre, ajustan texto largo y el pie puede envolver acciones dentro del viewport.
+Respeta variantes default/info/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo; además retiene el foco si este intenta salir por una interacción programática y respeta diálogos anidados. Mantiene viewport móvil/tablet/escritorio. Los `children` son opcionales para confirmaciones que solo muestran cabecera y pie compartidos. El título y la descripción reservan espacio para el cierre, ajustan texto largo y el pie puede envolver acciones dentro del viewport.

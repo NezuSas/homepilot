@@ -17,4 +17,4 @@ Se usa para superficies laterales persistentes, como el inspector de dispositivo
 
 ## Estados y aceptación
 
-Bloquea el scroll del documento mientras está abierto, restaura el foco al cerrar, cierra con Escape, contiene la navegación Tab y conserva el panel dentro del viewport en móvil, tablet y escritorio.
+Bloquea el scroll del documento mientras está abierto, restaura el foco al cerrar, cierra con Escape, contiene la navegación Tab, retiene cambios de foco que salgan de la capa superior y conserva el panel dentro del viewport en móvil, tablet y escritorio.
