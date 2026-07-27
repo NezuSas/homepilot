@@ -9,7 +9,7 @@ Explica por qué una colección o superficie no contiene datos y ofrece una acci
 
 ## Contrato
 
-Recibe icono, título, descripción y acción opcional. No decide si una colección está vacía.
+Recibe icono, título, descripción y acción opcional. Asocia semánticamente título y descripción, anuncia el estado mediante `role="status"` y mantiene el icono como decorativo. No decide si una colección está vacía.
 
 ## Uso
 
@@ -17,4 +17,4 @@ Usar después de que terminó la carga inicial; no sustituir datos previos duran
 
 ## Estados y aceptación
 
-El mensaje es traducible, no bloquea scroll y la acción conserva foco visible. En móvil reduce el espacio vertical, ajusta títulos y descripciones largas sin desborde y fuerza la acción directa al ancho disponible; desde tablet conserva su tamaño natural y centrado.
+El mensaje es traducible, se anuncia de forma atómica, no bloquea scroll y la acción conserva foco visible. En móvil reduce el espacio vertical, ajusta títulos y descripciones largas sin desborde y fuerza la acción directa al ancho disponible; desde tablet conserva su tamaño natural y centrado.
