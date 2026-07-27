@@ -1328,10 +1328,6 @@ export class AssistantConversationService {
 
       // --- Room not found ---
       if (!selectedRoom) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.debug(`[DRAFT DEBUG] Room not found. Prompt: "${normalized}"`);
-          console.debug(`[DRAFT DEBUG] Available rooms:`, allRooms.map((r: Room) => ({ id: r.id, name: r.name })));
-        }
         return {
           type: 'answer',
           message: language === 'en'
@@ -1340,26 +1336,8 @@ export class AssistantConversationService {
         };
       }
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[DRAFT DEBUG] room selected:', { id: selectedRoom.id, name: selectedRoom.name });
-        console.debug('[DRAFT DEBUG] all devices:', devices.map((d: Device) => ({
-          id: d.id, name: d.name, type: d.type, roomId: d.roomId,
-          integrationSource: d.integrationSource,
-          capsCount: d.capabilities?.length ?? 'none',
-          state: d.lastKnownState
-        })));
-      }
-
       // --- Filter: devices in this room (strict roomId equality, null-safe) ---
       const roomDevices = devices.filter((d: Device) => d.roomId != null && d.roomId === selectedRoom!.id);
-
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[DRAFT DEBUG] roomDevices count:', roomDevices.length);
-        if (roomDevices.length === 0) {
-          const deviceRoomIds = [...new Set(devices.map((d: Device) => d.roomId))];
-          console.debug('[DRAFT DEBUG] all device roomIds in DB:', deviceRoomIds);
-        }
-      }
 
       if (roomDevices.length === 0) {
         return {
@@ -1372,18 +1350,6 @@ export class AssistantConversationService {
 
       // --- Filter: controllable devices ---
       const controllableDevices = roomDevices.filter((d: Device) => this.isControllableDevice(d, command));
-
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[DRAFT DEBUG] controllableDevices count:', controllableDevices.length);
-        if (controllableDevices.length === 0) {
-          console.debug('[DRAFT DEBUG] non-controllable device details:',
-            roomDevices.map((d: Device) => {
-              const caps = resolveCapabilitiesForDevice(d);
-              return { name: d.name, type: d.type, caps: caps.map(c => c.type), state: d.lastKnownState?.['state'] };
-            })
-          );
-        }
-      }
 
       if (controllableDevices.length === 0) {
         return {
