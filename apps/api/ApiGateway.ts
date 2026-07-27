@@ -182,7 +182,7 @@ export class ApiGateway {
             },
           })
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[ApiGateway] Critical handler error:', error);
         if (!rawRes.writableEnded) {
           rawRes.writeHead(500, { 'Content-Type': 'application/json' });
