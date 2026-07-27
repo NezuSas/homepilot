@@ -76,6 +76,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-50:** El selector de entrada de audio debe conservar sus opciones legibles dentro del viewport y permitir selección completa con teclado, sin alterar el flujo de captura de voz.
 - **REQ-51:** Las opciones exclusivas que requieran título y contexto deben usar una tarjeta de selección reutilizable, con semántica de radio, foco visible y contenido legible desde móvil hasta escritorio.
 - **REQ-52:** El selector general con búsqueda debe permitir abrir, filtrar, recorrer y confirmar opciones extensas con teclado, sin perder foco ni desbordar el viewport.
+- **REQ-53:** Modal y Drawer deben compartir el contrato de foco, teclado y bloqueo de scroll, preservando el documento bloqueado mientras exista al menos una superficie superpuesta abierta.
 
 ## 5. Requisitos No Funcionales
 
@@ -154,6 +155,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC52: El selector de audio conserva nombres largos sin recorte en sus opciones, se cierra de forma predecible y permite navegar con flechas, Inicio, Fin y Escape desde móvil hasta escritorio.
 - [x] AC53: La selección de perfiles y resultados de descubrimiento de cámaras nativas comparte tarjetas de opción accesibles, sin radios locales duplicados ni desbordes de contenido.
 - [x] AC54: El selector con búsqueda conserva etiquetas y descripciones largas legibles, permite navegación con flechas, Inicio, Fin y Escape, y devuelve el foco al trigger al confirmar o cerrar.
+- [x] AC55: Modal y Drawer reutilizan el mismo contrato de overlay; foco, Escape, Tab y el bloqueo de scroll se conservan incluso cuando existen superficies superpuestas.
 
 ## 8. Notas Técnicas y Arquitectura
 

@@ -10,6 +10,7 @@ const modularComponentDocs = [
   'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
   'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator', 'RangeInput',
   'LoadingState', 'SelectableOptionCard',
+  'OverlayAccessibility',
 ];
 
 const rules = [

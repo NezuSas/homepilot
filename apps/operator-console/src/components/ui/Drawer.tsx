@@ -1,9 +1,10 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IconButton } from './IconButton';
+import { useOverlayAccessibility } from './useOverlayAccessibility';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -36,53 +37,11 @@ export const Drawer: React.FC<DrawerProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const previousFocusedElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const focusPanel = window.setTimeout(() => panelRef.current?.focus(), 0);
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      window.clearTimeout(focusPanel);
-      document.body.style.overflow = 'unset';
-      if (previousFocusedElement && document.contains(previousFocusedElement)) {
-        previousFocusedElement.focus();
-      }
-    };
-  }, [isOpen]);
-
-  const handlePanelKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape' && onClose) {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-
-    const focusableElements = panelRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusableElements || focusableElements.length === 0) {
-      event.preventDefault();
-      panelRef.current?.focus();
-      return;
-    }
-
-    const firstFocusableElement = focusableElements[0];
-    const lastFocusableElement = focusableElements[focusableElements.length - 1];
-    if (event.shiftKey && document.activeElement === firstFocusableElement) {
-      event.preventDefault();
-      lastFocusableElement.focus();
-    } else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
-      event.preventDefault();
-      firstFocusableElement.focus();
-    }
-  };
+  const { handleOverlayKeyDown } = useOverlayAccessibility({
+    isOpen,
+    onClose,
+    containerRef: panelRef,
+  });
 
   if (!isOpen) return null;
 
@@ -101,7 +60,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         aria-describedby={description ? descriptionId : undefined}
         aria-label={!title ? ariaLabel ?? closeLabel ?? t('common.close') : undefined}
         tabIndex={-1}
-        onKeyDown={handlePanelKeyDown}
+        onKeyDown={handleOverlayKeyDown}
         className={cn(
           'surface-transition relative flex h-full min-h-0 w-full max-w-2xl flex-col overflow-hidden border-l border-border bg-card shadow-depth-3 animate-in slide-in-from-right duration-base',
           panelClassName,
