@@ -23,16 +23,22 @@ const thumbStyles: Record<NonNullable<ToggleSwitchProps['size']>, string> = {
  * Business labels remain in the calling view; the primitive owns state and focus behavior.
  */
 export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProps>(
-  ({ checked, onCheckedChange, label, size = 'md', className, disabled, ...props }, ref) => (
+  ({ checked, onCheckedChange, label, size = 'md', className, disabled, onClick, ...props }, ref) => (
     <button
       ref={ref}
+      {...props}
       type="button"
       role="switch"
       aria-checked={checked}
       aria-label={label}
       data-state={checked ? 'checked' : 'unchecked'}
       disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) {
+          onCheckedChange(!checked);
+        }
+      }}
       className={cn(
         'relative shrink-0 touch-manipulation rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
         checked ? 'border-primary/40 bg-primary/25' : 'border-border bg-muted/60',
@@ -40,7 +46,6 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
         sizeStyles[size],
         className,
       )}
-      {...props}
     >
       <span
         className={cn(

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { cn } from '../../lib/utils';
 
 export interface RangeInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value' | 'min' | 'max' | 'step' | 'onChange'> {
@@ -26,13 +26,19 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
     formatValue = (nextValue) => nextValue,
     showBounds = false,
     disabled,
-    onMouseUp,
-    onTouchEnd,
     onBlur,
-    onKeyUp,
+    onPointerUp,
     ...props
   }, ref) => {
-    const commitValue = () => onValueCommit?.(value);
+    const lastCommittedValueRef = useRef(value);
+    const commitValue = () => {
+      if (lastCommittedValueRef.current === value) {
+        return;
+      }
+
+      lastCommittedValueRef.current = value;
+      onValueCommit?.(value);
+    };
 
     return (
       <div className={cn('flex min-w-0 w-full flex-col gap-2', className)}>
@@ -46,20 +52,12 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
           value={value}
           disabled={disabled}
           onChange={(event) => onValueChange(Number(event.target.value))}
-          onMouseUp={(event) => {
-            onMouseUp?.(event);
-            commitValue();
-          }}
-          onTouchEnd={(event) => {
-            onTouchEnd?.(event);
+          onPointerUp={(event) => {
+            onPointerUp?.(event);
             commitValue();
           }}
           onBlur={(event) => {
             onBlur?.(event);
-            commitValue();
-          }}
-          onKeyUp={(event) => {
-            onKeyUp?.(event);
             commitValue();
           }}
           className={cn(

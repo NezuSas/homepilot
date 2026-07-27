@@ -9,7 +9,7 @@ Control booleano accesible para preferencias y configuración. Representa estado
 
 ## Contrato
 
-Recibe `checked`, `onCheckedChange` y un `label` obligatorio para accesibilidad. Admite tamaños `sm` y `md`, y atributos nativos de botón compatibles.
+Recibe `checked`, `onCheckedChange` y un `label` obligatorio para accesibilidad. Admite tamaños `sm` y `md`, y atributos nativos de botón compatibles. Un `onClick` adicional puede observar o cancelar el cambio mediante `preventDefault`, sin reemplazar el contrato controlado.
 
 ## Uso
 
