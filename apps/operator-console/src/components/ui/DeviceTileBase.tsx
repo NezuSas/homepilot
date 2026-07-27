@@ -32,23 +32,39 @@ export const DeviceTileBase = React.forwardRef<HTMLDivElement, DeviceTileBasePro
       rightAction,
       children,
       onClick,
+      onKeyDown,
+      role,
+      tabIndex,
       ...props
     },
     ref
   ) => {
     const isInteractive = !!onClick && !disabled;
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented || !isInteractive || event.currentTarget !== event.target) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+
+      event.preventDefault();
+      event.currentTarget.click();
+    };
+
     return (
       <div
         ref={ref}
+        role={role || (isInteractive ? 'button' : undefined)}
+        tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
+        aria-disabled={disabled || undefined}
         onClick={isInteractive ? onClick : undefined}
+        onKeyDown={handleKeyDown}
         className={cn(
           // Base structure
           'surface-transition relative min-w-0 rounded-card border overflow-hidden group flex flex-col justify-between',
           // Padding — slightly more breathing room
           'p-4 sm:p-5',
           // Cursor
-          isInteractive ? 'cursor-pointer' : '',
+          isInteractive ? 'cursor-pointer touch-manipulation' : '',
           // Disabled state
           disabled ? 'opacity-40 grayscale pointer-events-none select-none' : '',
           // State-driven surfaces (from index.css utilities)

@@ -85,7 +85,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
             
             {/* Actions */}
             {actions && (
-                <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="mt-4 flex flex-wrap items-center gap-2 max-sm:[&>button]:w-full sm:gap-3 sm:[&>button]:w-auto">
                     {actions}
                 </div>
             )}
