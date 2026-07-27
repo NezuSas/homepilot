@@ -21,6 +21,7 @@
 - [x] Consolidación del selector de imagen del perfil de usuario con `IconButton`; el control de recorte continuo mantiene el rango nativo por requerir entrada gradual.
 - [x] Consolidación de los controles internos de `AudioInputPicker` con `Button`, conservando los roles de lista, selección y cierre del selector de audio.
 - [x] Mejora de accesibilidad del selector de audio: navegación por teclado, restauración de foco, etiquetas extensas legibles y menú limitado al viewport.
+- [x] Estabilización de callbacks del selector de audio para conservar la gestión de foco sin dependencias incompletas en efectos React.
 - [x] Creación de `SelectableOptionCard` y migración de perfiles y resultados de descubrimiento de cámaras nativas, preservando selección manual, descubrimiento ONVIF y formularios existentes.
 - [x] Mejora de `SearchableSelectField` con navegación por teclado, restauración de foco y opciones extensas legibles para todos los formularios que consumen el selector canónico.
 - [x] Consolidación de foco, Escape, Tab y scroll lock de `Modal` y `Drawer` mediante `useOverlayAccessibility`, incluyendo soporte de overlays anidados.

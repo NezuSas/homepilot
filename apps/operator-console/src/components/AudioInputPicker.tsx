@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
@@ -49,7 +49,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
 
   const selectedLabel = selectedDevice ? normalizeAudioInputLabel(selectedDevice.label) : label;
 
-  const focusOption = (index: number) => {
+  const focusOption = useCallback((index: number) => {
     const normalizedIndex = (index + devices.length) % devices.length;
     const option = devices[normalizedIndex];
 
@@ -58,16 +58,16 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
     }
 
     optionRefs.current.get(option.id)?.focus();
-  };
+  }, [devices]);
 
-  const closeMenu = (restoreFocus = false) => {
+  const closeMenu = useCallback((restoreFocus = false) => {
     setIsOpen(false);
     setFocusedOptionIndex(null);
 
     if (restoreFocus) {
       requestAnimationFrame(() => triggerRef.current?.focus());
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -93,7 +93,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
       document.removeEventListener('pointerdown', closeOnOutsidePointer);
       document.removeEventListener('keydown', closeOnEscape);
     };
-  }, [isOpen]);
+  }, [closeMenu, isOpen]);
 
   useEffect(() => {
     if (!isOpen || focusedOptionIndex === null) {
@@ -102,7 +102,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
 
     const frame = requestAnimationFrame(() => focusOption(focusedOptionIndex));
     return () => cancelAnimationFrame(frame);
-  }, [focusedOptionIndex, isOpen, devices]);
+  }, [focusedOptionIndex, focusOption, isOpen]);
 
   if (devices.length <= 1) {
     return null;
