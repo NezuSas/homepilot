@@ -4,6 +4,12 @@ import { ApiRoutes } from './ApiRoutes';
 import type { SystemVariable } from '../../../packages/system-vars/domain/SystemVariable';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 
+const SYSTEM_VARIABLE_VALUE_TYPES = ['string', 'number', 'boolean', 'json'] as const;
+
+function isSystemVariableValueType(value: string): value is SystemVariable['valueType'] {
+  return SYSTEM_VARIABLE_VALUE_TYPES.some((candidate) => candidate === value);
+}
+
 /**
  * System Variable routes: /api/v1/system-variables/*
  *
@@ -36,8 +42,8 @@ export class SystemVariableRoutes extends ApiRoutes {
 
         const variables = await container.services.systemVariableService.list(filter);
         this.sendJson(res, variables);
-      } catch (e: any) {
-        this.sendError(res, 500, 'INTERNAL_ERROR', e.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'INTERNAL_ERROR', this.getErrorDetails(error).message);
       }
       return true;
     }
@@ -49,8 +55,8 @@ export class SystemVariableRoutes extends ApiRoutes {
         const variable = await container.services.systemVariableService.getById(getMatch[1]);
         if (!variable) return this.sendError(res, 404, 'NOT_FOUND', 'Variable not found'), true;
         this.sendJson(res, variable);
-      } catch (e: any) {
-        this.sendError(res, 500, 'INTERNAL_ERROR', e.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'INTERNAL_ERROR', this.getErrorDetails(error).message);
       }
       return true;
     }
@@ -75,7 +81,7 @@ export class SystemVariableRoutes extends ApiRoutes {
         if (body.scope !== 'global' && body.scope !== 'home') {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'scope must be global or home'), true;
         }
-        if (!['string', 'number', 'boolean', 'json'].includes(body.valueType)) {
+        if (!isSystemVariableValueType(body.valueType)) {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'valueType must be string, number, boolean or json'), true;
         }
 
@@ -84,13 +90,14 @@ export class SystemVariableRoutes extends ApiRoutes {
           homeId: body.homeId ?? null,
           name: body.name,
           value: body.value,
-          valueType: body.valueType as SystemVariable['valueType'],
+          valueType: body.valueType,
           description: body.description ?? null,
           ttlSeconds: body.ttlSeconds ?? null,
         });
 
         this.sendJson(res, variable, 200);
-      } catch (e: any) {
+      } catch (error: unknown) {
+        const { message } = this.getErrorDetails(error);
         const knownCodes: Record<string, number> = {
           INVALID_VARIABLE_NAME: 400,
           VARIABLE_NAME_TOO_LONG: 400,
@@ -99,8 +106,8 @@ export class SystemVariableRoutes extends ApiRoutes {
           INVALID_JSON_VALUE: 400,
           TTL_MUST_BE_POSITIVE: 400,
         };
-        const status = knownCodes[e.message] ?? 500;
-        this.sendError(res, status, e.message ?? 'INTERNAL_ERROR', e.message);
+        const status = knownCodes[message] ?? 500;
+        this.sendError(res, status, message || 'INTERNAL_ERROR', message);
       }
       return true;
     }
@@ -113,8 +120,8 @@ export class SystemVariableRoutes extends ApiRoutes {
         const deleted = await container.services.systemVariableService.delete(deleteMatch[1]);
         if (!deleted) return this.sendError(res, 404, 'NOT_FOUND', 'Variable not found'), true;
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, 500, 'INTERNAL_ERROR', e.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'INTERNAL_ERROR', this.getErrorDetails(error).message);
       }
       return true;
     }
@@ -123,5 +130,3 @@ export class SystemVariableRoutes extends ApiRoutes {
     return true;
   }
 }
-
-
