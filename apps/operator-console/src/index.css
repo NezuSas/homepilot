@@ -202,6 +202,7 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image: radial-gradient(circle at 72% -12%, hsl(var(--primary) / 0.06), transparent 34rem);
     background-attachment: fixed;

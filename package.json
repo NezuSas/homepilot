@@ -17,6 +17,7 @@
     "check:spec-coverage": "node scripts/check-spec-coverage.mjs",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:ui-primitives": "node scripts/check-ui-primitives.mjs",
+    "test:responsive": "playwright test --config apps/operator-console/playwright.config.ts",
     "start": "node dist/main.js"
   },
   "devDependencies": {

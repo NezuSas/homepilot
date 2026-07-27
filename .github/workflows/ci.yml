@@ -42,5 +42,11 @@ jobs:
       - name: Verify specification coverage
         run: npm run check:spec-coverage
 
+      - name: Install responsive test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run responsive console checks
+        run: npm run test:responsive
+
       - name: Run tests
         run: npm test
