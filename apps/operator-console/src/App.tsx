@@ -70,7 +70,6 @@ const EnergyView = lazy(() => import('./views/EnergyView').then(module => ({ def
 const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(module => ({ default: module.ExecutionLogsView })));
 const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
 const NativeCamerasView = lazy(() => import('./views/NativeCamerasView').then(module => ({ default: module.NativeCamerasView })));
-const GLOBAL_WAKE_SILENCE_ACKNOWLEDGEMENT = 'De acuerdo, Oscar.';
 const BASIC_HOME_ROLES = new Set(['admin', 'operator', 'parent', 'child', 'guest']);
 const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
 const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
@@ -647,7 +646,7 @@ function App() {
         </div>
 
         <div className="absolute bottom-12 text-micro uppercase font-black tracking-label-hero text-muted-foreground opacity-30">
-          HomePilot Edge Security Gate
+          {t('shell.status.security_gate')}
         </div>
       </div>
     );
@@ -724,7 +723,7 @@ function App() {
       setIsGlobalWakeProcessing(false);
       stopGlobalWakeSpeech();
       window.dispatchEvent(new Event(HOME_CONVERSATION_STOP_SPEECH_EVENT));
-      void speakGlobalWakeResponse(GLOBAL_WAKE_SILENCE_ACKNOWLEDGEMENT);
+      void speakGlobalWakeResponse(t('assistant.conversation.voice_silence_acknowledgement'));
       return;
     }
 
@@ -760,7 +759,7 @@ function App() {
         if (response.type === 'error') {
           setGlobalWakeNotice({
             id,
-            message: 'No pude completar la solicitud por voz.',
+            message: t('assistant.conversation.voice_request_error'),
             tone: 'error',
             status: 'idle'
           });
@@ -769,11 +768,9 @@ function App() {
           void refreshDeviceSnapshot();
         }
         void speakGlobalWakeResponse(response.message);
-      }).catch((error: unknown) => {
+      }).catch(() => {
         if (conversationId !== globalWakeConversationIdRef.current || conversationController.signal.aborted) return;
-        const message = error instanceof Error && error.message
-          ? error.message
-          : 'No pude procesar el comando de voz.';
+        const message = t('assistant.conversation.voice_processing_error');
         recordHomeConversationTelemetry('global_wake_failed', {
           sourceView: currentView,
           elapsedMs: Date.now() - globalWakeStartedAtRef.current

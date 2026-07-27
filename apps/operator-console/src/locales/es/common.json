@@ -161,6 +161,9 @@
       "voice_transcribing": "Transcribiendo voz...",
       "voice_transcription_error": "No se pudo transcribir el audio",
       "voice_start_error": "No se pudo iniciar el micrófono",
+      "voice_request_error": "No pude completar la solicitud por voz.",
+      "voice_processing_error": "No pude procesar el comando de voz.",
+      "voice_silence_acknowledgement": "De acuerdo.",
       "audio_input_label": "Micrófono",
       "audio_input_fallback": "Micrófono {{count}}",
       "speech_on": "Lectura de respuestas activada",
@@ -643,7 +646,8 @@
       "syncing": "Sincronizando sistema",
       "updated_now": "Actualizado ahora",
       "edge_active": "Red Edge Activa",
-      "verifying_session": "Verificando Sesión..."
+      "verifying_session": "Verificando Sesión...",
+      "security_gate": "Puerta de seguridad HomePilot Edge"
     },
     "tooltips": {
       "switch_language": "Cambiar Idioma",

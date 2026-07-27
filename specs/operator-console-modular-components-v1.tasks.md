@@ -121,6 +121,7 @@
 - [x] Auditoría de tracking: migración de valores arbitrarios en activación y editor de tableros a tokens nombrados, con protección en `check:ui-primitives`.
 - [x] Cobertura Playwright de acceso: foco con teclado, envío con Enter, área táctil mínima y anuncio accesible del error en móvil, tablet y escritorio.
 - [x] Endurecimiento de autenticación: eliminación y prueba de ausencia de trazas de consola con detalles de credenciales o validación.
+- [x] Endurecimiento de privacidad en consola: telemetría de voz mediante evento local sin `console`, eventos realtime sin payloads de depuración y mensajes globales de voz migrados a i18n ES/EN.
 
 ## Verificación obligatoria ante cambios
 

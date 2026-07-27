@@ -21,6 +21,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
 - La UI debe mostrar estado global discreto de escucha, captura, transcripción, procesamiento y respuesta cuando el activador esté disponible.
 - La UI debe registrar telemetría local de latencia para activador global, procesamiento y reproducción de voz sin enviar datos a servicios externos.
+- La telemetría local de voz no puede escribir prompts, respuestas ni metadatos operativos en la consola del navegador; se expone únicamente como evento local tipado para diagnóstico opt-in.
 - La UI no debe mostrar toasts repetidos por ciclos pasivos de escucha global.
 - La UI no debe mostrar toasts para el flujo exitoso de escucha, procesamiento o entrega de voz fuera de la vista de conversación; solo fallos o indisponibilidad del micrófono deben ser visibles.
 - La UI no debe previsualizar la respuesta completa del asistente fuera de la vista de conversación.

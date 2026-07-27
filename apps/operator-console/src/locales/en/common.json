@@ -161,6 +161,9 @@
       "voice_transcribing": "Transcribing voice...",
       "voice_transcription_error": "Could not transcribe audio",
       "voice_start_error": "Could not start microphone",
+      "voice_request_error": "I could not complete the voice request.",
+      "voice_processing_error": "I could not process the voice command.",
+      "voice_silence_acknowledgement": "Understood.",
       "audio_input_label": "Microphone",
       "audio_input_fallback": "Microphone {{count}}",
       "speech_on": "Response reading enabled",
@@ -643,7 +646,8 @@
       "syncing": "Synchronizing system",
       "updated_now": "Updated now",
       "edge_active": "Edge Network Active",
-      "verifying_session": "Verifying Session..."
+      "verifying_session": "Verifying Session...",
+      "security_gate": "HomePilot Edge security gate"
     },
     "tooltips": {
       "switch_language": "Switch Language",

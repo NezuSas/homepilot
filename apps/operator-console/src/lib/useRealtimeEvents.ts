@@ -85,7 +85,6 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
             return;
           }
 
-          console.debug('[Realtime] Event received:', parsed.type, parsed.payload);
           ingestRealtimeEvent(parsed);
         } catch (error) {
           console.warn('[Realtime] Failed to parse event message:', error);
