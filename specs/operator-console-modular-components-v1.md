@@ -79,6 +79,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-53:** Modal y Drawer deben compartir el contrato de foco, teclado y bloqueo de scroll, preservando el documento bloqueado mientras exista al menos una superficie superpuesta abierta.
 - **REQ-54:** Los componentes de feedback deben conservar acciones directas utilizables desde móvil y exponer estados visuales de solo icono o punto con semántica accesible explícita.
 - **REQ-55:** Los controles continuos o booleanos deben conservar un único contrato de cambio: el rango confirma una vez al finalizar interacción y el interruptor no puede perder su cambio controlado por handlers adicionales.
+- **REQ-56:** Los encabezados compartidos deben entregar acciones directas táctiles a ancho completo en móvil y conservar alineación semántica entre icono, título y subtítulo cuando se usan como grupos.
 
 ## 5. Requisitos No Funcionales
 
@@ -160,6 +161,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC55: Modal y Drawer reutilizan el mismo contrato de overlay; foco, Escape, Tab y el bloqueo de scroll se conservan incluso cuando existen superficies superpuestas.
 - [x] AC56: AlertBanner y EmptyState adaptan sus acciones directas a todo el ancho en móvil; LoadingState anuncia cambios de forma atómica y StatusPill permite describir indicadores de solo punto.
 - [x] AC57: RangeInput confirma al finalizar un gesto o al perder foco, y ToggleSwitch permite observación o cancelación explícita sin que un onClick externo sustituya su transición controlada.
+- [x] AC58: SectionHeader presenta acciones directas a ancho completo en móvil y elimina sangría residual del subtítulo de grupo cuando no existe icono.
 
 ## 8. Notas Técnicas y Arquitectura
 

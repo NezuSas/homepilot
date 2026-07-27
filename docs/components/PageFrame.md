@@ -9,7 +9,7 @@ Marco responsive de una vista de consola: ancho, espaciado y jerarquía de pági
 
 ## Contrato
 
-Recibe children y opciones de densidad o clase; no decide navegación, permisos ni fetch.
+Recibe children, `immersive`, `maxWidth` y clases de composición; no decide navegación, permisos ni fetch.
 
 ## Uso
 

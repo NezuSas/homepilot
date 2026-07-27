@@ -77,14 +77,14 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
 
           {/* Subtitle — inline for group level */}
           {subtitle && level === 'group' && (
-            <span className="ml-5 mt-0.5 break-words text-caption font-medium text-muted-foreground/60">
+            <span className={cn('mt-0.5 break-words text-caption font-medium text-muted-foreground/60', Icon && 'ml-5')}>
               {subtitle}
             </span>
           )}
         </div>
 
         {action && (
-          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:max-w-[min(100%,32rem)] sm:justify-end">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 [&>*]:w-full sm:w-auto sm:max-w-[min(100%,32rem)] sm:justify-end sm:[&>*]:w-auto">
             {action}
           </div>
         )}
