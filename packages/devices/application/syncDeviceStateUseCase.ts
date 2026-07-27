@@ -6,6 +6,7 @@ import { isStateIdentical } from '../domain/state';
 import { createDeviceStateUpdatedEvent } from '../domain/events/factories';
 import { DeviceNotFoundError } from './errors';
 import { IdGenerator, Clock } from '../../shared/domain/types';
+import { isDiagnosticLoggingEnabled } from '../../shared/config/runtimeEnvironment';
 
 export interface SyncDeviceStateDependencies {
   deviceRepository: DeviceRepository;
@@ -51,7 +52,7 @@ export async function syncDeviceStateUseCase(
   // 4. Persistencia Source of Truth
   const t_save = Date.now();
   await deps.deviceRepository.saveDevice(updatedDevice);
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDiagnosticLoggingEnabled()) {
     console.debug(`[syncDeviceStateUseCase] deviceRepository.saveDevice took ${Date.now() - t_save}ms`);
   }
 
@@ -68,7 +69,7 @@ export async function syncDeviceStateUseCase(
     );
     const t_pub = Date.now();
     await deps.eventPublisher.publish(stateUpdatedEvent);
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDiagnosticLoggingEnabled()) {
       console.debug(`[syncDeviceStateUseCase] eventPublisher.publish took ${Date.now() - t_pub}ms`);
     }
   } catch (_error) {
@@ -85,7 +86,7 @@ export async function syncDeviceStateUseCase(
       description: `Device state updated to ${JSON.stringify(newState)}`,
       data: { ...newState, state: JSON.stringify(newState) }
     });
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDiagnosticLoggingEnabled()) {
       console.debug(`[syncDeviceStateUseCase] activityLogRepository.saveActivity took ${Date.now() - t_log}ms`);
     }
   } catch (_error) {

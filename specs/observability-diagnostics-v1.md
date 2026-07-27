@@ -146,6 +146,10 @@ Responsabilidad única: consolidar estado desde múltiples fuentes y derivar el 
 
 ## 8. Instrumentación Mínima Requerida
 
+### 8.1. Política de registros de diagnóstico
+
+Las métricas de depuración de rutas de ejecución deben estar disponibles en desarrollo local, pero no deben emitir ruido durante pruebas automatizadas. La detección del entorno de pruebas debe reconocer tanto `NODE_ENV=test` como los workers de Jest. Los errores y alertas operativos reales en runtime no se eliminan ni se degradan por esta política.
+
 ### `HomeAssistantRealtimeSyncManager`
 Añadir método público: `getObservableState()` retornando `{ websocketStatus, reconciliationStatus, lastEventAt, lastReconnectAt, lastReconciliationAt }`.
 

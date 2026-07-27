@@ -5,6 +5,7 @@ import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
 import { IntentInterpreterPort, Intent, AssistantMultiCommandResult } from './ports/IntentInterpreterPort';
 import { AssistantMultiCommandParser } from './AssistantMultiCommandParser';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+import { isDiagnosticLoggingEnabled } from '../../shared/config/runtimeEnvironment';
 
 /**
  * IntentInterpreterService
@@ -31,7 +32,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     // 0. Check Multi-Command First
     const multiCommandResult = await this.multiCommandParser.parse(prompt);
     if (multiCommandResult) {
-      if (process.env.NODE_ENV !== 'production') {
+      if (isDiagnosticLoggingEnabled()) {
         console.debug(`[IntentInterpreter] multi_command path: ${Date.now() - t0}ms`);
       }
       return multiCommandResult;
@@ -40,7 +41,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     // 1. Always try deterministic first (fast path)
     const t_det = Date.now();
     const deterministicResult = await this.interpretDeterministic(prompt);
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDiagnosticLoggingEnabled()) {
       console.debug(`[IntentInterpreter] deterministic path: ${Date.now() - t_det}ms → ${deterministicResult.type}`);
     }
 
@@ -55,13 +56,13 @@ export class IntentInterpreterService implements IntentInterpreterPort {
       try {
         const intent = await this.llmInterpreter.interpret(prompt);
         if (intent && intent.type !== 'unknown') {
-          if (process.env.NODE_ENV !== 'production') {
+          if (isDiagnosticLoggingEnabled()) {
             console.debug(`[IntentInterpreter] LLM path: ${Date.now() - t_llm}ms → ${intent.type}`);
           }
           return intent;
         }
       } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
+        if (isDiagnosticLoggingEnabled()) {
           console.warn('[Assistant] LLM interpretation failed:', error instanceof Error ? error.message : String(error));
         }
       }

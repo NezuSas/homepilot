@@ -5,6 +5,7 @@ import { DeviceDriverRegistry } from '../domain/drivers/DeviceDriverRegistry';
 import { DeviceDriverContext } from '../domain/drivers/DeviceDriver';
 import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from './syncDeviceStateUseCase';
 import { validateDeviceCommand } from '../domain/CommandCapabilityValidator';
+import { isDiagnosticLoggingEnabled } from '../../shared/config/runtimeEnvironment';
 
 /**
  * DeviceCommandService
@@ -57,7 +58,7 @@ export class DeviceCommandService implements DeviceCommandDispatcherPort {
       },
       context
     );
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDiagnosticLoggingEnabled()) {
       console.debug(`[DeviceCommandService] driver.executeCommand took ${Date.now() - t_driver}ms`);
     }
 
@@ -76,11 +77,11 @@ export class DeviceCommandService implements DeviceCommandDispatcherPort {
           'device-command-service',
           this.syncDeps
         );
-        if (process.env.NODE_ENV !== 'production') {
+        if (isDiagnosticLoggingEnabled()) {
           console.debug(`[DeviceCommandService] syncDeviceStateUseCase took ${Date.now() - t_sync}ms`);
         }
       } catch (err: unknown) {
-        if (process.env.NODE_ENV !== 'production') {
+        if (isDiagnosticLoggingEnabled()) {
           console.warn('[DeviceCommandService] syncDeviceStateUseCase failed:', err instanceof Error ? err.message : String(err));
         }
       }

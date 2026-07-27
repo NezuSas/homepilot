@@ -9,6 +9,7 @@ import {
 import { ExecutionRecordRepository } from '../domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from './ports/DeviceCommandDispatcherPort';
 import { FailureInsightService } from './FailureInsightService';
+import { isDiagnosticLoggingEnabled } from '../../shared/config/runtimeEnvironment';
 
 /**
  * SceneExecutionOptions
@@ -91,7 +92,7 @@ export class SceneExecutionService {
     const completedAt = new Date().toISOString();
     const durationMs = Date.now() - startTimestamp;
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDiagnosticLoggingEnabled()) {
       console.debug(`[SceneExecution] execute "${scene.name}" took ${durationMs}ms (mode=${mode})`);
     }
 
@@ -119,7 +120,7 @@ export class SceneExecutionService {
         this.commandDispatcher.dispatch(item.action.deviceId, item.normalizedCommand)
       )
     );
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDiagnosticLoggingEnabled()) {
       console.debug(`[SceneExecution] Parallel dispatch of ${actionsWithCommands.length} actions took ${Date.now() - t_dispatch}ms`);
     }
 
@@ -184,7 +185,7 @@ export class SceneExecutionService {
       try {
         const t_seq_dispatch = Date.now();
         await this.commandDispatcher.dispatch(action.deviceId, command);
-        if (process.env.NODE_ENV !== 'production') {
+        if (isDiagnosticLoggingEnabled()) {
           console.debug(`[SceneExecution] Sequential dispatch of action ${idx} took ${Date.now() - t_seq_dispatch}ms`);
         }
         actionResults.push({ deviceId: action.deviceId, commandName, status: 'success', command });
