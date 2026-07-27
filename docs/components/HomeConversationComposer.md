@@ -9,7 +9,7 @@ Compone texto, voz, selección de micrófono y síntesis de voz para conversar c
 
 ## Contrato
 
-Recibe el texto, capacidades del navegador, etiquetas traducidas y callbacks de envío, grabación, síntesis y fuente de audio. No interpreta comandos ni conserva estado global propio.
+Recibe el texto, capacidades del navegador, etiquetas traducidas —incluido el estado operativo— y callbacks de envío, grabación, síntesis y fuente de audio. No interpreta comandos ni conserva estado global propio.
 
 ## Uso
 
@@ -17,4 +17,4 @@ Usar en la vista de conversación. La vista controla el ciclo de solicitud y evi
 
 ## Estados y aceptación
 
-Permanece anclado al borde inferior durante el desplazamiento, conserva el área segura móvil y permite que controles de voz se envuelvan dentro del ancho disponible. El campo mantiene el foco, expone ayuda accesible y la acción de envío no se separa del compositor. Las etiquetas de estado no se truncan en anchos reducidos.
+Permanece anclado al borde inferior durante el desplazamiento, conserva el área segura móvil y permite que controles de voz se envuelvan dentro del ancho disponible. El campo mantiene el foco, expone ayuda accesible y la acción de envío no se separa del compositor. El indicador visual de estado anuncia la etiqueta localizada de listo o envío en curso, y las etiquetas no se truncan en anchos reducidos.

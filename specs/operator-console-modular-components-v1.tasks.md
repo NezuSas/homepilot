@@ -33,6 +33,7 @@
 - [x] Refuerzo de SegmentedControl: semántica de selección exclusiva y navegación de teclado con flechas, Inicio y Fin.
 - [x] Refuerzo de RangeInput: confirmación explícita con Enter sin duplicar el callback continuo ni las confirmaciones por interacción.
 - [x] Refuerzo de DeviceTileShell: la activación por teclado se limita a la tarjeta raíz y no duplica acciones internas.
+- [x] Refuerzo del compositor de conversación: el indicador de estado visual anuncia listo o envío en curso mediante la etiqueta localizada existente.
 - [x] Consolidación de acciones de usuarios, tarjetas de dispositivos y registros de ejecución con `Button` e `IconButton`, preservando asignación, cambio de estado, reintento y acciones de seguridad existentes; las tarjetas ejecutables del tablero también usan `Button` para foco y estado deshabilitado compartidos.
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.

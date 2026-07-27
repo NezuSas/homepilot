@@ -11,6 +11,7 @@ interface HomeConversationComposerProps {
   isLoading: boolean;
   placeholder: string;
   sendLabel: string;
+  statusLabel: string;
   versionLabel: string;
   inputHint: string;
   isListening: boolean;
@@ -37,6 +38,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   isLoading,
   placeholder,
   sendLabel,
+  statusLabel,
   versionLabel,
   inputHint,
   isListening,
@@ -133,7 +135,13 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
       </form>
       <div className="mt-2 flex min-w-0 flex-wrap items-start justify-between gap-2 px-1">
         <div className="flex min-w-0 items-center gap-2">
-          <StatusPill variant={isLoading ? 'warning' : 'success'} pulse={isLoading} dot className="h-3 w-3 shrink-0" />
+          <StatusPill
+            variant={isLoading ? 'warning' : 'success'}
+            pulse={isLoading}
+            dot
+            dotLabel={statusLabel}
+            className="h-3 w-3 shrink-0"
+          />
           <p className="min-w-0 break-words text-micro font-bold uppercase leading-snug tracking-widest text-muted-foreground/60">
             {versionLabel}
           </p>
