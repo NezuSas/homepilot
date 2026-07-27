@@ -80,6 +80,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-54:** Los componentes de feedback deben conservar acciones directas utilizables desde móvil y exponer estados visuales de solo icono o punto con semántica accesible explícita.
 - **REQ-55:** Los controles continuos o booleanos deben conservar un único contrato de cambio: el rango confirma una vez al finalizar interacción y el interruptor no puede perder su cambio controlado por handlers adicionales.
 - **REQ-56:** Los encabezados compartidos deben entregar acciones directas táctiles a ancho completo en móvil y conservar alineación semántica entre icono, título y subtítulo cuando se usan como grupos.
+- **REQ-57:** Los controles segmentados de selección exclusiva deben exponer semántica de radio y permitir recorrer opciones disponibles con flechas, Inicio y Fin, conservando foco y selección visibles.
 
 ## 5. Requisitos No Funcionales
 
@@ -162,6 +163,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC56: AlertBanner y EmptyState adaptan sus acciones directas a todo el ancho en móvil; LoadingState anuncia cambios de forma atómica y StatusPill permite describir indicadores de solo punto.
 - [x] AC57: RangeInput confirma al finalizar un gesto o al perder foco, y ToggleSwitch permite observación o cancelación explícita sin que un onClick externo sustituya su transición controlada.
 - [x] AC58: SectionHeader presenta acciones directas a ancho completo en móvil y elimina sangría residual del subtítulo de grupo cuando no existe icono.
+- [x] AC59: SegmentedControl permite seleccionar y enfocar opciones disponibles con flechas, Inicio y Fin, sin incluir opciones deshabilitadas.
 
 ## 8. Notas Técnicas y Arquitectura
 

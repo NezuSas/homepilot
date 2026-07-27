@@ -1,3 +1,4 @@
+import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -27,9 +28,41 @@ export function SegmentedControl<T extends string>({
   optionClassName,
   tone = 'neutral',
 }: SegmentedControlProps<T>) {
+  const optionRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+
+  const moveFocus = (currentIndex: number, direction: 1 | -1) => {
+    if (options.length === 0) return;
+
+    let nextIndex = currentIndex;
+    for (let offset = 1; offset <= options.length; offset += 1) {
+      const candidate = (currentIndex + direction * offset + options.length) % options.length;
+      if (!options[candidate].disabled) {
+        nextIndex = candidate;
+        break;
+      }
+    }
+
+    const nextOption = options[nextIndex];
+    if (!nextOption || nextOption.disabled) return;
+
+    onChange(nextOption.value);
+    optionRefs.current[nextIndex]?.focus();
+  };
+
+  const focusEdge = (fromEnd: boolean) => {
+    const orderedIndexes = options.map((_, index) => index);
+    if (fromEnd) orderedIndexes.reverse();
+
+    const nextIndex = orderedIndexes.find((index) => !options[index].disabled);
+    if (nextIndex === undefined) return;
+
+    onChange(options[nextIndex].value);
+    optionRefs.current[nextIndex]?.focus();
+  };
+
   return (
     <div
-      role="group"
+      role="radiogroup"
       aria-label={label}
       className={cn(
         'flex min-w-0 flex-wrap items-stretch gap-1.5 rounded-panel border p-1.5',
@@ -39,17 +72,43 @@ export function SegmentedControl<T extends string>({
         className
       )}
     >
-      {options.map((option) => {
+      {options.map((option, optionIndex) => {
         const Icon = option.icon;
         const active = option.value === value;
 
         return (
           <button
             key={option.value}
+            ref={(element) => {
+              optionRefs.current[optionIndex] = element;
+            }}
             type="button"
+            role="radio"
             disabled={option.disabled}
             onClick={() => onChange(option.value)}
-            aria-pressed={active}
+            aria-checked={active}
+            tabIndex={active ? 0 : -1}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                moveFocus(optionIndex, 1);
+              }
+
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                moveFocus(optionIndex, -1);
+              }
+
+              if (event.key === 'Home') {
+                event.preventDefault();
+                focusEdge(false);
+              }
+
+              if (event.key === 'End') {
+                event.preventDefault();
+                focusEdge(true);
+              }
+            }}
             className={cn(
               'flex min-h-10 min-w-0 flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-control px-2 py-2 text-micro font-semibold uppercase leading-tight tracking-control transition-all',
               active
