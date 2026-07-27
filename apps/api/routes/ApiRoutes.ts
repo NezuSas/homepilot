@@ -118,7 +118,9 @@ export abstract class ApiRoutes implements RouteHandler {
     const safeMessage = SAFE_MESSAGES[code] || SAFE_MESSAGES['INTERNAL_ERROR'];
     const finalStatus = status || DEFAULT_STATUS_CODES[code] || 500;
 
-    if (internalMessage) {
+    const isTestEnvironment = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
+
+    if (internalMessage && !isTestEnvironment) {
       console.error(`[API-ERROR] [${code}] ${internalMessage}`);
     }
 
