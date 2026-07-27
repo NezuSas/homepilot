@@ -17,6 +17,12 @@ export interface SegmentedControlProps<T extends string> {
   className?: string;
   optionClassName?: string;
   tone?: 'neutral' | 'primary';
+  /**
+   * Keeps long exclusive-choice labels on a single line while allowing the
+   * control itself to scroll inside its own bounds. Use for navigation tabs,
+   * where truncating a destination name would hide essential context.
+   */
+  layout?: 'wrap' | 'scroll';
 }
 
 export function SegmentedControl<T extends string>({
@@ -27,6 +33,7 @@ export function SegmentedControl<T extends string>({
   className,
   optionClassName,
   tone = 'neutral',
+  layout = 'wrap',
 }: SegmentedControlProps<T>) {
   const optionRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -65,7 +72,10 @@ export function SegmentedControl<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        'flex min-w-0 flex-wrap items-stretch gap-1.5 rounded-panel border p-1.5',
+        'flex min-w-0 items-stretch gap-1.5 rounded-panel border p-1.5',
+        layout === 'scroll'
+          ? 'flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          : 'flex-wrap',
         tone === 'primary'
           ? 'border-primary/10 bg-primary/[0.05]'
           : 'border-border/50 bg-muted/40',
@@ -110,7 +120,8 @@ export function SegmentedControl<T extends string>({
               }
             }}
             className={cn(
-              'flex min-h-10 min-w-0 flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-control px-2 py-2 text-micro font-semibold uppercase leading-tight tracking-control transition-all',
+              'flex min-h-10 min-w-0 touch-manipulation items-center justify-center gap-1.5 rounded-control px-2 py-2 text-micro font-semibold uppercase leading-tight tracking-control transition-all',
+              layout === 'scroll' ? 'flex-none' : 'flex-1',
               active
                 ? tone === 'primary'
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
@@ -123,7 +134,14 @@ export function SegmentedControl<T extends string>({
             )}
           >
             {Icon && <Icon className="h-4 w-4 shrink-0" />}
-            <span className="min-w-0 whitespace-normal break-words text-center">{option.label}</span>
+            <span
+              className={cn(
+                'min-w-0 text-center',
+                layout === 'scroll' ? 'whitespace-nowrap' : 'whitespace-normal break-words'
+              )}
+            >
+              {option.label}
+            </span>
           </button>
         );
       })}

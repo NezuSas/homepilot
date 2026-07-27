@@ -180,6 +180,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
             value={activeTab}
             options={tabs.map(({ id, label, icon }) => ({ value: id, label, icon }))}
             onChange={setActiveTab}
+            layout="scroll"
             className="w-full"
             optionClassName="min-h-9 px-2 text-nano sm:min-h-10 sm:text-micro"
           />
