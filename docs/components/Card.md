@@ -17,4 +17,4 @@ Usar como contenedor de secciones o elementos compactos; tarjetas de dispositivo
 
 ## Estados y aceptación
 
-Mantiene contraste y bordes tokenizados en tema claro/oscuro y no introduce scroll horizontal. Cabecera, contenido y pie reducen su padding en móvil; títulos, descripciones y acciones largas se adaptan al ancho disponible sin recortar contenido.
+Mantiene contraste y bordes tokenizados en tema claro/oscuro y no introduce scroll horizontal. Cabecera, contenido y pie reducen su padding en móvil; títulos, descripciones y acciones largas se adaptan al ancho disponible sin recortar contenido. Los botones directos del pie ocupan el ancho táctil disponible en móvil y recuperan su ancho natural desde tablet.

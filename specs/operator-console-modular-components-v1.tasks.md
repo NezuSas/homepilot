@@ -25,6 +25,7 @@
 - [x] Mejora de feedback modular: acciones de AlertBanner y EmptyState a ancho móvil, anuncio atómico de LoadingState y contexto accesible opcional para StatusPill de solo punto.
 - [x] Ajuste de controles continuos y booleanos: RangeInput confirma al final de la interacción y ToggleSwitch preserva su transición controlada ante handlers externos.
 - [x] Ajuste de SectionHeader: acciones directas a ancho táctil móvil y subtítulos de grupo alineados únicamente cuando existe icono.
+- [x] Ajuste de CardFooter: botones directos a ancho táctil móvil y ancho natural desde tablet, sin alterar la composición de contenido especializado.
 - [x] Consolidación de acciones de usuarios, tarjetas de dispositivos y registros de ejecución con `Button` e `IconButton`, preservando asignación, cambio de estado, reintento y acciones de seguridad existentes; las tarjetas ejecutables del tablero también usan `Button` para foco y estado deshabilitado compartidos.
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.

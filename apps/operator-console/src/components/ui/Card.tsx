@@ -63,7 +63,14 @@ CardContent.displayName = 'CardContent';
 
 export const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('flex min-w-0 flex-wrap items-center gap-3 p-4 pt-0 sm:p-6 sm:pt-0', className)} {...props} />
+    <div
+      ref={ref}
+      className={cn(
+        'flex min-w-0 flex-wrap items-center gap-3 p-4 pt-0 max-sm:[&>button]:w-full sm:p-6 sm:pt-0 sm:[&>button]:w-auto',
+        className
+      )}
+      {...props}
+    />
   )
 );
 CardFooter.displayName = 'CardFooter';
