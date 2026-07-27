@@ -8,6 +8,10 @@ import { HomeAssistantConnectionProvider } from './HomeAssistantConnectionProvid
 
 import { HomeAssistantRealtimeSyncManager } from './HomeAssistantRealtimeSyncManager';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * HomeAssistantSettingsService
  * 
@@ -79,10 +83,10 @@ export class HomeAssistantSettingsService {
       this.lastConnectivityStatus = 'unreachable';
       return { success: false, status: 'unreachable', error: `HA error: ${response.status} ${response.statusText}` };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.lastCheckedAt = new Date().toISOString();
       this.lastConnectivityStatus = 'unreachable';
-      return { success: false, status: 'unreachable', error: error.message };
+      return { success: false, status: 'unreachable', error: getErrorMessage(error) };
     }
   }
 

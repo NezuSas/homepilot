@@ -79,3 +79,4 @@ La conexión con Home Assistant (HA) debe ser dinámica, persistente y administr
 2. El API nunca devuelve el token completo.
 3. El estado de la UI distingue entre "Configurado" y "Conectado".
 4. El sistema mantiene el `env-fallback` si no hay nada en DB, marcando `activeSource: env-fallback`.
+5. Un fallo de red, incluso si no es una instancia de `Error`, retorna un resultado controlado con estado `unreachable`.
