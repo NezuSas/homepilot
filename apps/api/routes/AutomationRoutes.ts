@@ -42,8 +42,8 @@ export class AutomationRoutes extends ApiRoutes {
       try {
         const rules = await container.repositories.automationRuleRepository.findAll();
         this.sendJson(res, rules);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', this.getErrorDetails(error).message);
       }
       return true;
     }
@@ -77,13 +77,13 @@ export class AutomationRoutes extends ApiRoutes {
           }
         );
         this.sendJson(res, result, 201);
-      } catch (error: any) {
-        const name = error.constructor.name;
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
         let code = 'AUTOMATION_ERROR';
         let status = 500;
         if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
         else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') { status = 400; code = name.toUpperCase(); }
-        this.sendError(res, status, code, error.message);
+        this.sendError(res, status, code, message);
       }
       return true;
     }
@@ -106,13 +106,13 @@ export class AutomationRoutes extends ApiRoutes {
           topologyReferencePort: ports,
         });
         this.sendJson(res, result);
-      } catch (error: any) {
-        const name = error.constructor.name;
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
         let code = 'AUTOMATION_ERROR';
         let status = 500;
         if (name === 'AutomationRuleNotFoundError') { status = 404; code = 'AUTOMATION_NOT_FOUND'; }
         else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') { status = 400; code = name.toUpperCase(); }
-        this.sendError(res, status, code, error.message);
+        this.sendError(res, status, code, message);
       }
       return true;
     }
@@ -140,9 +140,9 @@ export class AutomationRoutes extends ApiRoutes {
                 topologyReferencePort: ports,
               });
         this.sendJson(res, result);
-      } catch (error: any) {
-        const name = error.constructor.name;
-        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, 'AUTOMATION_ERROR', error.message);
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, 'AUTOMATION_ERROR', message);
       }
       return true;
     }
@@ -163,9 +163,9 @@ export class AutomationRoutes extends ApiRoutes {
           topologyReferencePort: ports,
         });
         res.writeHead(204).end();
-      } catch (error: any) {
-        const name = error.constructor.name;
-        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, 'AUTOMATION_DELETE_ERROR', error.message);
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
+        this.sendError(res, name === 'AutomationRuleNotFoundError' ? 404 : 500, 'AUTOMATION_DELETE_ERROR', message);
       }
       return true;
     }

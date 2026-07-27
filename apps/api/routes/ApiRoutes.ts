@@ -97,6 +97,18 @@ export abstract class ApiRoutes implements RouteHandler {
     res.end(JSON.stringify(data));
   }
 
+  /**
+   * Normalizes unknown thrown values before route handlers map them to HTTP errors.
+   * This preserves domain error names while keeping route boundaries type-safe.
+   */
+  protected getErrorDetails(error: unknown): { name: string; message: string } {
+    if (error instanceof Error) {
+      return { name: error.constructor.name, message: error.message };
+    }
+
+    return { name: 'UnknownError', message: String(error) };
+  }
+
   protected sendError(
     res: http.ServerResponse,
     status: number,
