@@ -54,7 +54,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-28:** `Textarea` debe mantener su altura mínima tokenizada y permitir reducción dentro de composiciones flexibles; sus etiquetas, ayudas y errores deben adaptarse a texto largo sin desborde.
 - **REQ-29:** `RangeInput` debe permitir reducción dentro de composiciones flexibles y distribuir sus límites y valor actual sin desborde horizontal.
 - **REQ-30:** `SearchableSelectField` debe conservar búsqueda, foco y selección dentro del viewport, permitiendo reducción segura de trigger, etiqueta y ayuda en composiciones flexibles.
-- **REQ-31:** `Button` debe conservar su altura y área táctil tokenizadas, permitiendo que etiquetas largas se ajusten dentro del ancho disponible sin estirar filas, tarjetas o modales.
+- **REQ-31:** `Button` debe conservar su altura y área táctil tokenizadas, permitiendo que etiquetas largas se ajusten dentro del ancho disponible sin estirar filas, tarjetas o modales. Durante carga debe quedar deshabilitado y comunicar `aria-busy`.
 - **REQ-32:** `ToggleSwitch` debe conservar su dimensión táctil, foco y semántica booleana dentro de filas responsivas, exponiendo su estado para estilos consistentes sin conocer la regla de negocio.
 - **REQ-33:** `SearchFilterBar` debe permitir que búsqueda y filtros se reduzcan dentro de paneles responsivos, conservando las opciones navegables sin provocar overflow horizontal de la vista. En móvil mantiene controles apilados y desde tablet adopta una fila compacta.
 - **REQ-34:** `DeviceTileBase` debe conservar el contenido, estados y acciones de una tarjeta de dispositivo en móvil, tablet y escritorio; textos largos se ajustan y las acciones contextuales siguen disponibles sin depender exclusivamente de hover.
@@ -137,7 +137,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC30: Campos multilínea conservan altura mínima y foco visible en todos los breakpoints; dentro de grids o filas flexibles no crean overflow horizontal y sus textos auxiliares se ajustan con seguridad.
 - [x] AC31: Los rangos conservan foco y control continuo; al presentar límites, priorizan el valor actual y no desbordan la superficie desde 320px.
 - [x] AC32: El selector con búsqueda no desborda formularios o grids desde 320px; trigger, buscador, etiqueta y ayuda respetan el ancho disponible y el menú conserva su posición portal dentro del viewport.
-- [x] AC33: Botones compartidos conservan foco, loading, variante y escala; sus etiquetas largas se ajustan sin overflow horizontal desde 320px.
+- [x] AC33: Botones compartidos conservan foco, loading, variante y escala; sus etiquetas largas se ajustan sin overflow horizontal desde 320px y el estado de carga expone `aria-busy`.
 - [x] AC34: Interruptores compartidos conservan `role="switch"`, `aria-checked`, foco, área táctil y estado visual explícito, sin encogerse ni crear overflow desde 320px.
 - [x] AC35: La barra de búsqueda y filtros conserva foco, consulta y filtros disponibles desde 320px; sus columnas se reducen de forma segura y las opciones largas permanecen navegables sin desbordar la superficie.
 - [x] AC36: La tarjeta base de dispositivo reduce padding en móvil, ajusta títulos y subtítulos largos sin overflow, y mantiene las acciones contextuales accesibles tanto con puntero como en superficies táctiles.

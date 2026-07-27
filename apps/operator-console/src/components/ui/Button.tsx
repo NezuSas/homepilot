@@ -41,6 +41,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
       className={cn(
         // Base
         'control-transition interactive-lift inline-flex min-w-0 max-w-full items-center justify-center break-words text-center font-semibold leading-tight',
@@ -54,7 +55,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       )}
       {...props}
     >
-      {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+      {isLoading && <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin shrink-0" />}
       {children}
     </button>
   )
