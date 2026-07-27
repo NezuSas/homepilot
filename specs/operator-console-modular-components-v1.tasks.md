@@ -118,6 +118,7 @@
 - [x] Normalización de mensajes de conversación: burbujas, estado vacío y escritura usan tipografía tokenizada, textos i18n y opciones largas sin truncado.
 - [x] Consolidación de cabecera y compositor de conversación: etiquetas localizadas, título ajustable y ayudas accesibles sin truncado en pantallas angostas.
 - [x] Auditoría de tracking: migración de valores arbitrarios en activación y editor de tableros a tokens nombrados, con protección en `check:ui-primitives`.
+- [x] Cobertura Playwright de acceso: foco con teclado, envío con Enter, área táctil mínima y anuncio accesible del error en móvil, tablet y escritorio.
 
 ## Verificación obligatoria ante cambios
 

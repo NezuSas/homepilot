@@ -169,6 +169,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC59: SegmentedControl permite seleccionar y enfocar opciones disponibles con flechas, Inicio y Fin, sin incluir opciones deshabilitadas.
 - [x] AC60: Rubik y Disket Mono se cargan localmente y se exponen mediante tokens de familia compartidos, sin dependencia de CDN ni declaraciones de familia por componente.
 - [x] AC61: La pantalla de acceso se valida automáticamente a 320px, tablet y escritorio; no produce overflow horizontal y mantiene cargadas Rubik y Disket Mono.
+- [x] AC62: La pantalla de acceso valida automáticamente el orden de foco por teclado, la activación por Enter, el área táctil mínima del envío y el anuncio semántico de error en móvil, tablet y escritorio.
 
 ## 8. Notas Técnicas y Arquitectura
 
