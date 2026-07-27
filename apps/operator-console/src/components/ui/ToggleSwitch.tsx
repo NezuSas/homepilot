@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface ToggleSwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
@@ -6,6 +7,7 @@ export interface ToggleSwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLB
   onCheckedChange: (checked: boolean) => void;
   label: string;
   size?: 'sm' | 'md';
+  isLoading?: boolean;
 }
 
 const sizeStyles: Record<NonNullable<ToggleSwitchProps['size']>, string> = {
@@ -23,7 +25,7 @@ const thumbStyles: Record<NonNullable<ToggleSwitchProps['size']>, string> = {
  * Business labels remain in the calling view; the primitive owns state and focus behavior.
  */
 export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProps>(
-  ({ checked, onCheckedChange, label, size = 'md', className, disabled, onClick, ...props }, ref) => (
+  ({ checked, onCheckedChange, label, size = 'md', isLoading = false, className, disabled, onClick, ...props }, ref) => (
     <button
       ref={ref}
       {...props}
@@ -31,8 +33,9 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      aria-busy={isLoading || undefined}
       data-state={checked ? 'checked' : 'unchecked'}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       onClick={(event) => {
         onClick?.(event);
         if (!event.defaultPrevented) {
@@ -49,11 +52,13 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
     >
       <span
         className={cn(
-          'absolute rounded-full bg-background shadow-sm surface-transition',
+          'absolute grid place-items-center rounded-full bg-background shadow-sm surface-transition',
           thumbStyles[size],
           checked ? 'right-1 bg-primary' : 'left-1',
         )}
-      />
+      >
+        {isLoading && <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin text-muted-foreground" />}
+      </span>
     </button>
   ),
 );

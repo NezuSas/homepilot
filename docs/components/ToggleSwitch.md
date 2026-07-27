@@ -9,7 +9,7 @@ Control booleano accesible para preferencias y configuración. Representa estado
 
 ## Contrato
 
-Recibe `checked`, `onCheckedChange` y un `label` obligatorio para accesibilidad. Admite tamaños `sm` y `md`, y atributos nativos de botón compatibles. Un `onClick` adicional puede observar o cancelar el cambio mediante `preventDefault`, sin reemplazar el contrato controlado.
+Recibe `checked`, `onCheckedChange` y un `label` obligatorio para accesibilidad. Admite tamaños `sm` y `md`, atributos nativos de botón compatibles y `isLoading` para persistencias asíncronas. Un `onClick` adicional puede observar o cancelar el cambio mediante `preventDefault`, sin reemplazar el contrato controlado.
 
 ## Uso
 
@@ -17,4 +17,4 @@ La vista consumidora aporta la etiqueta visible, su traducción y la persistenci
 
 ## Estados y aceptación
 
-Expone `role="switch"`, `aria-checked` y `data-state` con `checked` o `unchecked`. Conserva dimensiones táctiles fijas, foco visible y `touch-manipulation`, por lo que no debe encogerse ni provocar desborde en filas responsivas.
+Expone `role="switch"`, `aria-checked` y `data-state` con `checked` o `unchecked`. Durante `isLoading` se desactiva, comunica `aria-busy` y sustituye el contenido del pulgar por un indicador decorativo de igual escala. Conserva dimensiones táctiles fijas, foco visible y `touch-manipulation`, por lo que no debe encogerse ni provocar desborde en filas responsivas.
