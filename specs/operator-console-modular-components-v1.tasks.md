@@ -119,6 +119,7 @@
 - [x] Consolidación de cabecera y compositor de conversación: etiquetas localizadas, título ajustable y ayudas accesibles sin truncado en pantallas angostas.
 - [x] Auditoría de tracking: migración de valores arbitrarios en activación y editor de tableros a tokens nombrados, con protección en `check:ui-primitives`.
 - [x] Cobertura Playwright de acceso: foco con teclado, envío con Enter, área táctil mínima y anuncio accesible del error en móvil, tablet y escritorio.
+- [x] Endurecimiento de autenticación: eliminación y prueba de ausencia de trazas de consola con detalles de credenciales o validación.
 
 ## Verificación obligatoria ante cambios
 

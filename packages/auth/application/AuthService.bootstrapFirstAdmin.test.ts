@@ -78,4 +78,23 @@ describe('AuthService.bootstrapFirstAdmin', () => {
       password: 'short'
     })).rejects.toThrow('WEAK_PASSWORD');
   });
+
+  it('does not write authentication details to the console', async () => {
+    const service = createAuthService();
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+    try {
+      await service.bootstrapFirstAdmin({
+        username: 'owner',
+        password: 'secure-password-1'
+      });
+
+      await service.login('owner', 'secure-password-1');
+      await service.login('owner', 'invalid-password');
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+    } finally {
+      consoleSpy.mockRestore();
+    }
+  });
 });

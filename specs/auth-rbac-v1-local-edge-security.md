@@ -71,6 +71,7 @@ Auth events logged:
 - Login successful -> Tracks timestamp.
 - Login failed -> Observability event logged.
 - **CRITICAL**: Never log passwords (plain or hashed) in memory or disk. Never log raw session tokens in the log output or UI diagnostics. Token leakage is strictly guarded against.
+- El servicio de autenticación no escribe en consola el nombre de usuario, la existencia o estado de una cuenta, ni el resultado de la verificación de contraseña, incluso en desarrollo.
 
 ## 7. Model
 **Users Table**
