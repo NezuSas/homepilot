@@ -17,4 +17,4 @@ Usar para dispositivos, espacios, escenas o listas extensas. Placeholder y etiqu
 
 ## Estados y aceptación
 
-Debe ser legible en móvil, mostrar foco visible y no borrar el contenido existente mientras se filtra. En filas de filtros, búsqueda y selector pueden reducirse dentro del panel; las opciones permanecen navegables mediante desplazamiento horizontal, sin forzar overflow de la vista.
+Debe ser legible en móvil, mostrar foco visible y no borrar el contenido existente mientras se filtra. En móvil mantiene búsqueda y filtros apilados; desde tablet los organiza en fila para aprovechar el ancho disponible. Las opciones permanecen navegables mediante desplazamiento horizontal, sin forzar overflow de la vista.
