@@ -53,6 +53,19 @@ export const colors = {
   danger: '#EF4444',
 } as const;
 
+// ── Typography ──────────────────────────────────────────────────────────────
+
+/**
+ * Brand font families. CSS custom properties in `index.css` are canonical for
+ * rendering; these tokens are for runtime metadata and documentation tooling.
+ */
+export const typography = {
+  /** Resident-facing interface, copy, controls and headings. */
+  sans: 'Rubik',
+  /** Technical IDs, timestamps, operational states and compact labels. */
+  mono: 'Disket Mono',
+} as const;
+
 // ── Spacing Scale ─────────────────────────────────────────────────────────────
 // Mirrors Tailwind's 4px base unit. Use Tailwind classes in JSX; use these
 // for dynamic calculations or non-Tailwind contexts.

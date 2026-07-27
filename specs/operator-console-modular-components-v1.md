@@ -38,6 +38,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-12:** Las acciones convencionales de la consola deben usar `Button` o `IconButton`; los elementos HTML nativos solo pueden residir dentro de los primitivos UI o corresponder a una semántica especializada documentada.
 - **REQ-13:** Los campos generales de texto, contraseña, correo, búsqueda y texto multilínea deben usar `Input` o `Textarea`; las selecciones de negocio deben usar `SearchableSelectField`; archivo, radio y el compositor conversacional mantienen su control nativo especializado.
 - **REQ-14:** La tipografía de vistas y componentes debe usar escalas con nombre del design system; las utilidades Tailwind arbitrarias `text-[…]` no se permiten fuera de `components/ui`.
+- **REQ-59:** La interfaz debe cargar familias locales desde el repositorio: `Rubik` para lectura y controles, y `Disket Mono` únicamente para datos técnicos, labels y estados. Los componentes consumen `font-sans` o `font-mono`; no declaran familias directamente.
 - **REQ-15:** Las confirmaciones y errores visibles deben usar `ConfirmModal`, `AlertBanner` u otro componente modular de feedback; no se permiten diálogos nativos del navegador en la consola.
 - **REQ-16:** Los rangos especializados de la consola deben usar `RangeInput`, manteniendo el callback continuo, la confirmación diferida cuando aplique y un foco/estado deshabilitado consistente.
 - **REQ-17:** `Modal` debe establecer foco al abrir, devolverlo al cerrar, cerrar con Escape cuando existe `onClose` y mantener la navegación Tab dentro de su contenido.
@@ -165,6 +166,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC57: RangeInput confirma al finalizar un gesto, al perder foco o con Enter, y ToggleSwitch permite observación o cancelación explícita sin que un onClick externo sustituya su transición controlada.
 - [x] AC58: SectionHeader presenta acciones directas a ancho completo en móvil y elimina sangría residual del subtítulo de grupo cuando no existe icono.
 - [x] AC59: SegmentedControl permite seleccionar y enfocar opciones disponibles con flechas, Inicio y Fin, sin incluir opciones deshabilitadas.
+- [x] AC60: Rubik y Disket Mono se cargan localmente y se exponen mediante tokens de familia compartidos, sin dependencia de CDN ni declaraciones de familia por componente.
 
 ## 8. Notas Técnicas y Arquitectura
 

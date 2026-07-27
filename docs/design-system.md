@@ -72,6 +72,9 @@ HomePilot compite contra sistemas residenciales premium, no contra un dashboard 
 - `rounded-pill`: pills y avatares circulares.
 
 ### Tipografia
+- `Rubik` es la familia base para interfaz, lectura, controles y títulos. Se carga localmente desde `apps/operator-console/src/assets/fonts/`, por lo que la consola no depende de una CDN externa.
+- `Disket Mono` se reserva para información técnica: IDs, timestamps, valores operativos y labels compactos mediante `font-mono`. No se usa para párrafos ni títulos de lectura.
+- Las familias se exponen exclusivamente con `--font-sans` y `--font-mono` en `index.css`, y Tailwind las consume con `font-sans` y `font-mono`. No se declaran familias directamente en componentes.
 - `text-nano`: 10 px; reservado para decoración o timestamps, nunca para contenido funcional.
 - `text-micro`: 12 px; metadatos compactos y estados secundarios.
 - `text-label`: 12 px; etiquetas cortas, con mayúsculas y tracking moderado solo cuando aporten jerarquía.

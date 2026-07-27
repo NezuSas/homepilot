@@ -3,6 +3,7 @@
 ## Implementado
 
 - [x] Catálogo de primitivos, navegación, feedback, contenedores y dispositivos comunes.
+- [x] Integración de tipografía de marca local: Rubik para interfaz y Disket Mono para metadatos técnicos, centralizadas en tokens CSS y Tailwind.
 - [x] Contratos de responsive, accesibilidad, i18n, loading y tokens.
 - [x] Mapeo de cobertura de los componentes compartidos.
 - [x] Consolidación de todos los selectores generales de Escenas, Automatizaciones, editor de tableros, usuarios, cámaras e inspección en `SearchableSelectField`.
