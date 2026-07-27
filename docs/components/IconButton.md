@@ -9,7 +9,7 @@ Acción compacta representada por icono: cerrar, editar, recargar o abrir una ac
 
 ## Contrato
 
-Recibe el icono, `label` accesible, variante y atributos nativos de botón. `label` es obligatorio para lectores de pantalla y tooltip.
+Recibe el icono, `label` accesible, variante, `isLoading` y atributos nativos de botón. `label` es obligatorio para lectores de pantalla y tooltip. En carga se deshabilita, expone `aria-busy` y reemplaza el icono por un indicador decorativo de igual escala.
 
 ## Uso
 
@@ -17,4 +17,4 @@ No sustituye un botón con texto cuando el significado no es universal. El consu
 
 ## Estados y aceptación
 
-Debe mostrar foco visible, no encogerse en touch y respetar normal, hover, focus y disabled. El icono escala de forma proporcional con el área táctil `sm`, `md` o `lg`. Usa `touch-manipulation` para evitar demoras o gestos no deseados en acciones compactas móviles.
+Debe mostrar foco visible, no encogerse en touch y respetar normal, hover, focus, disabled y loading. El icono escala de forma proporcional con el área táctil `sm`, `md` o `lg`. Usa `touch-manipulation` para evitar demoras o gestos no deseados en acciones compactas móviles.

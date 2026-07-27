@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { Loader2, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -7,6 +7,7 @@ export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
   label: string;
   variant?: 'default' | 'ghost' | 'primary' | 'danger';
   size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
 }
 
 const variantStyles: Record<NonNullable<IconButtonProps['variant']>, string> = {
@@ -29,13 +30,14 @@ const iconSizeStyles: Record<NonNullable<IconButtonProps['size']>, string> = {
 };
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ icon: Icon, label, variant = 'default', size = 'md', className, disabled, title, ...props }, ref) => (
+  ({ icon: Icon, label, variant = 'default', size = 'md', isLoading = false, className, disabled, title, ...props }, ref) => (
     <button
       ref={ref}
       type="button"
       aria-label={label}
       title={title || label}
-      disabled={disabled}
+      disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
       className={cn(
         'control-transition interactive-lift inline-flex shrink-0 touch-manipulation items-center justify-center rounded-control',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
@@ -46,7 +48,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       )}
       {...props}
     >
-      <Icon className={iconSizeStyles[size]} />
+      {isLoading ? <Loader2 aria-hidden="true" className={cn('animate-spin', iconSizeStyles[size])} /> : <Icon className={iconSizeStyles[size]} />}
     </button>
   )
 );
