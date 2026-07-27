@@ -22,6 +22,12 @@ const sizeStyles: Record<NonNullable<IconButtonProps['size']>, string> = {
   lg: 'h-11 w-11',
 };
 
+const iconSizeStyles: Record<NonNullable<IconButtonProps['size']>, string> = {
+  sm: 'h-3.5 w-3.5',
+  md: 'h-4 w-4',
+  lg: 'h-5 w-5',
+};
+
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ icon: Icon, label, variant = 'default', size = 'md', className, disabled, title, ...props }, ref) => (
     <button
@@ -40,7 +46,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       )}
       {...props}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className={iconSizeStyles[size]} />
     </button>
   )
 );
