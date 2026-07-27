@@ -40,6 +40,7 @@
 - [x] Refuerzo de búsqueda modular: acción localizada de limpieza integrada al Input, sin desborde ni cambios de geometría.
 - [x] Refuerzo de EmptyState: anuncio semántico de título y descripción, preservando la composición responsiva existente.
 - [x] Refuerzo de AlertBanner: asociación semántica de título y mensaje, preservando severidad y composición responsiva.
+- [x] Refuerzo de AssistantCard: contexto semántico asociado y exclusión accesible de hallazgos descartados.
 - [x] Consolidación de acciones de usuarios, tarjetas de dispositivos y registros de ejecución con `Button` e `IconButton`, preservando asignación, cambio de estado, reintento y acciones de seguridad existentes; las tarjetas ejecutables del tablero también usan `Button` para foco y estado deshabilitado compartidos.
 - [x] Consolidación de las acciones iconográficas de las tarjetas de escenas con `IconButton`; la ejecución principal se mantiene en la tarjeta para preservar su interacción actual.
 - [x] Consolidación de favorito, estado, edición y eliminación de tarjetas de automatización con `Button` e `IconButton`, incluyendo etiquetas de resiliencia traducidas.
