@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Loader2, ShieldAlert, RefreshCw, Activity } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import type { ExecutionRecord } from '../types/executions';
@@ -7,6 +7,7 @@ import { ExecutionCard } from '../components/ExecutionCard';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useTranslation } from 'react-i18next';
 
 export const ExecutionLogsView: React.FC = () => {
@@ -34,13 +35,8 @@ export const ExecutionLogsView: React.FC = () => {
     fetchRecords();
   }, [fetchRecords]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-empty-sm animate-pulse">
-        <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
-        <p className="text-caption font-black uppercase tracking-label opacity-40 italic">{t('execution_logs.loading')}</p>
-      </div>
-    );
+  if (loading && records.length === 0) {
+    return <LoadingState label={t('execution_logs.loading')} className="min-h-empty-sm" size="md" />;
   }
 
   if (error) {

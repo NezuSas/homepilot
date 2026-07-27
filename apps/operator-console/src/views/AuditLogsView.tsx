@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, ShieldAlert, Clock, Zap, Info, RefreshCw } from 'lucide-react';
+import { ShieldAlert, Clock, Zap, Info, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -8,6 +8,7 @@ import { mapActivityType } from '../lib/i18n-mapping-utils';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
 
@@ -59,13 +60,8 @@ export const AuditLogsView: React.FC = () => {
     return device ? humanize(device.id, device.name) : t('common.unknown');
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-empty-sm text-muted-foreground animate-pulse">
-        <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary/40" />
-        <p className="text-body font-black uppercase tracking-widest italic">{t('audit_logs.loading')}</p>
-      </div>
-    );
+  if (loading && logs.length === 0) {
+    return <LoadingState label={t('audit_logs.loading')} className="min-h-empty-sm" size="md" />;
   }
 
   if (error) {
