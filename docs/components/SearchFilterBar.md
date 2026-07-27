@@ -9,7 +9,7 @@ Búsqueda local consistente sobre listas ya cargadas.
 
 ## Contrato
 
-Recibe query, callback, placeholder y opciones de presentación. El filtrado de negocio y la carga remota permanecen en la vista.
+Recibe query, callback, placeholder y opciones de presentación. Cuando existe una consulta, muestra una acción compacta localizada para limpiarla mediante el `Input` modular. El filtrado de negocio y la carga remota permanecen en la vista.
 
 ## Uso
 
@@ -17,4 +17,4 @@ Usar para dispositivos, espacios, escenas o listas extensas. Placeholder y etiqu
 
 ## Estados y aceptación
 
-Debe ser legible en móvil, mostrar foco visible y no borrar el contenido existente mientras se filtra. En móvil mantiene búsqueda y filtros apilados; desde tablet los organiza en fila para aprovechar el ancho disponible. Las opciones permanecen navegables mediante desplazamiento horizontal, sin forzar overflow de la vista.
+Debe ser legible en móvil, mostrar foco visible y no borrar el contenido existente mientras se filtra. En móvil mantiene búsqueda y filtros apilados; desde tablet los organiza en fila para aprovechar el ancho disponible. La limpieza de búsqueda mantiene altura y ancho estables. Las opciones permanecen navegables mediante desplazamiento horizontal, sin forzar overflow de la vista.

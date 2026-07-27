@@ -1601,6 +1601,7 @@
     "continue": "Continuar",
     "retry": "Reintentar",
     "search": "Buscar",
+    "clear_search": "Limpiar búsqueda",
     "configure": "Configurar",
     "reorder": "Arrastrar para reordenar",
     "select_option": "Seleccionar opción...",

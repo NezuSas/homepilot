@@ -7,11 +7,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   helperText?: string;
   icon?: React.ReactNode;
+  endAdornment?: React.ReactNode;
   containerClassName?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, containerClassName, label, error, helperText, icon, disabled, id, 'aria-describedby': ariaDescribedBy, 'aria-invalid': ariaInvalid, ...props }, ref) => {
+  ({ className, containerClassName, label, error, helperText, icon, endAdornment, disabled, id, 'aria-describedby': ariaDescribedBy, 'aria-invalid': ariaInvalid, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     const messageId = `${inputId}-message`;
@@ -43,10 +44,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
               error && "border-danger/50 focus-visible:ring-danger/40 focus-visible:border-danger bg-danger/5",
               icon && "pl-10",
+              endAdornment && "pr-10",
               className
             )}
             {...props}
           />
+          {endAdornment && <div className="absolute right-1 flex items-center">{endAdornment}</div>}
         </div>
         {(error || helperText) && (
           <p id={messageId} className={cn("ml-1 break-words text-micro font-medium", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}>

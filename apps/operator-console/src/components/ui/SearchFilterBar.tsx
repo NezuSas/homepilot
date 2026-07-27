@@ -1,7 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SearchInput } from './Input';
+import { IconButton } from './IconButton';
 import { SegmentedControl } from './SegmentedControl';
 
 export interface FilterOption {
@@ -39,6 +41,16 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder ?? t('common.search')}
+          endAdornment={searchQuery ? (
+            <IconButton
+              icon={X}
+              label={t('common.clear_search')}
+              onClick={() => onSearchChange('')}
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7"
+            />
+          ) : undefined}
         />
       </div>
       
