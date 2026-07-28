@@ -981,7 +981,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command }),
       });
-      await refreshSnapshot();
+      await refreshSnapshot({ force: true });
     } catch (error) {
       console.error('[SectionWidget] Failed to execute card action:', error);
     } finally {
@@ -1008,9 +1008,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       });
       if (!response.ok) throw new Error(`MEDIA_COMMAND_${response.status}`);
       if (isVolumeChange) {
-        void refreshSnapshot();
+        void refreshSnapshot({ force: true });
       } else {
-        await refreshSnapshot();
+        await refreshSnapshot({ force: true });
       }
     } catch (error) {
       console.error('[SectionWidget] Failed to execute media card action:', error);

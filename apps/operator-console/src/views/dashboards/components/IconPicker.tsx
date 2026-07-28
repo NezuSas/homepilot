@@ -124,6 +124,24 @@ export function needsMdiCatalog(value?: string): boolean {
 let mdiCatalog: IconEntry[] = [];
 let mdiCatalogPromise: Promise<void> | null = null;
 
+type MdiCatalogLoadStrategy = 'immediate' | 'idle';
+
+function scheduleIdleLoad(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (handler: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+  if (typeof idleWindow.requestIdleCallback === 'function') {
+    const handle = idleWindow.requestIdleCallback(callback, { timeout: 4_000 });
+    return () => idleWindow.cancelIdleCallback?.(handle);
+  }
+
+  const timeoutId = globalThis.setTimeout(callback, 1_200);
+  return () => globalThis.clearTimeout(timeoutId);
+}
+
 function loadMdiCatalog(): Promise<void> {
   if (mdiCatalogPromise) return mdiCatalogPromise;
 
@@ -143,22 +161,27 @@ function loadMdiCatalog(): Promise<void> {
 }
 
 /** Loads the complete Home Assistant-compatible MDI catalog once per session. */
-export function useMdiCatalogLoaded(enabled = true): boolean {
+export function useMdiCatalogLoaded(enabled = true, strategy: MdiCatalogLoadStrategy = 'idle'): boolean {
   const [isLoaded, setIsLoaded] = useState(mdiCatalog.length > 0);
 
   useEffect(() => {
     if (!enabled || mdiCatalog.length > 0) return;
 
     let active = true;
-
-    void loadMdiCatalog().then(() => {
-      if (active) setIsLoaded(true);
-    });
+    const loadCatalog = () => {
+      void loadMdiCatalog().then(() => {
+        if (active) setIsLoaded(true);
+      });
+    };
+    const cancelScheduledLoad = strategy === 'immediate'
+      ? (loadCatalog(), () => undefined)
+      : scheduleIdleLoad(loadCatalog);
 
     return () => {
       active = false;
+      cancelScheduledLoad();
     };
-  }, [enabled]);
+  }, [enabled, strategy]);
 
   return isLoaded;
 }
@@ -195,7 +218,7 @@ export function IconPicker({
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const [iconQuery, setIconQuery] = useState(value);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
-  const isMdiCatalogLoaded = useMdiCatalogLoaded(Boolean(dropdownPos));
+  const isMdiCatalogLoaded = useMdiCatalogLoaded(Boolean(dropdownPos), 'immediate');
 
   useEffect(() => {
     setIconQuery(value);

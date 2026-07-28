@@ -220,7 +220,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       pendingAction: response.clarification?.pendingAction
     });
     if (response.type === 'execution' && response.execution?.status !== 'failed') {
-      void refreshDeviceSnapshot();
+      void refreshDeviceSnapshot({ force: true });
     }
     void speakAssistantResponse(response.message);
   };

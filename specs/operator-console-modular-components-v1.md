@@ -94,6 +94,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **NFR-04:** La composición debe adaptarse a 320px+, tablet y escritorio sin overflow horizontal no intencional.
 - **NFR-05:** El componente no debe utilizar `any` para ocultar contratos incompletos.
 - **NFR-06:** La CI debe validar tipos, compilación, pruebas, traducciones, cobertura de specs y adopción de primitivos UI antes de aceptar cambios.
+- **NFR-07:** La instantánea de dispositivos debe deduplicar solicitudes concurrentes, reutilizar datos recientes durante la navegación y actualizarse forzosamente ante eventos realtime relevantes, sin sondeo fijo que compita con las vistas.
+- **NFR-08:** El catálogo completo de iconos MDI debe cargarse bajo demanda: de inmediato únicamente al abrir el selector de iconos y en tiempo ocioso para iconos personalizados ya visibles en un tablero.
 
 ## 6. Catálogo de Contratos
 
@@ -177,6 +179,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC64: `npm run verify:quality` y CI ejecutan el mismo control de calidad para traducciones, primitives, specs, responsividad, lint, pruebas, tipado y compilaciones.
 - [x] AC65: El catálogo completo MDI se carga de forma diferida para los tableros; los iconos operativos de la consola usan importaciones explícitas y no incorporan el catálogo completo de Lucide en la carga inicial.
 - [x] AC66: Todo `SegmentedControl` declara una etiqueta accesible traducida; conserva foco visible, navegación por flechas, Inicio y Fin, y no permite grupos de radios sin nombre.
+- [x] AC67: La navegación entre vistas reutiliza la instantánea de dispositivos durante una ventana corta de frescura, comparte solicitudes simultáneas y conserva los datos visibles; eventos realtime relevantes invalidan esa ventana para sincronizar el cambio de inmediato.
+- [x] AC68: Los tableros no bloquean su primer render con el catálogo MDI completo; el selector de iconos conserva la carga inmediata de su catálogo y los iconos personalizados visibles se resuelven al quedar libre el navegador.
 
 ## 8. Notas Técnicas y Arquitectura
 

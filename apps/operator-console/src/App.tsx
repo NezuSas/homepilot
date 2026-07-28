@@ -479,7 +479,7 @@ function App() {
     ];
 
     if (REFRESH_TRIGGER_EVENTS.includes(lastRealtimeEvent.type)) {
-      refreshDeviceSnapshot();
+      void refreshDeviceSnapshot({ force: true });
       refreshAssistantFindings();
       refreshAssistantSummary();
     }
@@ -491,12 +491,10 @@ function App() {
     const reconcileVisibleState = () => {
       if (document.visibilityState === 'visible') void refreshDeviceSnapshot();
     };
-    const intervalId = window.setInterval(reconcileVisibleState, 10000);
     document.addEventListener('visibilitychange', reconcileVisibleState);
     window.addEventListener('focus', reconcileVisibleState);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', reconcileVisibleState);
       window.removeEventListener('focus', reconcileVisibleState);
     };
