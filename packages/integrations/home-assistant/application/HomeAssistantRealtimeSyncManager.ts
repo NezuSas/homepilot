@@ -6,6 +6,7 @@ import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 import { HomeAssistantClient } from '../../../devices/infrastructure/adapters/HomeAssistantClient';
 import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
 import { buildUnavailableDeviceState } from '../../../devices/application/deviceAvailability';
+import { isTestRuntime } from '../../../shared/config/runtimeEnvironment';
 
 export interface SystemStateChangeEvent {
   eventId: string;
@@ -58,6 +59,12 @@ function parseStateChangePayload(data: unknown): HomeAssistantStateChangePayload
     newState: data.new_state.state,
     attributes,
   };
+}
+
+function logRuntimeDiagnostic(level: 'error' | 'warn' | 'log', ...details: unknown[]): void {
+  if (!isTestRuntime()) {
+    console[level](...details);
+  }
 }
 
 export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {
@@ -158,7 +165,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     this.client = client;
 
     client.on('error', (type: 'auth_error' | 'unreachable', err: Error) => {
-      console.error(`[HA-Sync] WS Error (${type}):`, err.message);
+      logRuntimeDiagnostic('error', `[HA-Sync] WS Error (${type}):`, err.message);
       this.settingsService.updateStatusFromOperation(type);
 
       if (type === 'auth_error') {
@@ -177,7 +184,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       if (this.lastCloseReason !== 'stop_manual'
         && this.lastCloseReason !== 'reconfigure'
         && this.lastCloseReason !== 'auth_error') {
-        console.warn('[HA-Sync] WS cerrado inesperadamente. Iniciando backoff...');
+        logRuntimeDiagnostic('warn', '[HA-Sync] WS cerrado inesperadamente. Iniciando backoff...');
         this.settingsService.updateStatusFromOperation('unreachable');
         this._scheduleReconnect();
       }
@@ -209,7 +216,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
     client.connect().catch((err: unknown) => {
       // El error ya fue emitido y procesado por client.on('error').
-      console.warn('[HA-Sync] Connect rechazado (manejado por error event):', getErrorMessage(err));
+      logRuntimeDiagnostic('warn', '[HA-Sync] Connect rechazado (manejado por error event):', getErrorMessage(err));
     });
   }
 
@@ -223,7 +230,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     }
 
     if (!this.currentUrl || !this.currentToken) {
-      console.warn('[HA-Sync] No hay credenciales para reconectar.');
+      logRuntimeDiagnostic('warn', '[HA-Sync] No hay credenciales para reconectar.');
       return;
     }
 
@@ -231,7 +238,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     this.retryAttempt++;
     this.retryIndex = Math.min(this.retryIndex + 1, BACKOFF_DELAYS_MS.length - 1);
 
-    console.log(`[HA-Sync] Reintento #${this.retryAttempt} en ${delayMs}ms...`);
+    logRuntimeDiagnostic('log', `[HA-Sync] Reintento #${this.retryAttempt} en ${delayMs}ms...`);
     this.settingsService.updateStatusFromOperation('unreachable');
 
     this._logResilienceEvent('reconnect', this.retryAttempt, delayMs, `Scheduling reconnection attempt #${this.retryAttempt} in ${delayMs}ms`);
@@ -298,11 +305,11 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           data: { state: String(newState), attributes }
         });
       } catch (logErr: unknown) {
-        console.error(`[HA-Sync] No se pudo guardar el activity log:`, getErrorMessage(logErr));
+        logRuntimeDiagnostic('error', `[HA-Sync] No se pudo guardar el activity log:`, getErrorMessage(logErr));
       }
 
     } catch (error: unknown) {
-      console.error(`[HA-Sync] Exception procesando el evento WS:`, getErrorMessage(error));
+      logRuntimeDiagnostic('error', `[HA-Sync] Exception procesando el evento WS:`, getErrorMessage(error));
     }
   }
 
@@ -330,13 +337,13 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       try {
         allStates = await this.haClient.getAllStates();
         if (!allStates) {
-          console.log('[HA-Sync] Reconciliation: No states returned (HA may not be configured).');
+          logRuntimeDiagnostic('log', '[HA-Sync] Reconciliation: No states returned (HA may not be configured).');
           return;
         }
       } catch (fetchError: unknown) {
         // /api/states falló: log de warning pero NO cerrar el WS.
         const errorMessage = getErrorMessage(fetchError);
-        console.warn('[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo.', errorMessage);
+        logRuntimeDiagnostic('warn', '[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo.', errorMessage);
         this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
           `Failed to fetch /api/states: ${errorMessage}`, 0, 0);
         return;
@@ -384,11 +391,11 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           reconciledCount++;
         } catch (entityError: unknown) {
           skippedCount++;
-          console.warn(`[HA-Sync] Reconciliation: error parcheando ${device.externalId}:`, getErrorMessage(entityError));
+          logRuntimeDiagnostic('warn', `[HA-Sync] Reconciliation: error parcheando ${device.externalId}:`, getErrorMessage(entityError));
         }
       }
 
-      console.log(`[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${unavailableCount} no disponibles, ${skippedCount} omitidos.`);
+      logRuntimeDiagnostic('log', `[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${unavailableCount} no disponibles, ${skippedCount} omitidos.`);
       this.lastReconciliationAt = new Date().toISOString();
       this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
         `State reconciliation completed: ${reconciledCount} updated, ${unavailableCount} unavailable, ${skippedCount} skipped`, reconciledCount, skippedCount);
@@ -445,6 +452,6 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
         skippedDevices,
         reason
       }
-    }).catch(e => console.warn('[HA-Sync] Log de resiliencia falló:', e.message));
+    }).catch((error: unknown) => logRuntimeDiagnostic('warn', '[HA-Sync] Log de resiliencia falló:', getErrorMessage(error)));
   }
 }
