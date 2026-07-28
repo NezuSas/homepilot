@@ -2,7 +2,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { RouteHandler } from '../RouteHandler';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-import { isTestRuntime } from '../../../packages/shared/config/runtimeEnvironment';
+import { logRuntimeDiagnostic } from '../../../packages/shared/config/runtimeEnvironment';
 
 import { ActivityType } from '../../../packages/devices/domain/repositories/ActivityLogRepository';
 
@@ -119,8 +119,8 @@ export abstract class ApiRoutes implements RouteHandler {
     const safeMessage = SAFE_MESSAGES[code] || SAFE_MESSAGES['INTERNAL_ERROR'];
     const finalStatus = status || DEFAULT_STATUS_CODES[code] || 500;
 
-    if (internalMessage && !isTestRuntime()) {
-      console.error(`[API-ERROR] [${code}] ${internalMessage}`);
+    if (internalMessage) {
+      logRuntimeDiagnostic('error', `[API-ERROR] [${code}] ${internalMessage}`);
     }
 
     res.writeHead(finalStatus, { 'Content-Type': 'application/json' });
