@@ -20,6 +20,7 @@ Implementar una conexión en tiempo real con Home Assistant utilizando su API de
 ### 3.1. HomeAssistantWebSocketClient (Capa de Red)
 - Constructor que instaure la escucha y manejo estricto de JSON.
 - Implementa un Timeout timer para la fase de inicio; si vence, tira `.close()` y llama a callbacks de error.
+- Valida que cada mensaje JSON tenga una estructura de objeto y un `type` de texto antes de procesarlo. Mensajes malformados se descartan sin derribar el cliente ni emitir cambios de estado.
 - Callbacks inyectados:
   - `onReady()`: Invocado tras recibir `auth_ok`.
   - `onEvent(event)`: Invocado al decodificar suscripciones a `state_changed`.

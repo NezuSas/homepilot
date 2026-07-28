@@ -3,8 +3,29 @@ import { WebSocket } from 'ws';
 
 export type HAWebSocketEvent = {
   type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
+
+interface WebSocketMessageEvent {
+  data: unknown;
+}
+
+interface WebSocketErrorEvent {
+  message?: unknown;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getStringProperty(record: Record<string, unknown>, property: string): string | null {
+  const value = record[property];
+  return typeof value === 'string' ? value : null;
+}
 
 export class HomeAssistantWebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null;
@@ -43,15 +64,16 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
           // Se espera 'auth_required' desde el onmessage
         };
 
-        this.ws.onmessage = (event: any) => {
+        this.ws.onmessage = (event: WebSocketMessageEvent) => {
           const rawData = String(event.data);
           this.handleMessage(rawData, resolve, reject);
         };
 
-        this.ws.onerror = (errorEvent: any) => {
+        this.ws.onerror = (errorEvent: WebSocketErrorEvent) => {
           this.forceClose();
           // Error nativo del WebSocket, típicamente caída de red o puerto no bindeado
-          this.emit('error', 'unreachable', new Error(errorEvent.message || 'WebSocket Error'));
+          const errorMessage = getErrorMessage(errorEvent.message ?? 'WebSocket Error');
+          this.emit('error', 'unreachable', new Error(errorMessage));
           reject(new Error('WebSocket Error'));
         };
 
@@ -60,10 +82,11 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
           this.emit('close');
         };
 
-      } catch (err: any) {
+      } catch (error: unknown) {
         this.forceClose();
-        this.emit('error', 'unreachable', err);
-        reject(err);
+        const normalizedError = error instanceof Error ? error : new Error(getErrorMessage(error));
+        this.emit('error', 'unreachable', normalizedError);
+        reject(normalizedError);
       }
     });
   }
@@ -146,30 +169,39 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
 
   private handleMessage(dataRaw: string, resolve: () => void, reject: (err: Error) => void) {
     try {
-      const data = JSON.parse(dataRaw);
+      const data: unknown = JSON.parse(dataRaw);
+      if (!isRecord(data)) {
+        throw new Error('Invalid WebSocket message payload');
+      }
 
-      if (data.type === 'auth_required') {
+      const messageType = getStringProperty(data, 'type');
+      if (!messageType) {
+        throw new Error('WebSocket message type is missing');
+      }
+
+      if (messageType === 'auth_required') {
         this.startHandshakeTimeout(reject);
         this.ws?.send(JSON.stringify({ type: 'auth', access_token: this.token }));
-      } else if (data.type === 'auth_ok') {
+      } else if (messageType === 'auth_ok') {
         if (this.connectionTimer) clearTimeout(this.connectionTimer);
         this.stopHandshakeTimeout();
         this.startHeartbeat();
         this.emit('ready');
         this.subscribeEvents();
         resolve();
-      } else if (data.type === 'auth_invalid') {
+      } else if (messageType === 'auth_invalid') {
         if (this.connectionTimer) clearTimeout(this.connectionTimer);
         this.stopHandshakeTimeout();
         this.forceClose();
-        this.emit('error', 'auth_error', new Error(data.message || 'Invalid token'));
+        const message = getStringProperty(data, 'message') ?? 'Invalid token';
+        this.emit('error', 'auth_error', new Error(message));
         reject(new Error('auth_invalid'));
-      } else if (data.type === 'event' && data.event?.event_type === 'state_changed') {
+      } else if (messageType === 'event' && isRecord(data.event) && data.event.event_type === 'state_changed') {
         this.emit('event', data.event.data);
       }
 
-    } catch (err) {
-      console.error('[HA WebSocket] Message parsing error', err);
+    } catch (error: unknown) {
+      console.error('[HA WebSocket] Message parsing error', getErrorMessage(error));
     }
   }
 
