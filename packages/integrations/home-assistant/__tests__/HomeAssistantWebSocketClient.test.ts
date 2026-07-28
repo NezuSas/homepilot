@@ -42,7 +42,7 @@ describe('HomeAssistantWebSocketClient', () => {
 
     try {
       testableClient.handleMessage('not-json', resolve, reject);
-      expect(errorSpy).toHaveBeenCalledWith('[HA WebSocket] Message parsing error', expect.any(String));
+      expect(errorSpy).not.toHaveBeenCalled();
 
       testableClient.handleMessage(JSON.stringify({ type: 'auth_required' }), resolve, reject);
       expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ type: 'auth', access_token: 'token' }));

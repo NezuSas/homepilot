@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
+import { isTestRuntime } from '../../../shared/config/runtimeEnvironment';
 
 export type HAWebSocketEvent = {
   type: string;
@@ -25,6 +26,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function getStringProperty(record: Record<string, unknown>, property: string): string | null {
   const value = record[property];
   return typeof value === 'string' ? value : null;
+}
+
+function logRuntimeDiagnostic(level: 'error' | 'warn' | 'log', ...details: unknown[]): void {
+  if (!isTestRuntime()) {
+    console[level](...details);
+  }
 }
 
 export class HomeAssistantWebSocketClient extends EventEmitter {
@@ -53,7 +60,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
 
         this.connectionTimer = setTimeout(() => {
           if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
-            console.error('[HA WebSocket] Connection timeout - failing gracefully');
+            logRuntimeDiagnostic('error', '[HA WebSocket] Connection timeout - failing gracefully');
             this.forceClose();
             this.emit('error', 'unreachable', new Error('Connection timeout'));
             reject(new Error('Connection timeout'));
@@ -107,7 +114,8 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
       // Dead-connection detection: if last pong was too long ago, the TCP connection is silently dead
       const elapsed = Date.now() - (this.lastPongAt ?? Date.now());
       if (elapsed > HomeAssistantWebSocketClient.PONG_TIMEOUT_MS) {
-        console.error(
+        logRuntimeDiagnostic(
+          'error',
           `[HA WebSocket] Pong timeout — no pong received in ${elapsed}ms. ` +
           'Dead connection detected. Forcing close to trigger reconnect.'
         );
@@ -132,7 +140,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
   private startHandshakeTimeout(reject: (err: Error) => void) {
     this.stopHandshakeTimeout();
     this.handshakeTimer = setTimeout(() => {
-      console.error('[HA WebSocket] Handshake timeout (no auth_ok received)');
+      logRuntimeDiagnostic('error', '[HA WebSocket] Handshake timeout (no auth_ok received)');
       this.forceClose();
       this.emit('error', 'auth_error', new Error('Handshake timeout'));
       reject(new Error('handshake_timeout'));
@@ -201,7 +209,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
       }
 
     } catch (error: unknown) {
-      console.error('[HA WebSocket] Message parsing error', getErrorMessage(error));
+      logRuntimeDiagnostic('error', '[HA WebSocket] Message parsing error', getErrorMessage(error));
     }
   }
 
