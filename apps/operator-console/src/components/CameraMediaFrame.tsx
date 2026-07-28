@@ -40,7 +40,8 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
   onFailure,
 }) => {
   const [mode, setMode] = useState<CameraFeedMode>(preferredMode);
-  const [source, setSource] = useState(preferredMode === 'stream' && active ? streamUrl : '');
+  const [source, setSource] = useState('');
+  const [streamReady, setStreamReady] = useState(false);
   const currentObjectUrlRef = useRef<string | null>(null);
   const staleObjectUrlRef = useRef<string | null>(null);
   const hasReadyFrameRef = useRef(false);
@@ -74,12 +75,15 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
 
     if (preferredMode === 'stream') {
       hasReadyFrameRef.current = false;
-      setSource(streamUrl);
+      setStreamReady(false);
+      // Home Assistant cameras can take a few seconds to yield the first MJPEG
+      // frame. Keep a fresh snapshot visible while that connection warms up.
+      setSource(snapshotUrl ? withRefreshMarker(snapshotUrl) : '');
       return;
     }
 
     setSource(currentObjectUrlRef.current || '');
-  }, [active, hlsUrl, preferredMode, streamUrl]);
+  }, [active, hlsUrl, preferredMode, snapshotUrl, streamUrl]);
 
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
 
@@ -281,6 +285,47 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
           onReadyRef.current();
         }}
       />
+    );
+  }
+
+  if (mode === 'stream' && active && streamUrl) {
+    return (
+      <>
+        {source && (
+          <img
+            src={source}
+            alt={alt}
+            className={className}
+            referrerPolicy="no-referrer"
+            onLoad={() => {
+              hasReadyFrameRef.current = true;
+              onReadyRef.current();
+            }}
+            onError={() => {
+              // The direct stream can still complete successfully. A snapshot
+              // failure alone must not mark the camera as unavailable.
+            }}
+          />
+        )}
+        <img
+          src={streamUrl}
+          alt=""
+          aria-hidden="true"
+          className={`${className ?? ''} absolute inset-0 transition-opacity duration-200 ${streamReady ? 'opacity-100' : 'opacity-0'}`}
+          referrerPolicy="no-referrer"
+          onLoad={() => {
+            hasReadyFrameRef.current = true;
+            setStreamReady(true);
+            onReadyRef.current();
+          }}
+          onError={() => {
+            if (streamReady) return;
+            setMode('snapshot');
+            setSource(currentObjectUrlRef.current || '');
+            onModeChangeRef.current('snapshot');
+          }}
+        />
+      </>
     );
   }
 
