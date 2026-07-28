@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { getDatabasePath } from '../../config/getDatabasePath';
+import { logRuntimeDiagnostic } from '../../config/runtimeEnvironment';
 
 export interface BackupInfo {
   filename: string;
@@ -67,7 +68,7 @@ export class DatabaseBackupService {
         }
       };
     } catch (error: unknown) {
-      console.error('[DatabaseBackupService] Error creating backup:', error);
+      logRuntimeDiagnostic('error', '[DatabaseBackupService] Error creating backup:', error);
       const message = error instanceof Error ? error.message : String(error);
       return { success: false, error: message };
     }
@@ -100,7 +101,7 @@ export class DatabaseBackupService {
 
       return backups.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     } catch (error: unknown) {
-      console.error('[DatabaseBackupService] Error listing backups:', error);
+      logRuntimeDiagnostic('error', '[DatabaseBackupService] Error listing backups:', error);
       return [];
     }
   }
