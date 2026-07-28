@@ -693,6 +693,7 @@
       "type_label": "Tipo de dispositivo"
   },
   "device_inspector": {
+    "entity_id": "ID de entidad",
     "technical_origin": "Tipo técnico y origen",
     "device_function": "Función del dispositivo",
     "semantic": {

@@ -695,6 +695,7 @@
       "type_label": "Device type"
   },
   "device_inspector": {
+    "entity_id": "Entity ID",
     "technical_origin": "Technical type and origin",
     "device_function": "Device function",
     "semantic": {
