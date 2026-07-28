@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { BootstrapContainer } from '../../bootstrap';
 import { RouteHandler } from './RouteHandler';
 import { HomePilotRequest } from '../../packages/shared/domain/http';
+import { isDiagnosticLoggingEnabled, logRuntimeDiagnostic } from '../../packages/shared/config/runtimeEnvironment';
 
 interface RealtimeEventMessage {
   type: string;
@@ -65,10 +66,10 @@ export class ApiGateway {
     this.fastify
       .listen({ port: this.port, host: '0.0.0.0' })
       .then(() => {
-        console.log(`[ApiGateway] API local en http://localhost:${this.port}`);
+        logRuntimeDiagnostic('log', `[ApiGateway] API local en http://localhost:${this.port}`);
       })
-      .catch((err) => {
-        console.error('[ApiGateway] Failed to start server:', err);
+      .catch((error: unknown) => {
+        logRuntimeDiagnostic('error', '[ApiGateway] Failed to start server:', error);
         process.exit(1);
       });
   }
@@ -140,9 +141,9 @@ export class ApiGateway {
         rawRes.setHeader('Access-Control-Allow-Origin', origin);
       }
 
-      if (process.env.NODE_ENV !== 'production' && origin) {
-        console.log(`[HomePilot:CORS] Origin: ${origin}`);
-        console.log(`[HomePilot:CORS] Allowed: ${isAllowed}`);
+      if (isDiagnosticLoggingEnabled() && origin) {
+        logRuntimeDiagnostic('log', `[HomePilot:CORS] Origin: ${origin}`);
+        logRuntimeDiagnostic('log', `[HomePilot:CORS] Allowed: ${isAllowed}`);
       }
 
       rawRes.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -183,7 +184,7 @@ export class ApiGateway {
           })
         );
       } catch (error: unknown) {
-        console.error('[ApiGateway] Critical handler error:', error);
+        logRuntimeDiagnostic('error', '[ApiGateway] Critical handler error:', error);
         if (!rawRes.writableEnded) {
           rawRes.writeHead(500, { 'Content-Type': 'application/json' });
           rawRes.end(
@@ -222,7 +223,7 @@ export class ApiGateway {
       const token = url.searchParams.get('token') || request.headers['authorization']?.toString().replace('Bearer ', '');
       
       if (!token) {
-        console.warn('[ApiGateway] WebSocket upgrade rejected: Missing token');
+        logRuntimeDiagnostic('warn', '[ApiGateway] WebSocket upgrade rejected: Missing token');
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
@@ -231,13 +232,13 @@ export class ApiGateway {
       try {
         const authResult = await this.container.services.authService.verifyToken(token);
         if (!authResult.isValid) {
-          console.warn('[ApiGateway] WebSocket upgrade rejected: Invalid token');
+          logRuntimeDiagnostic('warn', '[ApiGateway] WebSocket upgrade rejected: Invalid token');
           socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
           socket.destroy();
           return;
         }
-      } catch (error) {
-        console.error('[ApiGateway] WebSocket auth error:', error);
+      } catch (error: unknown) {
+        logRuntimeDiagnostic('error', '[ApiGateway] WebSocket auth error:', error);
         socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
         socket.destroy();
         return;
@@ -256,7 +257,7 @@ export class ApiGateway {
       });
 
       ws.on('error', (error) => {
-        console.warn('[ApiGateway] WebSocket client error:', error.message);
+        logRuntimeDiagnostic('warn', '[ApiGateway] WebSocket client error:', error.message);
         this.wsClients.delete(ws);
       });
     });
@@ -292,7 +293,8 @@ export class ApiGateway {
       try {
         client.send(serializedMessage);
       } catch (error) {
-        console.warn(
+        logRuntimeDiagnostic(
+          'warn',
           '[ApiGateway] Failed to send realtime event:',
           error instanceof Error ? error.message : error
         );
