@@ -173,6 +173,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC63: Un tablero autenticado se valida automáticamente a 320px, tablet y escritorio; conserva su título visible y no genera overflow horizontal.
 - [x] AC64: `npm run verify:quality` y CI ejecutan el mismo control de calidad para traducciones, primitives, specs, responsividad, lint, pruebas, tipado y compilaciones.
 - [x] AC65: El catálogo completo MDI se carga de forma diferida para los tableros; los iconos operativos de la consola usan importaciones explícitas y no incorporan el catálogo completo de Lucide en la carga inicial.
+- [x] AC66: Todo `SegmentedControl` declara una etiqueta accesible traducida; conserva foco visible, navegación por flechas, Inicio y Fin, y no permite grupos de radios sin nombre.
 
 ## 8. Notas Técnicas y Arquitectura
 

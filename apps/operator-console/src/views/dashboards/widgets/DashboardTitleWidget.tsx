@@ -555,6 +555,7 @@ function TitleOptionGroup<TValue extends string>({
           value={value}
           options={options}
           onChange={onChange}
+          label={label}
           className="gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
           optionClassName="min-h-8 min-w-8 flex-none rounded px-2 py-1 text-micro font-black"
         />

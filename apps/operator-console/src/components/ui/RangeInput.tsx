@@ -69,7 +69,7 @@ export const RangeInput = React.forwardRef<HTMLInputElement, RangeInputProps>(
           }}
           className={cn(
             'h-1.5 min-w-0 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary',
-            'focus:outline-none focus:ring-2 focus:ring-primary/20',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             'disabled:cursor-not-allowed disabled:opacity-30',
             trackClassName,
           )}

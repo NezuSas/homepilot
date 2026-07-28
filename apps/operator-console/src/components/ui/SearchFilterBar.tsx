@@ -19,6 +19,7 @@ export interface SearchFilterBarProps {
   options?: FilterOption[];
   activeFilter?: string;
   onFilterChange?: (val: string) => void;
+  filterLabel?: string;
   
   className?: string;
 }
@@ -30,6 +31,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   options = [],
   activeFilter,
   onFilterChange,
+  filterLabel,
   className
 }) => {
   const { t } = useTranslation();
@@ -59,6 +61,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           value={activeFilter || options[0]?.value || ''}
           options={options}
           onChange={onFilterChange}
+          label={filterLabel ?? searchPlaceholder ?? t('common.search')}
           className="w-full min-w-0 flex-1 overflow-x-auto no-scrollbar"
           optionClassName="whitespace-nowrap flex-none"
         />

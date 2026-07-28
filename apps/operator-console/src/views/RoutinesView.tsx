@@ -40,6 +40,7 @@ export default function RoutinesView({
           value={activeSection}
           options={options}
           onChange={onSectionChange}
+          label={t('routines.title')}
           tone="primary"
           layout="scroll"
           className="w-full shrink-0 gap-1 p-1 sm:w-[min(100%,23rem)]"

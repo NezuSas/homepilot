@@ -288,6 +288,7 @@
         "new_section": "New section",
         "span_columns": "Span {{ count }} column",
         "span_columns_plural": "Span {{ count }} columns",
+        "span_picker_label": "Card width",
         "untitled_section": "Untitled section",
         "add_card": "Add card",
         "move_card": "Move card",
@@ -677,7 +678,9 @@
       "camera": "Cameras",
       "sensor": "Sensors",
       "local": "Local",
-      "bridged": "Bridged"
+      "bridged": "Bridged",
+      "origin_label": "Device origin",
+      "type_label": "Device type"
   },
   "device_inspector": {
     "technical_origin": "Technical type and origin",

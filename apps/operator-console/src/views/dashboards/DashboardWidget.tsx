@@ -188,6 +188,7 @@ export function DashboardWidgetNode({
                   <SegmentedControl<string>
                     value={String(clampSectionSpan(getSectionSpan(widget), Math.max(1, columns)))}
                     onChange={(value) => onConfigChange(widget.id, { layout: { ...widget.config.layout, span: Number(value) } })}
+                    label={t('dashboard.editor.sections.span_picker_label')}
                     options={Array.from({ length: Math.max(1, columns) }, (_, index) => index + 1).map((option) => ({
                       value: String(option),
                       label: String(option),

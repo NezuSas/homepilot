@@ -365,6 +365,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           <SegmentedControl
             value={activeTab}
             onChange={setActiveTab}
+            label={t('inbox.inspector.title')}
             tone="primary"
             className="grid grid-cols-3 gap-1 rounded-2xl p-1"
             options={(['info', 'logs', 'state'] as const).map((value) => ({

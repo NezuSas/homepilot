@@ -38,6 +38,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
         value={actionType}
         tone="primary"
         onChange={onActionTypeChange}
+        label={t('automations.builder.action_subtitle')}
         options={[
           { value: 'device_command', label: t('automations.builder.actions.direct_command'), icon: Terminal },
           { value: 'execute_scene', label: t('nav.scenes'), icon: ArrowRight },

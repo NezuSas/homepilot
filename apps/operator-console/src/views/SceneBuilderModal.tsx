@@ -270,6 +270,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                                 { value: 'activate', label: isCoverDevice(d) ? t('common.actions.open') : t('common.on') },
                                 { value: 'deactivate', label: isCoverDevice(d) ? t('common.actions.close') : t('common.off') },
                               ]}
+                              label={t('automations.form.action_type')}
                               tone="primary"
                               className="w-full rounded-lg p-1"
                               optionClassName="min-h-9 px-2 py-1.5 text-nano font-black tracking-widest"

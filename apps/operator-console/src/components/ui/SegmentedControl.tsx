@@ -13,7 +13,8 @@ export interface SegmentedControlProps<T extends string> {
   value: T;
   options: SegmentedControlOption<T>[];
   onChange: (value: T) => void;
-  label?: string;
+  /** Accessible name announced for the mutually exclusive options. */
+  label: string;
   className?: string;
   optionClassName?: string;
   tone?: 'neutral' | 'primary';
@@ -129,6 +130,7 @@ export function SegmentedControl<T extends string>({
                 : tone === 'primary'
                   ? 'text-primary/45 hover:bg-primary/10 hover:text-primary'
                   : 'text-muted-foreground hover:bg-background/30 hover:text-foreground',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/55 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
               'disabled:pointer-events-none disabled:opacity-40',
               optionClassName
             )}

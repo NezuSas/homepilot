@@ -52,7 +52,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {endAdornment && <div className="absolute right-1 flex items-center">{endAdornment}</div>}
         </div>
         {(error || helperText) && (
-          <p id={messageId} className={cn("ml-1 break-words text-micro font-medium", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}>
+          <p
+            id={messageId}
+            role={error ? 'alert' : undefined}
+            aria-live={error ? 'assertive' : 'polite'}
+            className={cn("ml-1 break-words text-micro font-medium", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}
+          >
             {error || helperText}
           </p>
         )}

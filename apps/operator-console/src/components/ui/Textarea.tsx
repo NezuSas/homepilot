@@ -46,7 +46,12 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {(error || helperText) && (
-          <p id={messageId} className={cn('ml-1 break-words text-micro font-medium', error ? 'animate-shake text-danger' : 'text-muted-foreground opacity-70')}>
+          <p
+            id={messageId}
+            role={error ? 'alert' : undefined}
+            aria-live={error ? 'assertive' : 'polite'}
+            className={cn('ml-1 break-words text-micro font-medium', error ? 'animate-shake text-danger' : 'text-muted-foreground opacity-70')}
+          >
             {error || helperText}
           </p>
         )}
