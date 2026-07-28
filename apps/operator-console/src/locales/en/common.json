@@ -1429,6 +1429,20 @@
       "error_export": "The dashboard could not be exported",
       "error_import": "The dashboard could not be imported"
     },
+    "history": {
+      "action": "Dashboard history",
+      "title": "Dashboard history",
+      "description": "Restore a previous version. The current state will also be saved as a new revision.",
+      "loading": "Loading history",
+      "empty_title": "No revisions yet",
+      "empty_description": "Versions are saved automatically whenever you modify this dashboard.",
+      "metadata": "{{date}} · {{count}} tabs",
+      "restore": "Restore",
+      "restore_title": "Restore this version?",
+      "restore_description": "“{{title}}” will be restored. The current state will be saved before the change is applied.",
+      "error_load": "The dashboard history could not be loaded",
+      "error_restore": "The dashboard version could not be restored"
+    },
     "rename": "Rename",
     "delete": "Delete panel",
     "remove_widget": "Remove widget",

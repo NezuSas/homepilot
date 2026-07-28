@@ -1,6 +1,8 @@
 import {
   Dashboard,
   DashboardRepository,
+  DashboardRevision,
+  DashboardRevisionSnapshot,
   DashboardTab,
   DashboardTransferPackage,
   DashboardVisibility,
@@ -106,13 +108,61 @@ export class DashboardService {
       throw new Error('FORBIDDEN');
     }
 
-    if (updates.title) dashboard.title = updates.title;
-    if (updates.tabs) dashboard.tabs = updates.tabs;
-    if (updates.visibility) dashboard.visibility = updates.visibility;
-    dashboard.updatedAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    await this.dashboardRepository.saveRevision({
+      id: randomUUID(),
+      dashboardId: dashboard.id,
+      createdAt: now,
+      snapshot: createRevisionSnapshot(dashboard),
+    });
 
-    await this.dashboardRepository.saveDashboard(dashboard);
-    return dashboard;
+    const updated: Dashboard = {
+      ...dashboard,
+      title: updates.title ?? dashboard.title,
+      tabs: updates.tabs ?? dashboard.tabs,
+      visibility: updates.visibility ?? dashboard.visibility,
+      updatedAt: now,
+    };
+
+    await this.dashboardRepository.saveDashboard(updated);
+    return updated;
+  }
+
+  public async getDashboardRevisions(userId: string, dashboardId: string): Promise<DashboardRevision[]> {
+    await this.getOwnedDashboard(userId, dashboardId);
+    return this.dashboardRepository.findRevisionsByDashboardId(dashboardId);
+  }
+
+  public async restoreDashboardRevision(userId: string, dashboardId: string, revisionId: string): Promise<Dashboard> {
+    const dashboard = await this.getOwnedDashboard(userId, dashboardId);
+    const revisions = await this.dashboardRepository.findRevisionsByDashboardId(dashboardId);
+    const revision = revisions.find((candidate) => candidate.id === revisionId);
+    if (!revision) throw new Error('DASHBOARD_REVISION_NOT_FOUND');
+
+    const now = new Date().toISOString();
+    await this.dashboardRepository.saveRevision({
+      id: randomUUID(),
+      dashboardId: dashboard.id,
+      createdAt: now,
+      snapshot: createRevisionSnapshot(dashboard),
+    });
+
+    const currentBackgroundByTabId = new Map(
+      dashboard.tabs.map((tab) => [tab.id, tab.background]),
+    );
+    const restored: Dashboard = {
+      ...dashboard,
+      title: revision.snapshot.title,
+      visibility: cloneValue(revision.snapshot.visibility),
+      tabs: revision.snapshot.tabs.map((tab) => ({
+        ...cloneValue(tab),
+        background: currentBackgroundByTabId.get(tab.id),
+      })),
+      updatedAt: now,
+    };
+
+    await this.dashboardRepository.saveDashboard(restored);
+    return restored;
   }
 
   public async getOwnedDashboard(userId: string, dashboardId: string): Promise<Dashboard> {
@@ -136,6 +186,21 @@ export class DashboardService {
 
     await this.dashboardRepository.deleteDashboard(dashboardId);
   }
+}
+
+function createRevisionSnapshot(dashboard: Dashboard): DashboardRevisionSnapshot {
+  return {
+    title: dashboard.title,
+    visibility: cloneValue(dashboard.visibility),
+    tabs: dashboard.tabs.map((tab) => {
+      const { background: _background, backgroundOpacity: _backgroundOpacity, ...restorableTab } = tab;
+      return cloneValue(restorableTab);
+    }),
+  };
+}
+
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function isDashboardTransferPackage(value: unknown): value is DashboardTransferPackage {

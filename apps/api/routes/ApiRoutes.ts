@@ -44,6 +44,7 @@ const SAFE_MESSAGES: Record<string, string> = {
   'DASHBOARD_IMPORT_INVALID': 'El archivo de tablero no es válido.',
   'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 'La versión del archivo de tablero no es compatible.',
   'DASHBOARD_NOT_FOUND': 'El tablero no existe.',
+  'DASHBOARD_REVISION_NOT_FOUND': 'La versión del historial no existe.',
 };
 
 const DEFAULT_STATUS_CODES: Record<string, number> = {
@@ -60,6 +61,7 @@ const DEFAULT_STATUS_CODES: Record<string, number> = {
   'DASHBOARD_IMPORT_INVALID': 400,
   'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 400,
   'DASHBOARD_NOT_FOUND': 404,
+  'DASHBOARD_REVISION_NOT_FOUND': 404,
 };
 
 /**

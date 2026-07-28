@@ -86,6 +86,42 @@ export class DashboardRoutes extends ApiRoutes {
       return true;
     }
 
+    // GET /api/v1/dashboards/:id/history
+    const historyMatch = method === 'GET' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)\/history$/);
+    if (historyMatch) {
+      try {
+        const revisions = await container.services.dashboardService.getDashboardRevisions(req.user!.id, historyMatch[1]);
+        this.sendJson(res, revisions);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to load dashboard history';
+        const status = message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_NOT_FOUND' ? 404 : 500;
+        this.sendError(res, status, message, message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/dashboards/:id/history/:revisionId/restore
+    const restoreMatch = method === 'POST' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)\/history\/([^\/]+)\/restore$/);
+    if (restoreMatch) {
+      try {
+        const restored = await container.services.dashboardService.restoreDashboardRevision(
+          req.user!.id,
+          restoreMatch[1],
+          restoreMatch[2],
+        );
+        this.sendJson(res, restored);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to restore dashboard history';
+        const status = message === 'FORBIDDEN'
+          ? 403
+          : message === 'DASHBOARD_NOT_FOUND' || message === 'DASHBOARD_REVISION_NOT_FOUND'
+            ? 404
+            : 500;
+        this.sendError(res, status, message, message);
+      }
+      return true;
+    }
+
     // POST /api/v1/dashboards
     if (method === 'POST' && pathname === '/api/v1/dashboards') {
       try {

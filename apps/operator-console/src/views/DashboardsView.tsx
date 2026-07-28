@@ -6,6 +6,7 @@ import { apiFetch, readApiError } from '../lib/apiClient';
 import { DashboardCreateForm } from '../components/DashboardCreateForm';
 import { DashboardTabsNav } from '../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../components/DashboardTitleBar';
+import { DashboardHistoryModal, type DashboardRevisionSummary } from '../components/DashboardHistoryModal';
 import { DashboardViewConfigModal } from '../components/DashboardViewConfigModal';
 import { LoadingState } from '../components/ui/LoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
@@ -64,6 +65,11 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [revisions, setRevisions] = useState<DashboardRevisionSummary[]>([]);
+  const [revisionPendingRestore, setRevisionPendingRestore] = useState<DashboardRevisionSummary | null>(null);
+  const [isRestoringRevision, setIsRestoringRevision] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
@@ -175,7 +181,11 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
       });
       if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_save')));
       const updated: Dashboard = await res.json();
-      setDashboards(prev => prev.map(d => d.id === updated.id ? updated : d));
+      setDashboards(prev => {
+        const next = prev.map(d => d.id === updated.id ? updated : d);
+        onDashboardCatalogChange?.(next);
+        return next;
+      });
       setActive(updated);
       setError('');
       return true;
@@ -275,6 +285,51 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
       setError(error_ instanceof Error ? error_.message : t('dashboards.transfer.error_import'));
     } finally {
       setIsTransferring(false);
+    }
+  };
+
+  const handleOpenHistory = async () => {
+    if (!active) return;
+    setIsHistoryOpen(true);
+    setIsHistoryLoading(true);
+    setError('');
+    try {
+      const response = await apiFetch(`${API}/dashboards/${active.id}/history`);
+      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.history.error_load')));
+      const history: DashboardRevisionSummary[] = await response.json();
+      setRevisions(history);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.history.error_load'));
+      setIsHistoryOpen(false);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  const handleRestoreRevision = async () => {
+    if (!active || !revisionPendingRestore) return;
+    setIsRestoringRevision(true);
+    setError('');
+    try {
+      const response = await apiFetch(`${API}/dashboards/${active.id}/history/${revisionPendingRestore.id}/restore`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.history.error_restore')));
+      const restored: Dashboard = await response.json();
+      setDashboards((current) => {
+        const next = current.map((dashboard) => dashboard.id === restored.id ? restored : dashboard);
+        onDashboardCatalogChange?.(next);
+        return next;
+      });
+      setActive(restored);
+      setActiveTabIdx(getDefaultTabIndex(restored));
+      setRevisionPendingRestore(null);
+      setIsHistoryOpen(false);
+      setIsEditing(false);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.history.error_restore'));
+    } finally {
+      setIsRestoringRevision(false);
     }
   };
 
@@ -433,6 +488,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
       if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_delete')));
       const remaining = dashboards.filter(d => d.id !== dashboardPendingDelete.id);
       setDashboards(remaining);
+      onDashboardCatalogChange?.(remaining);
       setActive(remaining.length > 0 ? remaining[0] : null);
       setActiveTabIdx(0);
       setDashboardPendingDelete(null);
@@ -525,6 +581,8 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                   onImport={(file) => { void handleImport(file); }}
                   exportLabel={t('dashboards.transfer.export')}
                   importLabel={t('dashboards.transfer.import')}
+                  historyLabel={t('dashboards.history.action')}
+                  onOpenHistory={() => { void handleOpenHistory(); }}
                   isTransferring={isTransferring}
                   />
                 )}
@@ -645,6 +703,26 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
         cancelText={t('common.cancel')}
         variant="danger"
         isSubmitting={isDeleting}
+      />
+
+      <DashboardHistoryModal
+        isOpen={isHistoryOpen}
+        revisions={revisions}
+        isLoading={isHistoryLoading}
+        onClose={() => { if (!isHistoryLoading) setIsHistoryOpen(false); }}
+        onRestore={setRevisionPendingRestore}
+      />
+
+      <ConfirmModal
+        isOpen={revisionPendingRestore !== null}
+        onClose={() => { if (!isRestoringRevision) setRevisionPendingRestore(null); }}
+        onConfirm={() => { void handleRestoreRevision(); }}
+        title={t('dashboards.history.restore_title')}
+        description={t('dashboards.history.restore_description', { title: revisionPendingRestore?.snapshot.title ?? '' })}
+        confirmText={t('dashboards.history.restore')}
+        cancelText={t('common.cancel')}
+        variant="warning"
+        isSubmitting={isRestoringRevision}
       />
       </div>
     </div>

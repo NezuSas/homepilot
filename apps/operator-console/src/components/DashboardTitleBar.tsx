@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Check, Download, HelpCircle, MoreVertical, PenLine, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Check, Download, HelpCircle, History, MoreVertical, PenLine, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
@@ -28,6 +28,8 @@ interface DashboardTitleBarProps {
   onImport: (file: File) => void;
   exportLabel: string;
   importLabel: string;
+  historyLabel: string;
+  onOpenHistory: () => void;
   isTransferring?: boolean;
 }
 
@@ -55,6 +57,8 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   onImport,
   exportLabel,
   importLabel,
+  historyLabel,
+  onOpenHistory,
   isTransferring = false,
 }) => {
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +102,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       />
       <IconButton icon={Download} label={exportLabel} onClick={onExport} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
       <IconButton icon={Upload} label={importLabel} onClick={() => importInputRef.current?.click()} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
+      <IconButton icon={History} label={historyLabel} onClick={onOpenHistory} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
       {isEditingDashboard ? (
         <>
           <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="md" className="rounded-full" />

@@ -1,4 +1,4 @@
-import { Dashboard, DashboardRepository } from '../../domain/Dashboard';
+import { Dashboard, DashboardRepository, DashboardRevision } from '../../domain/Dashboard';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 
 interface LocalDashboardRow {
@@ -9,6 +9,13 @@ interface LocalDashboardRow {
   tabs: string;
   created_at: string;
   updated_at: string;
+}
+
+interface LocalDashboardRevisionRow {
+  id: string;
+  dashboard_id: string;
+  snapshot: string;
+  created_at: string;
 }
 
 export class SQLiteDashboardRepository implements DashboardRepository {
@@ -76,5 +83,35 @@ export class SQLiteDashboardRepository implements DashboardRepository {
   public async deleteDashboard(id: string): Promise<void> {
     const db = this.getDb();
     db.prepare('DELETE FROM dashboards WHERE id = ?').run(id);
+  }
+
+  public async saveRevision(revision: DashboardRevision): Promise<void> {
+    const db = this.getDb();
+    db.prepare(`
+      INSERT INTO dashboard_revisions (id, dashboard_id, snapshot, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      revision.id,
+      revision.dashboardId,
+      JSON.stringify(revision.snapshot),
+      revision.createdAt,
+    );
+  }
+
+  public async findRevisionsByDashboardId(dashboardId: string): Promise<DashboardRevision[]> {
+    const db = this.getDb();
+    const rows = db.prepare(`
+      SELECT id, dashboard_id, snapshot, created_at
+      FROM dashboard_revisions
+      WHERE dashboard_id = ?
+      ORDER BY created_at DESC
+    `).all(dashboardId) as LocalDashboardRevisionRow[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      dashboardId: row.dashboard_id,
+      createdAt: row.created_at,
+      snapshot: JSON.parse(row.snapshot),
+    }));
   }
 }

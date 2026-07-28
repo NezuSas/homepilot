@@ -139,4 +139,24 @@ describe('SQLite Topology Persistence Integration', () => {
     expect(adminDashboards.some(item => item.id === dashboard.id)).toBe(false);
     expect(gustavoDashboards.some(item => item.id === dashboard.id)).toBe(true);
   });
+
+  it('persists dashboard revisions ordered from newest to oldest', async () => {
+    await dashboardRepo.saveRevision({
+      id: 'revision-old',
+      dashboardId: 'dashboard-oscar',
+      createdAt: '2026-01-01T10:00:00.000Z',
+      snapshot: { title: 'Primera versión', visibility: { roles: [], users: [], homes: [] }, tabs: [] },
+    });
+    await dashboardRepo.saveRevision({
+      id: 'revision-new',
+      dashboardId: 'dashboard-oscar',
+      createdAt: '2026-01-01T11:00:00.000Z',
+      snapshot: { title: 'Segunda versión', visibility: { roles: [], users: [], homes: [] }, tabs: [] },
+    });
+
+    const revisions = await dashboardRepo.findRevisionsByDashboardId('dashboard-oscar');
+
+    expect(revisions.map((revision) => revision.id)).toEqual(['revision-new', 'revision-old']);
+    expect(revisions[0].snapshot.title).toBe('Segunda versión');
+  });
 });

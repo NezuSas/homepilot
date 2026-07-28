@@ -1,6 +1,7 @@
 import { DashboardService } from '../application/DashboardService';
 import {
   Dashboard,
+  DashboardRevision,
   DashboardRepository,
   DASHBOARD_TRANSFER_FORMAT,
   DASHBOARD_TRANSFER_VERSION,
@@ -15,6 +16,8 @@ describe('DashboardService', () => {
       findDashboardById: async () => null,
       findAllVisibleTo: async () => [],
       deleteDashboard: async () => undefined,
+      saveRevision: async () => undefined,
+      findRevisionsByDashboardId: async () => [],
     };
     const homeRepository: HomeRepository = {
       saveHome: async () => undefined,
@@ -38,6 +41,8 @@ describe('DashboardService', () => {
       findDashboardById: async () => null,
       findAllVisibleTo: async () => [],
       deleteDashboard: async () => undefined,
+      saveRevision: async () => undefined,
+      findRevisionsByDashboardId: async () => [],
     };
     const homeRepository: HomeRepository = {
       saveHome: async () => undefined,
@@ -85,6 +90,8 @@ describe('DashboardService', () => {
       findDashboardById: async () => null,
       findAllVisibleTo: async () => [],
       deleteDashboard: async () => undefined,
+      saveRevision: async () => undefined,
+      findRevisionsByDashboardId: async () => [],
     };
     const service = new DashboardService(dashboardRepository, createHomeRepository());
 
@@ -119,6 +126,57 @@ describe('DashboardService', () => {
       dashboard: { title: 'Unsupported', tabs: [] },
     })).rejects.toThrow('DASHBOARD_IMPORT_UNSUPPORTED_VERSION');
   });
+
+  it('archives the previous state before updating a dashboard', async () => {
+    const stored = createDashboard('dashboard-1', 'Original');
+    const revisions: DashboardRevision[] = [];
+    const dashboardRepository: DashboardRepository = {
+      ...createDashboardRepository(stored),
+      saveDashboard: async () => undefined,
+      saveRevision: async (revision) => { revisions.push(revision); },
+      findRevisionsByDashboardId: async () => revisions,
+    };
+    const service = new DashboardService(dashboardRepository, createHomeRepository());
+
+    const updated = await service.updateDashboard('user-1', 'admin', stored.id, { title: 'Actualizado' });
+
+    expect(updated.title).toBe('Actualizado');
+    expect(revisions).toHaveLength(1);
+    expect(revisions[0].snapshot.title).toBe('Original');
+    expect(revisions[0].snapshot.tabs[0].background).toBeUndefined();
+  });
+
+  it('restores a selected revision and archives the current state first', async () => {
+    const stored = createDashboard('dashboard-1', 'Actual');
+    stored.tabs[0].background = '/media/current-background.jpg';
+    const revisions: DashboardRevision[] = [{
+      id: 'revision-1',
+      dashboardId: stored.id,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      snapshot: {
+        title: 'Anterior',
+        visibility: { roles: [], users: ['user-1'], homes: [] },
+        tabs: [{ id: stored.tabs[0].id, title: 'Inicio anterior', widgets: [] }],
+      },
+    }];
+    const dashboardRepository: DashboardRepository = {
+      ...createDashboardRepository(stored),
+      saveDashboard: async () => undefined,
+      saveRevision: async (revision) => { revisions.unshift(revision); },
+      findRevisionsByDashboardId: async () => revisions,
+    };
+    const service = new DashboardService(dashboardRepository, createHomeRepository());
+
+    const restored = await service.restoreDashboardRevision('user-1', stored.id, 'revision-1');
+
+    expect(restored.title).toBe('Anterior');
+    expect(restored.tabs[0]).toMatchObject({
+      title: 'Inicio anterior',
+      background: '/media/current-background.jpg',
+    });
+    expect(revisions).toHaveLength(2);
+    expect(revisions[0].snapshot.title).toBe('Actual');
+  });
 });
 
 function createDashboardRepository(dashboard: Dashboard | null): DashboardRepository {
@@ -127,6 +185,20 @@ function createDashboardRepository(dashboard: Dashboard | null): DashboardReposi
     findDashboardById: async () => dashboard,
     findAllVisibleTo: async () => [],
     deleteDashboard: async () => undefined,
+    saveRevision: async () => undefined,
+    findRevisionsByDashboardId: async () => [],
+  };
+}
+
+function createDashboard(id: string, title: string): Dashboard {
+  return {
+    id,
+    ownerId: 'user-1',
+    title,
+    visibility: { roles: [], users: ['user-1'], homes: [] },
+    tabs: [{ id: 'tab-1', title: 'Inicio', widgets: [] }],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
   };
 }
 

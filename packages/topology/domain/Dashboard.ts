@@ -51,9 +51,29 @@ export interface DashboardTransferPackage {
   };
 }
 
+/**
+ * A local, reversible checkpoint created immediately before a dashboard is
+ * changed. Background assets are intentionally excluded: their storage is
+ * local to the appliance and can be removed independently of dashboard data.
+ */
+export interface DashboardRevisionSnapshot {
+  title: string;
+  visibility: DashboardVisibility;
+  tabs: DashboardTab[];
+}
+
+export interface DashboardRevision {
+  id: string;
+  dashboardId: string;
+  createdAt: string;
+  snapshot: DashboardRevisionSnapshot;
+}
+
 export interface DashboardRepository {
   saveDashboard(dashboard: Dashboard): Promise<void>;
   findDashboardById(id: string): Promise<Dashboard | null>;
   findAllVisibleTo(userId: string, userRole: string, homeIds: string[]): Promise<Dashboard[]>;
   deleteDashboard(id: string): Promise<void>;
+  saveRevision(revision: DashboardRevision): Promise<void>;
+  findRevisionsByDashboardId(dashboardId: string): Promise<DashboardRevision[]>;
 }

@@ -1429,6 +1429,20 @@
       "error_export": "No se pudo exportar el tablero",
       "error_import": "No se pudo importar el tablero"
     },
+    "history": {
+      "action": "Historial del tablero",
+      "title": "Historial del tablero",
+      "description": "Restaura una versión anterior. El estado actual también quedará guardado como una nueva revisión.",
+      "loading": "Cargando historial",
+      "empty_title": "Aún no hay revisiones",
+      "empty_description": "Las versiones se guardan automáticamente cuando modificas este tablero.",
+      "metadata": "{{date}} · {{count}} pestañas",
+      "restore": "Restaurar",
+      "restore_title": "¿Restaurar esta versión?",
+      "restore_description": "Se restaurará «{{title}}». El estado actual se guardará antes de aplicar el cambio.",
+      "error_load": "No se pudo cargar el historial del tablero",
+      "error_restore": "No se pudo restaurar la versión del tablero"
+    },
     "rename": "Renombrar",
     "delete": "Eliminar panel",
     "remove_widget": "Quitar widget",

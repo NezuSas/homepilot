@@ -32,6 +32,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **REQ-06:** Las tarjetas de control reflejan el estado real y ejecutan solo acciones soportadas por su entidad.
 - **REQ-07:** Las variables de identidad del título se resuelven exclusivamente desde el contexto autenticado de HomePilot.
 - **REQ-08:** El propietario puede exportar un tablero como un archivo versionado e importar una copia en su propia cuenta, sin sobrescribir tableros existentes.
+- **REQ-09:** Cada actualización de tablero crea una revisión local recuperable por su propietario; la restauración debe crear otra revisión del estado actual antes de aplicar la elegida.
 
 ## 5. Requisitos No Funcionales
 
@@ -43,6 +44,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-06:** La grilla conserva flujo secuencial: el placeholder final no rellena huecos ni se superpone visualmente a otras zonas.
 - **NFR-07:** Los iconos comunes del tablero se resuelven sin cargar el catálogo MDI completo; los iconos personalizados mantienen compatibilidad mediante carga diferida al requerirse.
 - **NFR-08:** La transferencia excluye propietario, visibilidad y fondos locales; la copia importada usa identificadores nuevos y solo es visible para quien la importa.
+- **NFR-09:** El historial no guarda ni restaura imágenes de fondo locales; las revisiones no deben exponer secretos, permisos de otros usuarios ni rutas de archivos de otra instalación.
 
 ## 6. Criterios de Aceptación
 
@@ -56,6 +58,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC8: Un tablero con iconos comunes conserva sus controles visibles en móvil, tablet y escritorio sin requerir la carga inicial del catálogo MDI completo.
 - [x] AC9: Exportar un tablero produce un paquete `homepilot-dashboard` con versión explícita y sin referencias a fondos locales ni políticas de acceso.
 - [x] AC10: Importar un paquete compatible crea una copia privada, con pestañas y widgets de nuevos identificadores, sin modificar el tablero de origen.
+- [x] AC11: Cada guardado de tablero deja una revisión local que su propietario puede restaurar sin perder la posibilidad de deshacer la restauración.
+- [x] AC12: Restaurar una revisión no restituye referencias de imágenes de fondo locales eliminadas.
 
 ## 7. Notas Técnicas y Arquitectura
 

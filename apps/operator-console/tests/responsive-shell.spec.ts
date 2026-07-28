@@ -73,6 +73,17 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   await page.route('**/api/v1/dashboards', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify([responsiveDashboard]) });
   });
+  await page.route('**/api/v1/dashboards/responsive-dashboard/history', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        id: 'responsive-revision',
+        dashboardId: 'responsive-dashboard',
+        createdAt: '2026-01-02T12:30:00.000Z',
+        snapshot: { title: 'Hogar anterior', tabs: [{ id: 'responsive-tab', title: 'Principal', widgets: [] }] },
+      }]),
+    });
+  });
   await page.route('**/api/v1/devices', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: '[]' });
   });
@@ -159,13 +170,33 @@ for (const viewport of viewports) {
     await prepareAuthenticatedDashboard(page);
 
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-    await expect(page.getByText('Hogar de prueba').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
 
     const layout = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
 
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+  });
+
+  test(`keeps dashboard history accessible on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    const historyButton = page.getByRole('button', { name: /dashboard history|historial del tablero/i });
+    await expect(historyButton).toBeVisible();
+    await historyButton.click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(/Hogar anterior/);
+
+    const layout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   });
 }
