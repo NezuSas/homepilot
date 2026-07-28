@@ -1,6 +1,7 @@
 import { DeviceDriver, DeviceDriverCommand, DeviceDriverContext, DeviceDriverResult } from '../../../devices/domain/drivers/DeviceDriver';
 import { Device } from '../../../devices/domain/types';
 import { SonoffConnectionRegistry } from '../application/SonoffLanDiscoveryService';
+import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 /**
  * SonoffDeviceDriver
@@ -8,12 +9,6 @@ import { SonoffConnectionRegistry } from '../application/SonoffLanDiscoveryServi
  * Driver para controlar dispositivos Sonoff a través de la red local (LAN mode).
  */
 export class SonoffDeviceDriver implements DeviceDriver {
-  private logInfo(message: string): void {
-    if (process.env.NODE_ENV !== 'test') {
-      console.log(message);
-    }
-  }
-
   public supports(device: Device): boolean {
     return device.integrationSource === 'sonoff';
   }
@@ -52,7 +47,7 @@ export class SonoffDeviceDriver implements DeviceDriver {
       return { success: false, error: `Dirección IP no encontrada para ${externalIdMatch}` };
     }
 
-    this.logInfo(`[Sonoff-LAN] Ejecutando comando LAN: ${targetState} en ${targetIp}`);
+    logRuntimeDiagnostic('log', `[Sonoff-LAN] Ejecutando comando LAN: ${targetState} en ${targetIp}`);
 
     try {
       await this.dispatchWithRetry(targetIp, externalIdMatch, targetState);

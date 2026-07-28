@@ -3,6 +3,7 @@ import mdns from 'multicast-dns';
 import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRepository';
 import { HomeRepository } from '../../../topology/domain/repositories/HomeRepository';
 import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from '../../../devices/application/syncDeviceStateUseCase';
+import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 interface DnsRecord {
   type?: string;
@@ -42,15 +43,21 @@ export class SonoffLanDiscoveryService {
   constructor(private readonly deps: SonoffLanDiscoveryServiceDependencies) {}
 
   private logInfo(message: string, data?: unknown): void {
-    if (process.env.NODE_ENV !== 'test') {
-      data ? console.log(message, data) : console.log(message);
+    if (data !== undefined) {
+      logRuntimeDiagnostic('log', message, data);
+      return;
     }
+
+    logRuntimeDiagnostic('log', message);
   }
 
   private logError(message: string, error?: unknown): void {
-    if (process.env.NODE_ENV !== 'test') {
-      error ? console.error(message, error) : console.error(message);
+    if (error !== undefined) {
+      logRuntimeDiagnostic('error', message, error);
+      return;
     }
+
+    logRuntimeDiagnostic('error', message);
   }
 
   public startDiscovery(homeId?: string): void {

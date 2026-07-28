@@ -38,6 +38,7 @@ Los dispositivos Sonoff compatibles deben descubrirse y controlarse localmente m
 ## 7. Notas Técnicas y Arquitectura
 
 - Implementación en `SonoffLanDiscoveryService`, `SonoffCommandDispatcher` y `SonoffDeviceDriver`.
+- Los diagnósticos LAN se emiten mediante `logRuntimeDiagnostic`, conservando los mensajes operativos en runtime y suprimiendo el ruido durante pruebas automatizadas.
 - Sigue los contratos de `packages/devices`; no crea un flujo especial en la consola.
 
 ## 8. Preguntas Abiertas y TODOs

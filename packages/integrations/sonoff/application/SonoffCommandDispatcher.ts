@@ -3,6 +3,7 @@ import { DeviceCommandV1 } from '../../../devices/domain/commands';
 import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRepository';
 import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from '../../../devices/application/syncDeviceStateUseCase';
 import { SonoffConnectionRegistry } from './SonoffLanDiscoveryService';
+import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
   constructor(
@@ -10,12 +11,6 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
     private readonly syncDeps: SyncDeviceStateDependencies,
     private readonly correlationId: string = 'sonoff-lan-sync'
   ) {}
-
-  private logInfo(message: string): void {
-    if (process.env.NODE_ENV !== 'test') {
-      console.log(message);
-    }
-  }
 
   private getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
@@ -54,7 +49,7 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
       throw new Error(`Falta dirección IP (no descubierta) para el dispositivo Sonoff LAN ${externalIdMatch}`);
     }
 
-    this.logInfo(`[Sonoff-LAN] Despachando comando LAN local: ${targetState} hacia IP ${targetIp} (${externalIdMatch})`);
+    logRuntimeDiagnostic('log', `[Sonoff-LAN] Despachando comando LAN local: ${targetState} hacia IP ${targetIp} (${externalIdMatch})`);
 
     const dispatchWithRetry = async (retryCount = 0): Promise<void> => {
       try {
@@ -82,7 +77,7 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
         }
       } catch (error: unknown) {
         if (retryCount < 1) {
-          this.logInfo(`[Sonoff-LAN] Fallo de red detectado, reintentando (1/1)...`);
+          logRuntimeDiagnostic('log', '[Sonoff-LAN] Fallo de red detectado, reintentando (1/1)...');
           return dispatchWithRetry(retryCount + 1);
         }
         throw error;
@@ -120,11 +115,11 @@ export class SonoffCommandDispatcher implements DeviceCommandDispatcherPort {
         const reportedSwitch = infoBody?.data?.switch;
         if (typeof reportedSwitch === 'string') {
           finalState = reportedSwitch;
-          this.logInfo(`[Sonoff-LAN] Estado real verificado exitosamente post-comando: ${finalState}`);
+          logRuntimeDiagnostic('log', `[Sonoff-LAN] Estado real verificado exitosamente post-comando: ${finalState}`);
         }
       }
     } catch (e) {
-      this.logInfo(`[Sonoff-LAN] Falló la verificación de estado real inmediata, cayendo en optimista para ${targetIp}`);
+      logRuntimeDiagnostic('log', `[Sonoff-LAN] Falló la verificación de estado real inmediata, cayendo en optimista para ${targetIp}`);
     }
     
     const newState: Record<string, unknown> = { ...device.lastKnownState };
