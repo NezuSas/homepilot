@@ -16,9 +16,74 @@ const viewports = [
   { name: 'desktop', width: 1440, height: 900 },
 ];
 
+const dashboardUser = {
+  id: 'responsive-admin',
+  username: 'admin',
+  role: 'admin',
+  displayName: 'Administrador',
+  avatarDataUri: null,
+};
+
+const responsiveDashboard = {
+  id: 'responsive-dashboard',
+  ownerId: dashboardUser.id,
+  title: 'Hogar de prueba',
+  visibility: { roles: [], users: [], homes: [] },
+  tabs: [
+    {
+      id: 'responsive-tab',
+      title: 'Principal',
+      isDefault: true,
+      widgets: [
+        {
+          id: 'responsive-title',
+          type: 'dashboard_title',
+          config: {
+            layout: { x: 0, y: 0, w: 3, h: 1, span: 3 },
+            binding: { entityId: 'responsive-dashboard', entityType: 'system', entityName: 'Hogar de prueba' },
+            visibility: { rules: [], defaultState: 'show' },
+            appearance: { title: 'Hogar de prueba', showTitle: true },
+          },
+        },
+      ],
+    },
+  ],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
 async function prepareLoginShell(page: import('@playwright/test').Page) {
   await page.route('**/api/v1/system/setup-status', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
+  });
+}
+
+async function prepareAuthenticatedDashboard(page: import('@playwright/test').Page) {
+  await page.addInitScript((user) => {
+    localStorage.setItem('hp_session_token', 'responsive-test-token');
+    localStorage.setItem('hp_user_ctx', JSON.stringify(user));
+  }, dashboardUser);
+
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(dashboardUser) });
+  });
+  await page.route('**/api/v1/system/setup-status', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
+  });
+  await page.route('**/api/v1/dashboards', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([responsiveDashboard]) });
+  });
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/homes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/assistant/findings', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/assistant/summary', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ totalOpen: 0 }) });
   });
 }
 
@@ -87,5 +152,20 @@ for (const viewport of viewports) {
 
     await expect(page.locator('[role="alert"]')).toBeVisible();
     await expect(page.locator('[role="alert"]')).toContainText(/./);
+  });
+
+  test(`keeps the authenticated dashboard responsive on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    await expect(page.getByText('Hogar de prueba').first()).toBeVisible();
+
+    const layout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   });
 }

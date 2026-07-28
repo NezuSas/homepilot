@@ -24,29 +24,8 @@ jobs:
       - name: Install root workspace dependencies
         run: npm ci
 
-      - name: Typecheck (backend + frontend)
-        run: npm run typecheck
-
-      - name: Build backend (tsc)
-        run: npm run build
-
-      - name: Build frontend (operator-console)
-        run: npm run build --prefix apps/operator-console
-
-      - name: Verify shared UI primitives
-        run: npm run check:ui-primitives
-
-      - name: Verify ES/EN translation coverage
-        run: npm run check:i18n
-
-      - name: Verify specification coverage
-        run: npm run check:spec-coverage
-
       - name: Install responsive test browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run responsive console checks
-        run: npm run test:responsive
-
-      - name: Run tests
-        run: npm test
+      - name: Run complete quality gate
+        run: npm run verify:quality

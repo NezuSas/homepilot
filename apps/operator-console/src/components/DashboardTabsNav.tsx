@@ -1,4 +1,4 @@
-import * as Icons from 'lucide-react';
+import { BriefcaseBusiness, CircleHelp, Home, LayoutGrid, Menu, Pencil, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
@@ -55,31 +55,31 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
       // Legacy Spanish aliases stored before the shared MDI+Lucide catalog
       // existed; kept so previously saved tab icons keep resolving.
       const translations: Record<string, string> = {
-        gata: 'Cat', gato: 'Cat', perro: 'Dog', perra: 'Dog',
-        luz: 'Lightbulb', foco: 'Lightbulb', interruptor: 'Power',
-        enchufe: 'Plug', camara: 'Camera', tv: 'Tv', musica: 'Music',
-        bocina: 'Speaker', parlante: 'Speaker', llave: 'Key',
-        candado: 'Lock', escudo: 'Shield', termometro: 'Thermometer',
-        aire: 'Wind', ventilador: 'Fan'
+        gata: 'mdi:cat', gato: 'mdi:cat', perro: 'mdi:dog', perra: 'mdi:dog',
+        luz: 'mdi:lightbulb', foco: 'mdi:lightbulb', interruptor: 'mdi:power',
+        enchufe: 'mdi:power-plug', camara: 'mdi:camera', tv: 'mdi:television', musica: 'mdi:music',
+        bocina: 'mdi:speaker', parlante: 'mdi:speaker', llave: 'mdi:key',
+        candado: 'mdi:lock', escudo: 'mdi:shield', termometro: 'mdi:thermometer',
+        aire: 'mdi:weather-windy', ventilador: 'mdi:fan'
       };
 
       const alias = translations[withoutPrefix.toLowerCase()];
       // Shared resolver: understands both `mdi:*` (Home Assistant Material
       // Design Icons) and plain Lucide names, unlike the old Lucide-only lookup.
       const resolved = getDashboardIconComponent(alias ?? raw);
-      if (resolved !== Icons.CircleHelp) return resolved;
+      if (resolved !== CircleHelp) return resolved;
     }
 
-    if (index === 0) return Icons.Home;
-    if (index === 1) return Icons.LayoutGrid;
-    return Icons.BriefcaseBusiness;
+    if (index === 0) return Home;
+    if (index === 1) return LayoutGrid;
+    return BriefcaseBusiness;
   };
 
   return (
     <div className="min-w-0 border-b border-border/60">
       <div className="flex min-w-0 min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
         {onOpenMobileMenu && (
-          <IconButton icon={Icons.Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/80 shadow-sm backdrop-blur-md lg:hidden" />
+          <IconButton icon={Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/80 shadow-sm backdrop-blur-md lg:hidden" />
         )}
         {tabs.map((tab, index) => {
           const Icon = getTabIcon(tab, index);
@@ -106,7 +106,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                 </Button>
               {isEditing && (
                 <IconButton
-                  icon={Icons.Pencil}
+                  icon={Pencil}
                   label={`${configureLabel}: ${tab.title}`}
                   onClick={() => {
                     onSelectTab(index);
@@ -133,7 +133,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
             title={addLabel}
             aria-label={addLabel}
           >
-            <Icons.Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{addLabel}</span>
           </Button>
         )}
@@ -143,7 +143,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
 
         {/* Edit Button (HA Style) when not editing */}
         {!isEditing && onToggleEditing && (
-          <IconButton icon={Icons.Pencil} label={editLabel ?? addLabel} onClick={onToggleEditing} variant="ghost" size="md" className="ml-auto mr-1 rounded-full" />
+          <IconButton icon={Pencil} label={editLabel ?? addLabel} onClick={onToggleEditing} variant="ghost" size="md" className="ml-auto mr-1 rounded-full" />
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import * as Icons from 'lucide-react';
+import { CircleHelp, Cpu, Lightbulb, Loader2, Power } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
@@ -27,7 +27,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
     return (
       <DormantWidgetPlaceholder
         title={t('dashboards.widgets.selected_device.label')}
-        icon={Icons.Cpu}
+        icon={Cpu}
         message={t('dashboards.widgets.selected_device.placeholder')}
         isEditing={isEditing}
         onConfigure={onConfigure}
@@ -70,29 +70,29 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       // Legacy Spanish aliases stored before the shared MDI+Lucide catalog
       // existed; kept so previously saved icons keep resolving.
       const customMap: Record<string, string> = {
-        gata: 'Cat',
-        cat: 'Cat',
-        luz: 'Lightbulb',
-        interruptor: 'Power',
-        enchuf: 'Plug',
-        enchufe: 'Plug',
-        camera: 'Camera',
-        camara: 'Camera',
-        recessed: 'Lightbulb',
-        'light-recessed': 'Lightbulb'
+        gata: 'mdi:cat',
+        cat: 'mdi:cat',
+        luz: 'mdi:lightbulb',
+        interruptor: 'mdi:power',
+        enchuf: 'mdi:power-plug',
+        enchufe: 'mdi:power-plug',
+        camera: 'mdi:camera',
+        camara: 'mdi:camera',
+        recessed: 'mdi:lightbulb',
+        'light-recessed': 'mdi:lightbulb'
       };
 
       const alias = customMap[withoutPrefix.toLowerCase()];
       // Shared resolver: understands both `mdi:*` (Home Assistant Material
       // Design Icons) and plain Lucide names, unlike the old Lucide-only lookup.
       const resolved = getDashboardIconComponent(alias ?? raw);
-      if (resolved !== Icons.CircleHelp) return resolved;
+      if (resolved !== CircleHelp) return resolved;
     }
 
     switch (device.type) {
-      case 'light': return Icons.Lightbulb;
-      case 'switch': return Icons.Power;
-      default: return Icons.Power;
+      case 'light': return Lightbulb;
+      case 'switch': return Power;
+      default: return Power;
     }
   };
   
@@ -133,7 +133,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         {/* Loading state overlay */}
         {isProcessing && (
           <div className="absolute inset-0 bg-background/50 backdrop-blur-surface flex items-center justify-center rounded-[inherit] z-10">
-            <Icons.Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
           </div>
         )}
       </Button>
@@ -173,7 +173,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       {/* Loading state overlay */}
       {isProcessing && (
         <div className="absolute inset-0 bg-background/50 backdrop-blur-surface flex items-center justify-center rounded-[inherit] z-10">
-          <Icons.Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       )}
     </Button>

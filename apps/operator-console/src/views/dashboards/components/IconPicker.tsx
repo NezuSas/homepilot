@@ -1,6 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
-import * as LucideIcons from 'lucide-react';
 import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -23,15 +22,6 @@ interface IconEntry {
   normalized: string;
 }
 
-const BLOCKED_EXPORTS = new Set([
-  'default',
-  'icons',
-  'createLucideIcon',
-  'Icon',
-  'LucideIcon',
-  'LucideProps',
-]);
-
 function normalizeIconName(value: string) {
   return value
     .trim()
@@ -51,32 +41,6 @@ function createMdiIcon(path: string): IconComponent {
     );
   };
 }
-
-function isRenderableLucideExport(name: string, value: unknown) {
-  if (BLOCKED_EXPORTS.has(name)) return false;
-  if (!/^[A-Z0-9]/.test(name)) return false;
-
-  // lucide-react exports icons as React components. Depending on React/build,
-  // they can be functions or forwardRef-like objects. Exclude plain objects.
-  if (typeof value === 'function') return true;
-
-  if (value && typeof value === 'object') {
-    const record = value as Record<string | symbol, unknown>;
-    const reactType = record[Symbol.for('react.forward_ref')] || record.$$typeof;
-    return Boolean(reactType);
-  }
-
-  return false;
-}
-
-const LUCIDE_ICONS: IconEntry[] = Object.entries(LucideIcons)
-  .filter(([name, value]) => isRenderableLucideExport(name, value))
-  .map(([name, component]) => ({
-    name,
-    icon: component as IconComponent,
-    normalized: normalizeIconName(name),
-  }))
-  .sort((a, b) => a.name.localeCompare(b.name));
 
 function mdiExportNameToIconName(exportName: string): string | null {
   if (!exportName.startsWith('mdi') || exportName.length <= 3) return null;
@@ -131,7 +95,7 @@ export function useMdiCatalogLoaded(): boolean {
 }
 
 function getIconCatalog(): IconEntry[] {
-  return [...mdiCatalog, ...LUCIDE_ICONS];
+  return mdiCatalog;
 }
 
 export function getDashboardIconComponent(value?: string): IconComponent {
