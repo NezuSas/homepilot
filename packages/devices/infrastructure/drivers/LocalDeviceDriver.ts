@@ -1,5 +1,6 @@
 import { DeviceDriver, DeviceDriverCommand, DeviceDriverContext, DeviceDriverResult } from '../../domain/drivers/DeviceDriver';
 import { Device } from '../../domain/types';
+import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 /**
  * LocalDeviceDriver
@@ -17,7 +18,7 @@ export class LocalDeviceDriver implements DeviceDriver {
     command: DeviceDriverCommand,
     context: DeviceDriverContext
   ): Promise<DeviceDriverResult> {
-    console.log(`[LocalDriver] Ejecutando comando: ${command.name} en ${device.id}`);
+    logRuntimeDiagnostic('log', `[LocalDriver] Ejecutando comando: ${command.name} en ${device.id}`);
 
     let newState: Record<string, unknown> = { ...device.lastKnownState as Record<string, unknown> };
 
