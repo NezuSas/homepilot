@@ -5,6 +5,15 @@ import { apiFetch } from '../lib/apiClient';
 const API_URL = `${API_BASE_URL}/api/v1`;
 const SNAPSHOT_FRESHNESS_MS = 15_000;
 
+function groupRoomsByHome(rooms: SnapshotRoom[]): Record<string, SnapshotRoom[]> {
+  return rooms.reduce<Record<string, SnapshotRoom[]>>((roomsByHome, room) => {
+    const homeRooms = roomsByHome[room.homeId] ?? [];
+    homeRooms.push(room);
+    roomsByHome[room.homeId] = homeRooms;
+    return roomsByHome;
+  }, {});
+}
+
 export interface SnapshotRefreshOptions {
   force?: boolean;
 }
@@ -117,9 +126,10 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
 
     const refreshRequest = (async () => {
       try {
-        const [devicesResponse, homesResponse] = await Promise.all([
+        const [devicesResponse, homesResponse, roomsResponse] = await Promise.all([
           apiFetch(`${API_URL}/devices`),
           apiFetch(`${API_URL}/homes`).catch(() => null),
+          apiFetch(`${API_URL}/rooms`).catch(() => null),
         ]);
 
         if (requestGeneration !== snapshotGeneration) return;
@@ -136,8 +146,6 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
           return;
         }
 
-        const homeIdsFromDevices = Array.from(new Set(devices.map((device) => device.homeId).filter(Boolean)));
-      
         let homes = get().homes;
         if (homesResponse?.ok) {
           const rawHomes = await homesResponse.json();
@@ -148,31 +156,22 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
           }
         }
 
-        const homeIds = Array.from(new Set([...homeIdsFromDevices, ...homes.map((home) => home.id)]));
-      
-        const roomsEntries = await Promise.all(
-          homeIds.map(async (homeId) => {
-            try {
-              const roomsResponse = await apiFetch(`${API_URL}/homes/${homeId}/rooms`);
-              if (!roomsResponse.ok) return [homeId, get().roomsByHome[homeId] || []] as const;
-              const rawRooms = await roomsResponse.json();
-              if (!Array.isArray(rawRooms)) {
-                console.warn(`[DeviceSnapshotStore] Received non-array rooms response for home ${homeId}:`, rawRooms);
-                return [homeId, get().roomsByHome[homeId] || []] as const;
-              }
-              return [homeId, rawRooms as SnapshotRoom[]] as const;
-            } catch {
-              return [homeId, get().roomsByHome[homeId] || []] as const;
-            }
-          })
-        );
+        let roomsByHome = get().roomsByHome;
+        if (roomsResponse?.ok) {
+          const rawRooms = await roomsResponse.json();
+          if (Array.isArray(rawRooms)) {
+            roomsByHome = groupRoomsByHome(rawRooms as SnapshotRoom[]);
+          } else {
+            console.warn('[DeviceSnapshotStore] Received non-array rooms response:', rawRooms);
+          }
+        }
 
         if (requestGeneration !== snapshotGeneration) return;
 
         set({
           devices,
           homes,
-          roomsByHome: Object.fromEntries(roomsEntries),
+          roomsByHome,
           lastUpdatedAt: Date.now(),
         });
       } catch (error) {

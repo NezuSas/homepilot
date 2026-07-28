@@ -1061,7 +1061,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       ? devices.find((device) => device.id === card.entityId)
       : undefined;
     const assignedRoomName = assignedDevice?.roomId
-      ? assignableRooms.find((room) => room.id === assignedDevice.roomId)?.name
+      ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
       : undefined;
     const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
     const isActionable = Boolean(card.entityId)
