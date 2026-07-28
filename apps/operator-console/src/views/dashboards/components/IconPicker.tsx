@@ -1,6 +1,32 @@
 import { useEffect, useId, useMemo, useRef, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
-import { CircleHelp } from 'lucide-react';
+import {
+  Bot,
+  Blinds,
+  BriefcaseBusiness,
+  Camera,
+  Cat,
+  CircleHelp,
+  Clock,
+  Dog,
+  Fan,
+  Gauge,
+  Home,
+  Key,
+  LayoutGrid,
+  Lightbulb,
+  Lock,
+  Music2,
+  Plug,
+  Power,
+  Shield,
+  Sparkles,
+  Speaker,
+  Thermometer,
+  Tv,
+  Wind,
+  Zap,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
@@ -21,6 +47,42 @@ interface IconEntry {
   icon: IconComponent;
   normalized: string;
 }
+
+/**
+ * Common dashboard icons stay in the initial application bundle.  The full
+ * Material Design Icons catalog is only necessary for a custom icon not
+ * covered by this HomePilot/Home Assistant-compatible baseline.
+ */
+const COMMON_ICON_COMPONENTS: Record<string, IconComponent> = {
+  assistant: Bot,
+  bot: Bot,
+  blinds: Blinds,
+  briefcase: BriefcaseBusiness,
+  camera: Camera,
+  cat: Cat,
+  clock: Clock,
+  dog: Dog,
+  fan: Fan,
+  gauge: Gauge,
+  home: Home,
+  key: Key,
+  layoutgrid: LayoutGrid,
+  lightbulb: Lightbulb,
+  lock: Lock,
+  music: Music2,
+  plug: Plug,
+  powerplug: Plug,
+  power: Power,
+  shield: Shield,
+  sparkles: Sparkles,
+  speaker: Speaker,
+  thermometer: Thermometer,
+  television: Tv,
+  tv: Tv,
+  weatherwindy: Wind,
+  wind: Wind,
+  zap: Zap,
+};
 
 function normalizeIconName(value: string) {
   return value
@@ -54,6 +116,11 @@ function mdiExportNameToIconName(exportName: string): string | null {
     .toLowerCase()}`;
 }
 
+export function needsMdiCatalog(value?: string): boolean {
+  const normalized = normalizeIconName(value || '');
+  return Boolean(normalized) && !COMMON_ICON_COMPONENTS[normalized];
+}
+
 let mdiCatalog: IconEntry[] = [];
 let mdiCatalogPromise: Promise<void> | null = null;
 
@@ -76,10 +143,12 @@ function loadMdiCatalog(): Promise<void> {
 }
 
 /** Loads the complete Home Assistant-compatible MDI catalog once per session. */
-export function useMdiCatalogLoaded(): boolean {
+export function useMdiCatalogLoaded(enabled = true): boolean {
   const [isLoaded, setIsLoaded] = useState(mdiCatalog.length > 0);
 
   useEffect(() => {
+    if (!enabled || mdiCatalog.length > 0) return;
+
     let active = true;
 
     void loadMdiCatalog().then(() => {
@@ -89,7 +158,7 @@ export function useMdiCatalogLoaded(): boolean {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
   return isLoaded;
 }
@@ -101,6 +170,9 @@ function getIconCatalog(): IconEntry[] {
 export function getDashboardIconComponent(value?: string): IconComponent {
   const normalized = normalizeIconName(value || '');
   if (!normalized) return CircleHelp;
+
+  const commonIcon = COMMON_ICON_COMPONENTS[normalized];
+  if (commonIcon) return commonIcon;
 
   const icons = getIconCatalog();
   return (
@@ -123,7 +195,7 @@ export function IconPicker({
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const [iconQuery, setIconQuery] = useState(value);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
-  useMdiCatalogLoaded();
+  const isMdiCatalogLoaded = useMdiCatalogLoaded(Boolean(dropdownPos));
 
   useEffect(() => {
     setIconQuery(value);
@@ -188,7 +260,11 @@ export function IconPicker({
             width: dropdownPos.width,
           }}
         >
-          {filteredIcons.length > 0 ? (
+          {!isMdiCatalogLoaded ? (
+            <div className="px-3 py-6 text-center text-body font-semibold text-muted-foreground" aria-live="polite">
+              {t('common.loading')}
+            </div>
+          ) : filteredIcons.length > 0 ? (
             filteredIcons.map((item) => {
               const Icon = item.icon;
               const selected = item.normalized === normalizeIconName(iconQuery);

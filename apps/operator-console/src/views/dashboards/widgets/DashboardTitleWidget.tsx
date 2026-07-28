@@ -18,7 +18,7 @@ import { IconButton } from '../../../components/ui/IconButton';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Textarea } from '../../../components/ui/Textarea';
-import { getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
+import { getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
 import { getDashboardUserDisplayName } from '../dashboardUtils';
 import { formatTemperature, getClockLocale, isDaytimeHour } from './clock/clockUtils';
 import { getWeatherCategory, WeatherScene } from './clock/designs/WeatherScene';
@@ -145,7 +145,7 @@ function TimeBadgeContent() {
 
 /** Jumps straight to another tab of this dashboard when clicked. */
 function TabBadgeContent({ tab, onSelectTab }: { tab: DashboardTitleTabRef; onSelectTab?: (tabId: string) => void }) {
-  useMdiCatalogLoaded();
+  useMdiCatalogLoaded(needsMdiCatalog(tab.icon));
   const Icon = tab.icon ? getDashboardIconComponent(tab.icon) : null;
 
   return (

@@ -5,7 +5,7 @@ import type { Dashboard } from '../views/dashboards/types';
 import { InlineTabCreator } from './InlineTabCreator';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
-import { getDashboardIconComponent, useMdiCatalogLoaded } from '../views/dashboards/components/IconPicker';
+import { getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../views/dashboards/components/IconPicker';
 
 interface DashboardTabsNavProps {
   tabs: Dashboard['tabs'];
@@ -43,9 +43,9 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   editLabel
 }) => {
   const { t } = useTranslation();
-  // The MDI icon set loads lazily; this re-renders once it's ready so an
-  // already-saved mdi:* tab icon resolves instead of staying on its fallback.
-  useMdiCatalogLoaded();
+  // Load the complete MDI catalog only when a tab needs a custom icon outside
+  // the bundled HomePilot icon baseline.
+  useMdiCatalogLoaded(tabs.some((tab) => needsMdiCatalog(tab.icon)));
 
   const getTabIcon = (tab: Dashboard['tabs'][number], index: number) => {
     if (tab.icon) {

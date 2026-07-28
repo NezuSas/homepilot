@@ -22,7 +22,7 @@ import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
-import { IconPicker, getDashboardIconComponent, useMdiCatalogLoaded } from '../components/IconPicker';
+import { IconPicker, getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
@@ -541,9 +541,9 @@ function CardPreview({
   roomActiveCount?: number;
 }) {
   const { t } = useTranslation();
-  // The MDI icon set loads lazily; this re-renders once it's ready so an
-  // already-saved mdi:* card icon resolves instead of staying on its fallback.
-  useMdiCatalogLoaded();
+  // Default card icons resolve from the bundled baseline. Custom MDI entries
+  // still load on demand and preserve existing dashboard configurations.
+  useMdiCatalogLoaded(needsMdiCatalog(icon ?? getDefaultIcon(kind)));
   const normalized = normalizeKind(kind);
   const Icon = iconForIconKey(icon ?? getDefaultIcon(normalized));
   const isSmall = span === 'small';

@@ -40,6 +40,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-04:** Los iconos se resuelven a través del catálogo MDI cargado bajo demanda.
 - **NFR-05:** Las métricas de sensores usan tokens tipográficos responsive con nombre semántico; los widgets no definen escalas de texto arbitrarias en línea.
 - **NFR-06:** La grilla conserva flujo secuencial: el placeholder final no rellena huecos ni se superpone visualmente a otras zonas.
+- **NFR-07:** Los iconos comunes del tablero se resuelven sin cargar el catálogo MDI completo; los iconos personalizados mantienen compatibilidad mediante carga diferida al requerirse.
 
 ## 6. Criterios de Aceptación
 
@@ -50,6 +51,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC5: Cámara, media, reloj, sensor y control mantienen una presentación válida en los tres breakpoints.
 - [x] AC6: Los valores, porcentajes y títulos de sensores conservan una jerarquía legible mediante tokens responsive compartidos.
 - [x] AC7: El saludo del tablero utiliza el nombre visible o usuario de la sesión autenticada y conserva un fallback traducido.
+- [x] AC8: Un tablero con iconos comunes conserva sus controles visibles en móvil, tablet y escritorio sin requerir la carga inicial del catálogo MDI completo.
 
 ## 7. Notas Técnicas y Arquitectura
 
