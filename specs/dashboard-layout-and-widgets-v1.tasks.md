@@ -9,6 +9,7 @@
 - [x] Placeholder de nueva sección en flujo secuencial, siempre posterior a las secciones existentes.
 - [x] Plantillas de título vinculadas únicamente al contexto autenticado local de HomePilot.
 - [x] Tarjeta multimedia compacta, visor de cámara proporcional e inspector técnico adaptativo para celdas, modal y cajón angostos.
+- [x] Reordenamiento de zonas por puntero y teclado, con limpieza del overlay al cancelar la interacción.
 
 ## Verificación obligatoria ante cambios
 

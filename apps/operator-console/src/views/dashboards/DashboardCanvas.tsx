@@ -1,13 +1,14 @@
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragOverlay,
   defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import type { DragCancelEvent, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
@@ -222,7 +223,10 @@ export function DashboardCanvas({
   }), []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, sensorOptions)
+    useSensor(PointerSensor, sensorOptions),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -247,6 +251,10 @@ export function DashboardCanvas({
     onLayoutChange(reordered);
   };
 
+  const handleDragCancel = (_event: DragCancelEvent) => {
+    setActiveWidget(null);
+  };
+
   const hasSections = flowWidgets.some((widget) => widget.type === 'section');
 
   return (
@@ -254,6 +262,7 @@ export function DashboardCanvas({
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div
         ref={containerRef}

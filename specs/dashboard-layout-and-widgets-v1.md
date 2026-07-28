@@ -47,6 +47,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-09:** El historial no guarda ni restaura imágenes de fondo locales; las revisiones no deben exponer secretos, permisos de otros usuarios ni rutas de archivos de otra instalación.
 - **NFR-10:** Las tarjetas multimedia deben adaptarse a la celda que ocupan: en celdas compactas conservan sus comandos soportados en una composición envolvente, sin recortar controles, títulos o progreso. El visor ampliado de cámara prioriza la proporción del medio y aprovecha el viewport sin crear una columna vertical vacía.
 - **NFR-11:** En edición, el lienzo ocupa como mínimo el área visible restante del viewport, incluso cuando una pestaña todavía no contiene widgets.
+- **NFR-12:** El reordenamiento de zonas funciona mediante puntero y teclado desde el control de arrastre. Si una interacción se cancela, el estado visual transitorio se limpia sin alterar el orden persistido.
 
 ## 6. Criterios de Aceptación
 
@@ -64,6 +65,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC12: Restaurar una revisión no restituye referencias de imágenes de fondo locales eliminadas.
 - [x] AC13: Las tarjetas multimedia compactas, el visor ampliado de cámara y el inspector técnico preservan contenido y acciones legibles en móvil, tablet y escritorio, sin desborde ni áreas vacías desproporcionadas.
 - [x] AC14: Una pestaña nueva en edición conserva el fondo cuadriculado y los placeholders hasta el borde inferior del viewport visible.
+- [x] AC15: Una zona puede reordenarse desde su control de arrastre mediante teclado y una cancelación no deja overlay ni opacidad residual.
 
 ## 7. Notas Técnicas y Arquitectura
 
