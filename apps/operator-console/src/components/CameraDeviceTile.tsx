@@ -151,9 +151,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       ? t('camera.connection_error')
       : isConnecting || !media
         ? t('camera.connecting')
-        : feedMode === 'snapshot'
-          ? t('camera.snapshot')
-          : t('camera.live');
+        : t('camera.live');
 
   return (
     <>
@@ -186,10 +184,12 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
             </div>
           )}
 
-          <div className="absolute left-3 top-3 flex items-center gap-2 rounded-pill border border-white/15 bg-black/65 px-2.5 py-1 text-micro font-semibold text-white backdrop-blur-md">
-            <span className={cn('h-1.5 w-1.5 rounded-full', unavailable || hasFeedError ? 'bg-danger' : feedMode === 'snapshot' ? 'bg-warning' : media ? 'animate-pulse bg-success' : 'bg-warning')} />
-            {statusLabel}
-          </div>
+          {(unavailable || hasFeedError) && (
+            <div className="absolute left-3 top-3 flex items-center gap-2 rounded-pill border border-white/15 bg-black/65 px-2.5 py-1 text-micro font-semibold text-white backdrop-blur-md">
+              <span className={cn('h-1.5 w-1.5 rounded-full bg-danger')} />
+              {statusLabel}
+            </div>
+          )}
 
           {media && !unavailable && !hasFeedError && (
             <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-pill border border-white/15 bg-black/65 text-white backdrop-blur-md">

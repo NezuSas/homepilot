@@ -30,15 +30,13 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   const { t } = useTranslation();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [feedMode, setFeedMode] = useState<CameraFeedMode>(preferredMode);
 
   useEffect(() => {
     if (!isOpen) {
       setHasLoaded(false);
       setHasError(false);
-      setFeedMode(preferredMode);
     }
-  }, [isOpen, preferredMode]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -55,18 +53,14 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
       footer={(
         <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 text-caption text-muted-foreground sm:px-6">
           <Maximize2 className="h-3.5 w-3.5" />
-          {feedMode === 'snapshot' ? t('camera.snapshot_hint') : t('camera.fullscreen_hint')}
+          {t('camera.fullscreen_hint')}
         </div>
       )}
     >
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
-            <div className={cn('flex items-center gap-2 text-micro font-semibold uppercase tracking-status', feedMode === 'snapshot' ? 'text-warning' : 'text-success')}>
-              <span className={feedMode === 'snapshot' ? 'status-dot-warning' : 'status-dot-synced'} aria-hidden="true" />
-              {feedMode === 'snapshot' ? t('camera.snapshot') : t('camera.live')}
-            </div>
-            <h2 className="mt-1 truncate text-section-title font-semibold tracking-tight text-foreground">{name}</h2>
+            <h2 className="truncate text-section-title font-semibold tracking-tight text-foreground">{name}</h2>
             {roomName && <p className="truncate text-caption text-muted-foreground">{roomName}</p>}
           </div>
           <IconButton icon={X} label={t('camera.close_viewer')} onClick={onClose} variant="ghost" className="shrink-0 rounded-pill border border-border/60 bg-muted/60" />
@@ -92,8 +86,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
               preferredMode={preferredMode}
               alt={t('camera.feed_alt', { name })}
               className={cn('h-full w-full object-contain transition-opacity duration-base', hasLoaded ? 'opacity-100' : 'opacity-0')}
-              onModeChange={(mode) => {
-                setFeedMode(mode);
+              onModeChange={() => {
                 setHasLoaded(false);
                 setHasError(false);
               }}

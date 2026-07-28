@@ -374,7 +374,6 @@
         "scene_action_other": "acciones",
         "camera_unassigned": "Sin cámara asignada",
         "camera_live": "En vivo",
-        "camera_live_snapshot": "Vista en vivo / snapshot",
         "sensor_label": "Sensor",
         "sensor_battery": "Batería",
         "sensor_temperature": "Temperatura",
@@ -978,7 +977,6 @@
   "camera": {
     "live": "En vivo",
     "snapshot": "Imagen actualizada",
-    "snapshot_hint": "Vista ampliada con actualización periódica · Presiona Escape para cerrar",
     "connecting": "Conectando cámara",
     "unavailable": "Cámara no disponible",
     "connection_error": "No se pudo cargar el video",

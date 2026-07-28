@@ -597,17 +597,12 @@ function CardPreview({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
-        <div className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-micro font-black text-foreground shadow-sm">
-          <span className="mr-1 text-primary">●</span>
-          {t('dashboard.editor.sections.camera_live')}
-        </div>
-
         <div className="absolute bottom-3 left-3 right-3">
           <p className="line-clamp-2 text-body font-black leading-tight text-white drop-shadow">
             {title}
           </p>
           <p className="mt-0.5 truncate text-caption font-semibold text-white/75">
-            {deviceId ? t('dashboard.editor.sections.camera_live_snapshot') : subtitle || t('dashboard.editor.sections.camera_unassigned')}
+            {deviceId ? subtitle || t('common.unassigned') : subtitle || t('dashboard.editor.sections.camera_unassigned')}
           </p>
         </div>
       </div>
@@ -1065,6 +1060,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const assignedDevice = card.entityId
       ? devices.find((device) => device.id === card.entityId)
       : undefined;
+    const assignedRoomName = assignedDevice?.roomId
+      ? assignableRooms.find((room) => room.id === assignedDevice.roomId)?.name
+      : undefined;
     const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
     const isActionable = Boolean(card.entityId)
       && !isEditing
@@ -1114,7 +1112,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         <CardPreview
           kind={card.kind}
           title={card.title || catalogLabel(card.kind)}
-          subtitle={subtitle}
+          subtitle={isCamera ? assignedRoomName : subtitle}
           span={span}
           icon={card.icon}
           isAssigned={Boolean(card.entityId)}
