@@ -148,7 +148,7 @@ Responsabilidad única: consolidar estado desde múltiples fuentes y derivar el 
 
 ### 8.1. Política de registros de diagnóstico
 
-Las métricas de depuración de rutas de ejecución deben estar disponibles en desarrollo local, pero no deben emitir ruido durante pruebas automatizadas. La detección del entorno de pruebas debe reconocer tanto `NODE_ENV=test` como los workers de Jest. Los errores y alertas operativos reales en runtime no se eliminan ni se degradan por esta política. `logRuntimeDiagnostic` centraliza esta política; `ApiGateway`, `ApiRoutes`, `DatabaseBackupService`, `HomeAssistantRealtimeSyncManager`, `HomeAssistantWebSocketClient`, `InMemoryEventBus` y `LocalDeviceDriver` la aplican a sus diagnósticos operativos y no añaden ruido a Jest.
+Las métricas de depuración de rutas de ejecución deben estar disponibles en desarrollo local, pero no deben emitir ruido durante pruebas automatizadas. La detección del entorno de pruebas debe reconocer tanto `NODE_ENV=test` como los workers de Jest. Los errores y alertas operativos reales en runtime no se eliminan ni se degradan por esta política. `logRuntimeDiagnostic` centraliza esta política; `ApiGateway`, `ApiRoutes`, `DatabaseBackupService`, `getDatabasePath`, `SqliteDatabaseManager`, `HomeAssistantRealtimeSyncManager`, `HomeAssistantWebSocketClient`, `InMemoryEventBus` y `LocalDeviceDriver` la aplican a sus diagnósticos operativos y no añaden ruido a Jest.
 
 ### `HomeAssistantRealtimeSyncManager`
 Añadir método público: `getObservableState()` retornando `{ websocketStatus, reconciliationStatus, lastEventAt, lastReconnectAt, lastReconciliationAt }`.

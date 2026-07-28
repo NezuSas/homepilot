@@ -1,5 +1,6 @@
 import * as path from 'path';
 import Database, { Database as SqliteDatabase } from 'better-sqlite3';
+import { logRuntimeDiagnostic } from '../../config/runtimeEnvironment';
 
 /**
  * SqliteDatabaseManager
@@ -16,7 +17,7 @@ export class SqliteDatabaseManager {
     if (!configuredMode || configuredMode === 'WAL') return 'WAL';
     if (configuredMode === 'DELETE') return 'DELETE';
 
-    console.warn(
+    logRuntimeDiagnostic('warn',
       `[SQLite] HOMEPILOT_SQLITE_JOURNAL_MODE=${configuredMode} is not supported. Falling back to WAL.`
     );
     return 'WAL';
@@ -35,7 +36,7 @@ export class SqliteDatabaseManager {
     let db = this.instances.get(fullPath);
     if (!db) {
       db = new Database(fullPath, {
-        verbose: verbose ? console.log : undefined,
+        verbose: verbose ? (message) => logRuntimeDiagnostic('log', message) : undefined,
       });
       
       // WAL is ideal for the Linux miniPC. DELETE avoids shared-memory journal

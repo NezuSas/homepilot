@@ -1,4 +1,5 @@
 import path from 'path';
+import { logRuntimeDiagnostic } from './runtimeEnvironment';
 
 /**
  * Resuelve y valida la ruta de la base de datos de manera centralizada.
@@ -10,7 +11,7 @@ export function getDatabasePath(): string {
 
   if (!envPath) {
     if (isDev) {
-      console.warn('[HomePilot] Using fallback local DB (dev only): homepilot.local.db');
+      logRuntimeDiagnostic('warn', '[HomePilot] Using fallback local DB (dev only): homepilot.local.db');
       return path.resolve(process.cwd(), 'homepilot.local.db');
     } else {
       throw new Error('[HomePilot] HOMEPILOT_DB_PATH is required. Refusing to start with implicit database.');
