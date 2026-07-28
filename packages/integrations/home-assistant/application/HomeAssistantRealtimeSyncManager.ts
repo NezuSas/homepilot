@@ -6,7 +6,7 @@ import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 import { HomeAssistantClient } from '../../../devices/infrastructure/adapters/HomeAssistantClient';
 import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
 import { buildUnavailableDeviceState } from '../../../devices/application/deviceAvailability';
-import { isTestRuntime } from '../../../shared/config/runtimeEnvironment';
+import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 export interface SystemStateChangeEvent {
   eventId: string;
@@ -59,12 +59,6 @@ function parseStateChangePayload(data: unknown): HomeAssistantStateChangePayload
     newState: data.new_state.state,
     attributes,
   };
-}
-
-function logRuntimeDiagnostic(level: 'error' | 'warn' | 'log', ...details: unknown[]): void {
-  if (!isTestRuntime()) {
-    console[level](...details);
-  }
 }
 
 export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {

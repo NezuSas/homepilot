@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
-import { isTestRuntime } from '../../../shared/config/runtimeEnvironment';
+import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 export type HAWebSocketEvent = {
   type: string;
@@ -26,12 +26,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function getStringProperty(record: Record<string, unknown>, property: string): string | null {
   const value = record[property];
   return typeof value === 'string' ? value : null;
-}
-
-function logRuntimeDiagnostic(level: 'error' | 'warn' | 'log', ...details: unknown[]): void {
-  if (!isTestRuntime()) {
-    console[level](...details);
-  }
 }
 
 export class HomeAssistantWebSocketClient extends EventEmitter {

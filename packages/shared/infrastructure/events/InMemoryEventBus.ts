@@ -1,11 +1,5 @@
 import { EventBus, EventBusEvent, EventBusHandler } from '../../domain/events/EventBus';
-import { isTestRuntime } from '../../config/runtimeEnvironment';
-
-function logRuntimeDiagnostic(level: 'error' | 'warn' | 'log', ...details: unknown[]): void {
-  if (!isTestRuntime()) {
-    console[level](...details);
-  }
-}
+import { logRuntimeDiagnostic } from '../../config/runtimeEnvironment';
 
 export class InMemoryEventBus implements EventBus {
   private readonly subscribers = new Map<string, EventBusHandler[]>();
