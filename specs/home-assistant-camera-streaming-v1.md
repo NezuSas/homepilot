@@ -28,7 +28,7 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - **REQ-07:** Al abrir el visor, la tarjeta debe liberar su stream para evitar dos conexiones simultaneas a la misma camara.
 - **REQ-08:** Si el stream termina sin entregar imagen, la UI debe cambiar automaticamente al snapshot y actualizarlo periodicamente sin mostrar la camara como averiada.
 - **REQ-09:** La UI debe identificar visualmente una vista por snapshots como actualizada, sin etiquetarla como video en vivo.
-- **REQ-10:** Cuando Home Assistant anuncie un stream HLS, HomePilot debe usarlo antes de intentar MJPEG o snapshots.
+- **REQ-10:** Las tarjetas deben iniciar con stream directo o snapshot para no bloquear su renderizado. El visor ampliado puede solicitar HLS como mejora; si Home Assistant no conserva un manifiesto o segmento, la UI debe volver automáticamente al stream directo y finalmente a snapshots.
 - **REQ-11:** Los manifiestos y segmentos HLS deben pasar por HomePilot mediante rutas temporales; la URL HLS interna y la credencial de Home Assistant no deben llegar al navegador.
 
 ## 4. Requisitos no funcionales
@@ -52,3 +52,4 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - [x] AC8: El visor completo utiliza el mismo fallback modular que la tarjeta.
 - [x] AC9: Una camara RTSP generica que Home Assistant reproduce como HLS se muestra como video en HomePilot.
 - [x] AC10: Si HLS falla, la UI intenta MJPEG y finalmente snapshots sin romper la tarjeta.
+- [x] AC11: La sesión inicial de tarjeta no inicia HLS ni espera su negociación; el visor ampliado lo solicita bajo demanda y el proxy no registra abortos normales del navegador como errores críticos.

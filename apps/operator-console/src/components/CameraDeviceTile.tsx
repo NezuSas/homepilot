@@ -44,6 +44,8 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   const [isConnecting, setIsConnecting] = useState(!reportedUnavailable);
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [viewerMedia, setViewerMedia] = useState<CameraMediaSession | null>(null);
+  const viewerSessionControllerRef = useRef<AbortController | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
   const displayName = isDuplicateName
@@ -67,7 +69,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_SESSION');
       mediaRef.current = payload;
       setMedia(payload);
-      if (isInitialLoad) setFeedMode(payload.hlsPath ? 'hls' : 'stream');
+      if (isInitialLoad) setFeedMode('stream');
       sessionReady = true;
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -82,17 +84,43 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
   useEffect(() => {
     if (!media) return;
-    const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 10 * 60 * 1000);
+    const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 25 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [media]);
+
+  useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
 
   const unavailable = reportedUnavailable && !media;
 
   const openViewer = useCallback(() => {
-    if (!unavailable && media && !hasFeedError) setIsViewerOpen(true);
-  }, [hasFeedError, media, unavailable]);
+    if (unavailable || !media || hasFeedError) return;
 
-  const closeViewer = useCallback(() => setIsViewerOpen(false), []);
+    viewerSessionControllerRef.current?.abort();
+    const controller = new AbortController();
+    viewerSessionControllerRef.current = controller;
+    setViewerMedia(media);
+    setIsViewerOpen(true);
+
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session?includeHls=true`, {
+      signal: controller.signal,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error(`CAMERA_VIEWER_SESSION_${response.status}`);
+      const payload: unknown = await response.json();
+      if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_VIEWER_SESSION');
+      if (!controller.signal.aborted) setViewerMedia(payload);
+    }).catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.warn('[CameraDeviceTile] Enhanced camera viewer session unavailable, keeping direct stream.', error);
+      }
+    });
+  }, [device.id, hasFeedError, media, unavailable]);
+
+  const closeViewer = useCallback(() => {
+    viewerSessionControllerRef.current?.abort();
+    viewerSessionControllerRef.current = null;
+    setIsViewerOpen(false);
+    setViewerMedia(null);
+  }, []);
   const handleFeedModeChange = useCallback((mode: CameraFeedMode) => {
     setFeedMode(mode);
     setIsConnecting(true);
@@ -105,21 +133,10 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   const handleFeedFailure = useCallback(() => {
     setIsConnecting(false);
     setHasFeedError(true);
-    // If the current session had HLS (HA camera), auto-refresh the session
-    // so we get a fresh HA HLS token instead of keeping a dead one.
-    if (mediaRef.current?.hlsPath) {
-      const timer = window.setTimeout(() => {
-        setFeedMode('hls');
-        setIsConnecting(true);
-        setHasFeedError(false);
-        setRetryVersion((v) => v + 1);
-      }, 2_000);
-      return () => window.clearTimeout(timer);
-    }
   }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setFeedMode(media?.hlsPath ? 'hls' : 'stream');
+    setFeedMode('stream');
     setIsConnecting(true);
     setHasFeedError(false);
     setRetryVersion((version) => version + 1);
@@ -194,15 +211,15 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
         </div>
       </DeviceTileShell>
 
-      {media && (
+      {viewerMedia && (
         <CameraViewerModal
           isOpen={isViewerOpen}
           name={displayName}
           roomName={roomName}
-          streamUrl={streamUrl}
-          hlsUrl={hlsUrl}
-          snapshotUrl={snapshotUrl}
-          preferredMode={feedMode}
+          streamUrl={absoluteApiUrl(viewerMedia.streamPath)}
+          hlsUrl={viewerMedia.hlsPath ? absoluteApiUrl(viewerMedia.hlsPath) : undefined}
+          snapshotUrl={absoluteApiUrl(viewerMedia.snapshotPath)}
+          preferredMode={viewerMedia.hlsPath ? 'hls' : 'stream'}
           onClose={closeViewer}
         />
       )}

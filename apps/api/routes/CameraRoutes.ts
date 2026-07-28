@@ -95,6 +95,8 @@ export class CameraRoutes extends ApiRoutes {
     if (!isProtected) return true;
 
     try {
+      const requestUrl = new URL(req.url || pathname, 'http://localhost');
+      const includeHls = requestUrl.searchParams.get('includeHls') === 'true';
       const device = await container.repositories.deviceRepository.findDeviceById(sessionMatch[1]);
       const entityId = this.resolveCameraEntityId(device);
       if (!device || !entityId) {
@@ -112,12 +114,16 @@ export class CameraRoutes extends ApiRoutes {
         const encodedDeviceId = encodeURIComponent(device.id);
         const cameraProxyToken = this.createCameraProxyToken(device.id);
         const encodedToken = encodeURIComponent(cameraProxyToken);
-        const nativeDirectory = await this.ensureNativeHlsRuntime(device, nativeSource);
-        this.registerHlsSession(cameraProxyToken, device.id, path.join(nativeDirectory, 'index.m3u8'), 'native', nativeDirectory);
+        let hlsPath: string | undefined;
+        if (includeHls) {
+          const nativeDirectory = await this.ensureNativeHlsRuntime(device, nativeSource);
+          this.registerHlsSession(cameraProxyToken, device.id, path.join(nativeDirectory, 'index.m3u8'), 'native', nativeDirectory);
+          hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
+        }
         this.sendJson(res, {
           snapshotPath: `/api/v1/devices/${encodedDeviceId}/camera/snapshot?token=${encodedToken}`,
           streamPath: `/api/v1/devices/${encodedDeviceId}/camera/stream?token=${encodedToken}`,
-          hlsPath: `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`,
+          ...(hlsPath ? { hlsPath } : {}),
         });
         return true;
       }
@@ -132,10 +138,12 @@ export class CameraRoutes extends ApiRoutes {
       const cameraProxyToken = this.createCameraProxyToken(device.id);
       const encodedToken = encodeURIComponent(cameraProxyToken);
       let hlsMasterPath: string | null = null;
-      try {
-        hlsMasterPath = await container.adapters.homeAssistantClient.getCameraHlsStreamPath(entityId);
-      } catch {
-        hlsMasterPath = null;
+      if (includeHls) {
+        try {
+          hlsMasterPath = await container.adapters.homeAssistantClient.getCameraHlsStreamPath(entityId);
+        } catch {
+          hlsMasterPath = null;
+        }
       }
 
       const response: CameraSessionResponse = {
@@ -247,8 +255,8 @@ export class CameraRoutes extends ApiRoutes {
       }
       if (!res.destroyed) res.end();
     } catch (error: unknown) {
-      console.error('[CameraRoutes] proxyCameraHls critical error:', error);
       if (abortController.signal.aborted || res.destroyed) return;
+      console.error('[CameraRoutes] proxyCameraHls critical error:', error);
       this.sendError(res, 502, 'CAMERA_MEDIA_ERROR', error instanceof Error ? error.message : 'Camera HLS proxy failed');
     } finally {
       res.off('close', abortUpstream);

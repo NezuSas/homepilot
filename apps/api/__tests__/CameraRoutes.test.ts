@@ -91,7 +91,7 @@ function createContainer(overrides?: {
 describe('CameraRoutes', () => {
   const routes = new CameraRoutes();
 
-  it('creates an authenticated media session without exposing the HA admin token', async () => {
+  it('creates an authenticated fast media session without starting HLS', async () => {
     const response = new MockResponse();
     const container = createContainer();
 
@@ -108,17 +108,35 @@ describe('CameraRoutes', () => {
     const payload = JSON.parse(response.end.mock.calls[0][0] as string) as Record<string, string>;
     expect(payload.streamPath).toContain('/camera/stream?token=');
     expect(payload.snapshotPath).toContain('/camera/snapshot?token=');
-    expect(payload.hlsPath).toContain('/camera/hls/master.m3u8?token=');
+    expect(payload.hlsPath).toBeUndefined();
     expect(payload.streamPath).not.toContain('camera-token');
     expect(payload.snapshotPath).not.toContain('camera-token');
+    expect(container.adapters.homeAssistantClient.getCameraHlsStreamPath).not.toHaveBeenCalled();
+  });
+
+  it('includes proxied HLS only when the viewer explicitly requests it', async () => {
+    const response = new MockResponse();
+    const container = createContainer();
+
+    await routes.handle(
+      createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'),
+      response as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/session',
+      'GET',
+      container,
+    );
+
+    const payload = JSON.parse(response.end.mock.calls[0][0] as string) as Record<string, string>;
+    expect(payload.hlsPath).toContain('/camera/hls/master.m3u8?token=');
     expect(payload.hlsPath).not.toContain('/api/hls/upstream/');
+    expect(container.adapters.homeAssistantClient.getCameraHlsStreamPath).toHaveBeenCalledWith('camera.ingreso');
   });
 
   it('returns a camera unavailable response when Home Assistant reports unavailable', async () => {
     const response = new MockResponse();
 
     await routes.handle(
-      createRequest('/api/v1/devices/camera-1/camera/session'),
+      createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'),
       response as unknown as http.ServerResponse,
       '/api/v1/devices/camera-1/camera/session',
       'GET',
@@ -134,7 +152,7 @@ describe('CameraRoutes', () => {
     const container = createContainer();
 
     await routes.handle(
-      createRequest('/api/v1/devices/camera-1/camera/session'),
+      createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'),
       sessionResponse as unknown as http.ServerResponse,
       '/api/v1/devices/camera-1/camera/session',
       'GET',
@@ -182,7 +200,7 @@ describe('CameraRoutes', () => {
     });
 
     await routes.handle(
-      createRequest('/api/v1/devices/camera-1/camera/session'),
+      createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'),
       sessionResponse as unknown as http.ServerResponse,
       '/api/v1/devices/camera-1/camera/session',
       'GET',

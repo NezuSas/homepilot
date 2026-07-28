@@ -17,9 +17,9 @@ interface CameraMediaFrameProps {
 }
 
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
-const HLS_MAX_RETRIES = 3;
-const HLS_RETRY_DELAY_MS = 2_000;
-const HLS_WATCHDOG_MS = 8_000;
+const HLS_MAX_RETRIES = 2;
+const HLS_RETRY_DELAY_MS = 1_500;
+const HLS_WATCHDOG_MS = 5_000;
 
 function withRefreshMarker(url: string): string {
   const separator = url.includes('?') ? '&' : '?';
@@ -90,10 +90,22 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     let player: import('hls.js').default | null = null;
     let cancelled = false;
     let fallbackTriggered = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const fallbackToMjpeg = () => {
+    hasReadyFrameRef.current = false;
+
+    const clearTimers = () => {
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (watchdogTimer) window.clearTimeout(watchdogTimer);
+    };
+
+    const fallbackToStream = () => {
       if (fallbackTriggered) return;
       fallbackTriggered = true;
+      clearTimers();
+      player?.destroy();
+      player = null;
       setMode('stream');
       setSource(streamUrl);
       onModeChangeRef.current('stream');
@@ -132,45 +144,38 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
           player = hlsPlayer;
           hlsPlayer.attachMedia(video);
           
-          // Append a cache-buster so that retries fetch a fresh manifest.
-          // This is crucial because the initial manifest might be empty while ffmpeg starts.
           const bustUrl = withRefreshMarker(hlsUrl);
           hlsPlayer.on(Hls.Events.MEDIA_ATTACHED, () => hlsPlayer.loadSource(bustUrl));
           hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
             void tryPlay();
           });
-          
-          const watchdog = setTimeout(() => {
+
+          watchdogTimer = window.setTimeout(() => {
             if (cancelled || hasReadyFrameRef.current) return;
             console.warn('[CameraMediaFrame] HLS watchdog timeout, retrying...');
-            clearTimeout(watchdog);
             retryCount += 1;
             if (retryCount < HLS_MAX_RETRIES && !cancelled) {
               hlsPlayer.destroy();
               player = null;
-              setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
+              retryTimer = window.setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
             } else {
-              console.warn('[CameraMediaFrame] HLS max retries reached, signalling failure.');
-              hlsPlayer.destroy();
-              player = null;
-              onFailureRef.current();
+              console.warn('[CameraMediaFrame] HLS retries exhausted, falling back to direct stream.');
+              fallbackToStream();
             }
           }, HLS_WATCHDOG_MS);
 
           hlsPlayer.on(Hls.Events.ERROR, (_event, data) => {
             if (!data.fatal) return;
             console.warn('[CameraMediaFrame] HLS fatal error:', data.type);
-            clearTimeout(watchdog);
+            if (watchdogTimer) window.clearTimeout(watchdogTimer);
             retryCount += 1;
             if (retryCount < HLS_MAX_RETRIES && !cancelled) {
               hlsPlayer.destroy();
               player = null;
-              setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
+              retryTimer = window.setTimeout(createPlayer, HLS_RETRY_DELAY_MS);
             } else {
-              console.warn('[CameraMediaFrame] HLS fatal error max retries reached, signalling failure.');
-              hlsPlayer.destroy();
-              player = null;
-              onFailureRef.current();
+              console.warn('[CameraMediaFrame] HLS fatal error exhausted retries, falling back to direct stream.');
+              fallbackToStream();
             }
           });
         };
@@ -185,13 +190,23 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         return;
       }
 
-      fallbackToMjpeg();
+      fallbackToStream();
     };
 
-    void initialize().catch(fallbackToMjpeg);
+    const markReady = () => {
+      hasReadyFrameRef.current = true;
+      if (watchdogTimer) window.clearTimeout(watchdogTimer);
+    };
+    video.addEventListener('canplay', markReady);
+    video.addEventListener('error', fallbackToStream);
+
+    void initialize().catch(fallbackToStream);
 
     return () => {
       cancelled = true;
+      clearTimers();
+      video.removeEventListener('canplay', markReady);
+      video.removeEventListener('error', fallbackToStream);
       player?.destroy();
       video.pause();
       video.removeAttribute('src');
@@ -270,11 +285,6 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
   }
 
   if (!source) {
-    // Dead-end: no source available after fallback chain — notify failure
-    if (mode === 'snapshot' && !currentObjectUrlRef.current && hasReadyFrameRef.current === false) {
-      // Schedule onFailure in a microtask to avoid calling during render
-      queueMicrotask(() => onFailureRef.current());
-    }
     return null;
   }
 

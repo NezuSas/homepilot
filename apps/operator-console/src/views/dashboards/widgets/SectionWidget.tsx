@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
@@ -409,6 +409,8 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
   const [isConnecting, setIsConnecting] = useState(true);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [viewerSession, setViewerSession] = useState<CameraMediaSession | null>(null);
+  const viewerSessionControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -422,7 +424,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
       const payload: unknown = await res.json();
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_SESSION');
       setSession(payload);
-      setFeedMode(payload.hlsPath ? 'hls' : 'stream');
+      setFeedMode('stream');
       setIsConnecting(false);
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -432,6 +434,8 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
     return () => controller.abort();
   }, [deviceId]);
+
+  useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
 
   if (isConnecting) {
     return (
@@ -454,6 +458,32 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
   const streamUrl = absoluteSessionUrl(session.streamPath);
   const snapshotUrl = absoluteSessionUrl(session.snapshotPath);
   const hlsUrl = session.hlsPath ? absoluteSessionUrl(session.hlsPath) : undefined;
+  const openViewer = () => {
+    viewerSessionControllerRef.current?.abort();
+    const controller = new AbortController();
+    viewerSessionControllerRef.current = controller;
+    setViewerSession(session);
+    setIsViewerOpen(true);
+
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session?includeHls=true`, {
+      signal: controller.signal,
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`VIEWER_SESSION_${res.status}`);
+      const payload: unknown = await res.json();
+      if (!isCameraMediaSession(payload)) throw new Error('INVALID_VIEWER_SESSION');
+      if (!controller.signal.aborted) setViewerSession(payload);
+    }).catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.warn('[SectionCameraCard] Enhanced camera viewer session unavailable, keeping direct stream.', error);
+      }
+    });
+  };
+  const closeViewer = () => {
+    viewerSessionControllerRef.current?.abort();
+    viewerSessionControllerRef.current = null;
+    setIsViewerOpen(false);
+    setViewerSession(null);
+  };
 
   return (
     <>
@@ -464,7 +494,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         className="relative h-full w-full overflow-hidden text-left"
         onClick={(event) => {
           event.stopPropagation();
-          if (!hasFeedError) setIsViewerOpen(true);
+          if (!hasFeedError) openViewer();
         }}
         aria-label={t('camera.open_viewer', { name: title })}
       >
@@ -485,15 +515,17 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         </span>
       </Button>
 
-      <CameraViewerModal
-        isOpen={isViewerOpen}
-        name={title}
-        streamUrl={streamUrl}
-        hlsUrl={hlsUrl}
-        snapshotUrl={snapshotUrl}
-        preferredMode={feedMode}
-        onClose={() => setIsViewerOpen(false)}
-      />
+      {viewerSession && (
+        <CameraViewerModal
+          isOpen={isViewerOpen}
+          name={title}
+          streamUrl={absoluteSessionUrl(viewerSession.streamPath)}
+          hlsUrl={viewerSession.hlsPath ? absoluteSessionUrl(viewerSession.hlsPath) : undefined}
+          snapshotUrl={absoluteSessionUrl(viewerSession.snapshotPath)}
+          preferredMode={viewerSession.hlsPath ? 'hls' : 'stream'}
+          onClose={closeViewer}
+        />
+      )}
     </>
   );
 }
