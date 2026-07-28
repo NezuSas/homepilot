@@ -35,6 +35,7 @@ El Edge local requiere contratos de API, eventos, persistencia y runtime comunes
 - [x] AC1: Cada ruta de dominio se resuelve por un `RouteHandler`.
 - [x] AC2: La base SQLite aplica migraciones y journal mode configurado al iniciar.
 - [x] AC3: El runtime puede levantar API y consola mediante Compose.
+- [x] AC4: El bus de eventos en memoria entrega eventos a los suscriptores, aísla fallos de un suscriptor y no añade ruido de diagnóstico durante pruebas automatizadas.
 
 ## 7. Notas Técnicas y Arquitectura
 

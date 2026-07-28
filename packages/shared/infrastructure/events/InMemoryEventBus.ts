@@ -1,4 +1,11 @@
 import { EventBus, EventBusEvent, EventBusHandler } from '../../domain/events/EventBus';
+import { isTestRuntime } from '../../config/runtimeEnvironment';
+
+function logRuntimeDiagnostic(level: 'error' | 'warn' | 'log', ...details: unknown[]): void {
+  if (!isTestRuntime()) {
+    console[level](...details);
+  }
+}
 
 export class InMemoryEventBus implements EventBus {
   private readonly subscribers = new Map<string, EventBusHandler[]>();
@@ -9,7 +16,7 @@ export class InMemoryEventBus implements EventBus {
 
     for (const result of results) {
       if (result.status === 'rejected') {
-        console.error('[EventBus] Subscriber failed:', result.reason);
+        logRuntimeDiagnostic('error', '[EventBus] Subscriber failed:', result.reason);
       }
     }
   }
