@@ -142,7 +142,7 @@ Responsabilidad única: consolidar estado desde múltiples fuentes y derivar el 
 ```
 
 **Categorías filtradas:** `resilience`, `automation`, `auth`, `command`.  
-**Excluidos de la vista:** entradas `STATE_CHANGED` crudas (demasiado volumen para diagnóstico).
+**Reducción de ruido en la vista:** las entradas consecutivas `STATE_CHANGED` y `DEVICE_SYNC` del mismo dispositivo se agrupan dentro de una ventana de diez minutos. El resumen muestra el total y la última hora; fallos, comandos, automatizaciones y acciones de usuario se muestran de forma individual.
 
 ## 8. Instrumentación Mínima Requerida
 

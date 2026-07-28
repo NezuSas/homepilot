@@ -1120,6 +1120,7 @@
       "COMMAND_DISPATCHED": "Comando '{{command}}' enviado correctamente",
       "COMMAND_FAILED": "Comando '{{command}}' falló. Razón: {{reason}}",
       "STATE_CHANGED": "Estado del dispositivo actualizado a {{state}}",
+      "REPETITIVE_SYNC_SUMMARY": "{{deviceName}} se sincronizó {{count}} veces",
       "AUTOMATION_TRIGGERED": "Automatización disparada para {{deviceName}}",
       "AUTOMATION_EXECUTED": "Automatización '{{ruleName}}' ejecutada con éxito",
       "AUTOMATION_FAILED": "Automatización '{{ruleName}}' falló: {{reason}}",
@@ -1130,7 +1131,8 @@
       "USER_ACTIVATED": "Acceso restaurado para '{{targetUser}}'",
       "USER_ROLE_CHANGED": "Rol de '{{targetUser}}' actualizado a {{role}}",
       "USER_SESSIONS_REVOKED": "Todas las sesiones de '{{targetUser}}' han sido revocadas"
-    }
+    },
+    "sync_summary_count": "{{count}} actualizaciones agrupadas"
   },
   "execution_logs": {
     "loading": "Sincronizando con Edge...",

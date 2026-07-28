@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Clock, Zap, Info, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -22,6 +22,40 @@ interface ActivityRecord {
   description: string;
   data: Record<string, unknown>;
 }
+
+interface DisplayActivityRecord extends ActivityRecord {
+  occurrences: number;
+}
+
+const REPETITIVE_SYNC_TYPES = new Set(['STATE_CHANGED', 'DEVICE_SYNC']);
+const REPETITIVE_SYNC_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * Condenses adjacent background state syncs so the technical log prioritizes
+ * events an operator can act on. Individual commands, errors, and automation
+ * events intentionally remain atomic.
+ */
+const summarizeRepetitiveSyncs = (records: ActivityRecord[]): DisplayActivityRecord[] => {
+  return records.reduce<DisplayActivityRecord[]>((summaries, record) => {
+    const previous = summaries.at(-1);
+    const isRepetitiveSync = REPETITIVE_SYNC_TYPES.has(record.type);
+    const isSameBurst = Boolean(
+      previous
+      && isRepetitiveSync
+      && previous.type === record.type
+      && previous.deviceId === record.deviceId
+      && Date.parse(previous.timestamp) - Date.parse(record.timestamp) <= REPETITIVE_SYNC_WINDOW_MS
+    );
+
+    if (isSameBurst && previous) {
+      previous.occurrences += 1;
+      return summaries;
+    }
+
+    summaries.push({ ...record, occurrences: 1 });
+    return summaries;
+  }, []);
+};
 
 /**
  * AuditLogsView
@@ -59,6 +93,8 @@ export const AuditLogsView: React.FC = () => {
     const device = devices.find((candidate) => candidate.id === deviceId);
     return device ? humanize(device.id, device.name) : t('common.unknown');
   };
+
+  const displayLogs = useMemo(() => summarizeRepetitiveSyncs(logs), [logs]);
 
   if (loading && logs.length === 0) {
     return <LoadingState label={t('audit_logs.loading')} className="min-h-empty-sm" size="md" />;
@@ -111,7 +147,7 @@ export const AuditLogsView: React.FC = () => {
       </div>
 
       <div className="grid gap-3">
-        {logs.map((log, i) => (
+        {displayLogs.map((log, i) => (
           <div key={`${log.timestamp}-${i}`} className="group flex flex-col md:flex-row border border-border/50 bg-card hover:border-primary/30 transition-all rounded-2xl overflow-hidden shadow-sm">
             {/* Metadata Col */}
             <div className="w-full md:w-56 p-5 bg-muted/20 border-b md:border-b-0 md:border-r border-border/30 flex flex-col justify-center gap-2">
@@ -133,7 +169,12 @@ export const AuditLogsView: React.FC = () => {
                <div className="flex items-center gap-3">
                   <Zap className="w-4 h-4 text-primary opacity-40" />
                   <p className="text-body font-bold tracking-tight text-foreground/90">
-                    {(() => {
+                    {log.occurrences > 1
+                      ? t('audit_logs.messages.REPETITIVE_SYNC_SUMMARY', {
+                        count: log.occurrences,
+                        deviceName: getDeviceName(log.deviceId),
+                      })
+                      : (() => {
                       let key = `audit_logs.messages.${log.type}`;
                       // 1. Parsing robusto de datos (maneja strings, objetos o nulos)
                       const dataRaw = log.data || {};
@@ -193,11 +234,16 @@ export const AuditLogsView: React.FC = () => {
                         interpolation: { escapeValue: false }
                       };
                       
-                      return t(key, options);
-                    })()}
+                        return t(key, options);
+                      })()}
                   </p>
                </div>
                <div className="flex flex-wrap items-center gap-4">
+                  {log.occurrences > 1 && (
+                    <span className="text-micro font-bold text-muted-foreground">
+                      {t('audit_logs.sync_summary_count', { count: log.occurrences })}
+                    </span>
+                  )}
                   {log.deviceId && (
                     <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
                        <span className="text-micro font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
