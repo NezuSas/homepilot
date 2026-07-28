@@ -179,7 +179,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
               onFailure={handleFeedFailure}
             />
           )}
-          {(!media || hasFeedError || unavailable || isConnecting) && (
+          {(!media || hasFeedError || unavailable) && (
             <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/70 text-muted-foreground pointer-events-none">
               {isConnecting ? <Camera className="h-7 w-7 animate-pulse" /> : <VideoOff className="h-7 w-7" />}
               <span className="text-caption font-medium">{statusLabel}</span>

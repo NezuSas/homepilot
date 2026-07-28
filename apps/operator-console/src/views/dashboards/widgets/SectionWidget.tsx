@@ -437,7 +437,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
   useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
 
-  if (isConnecting) {
+  if (isConnecting && !session) {
     return (
       <div className="grid h-full w-full place-items-center bg-black/40 animate-pulse">
         <Camera className="h-8 w-8 text-white/30" />
