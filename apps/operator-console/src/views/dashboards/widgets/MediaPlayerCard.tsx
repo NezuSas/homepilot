@@ -18,6 +18,7 @@ interface MediaPlayerCardProps {
   isPreview?: boolean;
   isProcessing?: boolean;
   onCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
+  compact?: boolean;
 }
 
 interface MediaPresentation {
@@ -96,7 +97,7 @@ function absoluteApiUrl(path: string): string {
   return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 }
 
-export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand }: MediaPlayerCardProps) {
+export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false }: MediaPlayerCardProps) {
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
   // Volume changes render instantly instead of waiting for the next device
@@ -168,7 +169,10 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const artworkUrl = artworkPath ? absoluteApiUrl(artworkPath) : null;
 
   return (
-    <div className="relative flex h-full min-h-media-card flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45">
+    <div className={cn(
+      'relative flex h-full min-h-media-card min-w-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card text-foreground shadow-surface-card ring-1 ring-background/45',
+      compact && 'min-h-section-card-sm',
+    )}>
       {artworkUrl && (
         // Ambient bleed: a blurred, oversized copy of the artwork fills the
         // whole card so the color to the left of the cover matches it,
@@ -199,24 +203,28 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           ? 'bg-[linear-gradient(90deg,hsl(var(--card)/0.92)_0%,hsl(var(--card)/0.72)_35%,hsl(var(--card)/0.32)_65%,hsl(var(--card)/0.05)_100%)]'
           : 'bg-[radial-gradient(circle_at_92%_8%,hsl(var(--primary)/0.22),transparent_39%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--card)/0.74))]',
       )} />
-      <div className="relative flex items-start justify-between gap-3 px-4 pt-4">
+      <div className={cn('relative flex min-w-0 items-start justify-between gap-2', compact ? 'px-3 pt-3' : 'px-4 pt-4')}>
         <div className="min-w-0">
-          <span className="flex items-center gap-2 text-caption font-semibold text-foreground">
-            <Cast className="h-4 w-4 shrink-0 text-primary" />
+          <span className={cn('flex min-w-0 items-center gap-2 font-semibold text-foreground', compact ? 'text-micro' : 'text-caption')}>
+            <Cast className={cn('shrink-0 text-primary', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
             <span className="truncate">{title}</span>
           </span>
         </div>
-        <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />
+        {!compact && <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />}
       </div>
 
-      <div className="relative mt-3 min-w-0 px-4">
-        <span className="block line-clamp-2 text-card-title font-bold leading-tight text-foreground">{displayTitle}</span>
-        <span className="mt-1 block truncate text-caption font-semibold text-muted-foreground">
+      <div className={cn('relative min-w-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>
+        <span className={cn('block font-bold leading-tight text-foreground', compact ? 'line-clamp-2 text-body-compact' : 'line-clamp-2 text-card-title')}>{displayTitle}</span>
+        <span className={cn('block truncate font-semibold text-muted-foreground', compact ? 'mt-0.5 text-micro' : 'mt-1 text-caption')}>
           {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
         </span>
       </div>
 
-      <div className={cn("relative mt-3 flex items-center gap-1.5 px-4", !hasVolumeControl && "mb-4")}>
+      <div className={cn(
+        'relative mt-auto min-w-0',
+        compact ? 'grid grid-cols-3 gap-1 px-3 pt-2' : 'mt-3 flex items-center gap-1.5 px-4',
+        !hasVolumeControl && (compact ? 'pb-3' : 'mb-4'),
+      )}>
         <IconButton
           icon={Power}
           label={t(isOff ? 'dashboard.editor.sections.media_turn_on' : 'dashboard.editor.sections.media_turn_off')}
@@ -227,7 +235,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           }}
           variant="ghost"
           size="md"
-          className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+          className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
         />
         {hasPrevious && (
           <IconButton
@@ -237,7 +245,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
             variant="ghost"
             size="md"
-            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
           />
         )}
         <IconButton
@@ -250,7 +258,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           }}
           variant="ghost"
           size="md"
-          className="h-9 w-9 rounded-lg text-foreground hover:bg-foreground/10 hover:text-primary"
+          className={cn('rounded-lg text-foreground hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
         />
         {hasNext && (
           <IconButton
@@ -260,15 +268,15 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
             variant="ghost"
             size="md"
-            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
           />
         )}
       </div>
 
       {hasVolumeControl && (
-        <div className="relative mb-4 mt-2 flex items-center gap-1.5 px-4">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground/85" title={currentVolume === null ? undefined : `${currentVolume}%`}>
-            <VolumeIcon className="h-4 w-4" />
+        <div className={cn('relative grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-1.5', compact ? 'mb-3 mt-2 px-3' : 'mb-4 mt-2 px-4')}>
+          <span className={cn('grid shrink-0 place-items-center rounded-lg text-foreground/85', compact ? 'h-8 w-8' : 'h-9 w-9')} title={currentVolume === null ? undefined : `${currentVolume}%`}>
+            <VolumeIcon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
           </span>
           <IconButton
             icon={MinusCircle}
@@ -277,7 +285,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             onClick={(event) => { event.stopPropagation(); changeVolume(-VOLUME_STEP); }}
             variant="ghost"
             size="md"
-            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-8' : 'h-9 w-9')}
           />
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/20">
             <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
@@ -289,7 +297,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             onClick={(event) => { event.stopPropagation(); changeVolume(VOLUME_STEP); }}
             variant="ghost"
             size="md"
-            className="h-9 w-9 rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary"
+            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-8' : 'h-9 w-9')}
           />
         </div>
       )}

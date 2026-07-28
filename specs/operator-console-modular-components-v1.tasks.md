@@ -122,6 +122,7 @@
 - [x] Cobertura Playwright de acceso: foco con teclado, envío con Enter, área táctil mínima y anuncio accesible del error en móvil, tablet y escritorio.
 - [x] Endurecimiento de autenticación: eliminación y prueba de ausencia de trazas de consola con detalles de credenciales o validación.
 - [x] Endurecimiento de privacidad en consola: telemetría de voz mediante evento local sin `console`, eventos realtime sin payloads de depuración y mensajes globales de voz migrados a i18n ES/EN.
+- [x] Refuerzo de superficies densas: reproductor multimedia compacto con comandos envolventes, visor de cámara proporcional e inspector técnico de columnas adaptativas.
 
 ## Verificación obligatoria ante cambios
 

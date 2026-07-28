@@ -8,6 +8,7 @@
 - [x] Tipografía de métricas de sensores centralizada en tokens responsive del design system.
 - [x] Placeholder de nueva sección en flujo secuencial, siempre posterior a las secciones existentes.
 - [x] Plantillas de título vinculadas únicamente al contexto autenticado local de HomePilot.
+- [x] Tarjeta multimedia compacta, visor de cámara proporcional e inspector técnico adaptativo para celdas, modal y cajón angostos.
 
 ## Verificación obligatoria ante cambios
 

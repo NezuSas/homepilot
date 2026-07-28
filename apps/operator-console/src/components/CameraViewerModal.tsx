@@ -49,7 +49,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
       closeLabel={t('camera.viewer_label', { name })}
       hideCloseButton
       layerClassName="z-[120] bg-background/95 p-2 backdrop-blur-xl sm:p-4"
-      className="h-camera-viewer max-w-camera-viewer rounded-modal border-border/70 sm:h-camera-viewer-sm"
+      className="w-full max-w-camera-viewer rounded-modal border-border/70"
       contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
       footer={(
         <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 text-caption text-muted-foreground sm:px-6">
@@ -71,7 +71,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
           <IconButton icon={X} label={t('camera.close_viewer')} onClick={onClose} variant="ghost" className="shrink-0 rounded-pill border border-border/60 bg-muted/60" />
         </header>
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+        <div className="relative flex aspect-video min-h-0 w-full items-center justify-center bg-black">
           {!hasLoaded && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center bg-black text-muted-foreground">
               <span className="animate-pulse text-body font-medium">{t('camera.connecting')}</span>

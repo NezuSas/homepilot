@@ -45,6 +45,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-07:** Los iconos comunes del tablero se resuelven sin cargar el catálogo MDI completo; los iconos personalizados mantienen compatibilidad mediante carga diferida al requerirse.
 - **NFR-08:** La transferencia excluye propietario, visibilidad y fondos locales; la copia importada usa identificadores nuevos y solo es visible para quien la importa.
 - **NFR-09:** El historial no guarda ni restaura imágenes de fondo locales; las revisiones no deben exponer secretos, permisos de otros usuarios ni rutas de archivos de otra instalación.
+- **NFR-10:** Las tarjetas multimedia deben adaptarse a la celda que ocupan: en celdas compactas conservan sus comandos soportados en una composición envolvente, sin recortar controles, títulos o progreso. El visor ampliado de cámara prioriza la proporción del medio y aprovecha el viewport sin crear una columna vertical vacía.
 
 ## 6. Criterios de Aceptación
 
@@ -60,6 +61,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC10: Importar un paquete compatible crea una copia privada, con pestañas y widgets de nuevos identificadores, sin modificar el tablero de origen.
 - [x] AC11: Cada guardado de tablero deja una revisión local que su propietario puede restaurar sin perder la posibilidad de deshacer la restauración.
 - [x] AC12: Restaurar una revisión no restituye referencias de imágenes de fondo locales eliminadas.
+- [x] AC13: Las tarjetas multimedia compactas, el visor ampliado de cámara y el inspector técnico preservan contenido y acciones legibles en móvil, tablet y escritorio, sin desborde ni áreas vacías desproporcionadas.
 
 ## 7. Notas Técnicas y Arquitectura
 

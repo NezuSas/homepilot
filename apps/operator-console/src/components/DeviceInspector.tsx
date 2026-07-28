@@ -303,14 +303,14 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         hideCloseButton
       >
       <div className="relative flex min-h-0 flex-1 flex-col">
-        <div className="relative border-b border-border bg-muted/30 p-4 sm:p-6 xl:p-8">
+        <div className="relative border-b border-border bg-muted/30 p-4 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
             <div className="flex min-w-0 items-center gap-3">
               <div className="p-3 bg-primary/10 text-primary rounded-xl">
                 <RadioTower className="w-6 h-6" />
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="text-micro font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title')}</span>
                   {device.integrationSource === 'sonoff' ? (
                     <span className="text-nano bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20 font-black uppercase tracking-widest shadow-sm">{t('inbox.inspector.verified_edge')}</span>
@@ -338,8 +338,8 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 group/title">
-                    <h2 className="text-view-title font-black tracking-tight">{device.name}</h2>
+                  <div className="flex min-w-0 items-center gap-2 group/title">
+                    <h2 className="min-w-0 break-words text-panel-title font-black tracking-tight">{device.name}</h2>
                     <IconButton
                       icon={Settings}
                       label={t('common.edit')}
@@ -375,7 +375,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           />
         </div>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-6 xl:p-8">
+        <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-6">
           {activeTab === 'info' && (
             <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-4 duration-500">
               {unavailable && (
@@ -387,7 +387,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                 <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
                   <div className="flex items-center justify-between">
                     <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
@@ -400,9 +400,9 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
                     <Settings className="w-3 h-3" /> {t('inbox.device_inspector.technical_origin')}
                   </span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-caption font-bold uppercase truncate">{device.type}</span>
-                    <span className="px-2 py-0.5 rounded-full text-nano font-black uppercase bg-muted border border-border text-muted-foreground truncate">{device.integrationSource}</span>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 mt-1">
+                    <span className="min-w-0 break-words text-caption font-bold uppercase">{device.type}</span>
+                    <span className="max-w-full break-words px-2 py-0.5 rounded-full text-nano font-black uppercase bg-muted border border-border text-muted-foreground">{device.integrationSource}</span>
                     {device.integrationSource === 'sonoff' && (
                       <div className="flex items-center gap-1 ml-auto">
                         <div className={cn('w-1.5 h-1.5 rounded-full', isOnline ? 'bg-success animate-pulse' : 'bg-destructive')} />
@@ -467,7 +467,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
 
                 {(device.type === 'light' || device.type === 'switch') && (
-                  <div className="flex gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                     <Button disabled={unavailable || isActionLoading} onClick={() => handleCommand('turn_on')} className="flex-1 h-12 text-micro font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.force_on')}
                     </Button>
@@ -481,7 +481,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 )}
 
                 {device.type === 'cover' && (
-                  <div className="flex gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                     <Button disabled={unavailable || isActionLoading} onClick={() => handleCommand('open')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
                       {t('inbox.inspector.actions.open')}
                     </Button>
