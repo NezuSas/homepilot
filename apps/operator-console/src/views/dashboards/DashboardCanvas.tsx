@@ -260,7 +260,7 @@ export function DashboardCanvas({
         className={cn(
           "relative w-full grid transition-all duration-500",
           isEditing
-            ? "border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
+            ? "min-h-[calc(100dvh-8rem)] border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
             : "border-transparent bg-transparent p-0"
         )}
         style={{
