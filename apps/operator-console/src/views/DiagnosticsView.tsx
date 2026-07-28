@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -10,6 +10,7 @@ import { DiagnosticsResilienceSummary } from '../components/DiagnosticsResilienc
 import { DiagnosticsTimeline } from '../components/DiagnosticsTimeline';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import { DatabaseBackupsCard, type DatabaseBackupSummary } from '../components/DatabaseBackupsCard';
 
 interface DiagnosticsCounters {
   recentReconnects: number;
@@ -102,12 +103,45 @@ export function DiagnosticsView() {
   const [scenes, setScenes] = useState<DiagnosticScene[]>([]);
   const [automations, setAutomations] = useState<DiagnosticAutomation[]>([]);
   const [updatingTz, setUpdatingTz] = useState(false);
+  const [backups, setBackups] = useState<DatabaseBackupSummary[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
+  const [backupsCreating, setBackupsCreating] = useState(false);
+  const [backupsError, setBackupsError] = useState(false);
   
   const devices = useDeviceSnapshotStore(state => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
 
   const user = JSON.parse(localStorage.getItem('hp_user_ctx') || '{}');
   const isAdmin = user.role === 'admin';
+
+  const loadBackups = useCallback(async () => {
+    setBackupsLoading(true);
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/system/backups`);
+      if (!response.ok) throw new Error('BACKUP_LIST_ERROR');
+      setBackups(await response.json() as DatabaseBackupSummary[]);
+      setBackupsError(false);
+    } catch {
+      setBackupsError(true);
+    } finally {
+      setBackupsLoading(false);
+    }
+  }, []);
+
+  const createBackup = useCallback(async () => {
+    setBackupsCreating(true);
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/system/backups`, { method: 'POST' });
+      if (!response.ok) throw new Error('BACKUP_CREATE_ERROR');
+      const created = await response.json() as DatabaseBackupSummary;
+      setBackups(previous => [created, ...previous.filter(backup => backup.filename !== created.filename)]);
+      setBackupsError(false);
+    } catch {
+      setBackupsError(true);
+    } finally {
+      setBackupsCreating(false);
+    }
+  }, []);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -167,6 +201,11 @@ export function DiagnosticsView() {
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Keep one polling subscription for this screen lifecycle.
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    void loadBackups();
+  }, [isAdmin, loadBackups]);
+
   if (loading && !snapshot) {
     return <LoadingState label={t('diagnostics.loading')} className="h-64" size="md" />;
   }
@@ -213,6 +252,17 @@ export function DiagnosticsView() {
         counters={snapshot.counters}
         formatTime={formatTime}
       />
+
+      {isAdmin && (
+        <DatabaseBackupsCard
+          backups={backups}
+          isLoading={backupsLoading}
+          isCreating={backupsCreating}
+          hasError={backupsError}
+          onCreate={() => void createBackup()}
+          onRefresh={() => void loadBackups()}
+        />
+      )}
 
       <DiagnosticsTimeline
         events={events}

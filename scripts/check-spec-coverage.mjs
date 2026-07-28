@@ -10,7 +10,7 @@ const modularComponentDocs = [
   'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
   'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator', 'RangeInput',
   'LoadingState', 'SelectableOptionCard',
-  'OverlayAccessibility',
+  'OverlayAccessibility', 'DatabaseBackupsCard',
 ];
 
 const rules = [
@@ -32,7 +32,7 @@ const rules = [
   ['home-room-management.md', /(?:packages\/topology|Topology|HomeController|RoomController|HomeClimate)/i],
   ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
   ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
-  ['operator-console-modular-components-v1.md', /(?:apps\/operator-console\/src\/(?:components\/ui|design-system)|apps\/operator-console\/src\/components\/(?:ConfirmModal|CoverPositionControl|AudioInputPicker|InlineTabCreator)|apps\/operator-console\/src\/(?:config|i18n|types|utils)\.ts)/i],
+  ['operator-console-modular-components-v1.md', /(?:apps\/operator-console\/src\/(?:components\/ui|design-system)|apps\/operator-console\/src\/components\/(?:ConfirmModal|CoverPositionControl|AudioInputPicker|InlineTabCreator|DatabaseBackupsCard)|apps\/operator-console\/src\/(?:config|i18n|types|utils)\.ts)/i],
   ['operator-console-v1.md', /(?:apps\/operator-console)/i],
 ];
 

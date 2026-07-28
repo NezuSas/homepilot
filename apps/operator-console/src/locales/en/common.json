@@ -626,6 +626,18 @@
       "edge_executable": "Edge Executable",
       "hardware_autonomy": "Hardware Autonomy",
       "zero_cloud": "Zero-Cloud Rules"
+    },
+    "backups": {
+      "title": "Local backups",
+      "description": "Manual backup of the Edge database.",
+      "available": "Available",
+      "latest": "Latest",
+      "refresh": "Refresh backups",
+      "create": "Create backup now",
+      "creating": "Creating backup…",
+      "empty": "No local backups yet.",
+      "load_failed": "Local backups could not be loaded.",
+      "note": "Backups stay on the appliance. Restoring requires a controlled administrator procedure."
     }
   },
   "shell": {

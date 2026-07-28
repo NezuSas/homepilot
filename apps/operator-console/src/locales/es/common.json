@@ -626,6 +626,18 @@
       "edge_executable": "Ejecutable en Edge",
       "hardware_autonomy": "Autonomía de Hardware",
       "zero_cloud": "Reglas sin nube"
+    },
+    "backups": {
+      "title": "Copias locales",
+      "description": "Respaldo manual de la base de datos del Edge.",
+      "available": "Disponibles",
+      "latest": "Más reciente",
+      "refresh": "Actualizar copias",
+      "create": "Crear copia ahora",
+      "creating": "Creando copia…",
+      "empty": "Aún no hay copias locales.",
+      "load_failed": "No se pudieron consultar las copias locales.",
+      "note": "Las copias permanecen en el appliance. La restauración requiere un procedimiento administrativo controlado."
     }
   },
   "shell": {

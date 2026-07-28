@@ -23,12 +23,14 @@ El Edge local requiere contratos de API, eventos, persistencia y runtime comunes
 - **REQ-01:** Las rutas de dominio se implementan en handlers, no en `ApiGateway`.
 - **REQ-02:** Persistencia y migraciones mantienen compatibilidad y configuración explícita de journal SQLite.
 - **REQ-03:** Eventos y errores comunes se expresan mediante contratos compartidos.
+- **REQ-04:** Un administrador puede consultar y crear copias manuales de la base local desde Diagnósticos. La interfaz muestra únicamente metadatos operativos (nombre, fecha y tamaño); nunca expone rutas internas ni permite restauraciones automáticas.
 
 ## 5. Requisitos No Funcionales
 
 - **NFR-01:** El Edge funciona sin Cloud.
 - **NFR-02:** La API no expone secretos de configuración.
 - **NFR-03:** Las migraciones y backups son verificables localmente.
+- **NFR-04:** La gestión de copias conserva los datos visibles durante una actualización, comunica progreso y error de forma accesible, y no crea operaciones duplicadas mientras una copia está en curso.
 
 ## 6. Criterios de Aceptación
 
@@ -36,6 +38,7 @@ El Edge local requiere contratos de API, eventos, persistencia y runtime comunes
 - [x] AC2: La base SQLite aplica migraciones y journal mode configurado al iniciar.
 - [x] AC3: El runtime puede levantar API y consola mediante Compose.
 - [x] AC4: El bus de eventos en memoria entrega eventos a los suscriptores, aísla fallos de un suscriptor y no añade ruido de diagnóstico durante pruebas automatizadas.
+- [x] AC5: Diagnósticos permite a un administrador crear una copia local y revisar las copias disponibles mediante los endpoints protegidos existentes, sin revelar paths del host.
 
 ## 7. Notas Técnicas y Arquitectura
 

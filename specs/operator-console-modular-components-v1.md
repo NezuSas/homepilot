@@ -84,6 +84,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-56:** Los encabezados compartidos deben entregar acciones directas táctiles a ancho completo en móvil y conservar alineación semántica entre icono, título y subtítulo cuando se usan como grupos.
 - **REQ-57:** Los controles segmentados de selección exclusiva deben exponer semántica de radio y permitir recorrer opciones disponibles con flechas, Inicio y Fin, conservando foco y selección visibles.
 - **REQ-58:** Las guías contextuales no modales deben permitir completar la acción resaltada sin atrapar foco ni bloquear scroll; deben conservar una salida explícita y cierre con Escape cuando no exista una superficie modal superior.
+- **REQ-61:** `DatabaseBackupsCard` debe presentar únicamente metadatos seguros de copias locales, conservar la lista visible durante actualización, bloquear creación duplicada y mantener acciones con nombre accesible.
 
 ## 5. Requisitos No Funcionales
 
@@ -104,6 +105,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 | Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/LoadingState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |
 | Dispositivos comunes | `ui/DeviceTileBase.tsx`, `ui/DeviceTileShell.tsx`, `ConfirmModal.tsx`, `CoverPositionControl.tsx` | Presentar acciones permitidas sin conocer el driver | disponible, activo, offline, unsupported, pending |
+| Resiliencia local | `DatabaseBackupsCard.tsx` | Consultar y crear copias locales sin revelar paths internos | loading, empty, error, latest backup, creating |
 | Tokens | `design-system/tokens.ts`, `index.css` | Escala visual única y responsive | light, dark, compact, touch |
 
 ## 7. Criterios de Aceptación
@@ -118,6 +120,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC8: `npm run check:i18n` valida paridad ES/EN y referencias literales de i18n, incluidas las expresadas con template literals sin interpolación, en la consola antes de una entrega.
 - [x] AC9: El selector de Rutinas muestra Escenas y Automatizaciones con la misma jerarquía tipográfica, sin saltos de línea ni recorte visual.
 - [x] AC10: El sidebar presenta etiqueta de marca, navegación, guía y perfil con texto compacto, truncado seguro y roles breves traducidos para su contexto.
+- [x] AC66: La tarjeta de copias locales conserva los metadatos previos al refrescar, solo permite una creación por vez y no muestra rutas del filesystem al operador.
 - [x] AC11: `npm run check:ui-primitives` evita botones HTML convencionales fuera de `components/ui`, preservando la adopción del sistema modular.
 - [x] AC12: `npm run check:ui-primitives` evita campos de texto y áreas de texto genéricos fuera de los primitivos UI, con la excepción explícita del compositor conversacional.
 - [x] AC13: `npm run check:ui-primitives` evita `select` y `option` nativos fuera de los primitivos UI, preservando el selector de negocio único con búsqueda.
