@@ -744,6 +744,7 @@
       "alias_only": "Local Alias Only",
       "home_cluster": "Home Cluster",
       "placement": "Placement",
+      "entity_id": "Entity ID",
       "actions_header": "Supported Actions",
       "data_object": "HomePilot Core Data Object v2.0",
       "label_alias": "Local Alias / Identity Override",

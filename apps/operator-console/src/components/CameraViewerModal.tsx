@@ -49,7 +49,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
       closeLabel={t('camera.viewer_label', { name })}
       hideCloseButton
       layerClassName="z-[120] bg-background/95 p-2 backdrop-blur-xl sm:p-4"
-      className="w-full max-w-camera-viewer rounded-modal border-border/70"
+      className="!w-full !max-w-camera-viewer rounded-modal border-border/70"
       contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
       footer={(
         <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 text-caption text-muted-foreground sm:px-6">

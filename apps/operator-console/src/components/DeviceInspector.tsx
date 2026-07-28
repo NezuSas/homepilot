@@ -293,6 +293,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
 
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
   const unavailable = isDeviceUnavailable(device);
+  const assignedRoom = rooms.find((room) => room.id === device.roomId);
 
   return (
     <>
@@ -387,11 +388,11 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
                   <div className="flex items-center justify-between">
                     <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
-                      <Database className="w-3 h-3" /> Entity ID
+                      <Database className="w-3 h-3" /> {t('inbox.device_inspector.entity_id')}
                     </span>
                   </div>
                   <span className="font-mono text-caption font-bold break-all">{device.externalId || device.id}</span>
@@ -545,7 +546,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                         <Box className="w-4 h-4 opacity-40 text-primary" />
                         <span className="text-micro font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.placement')}</span>
                       </div>
-                      <span className="text-body font-bold truncate">{device.roomId || t('common.unassigned')}</span>
+                      <span className="text-body font-bold break-words">{assignedRoom?.name ?? t('common.unassigned')}</span>
                     </div>
                   </div>
 

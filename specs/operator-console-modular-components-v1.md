@@ -85,7 +85,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-57:** Los controles segmentados de selección exclusiva deben exponer semántica de radio y permitir recorrer opciones disponibles con flechas, Inicio y Fin, conservando foco y selección visibles.
 - **REQ-58:** Las guías contextuales no modales deben permitir completar la acción resaltada sin atrapar foco ni bloquear scroll; deben conservar una salida explícita y cierre con Escape cuando no exista una superficie modal superior.
 - **REQ-61:** `DatabaseBackupsCard` debe presentar únicamente metadatos seguros de copias locales, conservar la lista visible durante actualización, bloquear creación duplicada y mantener acciones con nombre accesible.
-- **REQ-62:** Las superficies de media y cámara deben usar el tamaño disponible de su contenedor: la tarjeta multimedia compacta refluye sus comandos sin ocultar capacidades, y el visor ampliado usa una proporción de medio que evita paneles verticales vacíos. El inspector técnico demora composiciones de tres columnas hasta que exista ancho suficiente y conserva identificadores con corte seguro.
+- **REQ-62:** Las superficies de media y cámara deben usar el tamaño disponible de su contenedor: la tarjeta multimedia compacta refluye sus comandos sin ocultar capacidades, y el visor ampliado debe anular límites genéricos para aprovechar el viewport sin paneles verticales vacíos. El inspector técnico usa como máximo dos columnas dentro del cajón, conserva identificadores técnicos con corte seguro y muestra el nombre legible de la estancia en vez de su identificador interno.
 
 ## 5. Requisitos No Funcionales
 
@@ -182,7 +182,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC66: Todo `SegmentedControl` declara una etiqueta accesible traducida; conserva foco visible, navegación por flechas, Inicio y Fin, y no permite grupos de radios sin nombre.
 - [x] AC67: La navegación entre vistas reutiliza la instantánea de dispositivos durante una ventana corta de frescura, comparte solicitudes simultáneas y conserva los datos visibles; eventos realtime relevantes invalidan esa ventana para sincronizar el cambio de inmediato.
 - [x] AC68: Los tableros no bloquean su primer render con el catálogo MDI completo; el selector de iconos conserva la carga inmediata de su catálogo y los iconos personalizados visibles se resuelven al quedar libre el navegador.
-- [x] AC69: Tarjeta multimedia, visor de cámara e inspector técnico conservan texto, controles y proporción útil dentro de grids, overlays y cajones angostos sin overflow horizontal ni espacios vacíos desproporcionados.
+- [x] AC69: Tarjeta multimedia, visor de cámara e inspector técnico conservan texto, controles y proporción útil dentro de grids, overlays y cajones angostos sin overflow horizontal ni espacios vacíos desproporcionados; el visor ampliado puede ocupar el ancho disponible y el inspector no expone UUIDs de estancias en superficies residenciales.
 
 ## 8. Notas Técnicas y Arquitectura
 
