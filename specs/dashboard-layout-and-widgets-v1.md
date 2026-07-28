@@ -31,6 +31,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **REQ-05:** El fondo cubre el viewport visible del tablero sin alterar el scroll de contenido.
 - **REQ-06:** Las tarjetas de control reflejan el estado real y ejecutan solo acciones soportadas por su entidad.
 - **REQ-07:** Las variables de identidad del título se resuelven exclusivamente desde el contexto autenticado de HomePilot.
+- **REQ-08:** El propietario puede exportar un tablero como un archivo versionado e importar una copia en su propia cuenta, sin sobrescribir tableros existentes.
 
 ## 5. Requisitos No Funcionales
 
@@ -41,6 +42,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-05:** Las métricas de sensores usan tokens tipográficos responsive con nombre semántico; los widgets no definen escalas de texto arbitrarias en línea.
 - **NFR-06:** La grilla conserva flujo secuencial: el placeholder final no rellena huecos ni se superpone visualmente a otras zonas.
 - **NFR-07:** Los iconos comunes del tablero se resuelven sin cargar el catálogo MDI completo; los iconos personalizados mantienen compatibilidad mediante carga diferida al requerirse.
+- **NFR-08:** La transferencia excluye propietario, visibilidad y fondos locales; la copia importada usa identificadores nuevos y solo es visible para quien la importa.
 
 ## 6. Criterios de Aceptación
 
@@ -52,6 +54,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC6: Los valores, porcentajes y títulos de sensores conservan una jerarquía legible mediante tokens responsive compartidos.
 - [x] AC7: El saludo del tablero utiliza el nombre visible o usuario de la sesión autenticada y conserva un fallback traducido.
 - [x] AC8: Un tablero con iconos comunes conserva sus controles visibles en móvil, tablet y escritorio sin requerir la carga inicial del catálogo MDI completo.
+- [x] AC9: Exportar un tablero produce un paquete `homepilot-dashboard` con versión explícita y sin referencias a fondos locales ni políticas de acceso.
+- [x] AC10: Importar un paquete compatible crea una copia privada, con pestañas y widgets de nuevos identificadores, sin modificar el tablero de origen.
 
 ## 7. Notas Técnicas y Arquitectura
 
@@ -61,4 +65,4 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 
 ## 8. Preguntas Abiertas y TODOs
 
-- TODO: Definir exportación/importación versionada de dashboards.
+- El paquete de transferencia no incluye fondos locales. Estos dependen del almacenamiento de cada Edge y se vuelven a configurar después de importar.

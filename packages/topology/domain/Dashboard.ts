@@ -33,6 +33,24 @@ export interface Dashboard {
   updatedAt: string;
 }
 
+export const DASHBOARD_TRANSFER_FORMAT = 'homepilot-dashboard';
+export const DASHBOARD_TRANSFER_VERSION = 1;
+
+/**
+ * Portable dashboard representation. It deliberately excludes ownership,
+ * visibility and locally stored backgrounds so importing it cannot disclose
+ * another resident's access policy or leave media references broken.
+ */
+export interface DashboardTransferPackage {
+  format: typeof DASHBOARD_TRANSFER_FORMAT;
+  version: typeof DASHBOARD_TRANSFER_VERSION;
+  exportedAt: string;
+  dashboard: {
+    title: string;
+    tabs: DashboardTab[];
+  };
+}
+
 export interface DashboardRepository {
   saveDashboard(dashboard: Dashboard): Promise<void>;
   findDashboardById(id: string): Promise<Dashboard | null>;

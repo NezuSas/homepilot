@@ -1423,6 +1423,12 @@
     "error_create": "The dashboard could not be created",
     "error_save": "Dashboard changes could not be saved",
     "error_delete": "The dashboard could not be deleted",
+    "transfer": {
+      "export": "Export dashboard",
+      "import": "Import dashboard",
+      "error_export": "The dashboard could not be exported",
+      "error_import": "The dashboard could not be imported"
+    },
     "rename": "Rename",
     "delete": "Delete panel",
     "remove_widget": "Remove widget",

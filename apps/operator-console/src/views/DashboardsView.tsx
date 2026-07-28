@@ -63,6 +63,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [tabPendingDelete, setTabPendingDelete] = useState<number | null>(null);
   const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
@@ -217,6 +218,64 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     if (!active || !draftTitle.trim()) { setEditingTitle(false); return; }
     await patch(active.id, { title: draftTitle.trim() });
     setEditingTitle(false);
+  };
+
+  const handleExport = async () => {
+    if (!active || isTransferring) return;
+    setIsTransferring(true);
+    setError('');
+    try {
+      const response = await apiFetch(`${API}/dashboards/${active.id}/export`);
+      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.transfer.error_export')));
+      const transfer = await response.json();
+      const file = new Blob([JSON.stringify(transfer, null, 2)], { type: 'application/json' });
+      const objectUrl = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      const fileTitle = active.title.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'dashboard';
+      link.href = objectUrl;
+      link.download = `${fileTitle}.homepilot-dashboard.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.transfer.error_export'));
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    if (isTransferring) return;
+    setIsTransferring(true);
+    setError('');
+    try {
+      let transfer: unknown;
+      try {
+        transfer = JSON.parse(await file.text());
+      } catch {
+        throw new Error(t('dashboards.transfer.error_import'));
+      }
+      const response = await apiFetch(`${API}/dashboards/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transfer),
+      });
+      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.transfer.error_import')));
+      const imported: Dashboard = await response.json();
+      setDashboards((current) => {
+        const next = [...current, imported];
+        onDashboardCatalogChange?.(next);
+        return next;
+      });
+      setActive(imported);
+      setActiveTabIdx(0);
+      setIsEditing(true);
+    } catch (error_: unknown) {
+      setError(error_ instanceof Error ? error_.message : t('dashboards.transfer.error_import'));
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   const handleAddTab = async (title: string) => {
@@ -435,7 +494,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
           {active && (
             <div className="flex min-w-0 flex-col">
               <div className="sticky top-0 z-40 bg-background/95 shadow-depth-1 backdrop-blur-xl">
-                {isEditing && isOwner && (
+                {isOwner && (
                   <DashboardTitleBar
                   title={active.title}
                   draftTitle={draftTitle}
@@ -462,6 +521,11 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                     }
                   }}
                   onCreate={() => setCreating(true)}
+                  onExport={() => { void handleExport(); }}
+                  onImport={(file) => { void handleImport(file); }}
+                  exportLabel={t('dashboards.transfer.export')}
+                  importLabel={t('dashboards.transfer.import')}
+                  isTransferring={isTransferring}
                   />
                 )}
 

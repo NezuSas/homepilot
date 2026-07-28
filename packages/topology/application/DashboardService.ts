@@ -1,4 +1,12 @@
-import { Dashboard, DashboardRepository, DashboardTab, DashboardVisibility } from '../domain/Dashboard';
+import {
+  Dashboard,
+  DashboardRepository,
+  DashboardTab,
+  DashboardTransferPackage,
+  DashboardVisibility,
+  DASHBOARD_TRANSFER_FORMAT,
+  DASHBOARD_TRANSFER_VERSION,
+} from '../domain/Dashboard';
 import { HomeRepository } from '../domain/repositories/HomeRepository';
 import { randomUUID } from 'crypto';
 
@@ -27,6 +35,60 @@ export class DashboardService {
       createdAt: now,
       updatedAt: now,
     };
+    await this.dashboardRepository.saveDashboard(dashboard);
+    return dashboard;
+  }
+
+  public async exportDashboard(userId: string, dashboardId: string): Promise<DashboardTransferPackage> {
+    const dashboard = await this.getOwnedDashboard(userId, dashboardId);
+    return {
+      format: DASHBOARD_TRANSFER_FORMAT,
+      version: DASHBOARD_TRANSFER_VERSION,
+      exportedAt: new Date().toISOString(),
+      dashboard: {
+        title: dashboard.title,
+        tabs: dashboard.tabs.map(tab => ({
+          id: tab.id,
+          title: tab.title,
+          widgets: tab.widgets,
+          layout: tab.layout,
+          icon: tab.icon,
+        })),
+      },
+    };
+  }
+
+  public async importDashboard(userId: string, transfer: unknown): Promise<Dashboard> {
+    if (!isDashboardTransferPackage(transfer)) {
+      throw new Error('DASHBOARD_IMPORT_INVALID');
+    }
+    if (transfer.version !== DASHBOARD_TRANSFER_VERSION) {
+      throw new Error('DASHBOARD_IMPORT_UNSUPPORTED_VERSION');
+    }
+
+    const title = transfer.dashboard.title.trim();
+    if (!title || transfer.dashboard.tabs.length === 0) {
+      throw new Error('DASHBOARD_IMPORT_INVALID');
+    }
+
+    const now = new Date().toISOString();
+    const dashboard: Dashboard = {
+      id: randomUUID(),
+      ownerId: userId,
+      title,
+      visibility: { roles: [], users: [userId], homes: [] },
+      tabs: transfer.dashboard.tabs.map(tab => ({
+        ...tab,
+        id: randomUUID(),
+        background: undefined,
+        visibility: undefined,
+        isDefault: false,
+        widgets: tab.widgets.map(widget => ({ ...widget, id: randomUUID() })),
+      })),
+      createdAt: now,
+      updatedAt: now,
+    };
+
     await this.dashboardRepository.saveDashboard(dashboard);
     return dashboard;
   }
@@ -74,4 +136,14 @@ export class DashboardService {
 
     await this.dashboardRepository.deleteDashboard(dashboardId);
   }
+}
+
+function isDashboardTransferPackage(value: unknown): value is DashboardTransferPackage {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<DashboardTransferPackage>;
+  return candidate.format === DASHBOARD_TRANSFER_FORMAT
+    && typeof candidate.version === 'number'
+    && Boolean(candidate.dashboard)
+    && typeof candidate.dashboard?.title === 'string'
+    && Array.isArray(candidate.dashboard?.tabs);
 }

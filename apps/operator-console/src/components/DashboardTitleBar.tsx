@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check, HelpCircle, MoreVertical, PenLine, Plus, Trash2, X } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Check, Download, HelpCircle, MoreVertical, PenLine, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
@@ -24,6 +24,11 @@ interface DashboardTitleBarProps {
   cancelLabel: string;
   onToggleEditing: () => void;
   onCreate: () => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
+  exportLabel: string;
+  importLabel: string;
+  isTransferring?: boolean;
 }
 
 export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
@@ -46,7 +51,15 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   cancelLabel,
   onToggleEditing,
   onCreate,
-}) => (
+  onExport,
+  onImport,
+  exportLabel,
+  importLabel,
+  isTransferring = false,
+}) => {
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  return (
   <div className="flex min-h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/95 px-4 py-2 shadow-depth-1 sm:px-6">
     {isEditingTitle ? (
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -72,6 +85,19 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       </div>
     )}
     <div className="flex shrink-0 items-center gap-2">
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) onImport(file);
+          event.target.value = '';
+        }}
+      />
+      <IconButton icon={Download} label={exportLabel} onClick={onExport} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
+      <IconButton icon={Upload} label={importLabel} onClick={() => importInputRef.current?.click()} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
       {isEditingDashboard ? (
         <>
           <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="md" className="rounded-full" />
@@ -88,4 +114,5 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       )}
     </div>
   </div>
-);
+  );
+};

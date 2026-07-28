@@ -41,6 +41,9 @@ const SAFE_MESSAGES: Record<string, string> = {
   'NATIVE_CAMERA_STREAM_TIMEOUT': 'La cámara tardó demasiado en responder. Verifica que esté encendida y que el path RTSP sea correcto.',
   'AUTOMATIONLOOPERROR': 'Se detectó un bucle infinito en la automatización.',
   'INVALIDAUTOMATIONRULEERROR': 'Regla de automatización inválida.',
+  'DASHBOARD_IMPORT_INVALID': 'El archivo de tablero no es válido.',
+  'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 'La versión del archivo de tablero no es compatible.',
+  'DASHBOARD_NOT_FOUND': 'El tablero no existe.',
 };
 
 const DEFAULT_STATUS_CODES: Record<string, number> = {
@@ -54,6 +57,9 @@ const DEFAULT_STATUS_CODES: Record<string, number> = {
   'INTERNAL_ERROR': 500,
   'DEVICE_ALREADY_EXISTS': 409,
   'HA_DISCOVERY_ERROR': 502,
+  'DASHBOARD_IMPORT_INVALID': 400,
+  'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 400,
+  'DASHBOARD_NOT_FOUND': 404,
 };
 
 /**

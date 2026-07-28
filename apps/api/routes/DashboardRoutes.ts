@@ -58,6 +58,34 @@ export class DashboardRoutes extends ApiRoutes {
       return true;
     }
 
+    // GET /api/v1/dashboards/:id/export
+    const exportMatch = method === 'GET' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)\/export$/);
+    if (exportMatch) {
+      try {
+        const transfer = await container.services.dashboardService.exportDashboard(req.user!.id, exportMatch[1]);
+        this.sendJson(res, transfer);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to export dashboard';
+        const status = message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_NOT_FOUND' ? 404 : 500;
+        this.sendError(res, status, message, message);
+      }
+      return true;
+    }
+
+    // POST /api/v1/dashboards/import
+    if (method === 'POST' && pathname === '/api/v1/dashboards/import') {
+      try {
+        const transfer = await this.parseBody<unknown>(req);
+        const dashboard = await container.services.dashboardService.importDashboard(req.user!.id, transfer);
+        this.sendJson(res, dashboard, 201);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to import dashboard';
+        const status = message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION' ? 400 : 500;
+        this.sendError(res, status, message, message);
+      }
+      return true;
+    }
+
     // POST /api/v1/dashboards
     if (method === 'POST' && pathname === '/api/v1/dashboards') {
       try {

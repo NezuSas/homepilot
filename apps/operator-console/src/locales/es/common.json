@@ -1423,6 +1423,12 @@
     "error_create": "No se pudo crear el panel",
     "error_save": "No se pudieron guardar los cambios del panel",
     "error_delete": "No se pudo eliminar el panel",
+    "transfer": {
+      "export": "Exportar tablero",
+      "import": "Importar tablero",
+      "error_export": "No se pudo exportar el tablero",
+      "error_import": "No se pudo importar el tablero"
+    },
     "rename": "Renombrar",
     "delete": "Eliminar panel",
     "remove_widget": "Quitar widget",
