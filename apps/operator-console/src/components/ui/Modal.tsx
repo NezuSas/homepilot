@@ -16,6 +16,7 @@ export interface ModalProps {
   layerClassName?: string;
   className?: string;
   headerClassName?: string;
+  bodyClassName?: string;
   contentClassName?: string;
   footer?: React.ReactNode;
   footerClassName?: string;
@@ -42,6 +43,7 @@ export const Modal: React.FC<ModalProps> = ({
   layerClassName,
   className,
   headerClassName,
+  bodyClassName,
   contentClassName,
   footer,
   footerClassName,
@@ -87,7 +89,7 @@ export const Modal: React.FC<ModalProps> = ({
           className
         )}
       >
-        <div className="min-h-0 w-full overflow-y-auto custom-scrollbar">
+        <div className={cn('min-h-0 w-full overflow-y-auto custom-scrollbar', bodyClassName)}>
             {(title || description || variant !== 'default') && <div className={cn(
               "flex min-w-0 flex-col p-5 pb-4 pr-14 sm:p-8 sm:pb-6 sm:pr-16",
               headerAlign === 'start' ? 'items-start text-left' : 'items-center text-center',

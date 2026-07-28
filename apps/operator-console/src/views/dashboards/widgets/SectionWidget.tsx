@@ -465,7 +465,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
     setViewerSession(session);
     setIsViewerOpen(true);
 
-    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session?includeHls=true`, {
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session`, {
       signal: controller.signal,
     }).then(async (res) => {
       if (!res.ok) throw new Error(`VIEWER_SESSION_${res.status}`);
@@ -522,7 +522,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
           streamUrl={absoluteSessionUrl(viewerSession.streamPath)}
           hlsUrl={viewerSession.hlsPath ? absoluteSessionUrl(viewerSession.hlsPath) : undefined}
           snapshotUrl={absoluteSessionUrl(viewerSession.snapshotPath)}
-          preferredMode={viewerSession.hlsPath ? 'hls' : 'stream'}
+          preferredMode="stream"
           onClose={closeViewer}
         />
       )}

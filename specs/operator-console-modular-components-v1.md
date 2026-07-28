@@ -68,7 +68,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-40:** Las acciones sugeridas por el asistente deben reutilizar el diálogo modular, mantener sus formularios de dominio aislados y bloquear cierre o doble envío mientras se ejecuta una intención.
 - **REQ-41:** La edición de perfil debe reutilizar el diálogo modular, conservar recorte local de avatar y exponer todos sus textos y etiquetas accesibles desde i18n ES/EN.
 - **REQ-42:** El constructor de escenas debe reutilizar el diálogo modular, conservar selección local de acciones compatibles y mantener el guardado disponible en un pie fijo sin duplicar infraestructura de modal.
-- **REQ-43:** El visor ampliado de cámara debe reutilizar el diálogo modular, conservar sus estados de streaming y error, y reservar un área flexible de video con encabezado y pie visibles dentro del viewport.
+- **REQ-43:** El visor ampliado de cámara debe reutilizar el diálogo modular, conservar sus estados de streaming y error, y reservar un área flexible de video con encabezado y pie visibles dentro del viewport. En modo ampliado no debe producir scroll vertical: el medio se ajusta con `object-contain` al alto disponible en móvil, tablet y escritorio.
 - **REQ-44:** El selector de iconos debe reutilizar el campo modular, limitar su menú portal al viewport y exponer estado, lista y cierre mediante teclado de forma accesible.
 - **REQ-45:** Las superficies laterales deben reutilizar un cajón modular que preserve portal, foco, Escape, ciclo de Tab, cierre y viewport sin duplicar infraestructura por dominio.
 - **REQ-46:** La guía guiada debe mantener el paso visible tanto en escritorio como en móvil, con foco, teclado, textos i18n y una composición que no dependa de coordenadas disponibles en pantalla angosta.
@@ -158,7 +158,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC42: Las acciones del asistente comparten portal, foco, cierre, scroll y pie responsive con `Modal`; su ejecución bloquea cierre y reintentos hasta finalizar.
 - [x] AC43: El perfil de usuario comparte portal, foco, cierre, scroll y pie responsive con `Modal`; bloquea reintentos durante guardado y sus etiquetas visibles o accesibles existen en ES/EN.
 - [x] AC44: El constructor de escenas comparte portal, foco, cierre, scroll y pie responsive con `Modal`; mantiene sus acciones compatibles, búsqueda y feedback localizados, y bloquea cierre o reintentos durante guardado.
-- [x] AC45: El visor de cámara comparte portal, foco, cierre y viewport con `Modal`; conserva modos HLS/stream/snapshot, estado de conexión o error, y acciones visibles en móvil, tablet y escritorio.
+- [x] AC45: El visor de cámara comparte portal, foco, cierre y viewport con `Modal`; prioriza el stream directo estable, conserva fallback a snapshot, y mantiene encabezado, medio y pie visibles sin scroll vertical en móvil, tablet y escritorio.
 - [x] AC46: El selector de iconos mantiene búsqueda y selección, limita su menú portal al ancho disponible y declara controles accesibles que permiten cerrarlo con Escape.
 - [x] AC47: El cajón lateral comparte portal, foco, cierre, scroll y viewport; el inspector de dispositivos conserva sus pestañas y confirmaciones sin infraestructura duplicada.
 - [x] AC48: La guía guiada mantiene el resaltado y explica el paso en escritorio; en móvil muestra una tarjeta inferior accesible, enfocada y cerrable con Escape.

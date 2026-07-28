@@ -101,7 +101,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
     setViewerMedia(media);
     setIsViewerOpen(true);
 
-    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session?includeHls=true`, {
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session`, {
       signal: controller.signal,
     }).then(async (response) => {
       if (!response.ok) throw new Error(`CAMERA_VIEWER_SESSION_${response.status}`);
@@ -219,7 +219,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           streamUrl={absoluteApiUrl(viewerMedia.streamPath)}
           hlsUrl={viewerMedia.hlsPath ? absoluteApiUrl(viewerMedia.hlsPath) : undefined}
           snapshotUrl={absoluteApiUrl(viewerMedia.snapshotPath)}
-          preferredMode={viewerMedia.hlsPath ? 'hls' : 'stream'}
+          preferredMode="stream"
           onClose={closeViewer}
         />
       )}
