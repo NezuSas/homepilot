@@ -47,6 +47,7 @@ Los indicadores vitales en el Configuration Manager se enriquecerán en exactitu
 - Almacenamiento válido de Evento -> `reachable` (Latido Confirmado).
 - Evento de timeout nativo, close code o parse failure -> `unreachable`.
 - Validación payload fallida "auth_invalid" devuelta por HA -> `auth_error`.
+- Los fallos de transporte, repositorio o auditoría pueden llegar como valores no tipados; se normalizan para diagnóstico y no interrumpen el ciclo de reconciliación ni el WebSocket activo.
 
 ## 4. Pruebas y Validación Específicas
 Pese a no tener cobertura infinita, se implementarán los siguientes Unit/Integration tests:

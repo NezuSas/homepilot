@@ -81,4 +81,21 @@ describe('HomeAssistantRealtimeSyncManager reconciliation', () => {
       attributes: { current_position: 0 },
     });
   });
+
+  it('keeps reconciliation recoverable when Home Assistant rejects with a non-Error value', async () => {
+    const getAllStates = jest.fn().mockRejectedValue('network unavailable');
+    const manager = new HomeAssistantRealtimeSyncManager(
+      {} as HomeAssistantSettingsService,
+      {} as DeviceRepository,
+      { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
+      { getAllStates } as unknown as HomeAssistantClient,
+    );
+    const runReconciliation = () => (
+      manager as unknown as { _runReconciliation(): Promise<void> }
+    )._runReconciliation();
+
+    await expect(runReconciliation()).resolves.toBeUndefined();
+    expect(getAllStates).toHaveBeenCalledTimes(1);
+    expect(manager.getObservableState().reconciliationStatus).toBe('idle');
+  });
 });

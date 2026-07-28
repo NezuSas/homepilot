@@ -32,6 +32,34 @@ type CloseReason = 'stop_manual' | 'reconfigure' | 'auth_error' | 'network_drop'
 /** Secuencia de backoff en milisegundos: 5s → 10s → 30s → 60s (fijo) */
 const BACKOFF_DELAYS_MS = [5000, 10000, 30000, 60000];
 
+interface HomeAssistantStateChangePayload {
+  entityId: string;
+  newState: unknown;
+  attributes: Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseStateChangePayload(data: unknown): HomeAssistantStateChangePayload | null {
+  if (!isRecord(data) || typeof data.entity_id !== 'string' || !isRecord(data.new_state)) {
+    return null;
+  }
+
+  const attributes = isRecord(data.new_state.attributes) ? data.new_state.attributes : {};
+
+  return {
+    entityId: data.entity_id,
+    newState: data.new_state.state,
+    attributes,
+  };
+}
+
 export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {
   private client: HomeAssistantWebSocketClient | null = null;
   private currentUrl: string | null = null;
@@ -170,7 +198,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       this._runReconciliation();
     });
 
-    client.on('event', async (data: any) => {
+    client.on('event', async (data: unknown) => {
       this.settingsService.updateStatusFromOperation('reachable');
       await this.processEvent(data);
     });
@@ -179,9 +207,9 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     // para que onclose sepa que fue inesperado si falla en el intento inicial.
     this.lastCloseReason = 'network_drop';
 
-    client.connect().catch((err: Error) => {
+    client.connect().catch((err: unknown) => {
       // El error ya fue emitido y procesado por client.on('error').
-      console.warn('[HA-Sync] Connect rechazado (manejado por error event):', err.message);
+      console.warn('[HA-Sync] Connect rechazado (manejado por error event):', getErrorMessage(err));
     });
   }
 
@@ -217,15 +245,15 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
   // ─── Event Processing ────────────────────────────────────────────────────────
 
-  private async processEvent(data: any): Promise<void> {
-    if (!data || !data.entity_id || !data.new_state) return;
+  private async processEvent(data: unknown): Promise<void> {
+    const payload = parseStateChangePayload(data);
+    if (!payload) return;
     this.lastEventAt = new Date().toISOString();
 
     try {
-      const entityId = data.entity_id as string;
-      const externalId = `ha:${entityId}`;
-      const newState = data.new_state.state;
-      const attributes = data.new_state.attributes || {};
+      const externalId = `ha:${payload.entityId}`;
+      const newState = payload.newState;
+      const attributes = payload.attributes;
 
       const device = await this.deviceRepository.findByExternalId(externalId);
       if (!device) return;
@@ -269,12 +297,12 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           description: `Device synchronized from Home Assistant WebSocket`,
           data: { state: String(newState), attributes }
         });
-      } catch (logErr: any) {
-        console.error(`[HA-Sync] No se pudo guardar el activity log:`, logErr.message);
+      } catch (logErr: unknown) {
+        console.error(`[HA-Sync] No se pudo guardar el activity log:`, getErrorMessage(logErr));
       }
 
-    } catch (e: any) {
-      console.error(`[HA-Sync] Exception procesando el evento WS:`, e.message);
+    } catch (error: unknown) {
+      console.error(`[HA-Sync] Exception procesando el evento WS:`, getErrorMessage(error));
     }
   }
 
@@ -305,11 +333,12 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           console.log('[HA-Sync] Reconciliation: No states returned (HA may not be configured).');
           return;
         }
-      } catch (fetchErr: any) {
+      } catch (fetchError: unknown) {
         // /api/states falló: log de warning pero NO cerrar el WS.
-        console.warn('[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo.', fetchErr.message);
+        const errorMessage = getErrorMessage(fetchError);
+        console.warn('[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo.', errorMessage);
         this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
-          `Failed to fetch /api/states: ${fetchErr.message}`, 0, 0);
+          `Failed to fetch /api/states: ${errorMessage}`, 0, 0);
         return;
       }
 
@@ -353,9 +382,9 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           });
 
           reconciledCount++;
-        } catch (entityErr: any) {
+        } catch (entityError: unknown) {
           skippedCount++;
-          console.warn(`[HA-Sync] Reconciliation: error parcheando ${device.externalId}:`, entityErr.message);
+          console.warn(`[HA-Sync] Reconciliation: error parcheando ${device.externalId}:`, getErrorMessage(entityError));
         }
       }
 
