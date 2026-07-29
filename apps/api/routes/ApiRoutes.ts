@@ -11,6 +11,7 @@ import { ActivityType } from '../../../packages/devices/domain/repositories/Acti
  */
 const SAFE_MESSAGES: Record<string, string> = {
   'AUTH_FAILED': 'Credenciales inválidas o cuenta desactivada.',
+  'AUTH_RATE_LIMITED': 'Demasiados intentos. Espere unos minutos antes de volver a intentarlo.',
   'UNAUTHORIZED': 'Sesión inválida o expirada.',
   'FORBIDDEN': 'No tiene permisos para realizar esta acción.',
   'NOT_FOUND': 'El recurso solicitado no existe.',
@@ -49,6 +50,7 @@ const SAFE_MESSAGES: Record<string, string> = {
 
 const DEFAULT_STATUS_CODES: Record<string, number> = {
   'AUTH_FAILED': 401,
+  'AUTH_RATE_LIMITED': 429,
   'UNAUTHORIZED': 401,
   'FORBIDDEN': 403,
   'NOT_FOUND': 404,

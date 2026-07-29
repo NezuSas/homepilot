@@ -374,6 +374,9 @@ Usa la plantilla correspondiente al perfil: `.env.office.example` para `bridge_h
 | `VITE_API_URL` | Vacia por defecto: UI, API y WebSocket comparten el origen de HomePilot. Definirla solo para una API publicada por separado; cambiarla exige reconstruir `homepilot-ui`. |
 | `HOMEPILOT_*_PORT` | Puertos publicados; ajustarlos solo si el diagnostico indica conflicto. |
 | `HOMEPILOT_DEV_BOOTSTRAP` | Debe permanecer `false` en cliente: el primer administrador se crea en la UI, no existe una clave impresa en logs. |
+| `HOMEPILOT_CORS_ORIGIN` | Lista separada por comas de orígenes autorizados. En producción debe contener únicamente las URLs reales de HomePilot. |
+| `HOMEPILOT_AUTH_MAX_FAILURES` | Fallos permitidos por combinación de usuario y origen antes de aplicar un bloqueo temporal. Predeterminado: `5`. |
+| `HOMEPILOT_AUTH_LOCKOUT_MS` | Duración del bloqueo temporal de acceso. Predeterminado: `900000` (15 minutos). |
 
 Si se modifica `VITE_API_URL`, reconstruir la UI:
 

@@ -3,11 +3,19 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
+import { LoginAttemptRateLimiter } from '../../../packages/auth/application/LoginAttemptRateLimiter';
 
 /**
  * Auth routes: /api/v1/auth/*
  */
 export class AuthRoutes extends ApiRoutes {
+  private readonly loginAttemptRateLimiter: LoginAttemptRateLimiter;
+
+  constructor(loginAttemptRateLimiter: LoginAttemptRateLimiter = new LoginAttemptRateLimiter()) {
+    super();
+    this.loginAttemptRateLimiter = loginAttemptRateLimiter;
+  }
+
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -17,6 +25,9 @@ export class AuthRoutes extends ApiRoutes {
   ): Promise<boolean> {
     if (!pathname.startsWith('/api/v1/auth/')) return false;
 
+    // Authentication responses can contain session material and must never be stored by browsers or intermediaries.
+    res.setHeader('Cache-Control', 'no-store');
+
     // POST /api/v1/auth/login (public)
     if (method === 'POST' && pathname === '/api/v1/auth/login') {
       try {
@@ -25,22 +36,36 @@ export class AuthRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing credentials'), true;
         }
 
+        const loginKey = this.createLoginAttemptKey(req, payload.username);
+        const retryAfterSeconds = this.loginAttemptRateLimiter.getRetryAfterSeconds(loginKey);
+        if (retryAfterSeconds !== null) {
+          res.setHeader('Retry-After', retryAfterSeconds.toString());
+          return this.sendError(res, 429, 'AUTH_RATE_LIMITED', 'Too many login attempts'), true;
+        }
+
         const result = await container.services.authService.login(payload.username, payload.password);
 
         if (!result) {
+          const lockoutSeconds = this.loginAttemptRateLimiter.registerFailure(loginKey);
           try {
             await container.repositories.activityLogRepository.saveActivity({
               deviceId: 'system-auth',
               type: 'COMMAND_FAILED', // Use existing type logic
               timestamp: new Date().toISOString(),
-              description: `Failed login attempt for user ${payload.username}`,
-              data: { username: payload.username },
+              description: lockoutSeconds ? 'Login temporarily rate limited' : 'Failed login attempt',
+              data: { rateLimited: Boolean(lockoutSeconds) },
             });
           } catch {
             /* ignore */
           }
+          if (lockoutSeconds) {
+            res.setHeader('Retry-After', lockoutSeconds.toString());
+            return this.sendError(res, 429, 'AUTH_RATE_LIMITED', 'Too many login attempts'), true;
+          }
           return this.sendError(res, 401, 'AUTH_FAILED', 'Invalid credentials'), true;
         }
+
+        this.loginAttemptRateLimiter.registerSuccess(loginKey);
 
         try {
           await container.repositories.activityLogRepository.saveActivity({
@@ -149,5 +174,11 @@ export class AuthRoutes extends ApiRoutes {
 
     this.sendError(res, 404, 'NOT_FOUND', 'Auth route not found');
     return true;
+  }
+
+  private createLoginAttemptKey(req: HomePilotRequest, username: string): string {
+    const normalizedUsername = username.trim().toLocaleLowerCase().slice(0, 80);
+    const clientAddress = req.socket.remoteAddress ?? 'unknown';
+    return `${normalizedUsername}|${clientAddress}`;
   }
 }

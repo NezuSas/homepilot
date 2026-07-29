@@ -11,6 +11,9 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 - **Token Storage**: The Frontend will store the token exclusively in **LocalStorage**. 
   - *Justification*: As an Edge appliance serving a React SPA, LocalStorage is straightforward, survives browser restarts reliably across different kiosk/PWA contexts, and facilitates cleanly mounting the Authorization logic programmatically on `fetch` interceptors.
 - **Password Security**: Standard Node `crypto.scrypt` (dependency-free and secure).
+- **Login abuse protection**: Login attempts are throttled locally by normalized username and source address. After five failed attempts, the pair is paused for 15 minutes by default. The limits are configurable through `HOMEPILOT_AUTH_MAX_FAILURES` and `HOMEPILOT_AUTH_LOCKOUT_MS`.
+- **HTTP hardening**: API and UI responses set anti-clickjacking, anti-sniffing, no-referrer and restrictive permissions headers. The UI also applies a same-origin Content Security Policy.
+- **Media uploads**: Avatar and dashboard-background data URIs accept only JPEG, PNG or WebP. Avatars are limited to 2 MiB and backgrounds to 8 MiB after Base64 decoding.
 
 ## 3. RBAC Matrix
 
@@ -72,8 +75,15 @@ Auth events logged:
 - Login failed -> Observability event logged.
 - **CRITICAL**: Never log passwords (plain or hashed) in memory or disk. Never log raw session tokens in the log output or UI diagnostics. Token leakage is strictly guarded against.
 - El servicio de autenticación no escribe en consola el nombre de usuario, la existencia o estado de una cuenta, ni el resultado de la verificación de contraseña, incluso en desarrollo.
+- Failed and rate-limited logins are recorded without passwords, session tokens or account-existence information.
 
-## 7. Model
+## 7. Security Acceptance Criteria
+- **AC1**: After the configured failed-login threshold, the same username/source pair receives `429` with `Retry-After`; a successful login clears pending failures.
+- **AC2**: API and UI responses include `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy` headers.
+- **AC3**: Unsupported, malformed, signature-mismatched or oversized avatar/background uploads are rejected before being written to disk, and media paths cannot escape the local media directory.
+- **AC4**: Authentication responses use `Cache-Control: no-store`.
+
+## 8. Model
 **Users Table**
 - `id`: UUID (Primary Key)
 - `username`: String (Unique)

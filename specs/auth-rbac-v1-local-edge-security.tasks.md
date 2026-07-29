@@ -38,5 +38,6 @@
     - [ ] Verify contextual injection `req.user`.
 
 - [ ] Integrations
-    - [ ] Add secure observability event when auth fails.
-    - [ ] Add secure observability event when auth succeeds.
+    - [x] Add secure observability event when auth fails.
+    - [x] Add secure observability event when auth succeeds.
+    - [x] Add local failed-login throttling, HTTP security headers and bounded image uploads.

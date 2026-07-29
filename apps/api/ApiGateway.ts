@@ -130,6 +130,8 @@ export class ApiGateway {
       const rawReq = request.raw as HomePilotRequest;
       const rawRes = reply.raw;
 
+      this.applySecurityHeaders(rawRes);
+
       // CORS — set before any handler writes to the response.
       const origin = request.headers.origin;
       const allowedOriginsEnv = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost,http://localhost:5173,http://127.0.0.1:5173');
@@ -199,6 +201,14 @@ export class ApiGateway {
         }
       }
     });
+  }
+
+  private applySecurityHeaders(response: http.ServerResponse): void {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Frame-Options', 'DENY');
+    response.setHeader('Referrer-Policy', 'no-referrer');
+    response.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=(), usb=()');
+    response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   }
 
   /**
