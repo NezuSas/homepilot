@@ -38,6 +38,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - **REQ-13 (Gestionar Homes desde consola)**: Un administrador propietario debe poder crear un nuevo `Home` y renombrar un `Home` existente sin alterar su `id`, propietario ni Rooms asociadas.
 - **REQ-14 (Detalle de luces por Room)**: El detalle de una `Room` debe listar únicamente dispositivos de iluminación, permitir buscarlos por nombre, ordenarlos con encendidos primero y luego alfabéticamente, y exponer su control directo.
 - **REQ-15 (Resumen visual de Room)**: Cada tarjeta de Room debe mostrar solamente nombre, cantidad total de dispositivos y un indicador de iluminación encendido cuando exista al menos una luz activa. No debe exponer identificadores internos ni datos técnicos de asignación.
+- **REQ-16 (Nombres Unicode multiplataforma)**: Los nombres de Home y Room deben conservar y mostrar caracteres Unicode introducidos por el usuario, incluidos emojis y banderas formadas por indicadores regionales, de forma consistente en escritorio, tablet y móvil.
 
 ## 5. Requisitos No Funcionales
 - **NFR-01 (Latencia Edge)**: Las operaciones de lectura y escritura en BD local deben tardar menos de 20ms bajo carga normal.
@@ -77,6 +78,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC16**: El detalle de Room permite buscar luces por nombre, muestra las encendidas primero y luego orden alfabético, y excluye interruptores, cámaras, cortinas, sensores y cualquier otro tipo.
 - [ ] **AC17**: Un administrador puede crear y renombrar Homes propios desde la consola, recibiendo errores visibles si la API rechaza la operación.
 - [ ] **AC18**: Las tarjetas de Room omiten identificadores técnicos y muestran nombre, cantidad total de dispositivos e indicador de luz activa; la grilla aprovecha el ancho disponible y reserva espacio para el detalle solamente cuando existe selección explícita.
+- [ ] **AC19**: Dado el nombre de Room `🇪🇨 Sala`, la consola muestra el emoji de bandera como bandera y no lo degrada a `EC` en navegadores de escritorio, tablet o móvil compatibles con una fuente de emoji del sistema.
 
 ## 8. Notas Técnicas y Arquitectura
 

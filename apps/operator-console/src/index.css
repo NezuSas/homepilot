@@ -55,8 +55,14 @@
 @layer base {
   :root {
     /* ── Typography families ───────────────────────────────────── */
-    --font-sans: "Rubik", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-mono: "Disket Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    /*
+     * Keep color emoji ahead of generic platform fonts. Without this explicit
+     * fallback, regional-indicator flags can degrade to their two-letter code
+     * (for example, "EC") on some desktop browsers.
+     */
+    --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", sans-serif;
+    --font-sans: "Rubik", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "Disket Mono", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
     --background:          0 0% 6.7%;        /* warm near-black canvas */
