@@ -157,13 +157,19 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
     }
     this.lastPongAt = null;
     if (this.ws) {
-      this.ws.onopen = null;
-      this.ws.onmessage = null;
-      this.ws.onerror = null;
-      this.ws.onclose = null;
-      
-      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
-        this.ws.terminate(); // Terminate is safer than close for hanging connections
+      const socket = this.ws;
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        // `ws.terminate()` can asynchronously emit an error when it interrupts a
+        // CONNECTING socket. The regular error handler has just been detached as
+        // part of teardown, so retain this scoped listener to avoid terminating
+        // the Node process when Home Assistant is unreachable.
+        socket.once('error', () => undefined);
+        socket.terminate(); // Terminate is safer than close for hanging connections
       }
       this.ws = null;
     }

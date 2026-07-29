@@ -20,6 +20,7 @@ Implementar una conexión en tiempo real con Home Assistant utilizando su API de
 ### 3.1. HomeAssistantWebSocketClient (Capa de Red)
 - Constructor que instaure la escucha y manejo estricto de JSON.
 - Implementa un Timeout timer para la fase de inicio; si vence, tira `.close()` y llama a callbacks de error.
+- El cierre forzado de un socket que todavía está en fase de conexión debe consumir su error nativo posterior. Una caída o timeout de Home Assistant degrada únicamente el bridge (`unreachable`) y nunca termina el proceso de HomePilot Edge.
 - Valida que cada mensaje JSON tenga una estructura de objeto y un `type` de texto antes de procesarlo. Mensajes malformados se descartan sin derribar el cliente ni emitir cambios de estado.
 - Callbacks inyectados:
   - `onReady()`: Invocado tras recibir `auth_ok`.
@@ -68,3 +69,4 @@ El endpoint `POST /api/v1/devices/:id/refresh` debe aplicar el mismo contrato de
 
 - **AC3 — Covers:** al refrescar un `cover` abierto con posición reportada, el dispositivo local conserva `state: "open"`, sus atributos y `current_position`.
 - **AC4 — Entidad eliminada:** una entidad ausente devuelve `404 HA_ENTITY_NOT_FOUND` y no degrada el estado global de conectividad de Home Assistant.
+- **AC5 — Bridge no disponible:** si el timeout fuerza el cierre de un WebSocket aún en `CONNECTING`, el error nativo de `ws` queda manejado y la API continúa disponible para autenticación y operación local.

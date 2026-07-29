@@ -9,6 +9,7 @@ interface TestSocket {
   send: jest.Mock;
   ping: jest.Mock;
   on: jest.Mock;
+  once: jest.Mock;
   terminate: jest.Mock;
 }
 
@@ -30,6 +31,7 @@ describe('HomeAssistantWebSocketClient', () => {
       send: jest.fn(),
       ping: jest.fn(),
       on: jest.fn(),
+      once: jest.fn(),
       terminate: jest.fn(),
     };
     const testableClient = client as unknown as TestableHomeAssistantWebSocketClient;
@@ -57,5 +59,28 @@ describe('HomeAssistantWebSocketClient', () => {
       errorSpy.mockRestore();
       client.forceClose();
     }
+  });
+
+  it('handles the native error emitted when a connecting socket is force-closed', () => {
+    const client = new HomeAssistantWebSocketClient('http://homeassistant.local:8123', 'token');
+    const socket: TestSocket = {
+      readyState: 0,
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+      send: jest.fn(),
+      ping: jest.fn(),
+      on: jest.fn(),
+      once: jest.fn(),
+      terminate: jest.fn(),
+    };
+    const testableClient = client as unknown as TestableHomeAssistantWebSocketClient;
+    testableClient.ws = socket;
+
+    client.forceClose();
+
+    expect(socket.once).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(socket.terminate).toHaveBeenCalledTimes(1);
   });
 });
