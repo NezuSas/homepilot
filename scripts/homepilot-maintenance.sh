@@ -184,7 +184,28 @@ deploy_homepilot() {
   info "Compose: ${compose_file}"
   info "Perfil: ${profile}"
   info "COMPOSE_BAKE=false evita que Compose use bake si no hace falta."
-  COMPOSE_BAKE=false docker compose -f "$compose_file" up -d --build
+
+  local max_attempts=3
+  local attempt=1
+  local retry_delay=10
+
+  while (( attempt <= max_attempts )); do
+    info "Construcción e inicio: intento ${attempt}/${max_attempts}."
+    if COMPOSE_BAKE=false docker compose -f "$compose_file" up -d --build; then
+      ok "HomePilot construido e iniciado."
+      break
+    fi
+
+    if (( attempt == max_attempts )); then
+      fail "Docker no pudo descargar o construir las imágenes después de ${max_attempts} intentos. Verifica la conexión a Docker Hub e inténtalo más tarde."
+    fi
+
+    warn "El despliegue falló. Puede ser un error temporal de Docker Hub; se reintentará en ${retry_delay}s."
+    sleep "$retry_delay"
+    attempt=$((attempt + 1))
+    retry_delay=$((retry_delay * 2))
+  done
+
   docker compose -f "$compose_file" ps
 }
 

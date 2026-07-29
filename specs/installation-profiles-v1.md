@@ -24,6 +24,7 @@ HomePilot debe instalarse de forma explícita tanto en hogares que ya usan Home 
 - **REQ-04:** El instalador debe seleccionar compose y plantilla `.env` según `--profile` y detenerse si el perfil guardado en `.env` no coincide.
 - **REQ-05:** `bridge_ha` y `native_only` no deben declarar un servicio Home Assistant en su compose.
 - **REQ-06:** El estado operativo debe indicar cuando Home Assistant no es requerido por `native_only`.
+- **REQ-07:** El despliegue de mantenimiento debe reintentar automáticamente las construcciones que fallen de forma transitoria, incluida la indisponibilidad temporal del registro de imágenes Docker.
 
 ## 4. Criterios de aceptación
 
@@ -33,6 +34,7 @@ HomePilot debe instalarse de forma explícita tanto en hogares que ya usan Home 
 - [x] AC4: La consola omite el paso de bridge en `native_only` y conserva el flujo existente para perfiles bridge.
 - [x] AC5: `bash scripts/install-edge-office.sh --profile native_only --status` no exige que Home Assistant responda.
 - [x] AC6: El instalador usa `docker-compose.yml` y `.env.example` solo para `ha_companion`.
+- [x] AC7: `homepilot-maintenance.sh --deploy` intenta la construcción hasta tres veces con espera progresiva y conserva un error claro si Docker Hub continúa inaccesible.
 
 ## 5. Límites
 
