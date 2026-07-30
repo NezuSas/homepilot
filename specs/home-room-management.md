@@ -40,6 +40,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - **REQ-15 (Resumen visual de Room)**: Cada tarjeta de Room debe mostrar solamente nombre, cantidad total de dispositivos y un indicador de iluminación encendido cuando exista al menos una luz activa. No debe exponer identificadores internos ni datos técnicos de asignación.
 - **REQ-16 (Nombres Unicode multiplataforma)**: Los nombres de Home y Room deben conservar y mostrar caracteres Unicode introducidos por el usuario, incluidos emojis y banderas formadas por indicadores regionales, de forma consistente en escritorio, tablet y móvil.
 - **REQ-17 (Propietario visible y controles coherentes)**: La consola debe indicar quién creó cada Home. Las acciones que modifican el nombre del Home o sus Rooms (crear, renombrar o eliminar) solo deben estar disponibles en la interfaz para el propietario del Home; la autorización del servidor se mantiene como validación definitiva.
+- **REQ-18 (Selección de Home eficiente)**: Al seleccionar el Home ya activo, la consola no debe solicitar nuevamente sus Rooms ni reiniciar la selección visible. La carga de Rooms ocurre al cambiar a otro Home o tras una mutación que requiera refrescar los datos.
 
 ## 5. Requisitos No Funcionales
 - **NFR-01 (Latencia Edge)**: Las operaciones de lectura y escritura en BD local deben tardar menos de 20ms bajo carga normal.
@@ -81,6 +82,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC18**: Las tarjetas de Room omiten identificadores técnicos y muestran nombre, cantidad total de dispositivos e indicador de luz activa; la grilla aprovecha el ancho disponible y reserva espacio para el detalle solamente cuando existe selección explícita.
 - [ ] **AC19**: Dado el nombre de Room `🇪🇨 Sala`, la consola muestra el emoji de bandera como bandera y no lo degrada a `EC` en navegadores de escritorio, tablet o móvil compatibles con una fuente de emoji del sistema.
 - [ ] **AC20**: Dado un administrador que consulta un Home creado por otro usuario, la consola muestra el creador y oculta los controles de renombrar Home y de crear, renombrar o eliminar Rooms. El creador del Home sí ve estos controles y el servidor conserva su respuesta `403 Forbidden` ante una llamada no autorizada.
+- [ ] **AC21**: Dado un Home activo, al pulsarlo nuevamente no se emite una segunda petición a `GET /homes/:homeId/rooms` ni se borra la Room seleccionada.
 
 ## 8. Notas Técnicas y Arquitectura
 
