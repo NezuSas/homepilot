@@ -47,7 +47,7 @@ All Tuya routes MUST require an authenticated administrator. Disconnecting MUST 
 ## Acceptance criteria
 
 - A customer sees one user-code field and a QR authorization step; no endpoint, client ID, client secret or UID field is visible.
-- A non-provisioned appliance clearly reports that Tuya Smart is unavailable instead of presenting an unusable form.
+- A non-provisioned appliance clearly reports that Tuya Smart is unavailable instead of presenting an unusable form or an unrelated loading error.
 - A confirmed QR session can list and import compatible curtains without Home Assistant.
 - Imported curtains appear in HomePilot inventory and can be assigned to rooms through the standard device flow.
 - Access and refresh tokens never appear in API responses, logs or the browser.
