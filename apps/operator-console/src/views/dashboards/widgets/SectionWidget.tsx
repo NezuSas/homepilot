@@ -1255,8 +1255,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
         span === 'small' && "h-section-card-sm w-full max-w-[12rem] justify-self-center",
         span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
+        span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'medium' ? 'h-curtain-card' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
         <CardPreview
           kind={kind}
@@ -1268,7 +1269,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           deviceId={deviceIdOverride}
           device={previewDevice}
-          isPreview={!deviceIdOverride}
+          isPreview={true}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />
