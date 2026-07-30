@@ -7,6 +7,7 @@ import { CameraDeviceTile } from './CameraDeviceTile';
 import { CurtainDeviceTile } from './CurtainDeviceTile';
 import { DashDeviceTile } from './DashDeviceTile';
 import { Button } from './ui/Button';
+import { cn } from '../lib/utils';
 
 interface ManagedDeviceTileProps {
   device: SnapshotDevice;
@@ -33,7 +34,12 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
   const kind = resolveManagedDeviceKind(device);
 
   return (
-    <article className="flex min-w-0 flex-col gap-2">
+    <article
+      className={cn(
+        'flex min-w-0 flex-col gap-2',
+        kind === 'cover' && 'w-full max-w-curtain-manager justify-self-start',
+      )}
+    >
       {kind === 'camera' ? (
         <CameraDeviceTile
           device={device}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Camera,
@@ -30,6 +30,7 @@ import { Input } from '../../../components/ui/Input';
 import { ClockWidget, type ClockStyle } from './ClockWidget';
 import { SensorMetricCard } from './SensorMetricCard';
 import { MediaPlayerCard, type MediaPlayerCommand } from './MediaPlayerCard';
+import { CurtainDeviceTile, CurtainDeviceTilePreview } from '../../../components/CurtainDeviceTile';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -556,6 +557,8 @@ function CardPreview({
   onMediaCommand,
   roomDeviceCount,
   roomActiveCount,
+  onDeviceUpdate,
+  onDeviceCommand,
 }: {
   kind: SectionCardKind;
   title: string;
@@ -571,6 +574,12 @@ function CardPreview({
   onMediaCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
   roomDeviceCount?: number;
   roomActiveCount?: number;
+  onDeviceUpdate?: (device: SnapshotDevice) => void;
+  onDeviceCommand?: (
+    deviceId: string,
+    command: string,
+    params?: Record<string, unknown>,
+  ) => Promise<SnapshotDevice | null>;
 }) {
   const { t } = useTranslation();
   // Default card icons resolve from the bundled baseline. Custom MDI entries
@@ -624,6 +633,22 @@ function CardPreview({
         compact={isSmall}
       />
     );
+  }
+
+  if (normalized === 'cover') {
+    if (device) {
+      return (
+        <CurtainDeviceTile
+          device={device}
+          roomName={subtitle}
+          onUpdate={onDeviceUpdate}
+          onCommand={onDeviceCommand}
+          layout="dashboard"
+        />
+      );
+    }
+
+    return <CurtainDeviceTilePreview title={title} layout="dashboard" />;
   }
 
   if (normalized === 'energy') {
@@ -787,6 +812,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -992,15 +1018,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       return;
     }
 
-    if (normalized !== 'device' && normalized !== 'light' && normalized !== 'cover') return;
+    if (normalized !== 'device' && normalized !== 'light') return;
 
     const device = devices.find((candidate) => candidate.id === card.entityId);
     if (!device) return;
 
     const active = isDeviceActive(device);
-    const command = normalized === 'cover'
-      ? active ? 'close' : 'open'
-      : active ? 'turn_off' : 'turn_on';
+    const command = active ? 'turn_off' : 'turn_on';
 
     setProcessingCardId(card.id);
     try {
@@ -1017,6 +1041,23 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     }
   };
 
+  const executeSectionDeviceCommand = useCallback(async (
+    deviceId: string,
+    command: string,
+    params?: Record<string, unknown>,
+  ): Promise<SnapshotDevice | null> => {
+    const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: params ? { name: command, params } : command }),
+    });
+
+    if (!response.ok) return null;
+
+    const updated = await response.json() as SnapshotDevice;
+    upsertDevice(updated);
+    return updated;
+  }, [upsertDevice]);
   const handleMediaCardAction = async (card: NormalizedSectionCardItem, command: MediaPlayerCommand, params?: Record<string, unknown>) => {
     if (isEditing || !card.entityId) return;
 
@@ -1054,6 +1095,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const isClock = isClockKind(card.kind);
     const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
     const normalizedKind = normalizeKind(card.kind);
+    const isCover = normalizedKind === 'cover';
     const roomDevices = normalizedKind === 'room' && card.entityId
       ? devices.filter((device) => device.roomId === card.entityId)
       : [];
@@ -1066,7 +1108,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
     const isActionable = Boolean(card.entityId)
       && !isEditing
-      && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'cover');
+      && (normalizedKind === 'device' || normalizedKind === 'light');
     return (
       <div
         key={card.id}
@@ -1096,7 +1138,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           setDraggingCardId(null);
         }}
         onDragEnd={() => setDraggingCardId(null)}
-        onClick={(event) => { void handleCardAction(card, event); }}
+        onClick={isCover ? undefined : (event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
           span === 'small' && "min-h-section-card-sm",
@@ -1104,6 +1146,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span === 'full' && "min-h-section-card-lg",
           isCamera && "min-h-curtain-card",
           isClock && "min-h-clock-card",
+          isCover && "w-full max-w-curtain-dashboard justify-self-start",
           isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
           draggingCardId === card.id && "opacity-45",
           getSpanClass(span)
@@ -1125,6 +1168,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             : undefined}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
+          onDeviceUpdate={upsertDevice}
+          onDeviceCommand={isCover ? executeSectionDeviceCommand : undefined}
         />
 
         {processingCardId === card.id ? (

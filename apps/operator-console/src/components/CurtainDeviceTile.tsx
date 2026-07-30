@@ -27,10 +27,11 @@ interface CurtainDeviceTileProps {
   roomName?: string;
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
+  layout?: 'manager' | 'dashboard';
 }
 
 export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({ 
-  device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute 
+  device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute, layout = 'manager'
 }) => {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
@@ -136,7 +137,11 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       active={isMoving || isOpen}
       disabled={device.status === 'PENDING' || unavailable}
       syncing={isMoving}
-      className="min-h-curtain-card sm:min-h-curtain-card-lg"
+      className={cn(
+        layout === 'dashboard'
+          ? 'min-h-section-card-md sm:min-h-curtain-card'
+          : 'min-h-curtain-card sm:min-h-curtain-card-lg',
+      )}
     >
       
       {isMoving && (
@@ -252,6 +257,85 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         </div>
       )}
 
+    </DeviceTileShell>
+  );
+};
+
+interface CurtainDeviceTilePreviewProps {
+  title: string;
+  roomName?: string;
+  layout?: 'manager' | 'dashboard';
+}
+
+/**
+ * Vista no interactiva de una cortina para el catálogo y el editor de tarjetas.
+ * Mantiene la misma estructura visual que la tarjeta operativa sin simular acciones.
+ */
+export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> = ({
+  title,
+  roomName,
+  layout = 'dashboard',
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <DeviceTileShell
+      active={false}
+      className={cn(
+        layout === 'dashboard'
+          ? 'min-h-section-card-md sm:min-h-curtain-card'
+          : 'min-h-curtain-card sm:min-h-curtain-card-lg',
+      )}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 z-0 opacity-25"
+        style={{
+          background: 'repeating-linear-gradient(to bottom, hsl(var(--foreground) / 0.32) 0px, hsl(var(--foreground) / 0.32) 12px, hsl(var(--background) / 0.18) 13px, hsl(var(--foreground) / 0.32) 14px)',
+        }}
+        aria-hidden="true"
+      >
+        <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-curtain-track" />
+      </div>
+
+      <div className="relative z-10 flex h-full flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="surface-transition flex h-10 w-10 shrink-0 items-center justify-center rounded-card border border-border/60 bg-muted/60 text-muted-foreground sm:h-12 sm:w-12">
+            <Blinds className="h-5 w-5" />
+          </div>
+          <div className="flex items-center gap-1.5 pt-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+            <span className="text-caption font-medium text-muted-foreground">
+              {t('common.cover.closed')}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 overflow-hidden">
+          <h4 className="truncate text-card-title font-bold tracking-tight text-foreground">{title}</h4>
+          <span className="text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="flex items-center gap-1.5 rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner">
+            <div className="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-label font-black uppercase tracking-widest text-primary-foreground">
+              <ArrowUp className="h-3 w-3 opacity-60" />
+              <span className="truncate">{t('common.actions.open')}</span>
+            </div>
+            <div className="flex h-9 w-10 items-center justify-center rounded-xl border border-border/10 bg-muted/20 text-muted-foreground/40">
+              <Square className="h-3 w-3 fill-current" />
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-2 px-1" aria-hidden="true">
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted/35">
+              <div className="h-full w-0 bg-primary/50" />
+            </div>
+            <div className="flex justify-between text-micro font-semibold text-muted-foreground/70">
+              <span>0%</span>
+              <span>100%</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </DeviceTileShell>
   );
 };

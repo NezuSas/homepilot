@@ -40,6 +40,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 17. El modo de edición de escritorio debe conservar el grid de 3 columnas y los placeholders de creación cuando el área útil del lienzo mida al menos 1024px, incluso si el sidebar reduce el ancho disponible de la ventana.
 18. Las tarjetas de control de dispositivos deben comunicar encendido y apagado mediante su color, borde e icono, sin mostrar una etiqueta textual de estado. El selector de iconos de las tarjetas debe incluir Material Design Icons de Home Assistant y conservar los iconos Lucide almacenados previamente.
 19. El canvas del tablero debe fluir en columnas responsivas por orden (1 columna en móvil, 2 en tablet, 3 en escritorio), al estilo de las "Sections" de Home Assistant: cada zona ocupa un ancho de columna discreto (1..N) y el usuario puede reordenar zonas arrastrándolas, en cualquier tamaño de pantalla.
+20. La tarjeta `cover` del tablero debe reutilizar `CurtainDeviceTile`; su preview debe usar la misma estructura visual no interactiva. En tablero y Gestor de Dispositivos, una cortina única conserva un ancho máximo legible en vez de estirarse a todo el contenedor.
 
 ## Criterios de Aceptación
 - **AC1:** En español el sidebar muestra `Tableros`; en inglés muestra `Dashboards`.
@@ -77,3 +78,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC33:** Una tarjeta de control activa se distingue visualmente de una apagada sin un chip de texto `Encendido/Apagado`, y sus iconos pueden seleccionarse desde el catálogo Material Design Icons sin invalidar iconos existentes.
 - **AC34:** En cualquier tamaño de pantalla (móvil, tablet, escritorio), arrastrar una zona por su asa de arrastre la reordena dentro del flujo y el nuevo orden persiste tras recargar.
 - **AC35:** El ancho de una zona se controla con un selector discreto (1..N columnas según el breakpoint activo); el valor persiste aunque un breakpoint más angosto lo clamée visualmente sin sobrescribir el dato guardado.
+- **AC36:** Una cortina en el tablero muestra el control reutilizado del Gestor de Dispositivos, ejecuta comandos contra el inventario local y no supera el ancho máximo legible en escritorio si es la única unidad. El preview del editor conserva la misma jerarquía visual, sin controles activos.

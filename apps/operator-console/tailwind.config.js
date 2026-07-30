@@ -212,6 +212,8 @@ export default {
         'copy-2xl': '15.625rem',
         'copy-xl': '13rem',
         'form-md': '26rem',
+        'curtain-dashboard': '23rem',
+        'curtain-manager': '30rem',
       },
       minWidth: {
         'data-table': '47.5rem',
