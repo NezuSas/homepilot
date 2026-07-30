@@ -1733,6 +1733,20 @@
       "opening": "Abriendo",
       "closing": "Cerrando",
       "unavailable": "No disponible",
+      "tilt_value": "Inclinación {{value}}%",
+      "classes": {
+        "generic": "Cobertura",
+        "awning": "Toldo",
+        "blind": "Persiana",
+        "curtain": "Cortina",
+        "damper": "Compuerta",
+        "door": "Puerta",
+        "garage": "Garaje",
+        "gate": "Portón",
+        "shade": "Cortina enrollable",
+        "shutter": "Contraventana",
+        "window": "Ventana"
+      },
       "unknown": "Desconocido"
     },
     "events": {

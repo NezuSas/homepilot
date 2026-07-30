@@ -1733,6 +1733,20 @@
       "opening": "Opening",
       "closing": "Closing",
       "unavailable": "Unavailable",
+      "tilt_value": "Tilt {{value}}%",
+      "classes": {
+        "generic": "Cover",
+        "awning": "Awning",
+        "blind": "Blind",
+        "curtain": "Curtain",
+        "damper": "Damper",
+        "door": "Door",
+        "garage": "Garage",
+        "gate": "Gate",
+        "shade": "Shade",
+        "shutter": "Shutter",
+        "window": "Window"
+      },
       "unknown": "Unknown"
     },
     "events": {

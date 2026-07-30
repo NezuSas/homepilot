@@ -20,6 +20,37 @@ interface DeviceState {
   [key: string]: unknown;
 }
 
+const parseCoverPosition = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.min(100, Math.max(0, parsed));
+};
+
+interface CurtainBackdropProps {
+  position: number;
+  isMoving?: boolean;
+}
+
+const CurtainBackdrop: React.FC<CurtainBackdropProps> = ({ position, isMoving = false }) => (
+  <div
+    className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-30 transition-[clip-path,opacity] [transition-duration:1500ms] ease-in-out"
+    style={{
+      clipPath: `inset(${position}% 0 0 0)`,
+      background: 'repeating-linear-gradient(to bottom, hsl(var(--foreground) / 0.32) 0px, hsl(var(--foreground) / 0.32) 12px, hsl(var(--background) / 0.18) 13px, hsl(var(--foreground) / 0.32) 14px)',
+    }}
+    aria-hidden="true"
+  >
+    <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-curtain-track" />
+    {isMoving ? <div className="absolute inset-0 animate-pulse bg-primary/10" /> : null}
+  </div>
+);
+
+const getCoverClassKey = (attributes?: Record<string, unknown>): string => {
+  const value = attributes?.device_class;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : 'generic';
+};
+
 interface CurtainDeviceTileProps {
   device: Device;
   onUpdate?: (updated: Device) => void;
@@ -54,17 +85,13 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   };
 
   const state = optimisticState || getFunctionalState(rawState);
-  const parsePosition = (value: unknown): number | undefined => {
-    if (value === null || value === undefined || value === '') return undefined;
-    const parsed = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(parsed)) return undefined;
-    return Math.min(100, Math.max(0, parsed));
-  };
-  const rawPosition = parsePosition(lastState.current_position)
-    ?? parsePosition(lastState.position)
-    ?? parsePosition(lastState.attributes?.current_position)
-    ?? parsePosition(lastState.attributes?.position);
+  const rawPosition = parseCoverPosition(lastState.current_position)
+    ?? parseCoverPosition(lastState.position)
+    ?? parseCoverPosition(lastState.attributes?.current_position)
+    ?? parseCoverPosition(lastState.attributes?.position);
+  const rawTiltPosition = parseCoverPosition(lastState.attributes?.current_tilt_position);
   const position = rawPosition !== undefined && device.invertState ? 100 - rawPosition : rawPosition;
+  const coverClassKey = getCoverClassKey(lastState.attributes);
   
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';
@@ -124,6 +151,12 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
   const localizedState = t(`common.cover.${displayState}`, { defaultValue: displayState });
 
+  const coverClassLabel = t(`common.cover.classes.${coverClassKey}`, {
+    defaultValue: t('common.cover.classes.generic'),
+  });
+  const tiltLabel = rawTiltPosition === undefined
+    ? null
+    : t('common.cover.tilt_value', { value: Math.round(rawTiltPosition) });
   const canOpen = !unavailable && !!onCommand && canExecuteCommand(device, 'open');
   const canClose = !unavailable && !!onCommand && canExecuteCommand(device, 'close');
   const canStop = !unavailable && !!onCommand && canExecuteCommand(device, 'stop');
@@ -150,18 +183,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
         <div className="absolute inset-0 bg-primary/5 animate-atmospheric-glow pointer-events-none z-0" />
       )}
 
-      <div
-        className={cn(
-          'absolute inset-0 z-0 pointer-events-none opacity-25 transition-transform [transition-duration:1500ms] ease-in-out',
-          isOpen ? '-translate-y-full' : 'translate-y-0',
-        )}
-        style={{
-          background: 'repeating-linear-gradient(to bottom, hsl(var(--foreground) / 0.32) 0px, hsl(var(--foreground) / 0.32) 12px, hsl(var(--background) / 0.18) 13px, hsl(var(--foreground) / 0.32) 14px)',
-        }}
-        aria-hidden="true"
-      >
-        <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-curtain-track" />
-      </div>
+      <CurtainBackdrop position={visualPosition} isMoving={isMoving} />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div className="flex items-start justify-between gap-3">
@@ -198,6 +220,13 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
               {roomName || t('common.unassigned')}
             </span>
         </div>
+          {!isCompact && (coverClassKey !== 'generic' || tiltLabel) ? (
+            <div className="flex min-w-0 items-center gap-2 text-micro font-medium text-muted-foreground/80">
+              <span className="truncate">{coverClassLabel}</span>
+              {tiltLabel ? <span className="shrink-0">{tiltLabel}</span> : null}
+            </div>
+          ) : null}
+
 
         {/* Dynamic Action Strip based on capabilities */}
         <div className="flex flex-col gap-3 mt-4">
@@ -292,15 +321,7 @@ export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> =
           : 'min-h-curtain-card sm:min-h-curtain-card-lg',
       )}
     >
-      <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-25"
-        style={{
-          background: 'repeating-linear-gradient(to bottom, hsl(var(--foreground) / 0.32) 0px, hsl(var(--foreground) / 0.32) 12px, hsl(var(--background) / 0.18) 13px, hsl(var(--foreground) / 0.32) 14px)',
-        }}
-        aria-hidden="true"
-      >
-        <div className="absolute inset-x-0 bottom-0 h-2 border-t border-foreground/20 bg-foreground/10 shadow-curtain-track" />
-      </div>
+      <CurtainBackdrop position={0} />
 
       <div className="relative z-10 flex h-full flex-col justify-between">
         <div className="flex items-start justify-between gap-3">
