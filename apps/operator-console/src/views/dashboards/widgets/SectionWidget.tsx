@@ -636,6 +636,8 @@ function CardPreview({
   }
 
   if (normalized === 'cover') {
+    const density = isSmall ? 'compact' : 'standard';
+
     if (device) {
       return (
         <CurtainDeviceTile
@@ -644,11 +646,12 @@ function CardPreview({
           onUpdate={onDeviceUpdate}
           onCommand={onDeviceCommand}
           layout="dashboard"
+          density={density}
         />
       );
     }
 
-    return <CurtainDeviceTilePreview title={title} layout="dashboard" />;
+    return <CurtainDeviceTilePreview title={title} layout="dashboard" density={density} />;
   }
 
   if (normalized === 'energy') {
@@ -1238,8 +1241,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     return (
       <div className={cn(
-        "overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
-        span === 'small' && "h-section-card-sm w-full max-w-copy-xl",
+        "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
+        span === 'small' && "h-section-card-sm w-full max-w-[12rem] justify-self-center",
         span === 'medium' && "h-section-card-md w-full max-w-form-md",
         span === 'full' && "w-full",
         isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''

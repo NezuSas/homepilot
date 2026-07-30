@@ -28,10 +28,11 @@ interface CurtainDeviceTileProps {
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
   layout?: 'manager' | 'dashboard';
+  density?: 'standard' | 'compact';
 }
 
 export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({ 
-  device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute, layout = 'manager'
+  device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute, layout = 'manager', density = 'standard'
 }) => {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
   const canExecutePrimary = desiredCoverCommand === 'open' ? canOpen : canClose;
   const primaryCoverCommand = canExecutePrimary ? desiredCoverCommand : null;
   const primaryCoverLabel = t(`common.actions.${desiredCoverCommand}`);
+  const isCompact = density === 'compact';
 
   return (
     <DeviceTileShell
@@ -139,7 +141,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       syncing={isMoving}
       className={cn(
         layout === 'dashboard'
-          ? 'min-h-section-card-md sm:min-h-curtain-card'
+          ? (isCompact ? 'min-h-section-card-sm' : 'min-h-section-card-md sm:min-h-curtain-card')
           : 'min-h-curtain-card sm:min-h-curtain-card-lg',
       )}
     >
@@ -218,7 +220,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
                 </Button>
               )}
 
-              {canStop && (
+              {canStop && !isCompact && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -237,7 +239,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
             </div>
           )}
 
-          {canSetPosition && (
+          {canSetPosition && !isCompact && (
             <CoverPositionControl 
               initialPosition={position}
               onPositionChange={handlePositionChange}
@@ -265,6 +267,7 @@ interface CurtainDeviceTilePreviewProps {
   title: string;
   roomName?: string;
   layout?: 'manager' | 'dashboard';
+  density?: 'standard' | 'compact';
 }
 
 /**
@@ -275,15 +278,17 @@ export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> =
   title,
   roomName,
   layout = 'dashboard',
+  density = 'standard',
 }) => {
   const { t } = useTranslation();
+  const isCompact = density === 'compact';
 
   return (
     <DeviceTileShell
       active={false}
       className={cn(
         layout === 'dashboard'
-          ? 'min-h-section-card-md sm:min-h-curtain-card'
+          ? (isCompact ? 'min-h-section-card-sm' : 'min-h-section-card-md sm:min-h-curtain-card')
           : 'min-h-curtain-card sm:min-h-curtain-card-lg',
       )}
     >
@@ -321,19 +326,23 @@ export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> =
               <ArrowUp className="h-3 w-3 opacity-60" />
               <span className="truncate">{t('common.actions.open')}</span>
             </div>
-            <div className="flex h-9 w-10 items-center justify-center rounded-xl border border-border/10 bg-muted/20 text-muted-foreground/40">
-              <Square className="h-3 w-3 fill-current" />
-            </div>
+            {!isCompact ? (
+              <div className="flex h-9 w-10 items-center justify-center rounded-xl border border-border/10 bg-muted/20 text-muted-foreground/40">
+                <Square className="h-3 w-3 fill-current" />
+              </div>
+            ) : null}
           </div>
-          <div className="flex w-full flex-col gap-2 px-1" aria-hidden="true">
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted/35">
-              <div className="h-full w-0 bg-primary/50" />
+          {!isCompact ? (
+            <div className="flex w-full flex-col gap-2 px-1" aria-hidden="true">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted/35">
+                <div className="h-full w-0 bg-primary/50" />
+              </div>
+              <div className="flex justify-between text-micro font-semibold text-muted-foreground/70">
+                <span>0%</span>
+                <span>100%</span>
+              </div>
             </div>
-            <div className="flex justify-between text-micro font-semibold text-muted-foreground/70">
-              <span>0%</span>
-              <span>100%</span>
-            </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </DeviceTileShell>
