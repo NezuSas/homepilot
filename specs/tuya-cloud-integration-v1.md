@@ -44,10 +44,15 @@ Compatible curtains MUST be imported as local `cover` devices using `externalId 
 
 All Tuya routes MUST require an authenticated administrator. Disconnecting MUST remove only the local authorization. It MUST NOT modify the physical device or the customer Tuya account.
 
+### REQ-07 — Route availability
+
+`TuyaRoutes` MUST be registered in the operator API server so authenticated requests to `/api/v1/integrations/tuya/*` reach the integration handler. A configured deployment MUST NOT return `404` for the status endpoint.
+
 ## Acceptance criteria
 
 - A customer sees one user-code field and a QR authorization step; no endpoint, client ID, client secret or UID field is visible.
 - A non-provisioned appliance clearly reports that Tuya Smart is unavailable instead of presenting an unusable form or an unrelated loading error.
+- An authenticated administrator receives the Tuya integration status from `GET /api/v1/integrations/tuya/status`, rather than a `404` response.
 - A confirmed QR session can list and import compatible curtains without Home Assistant.
 - Imported curtains appear in HomePilot inventory and can be assigned to rooms through the standard device flow.
 - Access and refresh tokens never appear in API responses, logs or the browser.

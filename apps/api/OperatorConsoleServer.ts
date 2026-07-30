@@ -44,6 +44,7 @@ export class OperatorConsoleServer {
         new AdminRoutes(),
       new AssistantRoutes(),
       new SettingsRoutes(),
+      new TuyaRoutes(),
         new TopologyRoutes(dbPath),
         new SceneRoutes(),
         new AutomationRoutes(),
