@@ -320,26 +320,21 @@ export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> =
           <span className="text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="flex items-center gap-1.5 rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner">
+        <div className={cn('mt-4 flex flex-col', isCompact ? 'gap-0' : 'gap-2')}>
+          <div className="flex items-center rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner">
             <div className="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-label font-black uppercase tracking-widest text-primary-foreground">
               <ArrowUp className="h-3 w-3 opacity-60" />
               <span className="truncate">{t('common.actions.open')}</span>
             </div>
-            {!isCompact ? (
-              <div className="flex h-9 w-10 items-center justify-center rounded-xl border border-border/10 bg-muted/20 text-muted-foreground/40">
-                <Square className="h-3 w-3 fill-current" />
-              </div>
-            ) : null}
           </div>
           {!isCompact ? (
-            <div className="flex w-full flex-col gap-2 px-1" aria-hidden="true">
+            <div className="flex w-full flex-col gap-1.5 px-1" aria-hidden="true">
               <div className="h-1.5 overflow-hidden rounded-full bg-muted/35">
                 <div className="h-full w-0 bg-primary/50" />
               </div>
               <div className="flex justify-between text-micro font-semibold text-muted-foreground/70">
+                <span>{t('common.cover.closed')}</span>
                 <span>0%</span>
-                <span>100%</span>
               </div>
             </div>
           ) : null}

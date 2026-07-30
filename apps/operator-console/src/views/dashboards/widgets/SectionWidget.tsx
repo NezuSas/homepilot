@@ -638,7 +638,7 @@ function CardPreview({
   if (normalized === 'cover') {
     const density = isSmall ? 'compact' : 'standard';
 
-    if (device) {
+    if (device && !isPreview) {
       return (
         <CurtainDeviceTile
           device={device}
@@ -651,7 +651,14 @@ function CardPreview({
       );
     }
 
-    return <CurtainDeviceTilePreview title={title} layout="dashboard" density={density} />;
+    return (
+      <CurtainDeviceTilePreview
+        title={title}
+        roomName={subtitle}
+        layout="dashboard"
+        density={density}
+      />
+    );
   }
 
   if (normalized === 'energy') {
@@ -1238,6 +1245,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const previewDevice = deviceIdOverride
       ? devices.find((device) => device.id === deviceIdOverride)
       : undefined;
+    const previewRoomName = previewDevice?.roomId
+      ? assignableRooms.find((room) => room.id === previewDevice.roomId)?.name
+      : undefined;
 
     return (
       <div className={cn(
@@ -1250,7 +1260,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         <CardPreview
           kind={kind}
           title={title}
-          subtitle={catalogDescription(kind)}
+          subtitle={normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
@@ -1372,7 +1382,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
-              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' ? cardDraft.entityId : undefined,
+              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' ? cardDraft.entityId : undefined,
             )}
 
             <Input
