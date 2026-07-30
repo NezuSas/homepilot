@@ -26,7 +26,6 @@
     "system_audit": "Registros de Auditoría",
     "system_executions": "Historial Ejecución",
     "system_users": "Usuarios y Acceso",
-    "system_tuya":"Tuya Smart",
     "system_ha": "Integración HA",
     "system_cameras": "Cámaras IP",
     "system_onboarding": "Asistente de Instalación",
@@ -1782,5 +1781,4 @@
     "Pacific/Auckland": "Nueva Zelanda (Auckland)",
     "UTC": "Universal (UTC)"
   }
-  ,"tuya":{"title":"Tuya Smart","subtitle":"Integra cortinas Tuya directamente en HomePilot, sin Home Assistant.","local_only":"La autorización se guarda localmente","unavailable":"Tuya Smart aún no está habilitado en este appliance. El instalador debe configurar la credencial de integración.","connect_title":"Conectar Tuya Smart","connect_description":"Introduce el código de usuario de Smart Life o Tuya Smart y autoriza desde la aplicación con el código QR.","user_code":"Código de usuario","user_code_placeholder":"Código de usuario de Tuya Smart","continue":"Continuar","scan_qr":"Escanea el código QR desde Smart Life o Tuya Smart para terminar la vinculación.","connected_title":"Tuya Smart conectado","connected_description":"Cuenta autorizada: {{userCode}}.","disconnect":"Desconectar","covers_title":"Cortinas compatibles","covers_subtitle":"Se importan al inventario propio de HomePilot y luego puedes asignarlas a una estancia.","target_home":"Hogar de destino","select_home":"Selecciona un hogar","load_covers":"Buscar cortinas","online":"En línea","offline":"Sin conexión","import":"Importar","messages":{"load_error":"No se pudo cargar la configuración de Tuya.","authorized":"Tuya Smart fue autorizada correctamente.","authorization_error":"No se pudo iniciar la autorización de Tuya. Verifica el código de usuario.","disconnected":"Tuya Smart fue desconectada.","disconnect_error":"No se pudo desconectar Tuya Smart.","covers_error":"No se pudieron cargar las cortinas compatibles.","import_success":"{{name}} fue importada a HomePilot.","import_error":"No se pudo importar {{name}}."}}
 }

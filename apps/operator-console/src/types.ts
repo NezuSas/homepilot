@@ -23,7 +23,6 @@ export type View =
   | 'system-executions'
   | 'system-users'
   | 'system-ha'
-  | 'system-tuya'
   | 'system-cameras'
   | 'system-onboarding'
   // Legacy aliases resolved at runtime (not stored in state)

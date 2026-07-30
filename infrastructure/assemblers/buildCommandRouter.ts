@@ -11,8 +11,6 @@ import { LocalDeviceDriver } from '../../packages/devices/infrastructure/drivers
 import { HomeAssistantDeviceDriver } from '../../packages/integrations/home-assistant/infrastructure/HomeAssistantDeviceDriver';
 import { SonoffDeviceDriver } from '../../packages/integrations/sonoff/infrastructure/SonoffDeviceDriver';
 import { SonoffLanDiscoveryService } from '../../packages/integrations/sonoff/application/SonoffLanDiscoveryService';
-import { TuyaDeviceDriver } from '../../packages/integrations/tuya/infrastructure/TuyaDeviceDriver';
-import type { TuyaIntegrationService } from '../../packages/integrations/tuya/application/TuyaIntegrationService';
 import { SQLiteTopologyReferenceAdapter } from '../../packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { AssistantActionService } from '../../packages/assistant/application/AssistantActionService';
 import { DashboardService } from '../../packages/topology/application/DashboardService';
@@ -48,7 +46,6 @@ export interface CommandRouterDeps {
   assistantFindingRepository: SQLiteAssistantFindingRepository;
   assistantFeedbackRepository: SQLiteAssistantFeedbackRepository;
   dashboardRepository: SQLiteDashboardRepository;
-  tuyaIntegrationService: TuyaIntegrationService;
 }
 
 export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssembly {
@@ -64,7 +61,6 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
     assistantFindingRepository,
     assistantFeedbackRepository,
     dashboardRepository,
-    tuyaIntegrationService
   } = deps;
 
   const sharedSyncDeps = {
@@ -116,7 +112,6 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
   driverRegistry.register('home_assistant', new HomeAssistantDeviceDriver(connectionProvider));
   driverRegistry.register('sonoff', new SonoffDeviceDriver());
   driverRegistry.register('local', new LocalDeviceDriver());
-  driverRegistry.register('tuya', new TuyaDeviceDriver(tuyaIntegrationService));
 
   const deviceCommandService = new DeviceCommandService(
     deviceRepository,
