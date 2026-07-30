@@ -26,6 +26,7 @@
     "system_audit": "Registros de Auditoría",
     "system_executions": "Historial Ejecución",
     "system_users": "Usuarios y Acceso",
+    "system_tuya":"Tuya Smart",
     "system_ha": "Integración HA",
     "system_cameras": "Cámaras IP",
     "system_onboarding": "Asistente de Instalación",
@@ -1781,4 +1782,5 @@
     "Pacific/Auckland": "Nueva Zelanda (Auckland)",
     "UTC": "Universal (UTC)"
   }
+  ,"tuya":{"title":"Tuya Smart","subtitle":"Integra cortinas Tuya directamente en HomePilot, sin Home Assistant.","local_only":"Las credenciales no se exponen en esta interfaz","connection_title":"Conexión con Tuya Cloud","endpoint":"Endpoint regional","client_id":"Client ID","client_secret":"Client Secret","user_uid":"UID de cuenta autorizada","secret_unchanged":"Déjalo vacío para conservar la actual","test":"Probar conexión","save":"Guardar conexión","requirements_title":"Antes de conectar","requirement_project":"Crea un proyecto Cloud en Tuya IoT Platform.","requirement_authorize":"Vincula y autoriza la cuenta que contiene las cortinas.","requirement_import":"Prueba la conexión e importa solo las cortinas que quieras usar.","covers_title":"Cortinas compatibles","covers_subtitle":"Se importan al inventario propio de HomePilot y luego puedes asignarlas a una estancia.","target_home":"Hogar de destino","select_home":"Selecciona un hogar","load_covers":"Buscar cortinas","online":"En línea","offline":"Sin conexión","import":"Importar","messages":{"load_error":"No se pudo cargar la configuración de Tuya.","save_success":"La conexión con Tuya fue guardada.","save_error":"No se pudo guardar la conexión con Tuya.","test_success":"La conexión con Tuya es válida.","test_error":"No se pudo validar Tuya. Revisa el endpoint, las credenciales y el UID.","covers_error":"No se pudieron cargar las cortinas compatibles.","import_success":"{{name}} fue importada a HomePilot.","import_error":"No se pudo importar {{name}}."}}
 }

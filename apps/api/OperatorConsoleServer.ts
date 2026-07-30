@@ -19,6 +19,7 @@ import { MediaPlayerRoutes } from './routes/MediaPlayerRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
 import { NativeCameraRoutes } from './routes/NativeCameraRoutes';
+import { TuyaRoutes } from './routes/TuyaRoutes';
 
 /**
  * OperatorConsoleServer — backward-compatible wrapper around ApiGateway.

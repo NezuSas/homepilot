@@ -7,6 +7,7 @@ import { buildAutomationModule } from './infrastructure/assemblers/buildAutomati
 import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
+import { buildTuyaModule } from './infrastructure/assemblers/buildTuyaModule';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
@@ -40,6 +41,8 @@ import { AssistantLearningService } from './packages/assistant/application/Assis
 import { SmartEntityResolver } from './packages/assistant/application/SmartEntityResolver';
 import { AssistantSuggestionService } from './packages/assistant/application/AssistantSuggestionService';
 import type { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
+import type { SQLiteTuyaSettingsRepository } from './packages/integrations/tuya/infrastructure/SQLiteTuyaSettingsRepository';
+import type { TuyaIntegrationService } from './packages/integrations/tuya/application/TuyaIntegrationService';
 import type { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import type { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
 import type { SqliteSystemSetupRepository } from './packages/system-setup/infrastructure/SqliteSystemSetupRepository';
@@ -77,6 +80,7 @@ export interface BootstrapContainer {
     assistantMemoryRepository: SQLiteAssistantMemoryRepository;
     assistantLearningRepository: SQLiteAssistantLearningRepository;
     settingsRepository: SQLiteSettingsRepository;
+    tuyaSettingsRepository: SQLiteTuyaSettingsRepository;
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
     systemSetupRepository: SqliteSystemSetupRepository;
@@ -85,6 +89,7 @@ export interface BootstrapContainer {
   services: {
     dashboardService: DashboardService;
     homeAssistantSettingsService: HomeAssistantSettingsService;
+    tuyaIntegrationService: TuyaIntegrationService;
     diagnosticsService: DiagnosticsService;
     authService: AuthService;
     systemSetupService: SystemSetupService;
@@ -157,6 +162,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     homeRepository: repos.homeRepository
   });
 
+  const tuyaModule = buildTuyaModule(dbPath, repos.deviceRepository);
+
   const { systemVariableService } = await buildSystemVarsModule({
     systemVariableRepository: repos.systemVariableRepository
   });
@@ -195,7 +202,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantDraftService: assistantAssembly.assistantDraftService,
     assistantFindingRepository: assistantAssembly.assistantRepository,
     assistantFeedbackRepository: assistantAssembly.assistantFeedbackRepository,
-    dashboardRepository: repos.dashboardRepository
+    dashboardRepository: repos.dashboardRepository,
+    tuyaIntegrationService: tuyaModule.integrationService
   });
 
   // 6. Motor de Automatización (usa el commandDispatcher ya construido)
@@ -291,6 +299,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const container: BootstrapContainer = {
     repositories: {
       ...repos,
+      tuyaSettingsRepository: tuyaModule.settingsRepository,
       userRepository: authModule.userRepository,
       sessionRepository: authModule.sessionRepository,
       systemSetupRepository: authModule.systemSetupRepository
@@ -298,6 +307,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     services: {
       dashboardService: commandRouterAssembly.dashboardService,
       homeAssistantSettingsService: haModule.settingsService,
+      tuyaIntegrationService: tuyaModule.integrationService,
       diagnosticsService,
       authService: authModule.authService,
       systemSetupService: authModule.systemSetupService,

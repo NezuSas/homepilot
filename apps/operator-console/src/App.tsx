@@ -23,7 +23,8 @@ import {
   Sun,
   Moon,
   MessageSquare,
-  Camera
+  Camera,
+  Cloud
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
@@ -60,6 +61,7 @@ const TopologyView = lazy(() => import('./views/TopologyView').then(module => ({
 const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
 const AuditLogsView = lazy(() => import('./views/AuditLogsView').then(module => ({ default: module.AuditLogsView })));
 const HomeAssistantSettingsView = lazy(() => import('./views/HomeAssistantSettingsView').then(module => ({ default: module.HomeAssistantSettingsView })));
+const TuyaSettingsView = lazy(() => import('./views/TuyaSettingsView').then(module => ({ default: module.TuyaSettingsView })));
 const DiagnosticsView = lazy(() => import('./views/DiagnosticsView').then(module => ({ default: module.DiagnosticsView })));
 const UsersView = lazy(() => import('./views/UsersView').then(module => ({ default: module.UsersView })));
 const RoutinesView = lazy(() => import('./views/RoutinesView'));
@@ -124,6 +126,7 @@ function isSystemView(view: View): boolean {
     || view === 'system-executions'
     || view === 'system-users'
     || view === 'system-ha'
+    || view === 'system-tuya'
     || view === 'system-cameras'
     || view === 'system-onboarding';
 }
@@ -158,6 +161,7 @@ function viewToPath(view: View): string {
     case 'system-executions': return '/system/executions';
     case 'system-users': return '/system/users';
     case 'system-ha': return '/system/ha';
+    case 'system-tuya': return '/system/tuya';
     case 'system-cameras': return '/system/cameras';
     case 'system-onboarding': return '/system/onboarding';
     default: return '/';
@@ -184,6 +188,7 @@ function pathToView(pathname: string): View {
     case '/system/executions': return 'system-executions';
     case '/system/users': return 'system-users';
     case '/system/ha': return 'system-ha';
+    case '/system/tuya': return 'system-tuya';
     case '/system/cameras': return 'system-cameras';
     case '/system/onboarding': return 'system-onboarding';
     default: return 'dashboard';
@@ -1079,6 +1084,13 @@ function App() {
                         nested
                       />
                       <SidebarItem
+                        icon={Cloud}
+                        label={t('nav.system_tuya')}
+                        active={currentView === 'system-tuya'}
+                        onClick={() => navigateTo('system-tuya')}
+                        nested
+                      />
+                      <SidebarItem
                         icon={Camera}
                         label={t('nav.system_cameras')}
                         active={currentView === 'system-cameras'}
@@ -1297,6 +1309,7 @@ function App() {
                {currentView === 'system-audit' && <AuditLogsView />}
                {currentView === 'system-executions' && <ExecutionLogsView />}
                {currentView === 'system-ha' && <HomeAssistantSettingsView />}
+               {currentView === 'system-tuya' && <TuyaSettingsView />}
                {currentView === 'system-cameras' && <NativeCamerasView />}
                {currentView === 'system-onboarding' && setupStatus && (
                  <OnboardingView

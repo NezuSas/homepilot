@@ -26,6 +26,7 @@
     "system_audit": "Audit Logs",
     "system_executions": "Execution History",
     "system_users": "Users & Access",
+    "system_tuya":"Tuya Smart",
     "system_ha": "HA Integration",
     "system_cameras": "IP Cameras",
     "system_onboarding": "Setup Assistant",
@@ -1781,4 +1782,5 @@
     "Pacific/Auckland": "New Zealand (Auckland)",
     "UTC": "Universal (UTC)"
   }
+  ,"tuya":{"title":"Tuya Smart","subtitle":"Connect Tuya curtains directly to HomePilot without Home Assistant.","local_only":"Credentials are not exposed in this interface","connection_title":"Tuya Cloud connection","endpoint":"Regional endpoint","client_id":"Client ID","client_secret":"Client Secret","user_uid":"Authorised account UID","secret_unchanged":"Leave blank to retain the current secret","test":"Test connection","save":"Save connection","requirements_title":"Before connecting","requirement_project":"Create a Cloud project in Tuya IoT Platform.","requirement_authorize":"Link and authorise the account that contains the curtains.","requirement_import":"Test the connection and import only the curtains you want to use.","covers_title":"Compatible curtains","covers_subtitle":"They are imported into HomePilot's own inventory, then can be assigned to a room.","target_home":"Target home","select_home":"Select a home","load_covers":"Find curtains","online":"Online","offline":"Offline","import":"Import","messages":{"load_error":"Unable to load Tuya configuration.","save_success":"Tuya connection was saved.","save_error":"Unable to save Tuya connection.","test_success":"Tuya connection is valid.","test_error":"Unable to validate Tuya. Check the endpoint, credentials and UID.","covers_error":"Unable to load compatible curtains.","import_success":"{{name}} was imported into HomePilot.","import_error":"Unable to import {{name}}."}}
 }
