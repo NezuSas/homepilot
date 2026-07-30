@@ -252,6 +252,8 @@ bash scripts/check-edge-install.sh docker-compose.office.yml
 
 HomePilot se instala con un perfil explícito. El perfil queda almacenado en `HOMEPILOT_INSTALLATION_PROFILE` y el onboarding aplica solamente los requisitos de dicho perfil.
 
+En una instalación nueva, el instalador interactivo pregunta al cliente si ya usa Home Assistant. Si responde que sí, conserva y conecta su sistema actual. Si responde que no, permite elegir entre instalar Home Assistant junto a HomePilot o comenzar solo con integraciones nativas. El cliente no necesita conocer los nombres internos de los perfiles.
+
 | Perfil | Cuándo usarlo | Compose | Home Assistant |
 |---|---|---|---|
 | `bridge_ha` | El cliente ya tiene Home Assistant. | `docker-compose.office.yml` | Se conserva y se enlaza mediante token. |

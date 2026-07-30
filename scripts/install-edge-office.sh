@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly ENV_FILE=".env"
-profile="bridge_ha"
+profile=""
 compose_file="docker-compose.office.yml"
 env_template=".env.office.example"
 ha_port="8123"
@@ -88,12 +88,12 @@ usage() {
   cat <<'EOF'
 Uso: bash scripts/install-edge-office.sh [opciones]
 
-Prepara HomePilot con un perfil de instalación explícito.
+Prepara HomePilot para un hogar nuevo o existente.
 
 Opciones:
-  --profile PERFIL      bridge_ha (defecto), native_only o ha_companion.
-                       bridge_ha conserva HA existente; native_only no exige HA;
-                       ha_companion inicia el HA incluido en docker-compose.yml.
+  --profile PERFIL      Selección técnica opcional: bridge_ha, native_only o ha_companion.
+                       En una instalación nueva e interactiva el asistente pregunta
+                       si el cliente ya usa Home Assistant y recomienda el camino.
   --clean              Limpia solamente cache de build e imagenes Docker colgantes.
   --start              Construye e inicia los servicios de HomePilot al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
@@ -107,6 +107,49 @@ EOF
 section() {
   printf '\n%b\n' "${CYAN}${BOLD}▸ $1${NC}"
   divider
+}
+
+choose_profile_for_new_installation() {
+  local answer
+
+  if [[ -n "$profile" ]]; then
+    return
+  fi
+
+  if [[ -f "$ENV_FILE" ]]; then
+    profile="$(env_value HOMEPILOT_INSTALLATION_PROFILE bridge_ha)"
+    return
+  fi
+
+  if [[ "$status_only" == true ]]; then
+    profile="bridge_ha"
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    profile="bridge_ha"
+    return
+  fi
+
+  printf '\n%b\n' "${BOLD}Configuración inicial del hogar${NC}"
+  printf '%s\n' '¿Ya usas Home Assistant?'
+  read -r -p 'Conecta tu sistema actual sin modificarlo [S/n] ' answer
+
+  if [[ ! "$answer" =~ ^([Nn]|[Nn][Oo])$ ]]; then
+    profile="bridge_ha"
+    return
+  fi
+
+  printf '\n%s\n' '¿Quieres incluir Home Assistant con HomePilot?'
+  printf '%s\n' '  S: Instalar Home Assistant junto a HomePilot (recomendado si quieres su ecosistema).'
+  printf '%s\n' '  N: Usar solo las integraciones nativas de HomePilot.'
+  read -r -p 'Instalar Home Assistant con HomePilot [S/n] ' answer
+
+  if [[ "$answer" =~ ^([Nn]|[Nn][Oo])$ ]]; then
+    profile="native_only"
+  else
+    profile="ha_companion"
+  fi
 }
 ok() { printf '%b\n' "${GREEN}●${NC}  $1"; }
 warn() { printf '%b\n' "${YELLOW}●${NC}  $1"; }
@@ -287,6 +330,7 @@ if [[ "$status_only" == true && ( "$clean" == true || "$start" == true || -n "$a
   fail "--status no se combina con --clean, --start ni --api-url."
 fi
 
+choose_profile_for_new_installation
 configure_profile
 [[ -f "$compose_file" ]] || fail "Ejecuta el script desde la raiz del repositorio HomePilot."
 [[ -f "$env_template" ]] || fail "No existe $env_template."
