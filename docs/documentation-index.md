@@ -17,6 +17,7 @@ La documentacion principal ya cubre vision, arquitectura, frontend modular, vali
 | `docs/operator-console-frontend.md` | Modularidad UI, patrones y checklist frontend | Actualizado |
 | `docs/operator-console-component-catalog.md` y `docs/components/` | Catálogo y fichas individuales de componentes UI reutilizables | Actualizado |
 | `docs/local-wsl-workflow.md` | Flujo Windows local, push a main y pull en WSL | Actualizado |
+| docs/local-windows-runtime.md | Perfil oficial Docker Desktop, primera cuenta local y puertos | Actualizado |
 | `docs/release-readiness-v1.md` | Estado de preparacion V1 y deuda conocida | Actualizado |
 | `docs/spec-coverage-matrix.md` | Trazabilidad obligatoria entre dominios, rutas, consola y specs | Actualizado |
 | `specs/` | Especificaciones y acceptance criteria | Fuente funcional |

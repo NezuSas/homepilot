@@ -1,0 +1,18 @@
+services:
+  homepilot-api:
+    network_mode: !reset null
+    ports:
+      - "${HOMEPILOT_API_PORT:-13000}:3000"
+    environment:
+      HOMEPILOT_DB_PATH: /app/data/homepilot.desktop.db
+      HOMEPILOT_DEV_BOOTSTRAP: "false"
+      INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://host.docker.internal:18123}
+      OLLAMA_BASE_URL: http://ollama:11434
+      TTS_BASE_URL: http://homepilot-tts:8088
+      STT_BASE_URL: http://homepilot-stt:8090
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  homepilot-ui:
+    volumes:
+      - ./docker/ui/nginx.desktop.conf:/etc/nginx/conf.d/default.conf:ro

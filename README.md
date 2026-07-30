@@ -30,15 +30,24 @@ npm run dev:ui
 
 Run the Docker runtime:
 
+MiniPC/Linux:
+
 ```bash
-docker compose up --build
+docker compose -f docker-compose.office.yml up -d --build
+``` 
+
+Windows with Docker Desktop:
+
+```powershell
+docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d --build
 ```
 
 After Docker is up:
 
-- UI: `http://localhost`
-- API: `http://localhost:3000`
-- Home Assistant: `http://localhost:18123`
+- UI: `http://localhost:8080`
+- API (MiniPC/Linux): `http://localhost:3000`
+- API (Docker Desktop): `http://localhost:13000`
+- Home Assistant local: `http://localhost:18123`
 
 ## Required Validation
 
