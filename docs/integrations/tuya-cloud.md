@@ -1,31 +1,35 @@
-# Integración directa Tuya Cloud
+# Integración directa Tuya Smart
 
-## Objetivo
+## Qué hace
 
-Este módulo conecta cortinas Tuya directamente con HomePilot. No utiliza Home Assistant como puente: HomePilot conserva una representación local del dispositivo, la importa a su inventario y puede asignarla a una estancia igual que cualquier otro dispositivo.
+HomePilot puede vincular cortinas Tuya Smart directamente, sin depender de Home Assistant. Después de importarlas, se convierten en dispositivos locales de HomePilot: aparecen en el inventario y se asignan a una estancia igual que cualquier otro dispositivo.
 
-## Requisitos del proyecto Tuya
+## Preparación del appliance
 
-1. Crear un proyecto Cloud en [Tuya IoT Platform](https://iot.tuya.com/).
-2. Activar las API necesarias para consultar dispositivos y enviar comandos.
-3. Vincular y autorizar la cuenta Tuya que contiene las cortinas.
-4. Copiar el endpoint regional, el Client ID, el Client Secret y el UID de la cuenta autorizada.
+El instalador configura una única vez el proyecto Tuya que pertenece a HomePilot. Esta configuración se mantiene fuera de la interfaz del cliente:
 
-Los endpoints regionales más comunes son `https://openapi.tuyaus.com`, `https://openapi.tuyaeu.com`, `https://openapi.tuyacn.com` e `https://openapi.tuyain.com`. Debe usarse el que corresponde al proyecto creado en Tuya.
+```env
+TUYA_SHARING_CLIENT_ID=<client-id-provisionado-para-homepilot>
+TUYA_SHARING_SCHEMA=homepilotauthorize
+TUYA_SHARING_AUTH_ENDPOINT=https://apigw.iotbing.com
+```
 
-## Flujo en HomePilot
+El `schema` debe estar registrado y autorizado dentro del proyecto Tuya de HomePilot. No se reutilizan credenciales de Home Assistant ni se piden secretos de Tuya al usuario final.
 
-1. Un administrador abre **Sistema > Tuya Smart**.
-2. Registra las credenciales y prueba la conexión.
-3. HomePilot lista únicamente dispositivos compatibles con cortinas.
-4. El administrador importa una cortina a un hogar.
-5. La cortina aparece en Descubrimiento y se asigna a una estancia desde el flujo normal.
+## Vinculación para el cliente
 
-Una cortina ya importada no puede importarse otra vez al mismo hogar: HomePilot usa la clave externa `tuya:<deviceId>` para preservar la idempotencia.
+1. En **Sistema > Tuya Smart**, abre la conexión.
+2. En la app Smart Life o Tuya Smart, busca **Ajustes > Cuenta y seguridad > Código de usuario**.
+3. Copia el código de usuario en HomePilot.
+4. Escanea el código QR que muestra HomePilot desde la app Tuya.
+5. Cuando la autorización termine, selecciona el hogar destino y pulsa **Buscar cortinas**.
+6. Importa cada cortina que quieras usar y asígnala a una estancia desde el flujo habitual de HomePilot.
 
-## Seguridad y operación
+HomePilot no muestra ni devuelve tokens de acceso, tokens de renovación, UID, endpoint ni secretos. Estos datos se conservan solo en la base local del appliance para mantener la sesión autorizada.
 
-- El Client Secret no se devuelve a la interfaz y dejar su campo vacío conserva el valor existente.
-- Las credenciales se usan solo desde HomePilot para firmar solicitudes al API oficial de Tuya Cloud.
-- Una instalación sin Tuya configurado continúa funcionando con Home Assistant, Sonoff y dispositivos locales sin cambios.
-- Para retirar una cortina, se elimina únicamente la representación de HomePilot; el dispositivo físico y su cuenta Tuya no se modifican.
+## Operación
+
+- HomePilot renueva localmente la sesión de Tuya antes de que expire.
+- Una cortina importada no puede importarse otra vez al mismo hogar; se identifica como `tuya:<deviceId>`.
+- Desconectar Tuya elimina solamente la autorización local de HomePilot. No borra dispositivos físicos ni afecta la cuenta Tuya.
+- Si el appliance no fue provisionado con `TUYA_SHARING_CLIENT_ID`, la interfaz informa que Tuya Smart no está habilitado.

@@ -20,6 +20,7 @@ const rules = [
   ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice)/i],
   ['home-assistant-settings-connection-management-v1.md', /(?:home-assistant|HomeAssistant|SettingsRoutes|HomeAssistantDiscovery)/i],
   ['sonoff-local-integration-v1.md', /Sonoff/i],
+  ['tuya-cloud-integration-v1.md', /(?:Tuya|tuya)/i],
   ['energy-management-v1.md', /(?:EnergyView|EnergySnapshot|useEnergyStore)/i],
   ['dashboard-layout-and-widgets-v1.md', /(?:Dashboard|Dashboards|views\/dashboards)/i],
   ['system-variables-v1.md', /(?:system-vars|SystemVariable)/i],
