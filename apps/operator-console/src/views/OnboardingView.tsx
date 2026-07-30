@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
   CheckCircle2,
+  ExternalLink,
   Home,
   KeyRound,
   Loader2,
@@ -26,6 +27,9 @@ interface SetupStatus {
   haConnectionValid: boolean;
   installationProfile: 'bridge_ha' | 'native_only' | 'ha_companion';
   requiresHomeAssistant: boolean;
+  runtimeTarget: 'linux_edge' | 'docker_desktop' | 'unknown';
+  homeAssistantBridgeUrl: string | null;
+  homeAssistantSetupUrl: string | null;
 }
 
 interface OnboardingViewProps {
@@ -50,6 +54,11 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
 
   const isAdmin = userContext?.role === 'admin';
   const isNativeOnly = statusProvider?.installationProfile === 'native_only';
+  const runtimeLabelKey = statusProvider?.runtimeTarget === 'docker_desktop'
+    ? 'onboarding.step2.runtime_docker_desktop'
+    : statusProvider?.runtimeTarget === 'linux_edge'
+      ? 'onboarding.step2.runtime_linux_edge'
+      : 'onboarding.step2.runtime_unknown';
   const trimmedHaUrl = haUrl.trim();
   const trimmedHaToken = haToken.trim();
   const canTestConnection = trimmedHaUrl.length > 0 && trimmedHaToken.length > 0 && !testingHA && !loading;
@@ -256,19 +265,66 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 </div>
 
                 <div className="grid gap-4">
+                  {(statusProvider?.homeAssistantBridgeUrl || statusProvider?.homeAssistantSetupUrl) && (
+                    <div className="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="hp-type-label-accent">{t('onboarding.step2.runtime_title')}</p>
+                        <span className="rounded-full border border-primary/25 bg-card px-2 py-1 text-micro font-semibold text-primary">
+                          {t(runtimeLabelKey)}
+                        </span>
+                      </div>
+                      {statusProvider.homeAssistantBridgeUrl && (
+                        <div className="rounded-lg border border-border/60 bg-card/70 p-3">
+                          <p className="text-caption font-semibold text-foreground">{t('onboarding.step2.bridge_url_title')}</p>
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <code className="min-w-0 break-all rounded-md bg-muted px-2 py-1 text-caption text-foreground">
+                              {statusProvider.homeAssistantBridgeUrl}
+                            </code>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setHaUrl(statusProvider.homeAssistantBridgeUrl ?? '');
+                                setTestResult('idle');
+                              }}
+                            >
+                              {t('onboarding.step2.use_bridge_url')}
+                            </Button>
+                          </div>
+                          <p className="mt-2 text-caption text-muted-foreground">{t('onboarding.step2.bridge_url_hint')}</p>
+                        </div>
+                      )}
+                      {statusProvider.homeAssistantSetupUrl && (
+                        <div className="rounded-lg border border-border/60 bg-card/70 p-3">
+                          <p className="text-caption font-semibold text-foreground">{t('onboarding.step2.token_url_title')}</p>
+                          <p className="mt-1 break-all text-caption text-muted-foreground">{statusProvider.homeAssistantSetupUrl}</p>
+                          <a
+                            href={statusProvider.homeAssistantSetupUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-1.5 text-caption font-semibold text-primary underline-offset-4 hover:underline"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            {t('onboarding.step2.open_home_assistant')}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Input
                       type="url"
                       label={t('onboarding.step2.url')}
                       icon={<Server className="h-4 w-4" />}
-                      placeholder={t('onboarding.step2.url_placeholder')}
+                      placeholder={statusProvider?.homeAssistantBridgeUrl ?? t('onboarding.step2.url_placeholder')}
                       value={haUrl}
                       onChange={(event) => {
                         setHaUrl(event.target.value);
                         setTestResult('idle');
                       }}
                     />
-                    <p className="text-caption font-semibold text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('onboarding.step2.docker_hint') }} />
+                    <p className="text-caption font-semibold text-muted-foreground">{t('onboarding.step2.url_hint')}</p>
                   </div>
 
                   <div className="space-y-2">

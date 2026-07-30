@@ -66,7 +66,10 @@ Restricción Global: Nada aquí esquiva Auth/RBAC salvo el estado de fábrica si
   "requiresOnboarding": true,
   "hasAdminUser": true, 
   "hasHAConfig": false,
-  "haConnectionValid": false // Se asume el último caché conocido de HA connectivity, de ser útil. NO es una prueba viva.
+  "haConnectionValid": false,
+  "runtimeTarget": "docker_desktop",
+  "homeAssistantBridgeUrl": "http://host.docker.internal:18123",
+  "homeAssistantSetupUrl": "http://localhost:18123"
 }
 ```
 
@@ -89,6 +92,9 @@ Flujo:
 - **Paso 0: Crear Administrador Local**. Si no existe ningún usuario, la UI bloquea login normal y muestra un formulario para crear el primer administrador. Al completarlo, inicia sesión automáticamente.
 - **Paso 1: Diagnóstico Integral**. La presentación ya no será apenas "Admin Check". Incluirá: Estado del sistema Edge, Nombre/Rol del usuario montado, Status de HA Config crudo, Status de HA connectivity persistente.
 - **Paso 2: Gateway Integration**. Ingesta / Cambio de Home Assistant URL y Long-Lived Token. Prueba remota asíncrona local (Reaprovechando `testConnection`).
+  - La UI muestra el runtime configurado por compose, sin detectar el navegador del usuario.
+  - `homeAssistantBridgeUrl` es la dirección que usa el contenedor HomePilot; la acción “Usar esta URL” la copia al campo de conexión.
+  - `homeAssistantSetupUrl` es la dirección de navegador para abrir Home Assistant y crear el token. Puede configurarse independientemente cuando el instalador opera de forma remota.
 - **Paso 3: Certificación y Commit**. Reuniendo lo anterior, invoca el `POST /complete`. Si hay timeout en red o credencial desactualizada el servidor abortará `HTTP 400`. Si procede, la redirección es universal y reactiva a Topology.
 
 ### 6. Observabilidad (Activity Logs Structured)
@@ -107,3 +113,4 @@ Los Tests exigidos para la suite V1 son formales:
 - Testeo de intento a `POST /complete` como `admin` omitiendo HA Setup o HA injuriando la URL -> HTTP 400 Bad Request.
 - **Idempotencia:** Testeo de `POST /complete` en una Base de Datos ya Inicializada -> responde HTTP 200 directo sin readjuntar estado ni re-testear HA vivo, respetando mutabilidad.
 - Refrendo y persistencia de memoria comprobando un falso Reinicio luego del setup completado, validando readmisión automática sin loop al Setup.
+- En Docker Desktop, `setup-status` diferencia `http://host.docker.internal:<puerto>` para el bridge y `http://localhost:<puerto>` para el navegador; ambos se presentan claramente en el Paso 2.

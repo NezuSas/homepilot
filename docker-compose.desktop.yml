@@ -7,6 +7,8 @@ services:
       HOMEPILOT_DB_PATH: /app/data/homepilot.desktop.db
       HOMEPILOT_DEV_BOOTSTRAP: "false"
       INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://host.docker.internal:18123}
+      HOMEPILOT_RUNTIME_TARGET: docker_desktop
+      HOMEPILOT_HOME_ASSISTANT_SETUP_URL: ${HOMEPILOT_HOME_ASSISTANT_SETUP_URL:-http://localhost:18123}
       OLLAMA_BASE_URL: http://ollama:11434
       TTS_BASE_URL: http://homepilot-tts:8088
       STT_BASE_URL: http://homepilot-stt:8090

@@ -204,6 +204,9 @@ interface SetupStatus {
   haConnectionValid: boolean;
   installationProfile: 'bridge_ha' | 'native_only' | 'ha_companion';
   requiresHomeAssistant: boolean;
+  runtimeTarget: 'linux_edge' | 'docker_desktop' | 'unknown';
+  homeAssistantBridgeUrl: string | null;
+  homeAssistantSetupUrl: string | null;
 }
 
 function App() {

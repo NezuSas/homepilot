@@ -15,6 +15,8 @@ services:
       - HOMEPILOT_DB_PATH=/app/data/homepilot.db
       - HOMEPILOT_BACKUP_DIR=/app/backups
       - INTERNAL_HA_URL=http://localhost:18123
+      - HOMEPILOT_RUNTIME_TARGET=linux_edge
+      - HOMEPILOT_HOME_ASSISTANT_SETUP_URL=${HOMEPILOT_HOME_ASSISTANT_SETUP_URL:-http://localhost:18123}
       - HOMEPILOT_DEV_BOOTSTRAP=${HOMEPILOT_DEV_BOOTSTRAP:-false}
       - HOMEPILOT_INSTALLATION_PROFILE=${HOMEPILOT_INSTALLATION_PROFILE:-ha_companion}
       - CORS_ORIGIN=http://localhost,http://localhost:5173,http://127.0.0.1:5173

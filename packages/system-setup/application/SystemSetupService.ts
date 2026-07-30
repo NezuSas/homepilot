@@ -6,7 +6,11 @@ import { HomeRepository } from '../../topology/domain/repositories/HomeRepositor
 import { Home } from '../../topology/domain/types';
 
 import { SettingsRepository } from '../../integrations/home-assistant/domain/SettingsRepository';
-import { InstallationProfile, installationProfileRequiresHomeAssistant } from '../../shared/config/getInstallationProfile';
+import {
+  InstallationProfile,
+  RuntimeTarget,
+  installationProfileRequiresHomeAssistant
+} from '../../shared/config/getInstallationProfile';
 
 export interface SetupStatusResponse {
   isInitialized: boolean;
@@ -16,6 +20,9 @@ export interface SetupStatusResponse {
   haConnectionValid: boolean;
   installationProfile: InstallationProfile;
   requiresHomeAssistant: boolean;
+  runtimeTarget: RuntimeTarget;
+  homeAssistantBridgeUrl: string | null;
+  homeAssistantSetupUrl: string | null;
 }
 
 export class SystemSetupService {
@@ -26,7 +33,10 @@ export class SystemSetupService {
     private readonly settingsRepository: SettingsRepository,
     private readonly homeAssistantSettingsService: HomeAssistantSettingsService,
     private readonly activityLogRepository: ActivityLogRepository,
-    private readonly installationProfile: InstallationProfile
+    private readonly installationProfile: InstallationProfile,
+    private readonly runtimeTarget: RuntimeTarget,
+    private readonly homeAssistantBridgeUrl: string | null,
+    private readonly homeAssistantSetupUrl: string | null
   ) {}
 
   /**
@@ -50,7 +60,10 @@ export class SystemSetupService {
       hasHAConfig: haStatus?.activeSource === 'database' && haStatus.hasToken === true,
       haConnectionValid: haStatus?.connectivityStatus === 'reachable',
       installationProfile: this.installationProfile,
-      requiresHomeAssistant
+      requiresHomeAssistant,
+      runtimeTarget: this.runtimeTarget,
+      homeAssistantBridgeUrl: requiresHomeAssistant ? this.homeAssistantBridgeUrl : null,
+      homeAssistantSetupUrl: requiresHomeAssistant ? this.homeAssistantSetupUrl : null
     };
   }
 

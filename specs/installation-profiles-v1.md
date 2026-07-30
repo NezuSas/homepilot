@@ -37,6 +37,8 @@ El overlay de Docker Desktop mantiene los mismos servicios y contratos que el ru
 - **REQ-08:** El repositorio debe ofrecer un overlay oficial para Docker Desktop que sustituya 
 etwork_mode: host por red Docker, publique la API local en un puerto no conflictivo y conserve todos los contratos de API.
 - **REQ-09:** El perfil de Docker Desktop debe usar una base aislada y exigir la creación de la primera cuenta administrativa; no debe crear una credencial predeterminada.
+- **REQ-10:** `HOMEPILOT_RUNTIME_TARGET` debe declarar explícitamente `linux_edge`, `docker_desktop` o `unknown`; el backend no debe inferir el entorno desde el navegador o el sistema operativo.
+- **REQ-11:** Para perfiles que usan Home Assistant, `setup-status` debe exponer por separado la URL interna que consume HomePilot (`homeAssistantBridgeUrl`) y la URL que el instalador abre en el navegador para crear el token (`homeAssistantSetupUrl`). Ambas solo pueden ser HTTP o HTTPS.
 
 ## 4. Criterios de aceptación
 
@@ -50,6 +52,8 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - [x] AC8: docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml config no conserva 
 etwork_mode: host para la API y publica el puerto 13000.
 - [x] AC9: La UI local responde en 8080, el proxy /api responde a través de homepilot-api, y setup-status permite la creación de la primera cuenta en la base aislada.
+- [x] AC10: La guía de onboarding identifica Docker Desktop o el appliance Linux mediante la configuración del compose, sin depender del navegador del cliente.
+- [x] AC11: La guía distingue la URL interna del bridge de la URL de navegador para crear el token y permite usar la URL interna sugerida con un solo clic.
 
 ## 5. Límites
 
