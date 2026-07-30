@@ -9,6 +9,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
 import { Input, SearchInput } from '../components/ui/Input';
+import type { UserContext } from '../lib/useSession';
 
 interface Home {
   id: string;
@@ -32,6 +33,16 @@ interface Device {
   lastKnownState?: Record<string, unknown> | null;
 }
 
+interface HomeOwner {
+  id: string;
+  username: string;
+  displayName: string | null;
+}
+
+interface TopologyViewProps {
+  currentUser: UserContext | null;
+}
+
 const API_URL = `${API_BASE_URL}/api/v1`;
 
 const isActiveDevice = (device: Device) => {
@@ -50,7 +61,7 @@ const getDeviceTypeTranslationKey = (device: Device) => (
   device.semanticType?.toLowerCase() || device.type.toLowerCase()
 );
 
-export const TopologyView: React.FC = () => {
+export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const { t } = useTranslation();
   const [homes, setHomes] = useState<Home[]>([]);
   const [selectedHome, setSelectedHome] = useState<Home | null>(null);
@@ -76,6 +87,47 @@ export const TopologyView: React.FC = () => {
   const [deviceProcessingId, setDeviceProcessingId] = useState<string | null>(null);
   const [topologyError, setTopologyError] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
+  const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
+
+  const canManageHome = (home: Home | null): boolean => (
+    home !== null && home.ownerId === currentUser?.id
+  );
+
+  const getOwnerLabel = (home: Home): string => {
+    if (home.ownerId === currentUser?.id) return t('topology.created_by_you');
+    return t('topology.created_by', {
+      name: ownerNames[home.ownerId] || t('topology.creator_unavailable'),
+    });
+  };
+
+  useEffect(() => {
+    if (currentUser?.role !== 'admin') {
+      setOwnerNames({});
+      return;
+    }
+
+    let isMounted = true;
+    const loadOwnerNames = async () => {
+      try {
+        const response = await apiFetch(`${API_URL}/admin/users`);
+        if (!response.ok) return;
+        const users = await response.json() as HomeOwner[];
+        if (!isMounted || !Array.isArray(users)) return;
+
+        setOwnerNames(Object.fromEntries(users.map((user) => [
+          user.id,
+          user.displayName?.trim() || user.username,
+        ])));
+      } catch {
+        // The topology remains usable if the optional owner label cannot be resolved.
+      }
+    };
+
+    void loadOwnerNames();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.role]);
 
   useEffect(() => {
     let isMounted = true;
@@ -135,11 +187,12 @@ export const TopologyView: React.FC = () => {
   };
 
   const handleAddRoom = async () => {
-    if (!selectedHome || !newRoomName.trim()) return;
+    const home = selectedHome;
+    if (!home || !canManageHome(home) || !newRoomName.trim()) return;
     setIsCreatingRoom(true);
     setTopologyError('');
     try {
-      const res = await apiFetch(`${API_URL}/homes/${selectedHome.id}/rooms`, {
+      const res = await apiFetch(`${API_URL}/homes/${home.id}/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newRoomName.trim() })
@@ -157,7 +210,7 @@ export const TopologyView: React.FC = () => {
   };
 
   const handleDeleteRoom = async () => {
-    if (!roomPendingDelete) return;
+    if (!roomPendingDelete || !canManageHome(selectedHome)) return;
 
     setIsDeletingRoom(true);
     try {
@@ -185,6 +238,7 @@ export const TopologyView: React.FC = () => {
   };
 
   const beginRoomRename = (room: Room) => {
+    if (!canManageHome(selectedHome)) return;
     setEditingRoomId(room.id);
     setRoomNameDraft(room.name);
     setRoomRenameError('');
@@ -199,7 +253,7 @@ export const TopologyView: React.FC = () => {
 
   const handleRenameRoom = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedRoom || editingRoomId !== selectedRoom.id || !roomNameDraft.trim()) return;
+    if (!canManageHome(selectedHome) || !selectedRoom || editingRoomId !== selectedRoom.id || !roomNameDraft.trim()) return;
 
     setIsRenamingRoom(true);
     setRoomRenameError('');
@@ -249,6 +303,7 @@ export const TopologyView: React.FC = () => {
   };
 
   const beginHomeRename = (home: Home) => {
+    if (!canManageHome(home)) return;
     setEditingHomeId(home.id);
     setHomeNameDraft(home.name);
   };
@@ -261,7 +316,7 @@ export const TopologyView: React.FC = () => {
 
   const handleRenameHome = async (event: React.FormEvent, home: Home) => {
     event.preventDefault();
-    if (!homeNameDraft.trim()) return;
+    if (!canManageHome(home) || !homeNameDraft.trim()) return;
     setIsRenamingHome(true);
     setTopologyError('');
     try {
@@ -396,6 +451,7 @@ export const TopologyView: React.FC = () => {
             <ul className="divide-y divide-border/50">
               {Array.isArray(homes) && homes.map((home) => {
                 const isSelected = selectedHome?.id === home.id;
+                const isHomeOwner = canManageHome(home);
                 return (
                   <li 
                     key={home.id}
@@ -461,10 +517,11 @@ export const TopologyView: React.FC = () => {
                           {isSelected && (
                             <span className="text-micro font-black tracking-tighter uppercase text-primary/60">{t('inbox.inspector.home_cluster')}</span>
                           )}
+                          <span className="text-micro text-muted-foreground">{getOwnerLabel(home)}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isSelected && editingHomeId !== home.id && (
+                        {isSelected && isHomeOwner && editingHomeId !== home.id && (
                           <IconButton
                             icon={Pencil}
                             label={t('topology.rename_home')}
@@ -504,26 +561,28 @@ export const TopologyView: React.FC = () => {
               <h3 className="text-caption font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                 {t('topology.rooms_in')} <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
               </h3>
-              <div className="flex w-full items-center gap-2 sm:w-auto">
-                <Input
-                  type="text"
-                  containerClassName="min-w-0 flex-1 sm:w-52"
-                  placeholder={t('topology.placeholder')}
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
-                />
-                <Button
-                  onClick={handleAddRoom}
-                  disabled={isCreatingRoom || !newRoomName.trim()}
-                  isLoading={isCreatingRoom}
-                  size="md"
-                  className="shrink-0"
-                >
-                  {t('topology.add_room')}
-                </Button>
-              </div>
+              {canManageHome(selectedHome) && (
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  <Input
+                    type="text"
+                    containerClassName="min-w-0 flex-1 sm:w-52"
+                    placeholder={t('topology.placeholder')}
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
+                  />
+                  <Button
+                    onClick={handleAddRoom}
+                    disabled={isCreatingRoom || !newRoomName.trim()}
+                    isLoading={isCreatingRoom}
+                    size="md"
+                    className="shrink-0"
+                  >
+                    {t('topology.add_room')}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <SearchInput
@@ -646,7 +705,7 @@ export const TopologyView: React.FC = () => {
                               <h4 className="min-w-0 truncate text-section-title font-black tracking-tight text-foreground">
                                 {selectedRoom?.name || t('topology.select_room_hint')}
                               </h4>
-                              {selectedRoom && (
+                              {selectedRoom && canManageHome(selectedHome) && (
                                 <IconButton
                                   icon={Pencil}
                                   label={t('topology.rename_room')}
@@ -752,7 +811,7 @@ export const TopologyView: React.FC = () => {
                         )}
                       </div>
 
-                      {selectedRoom && (
+                      {selectedRoom && canManageHome(selectedHome) && (
                         <Button
                           onClick={() => setRoomPendingDelete(selectedRoom)}
                           disabled={isDeletingRoom}

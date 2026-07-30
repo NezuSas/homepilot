@@ -1247,7 +1247,7 @@ function App() {
                   />
                 )}
                {/* Spaces = TopologyView (user-facing room management) */}
-               {currentView === 'spaces' && <TopologyView />}
+               {currentView === 'spaces' && <TopologyView currentUser={user} />}
                {currentView === 'routines' && (
                  <RoutinesView
                    section={canAccessAdminControl && (location.pathname === '/automations' || location.pathname === '/routines/automations')
