@@ -1239,6 +1239,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const isClockPreview = isClockKind(normalizedPreviewKind);
     const isScenePreview = normalizedPreviewKind === 'scene';
     const isRoomPreview = normalizedPreviewKind === 'room';
+    const isCoverPreview = normalizedPreviewKind === 'cover';
     const roomDevices = isRoomPreview && deviceIdOverride
       ? devices.filter((device) => device.roomId === deviceIdOverride)
       : [];
@@ -1253,9 +1254,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       <div className={cn(
         "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
         span === 'small' && "h-section-card-sm w-full max-w-[12rem] justify-self-center",
-        span === 'medium' && "h-section-card-md w-full max-w-form-md",
+        span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'medium' ? 'h-curtain-card' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
         <CardPreview
           kind={kind}
