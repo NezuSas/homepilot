@@ -301,6 +301,10 @@ env_value() {
   if [[ -f "$ENV_FILE" ]]; then
     value="$(sed -n "s/^${key}=//p" "$ENV_FILE" | tail -n 1)"
   fi
+  # Los archivos .env creados desde Windows pueden usar CRLF. El comando
+  # substitution elimina el salto de línea, pero conserva el retorno de carro.
+  # Normalizarlo evita que valores como bridge_ha no coincidan en el case.
+  value="${value%$'\r'}"
   printf '%s' "${value:-$fallback}"
 }
 
