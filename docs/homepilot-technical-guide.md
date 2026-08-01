@@ -273,6 +273,8 @@ bash scripts/install-edge-office.sh --profile bridge_ha --clean --start
 
 El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
 
+Las instalaciones antiguas cuyo `.env` no contiene `HOMEPILOT_INSTALLATION_PROFILE` se normalizan automáticamente con el perfil que el instalador resuelve durante una instalación. No hace falta editar el archivo manualmente desde PowerShell, WSL o Linux; `--status` conserva su comportamiento de solo lectura.
+
 El diagnóstico también informa si el Home Assistant existente ya tiene HACS y SonoffLAN. No instala nada por defecto. Para autorizar explícitamente esa instalación en el Home Assistant del cliente:
 
 ```bash

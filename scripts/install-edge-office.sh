@@ -170,6 +170,34 @@ env_value() {
   printf '%s' "${value:-$fallback}"
 }
 
+set_env_value() {
+  local key="$1"
+  local value="$2"
+  local temporary_file
+  temporary_file="$(mktemp)"
+
+  awk -v key="$key" -v value="$value" '
+    BEGIN { written = 0 }
+    {
+      sub(/\r$/, "")
+      if ($0 ~ "^[[:space:]]*" key "[[:space:]]*=") {
+        if (!written) {
+          print key "=" value
+          written = 1
+        }
+        next
+      }
+      print
+    }
+    END {
+      if (!written) {
+        print key "=" value
+      }
+    }
+  ' "$ENV_FILE" > "$temporary_file"
+  mv "$temporary_file" "$ENV_FILE"
+}
+
 check_container() {
   local container="$1"
   local label="$2"
@@ -566,7 +594,14 @@ else
 fi
 
 configured_profile="$(env_value HOMEPILOT_INSTALLATION_PROFILE '')"
-if [[ "$configured_profile" != "$profile" ]]; then
+if [[ -z "$configured_profile" ]]; then
+  if [[ "$status_only" == true ]]; then
+    warn "Instalación existente sin perfil; el diagnóstico usa ${profile} sin modificar .env."
+  else
+    set_env_value HOMEPILOT_INSTALLATION_PROFILE "$profile"
+    ok "Instalación existente normalizada con el perfil ${profile}."
+  fi
+elif [[ "$configured_profile" != "$profile" ]]; then
   fail ".env declara ${configured_profile:-ningún perfil}; ajusta HOMEPILOT_INSTALLATION_PROFILE=${profile} antes de continuar."
 fi
 ok "Perfil de instalación configurado: ${profile}."
