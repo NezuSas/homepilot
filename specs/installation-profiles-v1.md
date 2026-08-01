@@ -1,4 +1,4 @@
-# SPEC: Perfiles de instalación de HomePilot Edge V1
+# SPEC: Perfiles de instalación de HomePilot V1
 
 **Estado:** Implementado
 **Autor:** Codex

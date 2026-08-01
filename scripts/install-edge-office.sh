@@ -80,8 +80,8 @@ banner() {
   printf '%s\n' '   ██║╚██╗██║██╔══╝   ███╔╝  ██║   ██║'
   printf '%s\n' '   ██║ ╚████║███████╗███████╗╚██████╔╝'
   printf '%s\n' '   ╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝ '
-  printf '%b\n' "${NC}${BOLD}   H O M E P I L O T   E D G E${NC}"
-  printf '%b\n' "${BLUE}   Consola de instalación · Perfil ${profile}${NC}"
+  printf '%b\n' "${NC}${BOLD}   N E Z U   ·   H O M E P I L O T${NC}"
+  printf '%b\n' "${BLUE}   Instalador técnico · Perfil ${profile}${NC}"
   divider
 }
 
