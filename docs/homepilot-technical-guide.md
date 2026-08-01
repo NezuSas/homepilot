@@ -261,6 +261,23 @@ En una instalación nueva, el instalador interactivo pregunta al cliente si ya u
 | `ha_companion` | El cliente solicita expresamente Home Assistant junto a HomePilot. | `docker-compose.yml` | Lo administra ese compose. |
 
 No se debe cambiar de perfil editando un sistema en funcionamiento sin revisar la topología y el `.env`. El instalador falla de forma segura cuando `--profile` no coincide con el perfil ya guardado.
+#### Checklist guiado para técnicos
+
+El técnico debe iniciar la instalación con el asistente guiado, no el cliente final. El comando presenta decisiones en lenguaje operativo y evita editar `.env` manualmente:
+
+```bash
+bash scripts/install-edge-office.sh --wizard
+```
+
+El checklist permite elegir en una instalación nueva:
+
+1. Conectar el Home Assistant existente del cliente.
+2. Incluir Home Assistant junto a HomePilot.
+3. Instalar HomePilot solo con integraciones nativas.
+
+Después permite elegir si se despliega ahora, si se prepara sin iniciar servicios o si solo se ejecuta el diagnóstico; también consulta limpieza segura de Docker y autorización para HACS/SonoffLAN cuando Home Assistant aplica. Antes de crear archivos, limpiar o iniciar contenedores, muestra un resumen completo y exige una única confirmación.
+
+Si el equipo ya contiene `.env`, el asistente conserva el perfil guardado y lo muestra como información: no ofrece migrar ni reemplazar la topología de un cliente por accidente. Para automatizaciones o soporte remoto se mantienen los flags explícitos `--profile`, `--clean`, `--start` y `--status`.
 
 #### Cliente con Home Assistant existente (`bridge_ha`)
 

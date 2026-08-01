@@ -98,6 +98,7 @@ Opciones:
   --clean              Limpia solamente cache de build e imagenes Docker colgantes.
   --start              Construye e inicia los servicios de HomePilot al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
+  --wizard             Abre el checklist guiado para técnicos antes de preparar el appliance.
   --with-community-integrations
                        Instala HACS y SonoffLAN en Home Assistant. En un Home Assistant
                        existente esta opcion es la autorizacion explicita del operador.
@@ -154,6 +155,122 @@ choose_profile_for_new_installation() {
   else
     profile="ha_companion"
   fi
+}
+choose_technician_profile() {
+  local answer
+
+  if [[ -n "$profile" ]]; then
+    info "Perfil técnico indicado: ${profile}."
+    return
+  fi
+
+  if [[ -f "$ENV_FILE" ]]; then
+    profile="$(env_value HOMEPILOT_INSTALLATION_PROFILE bridge_ha)"
+    info "Instalación existente detectada: se conserva el perfil ${profile}."
+    return
+  fi
+
+  printf '\n%b\n' "${BOLD}Arquitectura del cliente${NC}"
+  printf '%s\n' '  1. Conectar un Home Assistant existente (recomendado para clientes que ya lo usan).'
+  printf '%s\n' '  2. Instalar Home Assistant junto a HomePilot (appliance completo).'
+  printf '%s\n' '  3. Instalar solo HomePilot con integraciones nativas.'
+
+  while true; do
+    read -r -p 'Selecciona una opción [1-3] ' answer
+    case "$answer" in
+      1) profile="bridge_ha"; return ;;
+      2) profile="ha_companion"; return ;;
+      3) profile="native_only"; return ;;
+      *) warn "Selecciona 1, 2 o 3." ;;
+    esac
+  done
+}
+
+choose_technician_action() {
+  local answer
+
+  printf '\n%b\n' "${BOLD}Acción de instalación${NC}"
+  printf '%s\n' '  1. Preparar y desplegar HomePilot ahora.'
+  printf '%s\n' '  2. Preparar la configuración sin iniciar servicios.'
+  printf '%s\n' '  3. Ejecutar solo diagnóstico (sin modificar archivos ni servicios).'
+
+  while true; do
+    read -r -p 'Selecciona una opción [1-3] ' answer
+    case "$answer" in
+      1) start=true; return ;;
+      2) return ;;
+      3) status_only=true; return ;;
+      *) warn "Selecciona 1, 2 o 3." ;;
+    esac
+  done
+}
+
+ask_technician_yes_no() {
+  local prompt="$1"
+  local answer
+
+  read -r -p "${prompt} [y/N] " answer
+  [[ "$answer" =~ ^[Yy]$ ]]
+}
+
+show_technician_checklist() {
+  local action_label cleanup_label community_label
+
+  if [[ "$status_only" == true ]]; then
+    action_label="Solo diagnóstico"
+  elif [[ "$start" == true ]]; then
+    action_label="Preparar y desplegar ahora"
+  else
+    action_label="Preparar sin iniciar servicios"
+  fi
+
+  cleanup_label="No"
+  [[ "$clean" == true ]] && cleanup_label="Sí, solo cache de build e imágenes colgantes"
+
+  community_label="No aplica"
+  if [[ "$requires_home_assistant" == true ]]; then
+    community_label="No"
+    [[ "$install_community_integrations" == true ]] && community_label="Sí, HACS y SonoffLAN"
+  fi
+
+  section "Checklist técnico"
+  printf '%b\n' "${BOLD}  Perfil del cliente${NC}    ${profile}"
+  printf '%b\n' "${BOLD}  Home Assistant${NC}        ${ha_management_label}"
+  printf '%b\n' "${BOLD}  Acción${NC}                ${action_label}"
+  printf '%b\n' "${BOLD}  Limpieza segura${NC}       ${cleanup_label}"
+  printf '%b\n' "${BOLD}  Integraciones HA${NC}      ${community_label}"
+  divider
+}
+
+run_technician_wizard() {
+  [[ -t 0 && -t 1 ]] || fail "--wizard requiere una terminal interactiva."
+
+  banner
+  printf '%b\n' "${BOLD}Checklist guiado de instalación para técnicos${NC}"
+  printf '%s\n' 'El cliente no necesita completar este flujo. HomePilot conserva la arquitectura existente cuando detecta un .env.'
+
+  choose_technician_profile
+  configure_profile
+  choose_technician_action
+
+  if [[ "$status_only" == false ]]; then
+    if ask_technician_yes_no "¿Ejecutar limpieza segura de Docker antes de continuar?"; then
+      clean=true
+    fi
+
+    if [[ "$requires_home_assistant" == true ]] \
+      && ask_technician_yes_no "¿Autorizar revisión e instalación de HACS y SonoffLAN si faltan?"; then
+      install_community_integrations=true
+    fi
+  fi
+
+  show_technician_checklist
+  if [[ "$status_only" == false ]] && ! confirm "¿Aplicar este checklist técnico?"; then
+    fail "Instalación cancelada por el técnico."
+  fi
+
+  # La confirmación del checklist cubre las acciones elegidas y evita prompts duplicados.
+  [[ "$status_only" == false ]] && assume_yes=true
 }
 ok() { printf '%b\n' "${GREEN}●${NC}  $1"; }
 warn() { printf '%b\n' "${YELLOW}●${NC}  $1"; }
@@ -492,6 +609,7 @@ while [[ $# -gt 0 ]]; do
     --clean) clean=true ;;
     --start) start=true ;;
     --status) status_only=true ;;
+    --wizard) wizard=true ;;
     --with-community-integrations) install_community_integrations=true ;;
     --yes) assume_yes=true ;;
     --profile)
@@ -514,14 +632,24 @@ if [[ "$status_only" == true && ( "$clean" == true || "$start" == true || -n "$a
   fail "--status no se combina con --clean, --start ni --api-url."
 fi
 
-choose_profile_for_new_installation
-configure_profile
+if [[ "$wizard" == true && ( "$clean" == true || "$start" == true || "$status_only" == true || "$install_community_integrations" == true || "$assume_yes" == true || -n "$api_url" ) ]]; then
+  fail "--wizard elige las acciones dentro del checklist; no lo combines con --clean, --start, --status, --with-community-integrations, --yes ni --api-url."
+fi
+
+if [[ "$wizard" == true ]]; then
+  run_technician_wizard
+else
+  choose_profile_for_new_installation
+  configure_profile
+fi
 [[ -f "$compose_file" ]] || fail "Ejecuta el script desde la raiz del repositorio HomePilot."
 [[ -f "$env_template" ]] || fail "No existe $env_template."
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta disponible para este usuario."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta disponible."
 
-banner
+if [[ "$wizard" != true ]]; then
+  banner
+fi
 info "Directorio de instalación: $(pwd)"
 info "Compose: $compose_file · Home Assistant: $ha_management_label"
 
