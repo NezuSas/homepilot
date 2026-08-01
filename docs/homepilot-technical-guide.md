@@ -273,6 +273,14 @@ bash scripts/install-edge-office.sh --profile bridge_ha --clean --start
 
 El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
 
+El diagnóstico también informa si el Home Assistant existente ya tiene HACS y SonoffLAN. No instala nada por defecto. Para autorizar explícitamente esa instalación en el Home Assistant del cliente:
+
+```bash
+bash scripts/install-edge-office.sh --profile bridge_ha --with-community-integrations
+```
+
+Después, el técnico configura eWeLink dentro de Home Assistant en **Ajustes → Dispositivos e integraciones → Añadir integración → Sonoff**. HomePilot no almacena credenciales eWeLink.
+
 #### Instalación nativa sin Home Assistant (`native_only`)
 
 Para una miniPC sin Home Assistant, HomePilot queda listo para integrar protocolos locales compatibles desde su propia consola. El onboarding no pedirá URL ni token de Home Assistant:
@@ -293,7 +301,7 @@ git pull --ff-only
 bash scripts/install-edge-office.sh --profile ha_companion --clean --start
 ```
 
-No se debe seleccionar este perfil sobre una miniPC que ya tiene un Home Assistant de cliente sin revisar antes puertos, datos y la topología existente.
+No se debe seleccionar este perfil sobre una miniPC que ya tiene un Home Assistant de cliente sin revisar antes puertos, datos y la topología existente. Al terminar el arranque, el instalador ofrece instalar HACS y SonoffLAN. En este perfil `--yes` acepta esa provisión porque el Home Assistant pertenece al compose de HomePilot; los componentes quedan persistidos en `ha-config/custom_components`.
 
 #### Diagnostico operativo con `--status`
 
@@ -310,6 +318,7 @@ Esta opcion no limpia Docker, no construye imagenes, no crea archivos y no inici
 - Healthchecks disponibles para API, STT y TTS.
 - Respuesta HTTP de API, UI, STT y TTS.
 - Conectividad con Home Assistant solo en perfiles que lo requieren; en `native_only` informa que no es necesario.
+- Presencia de HACS y SonoffLAN cuando existe un Home Assistant configurado, sin instalar ni reiniciar nada.
 
 Si todos los componentes responden correctamente, el script termina con codigo de salida `0`. Si falta un servicio, un healthcheck falla o un endpoint no responde, termina con un codigo distinto de `0`; esto permite usarlo tanto de forma manual como en monitoreo o automatizacion.
 
@@ -373,6 +382,7 @@ Usa la plantilla correspondiente al perfil: `.env.office.example` para `bridge_h
 |---|---|
 | `HOMEPILOT_INSTALLATION_PROFILE` | Perfil explícito de la instalación: `bridge_ha`, `native_only` o `ha_companion`. |
 | `INTERNAL_HA_URL` | `http://host.docker.internal:8123` si HA esta disponible desde el host de la miniPC. Cambiarla si la topologia del cliente usa otra ruta local. |
+| `HOMEPILOT_HOME_ASSISTANT_CONTAINER` | Nombre del contenedor HA inspeccionado por el instalador. Predeterminado: `homeassistant`. |
 | `VITE_API_URL` | Vacia por defecto: UI, API y WebSocket comparten el origen de HomePilot. Definirla solo para una API publicada por separado; cambiarla exige reconstruir `homepilot-ui`. |
 | `HOMEPILOT_*_PORT` | Puertos publicados; ajustarlos solo si el diagnostico indica conflicto. |
 | `HOMEPILOT_DEV_BOOTSTRAP` | Debe permanecer `false` en cliente: el primer administrador se crea en la UI, no existe una clave impresa en logs. |

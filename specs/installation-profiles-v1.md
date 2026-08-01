@@ -41,6 +41,9 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - **REQ-11:** Para perfiles que usan Home Assistant, `setup-status` debe exponer por separado la URL interna que consume HomePilot (`homeAssistantBridgeUrl`) y la URL que el instalador abre en el navegador para crear el token (`homeAssistantSetupUrl`). Ambas solo pueden ser HTTP o HTTPS.
 - **REQ-12:** En una instalación nueva invocada sin `--profile` desde una terminal interactiva, el instalador debe guiar la elección con lenguaje de cliente: reutilizar Home Assistant existente, instalar Home Assistant junto a HomePilot, o usar únicamente integraciones nativas. Los nombres internos de perfil no se presentan como decisión principal.
 - **REQ-13:** Si existe un `.env`, el instalador debe conservar el perfil ya guardado cuando no se suministra `--profile`; no debe volver a preguntar ni cambiar la topología de una instalación existente.
+- **REQ-14:** Para perfiles con Home Assistant, `--status` debe informar de forma no destructiva si HACS y SonoffLAN están instalados en el contenedor configurado por `HOMEPILOT_HOME_ASSISTANT_CONTAINER`.
+- **REQ-15:** El instalador debe poder provisionar HACS y SonoffLAN en `ha_companion`; en `bridge_ha` solo puede hacerlo mediante `--with-community-integrations` o una confirmación interactiva explícita. `--yes` no autoriza cambios en un Home Assistant existente.
+- **REQ-16:** La provisión de SonoffLAN no debe almacenar ni solicitar credenciales eWeLink en HomePilot; la cuenta se configura exclusivamente en la UI de Home Assistant.
 
 ## 4. Criterios de aceptación
 
@@ -56,11 +59,15 @@ etwork_mode: host para la API y publica el puerto 13000.
 - [x] AC9: La UI local responde en 8080, el proxy /api responde a través de homepilot-api, y setup-status permite la creación de la primera cuenta en la base aislada.
 - [x] AC12: Una ejecución interactiva nueva de `install-edge-office.sh` permite elegir el camino de instalación sin conocer `bridge_ha`, `native_only` o `ha_companion`.
 - [x] AC13: Una ejecución sobre una instalación existente conserva el perfil declarado en `.env` salvo que el operador indique `--profile` explícitamente.
+- [x] AC14: `--status` muestra la presencia o ausencia de HACS y SonoffLAN sin cambiar el Home Assistant del cliente.
+- [x] AC15: `ha_companion` ofrece instalar HACS y SonoffLAN después del arranque; `bridge_ha` exige autorización explícita para instalar componentes comunitarios.
+- [x] AC16: El flujo documentado delega la vinculación eWeLink a Home Assistant y no agrega secretos de proveedor a HomePilot.
 - [x] AC10: La guía de onboarding identifica Docker Desktop o el appliance Linux mediante la configuración del compose, sin depender del navegador del cliente.
 - [x] AC11: La guía distingue la URL interna del bridge de la URL de navegador para crear el token y permite usar la URL interna sugerida con un solo clic.
 
 ## 5. Límites
 
 - `ha_companion` es una opción explícita y no migra ni modifica un Home Assistant existente.
+- HACS y SonoffLAN son extensiones opcionales de Home Assistant; en `bridge_ha` solo se instalan con autorización explícita del operador.
 - `native_only` habilita el appliance y sus integraciones locales; no implementa todavía cada protocolo posible de terceros.
 - HomePilot conserva su propio inventario, espacios, rutinas y usuarios sin depender de Home Assistant como fuente de configuración.

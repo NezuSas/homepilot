@@ -14,6 +14,7 @@ start=false
 assume_yes=false
 api_url=""
 status_only=false
+install_community_integrations=false
 runtime_failures=0
 startup_failed=false
 
@@ -97,6 +98,9 @@ Opciones:
   --clean              Limpia solamente cache de build e imagenes Docker colgantes.
   --start              Construye e inicia los servicios de HomePilot al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
+  --with-community-integrations
+                       Instala HACS y SonoffLAN en Home Assistant. En un Home Assistant
+                       existente esta opcion es la autorizacion explicita del operador.
   --api-url URL        Configuracion avanzada para una API en otro origen.
                        Por defecto se deja vacia y UI/API usan el mismo dominio.
   --yes                No pide confirmacion para --clean o --start.
@@ -259,6 +263,157 @@ wait_for_runtime_ready() {
   return 1
 }
 
+home_assistant_container() {
+  env_value HOMEPILOT_HOME_ASSISTANT_CONTAINER homeassistant
+}
+
+home_assistant_component_installed() {
+  local component="$1"
+  local container
+  container="$(home_assistant_container)"
+  docker exec "$container" sh -lc "test -f /config/custom_components/${component}/manifest.json" >/dev/null 2>&1
+}
+
+show_home_assistant_community_status() {
+  local container
+  container="$(home_assistant_container)"
+
+  if [[ "$requires_home_assistant" != true ]]; then
+    return
+  fi
+
+  section "Integraciones comunitarias de Home Assistant"
+  if ! docker inspect "$container" >/dev/null 2>&1; then
+    warn "No se pudo inspeccionar HACS ni SonoffLAN: contenedor ${container} no encontrado."
+    return
+  fi
+
+  if home_assistant_component_installed hacs; then
+    ok "HACS instalado en Home Assistant."
+  else
+    warn "HACS no está instalado."
+  fi
+
+  if home_assistant_component_installed sonoff; then
+    ok "SonoffLAN instalado. Configura la cuenta eWeLink desde Home Assistant."
+  else
+    warn "SonoffLAN no está instalado."
+  fi
+}
+
+install_hacs() {
+  local container="$1"
+  info "Instalando HACS en ${container}..."
+  docker exec "$container" sh -lc 'wget -qO- https://get.hacs.xyz | bash' \
+    || fail "No se pudo instalar HACS. Revisa la conectividad del contenedor Home Assistant."
+}
+
+install_sonofflan() {
+  local container="$1"
+  info "Instalando SonoffLAN en ${container}..."
+  docker exec -i "$container" python3 - <<'PY'
+import io
+import shutil
+import tarfile
+import urllib.request
+
+source = 'https://github.com/AlexxIT/SonoffLAN/archive/refs/heads/master.tar.gz'
+target = '/config/custom_components/sonoff'
+with urllib.request.urlopen(source, timeout=60) as response:
+    archive = response.read()
+with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as bundle:
+    member_prefix = 'SonoffLAN-master/custom_components/sonoff/'
+    members = [entry for entry in bundle.getmembers() if entry.name.startswith(member_prefix)]
+    if not members:
+        raise RuntimeError('SonoffLAN custom component was not found in the downloaded archive.')
+    shutil.rmtree(target, ignore_errors=True)
+    for entry in members:
+        relative = entry.name[len(member_prefix):]
+        if not relative:
+            continue
+        destination = f'{target}/{relative}'
+        if entry.isdir():
+            __import__('os').makedirs(destination, exist_ok=True)
+            continue
+        __import__('os').makedirs(__import__('os').path.dirname(destination), exist_ok=True)
+        extracted = bundle.extractfile(entry)
+        if extracted is None:
+            continue
+        with extracted, open(destination, 'wb') as output:
+            shutil.copyfileobj(extracted, output)
+PY
+  docker exec "$container" sh -lc 'test -f /config/custom_components/sonoff/manifest.json' \
+    || fail "SonoffLAN no quedó instalado correctamente."
+}
+
+restart_home_assistant_after_community_install() {
+  local container="$1"
+  local elapsed=0
+  local status_code="000"
+
+  info "Reiniciando Home Assistant para activar las integraciones comunitarias..."
+  docker restart "$container" >/dev/null
+  while (( elapsed < 120 )); do
+    status_code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 "http://127.0.0.1:${ha_port}/" || true)"
+    if [[ "$status_code" == "200" || "$status_code" == "301" || "$status_code" == "302" || "$status_code" == "401" || "$status_code" == "403" ]]; then
+      ok "Home Assistant volvió a responder."
+      return
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+  warn "Home Assistant aún no responde; la instalación puede requerir unos minutos adicionales."
+}
+
+provision_home_assistant_community_integrations() {
+  local container should_install=false
+  container="$(home_assistant_container)"
+
+  if [[ "$requires_home_assistant" != true ]] || ! docker inspect "$container" >/dev/null 2>&1; then
+    return
+  fi
+
+  if [[ "$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)" != "running" ]]; then
+    warn "No se instalaron integraciones comunitarias: Home Assistant aún no está en ejecución."
+    return
+  fi
+
+  if [[ "$install_community_integrations" == true ]]; then
+    should_install=true
+  elif [[ "$profile" == ha_companion && "$assume_yes" == true ]]; then
+    should_install=true
+  elif [[ "$profile" == ha_companion && "$status_only" == false ]]; then
+    if confirm "¿Instalar HACS y SonoffLAN en el Home Assistant administrado por HomePilot?"; then
+      should_install=true
+    fi
+  elif [[ "$profile" == bridge_ha ]] \
+    && { ! home_assistant_component_installed hacs || ! home_assistant_component_installed sonoff; }; then
+    info "Home Assistant existente: HACS/SonoffLAN se detectan en modo lectura."
+    if [[ "$status_only" == false ]] && [[ -t 0 ]]; then
+      local answer
+      read -r -p "¿Autoriza instalar HACS y SonoffLAN en el Home Assistant existente? [y/N] " answer
+      [[ "$answer" =~ ^[Yy]$ ]] && should_install=true
+    fi
+  fi
+
+  if [[ "$should_install" != true ]]; then
+    return
+  fi
+
+  if ! home_assistant_component_installed hacs; then
+    install_hacs "$container"
+  else
+    ok "HACS ya estaba instalado."
+  fi
+
+  if ! home_assistant_component_installed sonoff; then
+    install_sonofflan "$container"
+  else
+    ok "SonoffLAN ya estaba instalado."
+  fi
+
+  restart_home_assistant_after_community_install "$container"
+}
 show_runtime_status() {
   local api_port ui_port ollama_port tts_port stt_port
   api_port="$(env_value HOMEPILOT_API_PORT 3000)"
@@ -309,6 +464,7 @@ while [[ $# -gt 0 ]]; do
     --clean) clean=true ;;
     --start) start=true ;;
     --status) status_only=true ;;
+    --with-community-integrations) install_community_integrations=true ;;
     --yes) assume_yes=true ;;
     --profile)
       shift
@@ -343,6 +499,7 @@ info "Compose: $compose_file · Home Assistant: $ha_management_label"
 
 if [[ "$status_only" == true ]]; then
   show_runtime_status
+  show_home_assistant_community_status
   if (( runtime_failures > 0 )); then
     exit 1
   fi
@@ -442,6 +599,8 @@ if [[ "$start" == true ]]; then
 fi
 
 show_runtime_status
+provision_home_assistant_community_integrations
+show_home_assistant_community_status
 
 section "Instalación preparada"
 ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"

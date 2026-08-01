@@ -46,7 +46,13 @@ HomePilot’s long-term hardware strategy prioritizes:
 - **Preferred Protocols**: Zigbee, Matter (Native Local), and ESPHome (Local API).
 - **Phased Avoidance**: Systematic avoidance of cloud-locked WiFi ecosystems for critical home infrastructure.
 
-## 9. Status
+## 9. Operational Provisioning
+
+HACS and SonoffLAN are Home Assistant community extensions, not HomePilot-native integrations. The HomePilot installer detects both extensions in every Home Assistant profile. For an existing customer instance (`bridge_ha`), installation requires explicit operator authorization through `--with-community-integrations` or an interactive confirmation; `--yes` alone never changes customer-owned Home Assistant. For a HomePilot-managed companion (`ha_companion`), the installer can provision them after startup.
+
+eWeLink account credentials are always configured and stored by Home Assistant. HomePilot only imports the resulting entities into its own inventory and does not persist vendor credentials.
+
+## 10. Status
 - **Implementation Status**: Active / Transitional
 - **Development Impact**: Non-blocking
 - **Safety Rating**: Production-safe
