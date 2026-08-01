@@ -81,7 +81,11 @@ banner() {
   printf '%s\n' '   ██║ ╚████║███████╗███████╗╚██████╔╝'
   printf '%s\n' '   ╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝ '
   printf '%b\n' "${NC}${BOLD}   N E Z U   ·   H O M E P I L O T${NC}"
-  printf '%b\n' "${BLUE}   Instalador técnico · Perfil ${profile}${NC}"
+  if [[ -n "$profile" ]]; then
+    printf '%b\n' "${BLUE}   Instalador técnico · Perfil ${profile}${NC}"
+  else
+    printf '%b\n' "${BLUE}   Instalador técnico · Selección guiada${NC}"
+  fi
   divider
 }
 
@@ -138,7 +142,8 @@ choose_profile_for_new_installation() {
 
   printf '\n%b\n' "${BOLD}Configuración inicial del hogar${NC}"
   printf '%s\n' '¿Ya usas Home Assistant?'
-  read -r -p 'Conecta tu sistema actual sin modificarlo [S/n] ' answer
+  read_terminal_line 'Conecta tu sistema actual sin modificarlo [S/n] ' || fail "No se pudo leer la selección del técnico."
+  answer="$REPLY"
 
   if [[ ! "$answer" =~ ^([Nn]|[Nn][Oo])$ ]]; then
     profile="bridge_ha"
@@ -148,7 +153,8 @@ choose_profile_for_new_installation() {
   printf '\n%s\n' '¿Quieres incluir Home Assistant con HomePilot?'
   printf '%s\n' '  S: Instalar Home Assistant junto a HomePilot (recomendado si quieres su ecosistema).'
   printf '%s\n' '  N: Usar solo las integraciones nativas de HomePilot.'
-  read -r -p 'Instalar Home Assistant con HomePilot [S/n] ' answer
+  read_terminal_line 'Instalar Home Assistant con HomePilot [S/n] ' || fail "No se pudo leer la selección del técnico."
+  answer="$REPLY"
 
   if [[ "$answer" =~ ^([Nn]|[Nn][Oo])$ ]]; then
     profile="native_only"
@@ -176,7 +182,8 @@ choose_technician_profile() {
   printf '%s\n' '  3. Instalar solo HomePilot con integraciones nativas.'
 
   while true; do
-    read -r -p 'Selecciona una opción [1-3] ' answer
+    read_terminal_line 'Selecciona una opción [1-3] ' || fail "No se pudo leer la selección del técnico."
+    answer="$REPLY"
     case "$answer" in
       1) profile="bridge_ha"; return ;;
       2) profile="ha_companion"; return ;;
@@ -195,7 +202,8 @@ choose_technician_action() {
   printf '%s\n' '  3. Ejecutar solo diagnóstico (sin modificar archivos ni servicios).'
 
   while true; do
-    read -r -p 'Selecciona una opción [1-3] ' answer
+    read_terminal_line 'Selecciona una opción [1-3] ' || fail "No se pudo leer la acción del técnico."
+    answer="$REPLY"
     case "$answer" in
       1) start=true; return ;;
       2) return ;;
@@ -209,8 +217,17 @@ ask_technician_yes_no() {
   local prompt="$1"
   local answer
 
-  read -r -p "${prompt} [y/N] " answer
+  read_terminal_line "${prompt} [y/N] " || fail "No se pudo leer la confirmación del técnico."
+  answer="$REPLY"
   [[ "$answer" =~ ^[Yy]$ ]]
+}
+
+read_terminal_line() {
+  local prompt="$1"
+
+  [[ -r /dev/tty ]] || return 1
+  printf '%s' "$prompt" >/dev/tty
+  IFS= read -r REPLY </dev/tty
 }
 
 show_technician_checklist() {
@@ -536,7 +553,8 @@ provision_home_assistant_community_integrations() {
     info "Home Assistant existente: HACS/SonoffLAN se detectan en modo lectura."
     if [[ "$status_only" == false ]] && [[ -t 0 ]]; then
       local answer
-      read -r -p "¿Autoriza instalar HACS y SonoffLAN en el Home Assistant existente? [y/N] " answer
+      read_terminal_line "¿Autoriza instalar HACS y SonoffLAN en el Home Assistant existente? [y/N] " || fail "No se pudo leer la confirmación del técnico."
+      answer="$REPLY"
       [[ "$answer" =~ ^[Yy]$ ]] && should_install=true
     fi
   fi
@@ -600,7 +618,8 @@ confirm() {
     return 0
   fi
   local answer
-  read -r -p "$prompt [y/N] " answer
+  read_terminal_line "$prompt [y/N] " || fail "No se pudo leer la confirmación del técnico."
+  answer="$REPLY"
   [[ "$answer" =~ ^[Yy]$ ]]
 }
 
