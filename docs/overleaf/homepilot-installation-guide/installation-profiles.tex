@@ -1,0 +1,39 @@
+\section{Selección del perfil de instalación}
+
+El asistente técnico de HomePilot presenta tres perfiles. Se debe seleccionar uno antes de desplegar servicios; esta decisión se conserva en la configuración del equipo para que las futuras actualizaciones no cambien la arquitectura del cliente.
+
+\subsection{Matriz de decisión}
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|L{0.22\textwidth}|L{0.24\textwidth}|X|}
+\hline
+\textbf{Perfil} & \textbf{Cuándo usarlo} & \textbf{Resultado} \\
+\hline
+\texttt{bridge\_ha} & El cliente ya tiene Home Assistant operativo. & HomePilot se conecta al Home Assistant existente. No crea ni reemplaza su instalación. \\
+\hline
+\texttt{ha\_companion} & El cliente todavía no tiene Home Assistant, pero el proyecto necesita integraciones compatibles. & HomePilot despliega Home Assistant como servicio complementario y guía el alta inicial. \\
+\hline
+\texttt{native\_only} & El alcance se limita a capacidades nativas de HomePilot. & No se instala ni enlaza Home Assistant. Las integraciones compatibles se agregan posteriormente según contrato. \\
+\hline
+\end{tabularx}
+\caption{Perfiles soportados por el instalador}
+\end{table}
+
+\subsection{Flujo visual de decisión}
+\begin{center}
+\begin{tikzpicture}[node distance=0.8cm, >=Latex, every node/.style={font=\small,align=center}]
+\node[draw,diamond,aspect=2,fill=nezuorange!10] (q1) {¿El cliente\\ya tiene Home Assistant?};
+\node[draw,rounded corners,fill=black!3,below left=of q1] (bridge) {Sí\\\texttt{bridge\_ha}};
+\node[draw,diamond,aspect=2,fill=nezuorange!10,below right=of q1] (q2) {¿El alcance requiere\\integraciones HA?};
+\node[draw,rounded corners,fill=black!3,below left=of q2] (companion) {Sí\\\texttt{ha\_companion}};
+\node[draw,rounded corners,fill=black!3,below right=of q2] (native) {No\\\texttt{native\_only}};
+\draw[->] (q1) -- node[above left]{Sí} (bridge);
+\draw[->] (q1) -- node[above right]{No} (q2);
+\draw[->] (q2) -- node[above left]{Sí} (companion);
+\draw[->] (q2) -- node[above right]{No} (native);
+\end{tikzpicture}
+\end{center}
+
+\begin{tcolorbox}[title=Regla de preservación]
+Con \texttt{bridge\_ha}, el instalador solo comprueba el Home Assistant existente y solicita autorización explícita antes de cualquier operación opcional, como instalar HACS. Nunca debe sobrescribir la configuración del cliente.
+\end{tcolorbox}

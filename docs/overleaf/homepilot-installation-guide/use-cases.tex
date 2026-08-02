@@ -1,0 +1,87 @@
+\section{Casos de uso del instalador}
+
+Esta sección describe las decisiones que debe tomar el técnico durante una instalación. El objetivo es entregar un sistema operativo sin alterar servicios, dispositivos o credenciales que pertenezcan al cliente.
+
+\subsection{Caso 1: Cliente con Home Assistant existente}
+\textbf{Perfil:} \texttt{bridge\_ha}.
+
+Use este escenario cuando el cliente ya opera Home Assistant y desea conservar sus integraciones, automatizaciones y usuarios actuales.
+\begin{enumerate}[itemsep=0.15cm]
+    \item El técnico selecciona \texttt{bridge\_ha} en el asistente.
+    \item HomePilot verifica que Home Assistant responda y solicita una URL accesible junto con un token de larga duración.
+    \item El técnico prueba la conexión antes de guardarla.
+    \item Los dispositivos aprobados se descubren e importan al inventario propio de HomePilot.
+\end{enumerate}
+
+\begin{tcolorbox}[title=Resultado esperado]
+HomePilot opera como consola local y bridge. Home Assistant existente no se reemplaza, no se reinicia sin autorización y mantiene sus datos intactos.
+\end{tcolorbox}
+
+\subsection{Caso 2: Cliente sin Home Assistant y con necesidad de integraciones}
+\textbf{Perfil:} \texttt{ha\_companion}.
+
+Use este escenario cuando el proyecto requiere integraciones compatibles con Home Assistant, pero el cliente aún no dispone de una instalación.
+\begin{enumerate}[itemsep=0.15cm]
+    \item El técnico selecciona \texttt{ha\_companion}.
+    \item El asistente prepara el servicio complementario de Home Assistant junto con HomePilot.
+    \item El responsable designado crea la primera cuenta de Home Assistant.
+    \item El técnico enlaza HomePilot usando un token de larga duración y valida la conexión.
+    \item Se incorporan únicamente las integraciones y dispositivos incluidos en el alcance contratado.
+\end{enumerate}
+
+\begin{tcolorbox}[title=Resultado esperado]
+El cliente recibe una instalación local completa, con HomePilot como interfaz de uso cotidiano y Home Assistant como capa de integración compatible.
+\end{tcolorbox}
+
+\subsection{Caso 3: Instalación nativa de HomePilot}
+\textbf{Perfil:} \texttt{native\_only}.
+
+Use este escenario cuando el alcance se limita a funciones nativas disponibles en HomePilot y no se requiere Home Assistant durante la entrega inicial.
+\begin{enumerate}[itemsep=0.15cm]
+    \item El técnico selecciona \texttt{native\_only}.
+    \item El asistente prepara HomePilot sin crear ni enlazar Home Assistant.
+    \item El responsable designado crea la primera cuenta administrativa de HomePilot.
+    \item Se registra el hogar, las estancias y los dispositivos nativos incluidos en el proyecto.
+\end{enumerate}
+
+\begin{tcolorbox}[title=Resultado esperado]
+La instalación queda lista para control local. Una integración compatible puede añadirse posteriormente mediante una orden de servicio, sin alterar el perfil original sin confirmación técnica.
+\end{tcolorbox}
+
+\subsection{Caso 4: Actualización de una instalación existente}
+
+Use este escenario cuando HomePilot ya está instalado y debe recibir una versión aprobada.
+\begin{lstlisting}[language=bash]
+git pull --ff-only
+bash scripts/homepilot-maintenance.sh --deploy --yes
+\end{lstlisting}
+
+El mantenimiento conserva el perfil guardado en \texttt{.env} y reutiliza la base de datos existente. Antes del despliegue, el técnico debe revisar el estado de los servicios y el espacio disponible.
+
+\subsection{Caso 5: Diagnóstico sin cambios}
+
+Use esta opción para revisar conectividad, puertos, espacio y estado de servicios sin modificar archivos ni reiniciar contenedores.
+\begin{lstlisting}[language=bash]
+bash scripts/install-edge-office.sh --status
+\end{lstlisting}
+
+En el asistente guiado, corresponde a la acción \textit{Ejecutar solo diagnóstico}. Es la alternativa correcta antes de intervenir una instalación con incidentes.
+
+\subsection{Caso 6: Integraciones de comunidad}
+
+Use este escenario cuando una integración requerida, como SonoffLAN mediante HACS, no forma parte de Home Assistant base.
+\begin{enumerate}[itemsep=0.15cm]
+    \item El técnico verifica si HACS ya está instalado.
+    \item Solicita autorización antes de instalar software de comunidad.
+    \item Realiza la instalación y reinicio requerido por Home Assistant.
+    \item Configura la integración con las credenciales del cliente.
+    \item Valida el dispositivo y lo importa en HomePilot desde Descubrimiento.
+\end{enumerate}
+
+\begin{tcolorbox}[title=Regla de autorización]
+HACS, integraciones de comunidad y credenciales de fabricantes se modifican únicamente con autorización del responsable de la instalación. HomePilot no debe instalar ni sustituir estos componentes de forma silenciosa.
+\end{tcolorbox}
+
+\subsection{Caso 7: Entrega al cliente}
+
+Al finalizar cualquier perfil, el técnico debe comprobar que la interfaz local abre, que el administrador puede iniciar sesión, que los dispositivos aprobados responden y que el cliente recibe las credenciales iniciales por un canal seguro. El cliente utiliza HomePilot; las tareas de infraestructura y mantenimiento quedan bajo responsabilidad del equipo técnico autorizado.

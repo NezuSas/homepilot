@@ -1,0 +1,58 @@
+\section{Instalación y configuración}
+
+\subsection{Preparar el repositorio}
+En el equipo anfitrión, clone o actualice el repositorio autorizado de HomePilot:
+\begin{lstlisting}[language=bash]
+git clone https://github.com/NezuSas/homepilot.git
+cd homepilot
+git pull --ff-only
+\end{lstlisting}
+
+\subsection{Ejecutar el asistente técnico}
+El asistente evita que el técnico tenga que editar manualmente la configuración inicial. Ejecute:
+\begin{lstlisting}[language=bash]
+bash scripts/install-edge-office.sh --wizard
+\end{lstlisting}
+
+El asistente solicita, en orden:
+\begin{enumerate}[itemsep=0.15cm]
+    \item Perfil de instalación.
+    \item Acción deseada: desplegar, preparar sin iniciar o diagnóstico.
+    \item Autorización de limpieza segura de caché Docker, si corresponde.
+    \item Autorización explícita para HACS e integraciones de comunidad, cuando hay Home Assistant.
+    \item Confirmación final de la configuración elegida.
+\end{enumerate}
+
+\subsection{Desplegar los servicios}
+Cuando el resumen sea correcto, confirme el despliegue desde el asistente. Para una actualización posterior controlada se usa:
+\begin{lstlisting}[language=bash]
+git pull --ff-only
+bash scripts/homepilot-maintenance.sh --deploy --yes
+\end{lstlisting}
+
+\subsection{Primera cuenta administrativa}
+Abra la interfaz local en el navegador:
+\begin{lstlisting}[language=bash]
+http://<IP-DEL-EQUIPO>:8080
+\end{lstlisting}
+
+Con una base de datos nueva y el bootstrap de desarrollo desactivado, HomePilot solicita crear la primera cuenta. Esta cuenta se convierte en administradora de la instalación. El técnico debe entregar la contraseña al responsable designado y pedirle cambiarla en la primera sesión.
+
+\subsection{Conectar Home Assistant cuando aplica}
+Para \texttt{bridge\_ha}, abra el Asistente de instalación de HomePilot e ingrese:
+\begin{itemize}[itemsep=0.15cm]
+    \item La URL accesible desde el contenedor de HomePilot. En una red Docker compartida suele ser \texttt{http://homeassistant:8123}; en una instalación externa use la IP LAN o el DNS local del equipo.
+    \item Un token de acceso de larga duración creado desde el perfil administrador de Home Assistant.
+\end{itemize}
+
+Pruebe la conexión antes de guardarla. HomePilot cifra y usa el token exclusivamente para el bridge local.
+
+\subsection{HACS y SonoffLAN}
+HACS no se instala silenciosamente. Si el proyecto requiere SonoffLAN u otra integración de comunidad, el técnico debe autorizar esta acción desde el asistente y luego completar la configuración dentro de Home Assistant.
+
+\begin{tcolorbox}[title=Importante]
+La instalación de HACS y SonoffLAN puede requerir reiniciar Home Assistant y autenticarse con la cuenta del fabricante. Confirme con el cliente antes de modificar una instalación de Home Assistant existente.
+\end{tcolorbox}
+
+\subsection{Descubrir e importar dispositivos}
+En HomePilot, abra \textit{Sistema > Descubrimiento}. Importe únicamente los dispositivos aprobados para el proyecto. Después asigne cada uno a un hogar y una estancia. HomePilot conserva su propio inventario, aunque la fuente inicial sea Home Assistant.
