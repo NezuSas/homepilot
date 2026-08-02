@@ -15,6 +15,7 @@ assume_yes=false
 api_url=""
 status_only=false
 install_community_integrations=false
+community_integrations_only=false
 runtime_failures=0
 startup_failed=false
 
@@ -40,6 +41,33 @@ fi
 
 divider() {
   printf '%b\n' "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
+}
+
+detect_technician_environment() {
+  if [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qiE '(microsoft|wsl)' /proc/version 2>/dev/null; then
+    printf '%s' 'Windows mediante WSL'
+  elif [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* || "${OSTYPE:-}" == win32* ]]; then
+    printf '%s' 'Windows con Docker Desktop'
+  elif [[ "${OSTYPE:-}" == darwin* ]]; then
+    printf '%s' 'macOS con Docker Desktop'
+  elif [[ "${OSTYPE:-}" == linux* ]]; then
+    printf '%s' 'Linux'
+  else
+    printf '%s' 'terminal compatible con Docker'
+  fi
+}
+
+show_community_integration_guidance() {
+  local environment container
+  environment="$(detect_technician_environment)"
+  container="$(home_assistant_container)"
+
+  section 'Mantenimiento de integraciones Home Assistant'
+  ok "Entorno técnico detectado: ${environment}."
+  info 'Este modo no ejecuta docker compose, no recompila imágenes y no reinicia HomePilot.'
+  info "Home Assistant objetivo: contenedor ${container}."
+  printf '%b\n' "${DIM}  Equivalente manual: docker exec ${container} sh -lc \"wget -qO- https://get.hacs.xyz | bash\"${NC}"
+  printf '%b\n' "${DIM}  Después: docker restart ${container}${NC}"
 }
 
 configure_profile() {
@@ -104,8 +132,10 @@ Opciones:
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
   --wizard             Abre el checklist guiado para técnicos antes de preparar el appliance.
   --with-community-integrations
-                       Instala HACS y SonoffLAN en Home Assistant. En un Home Assistant
-                       existente esta opcion es la autorizacion explicita del operador.
+                       Instala HACS y SonoffLAN al finalizar el flujo de HomePilot.
+  --community-integrations-only
+                       Mantiene HACS y SonoffLAN sin reconstruir ni reiniciar HomePilot.
+                       Detecta el entorno del técnico y usa el Home Assistant existente.
   --api-url URL        Configuracion avanzada para una API en otro origen.
                        Por defecto se deja vacia y UI/API usan el mismo dominio.
   --yes                No pide confirmacion para --clean o --start.
@@ -200,15 +230,26 @@ choose_technician_action() {
   printf '%s\n' '  1. Preparar y desplegar HomePilot ahora.'
   printf '%s\n' '  2. Preparar la configuración sin iniciar servicios.'
   printf '%s\n' '  3. Ejecutar solo diagnóstico (sin modificar archivos ni servicios).'
+  if [[ "$requires_home_assistant" == true ]]; then
+    printf '%s\n' '  4. Instalar o reparar HACS y SonoffLAN sin reconstruir HomePilot.'
+  fi
 
   while true; do
-    read_terminal_line 'Selecciona una opción [1-3] ' || fail "No se pudo leer la acción del técnico."
+    read_terminal_line 'Selecciona una opción [1-4] ' || fail "No se pudo leer la acción del técnico."
     answer="$REPLY"
     case "$answer" in
       1) start=true; return ;;
       2) return ;;
       3) status_only=true; return ;;
-      *) warn "Selecciona 1, 2 o 3." ;;
+      4)
+        if [[ "$requires_home_assistant" == true ]]; then
+          community_integrations_only=true
+          install_community_integrations=true
+          return
+        fi
+        warn 'Esta acción requiere un perfil con Home Assistant.'
+        ;;
+      *) warn "Selecciona una opción válida." ;;
     esac
   done
 }
@@ -233,7 +274,9 @@ read_terminal_line() {
 show_technician_checklist() {
   local action_label cleanup_label community_label
 
-  if [[ "$status_only" == true ]]; then
+  if [[ "$community_integrations_only" == true ]]; then
+    action_label="Mantener HACS y SonoffLAN sin reconstruir HomePilot"
+  elif [[ "$status_only" == true ]]; then
     action_label="Solo diagnóstico"
   elif [[ "$start" == true ]]; then
     action_label="Preparar y desplegar ahora"
@@ -270,7 +313,7 @@ run_technician_wizard() {
   configure_profile
   choose_technician_action
 
-  if [[ "$status_only" == false ]]; then
+  if [[ "$status_only" == false && "$community_integrations_only" == false ]]; then
     if ask_technician_yes_no "¿Ejecutar limpieza segura de Docker antes de continuar?"; then
       clean=true
     fi
@@ -634,6 +677,10 @@ while [[ $# -gt 0 ]]; do
     --status) status_only=true ;;
     --wizard) wizard=true ;;
     --with-community-integrations) install_community_integrations=true ;;
+    --community-integrations-only)
+      community_integrations_only=true
+      install_community_integrations=true
+      ;;
     --yes) assume_yes=true ;;
     --profile)
       shift
@@ -651,12 +698,16 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+if [[ "$community_integrations_only" == true && ( "$clean" == true || "$start" == true || "$status_only" == true || -n "$api_url" ) ]]; then
+  fail "--community-integrations-only no se combina con --clean, --start, --status ni --api-url."
+fi
+
 if [[ "$status_only" == true && ( "$clean" == true || "$start" == true || -n "$api_url" ) ]]; then
   fail "--status no se combina con --clean, --start ni --api-url."
 fi
 
-if [[ "$wizard" == true && ( "$clean" == true || "$start" == true || "$status_only" == true || "$install_community_integrations" == true || "$assume_yes" == true || -n "$api_url" ) ]]; then
-  fail "--wizard elige las acciones dentro del checklist; no lo combines con --clean, --start, --status, --with-community-integrations, --yes ni --api-url."
+if [[ "$wizard" == true && ( "$clean" == true || "$start" == true || "$status_only" == true || "$install_community_integrations" == true || "$community_integrations_only" == true || "$assume_yes" == true || -n "$api_url" ) ]]; then
+  fail "--wizard elige las acciones dentro del checklist; no lo combines con opciones de ejecución."
 fi
 
 if [[ "$wizard" == true ]]; then
@@ -669,6 +720,17 @@ fi
 [[ -f "$env_template" ]] || fail "No existe $env_template."
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta disponible para este usuario."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta disponible."
+
+if [[ "$community_integrations_only" == true ]]; then
+  [[ "$requires_home_assistant" == true ]] || fail "Este perfil no usa Home Assistant; no hay integraciones comunitarias que mantener."
+  show_community_integration_guidance
+  if [[ "$assume_yes" == false ]] && ! confirm "¿Instalar o reparar HACS y SonoffLAN sin reconstruir HomePilot?"; then
+    fail "Mantenimiento de integraciones cancelado por el técnico."
+  fi
+  provision_home_assistant_community_integrations
+  show_home_assistant_community_status
+  exit 0
+fi
 
 if [[ "$wizard" != true ]]; then
   banner

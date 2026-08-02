@@ -275,7 +275,7 @@ El checklist permite elegir en una instalación nueva:
 2. Incluir Home Assistant junto a HomePilot.
 3. Instalar HomePilot solo con integraciones nativas.
 
-Después permite elegir si se despliega ahora, si se prepara sin iniciar servicios o si solo se ejecuta el diagnóstico; también consulta limpieza segura de Docker y autorización para HACS/SonoffLAN cuando Home Assistant aplica. Antes de crear archivos, limpiar o iniciar contenedores, muestra un resumen completo y exige una única confirmación.
+Después permite elegir si se despliega ahora, si se prepara sin iniciar servicios o si solo se ejecuta el diagnóstico. En perfiles con Home Assistant también ofrece un cuarto camino: instalar o reparar HACS y SonoffLAN sin reconstruir HomePilot. Antes de crear archivos, limpiar o iniciar contenedores, muestra un resumen completo y exige una única confirmación.
 
 Si el equipo ya contiene `.env`, el asistente conserva el perfil guardado y lo muestra como información: no ofrece migrar ni reemplazar la topología de un cliente por accidente. Para automatizaciones o soporte remoto se mantienen los flags explícitos `--profile`, `--clean`, `--start` y `--status`.
 
@@ -292,11 +292,13 @@ El script muestra espacio libre y consumo de Docker, detecta Home Assistant de f
 
 Las instalaciones antiguas cuyo `.env` no contiene `HOMEPILOT_INSTALLATION_PROFILE` se normalizan automáticamente con el perfil que el instalador resuelve durante una instalación. No hace falta editar el archivo manualmente desde PowerShell, WSL o Linux; `--status` conserva su comportamiento de solo lectura.
 
-El diagnóstico también informa si el Home Assistant existente ya tiene HACS y SonoffLAN. No instala nada por defecto. Para autorizar explícitamente esa instalación en el Home Assistant del cliente:
+El diagnóstico también informa si el Home Assistant existente ya tiene HACS y SonoffLAN. No instala nada por defecto. Para autorizar explícitamente el mantenimiento de esas integraciones sin reconstruir HomePilot:
 
 ```bash
-bash scripts/install-edge-office.sh --profile bridge_ha --with-community-integrations
+bash scripts/install-edge-office.sh --profile bridge_ha --community-integrations-only
 ```
+
+El modo detecta si el técnico está en Linux, WSL, Windows con Docker Desktop o macOS, muestra el contenedor objetivo y los comandos equivalentes. Solo instala HACS/SonoffLAN y reinicia Home Assistant; no ejecuta `docker compose`, no reconstruye imágenes y no reinicia HomePilot. También puede iniciarse con `bash scripts/install-edge-office.sh --wizard` y elegir la opción de mantenimiento de integraciones.
 
 Después, el técnico configura eWeLink dentro de Home Assistant en **Ajustes → Dispositivos e integraciones → Añadir integración → Sonoff**. HomePilot no almacena credenciales eWeLink.
 
