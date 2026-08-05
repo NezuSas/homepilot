@@ -89,7 +89,8 @@ services:
       dockerfile: services/tts-piper/Dockerfile
     container_name: homepilot-tts
     environment:
-      PIPER_VOICE_ES: ${PIPER_VOICE_ES:-es_ES-sharvard-medium}
+      PIPER_VOICE_ES: ${PIPER_VOICE_ES:-es_MX-claude-high}
+      PIPER_FALLBACK_VOICE_ES: ${PIPER_FALLBACK_VOICE_ES:-es_ES-sharvard-medium}
       PIPER_VOICE_EN: ${PIPER_VOICE_EN:-en_US-lessac-medium}
       PIPER_SYNTHESIS_TIMEOUT_SECONDS: ${PIPER_SYNTHESIS_TIMEOUT_SECONDS:-20}
     ports:

@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 
 MAX_TEXT_LENGTH = 4000
 MODEL_DIR = Path(os.getenv("PIPER_MODEL_DIR", "/models"))
+SPANISH_VOICE_DEFAULT = "es_MX-claude-high"
+SPANISH_FALLBACK_VOICE_DEFAULT = "es_ES-sharvard-medium"
+ENGLISH_VOICE_DEFAULT = "en_US-lessac-medium"
 VOICE_CACHE: dict[str, PiperVoice] = {}
 
 app = FastAPI(title="HomePilot Piper TTS", version="1.0.0")
@@ -28,16 +31,22 @@ class TextToSpeechResponse(BaseModel):
     audioBase64: str
 
 
+def voice_candidates(language: str) -> tuple[str, ...]:
+    if language == "en":
+        return (os.getenv("PIPER_VOICE_EN", ENGLISH_VOICE_DEFAULT),)
+
+    preferred = os.getenv("PIPER_VOICE_ES", SPANISH_VOICE_DEFAULT)
+    fallback = os.getenv("PIPER_FALLBACK_VOICE_ES", SPANISH_FALLBACK_VOICE_DEFAULT)
+    return (preferred,) if preferred == fallback else (preferred, fallback)
+
+
 def resolve_model(language: str) -> Path:
-    model_name = (
-        os.getenv("PIPER_VOICE_EN", "en_US-lessac-medium")
-        if language == "en"
-        else os.getenv("PIPER_VOICE_ES", "es_ES-sharvard-medium")
-    )
-    model_path = MODEL_DIR / f"{model_name}.onnx"
-    if not model_path.exists():
-        raise HTTPException(status_code=503, detail=f"piper model not found: {model_name}")
-    return model_path
+    for model_name in voice_candidates(language):
+        model_path = MODEL_DIR / f"{model_name}.onnx"
+        if model_path.exists():
+            return model_path
+
+    raise HTTPException(status_code=503, detail="piper model unavailable for the selected language")
 
 
 def resolve_voice(language: str) -> PiperVoice:

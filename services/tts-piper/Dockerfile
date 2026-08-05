@@ -16,6 +16,8 @@ from urllib.request import urlretrieve
 
 BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 MODELS = [
+    ("es/es_MX/claude/high/es_MX-claude-high.onnx", "es_MX-claude-high.onnx"),
+    ("es/es_MX/claude/high/es_MX-claude-high.onnx.json", "es_MX-claude-high.onnx.json"),
     ("es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", "es_ES-sharvard-medium.onnx"),
     ("es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json", "es_ES-sharvard-medium.onnx.json"),
     ("en/en_US/lessac/medium/en_US-lessac-medium.onnx", "en_US-lessac-medium.onnx"),

@@ -479,8 +479,9 @@ Variables relevantes en Docker Compose:
 | `WHISPER_HOTWORDS` | Pistas de activador, incluye variantes de `Ok Nezu` |
 | `TTS_PROVIDER` | Proveedor TTS, por ejemplo `piper` |
 | `TTS_BASE_URL` | URL interna del servicio TTS |
-| `PIPER_VOICE_ES` | Voz Piper en espanol |
-| `PIPER_VOICE_EN` | Voz Piper en ingles |
+| `PIPER_VOICE_ES` | Voz Piper principal para español latino |
+| `PIPER_FALLBACK_VOICE_ES` | Voz Piper local de respaldo para español |
+| `PIPER_VOICE_EN` | Voz Piper en inglés |
 
 ## Frontend
 
@@ -595,7 +596,8 @@ ASSISTANT_PLANNER_V2_SHADOW_MODEL=qwen2.5:1.5b
 
 TTS_PROVIDER=piper
 TTS_BASE_URL=http://homepilot-tts:8088
-PIPER_VOICE_ES=es_ES-sharvard-medium
+PIPER_VOICE_ES=es_MX-claude-high
+PIPER_FALLBACK_VOICE_ES=es_ES-sharvard-medium
 PIPER_VOICE_EN=en_US-lessac-medium
 PIPER_SYNTHESIS_TIMEOUT_SECONDS=20
 
@@ -631,8 +633,9 @@ Detalle de uso:
 | `ASSISTANT_PLANNER_V2_SHADOW_MODEL` | `qwen2.5:1.5b` | Modelo alterno para shadow planner. |
 | `TTS_PROVIDER` | `piper` | Motor de sintesis de voz. |
 | `TTS_BASE_URL` | `http://homepilot-tts:8088` | URL interna Docker del servicio TTS. |
-| `PIPER_VOICE_ES` | `es_ES-sharvard-medium` | Voz Piper para respuestas en espanol. |
-| `PIPER_VOICE_EN` | `en_US-lessac-medium` | Voz Piper para respuestas en ingles. |
+| `PIPER_VOICE_ES` | `es_MX-claude-high` | Voz Piper principal de alta calidad para respuestas en español latino. |
+| `PIPER_FALLBACK_VOICE_ES` | `es_ES-sharvard-medium` | Respaldo local si la voz principal no estuviera disponible. |
+| `PIPER_VOICE_EN` | `en_US-lessac-medium` | Voz Piper para respuestas en inglés. |
 | `PIPER_SYNTHESIS_TIMEOUT_SECONDS` | `20` | Timeout de generacion TTS. |
 | `STT_PROVIDER` | `whisper-local` | Motor de transcripcion. |
 | `STT_BASE_URL` | `http://homepilot-stt:8090` | URL interna Docker del servicio STT. |
