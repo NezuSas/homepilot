@@ -322,7 +322,7 @@ git pull --ff-only
 bash scripts/install-edge-office.sh --profile ha_companion --clean --start
 ```
 
-No se debe seleccionar este perfil sobre una miniPC que ya tiene un Home Assistant de cliente sin revisar antes puertos, datos y la topología existente. Al terminar el arranque, el instalador ofrece instalar HACS y SonoffLAN. En este perfil `--yes` acepta esa provisión porque el Home Assistant pertenece al compose de HomePilot; los componentes quedan persistidos en `ha-config/custom_components`.
+No se debe seleccionar este perfil sobre una miniPC que ya tiene un Home Assistant de cliente sin revisar antes puertos, datos y la topología existente. Durante el primer despliegue, el instalador provisiona automáticamente HACS y SonoffLAN si faltan, sin solicitar una autorización adicional porque el Home Assistant pertenece al compose de HomePilot. Los componentes quedan persistidos en `ha-config/custom_components`.
 
 #### Diagnostico operativo con `--status`
 

@@ -288,7 +288,9 @@ show_technician_checklist() {
   [[ "$clean" == true ]] && cleanup_label="Sí, solo cache de build e imágenes colgantes"
 
   community_label="No aplica"
-  if [[ "$requires_home_assistant" == true ]]; then
+  if [[ "$profile" == "ha_companion" ]]; then
+    community_label="Automática durante el despliegue"
+  elif [[ "$requires_home_assistant" == true ]]; then
     community_label="No"
     [[ "$install_community_integrations" == true ]] && community_label="Sí, HACS y SonoffLAN"
   fi
@@ -318,7 +320,9 @@ run_technician_wizard() {
       clean=true
     fi
 
-    if [[ "$requires_home_assistant" == true ]] \
+    if [[ "$profile" == "ha_companion" ]]; then
+      info "Home Assistant administrado: HACS y SonoffLAN se provisionarán automáticamente durante el despliegue."
+    elif [[ "$profile" == "bridge_ha" ]] \
       && ask_technician_yes_no "¿Autorizar revisión e instalación de HACS y SonoffLAN si faltan?"; then
       install_community_integrations=true
     fi
@@ -587,14 +591,11 @@ provision_home_assistant_community_integrations() {
     return
   fi
 
-  if [[ "$install_community_integrations" == true ]]; then
+  if [[ "$profile" == ha_companion && "$status_only" == false ]]; then
     should_install=true
-  elif [[ "$profile" == ha_companion && "$assume_yes" == true ]]; then
+    info "Home Assistant administrado: se provisionarán HACS y SonoffLAN si faltan."
+  elif [[ "$install_community_integrations" == true ]]; then
     should_install=true
-  elif [[ "$profile" == ha_companion && "$status_only" == false ]]; then
-    if confirm "¿Instalar HACS y SonoffLAN en el Home Assistant administrado por HomePilot?"; then
-      should_install=true
-    fi
   elif [[ "$profile" == bridge_ha ]] \
     && { ! home_assistant_component_installed hacs || ! home_assistant_component_installed sonoff; }; then
     info "Home Assistant existente: HACS/SonoffLAN se detectan en modo lectura."

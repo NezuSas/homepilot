@@ -42,7 +42,7 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - **REQ-12:** En una instalación nueva invocada sin `--profile` desde una terminal interactiva, el instalador debe guiar la elección con lenguaje de cliente: reutilizar Home Assistant existente, instalar Home Assistant junto a HomePilot, o usar únicamente integraciones nativas. Los nombres internos de perfil no se presentan como decisión principal.
 - **REQ-13:** Si existe un `.env`, el instalador debe conservar el perfil ya guardado cuando no se suministra `--profile`; no debe volver a preguntar ni cambiar la topología de una instalación existente.
 - **REQ-14:** Para perfiles con Home Assistant, `--status` debe informar de forma no destructiva si HACS y SonoffLAN están instalados en el contenedor configurado por `HOMEPILOT_HOME_ASSISTANT_CONTAINER`.
-- **REQ-15:** El instalador debe poder provisionar HACS y SonoffLAN en `ha_companion`; en `bridge_ha` solo puede hacerlo mediante `--with-community-integrations` o una confirmación interactiva explícita. `--yes` no autoriza cambios en un Home Assistant existente.
+- **REQ-15:** El instalador debe provisionar automáticamente HACS y SonoffLAN durante un despliegue de `ha_companion`; en `bridge_ha` solo puede hacerlo mediante `--with-community-integrations` o una confirmación interactiva explícita. `--yes` no autoriza cambios en un Home Assistant existente.
 - **REQ-16:** La provisión de SonoffLAN no debe almacenar ni solicitar credenciales eWeLink en HomePilot; la cuenta se configura exclusivamente en la UI de Home Assistant.
 - **REQ-17:** Si una instalación existente tiene `.env` sin `HOMEPILOT_INSTALLATION_PROFILE`, una ejecución de instalación debe normalizar ese archivo con el perfil resuelto sin requerir edición manual ni duplicar la clave; `--status` solo informa y no modifica el archivo.
 - **REQ-18:** El instalador debe ofrecer --wizard para que un técnico seleccione de forma guiada la arquitectura, la acción de despliegue, la limpieza segura y la autorización opcional de HACS/SonoffLAN; antes de cualquier cambio debe mostrar un checklist resumido y requerir confirmación explícita. Sus respuestas se deben leer desde la terminal controladora para que el flujo sea fiable desde PowerShell, WSL y Linux. Los valores leídos desde `.env` deben normalizar retornos de carro de archivos CRLF para que el perfil seleccionado se interprete igual en todos los sistemas.
@@ -63,7 +63,7 @@ etwork_mode: host para la API y publica el puerto 13000.
 - [x] AC12: Una ejecución interactiva nueva de `install-edge-office.sh` permite elegir el camino de instalación sin conocer `bridge_ha`, `native_only` o `ha_companion`.
 - [x] AC13: Una ejecución sobre una instalación existente conserva el perfil declarado en `.env` salvo que el operador indique `--profile` explícitamente.
 - [x] AC14: `--status` muestra la presencia o ausencia de HACS y SonoffLAN sin cambiar el Home Assistant del cliente.
-- [x] AC15: `ha_companion` ofrece instalar HACS y SonoffLAN después del arranque; `bridge_ha` exige autorización explícita para instalar componentes comunitarios.
+- [x] AC15: `ha_companion` provisiona automáticamente HACS y SonoffLAN después del arranque; `bridge_ha` exige autorización explícita para instalar componentes comunitarios.
 - [x] AC16: El flujo documentado delega la vinculación eWeLink a Home Assistant y no agrega secretos de proveedor a HomePilot.
 - [x] AC17: Una instalación heredada sin perfil se normaliza automáticamente durante una instalación y puede continuar con el flujo autorizado sin editar `.env` a mano; `--status` permanece en modo lectura.
 - [x] AC18: bash scripts/install-edge-office.sh --wizard presenta el checklist técnico, conserva el perfil de una instalación existente, solicita una confirmación única antes de ejecutar las acciones seleccionadas y continúa mostrando sus preguntas cuando se invoca desde PowerShell, WSL o Linux. También debe interpretar correctamente perfiles guardados en archivos `.env` con CRLF.
@@ -74,6 +74,6 @@ etwork_mode: host para la API y publica el puerto 13000.
 ## 5. Límites
 
 - `ha_companion` es una opción explícita y no migra ni modifica un Home Assistant existente.
-- HACS y SonoffLAN son extensiones opcionales de Home Assistant; en `bridge_ha` solo se instalan con autorización explícita del operador.
+- HACS y SonoffLAN se provisionan automáticamente en `ha_companion`; en `bridge_ha` solo se instalan con autorización explícita del operador.
 - `native_only` habilita el appliance y sus integraciones locales; no implementa todavía cada protocolo posible de terceros.
 - HomePilot conserva su propio inventario, espacios, rutinas y usuarios sin depender de Home Assistant como fuente de configuración.
