@@ -33,6 +33,7 @@ Esta especificación define el producto **Asistente Doméstico Nezu**. “Jarvis
 4. **Sin respuestas antiguas:** una orden cancelada o reemplazada no puede hablar ni sobrescribir el estado actual.
 5. **Idioma coherente:** texto y voz siguen el idioma seleccionado dentro de HomePilot.
 6. **Privacidad por diseño:** secretos, tokens, audio y contenido sensible no se exponen en la interfaz ni en auditorías ordinarias.
+7. **Lenguaje semántico, no quemado:** el asistente no construye respuestas, errores, preguntas ni confirmaciones con cadenas literales repartidas en código. Produce un resultado semántico tipado que un compositor localizado transforma en texto y voz.
 
 ## 5. Casos de uso
 
@@ -92,15 +93,23 @@ El asistente usa solo hogares, estancias, dispositivos, rutinas y tableros que e
 
 Toda interacción termina en una de estas categorías: `completed`, `needs_clarification`, `needs_confirmation`, `cancelled`, `failed` o `no_speech`. La respuesta comunica solo la información necesaria para el usuario.
 
-### RF-08. Voz e idioma
+### RF-08. Composición semántica e i18n
+
+- Los servicios de dominio devuelven un resultado tipado por intención, por ejemplo `assistant.action_completed`, junto con parámetros seguros como nombre visible, estancia y estado confirmado.
+- El cliente y TTS resuelven ese resultado desde un catálogo i18n central; no deben recibir ni duplicar frases completas desde servicios, rutas, componentes o callbacks.
+- Cada clave usada por el asistente debe existir en español e inglés. Una clave sin resolver debe usar el fallback del idioma configurado y generar telemetría técnica sin exponer contenido sensible.
+- Las variaciones de redacción, tono y personalidad se definen como plantillas versionadas por idioma, no como condicionales con textos literales. La plantilla no puede cambiar hechos, permisos ni el resultado de ejecución.
+- Los nombres que el usuario creó para hogares, estancias, dispositivos y rutinas se conservan como datos; no se traducen ni se alteran dentro de la respuesta.
+
+### RF-09. Voz e idioma
 
 TTS usa el idioma seleccionado en la aplicación, no únicamente el idioma del navegador. Si TTS falla, la respuesta escrita continúa disponible.
 
-### RF-09. Activador
+### RF-10. Activador
 
 La frase canónica es **Ok Nezu** y sus variaciones permitidas se gestionan desde el catálogo central existente. El activador descarta audio, transcript y respuestas anteriores antes de abrir una nueva interacción.
 
-### RF-10. Auditoría útil
+### RF-11. Auditoría útil
 
 La auditoría registra evento, resultado, entidad legible y marca de tiempo. No almacena tokens, secretos, audio ni prompts completos por defecto y agrupa eventos técnicos repetitivos para no ocultar información útil.
 
@@ -126,6 +135,16 @@ Respuesta saneada + auditoría + sincronización de estado
 
 `packages/assistant` conserva la lógica de dominio. El cliente controla permisos de micrófono, accesibilidad, presentación y cancelación local. `AssistantRoutes` permanece como límite HTTP; cualquier cambio de contrato requiere una spec de implementación específica.
 
+```text
+Resultado de dominio tipado
+          |
+ Compositor de respuestas semánticas
+          |
+Catálogo i18n + parámetros seguros + plantilla de tono
+          |
+    Texto UI y síntesis TTS
+```
+
 ## 8. Requisitos no funcionales
 
 - **Continuidad:** no dejar bloqueado el micrófono ni la interfaz después de error, silencio, timeout o cancelación.
@@ -133,7 +152,7 @@ Respuesta saneada + auditoría + sincronización de estado
 - **Seguridad:** las instrucciones de usuario nunca tienen privilegios de sistema; no revelar datos no autorizados.
 - **Accesibilidad:** estados de escucha, proceso, éxito y fallo comprensibles sin depender exclusivamente del color.
 - **Responsive:** el compositor y controles de voz permanecen visibles con teclado virtual en móvil y tableta.
-- **i18n:** no mezclar idiomas ni claves sin resolver en superficies del asistente.
+- **i18n:** no mezclar idiomas ni claves sin resolver en superficies del asistente; no introducir textos literales fuera de los catálogos centralizados.
 
 ## 9. Criterios de aceptación
 
@@ -142,6 +161,8 @@ Respuesta saneada + auditoría + sincronización de estado
 - [ ] Un transcript vacío, 409 o timeout devuelve el ciclo a disponible sin reactivar solo.
 - [ ] El contexto respeta permisos de usuario y nunca revela entidades ajenas.
 - [ ] La respuesta coincide con el resultado confirmado por el ejecutor y no incluye avisos de inventario irrelevantes.
+- [ ] Los resultados de dominio del asistente no contienen frases completas de interfaz; texto, TTS, confirmaciones y errores se componen desde claves i18n y parámetros tipados.
+- [ ] Cada clave del asistente tiene traducción en español e inglés, con fallback controlado para una clave ausente.
 - [ ] Se respeta la política de confirmación actual para chat, voz y acciones sensibles.
 - [ ] El cambio manual de idioma modifica texto y voz del asistente.
 - [ ] `Ok Nezu` es la frase principal y una nueva activación limpia el turno anterior.
@@ -154,7 +175,7 @@ Respuesta saneada + auditoría + sincronización de estado
 1. **Fase A — Contratos y ciclo:** tipar estados y coordinar turnos sin duplicar flujos.
 2. **Fase B — Voz robusta:** reforzar activador, captura, STT, TTS, cancelación y recuperación.
 3. **Fase C — Contexto y seguridad:** validar permisos, confirmaciones y auditoría útil.
-4. **Fase D — Experiencia residencial:** respuestas concisas, i18n, accesibilidad y superficies responsivas.
+4. **Fase D — Experiencia residencial:** compositor semántico, respuestas concisas, i18n, accesibilidad y superficies responsivas.
 5. **Fase E — Observabilidad y endurecimiento:** métricas locales mínimas, pruebas de carreras y validación Docker.
 
 Cada fase requiere su actualización de tareas, pruebas y aceptación antes de cambiar APIs, persistencia o políticas de ejecución.

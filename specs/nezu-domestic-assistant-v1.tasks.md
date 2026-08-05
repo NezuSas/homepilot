@@ -33,6 +33,11 @@ Especificación principal: [nezu-domestic-assistant-v1.md](./nezu-domestic-assis
 
 ## Fase D — Experiencia residencial
 
+- [ ] Definir el contrato de resultado semántico y el catálogo de claves de respuesta, sin frases completas en servicios de dominio.
+- [ ] Migrar textos de éxito, error, aclaración, confirmación y cancelación del asistente a catálogos i18n centrales con parámetros tipados.
+- [ ] Añadir validación que detecte claves del asistente ausentes en español o inglés y textos literales nuevos fuera de los catálogos autorizados.
+- [ ] Verificar que las variantes de tono no alteren el resultado confirmado ni revelen datos fuera de contexto.
+
 - [ ] Aplicar respuestas concisas y sin inventario no solicitado.
 - [ ] Confirmar traducción completa en español e inglés, incluido TTS.
 - [ ] Verificar compositor de chat y voz en escritorio, tableta, móvil y teclado virtual.
