@@ -177,7 +177,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC61: La pantalla de acceso se valida automáticamente a 320px, tablet y escritorio; no produce overflow horizontal y mantiene cargadas Rubik y Disket Mono.
 - [x] AC62: La pantalla de acceso valida automáticamente el orden de foco por teclado, la activación por Enter, el área táctil mínima del envío y el anuncio semántico de error en móvil, tablet y escritorio.
 - [x] AC63: Un tablero autenticado se valida automáticamente a 320px, tablet y escritorio; conserva su título visible y no genera overflow horizontal.
-- [x] AC64: `npm run verify:quality` y CI ejecutan el mismo control de calidad para traducciones, primitives, specs, responsividad, lint, pruebas, tipado y compilaciones.
+- [x] AC64: `npm run verify:quality` y CI ejecutan el mismo control de calidad para traducciones, primitives, specs, responsividad, lint, pruebas, tipado y compilaciones. La prueba responsive se ejecuta desde el workspace `operator-console` para usar una única instancia de Playwright y su configuración local.
 - [x] AC65: El catálogo completo MDI se carga de forma diferida para los tableros; los iconos operativos de la consola usan importaciones explícitas y no incorporan el catálogo completo de Lucide en la carga inicial.
 - [x] AC66: Todo `SegmentedControl` declara una etiqueta accesible traducida; conserva foco visible, navegación por flechas, Inicio y Fin, y no permite grupos de radios sin nombre.
 - [x] AC67: La navegación entre vistas reutiliza la instantánea de dispositivos durante una ventana corta de frescura, comparte solicitudes simultáneas y conserva los datos visibles; eventos realtime relevantes invalidan esa ventana para sincronizar el cambio de inmediato.

@@ -153,7 +153,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     }));
   };
 
-  const stopProfessionalSpeech = () => {
+  function stopProfessionalSpeech() {
     notifySpeechActivity(false);
 
     if (speechAudioRef.current) {
@@ -284,7 +284,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     });
   }, [pendingPrompt, onPendingPromptConsumed]); // eslint-disable-line react-hooks/exhaustive-deps -- Consume each routed prompt exactly once.
 
-  const stopSilenceDetection = () => {
+  function stopSilenceDetection() {
     if (silenceAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(silenceAnimationFrameRef.current);
       silenceAnimationFrameRef.current = null;

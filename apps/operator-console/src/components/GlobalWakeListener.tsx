@@ -130,7 +130,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     }
   };
 
-  const clearWakeCycleTimeout = () => {
+  function clearWakeCycleTimeout() {
     if (wakeCycleTimeoutRef.current !== null) {
       window.clearTimeout(wakeCycleTimeoutRef.current);
       wakeCycleTimeoutRef.current = null;
@@ -154,7 +154,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     speechCandidateStartedAtRef.current = null;
   };
 
-  const stopRecording = () => {
+  function stopRecording() {
     clearRecordingTimeout();
     stopSilenceDetection();
 
@@ -387,7 +387,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     void transcribeRecording(audioBlob, captureCommand, generation);
   };
 
-  const startWakeCycle = async (captureCommand: boolean) => {
+  async function startWakeCycle(captureCommand: boolean) {
     if (!enabledRef.current || isRecordingRef.current) return;
 
     try {

@@ -17,7 +17,7 @@
     "check:spec-coverage": "node scripts/check-spec-coverage.mjs",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:ui-primitives": "node scripts/check-ui-primitives.mjs",
-    "test:responsive": "playwright test --config apps/operator-console/playwright.config.ts",
+    "test:responsive": "npm run test:responsive --prefix apps/operator-console",
     "verify:quality": "npm run check:i18n && npm run check:ui-primitives && npm run check:spec-coverage && npm run test:responsive && npm run lint --prefix apps/operator-console && npm run test && npm run typecheck && npm run build && npm run build --prefix apps/operator-console",
     "start": "node dist/main.js"
   },

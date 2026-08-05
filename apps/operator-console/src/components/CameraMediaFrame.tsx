@@ -85,12 +85,11 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     setSource(currentObjectUrlRef.current || '');
   }, [active, hlsUrl, preferredMode, snapshotUrl, streamUrl]);
 
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (!active || mode !== 'hls' || !hlsUrl || !videoElement) return;
-
-    const video = videoElement;
+    const video = videoElementRef.current;
+    if (!active || mode !== 'hls' || !hlsUrl || !video) return;
     let player: import('hls.js').default | null = null;
     let cancelled = false;
     let fallbackTriggered = false;
@@ -216,7 +215,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       video.removeAttribute('src');
       video.load();
     };
-  }, [active, hlsUrl, mode, streamUrl, videoElement]);
+  }, [active, hlsUrl, mode, streamUrl]);
 
   useEffect(() => {
     if (!active || mode !== 'snapshot' || !snapshotUrl) return;
@@ -274,7 +273,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
   if (mode === 'hls' && active && hlsUrl) {
     return (
       <video
-        ref={setVideoElement}
+        ref={videoElementRef}
         aria-label={alt}
         className={className}
         autoPlay
