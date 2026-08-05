@@ -167,3 +167,31 @@ Añadir vista "Sistema" o tab "Diagnóstico" en el Operator Console con:
 - Última reconciliación
 - Lista de issues activos
 - Timeline de eventos recientes (últimos 20)
+
+## 10. Estado del sistema para clientes
+
+La ruta existente de estado del sistema presenta información comprensible para clientes finales. No sustituye el diagnóstico técnico, que permanece dentro de **Sistema > Diagnóstico** para administradores.
+
+### 10.1 Datos visibles
+
+- Estado de conexión de los servicios de HomePilot.
+- Total de dispositivos disponibles.
+- Total de espacios organizados en los hogares registrados.
+- Total de rutinas, expresado como escenas y automatizaciones disponibles.
+- Hora de la última comprobación satisfactoria.
+- Mensaje de privacidad y operación local.
+
+### 10.2 Reglas de experiencia
+
+- No se debe mostrar un porcentaje de autonomía ni terminología interna como *Edge*, *malla*, *bridge* o nombres de infraestructura.
+- Una comprobación fallida muestra una indicación breve para revisar, sin ocultar el último inventario disponible.
+- Durante una actualización, la vista conserva los datos ya mostrados y evita skeletons o reinicios visuales.
+- La vista debe funcionar en móvil, tableta y escritorio con tarjetas en una, dos o cuatro columnas según el ancho disponible.
+- Todos los textos se publican mediante i18n en español e inglés.
+
+### 10.3 Criterios de aceptación
+
+1. Un sistema funcional nunca se presenta como `0%` ni como una falla por métricas internas no disponibles.
+2. La vista distingue entre conexión disponible y comprobación pendiente mediante texto, icono y color accesibles.
+3. Si la carga de escenas, automatizaciones o snapshot falla, la interfaz conserva los conteos previos y muestra el estado de revisión.
+4. Los detalles de eventos, sincronización y conectores continúan disponibles exclusivamente en Diagnóstico.
