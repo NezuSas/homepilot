@@ -40,6 +40,10 @@ Los componentes modulares de Operator Console se rigen por
 `operator-console-modular-components-v1.md`; los widgets de tablero mantienen
 además `dashboard-layout-and-widgets-v1.md` como spec de comportamiento.
 
+## Asistente residencial Nezu
+
+La evolución del asistente se documenta en tres niveles complementarios: `assistant-v1.md` conserva el contrato funcional existente, `home-conversation-natural-voice-v1.md` describe el comportamiento de conversación y voz, y `nezu-domestic-assistant-v1.md` define la visión residencial unificada y sus fases de endurecimiento. Toda modificación futura del asistente debe referenciar los documentos que correspondan y actualizar su archivo de tareas.
+
 La trazabilidad de código se comprueba con:
 
 ```bash

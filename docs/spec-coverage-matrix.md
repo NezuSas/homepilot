@@ -30,7 +30,7 @@ El comando falla si un archivo no se puede asignar a una spec existente.
 | Descubrimiento e importación | `DeviceRoutes`, `InboxView`, integración HA | `device-discovery-inbox.md` |
 | Escenas | `SceneRoutes`, `ScenesView`, `SceneBuilderModal` | `scene-lifecycle-v1.md` |
 | Automatizaciones y ejecución | `packages/automation`, `AutomationRoutes`, `AutomationsView`, `AutomationWorkbenchView` | `automation-rules-engine-v1.md`, `automation-rule-lifecycle-v1.md`, `automation-engine-v2-event-driven.md` |
-| Asistente de voz y conversación | `packages/assistant`, `AssistantRoutes`, `AssistantView`, `HomeConversationView` | `assistant-v1.md`, `home-conversation-natural-voice-v1.md` |
+| Asistente de voz y conversación | `packages/assistant`, `AssistantRoutes`, `AssistantView`, `HomeConversationView` | `assistant-v1.md`, `home-conversation-natural-voice-v1.md`, `nezu-domestic-assistant-v1.md` |
 | Bridge y sincronización Home Assistant | `packages/integrations/home-assistant`, `SettingsRoutes`, `HomeAssistantSettingsView` | `home-assistant-settings-connection-management-v1.md`, `home-assistant-realtime-sync-v1.md`, `home-assistant-sync-resilience-v2.md` |
 | Cámaras HA y cámaras nativas | `CameraRoutes`, `NativeCameraRoutes`, `NativeCamerasView`, `CameraMediaFrame` | `home-assistant-camera-streaming-v1.md`, `native-camera-local-integration-v1.md` |
 | Reproductores multimedia | `MediaRoutes`, `MediaPlayerRoutes`, `MediaPlayerCard` | `media-player-local-control-v1.md` |
