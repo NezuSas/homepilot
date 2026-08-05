@@ -113,6 +113,33 @@ La frase canónica es **Ok Nezu** y sus variaciones permitidas se gestionan desd
 
 La auditoría registra evento, resultado, entidad legible y marca de tiempo. No almacena tokens, secretos, audio ni prompts completos por defecto y agrupa eventos técnicos repetitivos para no ocultar información útil.
 
+
+### RF-12. Proveedores de voz local-first
+
+- La línea base funciona con activación, STT Whisper local y TTS Piper local, sin cuenta externa ni clave de terceros.
+- Cada proveedor cumple un contrato explícito. La frase `Ok Nezu` en español no se declara apta para producción hasta evaluar precisión, falsos positivos y ruido residencial.
+- La interfaz solo muestra disponibilidad, idioma y una causa técnica saneada; nunca expone claves, URLs firmadas, audio, trazas internas ni prompts.
+- Un proveedor ausente, reiniciado o agotado libera el turno activo y conserva disponible la conversación escrita.
+
+### RF-13. Proveedor premium opcional
+
+- Un proveedor externo de alta fidelidad solo puede habilitarlo un administrador autorizado por instalación.
+- Sus secretos no aparecen en interfaz, auditoría, diagnósticos, exportaciones ni logs.
+- Si falla, se agota o no está configurado, Piper realiza fallback con el mismo resultado semántico y sin bloquear la respuesta escrita.
+- Solo se admiten voces propias, licenciadas o con autorización verificable. Se prohíben clonación, imitación o atribución de identidades de terceros.
+
+### RF-14. Idioma, personalidad y contexto
+
+- El idioma explícito de HomePilot prevalece sobre el idioma del navegador para texto y TTS.
+- La personalidad Nezu es sobria, breve y residencial; ninguna plantilla puede modificar hechos confirmados, permisos o errores.
+- El contexto se limita al usuario, hogar, estancias, dispositivos, rutinas y tiempo autorizados. Nunca incorpora datos de otras cuentas.
+
+### RF-15. Calidad de sesión de voz
+
+- Cada turno conserva identificador, origen, idioma, proveedor y motivo saneado de cierre.
+- Una activación nueva invalida la anterior; no pueden coexistir capturas, STT o TTS paralelos del mismo origen.
+- Las métricas son agregadas y no guardan audio, transcripts, prompts, tokens ni secretos.
+- Las pruebas cubren activación, silencio, interrupción, reactivación, TTS lento, STT caído, cambio de idioma y proveedor premium no disponible.
 ## 7. Arquitectura objetivo
 
 ```text
@@ -143,6 +170,31 @@ Resultado de dominio tipado
 Catálogo i18n + parámetros seguros + plantilla de tono
           |
     Texto UI y síntesis TTS
+
+### 7.1. Contratos de proveedor
+
+| Contrato | Entrada y salida | Límite obligatorio |
+| --- | --- | --- |
+| `WakeWordProvider` | Activación y confianza | No ejecuta dispositivos ni persiste audio. |
+| `SpeechToTextProvider` | Captura aceptada y transcript | No conoce permisos, rutinas ni estados. |
+| `AssistantOrchestrator` | `turnId`, contexto y secuencia de cancelación | No produce textos literales de UI. |
+| `ResponseComposer` | Resultados tipados y parámetros seguros | No altera resultados confirmados. |
+| `TextToSpeechProvider` | Texto ya compuesto y seleccionado por idioma | No toma decisiones del hogar. |
+
+### 7.2. Estados de sesión
+
+```text
+idle -> activated -> listening -> transcribing -> resolving -> executing? -> speaking -> idle
+                  \-> cancelled | no_speech | failed -> idle
+```
+
+Cada transición pertenece a un único `turnId`. Los callbacks obsoletos se descartan antes de actualizar UI, reproducir TTS o ejecutar una acción.
+
+### 7.3. Restricciones de identidad y degradación
+
+- No se ofrece clonación, imitación ni atribución de voz de terceros.
+- El proveedor premium es opcional, requiere consentimiento administrativo y degrada a Piper sin bloquear el flujo.
+- Un proveedor de voz no puede ampliar capacidades, permisos ni modificar un resultado de dominio.
 ```
 
 ## 8. Requisitos no funcionales
@@ -168,6 +220,13 @@ Catálogo i18n + parámetros seguros + plantilla de tono
 - [ ] `Ok Nezu` es la frase principal y una nueva activación limpia el turno anterior.
 - [ ] La auditoría muestra eventos útiles y agrupa ruido técnico repetitivo.
 - [ ] Se cubren cancelación, carrera de callbacks, permisos, idioma y recuperación con pruebas.
+- [ ] La línea base de voz funciona sin cuenta externa ni clave de terceros.
+- [ ] `Ok Nezu` en español se evalúa con métricas de precisión, falsos positivos y ruido antes de habilitarlo en producción.
+- [ ] Un administrador puede habilitar un proveedor premium opcional y su fallo vuelve a Piper sin interrumpir el texto.
+- [ ] No se permiten voces clonadas, imitadas ni atribuidas a identidades de terceros.
+- [ ] El idioma elegido en HomePilot gobierna tanto el texto como el TTS.
+- [ ] La telemetría de voz no contiene audio, transcripts, prompts, tokens ni secretos.
+
 - [ ] Las validaciones obligatorias pasan: `npm run typecheck`, `npm run build`, `npm run build --prefix apps/operator-console` y `npm run test`.
 
 ## 10. Plan de implementación posterior
@@ -176,7 +235,8 @@ Catálogo i18n + parámetros seguros + plantilla de tono
 2. **Fase B — Voz robusta:** reforzar activador, captura, STT, TTS, cancelación y recuperación.
 3. **Fase C — Contexto y seguridad:** validar permisos, confirmaciones y auditoría útil.
 4. **Fase D — Experiencia residencial:** compositor semántico, respuestas concisas, i18n, accesibilidad y superficies responsivas.
-5. **Fase E — Observabilidad y endurecimiento:** métricas locales mínimas, pruebas de carreras y validación Docker.
+5. **Fase E — Proveedores y calidad de voz:** contratos local-first, evaluación del activador, fallback y consentimiento premium.
+6. **Fase F — Observabilidad y endurecimiento:** métricas locales mínimas, pruebas de carreras y validación Docker.
 
 Cada fase requiere su actualización de tareas, pruebas y aceptación antes de cambiar APIs, persistencia o políticas de ejecución.
 

@@ -43,7 +43,17 @@ Especificación principal: [nezu-domestic-assistant-v1.md](./nezu-domestic-assis
 - [ ] Verificar compositor de chat y voz en escritorio, tableta, móvil y teclado virtual.
 - [ ] Validar sincronización de estados en todas las superficies relevantes.
 
-## Fase E — Calidad y despliegue
+## Fase E — Proveedores y calidad de voz
+
+- [ ] Inventariar el activador, Whisper local y Piper contra los contratos de proveedor definidos en la spec.
+- [ ] Centralizar `turnId`, cancelación e invalidación de callbacks en todos los orígenes de interacción.
+- [ ] Añadir configuración administrativa explícita y segura para proveedores premium opcionales.
+- [ ] Verificar fallback a Piper ante proveedor premium ausente, fallido o sin cuota.
+- [ ] Prohibir clonación, imitación o atribución de voces de terceros en configuración y documentación.
+- [ ] Ejecutar evaluación controlada de `Ok Nezu` en español: precisión, falsos positivos, silencio y ruido residencial.
+- [ ] Verificar que el idioma de HomePilot gobierne texto y TTS sin depender del navegador.
+
+## Fase F — Calidad y despliegue
 
 - [ ] Añadir pruebas de integración para casos UC-01 a UC-07.
 - [ ] Ejecutar `npm run typecheck`.
