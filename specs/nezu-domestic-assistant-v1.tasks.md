@@ -38,7 +38,8 @@ Especificación principal: [nezu-domestic-assistant-v1.md](./nezu-domestic-assis
 - [ ] Añadir validación que detecte claves del asistente ausentes en español o inglés y textos literales nuevos fuera de los catálogos autorizados.
 - [ ] Verificar que las variantes de tono no alteren el resultado confirmado ni revelen datos fuera de contexto.
 
-- [ ] Aplicar respuestas concisas y sin inventario no solicitado.
+- [x] Aplicar respuestas concisas y sin inventario no solicitado.
+- [x] Persistir por usuario una preferencia local de respuestas breves, normales o detalladas sin modificar acciones, confirmaciones ni permisos.
 - [ ] Confirmar traducción completa en español e inglés, incluido TTS.
 - [ ] Verificar compositor de chat y voz en escritorio, tableta, móvil y teclado virtual.
 - [ ] Validar sincronización de estados en todas las superficies relevantes.

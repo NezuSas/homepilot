@@ -195,8 +195,14 @@ Cada transición pertenece a un único `turnId`. Los callbacks obsoletos se desc
 - No se ofrece clonación, imitación ni atribución de voz de terceros.
 - El proveedor premium es opcional, requiere consentimiento administrativo y degrada a Piper sin bloquear el flujo.
 - Un proveedor de voz no puede ampliar capacidades, permisos ni modificar un resultado de dominio.
-```
 
+### 7.4. Preferencia local de estilo de respuesta
+
+- Cada usuario autenticado puede elegir un estilo `concise`, `standard` o `detailed`, persistido localmente como una preferencia propia.
+- El asistente reconoce peticiones explícitas de brevedad, respuesta normal o mayor detalle en español e inglés.
+- La preferencia se compone inicialmente solo sobre respuestas de conversación general sin ejecución; no modifica confirmaciones, permisos, intención, ejecución, entidades ni políticas de seguridad.
+- El modo detallado no inventa datos: conserva la respuesta confirmada y como máximo ofrece ampliarla.
+- La preferencia no se comparte entre usuarios ni se transmite a proveedores externos.
 ## 8. Requisitos no funcionales
 
 - **Continuidad:** no dejar bloqueado el micrófono ni la interfaz después de error, silencio, timeout o cancelación.

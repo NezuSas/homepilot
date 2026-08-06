@@ -25,6 +25,14 @@ import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolver
 import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
+import {
+  applyAssistantResponsePreference,
+  ASSISTANT_RESPONSE_PREFERENCE_KEY,
+  detectAssistantResponsePreferenceCommand,
+  getAssistantResponsePreferenceAcknowledgement,
+  isAssistantResponsePreference,
+  type AssistantResponsePreference
+} from './response/AssistantResponsePreference';
 import { AssistantQuickResponseService } from './AssistantQuickResponseService';
 import { extractNezuWakeCommand } from '../../shared/domain/nezuWakePhrases';
 import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
@@ -221,10 +229,11 @@ export class AssistantConversationService {
     const normalized = this.normalizePrompt(prompt);
 
     // V2: Load Contextual Memory & Aliases FIRST
-    const [memory, aliases, storedLangPref] = await Promise.all([
+    const [memory, aliases, storedLangPref, storedResponsePreference] = await Promise.all([
       this.memoryService.getShortTermMemory(userId),
       this.memoryService.getAliases(userId),
-      this.memoryService.getUserPreference(userId, 'preferred_language')
+      this.memoryService.getUserPreference(userId, 'preferred_language'),
+      this.memoryService.getUserPreference(userId, ASSISTANT_RESPONSE_PREFERENCE_KEY)
     ]);
 
     // --- LANGUAGE INTELLIGENCE V1 ---
@@ -239,6 +248,9 @@ export class AssistantConversationService {
     const detectedLang = detectLanguage(prompt);
     const storedValidLang: 'es' | 'en' = storedLangPref === 'en' ? 'en' : (_langHint === 'en' ? 'en' : 'es');
     const language: 'es' | 'en' = detectedLang ?? storedValidLang;
+    const responsePreference: AssistantResponsePreference = isAssistantResponsePreference(storedResponsePreference)
+      ? storedResponsePreference
+      : 'standard';
     this.memoryService.setUserPreference(userId, 'preferred_language', language).catch(() => {});
 
     // --- 1. PENDING CONFIRMATIONS / SELECTED OPTION ---
@@ -428,7 +440,29 @@ export class AssistantConversationService {
     if (this.isListAutomationsIntent(resolvedNormalized)) return await this.handleListAutomations(language);
     if (this.isDetailFollowUp(resolvedNormalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) return await this.handleDetailFollowUp(memory, language);
 
-    if (!this.isLikelyHomeControlPrompt(resolvedNormalized)) return this.returnWithShadow(activePrompt, userId, language, await this.smallTalkService.handle(activePrompt, language, userName, userId));
+    const responsePreferenceOverride = detectAssistantResponsePreferenceCommand(resolvedNormalized);
+    if (responsePreferenceOverride && !this.isLikelyHomeControlPrompt(resolvedNormalized)) {
+      await this.memoryService.setUserPreference(
+        userId,
+        ASSISTANT_RESPONSE_PREFERENCE_KEY,
+        responsePreferenceOverride
+      );
+      return {
+        type: 'answer',
+        message: getAssistantResponsePreferenceAcknowledgement(responsePreferenceOverride, language)
+      };
+    }
+
+    if (!this.isLikelyHomeControlPrompt(resolvedNormalized)) {
+      return this.returnWithShadow(
+        activePrompt,
+        userId,
+        language,
+        await this.smallTalkService.handle(activePrompt, language, userName, userId),
+        responsePreference,
+        true
+      );
+    }
 
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
     if (v2Response) return this.returnWithShadow(activePrompt, userId, language, v2Response);
@@ -3938,12 +3972,19 @@ export class AssistantConversationService {
     };
   }
 
-  private returnWithShadow(prompt: string, userId: string, language: string, response: AssistantConversationResponse): AssistantConversationResponse {
+  private returnWithShadow(
+    prompt: string,
+    userId: string,
+    language: string,
+    response: AssistantConversationResponse,
+    responsePreference: AssistantResponsePreference = 'standard',
+    allowResponsePersonalization = false
+  ): AssistantConversationResponse {
     // Required: Any successful deterministic execution must return directly and bypass Planner V2 Shadow
     if (response.type === 'execution' || response.type === 'clarification') {
       return response;
     }
-    
+
     if (response.type === 'answer' && response.execution) {
       return response;
     }
@@ -3951,9 +3992,20 @@ export class AssistantConversationService {
     if (this.shadowService) {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
-    return response;
-  }
 
+    if (!allowResponsePersonalization || response.type !== 'answer') {
+      return response;
+    }
+
+    return {
+      ...response,
+      message: applyAssistantResponsePreference(
+        response.message,
+        responsePreference,
+        language === 'en' ? 'en' : 'es'
+      )
+    };
+  }
   private extractTargetPhrase(prompt: string): string {
     const norm = this.normalizePrompt(prompt);
     const verbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'abre', 'abrir', 'cierra', 'cerrar', 'turn on', 'turn off', 'open', 'close', 'toggle'];
