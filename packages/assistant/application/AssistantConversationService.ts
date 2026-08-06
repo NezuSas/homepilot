@@ -2140,8 +2140,11 @@ export class AssistantConversationService {
     
     const isGeneral = generalTriggers.some(q => this.containsWord(normalized, q));
     
+
+    const isInventoryCountQuery = this.isInventoryCountQuery(normalized);
     const isGeneralState = isGeneral && (
       hasState ||
+      isInventoryCountQuery ||
       this.containsWord(normalized, "hay") ||
       this.containsWord(normalized, "estan") ||
       this.containsWord(normalized, "son") ||
@@ -2167,6 +2170,16 @@ export class AssistantConversationService {
     return !hasAction;
   }
 
+
+  private isInventoryCountQuery(normalized: string): boolean {
+    const inventoryTerms = ['luz', 'luces', 'dispositivo', 'dispositivos', 'light', 'lights', 'device', 'devices'];
+    const countTerms = ['cuanto', 'cuantos', 'cuanta', 'cuantas'];
+
+    return inventoryTerms.some((term) => this.containsWord(normalized, term)) && (
+      countTerms.some((term) => this.containsWord(normalized, term)) ||
+      normalized.includes('how many')
+    );
+  }
   private async applySafetyGateV2(
     prompt: string,
     userId: string,
@@ -2762,6 +2775,22 @@ export class AssistantConversationService {
     }
 
     // Split into explicit On/Off
+    if (this.isInventoryCountQuery(normalized)) {
+      const itemLabel = language === 'en'
+        ? (isLightsOnly ? (filteredDevices.length === 1 ? 'light' : 'lights') : (filteredDevices.length === 1 ? 'device' : 'devices'))
+        : (isLightsOnly ? (filteredDevices.length === 1 ? 'luz' : 'luces') : (filteredDevices.length === 1 ? 'dispositivo' : 'dispositivos'));
+      const roomSuffix = targetRoomName
+        ? (language === 'en' ? ` in ${targetRoomName}` : ` en ${targetRoomName}`)
+        : '';
+
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? `You have ${filteredDevices.length} ${itemLabel}${roomSuffix}.`
+          : `Tienes ${filteredDevices.length} ${itemLabel}${roomSuffix}.`
+      };
+    }
+
     const onDevices = filteredDevices.filter(d => d.lastKnownState && (d.lastKnownState.on === true || d.lastKnownState.state === 'on'));
     const offDevices = filteredDevices.filter(d => d.lastKnownState && (d.lastKnownState.on === false || d.lastKnownState.state === 'off'));
 

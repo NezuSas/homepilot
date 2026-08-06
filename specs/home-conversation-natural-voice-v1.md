@@ -103,6 +103,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - `open`, `close` y `set_position` representan siempre la intención funcional del usuario. Para dispositivos Home Assistant con `invertState`, la inversión del servicio y de la posición debe aplicarse una sola vez en el driver, de forma uniforme para UI, asistente, escenas y automatizaciones.
 - Las consultas `qué luces están apagadas` deben incluir dispositivos HA de tipo `switch` cuyo nombre indique explícitamente que son luces cuando no exista una clasificación semántica manual; una clasificación manual distinta de `light` siempre prevalece.
 - El endpoint TTS acepta respuestas residenciales extensas, incluida la guía completa de capacidades, sin devolver `VALIDATION_ERROR` por el límite anterior de 1200 caracteres.
+- Las consultas de inventario, como `cuántas luces tengo`, deben responder con el total disponible sin exigir una estancia ni degradarse a una aclaración de comando.
 - El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz principal `es_MX-claude-high` por defecto, configurable por `PIPER_VOICE_ES`.
 - La selección española conserva un respaldo local explícito configurable por `PIPER_FALLBACK_VOICE_ES`; si la voz principal no existe, el asistente no queda sin respuesta de voz.
 - El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.

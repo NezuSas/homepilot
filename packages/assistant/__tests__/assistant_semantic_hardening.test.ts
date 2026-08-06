@@ -136,6 +136,25 @@ describe('Assistant Semantic Hardening', () => {
     expect(res.message).toContain('No encontré esa estancia');
   });
 
+  it('answers the total for "cuántas luces tengo" without requiring a room', async () => {
+    mockRoomRepo.findAll.mockResolvedValue([
+      createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })
+    ]);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'light-1', name: 'Luz principal', type: 'light', roomId: 'r1', homeId: 'h1', lastKnownState: { state: 'on' } }),
+      createTestDevice({ id: 'light-2', name: 'Lámpara', type: 'light', roomId: 'r1', homeId: 'h1', lastKnownState: { state: 'off' } }),
+      createTestDevice({ id: 'switch-1', name: 'Ventilador', type: 'switch', roomId: 'r1', homeId: 'h1', lastKnownState: { state: 'off' } })
+    ]);
+    mockMemory.getAliases.mockResolvedValue({});
+
+    const res = await service.converse({ prompt: '¿Cuántas luces tengo?', userId: 'u1' }, 'es');
+
+    expect(res).toEqual(expect.objectContaining({
+      type: 'answer',
+      message: 'Tienes 2 luces.'
+    }));
+  });
+
   it('Draft creation for "Dormitorio" fails if no room or alias exists', async () => {
     mockRoomRepo.findAll.mockResolvedValue([
       createTestRoom({ id: 'r1', name: 'Sala' })
