@@ -45,16 +45,6 @@ export class AssistantMemoryService implements AssistantMemoryPort {
     return null;
   }
 
-  /**
-   * Retrieves the ID of the last scene executed by the user/assistant.
-   */
-  public async getLastSceneUsed(): Promise<string | null> {
-    // TODO: Since we filter by sourceType === 'manual', normal scenes might not be caught
-    // unless they are mapped as manual assistant actions. 
-    // Returning null for V1 to be safe and avoid matching automations or random scenes.
-    return null;
-  }
-
   // V2 Conversational Memory
   
   public async saveShortTermMemory(userId: string, state: AssistantMemoryState): Promise<void> {

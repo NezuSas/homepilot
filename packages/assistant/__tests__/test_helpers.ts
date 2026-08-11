@@ -118,7 +118,6 @@ export const createMockAssistantMemory = (overrides?: Partial<jest.Mocked<Assist
   deleteAlias: jest.fn().mockResolvedValue(undefined),
   getRecentActions: jest.fn().mockResolvedValue([]),
   getLastDeviceUsed: jest.fn().mockResolvedValue(null),
-  getLastSceneUsed: jest.fn().mockResolvedValue(null),
   getUserPreference: jest.fn().mockResolvedValue(null),
   setUserPreference: jest.fn().mockResolvedValue(undefined),
   ...overrides

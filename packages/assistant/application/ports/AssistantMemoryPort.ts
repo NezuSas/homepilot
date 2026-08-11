@@ -78,7 +78,6 @@ export interface AssistantMemoryState {
 export interface AssistantMemoryPort {
   getRecentActions(limit: number): Promise<ExecutionRecord[]>;
   getLastDeviceUsed(): Promise<string | null>;
-  getLastSceneUsed(): Promise<string | null>;
 
   // V2 Conversational Memory
   saveShortTermMemory(userId: string, state: AssistantMemoryState): Promise<void>;
