@@ -4,7 +4,7 @@ services:
     ports:
       - "${HOMEPILOT_API_PORT:-3000}:3000"
     environment:
-      INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://host.docker.internal:18123}
+      INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://homeassistant:8123}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       TTS_BASE_URL: ${TTS_BASE_URL:-http://homepilot-tts:8088}
       STT_BASE_URL: ${STT_BASE_URL:-http://homepilot-stt:8090}
@@ -12,5 +12,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   homepilot-ui:
+    ports: !override
+      - ${HOMEPILOT_UI_PORT:-8080}:80
     volumes:
       - ./docker/ui/nginx.windows.conf:/etc/nginx/conf.d/default.conf:ro

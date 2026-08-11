@@ -26,7 +26,8 @@ The stack will consist of three main services managed by `docker-compose`:
 
 ## Networking Strategy
 -   **Internal (Docker DNS)**:
-    -   `homepilot-api` reaches `homeassistant` via `http://homeassistant:8123`.
+    -   Todos los servicios usan la red bridge predeterminada de Compose y se resuelven por DNS de servicio.
+    -   `homepilot-ui` llega a `homepilot-api:3000` mediante Nginx; la API llega a `homeassistant:8123`, `ollama:11434`, `homepilot-tts:8088` y `homepilot-stt:8090`.
 -   **Public (Browser Resolution)**:
     -   Browser reaches `homepilot-ui` via `http://localhost:80` (or configured port).
     -   Browser reaches `homepilot-api` via `http://localhost:3000` (Directly, no reverse proxy in V1).
@@ -65,8 +66,8 @@ The stack will consist of three main services managed by `docker-compose`:
 ## Acceptance Criteria
 The implementation is correct if:
 - [ ] `docker-compose up` starts all services without manual intervention.
-- [ ] Login works in the dockerized environment.
+- [ ] Login works in the dockerized environment on Linux and Docker Desktop for Windows.
+- [ ] La UI alcanza `homepilot-api` por DNS interno, sin `network_mode: host`.
 - [ ] Onboarding detects the system status correctly.
 - [ ] `testConnection()` against `http://homeassistant:8123` works from the API.
 - [ ] **Data Persistence**: `docker-compose down` followed by `docker-compose up` preserves the DB, setup state, sessions, and HA configuration.
-

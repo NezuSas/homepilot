@@ -23,3 +23,8 @@
     - [ ] `docker-compose down`.
     - [ ] `docker-compose up` again.
     - [ ] Verify that setup state, user sessions, and HA configuration are preserved.
+
+
+## Portabilidad Linux y Windows
+- [ ] Usar DNS de servicio y red bridge de Compose para API y UI en ambos sistemas.
+- [ ] Validar login a través de Nginx en Docker Desktop y Linux.
