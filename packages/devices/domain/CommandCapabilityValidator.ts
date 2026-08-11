@@ -24,7 +24,6 @@ export function validateDeviceCommand(device: Device, command: DeviceCommandRequ
   // Fallback conservador: Si no hay capacidades inferidas, permitir comandos legacy para no romper dispositivos raros.
   // Esto asegura que la transición a capacidades sea incremental.
   if (capabilities.length === 0) {
-    // TODO: Implementar registro técnico en base de datos o sistema de logs centralizado
     if (process.env.NODE_ENV !== 'test') {
       console.warn(`[CapabilityValidator] Device ${device.id} (${device.externalId}) has no resolvable capabilities. Allowing legacy execution.`);
     }
