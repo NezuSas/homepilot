@@ -151,6 +151,7 @@ validate_profile_environment() {
   local configured_profile
   configured_profile="$(sed -n 's/^HOMEPILOT_INSTALLATION_PROFILE=//p' .env | tail -n 1)"
   configured_profile="${configured_profile:-bridge_ha}"
+  configured_profile="${configured_profile%$'\r'}"
 
   [[ "$configured_profile" == "$profile" ]] || fail ".env declara el perfil ${configured_profile}; ejecuta este comando con --profile ${configured_profile}."
 }
