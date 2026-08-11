@@ -3,6 +3,7 @@ import { DeviceRepository } from '../domain/repositories/DeviceRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { HomeAssistantConnectionProvider } from '../../integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import { getHomeAssistantDeviceProfile } from '../domain/deviceProfiles';
+import { Device } from '../domain/types';
 
 export interface HomeAssistantImportServiceDependencies {
   deviceRepository: DeviceRepository;
@@ -13,7 +14,7 @@ export interface HomeAssistantImportServiceDependencies {
 export class HomeAssistantImportService {
   constructor(private readonly deps: HomeAssistantImportServiceDependencies) {}
 
-  public async importDevice(entityId: string, userId: string, name?: string): Promise<any> {
+  public async importDevice(entityId: string, userId: string, name?: string): Promise<Device & { lastKnownState: Record<string, unknown> }> {
     const userHomes = await this.deps.homeRepository.findHomesByUserId(userId);
     const homeId = userHomes[0]?.id;
 
@@ -43,7 +44,7 @@ export class HomeAssistantImportService {
     const deviceType = profile.type === 'unknown' ? 'sensor' : profile.type;
     const semanticType = profile.semanticType === 'unknown' ? undefined : profile.semanticType;
 
-    const device = {
+    const device: Device & { lastKnownState: Record<string, unknown> } = {
       id: deviceId,
       homeId: homeId,
       roomId: null,

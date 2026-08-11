@@ -9,7 +9,7 @@ import { HomeAssistantState } from '../../../packages/devices/infrastructure/ada
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { resolveCapabilitiesForDevice } from '../../../packages/devices/domain/CapabilityResolver';
-import { Device } from '../../../packages/devices/domain/types';
+import { Device, DeviceSemanticType } from '../../../packages/devices/domain/types';
 import { CAPABILITY_DEFINITIONS } from '../../../packages/devices/domain/capabilities';
 import { getDeviceProfileForDevice, getHomeAssistantDeviceProfile, listSupportedHomeAssistantDomains } from '../../../packages/devices/domain/deviceProfiles';
 import { removeDeviceUseCase } from '../../../packages/devices/application/removeDeviceUseCase';
@@ -27,7 +27,7 @@ export class DeviceRoutes extends ApiRoutes {
    * Helper para enriquecer el dispositivo con sus capacidades resueltas operacionalmente.
    * Incluye la definición completa de comandos y esquemas de parámetros.
    */
-  private enrichDevice(device: Device): any {
+  private enrichDevice(device: Device): Device & { profile: ReturnType<typeof getDeviceProfileForDevice> } {
     const profile = getDeviceProfileForDevice(device);
     const resolvedCapabilities = resolveCapabilitiesForDevice(device);
     const enrichedCapabilities = resolvedCapabilities.map(cap => ({
@@ -314,8 +314,9 @@ export class DeviceRoutes extends ApiRoutes {
 
         const validSemanticTypes = ['light', 'switch', 'outlet', 'cover', 'camera', 'sensor', 'unknown', null];
         const { semanticType } = payload;
+        const isSemanticType = semanticType === null || (typeof semanticType === 'string' && ['light', 'switch', 'outlet', 'cover', 'camera', 'sensor', 'unknown'].includes(semanticType));
 
-        if (!validSemanticTypes.includes(semanticType as any)) {
+        if (!isSemanticType) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Invalid semanticType value'), true;
         }
 
@@ -328,7 +329,7 @@ export class DeviceRoutes extends ApiRoutes {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
         }
 
-        await container.repositories.deviceRepository.updateSemanticType(deviceId, semanticType as any);
+        await container.repositories.deviceRepository.updateSemanticType(deviceId, semanticType as DeviceSemanticType | null);
         
         const updatedDevice = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!updatedDevice) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;

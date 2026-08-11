@@ -11,7 +11,10 @@ import { LoginAttemptRateLimiter } from '../../../packages/auth/application/Logi
 export class AuthRoutes extends ApiRoutes {
   private readonly loginAttemptRateLimiter: LoginAttemptRateLimiter;
 
-  constructor(loginAttemptRateLimiter: LoginAttemptRateLimiter = new LoginAttemptRateLimiter()) {
+  constructor(
+    loginAttemptRateLimiter: LoginAttemptRateLimiter = new LoginAttemptRateLimiter(),
+    private readonly mediaService: MediaService = new MediaService()
+  ) {
     super();
     this.loginAttemptRateLimiter = loginAttemptRateLimiter;
   }

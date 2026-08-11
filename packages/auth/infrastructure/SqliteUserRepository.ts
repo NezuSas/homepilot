@@ -1,6 +1,18 @@
 import { Database } from 'better-sqlite3';
 import { User, UserRole } from '../domain/User';
 
+interface UserRow {
+  id: string;
+  username: string;
+  password_hash: string;
+  role: UserRole;
+  is_active: number;
+  display_name: string | null;
+  avatar_data_uri: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export class SqliteUserRepository {
   constructor(private db: Database) {}
 
@@ -18,7 +30,7 @@ export class SqliteUserRepository {
 
   public async findAll(): Promise<User[]> {
     const stmt = this.db.prepare('SELECT * FROM users ORDER BY created_at ASC');
-    const rows = stmt.all() as any[];
+    const rows = stmt.all() as UserRow[];
     return rows.map(r => this.mapToDomain(r));
   }
 
@@ -42,14 +54,14 @@ export class SqliteUserRepository {
 
   public async findByUsername(username: string): Promise<User | null> {
     const stmt = this.db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE');
-    const row = stmt.get(username) as any;
+    const row = stmt.get(username) as UserRow | undefined;
     if (!row) return null;
     return this.mapToDomain(row);
   }
 
   public async findById(id: string): Promise<User | null> {
     const stmt = this.db.prepare('SELECT * FROM users WHERE id = ?');
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as UserRow | undefined;
     if (!row) return null;
     return this.mapToDomain(row);
   }
@@ -125,7 +137,7 @@ export class SqliteUserRepository {
     stmt.run(displayName, avatarDataUri, now, id);
   }
 
-  private mapToDomain(row: any): User {
+  private mapToDomain(row: UserRow): User {
     return {
       id: row.id,
       username: row.username,

@@ -11,6 +11,7 @@ import { executeDeviceCommandUseCase } from '../../../packages/devices/applicati
 import { DeviceCommandV1 } from '../../../packages/devices/domain/commands';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { ActivityType } from '../../../packages/devices/domain/repositories/ActivityLogRepository';
 
 interface LocalRoomRow {
   id: string;
@@ -100,8 +101,8 @@ export class TopologyRoutes extends ApiRoutes {
             updatedAt: r.updated_at,
           }))
         );
-      } catch (error: any) {
-        this.sendError(res, 500, 'DB_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DB_ERROR', (error instanceof Error ? error.message : String(error)));
       }
       return true;
     }
@@ -142,7 +143,7 @@ export class TopologyRoutes extends ApiRoutes {
         this.sendJson(res, home, 201);
       } catch (error: unknown) {
         if (error instanceof InvalidHomeNameError) {
-          this.sendError(res, 400, 'INVALID_INPUT', error.message);
+          this.sendError(res, 400, 'INVALID_INPUT', (error instanceof Error ? error.message : String(error)));
         } else {
           this.sendError(res, 500, 'HOME_CREATE_ERROR', error instanceof Error ? error.message : 'Home creation failed');
         }
@@ -218,11 +219,11 @@ export class TopologyRoutes extends ApiRoutes {
         this.sendJson(res, room, 201);
       } catch (error: unknown) {
         if (error instanceof InvalidRoomNameError) {
-          this.sendError(res, 400, 'INVALID_INPUT', error.message);
+          this.sendError(res, 400, 'INVALID_INPUT', (error instanceof Error ? error.message : String(error)));
         } else if (error instanceof NotFoundError) {
-          this.sendError(res, 404, 'HOME_NOT_FOUND', error.message);
+          this.sendError(res, 404, 'HOME_NOT_FOUND', (error instanceof Error ? error.message : String(error)));
         } else if (error instanceof ForbiddenError) {
-          this.sendError(res, 403, 'FORBIDDEN', error.message);
+          this.sendError(res, 403, 'FORBIDDEN', (error instanceof Error ? error.message : String(error)));
         } else {
           this.sendError(res, 500, 'ROOM_CREATE_ERROR', error instanceof Error ? error.message : 'Room creation failed');
         }
@@ -256,11 +257,11 @@ export class TopologyRoutes extends ApiRoutes {
         this.sendJson(res, room);
       } catch (error: unknown) {
         if (error instanceof InvalidRoomNameError) {
-          this.sendError(res, 400, 'INVALID_INPUT', error.message);
+          this.sendError(res, 400, 'INVALID_INPUT', (error instanceof Error ? error.message : String(error)));
         } else if (error instanceof NotFoundError) {
-          this.sendError(res, 404, 'ROOM_NOT_FOUND', error.message);
+          this.sendError(res, 404, 'ROOM_NOT_FOUND', (error instanceof Error ? error.message : String(error)));
         } else if (error instanceof ForbiddenError) {
-          this.sendError(res, 403, 'FORBIDDEN', error.message);
+          this.sendError(res, 403, 'FORBIDDEN', (error instanceof Error ? error.message : String(error)));
         } else {
           this.sendError(res, 500, 'ROOM_RENAME_ERROR', error instanceof Error ? error.message : 'Room rename failed');
         }
@@ -320,8 +321,8 @@ export class TopologyRoutes extends ApiRoutes {
           name: ownership.room_name,
           unassignedDevices,
         });
-      } catch (error: any) {
-        this.sendError(res, 500, 'ROOM_DELETE_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'ROOM_DELETE_ERROR', (error instanceof Error ? error.message : String(error)));
       }
       return true;
     }
@@ -410,7 +411,7 @@ export class TopologyRoutes extends ApiRoutes {
           failures: structuredFailures,
         };
 
-        let resultType: any = 'SCENE_EXECUTION_COMPLETED';
+        let resultType: ActivityType = 'SCENE_EXECUTION_COMPLETED';
         if (failedCount === totalCount) resultType = 'SCENE_EXECUTION_FAILED';
         else if (failedCount > 0) resultType = 'SCENE_EXECUTION_FAILED';
 
@@ -438,8 +439,8 @@ export class TopologyRoutes extends ApiRoutes {
         } else {
           this.sendJson(res, responseBody, 200);
         }
-      } catch (error: any) {
-        this.sendError(res, 500, 'ROOM_ACTION_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'ROOM_ACTION_ERROR', (error instanceof Error ? error.message : String(error)));
       }
       return true;
     }

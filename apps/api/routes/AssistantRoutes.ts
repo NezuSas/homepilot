@@ -82,8 +82,8 @@ export class AssistantRoutes extends ApiRoutes {
           await container.services.assistantService.scan(homes[0].id, 'manual_trigger');
         }
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, 500, 'ASSISTANT_SCAN_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'ASSISTANT_SCAN_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -181,10 +181,10 @@ export class AssistantRoutes extends ApiRoutes {
         return this.sendJson(res, response), true;
       } catch (e: unknown) {
         if (e instanceof AssistantTextToSpeechValidationError) {
-          return this.sendError(res, 400, 'VALIDATION_ERROR', e.message), true;
+          return this.sendError(res, 400, 'VALIDATION_ERROR', (e instanceof Error ? e.message : String(e))), true;
         }
         if (e instanceof AssistantTextToSpeechUnavailableError) {
-          return this.sendError(res, 409, 'TTS_UNAVAILABLE', e.message), true;
+          return this.sendError(res, 409, 'TTS_UNAVAILABLE', (e instanceof Error ? e.message : String(e))), true;
         }
         this.sendError(res, 500, 'ASSISTANT_TTS_ERROR', e instanceof Error ? e.message : String(e));
       }
@@ -205,10 +205,10 @@ export class AssistantRoutes extends ApiRoutes {
         return this.sendJson(res, response), true;
       } catch (e: unknown) {
         if (e instanceof AssistantSpeechToTextValidationError) {
-          return this.sendError(res, 400, 'VALIDATION_ERROR', e.message), true;
+          return this.sendError(res, 400, 'VALIDATION_ERROR', (e instanceof Error ? e.message : String(e))), true;
         }
         if (e instanceof AssistantSpeechToTextUnavailableError) {
-          return this.sendError(res, 409, 'STT_UNAVAILABLE', e.message), true;
+          return this.sendError(res, 409, 'STT_UNAVAILABLE', (e instanceof Error ? e.message : String(e))), true;
         }
         this.sendError(res, 500, 'ASSISTANT_STT_ERROR', e instanceof Error ? e.message : String(e));
       }

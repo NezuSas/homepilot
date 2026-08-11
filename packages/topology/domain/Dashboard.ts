@@ -1,7 +1,7 @@
 export interface DashboardWidget {
   id: string;
   type: 'room_summary' | 'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface DashboardTab {

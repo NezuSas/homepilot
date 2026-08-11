@@ -29,8 +29,8 @@ export class SystemRoutes extends ApiRoutes {
           if (!isProtected) return true;
         }
         this.sendJson(res, status);
-      } catch (e: any) {
-        this.sendError(res, 500, 'SETUP_STATUS_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'SETUP_STATUS_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -76,8 +76,8 @@ export class SystemRoutes extends ApiRoutes {
             isActive: result.user.isActive
           }
         });
-      } catch (e: any) {
-        const msg = e.message;
+      } catch (e: unknown) {
+        const msg = (e instanceof Error ? e.message : String(e));
         if (msg === 'INVALID_USERNAME') {
           return this.sendError(res, 400, 'INVALID_USERNAME', 'Username must be 3-40 characters and use letters, numbers, dots, hyphens or underscores'), true;
         }
@@ -99,8 +99,8 @@ export class SystemRoutes extends ApiRoutes {
       try {
         await container.services.systemSetupService.completeOnboarding(req.user!.id);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        const msg = e.message;
+      } catch (e: unknown) {
+        const msg = (e instanceof Error ? e.message : String(e));
         let code = 'INTERNAL_ERROR';
         let status = 500;
 
@@ -128,8 +128,8 @@ export class SystemRoutes extends ApiRoutes {
       try {
         const snapshot = await container.services.diagnosticsService.getSnapshot();
         this.sendJson(res, snapshot);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DIAGNOSTICS_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DIAGNOSTICS_ERROR', (error instanceof Error ? error.message : String(error)));
       }
       return true;
     }
@@ -142,8 +142,8 @@ export class SystemRoutes extends ApiRoutes {
       try {
         const events = await container.services.diagnosticsService.getRecentEvents(50);
         this.sendJson(res, events);
-      } catch (error: any) {
-        this.sendError(res, 500, 'DIAGNOSTICS_EVENTS_ERROR', error.message);
+      } catch (error: unknown) {
+        this.sendError(res, 500, 'DIAGNOSTICS_EVENTS_ERROR', (error instanceof Error ? error.message : String(error)));
       }
       return true;
     }
@@ -156,8 +156,8 @@ export class SystemRoutes extends ApiRoutes {
       try {
         const timezone = await container.services.systemVariableService.getSystemTimezone();
         this.sendJson(res, { timezone });
-      } catch (e: any) {
-        this.sendError(res, 500, 'TIMEZONE_GET_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'TIMEZONE_GET_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -182,8 +182,8 @@ export class SystemRoutes extends ApiRoutes {
         });
 
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, 400, 'TIMEZONE_UPDATE_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 400, 'TIMEZONE_UPDATE_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -198,8 +198,8 @@ export class SystemRoutes extends ApiRoutes {
       try {
         const backups = await container.services.databaseBackupService.listBackups();
         this.sendJson(res, backups);
-      } catch (e: any) {
-        this.sendError(res, 500, 'BACKUP_LIST_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'BACKUP_LIST_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -218,8 +218,8 @@ export class SystemRoutes extends ApiRoutes {
         } else {
           this.sendError(res, 500, 'BACKUP_CREATE_ERROR', result.error);
         }
-      } catch (e: any) {
-        this.sendError(res, 500, 'BACKUP_CREATE_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'BACKUP_CREATE_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }

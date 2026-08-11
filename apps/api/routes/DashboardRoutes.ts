@@ -9,6 +9,9 @@ import { MediaService } from '../../../packages/shared/infrastructure/MediaServi
  * Dashboard routes: /api/v1/dashboards/*
  */
 export class DashboardRoutes extends ApiRoutes {
+  constructor(private readonly mediaService: MediaService) {
+    super();
+  }
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -162,7 +165,7 @@ export class DashboardRoutes extends ApiRoutes {
               for (const oldTab of existing.tabs) {
                 const incomingTab = incomingTabsById.get(oldTab.id);
                 if (!incomingTab || (oldTab.background && !incomingTab.background)) {
-                  await mediaService.deleteTabBackground(dashboardId, oldTab.id);
+                  await this.mediaService.deleteTabBackground(dashboardId, oldTab.id);
                 }
               }
             }
@@ -171,7 +174,7 @@ export class DashboardRoutes extends ApiRoutes {
           // Save new backgrounds
           for (const tab of body.tabs) {
             if (tab.background?.startsWith('data:image/')) {
-              const savedPath = await mediaService.saveTabBackground(dashboardId, tab.id, tab.background);
+              const savedPath = await this.mediaService.saveTabBackground(dashboardId, tab.id, tab.background);
               const cacheBuster = Date.now();
               tab.background = `${savedPath}?v=${cacheBuster}`;
             }
@@ -199,7 +202,7 @@ export class DashboardRoutes extends ApiRoutes {
       try {
         const dashboardId = deleteMatch[1];
         const mediaService = new MediaService();
-        await mediaService.deleteDashboardBackgrounds(dashboardId);
+        await this.mediaService.deleteDashboardBackgrounds(dashboardId);
 
         await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, dashboardId);
         this.sendJson(res, { success: true });

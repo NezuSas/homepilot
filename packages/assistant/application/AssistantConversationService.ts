@@ -46,6 +46,7 @@ import {
 import { AssistantQuickResponseService } from './AssistantQuickResponseService';
 import { extractNezuWakeCommand } from '../../shared/domain/nezuWakePhrases';
 import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
+import { detectAssistantLanguage, detectAssistantLanguageOverride } from './AssistantLanguagePolicy';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -126,64 +127,6 @@ function isClarificationKind(value: unknown): value is 'device' | 'scene' | 'ali
   return value === 'device' || value === 'scene' || value === 'alias_target' || value === 'room';
 }
 
-// --- LANGUAGE INTELLIGENCE V1 ---
-
-/**
- * Deterministic language detection. No external dependencies.
- * Returns null when the prompt is ambiguous (no clear language signal).
- * Caller uses stored preference or API hint to resolve.
- */
-function detectLanguage(prompt: string): 'es' | 'en' | null {
-  const lower = prompt.toLowerCase();
-
-  // B. Spanish signals (checked first — accents are unambiguous)
-  const hasAccent = /[áéíóúñÁÉÍÓÚÑ]/i.test(prompt);
-  const spanishWords = [
-    'qué', 'quién', 'por qué', 'enciende', 'apaga', 'hola', 'por favor', 'cómo', 'dónde', 'cuándo',
-    'que', 'quien', 'como', 'donde', 'cuando', 'gracias', 'buenos dias', 'buenas tardes', 'buenas noches', 'buenas', 'si', 'no'
-  ];
-  const spanishPhrases = [
-    'que es', 'quien es', 'como estas', 'que puedes hacer', 'que servicios', 'quien creo'
-  ];
-
-  const hasSpanishWord = spanishWords.some(w => {
-    const re = new RegExp(`(^|\\s)${w}(\\s|$|[?!.,])`, 'i');
-    return re.test(lower);
-  });
-  const hasSpanishPhrase = spanishPhrases.some(p => lower.includes(p));
-
-  if (hasAccent || hasSpanishWord || hasSpanishPhrase) return 'es';
-
-  // A. English signals
-  const englishWords = ['the', 'turn', 'on', 'off', 'what', 'who', 'why', 'hello', 'hi', 'please', 'switch', 'answer', 'speak', 'created', 'company'];
-  const isAsciiOnly = /^[a-z0-9\s.,?!'-]+$/i.test(prompt);
-  const hasEnglishWord = englishWords.some(w => {
-    const re = new RegExp(`(^|\\s)${w}(\\s|$|[?!.,])`, 'i');
-    return re.test(lower);
-  });
-  if (hasEnglishWord && isAsciiOnly) return 'en';
-
-  // C. Ambiguous — caller resolves from stored preference or API hint
-  return null;
-}
-
-/**
- * Detects explicit language override commands.
- * Returns 'en', 'es', or null if no override.
- */
-function isLanguageOverrideCommand(normalized: string): 'es' | 'en' | null {
-  const toEnglish = [
-    'habla en ingles', 'responde en ingles', 'cambia a ingles',
-    'habla en inglés', 'responde en inglés', 'cambia a inglés'
-  ];
-  const toSpanish = [
-    'speak spanish', 'answer in spanish', 'switch to spanish', 'speak in spanish'
-  ];
-  if (toEnglish.some(k => normalized.includes(k))) return 'en';
-  if (toSpanish.some(k => normalized.includes(k))) return 'es';
-  return null;
-}
-
 export class AssistantConversationService {
   constructor(
     private readonly intentInterpreter: IntentInterpreterPort,
@@ -203,10 +146,9 @@ export class AssistantConversationService {
     private readonly suggestionService: AssistantSuggestionService,
     private readonly executionRecordRepository: ExecutionRecordRepository,
     private readonly systemVariableService: SystemVariableService,
-    private readonly shadowService?: AssistantPlannerV2ShadowService
+    private readonly shadowService?: AssistantPlannerV2ShadowService,
+    private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver()
   ) {}
-
-  private readonly fastPathResolver = new AssistantFastPathResolver();
 
   private withJarvisStyle(
     response: AssistantConversationResponse,
@@ -250,7 +192,7 @@ export class AssistantConversationService {
     ]);
 
     // --- LANGUAGE INTELLIGENCE V1 ---
-    const langOverride = isLanguageOverrideCommand(normalized);
+    const langOverride = detectAssistantLanguageOverride(normalized);
     if (langOverride !== null) {
       await this.memoryService.setUserPreference(userId, 'preferred_language', langOverride);
       return {
@@ -258,7 +200,7 @@ export class AssistantConversationService {
         message: langOverride === 'en' ? "Got it. I'll speak in English from now on." : "Perfecto. A partir de ahora hablaré en español."
       };
     }
-    const detectedLang = detectLanguage(prompt);
+    const detectedLang = detectAssistantLanguage(prompt);
     const storedValidLang: 'es' | 'en' = storedLangPref === 'en' ? 'en' : (_langHint === 'en' ? 'en' : 'es');
     const language: 'es' | 'en' = detectedLang ?? storedValidLang;
     const responsePreference: AssistantResponsePreference = isAssistantResponsePreference(storedResponsePreference)

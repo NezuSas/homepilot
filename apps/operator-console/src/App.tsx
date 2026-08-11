@@ -45,6 +45,7 @@ import { LoadingState } from './components/ui/LoadingState';
 import { PageFrame } from './components/ui/PageFrame';
 import { SidebarItem } from './components/ui/SidebarItem';
 import type { View } from './types';
+import { DASHBOARDS_ONE_PATTERN, DASHBOARDS_TAB_PATTERN, isSystemView, pathToView, resolveView, viewToPath } from './lib/viewNavigation';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
@@ -100,101 +101,6 @@ function ViewLoadingState() {
  *   users         → system-users
  */
 
-/** Resolve legacy view names to canonical ones. */
-function resolveView(view: View): View {
-  switch (view) {
-    case 'scenes':      return 'routines';
-    case 'automations': return 'routines';
-    case 'topology':    return 'spaces';
-    case 'inbox':       return 'system-inbox';
-    case 'audit-logs':  return 'system-audit';
-    case 'ha-settings': return 'system-ha';
-    case 'diagnostics': return 'system-diagnostics';
-    case 'users':       return 'system-users';
-    default:            return view;
-  }
-}
-
-/** Returns true if the given canonical view belongs to the System section. */
-function isSystemView(view: View): boolean {
-  return view === 'system-devices'
-    || view === 'system-inbox'
-    || view === 'system-diagnostics'
-    || view === 'system-audit'
-    || view === 'system-executions'
-    || view === 'system-users'
-    || view === 'system-ha'
-    || view === 'system-cameras'
-    || view === 'system-onboarding';
-}
-
-/**
- * URL <-> View mapping. This is the whole reload-persistence story: the
- * browser URL is the source of truth for navigation instead of plain React
- * state, so a reload (or a shared link) lands back on the same section —
- * and, for Tableros, the exact dashboard + tab — instead of resetting to
- * Home. nginx already serves index.html for any unknown path (SPA
- * fallback), so no deployment changes are needed for these routes to work.
- */
-const DASHBOARDS_TAB_PATTERN = '/dashboards/:dashboardId/:tabId';
-const DASHBOARDS_ONE_PATTERN = '/dashboards/:dashboardId';
-
-function viewToPath(view: View): string {
-  switch (view) {
-    case 'dashboard': return '/';
-    case 'spaces': return '/spaces';
-    case 'routines': return '/routines/scenes';
-    case 'scenes': return '/routines/scenes';
-    case 'automations': return '/routines/automations';
-    case 'assistant': return '/assistant';
-    case 'energy': return '/energy';
-    case 'resilience-showcase': return '/resilience-showcase';
-    case 'home-conversation': return '/home-conversation';
-    case 'dashboards': return '/dashboards';
-    case 'system-devices': return '/system/devices';
-    case 'system-inbox': return '/system/inbox';
-    case 'system-diagnostics': return '/system/diagnostics';
-    case 'system-audit': return '/system/audit';
-    case 'system-executions': return '/system/executions';
-    case 'system-users': return '/system/users';
-    case 'system-ha': return '/system/ha';
-    case 'system-cameras': return '/system/cameras';
-    case 'system-onboarding': return '/system/onboarding';
-    default: return '/';
-  }
-}
-
-function pathToView(pathname: string): View {
-  if (pathname.startsWith('/dashboards')) return 'dashboards';
-  switch (pathname) {
-    case '/spaces': return 'spaces';
-    case '/routines':
-    case '/routines/scenes':
-    case '/routines/automations':
-    case '/scenes':
-    case '/automations': return 'routines';
-    case '/assistant': return 'assistant';
-    case '/energy': return 'energy';
-    case '/resilience-showcase': return 'resilience-showcase';
-    case '/home-conversation': return 'home-conversation';
-    case '/system/devices': return 'system-devices';
-    case '/system/inbox': return 'system-inbox';
-    case '/system/diagnostics': return 'system-diagnostics';
-    case '/system/audit': return 'system-audit';
-    case '/system/executions': return 'system-executions';
-    case '/system/users': return 'system-users';
-    case '/system/ha': return 'system-ha';
-    case '/system/cameras': return 'system-cameras';
-    case '/system/onboarding': return 'system-onboarding';
-    default: return 'dashboard';
-  }
-}
-
-/**
- * App Component
- * Aplicación principal de la Operator Console V1.
- * Gestiona el enrutamiento básico y el layout global.
- */
 /** Shape returned by /api/v1/system/setup-status — mirrors OnboardingView.SetupStatus */
 interface SetupStatus {
   isInitialized: boolean;

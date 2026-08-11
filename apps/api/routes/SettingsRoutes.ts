@@ -55,8 +55,8 @@ export class SettingsRoutes extends ApiRoutes {
 
         await container.services.homeAssistantSettingsService.saveSettings(payload.baseUrl, payload.accessToken);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        const msg = e.message || '';
+      } catch (e: unknown) {
+        const msg = (e instanceof Error ? e.message : String(e)) || '';
         if (msg.includes('Invalid URL')) {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'Invalid Home Assistant URL'), true;
         }

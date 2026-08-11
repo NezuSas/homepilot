@@ -79,7 +79,7 @@ const allSpecIntegrityIssues = readdirSync(join(root, 'specs'))
     return !existsSync(tasksPath) || !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(readFileSync(specPath, 'utf8'));
   });
 
-if (missing.length > 0 || missingComponentDocs.length > 0 || allSpecIntegrityIssues.length > 0) {
+if (missing.length > 0 || missingComponentDocs.length > 0 || invalidPrimarySpecs.length > 0 || allSpecIntegrityIssues.length > 0) {
   console.error(`Spec coverage failed: ${missing.length} file(s) without a valid spec mapping.`);
   for (const file of missing) console.error(`- ${file}`);
   if (allSpecIntegrityIssues.length > 0) console.error('Specs without valid status or tasks: ' + allSpecIntegrityIssues.join(', '));

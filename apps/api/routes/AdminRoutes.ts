@@ -2,6 +2,8 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { CreateUserPayload } from '../../../packages/auth/application/UserManagementService';
+import { UserRole } from '../../../packages/auth/domain/User';
 
 /**
  * Admin routes: /api/v1/admin/users/*
@@ -25,8 +27,8 @@ export class AdminRoutes extends ApiRoutes {
       try {
         const users = await container.services.userManagementService.listUsers();
         this.sendJson(res, users);
-      } catch (e: any) {
-        this.sendError(res, 500, 'USER_LIST_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, 500, 'USER_LIST_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -34,14 +36,14 @@ export class AdminRoutes extends ApiRoutes {
     // POST /api/v1/admin/users
     if (method === 'POST' && pathname === '/api/v1/admin/users') {
       try {
-        const payload = await this.parseBody<any>(req);
+        const payload = await this.parseBody<CreateUserPayload>(req);
         const result = await container.services.userManagementService.createUser(req.user!.id, payload);
         this.sendJson(res, result, 201);
-      } catch (e: any) {
+      } catch (e: unknown) {
         let code = 'USER_CREATE_ERROR';
-        if (e.message.includes('USERNAME_TAKEN')) code = 'USERNAME_TAKEN';
-        else if (e.message.includes('INVALID_INPUT')) code = 'INVALID_INPUT';
-        this.sendError(res, 400, code, e.message);
+        if ((e instanceof Error ? e.message : String(e)).includes('USERNAME_TAKEN')) code = 'USERNAME_TAKEN';
+        else if ((e instanceof Error ? e.message : String(e)).includes('INVALID_INPUT')) code = 'INVALID_INPUT';
+        this.sendError(res, 400, code, (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -56,14 +58,14 @@ export class AdminRoutes extends ApiRoutes {
         if (!payload.role || !VALID_ROLES.has(payload.role)) {
           return this.sendError(res, 400, 'INVALID_ROLE', 'Role must be one of: admin, parent, child, guest, operator'), true;
         }
-        await container.services.userManagementService.updateUserRole(req.user!.id, targetId, payload.role as any);
+        await container.services.userManagementService.updateUserRole(req.user!.id, targetId, payload.role as UserRole);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
+      } catch (e: unknown) {
         let status = 400;
         let code = 'USER_ROLE_ERROR';
-        if (e.message.includes('USER_NOT_FOUND')) { status = 404; code = 'USER_NOT_FOUND'; }
-        else if (e.message.includes('MINIMUM_ADMINS_VIOLATED')) code = 'MINIMUM_ADMINS_VIOLATED';
-        this.sendError(res, status, code, e.message);
+        if ((e instanceof Error ? e.message : String(e)).includes('USER_NOT_FOUND')) { status = 404; code = 'USER_NOT_FOUND'; }
+        else if ((e instanceof Error ? e.message : String(e)).includes('MINIMUM_ADMINS_VIOLATED')) code = 'MINIMUM_ADMINS_VIOLATED';
+        this.sendError(res, status, code, (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -80,13 +82,13 @@ export class AdminRoutes extends ApiRoutes {
           payload.isActive === true
         );
         this.sendJson(res, { success: true });
-      } catch (e: any) {
+      } catch (e: unknown) {
         let status = 400;
         let code = 'USER_STATUS_ERROR';
-        if (e.message.includes('USER_NOT_FOUND')) { status = 404; code = 'USER_NOT_FOUND'; }
-        else if (e.message.includes('MINIMUM_ADMINS_VIOLATED')) code = 'MINIMUM_ADMINS_VIOLATED';
-        else if (e.message.includes('CANNOT_DEACTIVATE_SELF')) code = 'CANNOT_DEACTIVATE_SELF';
-        this.sendError(res, status, code, e.message);
+        if ((e instanceof Error ? e.message : String(e)).includes('USER_NOT_FOUND')) { status = 404; code = 'USER_NOT_FOUND'; }
+        else if ((e instanceof Error ? e.message : String(e)).includes('MINIMUM_ADMINS_VIOLATED')) code = 'MINIMUM_ADMINS_VIOLATED';
+        else if ((e instanceof Error ? e.message : String(e)).includes('CANNOT_DEACTIVATE_SELF')) code = 'CANNOT_DEACTIVATE_SELF';
+        this.sendError(res, status, code, (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }
@@ -124,8 +126,8 @@ export class AdminRoutes extends ApiRoutes {
       try {
         await container.services.userManagementService.revokeUserSessions(req.user!.id, targetId);
         this.sendJson(res, { success: true });
-      } catch (e: any) {
-        this.sendError(res, e.message.includes('USER_NOT_FOUND') ? 404 : 500, 'USER_REVOKE_ERROR', e.message);
+      } catch (e: unknown) {
+        this.sendError(res, (e instanceof Error ? e.message : String(e)).includes('USER_NOT_FOUND') ? 404 : 500, 'USER_REVOKE_ERROR', (e instanceof Error ? e.message : String(e)));
       }
       return true;
     }

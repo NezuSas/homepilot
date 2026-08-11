@@ -8,17 +8,18 @@ import { deleteAutomationRuleUseCase } from '../../../packages/devices/applicati
 import { updateAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import type { AutomationAction, AutomationTrigger } from '../../../packages/devices/domain/automation/types';
 
 interface CreateAutomationPayload {
   name: string;
-  trigger: any;
-  action: any;
+  trigger: AutomationTrigger;
+  action: AutomationAction;
 }
 
 interface UpdateAutomationPayload {
   name?: string;
-  trigger?: any;
-  action?: any;
+  trigger?: AutomationTrigger;
+  action?: AutomationAction;
 }
 
 /**

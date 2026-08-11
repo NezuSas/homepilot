@@ -1,48 +1,28 @@
 import * as fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import * as path from 'path';
-import { RouteHandler } from '../RouteHandler';
-import { BootstrapContainer } from '../../../bootstrap';
-import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { ServerResponse } from 'http';
+import { BootstrapContainer } from '../../../bootstrap';
+import { RouteHandler } from '../RouteHandler';
+import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 
 export class MediaRoutes implements RouteHandler {
-  private mediaService: MediaService;
+  constructor(private readonly mediaService: MediaService) {}
 
-  constructor() {
-    this.mediaService = new MediaService();
-  }
-
-  async handle(req: HomePilotRequest, res: ServerResponse, pathname: string, method: string, container: BootstrapContainer): Promise<boolean> {
-    
+  async handle(req: HomePilotRequest, res: ServerResponse, pathname: string, method: string, _container: BootstrapContainer): Promise<boolean> {
     if (pathname.startsWith('/media/') && method === 'GET') {
       try {
         const physicalPath = this.mediaService.resolvePhysicalPath(pathname);
-        
-        // Ensure file exists
         await fs.access(physicalPath);
-        
-        // Simple MIME resolving (since we know it's media)
         const ext = path.extname(physicalPath).toLowerCase();
-        let mimeType = 'application/octet-stream';
-        if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
-        else if (ext === '.png') mimeType = 'image/png';
-        else if (ext === '.gif') mimeType = 'image/gif';
-        else if (ext === '.webp') mimeType = 'image/webp';
-        else if (ext === '.svg') mimeType = 'image/svg+xml';
-
-        res.writeHead(200, {
-          'Content-Type': mimeType,
-          'Cache-Control': 'public, max-age=86400' // cache for 1 day, query parameter ?t=... will bust it
-        });
-
-        // Stream file to response
-        const stream = createReadStream(physicalPath);
-        stream.pipe(res);
+        const mimeTypes: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] ?? 'application/octet-stream', 'Cache-Control': 'public, max-age=86400' });
+        createReadStream(physicalPath).pipe(res);
         return true;
-      } catch (err: any) {
-        if (err.code === 'ENOENT') {
+      } catch (error: unknown) {
+        const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+        if (code === 'ENOENT') {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Media not found' } }));
           return true;
@@ -52,7 +32,6 @@ export class MediaRoutes implements RouteHandler {
         return true;
       }
     }
-
     return false;
   }
 }

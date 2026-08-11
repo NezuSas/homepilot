@@ -15,6 +15,10 @@ import { IdGenerator } from '../../../shared/domain/types';
 import { AutomationTrigger, AutomationAction } from '../../domain/automation/types';
 import { isValidCommand } from '../../domain/commands';
 
+function hasAutomationType(value: unknown): value is { type: string } {
+  return typeof value === 'object' && value !== null && 'type' in value && typeof value.type === 'string';
+}
+
 /**
  * Controller agnóstico para la gestión de Reglas de Automatización V1.
  * Traduce las solicitudes HTTP AuthenticatedHttpRequest al lenguaje de Casos de Uso del Dominio.
@@ -52,11 +56,11 @@ export class AutomationController {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid field: name.' } };
       }
 
-      if (!trigger || typeof trigger !== 'object' || !('type' in (trigger as any))) {
+      if (!hasAutomationType(trigger)) {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid trigger: must include type.' } };
       }
 
-      if (!action || typeof action !== 'object' || !('type' in (action as any))) {
+      if (!hasAutomationType(action)) {
         return { statusCode: 400, body: { error: 'Bad Request', message: 'Missing or invalid action: must include type.' } };
       }
 
@@ -213,8 +217,8 @@ export class AutomationController {
 
       const patch: UpdateAutomationRuleRequest = {
         ...(typeof name === 'string' && { name }),
-        ...(trigger !== undefined && typeof trigger === 'object' && 'type' in (trigger as any) && { trigger: trigger as AutomationTrigger }),
-        ...(action !== undefined && typeof action === 'object' && 'type' in (action as any) && { action: action as AutomationAction })
+        ...(hasAutomationType(trigger) && { trigger: trigger as AutomationTrigger }),
+        ...(hasAutomationType(action) && { action: action as AutomationAction })
       };
 
       const rule = await updateAutomationRuleUseCase(ruleId, req.userId, patch, {

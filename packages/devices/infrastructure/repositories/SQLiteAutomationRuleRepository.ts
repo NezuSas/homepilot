@@ -1,5 +1,5 @@
 import { Database as SqliteDatabase } from 'better-sqlite3';
-import { AutomationRule } from '../../domain/automation/types';
+import { AutomationRule, DeviceStateTrigger } from '../../domain/automation/types';
 import { AutomationRuleRepository } from '../../domain/repositories/AutomationRuleRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
@@ -157,7 +157,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
           deviceId: trigger.deviceId,
           stateKey: trigger.stateKey,
           expectedValue: trigger.expectedValue
-        } as any;
+        } as DeviceStateTrigger;
         return legacyTrigger;
       }
 

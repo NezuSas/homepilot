@@ -17,6 +17,7 @@ import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntent
 import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
 import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
 import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
+import { AssistantFastPathResolver } from './packages/assistant/application/AssistantFastPathResolver';
 import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
 import { FollowUpResolver } from './packages/assistant/application/FollowUpResolver';
 import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Validator';
@@ -268,6 +269,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantTextToSpeechService = new AssistantTextToSpeechService();
   const assistantSpeechToTextService = new AssistantSpeechToTextService();
 
+  const assistantFastPathResolver = new AssistantFastPathResolver();
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
     assistantConfirmationPolicy,
@@ -286,7 +288,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantSuggestionService,
     repos.executionRecordRepository,
     systemVariableService,
-    shadowService
+    shadowService,
+    assistantFastPathResolver
   );
 
   const container: BootstrapContainer = {

@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
+import type { AutomationTrigger } from '../../devices/domain/automation/types';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository, ActivityType } from '../../devices/domain/repositories/ActivityLogRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
@@ -128,7 +129,7 @@ export class AutomationEngine {
   ): Promise<boolean> {
     const { operator, conditions } = trigger;
 
-    const evalFn = async (sub: any): Promise<boolean> => {
+    const evalFn = async (sub: AutomationTrigger): Promise<boolean> => {
       if (sub.type === 'device_state_changed') {
         if (!event) return false;
         return this.matchDeviceStateTrigger(sub as DeviceStateTrigger, event);

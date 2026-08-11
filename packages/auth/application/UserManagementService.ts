@@ -91,7 +91,7 @@ export class UserManagementService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'user-management',
-      type: 'USER_CREATED' as any,
+      type: 'USER_CREATED',
       timestamp: now,
       description: 'A new organizational user was created',
       data: {
@@ -137,7 +137,7 @@ export class UserManagementService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'user-management',
-      type: 'USER_ROLE_CHANGED' as any,
+      type: 'USER_ROLE_CHANGED',
       timestamp: new Date().toISOString(),
       description: 'User access role was modified',
       data: {
@@ -169,7 +169,7 @@ export class UserManagementService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'user-management',
-      type: (isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED') as any,
+      type: (isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED'),
       timestamp: new Date().toISOString(),
       description: "User account was " + (isActive ? "activated" : "deactivated"),
       data: {
@@ -189,7 +189,7 @@ export class UserManagementService {
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'user-management',
-      type: 'USER_SESSIONS_REVOKED' as any,
+      type: 'USER_SESSIONS_REVOKED',
       timestamp: new Date().toISOString(),
       description: 'User sessions were administratively revoked',
       data: {

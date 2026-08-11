@@ -274,8 +274,8 @@ export class SceneExecutionService {
       actions: result.actions,
     };
 
-    this.executionRecordRepository?.save(record).catch((err: any) => {
-      console.warn('[SceneExecutionService] Failed to save execution record:', err.message);
+    this.executionRecordRepository?.save(record).catch((err: unknown) => {
+      console.warn('[SceneExecutionService] Failed to save execution record:', err instanceof Error ? err.message : String(err));
     });
   }
 }

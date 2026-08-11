@@ -1,6 +1,13 @@
 import { Database } from 'better-sqlite3';
 import { Session } from '../domain/Session';
 
+interface SessionRow {
+  token: string;
+  user_id: string;
+  expires_at: string;
+  created_at: string;
+}
+
 export class SqliteSessionRepository {
   constructor(private db: Database) {}
 
@@ -19,7 +26,7 @@ export class SqliteSessionRepository {
 
   public async getSessionByToken(token: string): Promise<Session | null> {
     const stmt = this.db.prepare('SELECT * FROM sessions WHERE token = ?');
-    const row = stmt.get(token) as any;
+    const row = stmt.get(token) as SessionRow | undefined;
     if (!row) return null;
     return {
       id: row.token,

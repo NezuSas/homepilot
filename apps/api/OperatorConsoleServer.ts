@@ -15,6 +15,7 @@ import { DeviceRoutes } from './routes/DeviceRoutes';
 import { DashboardRoutes } from './routes/DashboardRoutes';
 
 import { MediaRoutes } from './routes/MediaRoutes';
+import { MediaService } from '../../packages/shared/infrastructure/MediaService';
 import { MediaPlayerRoutes } from './routes/MediaPlayerRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
@@ -33,13 +34,14 @@ export class OperatorConsoleServer {
   private gateway: ApiGateway;
 
   constructor(container: BootstrapContainer, dbPath: string, port: number = 3000) {
-      const handlers: RouteHandler[] = [
-        new MediaRoutes(),
+    const mediaService = new MediaService();
+    const handlers: RouteHandler[] = [
+        new MediaRoutes(mediaService),
         new MediaPlayerRoutes(),
         new NativeCameraRoutes(dbPath),
         new CameraRoutes(dbPath),
         new SystemRoutes(),
-        new AuthRoutes(),
+        new AuthRoutes(undefined, mediaService),
         new AdminRoutes(),
       new AssistantRoutes(),
       new SettingsRoutes(),
@@ -47,7 +49,7 @@ export class OperatorConsoleServer {
         new SceneRoutes(),
         new AutomationRoutes(),
         new DeviceRoutes(dbPath),
-        new DashboardRoutes(),
+        new DashboardRoutes(mediaService),
         new ExecutionRoutes(),
     ];
 

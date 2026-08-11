@@ -84,12 +84,12 @@ function parseProbeMatch(xml: string, remoteAddress: string): DiscoveredDevice |
 
 function getLocalInterfaces(): string[] {
   const os = require('os');
-  const nets: Record<string, any[]> = os.networkInterfaces();
+  const nets = os.networkInterfaces() as Record<string, Array<{ family: string; internal: boolean; address: string }> | undefined>;
   const addresses: string[] = [];
   for (const list of Object.values(nets)) {
     for (const iface of (list ?? [])) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        addresses.push(iface.address as string);
+        addresses.push(iface.address);
       }
     }
   }
