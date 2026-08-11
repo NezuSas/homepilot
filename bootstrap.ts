@@ -130,7 +130,7 @@ export interface BootstrapOptions {
  * Bootstrap (Composition Root) - Refactorizado como orquestador liviano.
  */
 export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapContainer> {
-  const isVerbose = options?.verbose ?? process.env.NODE_ENV !== 'production';
+  const isVerbose = options?.verbose ?? false;
 
   const resolvedDbPath = options?.dbPath || getDatabasePath();
 

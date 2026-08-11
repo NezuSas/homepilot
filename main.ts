@@ -13,7 +13,7 @@ async function main(): Promise<void> {
   
   try {
     // 1. Ejecución del Bootstrap que garantiza persistencia y migraciones
-    const container = await bootstrap({ verbose: true });
+    const container = await bootstrap({ verbose: false });
     
     // 2. El arranque Domain/Application/API se integraría aquí recibiendo 'container'
     console.log(`[Main] Container asegurado. Repositorios listos: ${Object.keys(container.repositories).length}`);
