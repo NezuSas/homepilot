@@ -17,7 +17,7 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
   };
 }
 
-describe('SceneExecutionService', () => {
+describe('Feature: ejecución confiable de escenas', () => {
   let dispatcher: jest.Mocked<DeviceCommandDispatcherPort>;
   let service: SceneExecutionService;
 

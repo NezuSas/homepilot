@@ -8,7 +8,7 @@ jest.mock('../../config', () => ({
   API_BASE_URL: 'http://localhost:3000',
 }));
 
-describe('assistantApi', () => {
+describe('Feature: consola conversa con el asistente', () => {
   const mockApiFetch = apiFetch as jest.Mock;
 
   beforeEach(() => {

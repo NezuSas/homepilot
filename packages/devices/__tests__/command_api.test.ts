@@ -7,7 +7,7 @@ import { InMemoryDeviceCommandDispatcher } from '../infrastructure/adapters/InMe
 import { TopologyReferencePort } from '../application/ports/TopologyReferencePort';
 import { AuthenticatedHttpRequest } from '../../topology/api/core/http';
 
-describe('Módulo Devices - Pruebas de Comando (API)', () => {
+describe('Feature: ejecución de comandos de dispositivos', () => {
   let repo: InMemoryDeviceRepository;
   let publisher: InMemoryDeviceEventPublisher;
   let log: InMemoryActivityLogRepository;

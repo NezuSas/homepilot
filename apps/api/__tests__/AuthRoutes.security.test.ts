@@ -33,8 +33,8 @@ function createContainer(): BootstrapContainer {
   } as unknown as BootstrapContainer;
 }
 
-describe('AuthRoutes security controls', () => {
-  it('returns 429 with Retry-After while a login key is locked', async () => {
+describe('Feature: protección de inicio de sesión', () => {
+  it('Scenario: Given credenciales fallidas When se excede el límite Then bloquea nuevos intentos con 429 y Retry-After', async () => {
     const limiter = new LoginAttemptRateLimiter({ maxFailures: 1, lockoutMs: 60_000 });
     const routes = new AuthRoutes(limiter);
     const container = createContainer();

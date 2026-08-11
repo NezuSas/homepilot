@@ -1,0 +1,26 @@
+# SPEC: Engineering Quality Compliance V1
+
+**Estado:** Aprobado
+**Autor:** HomePilot Engineering
+**Fecha:** 2026-08-11
+
+## Objetivo
+
+Establecer una definición verificable de cumplimiento SDD, TDD, BDD y SOLID para cada módulo mantenido de HomePilot.
+
+## Requisitos
+
+- **REQ-01 (SDD):** Cada módulo funcional tiene una spec y tareas con criterios de aceptación trazables y estado Implementado solo con evidencia.
+- **REQ-02 (TDD):** Cada comportamiento de aplicación o API tiene una prueba automatizada de regresión que falla antes del cambio y pasa después.
+- **REQ-03 (BDD):** Cada flujo de usuario crítico tiene escenarios Given/When/Then ejecutables o trazables a pruebas de aceptación.
+- **REQ-04 (SOLID):** Orquestadores delegan responsabilidades cohesivas; infraestructura se inyecta desde composition roots; no hay dependencias concretas en handlers de dominio.
+- **REQ-05 (CI):** Las reglas anteriores se verifican automáticamente en cada PR.
+
+## Criterios de aceptación
+
+- [ ] AC1: Todas las specs primarias activas tienen estado, tareas y criterios de aceptación completos.
+- [ ] AC2: Cada bounded context tiene una matriz que enlaza specs, escenarios BDD y suites TDD.
+- [ ] AC3: Los flujos críticos de auth, dispositivos, escenas, automatizaciones, asistente y consola tienen escenarios BDD verificables.
+- [ ] AC4: Los módulos sin cobertura directa incorporan pruebas de comportamiento o se justifican como tipos/puertos sin lógica ejecutable.
+- [ ] AC5: Los orquestadores con responsabilidades múltiples se dividen en colaboradores inyectables y testeables.
+- [ ] AC6: CI bloquea cambios que incumplan los controles SDD/TDD/BDD/SOLID.

@@ -8,7 +8,7 @@ import { Scene } from '../../devices/domain/Scene';
 import { Device } from '../../devices/domain/types';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
 
-describe('Assistant Execution Integration', () => {
+describe('Feature: ejecución de solicitudes del asistente', () => {
   let interpreter: IntentInterpreterService;
   let sceneService: SceneExecutionService;
   let mockDispatcher: jest.Mocked<DeviceCommandDispatcherPort>;
