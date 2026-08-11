@@ -72,7 +72,7 @@ describe('Feature: ejecución de solicitudes del asistente', () => {
   });
 
   describe('IntentInterpreterService', () => {
-    it('should map "apaga todo" to scene if found in repo', async () => {
+    it('Scenario: Given una escena registrada When el asistente recibe "apaga todo" Then resuelve la intención de escena', async () => {
       mockSceneRepo.findAll.mockResolvedValue([{
         id: 'scene-123',
         name: 'Apaga todo el hogar',

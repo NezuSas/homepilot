@@ -33,7 +33,7 @@ describe('Feature: ejecución confiable de escenas', () => {
   // ---------------------------------------------------------------------------
 
   describe('Modo parallel (default / sin executionMode)', () => {
-    it('escena sin executionMode usa parallel y llama dispatch por cada acción', async () => {
+    it('Scenario: Given una escena sin modo explícito When se ejecuta Then despacha cada acción en paralelo', async () => {
       const scene = makeScene({
         actions: [
           { deviceId: 'dev-1', command: 'turn_on' },

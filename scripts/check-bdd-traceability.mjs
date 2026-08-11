@@ -19,8 +19,13 @@ for (const suite of criticalSuites) {
     failures.push(`Missing BDD suite ${suite}`);
     continue;
   }
-  if (!/describe\(['"]Feature: /u.test(readFileSync(suite, 'utf8'))) {
+
+  const suiteContent = readFileSync(suite, 'utf8');
+  if (!/describe\(['"]Feature: /u.test(suiteContent)) {
     failures.push(`BDD feature declaration missing in ${suite}`);
+  }
+  if (!/it\(['"]Scenario: Given .+ When .+ Then /u.test(suiteContent)) {
+    failures.push(`BDD Given/When/Then scenario missing in ${suite}`);
   }
 }
 

@@ -51,7 +51,7 @@ describe('Feature: ejecución de comandos de dispositivos', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('debe retornar 202 Accepted si el comando es válido y se despacha correctamente', async () => {
+  it('Scenario: Given un comando válido When la API lo despacha Then responde 202 Accepted', async () => {
     await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1' });
     const req: AuthenticatedHttpRequest = { params: { deviceId: 'd1' }, body: { command: 'turn_on' }, userId: 'u1' };
     

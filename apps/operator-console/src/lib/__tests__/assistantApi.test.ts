@@ -15,7 +15,7 @@ describe('Feature: consola conversa con el asistente', () => {
     jest.resetAllMocks();
   });
 
-  it('converseWithAssistant posts the conversation payload to the converse endpoint', async () => {
+  it('Scenario: Given una conversación When la consola la envía Then publica el payload en el endpoint del asistente', async () => {
     mockApiFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
