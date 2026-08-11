@@ -1,6 +1,6 @@
 # User Management V2 (Admin User Administration)
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 ## Contexto
 HomePilot Edge cuenta con una sólida arquitectura `Auth & RBAC V1`, incluyendo manejo granular de base de datos para `users` y `sessions`. Sin embargo, no hay un área administrativa (UI ni API) para permitir a los administradores gestionar cuentas (crear nuevos operadores, revocar acceso). 
@@ -57,6 +57,19 @@ A lo largo de las validaciones, el capa de Servicio arrojará los siguientes Err
 - `INVALID_INPUT`: Validaciones miscelaneas (ej. Passwords muy cortas, formato inaceptable).
 - `SELF_PASSWORD_CHANGE_REQUIRED`: Un administrador intentó usar el reset de terceros sobre su propia cuenta; debe usar el flujo autenticado de cambio propio.
 
+## Criterios de aceptación
+
+- [x] Solo administradores acceden a la gestión de usuarios y a sus operaciones mutables.
+- [x] Las respuestas de directorio usan DTOs públicos y no exponen `passwordHash` ni sesiones.
+- [x] La regla de mínimo administrador se aplica de forma atómica al cambiar rol o estado.
+- [x] Desactivar, revocar sesiones y resetear contraseñas invalida las sesiones afectadas y registra auditoría sin secretos.
+- [x] La consola presenta acciones de riesgo mediante confirmación y conserva el comportamiento responsive.
+
+## Evidencia de implementación
+
+- Servicio desacoplado mediante `packages/auth/application/ports/UserManagementPorts.ts`, con infraestructura compuesta en `infrastructure/assemblers/buildAuthModule.ts`.
+- TDD: `__tests__/UserManagement.test.ts` cubre sanitización, creación, mínimo admin, revocación y reset de contraseña.
+- BDD/API: `apps/api/__tests__/AdminRoutes.test.ts` prueba autorización administrativa y respuesta sanitizada.
 ## Observabilidad y Trazas
 Se inyectarán logs pre-estructurados con tipos fijos al Activity Log principal. Nunca se guardan tokens.
 El payload serializado en el bloque `data` contendrá siempre que aplique: `{ adminActorUserId, targetUserId, previousRole, newRole, newIsActive, revokedSessionsCount }`:

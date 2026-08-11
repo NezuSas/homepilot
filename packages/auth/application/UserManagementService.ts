@@ -1,8 +1,10 @@
-import { SqliteUserRepository } from '../infrastructure/SqliteUserRepository';
-import { SqliteSessionRepository } from '../infrastructure/SqliteSessionRepository';
-import { CryptoService } from '../infrastructure/CryptoService';
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
 import { UserRole } from '../domain/User';
+import {
+  UserManagementCryptoService,
+  UserManagementSessionRepository,
+  UserManagementUserRepository,
+} from './ports/UserManagementPorts';
 
 export interface PublicUserDto {
   id: string;
@@ -24,10 +26,10 @@ export interface CreateUserPayload {
 
 export class UserManagementService {
   constructor(
-    private readonly userRepository: SqliteUserRepository,
-    private readonly sessionRepository: SqliteSessionRepository,
+    private readonly userRepository: UserManagementUserRepository,
+    private readonly sessionRepository: UserManagementSessionRepository,
     private readonly activityLogRepository: ActivityLogRepository,
-    private readonly cryptoService: CryptoService
+    private readonly cryptoService: UserManagementCryptoService
   ) {}
 
   private static readonly VALID_ROLES = new Set<string>(['admin', 'parent', 'child', 'guest', 'operator']);
