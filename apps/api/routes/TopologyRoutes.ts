@@ -8,6 +8,7 @@ import { renameRoomUseCase } from '../../../packages/topology/application/rename
 import { ForbiddenError, NotFoundError } from '../../../packages/topology/application/errors';
 import { InvalidHomeNameError, InvalidRoomNameError } from '../../../packages/topology/domain/errors';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
+import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
 import { DeviceCommandV1 } from '../../../packages/devices/domain/commands';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -375,9 +376,19 @@ export class TopologyRoutes extends ApiRoutes {
                 deviceRepository: container.repositories.deviceRepository,
                 eventPublisher: container.adapters.deviceEventPublisher,
                 topologyPort: {
-                  validateHomeExists: async () => {},
-                  validateHomeOwnership: async () => {},
-                  validateRoomBelongsToHome: async () => {},
+                  validateHomeExists: async (homeId) => {
+                    if (!await container.repositories.homeRepository.findHomeById(homeId)) throw new TopologyResourceNotFoundError('Home', homeId);
+                  },
+                  validateHomeOwnership: async (homeId, userId) => {
+                    const targetHome = await container.repositories.homeRepository.findHomeById(homeId);
+                    if (!targetHome) throw new TopologyResourceNotFoundError('Home', homeId);
+                    if (targetHome.ownerId !== userId) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
+                  },
+                  validateRoomBelongsToHome: async (targetRoomId, homeId) => {
+                    const targetRoom = await container.repositories.roomRepository.findRoomById(targetRoomId);
+                    if (!targetRoom) throw new TopologyResourceNotFoundError('Room', targetRoomId);
+                    if (targetRoom.homeId !== homeId) throw new ForbiddenOwnershipError(`Room ${targetRoomId} does not belong to home ${homeId}`);
+                  },
                 },
                 dispatcherPort: compositeDispatcher,
                 activityLogRepository: container.repositories.activityLogRepository,
