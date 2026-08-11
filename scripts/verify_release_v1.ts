@@ -1,72 +1,146 @@
-import http from 'http';
+interface ApiError {
+  code?: unknown;
+  message?: unknown;
+}
 
-/**
- * Script de Verificación Release V1 - HomePilot Edge
- * Valida consistencia de API, Seguridad y Contratos.
- */
+interface ApiResponse {
+  status: number;
+  body: unknown;
+}
 
-const BASE_URL = 'http://localhost:3000/api/v1';
+const baseUrl = (process.env.HOMEPILOT_RELEASE_BASE_URL ?? 'http://localhost:3000/api/v1').replace(/\/$/, '');
+const username = process.env.HOMEPILOT_RELEASE_USERNAME;
+const password = process.env.HOMEPILOT_RELEASE_PASSWORD;
+const haBaseUrl = process.env.HOMEPILOT_RELEASE_HA_URL;
+const haAccessToken = process.env.HOMEPILOT_RELEASE_HA_TOKEN;
 
-async function testEndpoint(path: string, method: string = 'GET', body?: any, token?: string) {
-  return new Promise<{ status: number, data: any }>((resolve, reject) => {
-    const options: http.RequestOptions = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    };
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
 
-    const req = http.request(`${BASE_URL}${path}`, options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode || 0, data: data ? JSON.parse(data) : null });
-        } catch (e) {
-          resolve({ status: res.statusCode || 0, data });
-        }
-      });
-    });
+function getError(response: ApiResponse): ApiError | null {
+  const body = asRecord(response.body);
+  return body ? asRecord(body.error) : null;
+}
 
-    req.on('error', reject);
-    if (body) req.write(JSON.stringify(body));
-    req.end();
+async function request(path: string, options: RequestInit = {}): Promise<ApiResponse> {
+  const headers = new Headers(options.headers);
+  headers.set('Content-Type', 'application/json');
+
+  const response = await fetch(`${baseUrl}${path}`, { ...options, headers });
+  const rawBody = await response.text();
+  let body: unknown = null;
+
+  if (rawBody) {
+    try {
+      body = JSON.parse(rawBody) as unknown;
+    } catch {
+      body = rawBody;
+    }
+  }
+
+  return { status: response.status, body };
+}
+
+interface ReleaseVerificationCredentials {
+  username: string;
+  password: string;
+  haBaseUrl: string;
+  haAccessToken: string;
+}
+
+function requireCredentials(): ReleaseVerificationCredentials {
+  if (!username || !password || !haBaseUrl || !haAccessToken) {
+    throw new Error('Set HOMEPILOT_RELEASE_USERNAME, HOMEPILOT_RELEASE_PASSWORD, HOMEPILOT_RELEASE_HA_URL and HOMEPILOT_RELEASE_HA_TOKEN before running release verification.');
+  }
+
+  return { username, password, haBaseUrl, haAccessToken };
+}
+
+function assertCondition(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+
+function assertPublicError(response: ApiResponse, status: number, code: string): void {
+  const error = getError(response);
+  assertCondition(response.status === status, `Expected HTTP ${status}, received ${response.status}.`);
+  assertCondition(error?.code === code && typeof error.message === 'string', `Expected public error ${code}.`);
+}
+
+async function login(credentials: ReleaseVerificationCredentials): Promise<string> {
+  const response = await request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username: credentials.username, password: credentials.password }),
   });
+  const body = asRecord(response.body);
+  const token = body?.token;
+
+  assertCondition(response.status === 200 && typeof token === 'string' && token.length > 0, 'Login did not return an opaque session token.');
+  return token;
 }
 
-async function run() {
-  console.log('--- STARTING RELEASE V1 VERIFICATION ---');
-
-  // 1. Validar Contrato de Error (Public)
-  console.log('[1] Testing standard error shape...');
-  const errorTest = await testEndpoint('/system/setup-status'); // Debería fallar sin auth
-  if (errorTest.status === 401 && errorTest.data?.error?.code === 'UNAUTHORIZED') {
-    console.log('  ✅ Error contract holds: { error: { code, message } }');
-  } else {
-    console.error('  ❌ Error contract mismatch!', errorTest);
-  }
-
-  // 2. Validar Protección setup-status
-  console.log('[2] Testing setup-status protection...');
-  if (errorTest.status === 401) {
-    console.log('  ✅ setup-status requires AuthGuard.');
-  } else {
-    console.error('  ❌ setup-status is EXPOSED or misconfigured!');
-  }
-
-  // 3. Validar Estructura Diagnostics
-  // Nota: Requiere un token válido para probar endpoints protegidos.
-  // Como es un script de verificación técnica, validamos rutas no encontradas.
-  console.log('[3] Testing 404 consistency...');
-  const test404 = await testEndpoint('/invalid/route');
-  if (test404.status === 404 && test404.data?.error?.code === 'NOT_FOUND') {
-    console.log('  ✅ 404 response is standardized.');
-  } else {
-    console.error('  ❌ 404 response mismatch!', test404);
-  }
-
-  console.log('--- VERIFICATION COMPLETE ---');
+function bearer(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
 }
 
-run().catch(console.error);
+async function run(): Promise<void> {
+  const credentials = requireCredentials();
+  console.log('Starting HomePilot Release V1 verification.');
+
+  const notFound = await request('/invalid/route');
+  assertPublicError(notFound, 404, 'NOT_FOUND');
+  console.log('PASS public error contract');
+
+  const unauthenticatedSetup = await request('/system/setup-status');
+  assertPublicError(unauthenticatedSetup, 401, 'UNAUTHORIZED');
+  console.log('PASS setup-status authentication boundary');
+
+  const token = await login(credentials);
+  const identity = await request('/auth/me', { headers: bearer(token) });
+  const identityBody = asRecord(identity.body);
+  assertCondition(identity.status === 200 && identityBody?.username === credentials.username, 'Authenticated identity does not match the login user.');
+  assertCondition(!JSON.stringify(identity.body).includes('passwordHash'), 'Identity response exposed passwordHash.');
+  console.log('PASS authentication and sanitized identity');
+
+  const setupStatus = await request('/system/setup-status', { headers: bearer(token) });
+  assertCondition(setupStatus.status === 200 && asRecord(setupStatus.body) !== null, 'Authenticated setup status is unavailable.');
+
+  const diagnostics = await request('/system/diagnostics', { headers: bearer(token) });
+  assertCondition(diagnostics.status === 200 && asRecord(diagnostics.body) !== null, 'Diagnostics snapshot is unavailable.');
+  assertCondition(!JSON.stringify(diagnostics.body).includes('accessToken'), 'Diagnostics response exposed Home Assistant credentials.');
+  console.log('PASS setup and diagnostics visibility');
+
+  const homeAssistantStatus = await request('/settings/home-assistant', { headers: bearer(token) });
+  assertCondition(homeAssistantStatus.status === 200 && asRecord(homeAssistantStatus.body) !== null, 'Home Assistant settings status is unavailable.');
+  assertCondition(!JSON.stringify(homeAssistantStatus.body).includes('accessToken'), 'Home Assistant status exposed an access token.');
+
+  const homeAssistantTest = await request('/settings/test-ha-connection', {
+    method: 'POST',
+    headers: bearer(token),
+    body: JSON.stringify({ baseUrl: credentials.haBaseUrl, accessToken: credentials.haAccessToken }),
+  });
+  const testBody = asRecord(homeAssistantTest.body);
+  assertCondition(homeAssistantTest.status === 200 && testBody?.success === true, 'Home Assistant live connectivity test failed.');
+  console.log('PASS Home Assistant live connectivity');
+
+  const users = await request('/admin/users', { headers: bearer(token) });
+  assertCondition(users.status === 200 && Array.isArray(users.body), 'Administrative user directory is unavailable.');
+  assertCondition(!JSON.stringify(users.body).includes('passwordHash'), 'User directory exposed passwordHash.');
+  console.log('PASS administrative directory sanitization');
+
+  const logout = await request('/auth/logout', { method: 'POST', headers: bearer(token) });
+  assertCondition(logout.status === 200, 'Logout failed.');
+  const revokedIdentity = await request('/auth/me', { headers: bearer(token) });
+  assertPublicError(revokedIdentity, 401, 'UNAUTHORIZED');
+  console.log('PASS session revocation');
+
+  console.log('Release V1 verification completed successfully.');
+}
+
+run().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : 'Unknown release verification failure.';
+  console.error(`Release V1 verification failed: ${message}`);
+  process.exitCode = 1;
+});

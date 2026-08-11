@@ -15,7 +15,7 @@ El sistema HomePilot Edge cuenta con las funcionalidades core de automatización
 - Creación de `docs/core-release-flows-v1.md` para definición de flujos clave.
 - Auditoría y hardening de APIs (Auth, Users, Onboarding, HA Settings, Setup-status).
 - Limpieza de deuda técnica acotada (alerts, any críticos, logs innecesarios).
-- Implementación de `scripts/verify_release_v1.ts`.
+- Implementación de `scripts/verify_release_v1.ts`, configurado exclusivamente con variables de entorno de verificación para no persistir secretos.
 - Checklist de preparación para release (`docs/release-readiness-v1.md`).
 
 ## Estándar de Error Público

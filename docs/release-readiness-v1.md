@@ -57,6 +57,16 @@ The system has undergone a comprehensive hardening phase to transition from a pr
 ---
 **Status: baseline verificado; Release Hardening V1 sigue en Borrador hasta completar todos sus criterios de aceptación.**
 
+## Verificación de release autenticada
+`npm run verify:release` no modifica configuración ni usuarios. Exige estas variables de entorno y nunca las imprime:
+
+- `HOMEPILOT_RELEASE_BASE_URL` (opcional; por defecto `http://localhost:3000/api/v1`)
+- `HOMEPILOT_RELEASE_USERNAME`
+- `HOMEPILOT_RELEASE_PASSWORD`
+- `HOMEPILOT_RELEASE_HA_URL`
+- `HOMEPILOT_RELEASE_HA_TOKEN`
+
+El comando verifica contrato de errores, autenticación e identidad, setup, diagnósticos, estado y conectividad viva de Home Assistant, sanitización del directorio de usuarios y revocación de sesión.
 ## Evidencia más reciente
 - `npm audit --omit=dev --json`: 0 vulnerabilidades de producción (Fastify, ws, React Router y fast-uri actualizados de forma compatible).
 - `npm run verify:quality`: aprobado (i18n, modularidad, trazabilidad SDD/BDD, lint, 123 suites/1078 tests, typecheck y builds).

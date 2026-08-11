@@ -22,7 +22,8 @@
     "start": "node dist/main.js",
     "check:no-production-any": "node scripts/check-no-production-any.mjs",
     "check:bdd-traceability": "node scripts/check-bdd-traceability.mjs",
-    "check:tuya-policy": "node scripts/check-tuya-policy.mjs"
+    "check:tuya-policy": "node scripts/check-tuya-policy.mjs",
+    "verify:release": "ts-node scripts/verify_release_v1.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
