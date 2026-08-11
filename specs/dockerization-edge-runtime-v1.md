@@ -39,7 +39,7 @@ The stack will consist of three main services managed by `docker-compose`:
 | `VITE_API_URL` | Frontend | Public API URL used by the browser to reach the backend | `http://localhost:3000` |
 
 ## Persistence Strategy
--   **homepilot-api**: A Docker volume will map the **entire data directory** (e.g., `./data`) to the container to ensure SQLite's `.db`, `-wal`, and `-shm` files survive restarts.
+-   **homepilot-api**: A Docker volume maps the **entire data directory** (e.g., `./data`) to the container. All supported runtimes use the single canonical database `data/homepilot.db`, including its SQLite `.db`, `-wal`, and `-shm` files.
 -   **homeassistant**: Standard volume for the `/config` directory.
 
 ## Healthchecks
@@ -70,4 +70,4 @@ The implementation is correct if:
 - [ ] La UI alcanza `homepilot-api` por DNS interno, sin `network_mode: host`.
 - [ ] Onboarding detects the system status correctly.
 - [ ] `testConnection()` against `http://homeassistant:8123` works from the API.
-- [ ] **Data Persistence**: `docker-compose down` followed by `docker-compose up` preserves the DB, setup state, sessions, and HA configuration.
+- [ ] **Data Persistence**: `docker-compose down` followed by `docker-compose up` preserves the single canonical DB, setup state, sessions, and HA configuration on Linux and Windows.

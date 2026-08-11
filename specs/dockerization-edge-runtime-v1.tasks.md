@@ -28,3 +28,4 @@
 ## Portabilidad Linux y Windows
 - [ ] Usar DNS de servicio y red bridge de Compose para API y UI en ambos sistemas.
 - [ ] Validar login a través de Nginx en Docker Desktop y Linux.
+- [ ] Confirmar que todos los perfiles de runtime usan únicamente `data/homepilot.db`.

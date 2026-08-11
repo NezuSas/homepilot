@@ -8,7 +8,7 @@ docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d 
 
 Abre `http://localhost:8080`. La interfaz usa un proxy interno hacia la API, por lo que no se requiere configurar una URL de API en el navegador.
 
-El perfil usa `data/homepilot.desktop.db`, separado de cualquier base de datos de appliance. En el primer acceso aparecerá la creación segura de la cuenta administradora: define ahí el usuario y contraseña locales. No existe una credencial predeterminada.
+El perfil usa la misma base canónica `data/homepilot.db` que el runtime Linux. Windows y Linux no deben crear bases de datos separadas para una misma instalación.
 
 El perfil publica la API en `http://localhost:13000` para diagnóstico. Home Assistant local debe estar disponible en `http://host.docker.internal:18123` desde Docker; el contenedor existente de desarrollo se publica normalmente en ese puerto.
 
