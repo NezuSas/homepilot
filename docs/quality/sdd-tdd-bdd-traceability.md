@@ -6,6 +6,7 @@
 | Devices | `device-command-execution.md` | `packages/devices/__tests__/command_api.test.ts` | Despacho de comando válido y rechazo de estados inválidos |
 | Device discovery | `device-discovery-inbox.md` | `apps/api/__tests__/DeviceRoutes.state-sync.test.ts` | Gateway sin clave M2M no puede crear dispositivos pendientes |
 | Home Assistant WebSocket | `home-assistant-realtime-sync-v1.md` | `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` | Handshake válido suscribe el stream y timeout se clasifica como no alcanzable |
+| Tuya policy | `tuya-integration-policy-v1.md` | `packages/devices/__tests__/HomeAssistantImportService.test.ts` | Cortina Tuya importada conserva el bridge Home Assistant |
 | Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
 | Automation lifecycle | `automation-rule-lifecycle-v1.md` | `packages/devices/__tests__/automation/automation_lifecycle.test.ts` | Creación horaria predeterminada conserva hora local, zona IANA y días |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |

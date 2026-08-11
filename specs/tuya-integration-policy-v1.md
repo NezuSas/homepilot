@@ -1,6 +1,6 @@
 # Tuya Integration Policy V1
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 ## Status
 
@@ -24,3 +24,9 @@ HomePilot does not provide a direct Tuya Cloud integration. Tuya devices are sup
 - The API exposes no `/api/v1/integrations/tuya` routes.
 - Existing devices sourced from Home Assistant, including Tuya curtains, retain their `home_assistant` integration source and remain controllable through the bridge.
 - New Tuya devices enter HomePilot through the same discovery and import flow used for other Home Assistant devices.
+
+## Evidencia
+
+- `scripts/check-tuya-policy.mjs` impide rutas `/api/v1/integrations/tuya` y variables `TUYA_*` en los perfiles Compose.
+- `packages/devices/__tests__/HomeAssistantImportService.test.ts` verifica que una cortina Tuya descubierta en Home Assistant conserva `integrationSource: "ha"` y el identificador externo del bridge.
+- La navegación de la consola no contiene una superficie de configuración Tuya; los dispositivos se importan mediante el flujo Home Assistant existente.

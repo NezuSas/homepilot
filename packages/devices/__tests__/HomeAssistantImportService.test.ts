@@ -14,7 +14,7 @@ function createMockHAConnectionProvider(client: MockHAClient): HomeAssistantConn
   return provider as HomeAssistantConnectionProvider;
 }
 
-describe('HomeAssistantImportService', () => {
+describe('Feature: Home Assistant device import', () => {
   let service: HomeAssistantImportService;
   let mockDeviceRepo: jest.Mocked<DeviceRepository>;
   let mockHomeRepo: jest.Mocked<HomeRepository>;
@@ -139,5 +139,20 @@ describe('HomeAssistantImportService', () => {
     expect(device.type).toBe('camera');
     expect(device.semanticType).toBeUndefined();
     expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
+  });
+  it('Scenario: Given a Tuya curtain in Home Assistant When it is imported Then it remains a Home Assistant device', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'cover.tuya_curtain',
+      state: 'open',
+      attributes: { friendly_name: 'Cortina Tuya', current_position: 72 },
+      last_changed: '2026-01-01T00:00:00Z',
+      last_updated: '2026-01-01T00:00:00Z'
+    });
+
+    const device = await service.importDevice('cover.tuya_curtain', 'user-1');
+
+    expect(device.integrationSource).toBe('ha');
+    expect(device.externalId).toBe('ha:cover.tuya_curtain');
+    expect(device.semanticType).toBe('cover');
   });
 });
