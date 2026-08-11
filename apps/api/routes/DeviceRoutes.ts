@@ -259,15 +259,7 @@ export class DeviceRoutes extends ApiRoutes {
         const haState = await container.adapters.homeAssistantClient.getEntityState(entityId);
 
         if (!haState) {
-          const unavailableDevice = {
-            ...device,
-            lastKnownState: buildUnavailableDeviceState(device.lastKnownState),
-            updatedAt: new Date().toISOString(),
-            entityVersion: device.entityVersion + 1,
-          };
-          await container.repositories.deviceRepository.saveDevice(unavailableDevice);
-          this.sendJson(res, this.enrichDevice(unavailableDevice));
-          return true;
+          return this.sendError(res, 404, 'HA_ENTITY_NOT_FOUND', 'Home Assistant entity not found'), true;
         }
 
         container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');

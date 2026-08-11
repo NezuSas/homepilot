@@ -226,21 +226,18 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(inDb?.lastKnownState?.on).toBe(true);
     });
 
-    it('POST /api/v1/devices/:refresh: marks a missing HA entity unavailable', async () => {
+    it('POST /api/v1/devices/:refresh: reports a removed HA entity without degrading the bridge', async () => {
       (container.adapters.homeAssistantClient.getEntityState as jest.Mock) = jest.fn().mockResolvedValueOnce(null);
-      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, { 
+      const res = await fetch(`http://localhost:${PORT}/api/v1/devices/d-ha/refresh`, {
         method: 'POST',
         headers: { 'x-hp-test-bypass': 'true' }
       });
-      expect(res.status).toBe(200);
-      const data = await res.json() as Device;
-      expect(data.lastKnownState).toEqual(expect.objectContaining({
-        state: 'unavailable',
-        availabilityReason: 'entity_missing',
-      }));
+
+      expect(res.status).toBe(404);
+      await expect(res.json()).resolves.toMatchObject({ error: { code: 'HA_ENTITY_NOT_FOUND' } });
 
       const inDb = await container.repositories.deviceRepository.findDeviceById('d-ha');
-      expect(inDb?.lastKnownState?.state).toBe('unavailable');
+      expect(inDb?.lastKnownState?.state).toBe('on');
     });
   });
 
