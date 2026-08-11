@@ -1,6 +1,6 @@
 # Specification: Home Assistant Real-Time Sync V1 (WebSocket)
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 > **Nota de evolución:** la reconexión automática y la reconciliación se especifican y verifican exclusivamente en `home-assistant-sync-resilience-v2.md`. Este documento conserva el contrato fundacional de WebSocket y no debe introducir un comportamiento contradictorio.
 
@@ -15,7 +15,7 @@ Implementar una conexión en tiempo real con Home Assistant utilizando su API de
 - **Sí**: Extracción de `lastKnownState.state` como string (agnóstico) y `attributes` para soportar climas, sensores, etc.
 - **Sí**: Búsqueda por `externalId: ha:<entity_id>`. Actualización controlada de DeviceRepository y ActivityLog.
 - **Sí**: Hot-Reload de la conexión desde `saveSettings` o `bootstrap`.
-- **No**: Loops infinitos de auto-reconexión tras caídas esporádicas (Queda para V2).
+- **No definido en V1**: la política de auto-reconexión y reconciliación; `home-assistant-sync-resilience-v2.md` es la única autoridad para ese comportamiento.
 - **No**: Bufferización de eventos perdidos, ni resincronización masiva histórica.
 - **No**: Lógica de dominio pesada dentro del Manager.
 
@@ -33,7 +33,7 @@ Implementar una conexión en tiempo real con Home Assistant utilizando su API de
 
 ### 3.2. HomeAssistantRealtimeSyncManager (Orquestador)
 - Únicamente enlaza el tráfico entrante del WS Client hacia las interfaces lógicas. "Pegamento".
-- Carece de while loops infinitos intentando reconectar si HA muere. Deja que el socket muera limpio y notifica a `SettingsService`.
+- En V1 enlaza el socket, actualiza `SettingsService` y no define política de reintentos; la resiliencia posterior pertenece a V2.
 - Su reinicio es puramente reactivo y explícito (p.ej., invocado por `SettingsService` durante un `saveSettings` de usuario).
 
 ### 3.3. Sincronización Inyectada y Lógica de Eventos
@@ -54,6 +54,13 @@ Los indicadores vitales en el Configuration Manager se enriquecerán en exactitu
 - Evento de timeout nativo, close code o parse failure -> `unreachable`.
 - Validación payload fallida "auth_invalid" devuelta por HA -> `auth_error`.
 - Los fallos de transporte, repositorio o auditoría pueden llegar como valores no tipados; se normalizan para diagnóstico y no interrumpen el ciclo de reconciliación ni el WebSocket activo.
+
+## Evidencia de aceptación
+
+- AC3: `apps/api/__tests__/DeviceRoutes.refresh.test.ts` verifica estado, atributos y `current_position` de un `cover`.
+- AC4: la misma suite verifica `404 HA_ENTITY_NOT_FOUND` sin degradar la conectividad global.
+- AC5: `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` verifica el cierre forzado durante `CONNECTING` y que el error nativo queda manejado.
+- El bridge autenticado se validó en Docker Desktop el 2026-08-11 mediante login real y discovery resumen.
 
 ## 4. Pruebas y Validación Específicas
 Pese a no tener cobertura infinita, se implementarán los siguientes Unit/Integration tests:
