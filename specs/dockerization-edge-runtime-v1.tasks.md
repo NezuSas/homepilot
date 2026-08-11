@@ -6,5 +6,7 @@
 - [x] Unificar los perfiles sobre `data/homepilot.db` y documentar los puertos de Linux/Windows.
 - [x] Validar build y healthcheck del stack integrado.
 - [x] Validar build y healthchecks de UI/API con el perfil Docker Desktop.
-- [ ] Validar el login end-to-end con una instalación persistida en Linux y Docker Desktop.
-- [ ] Validar el ciclo `down`/`up` conservando setup, sesiones y configuración HA en ambos perfiles.
+- [x] Validar login y bridge HA con una instalación persistida en Docker Desktop.
+- [ ] Validar login y bridge HA con una instalación persistida en Linux nativo.
+- [x] Validar ciclo `down`/`up` conservando setup, sesión y configuración HA en Docker Desktop.
+- [ ] Validar ciclo `down`/`up` conservando setup, sesión y configuración HA en Linux nativo.

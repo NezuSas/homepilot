@@ -37,8 +37,16 @@ Todos los perfiles montan `./data` en `/app/data` y usan exclusivamente `data/ho
 - [x] El perfil Docker Desktop inicia con `docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up --build -d`; API (`13000`) y proxy UI (`8080`) responden `200` en `/health`.
 - [x] La UI alcanza la API a través de Nginx same-origin, sin DNS Docker expuesto al navegador.
 - [x] Todos los perfiles apuntan a `data/homepilot.db` como única base canónica.
-- [ ] Inicio de sesión end-to-end con credenciales reales en Linux y Docker Desktop.
-- [ ] Ciclo controlado `down`/`up` que demuestre persistencia de setup, sesión y configuración HA en ambos perfiles.
+- [x] Docker Desktop: inicio de sesión end-to-end con credenciales reales y bridge Home Assistant alcanzable.
+- [x] Docker Desktop: ciclo controlado `down`/`up` conserva setup, sesión y configuración HA.
+- [ ] Linux nativo: inicio de sesión end-to-end con credenciales reales y bridge Home Assistant alcanzable.
+- [ ] Linux nativo: ciclo controlado `down`/`up` conserva setup, sesión y configuración HA.
+
+## Evidencia de runtime
+
+- 2026-08-11, Docker Desktop: API `13000` y UI `8080` respondieron `200` en `/health`; login local, setup y bridge HA fueron validados con una sesión real.
+- 2026-08-11, Docker Desktop: tras `down`/`up`, la sesión ya emitida, el estado de setup y la configuración/conectividad HA permanecieron válidos.
+- 2026-08-11, WSL/Linux: API y UI del perfil Docker Desktop respondieron `200`; esto no sustituye la certificación del perfil Oficina/Linux, que requiere un host Linux nativo para `network_mode: host`.
 
 ## Fuera de alcance
 
