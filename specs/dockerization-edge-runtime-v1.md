@@ -2,72 +2,45 @@
 
 **Estado:** Borrador
 
-## Problem
-HomePilot Edge needs to be easily deployable and reproducible as an Edge Appliance. Currently, it runs as a dispersed set of Node.js processes and a Vite development server, which is not suitable for production deployment on Edge devices (e.g., MiniPCs).
+## Objetivo
 
-## Objective
-Create a complete dockerized environment that bundles the HomePilot API, the Operator Console (UI), and an official Home Assistant instance into a single, cohesive stack.
+Entregar HomePilot como una aplicación Edge reproducible en Linux y Docker Desktop para Windows, conservando una única base SQLite canónica y sin exponer dependencias internas al navegador.
 
-## Architecture
-The stack will consist of three main services managed by `docker-compose`:
+## Perfiles de runtime
 
-1.  **homepilot-api**:
-    -   Backend Node.js application (Service Name: `homepilot-api`).
-    -   Exposes port `3000`.
-    -   Manages the SQLite database and internal logic.
-2.  **homepilot-ui**:
-    -   Vite-based React frontend (Service Name: `homepilot-ui`).
-    -   Served via **Nginx** (production build).
-    -   Nginx configured for **SPA fallback** (redirecting all non-file requests to `index.html`).
-    -   Exposes port `80` (mapped to `5173` locally or `80` in production).
-3.  **homeassistant**:
-    -   Official `ghcr.io/home-assistant/home-assistant` image (Service Name: `homeassistant`).
-    -   Exposed on port `8123`.
+| Perfil | Compose | Red y Home Assistant | Puertos públicos |
+| --- | --- | --- | --- |
+| Oficina/Linux | `docker-compose.office.yml` | API en `network_mode: host`; conecta al Home Assistant existente configurado para la oficina. | UI `8080`, API `3000` |
+| Docker Desktop | `docker-compose.office.yml` + `docker-compose.desktop.yml` | Red bridge; API accede al Home Assistant local mediante `host.docker.internal:18123`. | UI `8080`, API `13000` |
+| Stack de desarrollo integrado | `docker-compose.yml` | Incluye Home Assistant, API/UI y servicios locales. | UI `80`, Home Assistant `18123` |
 
-## Networking Strategy
--   **Internal (Docker DNS)**:
-    -   Todos los servicios usan la red bridge predeterminada de Compose y se resuelven por DNS de servicio.
-    -   `homepilot-ui` llega a `homepilot-api:3000` mediante Nginx; la API llega a `homeassistant:8123`, `ollama:11434`, `homepilot-tts:8088` y `homepilot-stt:8090`.
--   **Public (Browser Resolution)**:
-    -   Browser reaches `homepilot-ui` via `http://localhost:80` (or configured port).
-    -   Browser reaches `homepilot-api` via `http://localhost:3000` (Directly, no reverse proxy in V1).
+La UI usa el proxy Nginx same-origin (`/api`, `/ws` y `/health`) en todos los perfiles. El navegador no resuelve nombres DNS internos de Docker ni requiere `VITE_API_URL` para el flujo normal.
 
-## Environment Variables
-| Variable | Scope | Description | Default Value |
-| :--- | :--- | :--- | :--- |
-| `INTERNAL_HA_URL` | Backend | URL of HA for backend-to-backend integration | `http://homeassistant:8123` |
-| `VITE_API_URL` | Frontend | Public API URL used by the browser to reach the backend | `http://localhost:3000` |
+## Persistencia
 
-## Persistence Strategy
--   **homepilot-api**: A Docker volume maps the **entire data directory** (e.g., `./data`) to the container. All supported runtimes use the single canonical database `data/homepilot.db`, including its SQLite `.db`, `-wal`, and `-shm` files.
--   **homeassistant**: Standard volume for the `/config` directory.
+Todos los perfiles montan `./data` en `/app/data` y usan exclusivamente `data/homepilot.db` mediante `HOMEPILOT_DB_PATH`. La base, sus archivos `-wal`/`-shm`, el estado de setup, sesiones y configuración HA pertenecen a la misma instalación tanto en Linux como en Windows.
 
-## Healthchecks
--   **homepilot-api**: `curl -f http://localhost:3000/api/v1/system/setup-status` (Checks if the server is accepting requests).
--   **homeassistant**: `curl -f http://localhost:8123/` (Checks if HA is alive).
+## Configuración relevante
 
-## Build Reliability
--   API and UI images install Node dependencies with `npm ci`, using the committed `package-lock.json` rather than resolving mutable dependency ranges during a build.
--   Docker BuildKit retains the npm download cache between builds to reduce registry traffic on Edge MiniPCs.
--   Dependency fetches retry transient network failures such as `ECONNRESET` before the build is considered failed.
+| Variable | Propósito |
+| --- | --- |
+| `HOMEPILOT_DB_PATH` | Ruta de la base canónica dentro del contenedor. |
+| `INTERNAL_HA_URL` | URL HA que usa la API; varía según perfil. |
+| `HOMEPILOT_RUNTIME_TARGET` | Selecciona comportamiento `linux_edge` o `docker_desktop`. |
+| `VITE_API_URL` | Vacía por defecto para mantener el proxy same-origin. |
+| `HOMEPILOT_INTEGRATION_API_KEY` | Clave opcional para ingestas M2M locales. |
 
-## Operational Flows
-1.  **Boot**: `docker-compose up` initializes the stack.
-2.  **Bootstrap Admin**: If the database is empty, the system automatically generates an `admin` user. The initial password is printed **only once** in the `homepilot-api` container logs.
-3.  **Onboarding**: User enters the UI. During HA configuration, the UI suggests `http://homeassistant:8123` as the internal URL.
-    -   *Note*: User is informed that `http://homeassistant:8123` is for internal backend use and not necessarily reachable from the browser.
+## Criterios de aceptación
 
-## Out of Scope
--   Kubernetes orchestration.
--   Multi-node clusters.
--   Complex SSL/TLS (self-signed/external only).
--   Reverse Proxy for API in V1 (UI serves static files only).
+- [x] Los tres Compose construyen las imágenes con `npm ci`, caché BuildKit y reintentos de descarga.
+- [x] `docker compose up --build -d` inicia el stack integrado y `GET /health` de la API responde `200`.
+- [x] El perfil Docker Desktop inicia con `docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up --build -d`; API (`13000`) y proxy UI (`8080`) responden `200` en `/health`.
+- [x] La UI alcanza la API a través de Nginx same-origin, sin DNS Docker expuesto al navegador.
+- [x] Todos los perfiles apuntan a `data/homepilot.db` como única base canónica.
+- [ ] Inicio de sesión end-to-end con credenciales reales en Linux y Docker Desktop.
+- [ ] Ciclo controlado `down`/`up` que demuestre persistencia de setup, sesión y configuración HA en ambos perfiles.
 
-## Acceptance Criteria
-The implementation is correct if:
-- [ ] `docker-compose up` starts all services without manual intervention.
-- [ ] Login works in the dockerized environment on Linux and Docker Desktop for Windows.
-- [ ] La UI alcanza `homepilot-api` por DNS interno, sin `network_mode: host`.
-- [ ] Onboarding detects the system status correctly.
-- [ ] `testConnection()` against `http://homeassistant:8123` works from the API.
-- [ ] **Data Persistence**: `docker-compose down` followed by `docker-compose up` preserves the single canonical DB, setup state, sessions, and HA configuration on Linux and Windows.
+## Fuera de alcance
+
+- Kubernetes, clústeres multinodo y TLS administrado.
+- Crear o administrar un Home Assistant ajeno en el perfil de oficina.
