@@ -4,6 +4,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { assignDeviceUseCase } from '../../../packages/devices/application/assignDeviceUseCase';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { syncDeviceStateUseCase } from '../../../packages/devices/application/syncDeviceStateUseCase';
+import { discoverDeviceUseCase } from '../../../packages/devices/application/discoverDeviceUseCase';
 import { getDeviceStateUseCase } from '../../../packages/devices/application/getDeviceStateUseCase';
 import { getDeviceActivityHistoryUseCase } from '../../../packages/devices/application/getDeviceActivityHistoryUseCase';
 import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
@@ -96,6 +97,34 @@ export class DeviceRoutes extends ApiRoutes {
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
+    if (method === 'POST' && pathname === '/api/v1/integrations/discovery') {
+      if (!this.hasValidIntegrationKey(req)) {
+        this.sendError(res, 401, 'UNAUTHORIZED', 'Missing or invalid integration key');
+        return true;
+      }
+      try {
+        const payload = await this.parseBody<{ homeId?: unknown; externalId?: unknown; name?: unknown; type?: unknown; vendor?: unknown }>(req);
+        const values = [payload.homeId, payload.externalId, payload.name, payload.type, payload.vendor];
+        if (!values.every((value): value is string => typeof value === 'string' && Boolean(value.trim()))) {
+          this.sendError(res, 400, 'VALIDATION_ERROR', 'Invalid discovery payload');
+          return true;
+        }
+        const device = await discoverDeviceUseCase(values[0], values[1], values[2], values[3], values[4], crypto.randomUUID(), {
+          deviceRepository: container.repositories.deviceRepository,
+          eventPublisher: container.adapters.deviceEventPublisher,
+          topologyPort: this.createTopologyReferencePort(container),
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() },
+        });
+        this.sendJson(res, this.enrichDevice(device), 201);
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
+        if (name === 'DeviceConflictError') this.sendError(res, 409, 'DEVICE_ALREADY_EXISTS', message);
+        else if (name === 'TopologyResourceNotFoundError') this.sendError(res, 404, 'HOME_NOT_FOUND', message);
+        else this.sendError(res, 500, 'INTERNAL_ERROR', message);
+      }
+      return true;
+    }
     if (method === 'POST' && pathname === '/api/v1/integrations/state-sync') {
       if (!this.hasValidIntegrationKey(req)) {
         this.sendError(res, 401, 'UNAUTHORIZED', 'Missing or invalid integration key');

@@ -51,3 +51,25 @@ describe('DeviceRoutes state sync', () => {
     expect(res.end).toHaveBeenCalledWith(JSON.stringify({ power: 'on' }));
   });
 });
+describe('DeviceRoutes discovery', () => {
+  const routes = new DeviceRoutes('test.db');
+  const previousKey = process.env.HOMEPILOT_INTEGRATION_API_KEY;
+  afterEach(() => { process.env.HOMEPILOT_INTEGRATION_API_KEY = previousKey; });
+
+  it('rejects anonymous discovery', async () => {
+    process.env.HOMEPILOT_INTEGRATION_API_KEY = 'edge-secret';
+    const res = response();
+    await routes.handle({ headers: {}, _fastifyParsedBody: JSON.stringify({ homeId: 'home-1', externalId: 'edge:2', name: 'Sensor', type: 'sensor', vendor: 'Edge' }) } as unknown as HomePilotRequest, res, '/api/v1/integrations/discovery', 'POST', containerFor());
+    expect(res.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
+  });
+
+  it('creates a discovered device with a valid integration key', async () => {
+    process.env.HOMEPILOT_INTEGRATION_API_KEY = 'edge-secret';
+    const container = containerFor();
+    container.repositories.deviceRepository.findByExternalIdAndHomeId = jest.fn().mockResolvedValue(null);
+    const res = response();
+    await routes.handle({ headers: { 'x-homepilot-integration-key': 'edge-secret' }, _fastifyParsedBody: JSON.stringify({ homeId: 'home-1', externalId: 'edge:2', name: 'Sensor', type: 'sensor', vendor: 'Edge' }) } as unknown as HomePilotRequest, res, '/api/v1/integrations/discovery', 'POST', container);
+    expect(container.repositories.deviceRepository.saveDevice).toHaveBeenCalledWith(expect.objectContaining({ status: 'PENDING', roomId: null, externalId: 'edge:2' }));
+    expect(res.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
+  });
+});
