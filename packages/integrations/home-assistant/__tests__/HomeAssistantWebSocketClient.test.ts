@@ -16,10 +16,11 @@ interface TestSocket {
 interface TestableHomeAssistantWebSocketClient {
   ws: TestSocket | null;
   handleMessage(dataRaw: string, resolve: () => void, reject: (error: Error) => void): void;
+  startHandshakeTimeout(reject: (error: Error) => void): void;
 }
 
-describe('HomeAssistantWebSocketClient', () => {
-  it('ignores malformed messages and completes the authenticated subscription flow', async () => {
+describe('Feature: Home Assistant WebSocket connection', () => {
+  it('Scenario: Given a valid handshake When Home Assistant accepts it Then the state stream is subscribed', async () => {
     const client = new HomeAssistantWebSocketClient('http://homeassistant.local:8123', 'token');
     const onReady = jest.fn();
     const socket: TestSocket = {
@@ -61,6 +62,38 @@ describe('HomeAssistantWebSocketClient', () => {
     }
   });
 
+  it('classifies a missing handshake response as unreachable so the manager can retry', () => {
+    jest.useFakeTimers();
+    const client = new HomeAssistantWebSocketClient('http://homeassistant.local:8123', 'token');
+    const socket: TestSocket = {
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+      send: jest.fn(),
+      ping: jest.fn(),
+      on: jest.fn(),
+      once: jest.fn(),
+      terminate: jest.fn(),
+    };
+    const testableClient = client as unknown as TestableHomeAssistantWebSocketClient;
+    testableClient.ws = socket;
+    const onError = jest.fn();
+    const reject = jest.fn();
+    client.on('error', onError);
+
+    try {
+      testableClient.startHandshakeTimeout(reject);
+      jest.advanceTimersByTime(5000);
+
+      expect(onError).toHaveBeenCalledWith('unreachable', expect.any(Error));
+      expect(reject).toHaveBeenCalledWith(expect.objectContaining({ message: 'handshake_timeout' }));
+    } finally {
+      client.forceClose();
+      jest.useRealTimers();
+    }
+  });
   it('handles the native error emitted when a connecting socket is force-closed', () => {
     const client = new HomeAssistantWebSocketClient('http://homeassistant.local:8123', 'token');
     const socket: TestSocket = {

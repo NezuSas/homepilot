@@ -136,7 +136,7 @@ export class HomeAssistantWebSocketClient extends EventEmitter {
     this.handshakeTimer = setTimeout(() => {
       logRuntimeDiagnostic('error', '[HA WebSocket] Handshake timeout (no auth_ok received)');
       this.forceClose();
-      this.emit('error', 'auth_error', new Error('Handshake timeout'));
+      this.emit('error', 'unreachable', new Error('Handshake timeout'));
       reject(new Error('handshake_timeout'));
     }, 5000);
   }

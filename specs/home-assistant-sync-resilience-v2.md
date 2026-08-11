@@ -1,6 +1,6 @@
 # Home Assistant Sync Resilience V2 (Reconnect + State Reconciliation)
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 ## 1. Contexto y Problema
 
@@ -96,4 +96,9 @@ No bastan scripts visuales. El código exigirá test unitarios automatizados for
 - **Reconciliation Applier**: Test mockeando `/api/states` donde la data falsa llega y las llamadas a BD se verifican que ocurren sin lanzar el Node Event Emitter internamente.
 - **Auth Fatal Drop**: Test para certificar que retornar un HTTP 401 Unauthorized paraliza netamente el Retry.
 - **Recovering Gracefully**: Test garantizando que si `/api/states` explota a Exception, el Event Listener sigue atado al WebSocket intacto.
+## 10. Evidencia de implementación
 
+- `HomeAssistantRealtimeSyncManager` aplica un único timer, backoff `1s → 2s → 5s → 10s`, cancelación por `stop()`/`reconnect()` y corte definitivo ante `auth_error`.
+- La reconciliación usa `HomeAssistantClient.getAllStates()`, persiste estados sin emitir `system_event`, conserva la escucha WebSocket ante errores y registra `HA_RESILIENCE`.
+- `packages/integrations/home-assistant/__tests__/HomeAssistantRealtimeSyncManager.test.ts` cubre reconciliación silenciosa, fallo recuperable, timer único, backoff y autenticación fatal.
+- `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` cubre handshake, suscripción y clasificación segura del timeout como `unreachable`.

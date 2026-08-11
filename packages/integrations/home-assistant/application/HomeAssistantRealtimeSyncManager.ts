@@ -30,8 +30,21 @@ export interface SystemStateChangeEvent {
  */
 type CloseReason = 'stop_manual' | 'reconfigure' | 'auth_error' | 'network_drop';
 
-/** Secuencia de backoff en milisegundos: 5s → 10s → 30s → 60s (fijo) */
-const BACKOFF_DELAYS_MS = [5000, 10000, 30000, 60000];
+export interface HomeAssistantRealtimeSocket {
+  on(event: 'error', listener: (type: 'auth_error' | 'unreachable', error: Error) => void): this;
+  on(event: 'close' | 'ready', listener: () => void): this;
+  on(event: 'event', listener: (data: unknown) => void): this;
+  connect(): Promise<void>;
+  forceClose(): void;
+}
+
+export type HomeAssistantRealtimeSocketFactory = (
+  baseUrl: string,
+  token: string,
+) => HomeAssistantRealtimeSocket;
+
+/** Secuencia de backoff en milisegundos: 1s → 2s → 5s → 10s (fijo). */
+const BACKOFF_DELAYS_MS = [1000, 2000, 5000, 10000];
 
 interface HomeAssistantStateChangePayload {
   entityId: string;
@@ -62,7 +75,7 @@ function parseStateChangePayload(data: unknown): HomeAssistantStateChangePayload
 }
 
 export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {
-  private client: HomeAssistantWebSocketClient | null = null;
+  private client: HomeAssistantRealtimeSocket | null = null;
   private currentUrl: string | null = null;
   private currentToken: string | null = null;
 
@@ -90,7 +103,10 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     private readonly deviceRepository: DeviceRepository,
     private readonly activityLogRepository: ActivityLogRepository,
     /** Opcional: inyectado para reconciliación. Si no se proporciona, se omite. */
-    private readonly haClient: HomeAssistantClient | null = null
+    private readonly haClient: HomeAssistantClient | null = null,
+    private readonly socketFactory: HomeAssistantRealtimeSocketFactory = (baseUrl, token) => (
+      new HomeAssistantWebSocketClient(baseUrl, token)
+    ),
   ) {
     super();
   }
@@ -155,7 +171,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
   private _openSocket(): void {
     if (!this.currentUrl || !this.currentToken) return;
 
-    const client = new HomeAssistantWebSocketClient(this.currentUrl, this.currentToken);
+    const client = this.socketFactory(this.currentUrl, this.currentToken);
     this.client = client;
 
     client.on('error', (type: 'auth_error' | 'unreachable', err: Error) => {

@@ -2,11 +2,13 @@
 
 **Estado:** Borrador
 
+> **Nota de evolución:** la reconexión automática y la reconciliación se especifican y verifican exclusivamente en `home-assistant-sync-resilience-v2.md`. Este documento conserva el contrato fundacional de WebSocket y no debe introducir un comportamiento contradictorio.
+
 ## 1. Objetivo
 Implementar una conexión en tiempo real con Home Assistant utilizando su API de WebSocket nativa. El sistema escuchará los eventos `state_changed` y actualizará el inventario local reactivamente de forma robusta e integrada con el actual Configuration Management.
 
 ## 2. Alcance
-- **Sí**: API `globalThis.WebSocket` nativa de Node.js v22 (Sin dependencias externas).
+- **Sí**: cliente WebSocket basado en la librería `ws`, conforme al stack vigente.
 - **Sí**: Autenticación y flujos oficiales (`auth_required`, `auth_ok`, `auth_invalid`).
 - **Sí**: Timeouts básicos de conexión (marcar `unreachable` si falla en abrir o autenticar a tiempo).
 - **Sí**: Diferenciación precisa de errores (`auth_error` vs `unreachable`).
