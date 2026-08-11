@@ -4,6 +4,7 @@
 | --- | --- | --- | --- |
 | Auth | `auth-rbac-v1-local-edge-security.md` | `apps/api/__tests__/AuthRoutes.security.test.ts` | Bloqueo de inicio de sesión tras intentos fallidos |
 | Devices | `device-command-execution.md` | `packages/devices/__tests__/command_api.test.ts` | Despacho de comando válido y rechazo de estados inválidos |
+| Device discovery | `device-discovery-inbox.md` | `apps/api/__tests__/DeviceRoutes.state-sync.test.ts` | Gateway sin clave M2M no puede crear dispositivos pendientes |
 | Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
 | Automation lifecycle | `automation-rule-lifecycle-v1.md` | `packages/devices/__tests__/automation/automation_lifecycle.test.ts` | Creación horaria predeterminada conserva hora local, zona IANA y días |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |

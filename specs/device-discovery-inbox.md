@@ -103,5 +103,5 @@ Ambos heredarán campos core (`eventId`, `timestamp`, `schemaVersion`, `source`,
 - **Idempotencia Transaccional Constante:** La colisión (AC1) por rebotes físicos de red (El Hub expulsa 3 UDP packets de Discovery en cascada de un mismo Sensor) se neutralizará a nivel de restricción relacional persistente usando una clave compuesta híbrida `(homeId, externalId)`. Dejándose absorber sin crear múltiples instancias derivando de ser necesario en un simple 200/409 aséptico al integrador.
 
 ## 11. Preguntas Abiertas / TODOs
-- **[TODO: Stack Architecture Review]:** Se requiere evaluación inmediata sobre si la ingesta proveniente del Local Gateway / MQTT Broker deberá llamar a este spec REST vía HTTP Loopback (`/integrations/discovery`) o será inyectado de forma agnóstica a la web bypassando los controllers nativos e interfiriendo de manera directa al *Application Service* en capas internas Edge.
+- **Decisión V1:** la ingesta de Local Gateway / MQTT Broker usa el endpoint REST M2M `/api/v1/integrations/discovery` con el encabezado `X-HomePilot-Integration-Key`. La API valida la clave frente a `HOMEPILOT_INTEGRATION_API_KEY`; no existe un fallback anónimo ni un bypass directo de controladores.
 

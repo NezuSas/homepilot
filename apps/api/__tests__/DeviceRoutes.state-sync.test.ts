@@ -27,7 +27,13 @@ describe('DeviceRoutes state sync', () => {
   const routes = new DeviceRoutes('test.db');
   const previousKey = process.env.HOMEPILOT_INTEGRATION_API_KEY;
 
-  afterEach(() => { process.env.HOMEPILOT_INTEGRATION_API_KEY = previousKey; });
+  afterEach(() => {
+    if (previousKey === undefined) {
+      delete process.env.HOMEPILOT_INTEGRATION_API_KEY;
+      return;
+    }
+    process.env.HOMEPILOT_INTEGRATION_API_KEY = previousKey;
+  });
 
   it('rejects anonymous state synchronization', async () => {
     process.env.HOMEPILOT_INTEGRATION_API_KEY = 'edge-secret';
@@ -51,12 +57,18 @@ describe('DeviceRoutes state sync', () => {
     expect(res.end).toHaveBeenCalledWith(JSON.stringify({ power: 'on' }));
   });
 });
-describe('DeviceRoutes discovery', () => {
+describe('Feature: Device discovery M2M boundary', () => {
   const routes = new DeviceRoutes('test.db');
   const previousKey = process.env.HOMEPILOT_INTEGRATION_API_KEY;
-  afterEach(() => { process.env.HOMEPILOT_INTEGRATION_API_KEY = previousKey; });
+  afterEach(() => {
+    if (previousKey === undefined) {
+      delete process.env.HOMEPILOT_INTEGRATION_API_KEY;
+      return;
+    }
+    process.env.HOMEPILOT_INTEGRATION_API_KEY = previousKey;
+  });
 
-  it('rejects anonymous discovery', async () => {
+  it('Scenario: Given no integration key When a gateway reports discovery Then it is rejected', async () => {
     process.env.HOMEPILOT_INTEGRATION_API_KEY = 'edge-secret';
     const res = response();
     await routes.handle({ headers: {}, _fastifyParsedBody: JSON.stringify({ homeId: 'home-1', externalId: 'edge:2', name: 'Sensor', type: 'sensor', vendor: 'Edge' }) } as unknown as HomePilotRequest, res, '/api/v1/integrations/discovery', 'POST', containerFor());

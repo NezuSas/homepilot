@@ -4,6 +4,7 @@ const traceabilityFile = 'docs/quality/sdd-tdd-bdd-traceability.md';
 const criticalSuites = [
   'apps/api/__tests__/AuthRoutes.security.test.ts',
   'packages/devices/__tests__/command_api.test.ts',
+  'apps/api/__tests__/DeviceRoutes.state-sync.test.ts',
   'packages/devices/__tests__/CommandCapabilityValidator.test.ts',
   'packages/devices/__tests__/SceneExecutionService.test.ts',
   'packages/assistant/__tests__/assistant_execution.test.ts',
