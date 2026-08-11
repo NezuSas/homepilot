@@ -1,6 +1,6 @@
 # Specification: Automation Engine V2 (Sistema Event-Driven)
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 ## 1. Objetivo
 Convertir a HomePilot en un sistema verdaderamente reactivo. Desarrollar el **Automation Engine V2** como el cerebro de automatización del sistema global. Éste consumirá eventos de estado general (normalizados) provenientes de cualquier origen (actualmente V1 provenientes de Home Assistant), evaluará las reglas activas de automatización (`AutomationRule`), y despachará mecánicas sin bloquear el EventLoop.
@@ -85,3 +85,11 @@ Al regenerarse (`bootstrap.ts` o reconfiguraciones):
 5. Error Handling Continuo (Prueba que si `dispatch()` escupe una falla masiva temporal, se atrape silenciosamente y la Regla N° 2 siga su curso).
 6. StateKey Anidado (Busca un key en payload `.attributes.brightness == 255`).
 
+
+## 7. Evidencia de implementación y aceptación
+
+- El motor consume `SystemStateChangeEvent` normalizado en `packages/automation/application/AutomationEngine.ts` y solo depende de repositorios y del puerto `AutomationCommandDispatcher`.
+- `infrastructure/assemblers/buildAutomationModule.ts` conecta el motor a Home Assistant con remoción previa de listeners, al `EventBus` local y al pulso horario alineado al minuto.
+- La deduplicación mantiene por dos segundos la firma regla/objetivo/comando/valor esperado; registra `skipped_loop_prevention` y no bloquea el EventLoop.
+- El target ya en estado final se registra como `skipped_target_state_match`; una condición no coincidente se registra como `skipped_no_match`; los despachos y errores contienen correlación y `eventId` cuando provienen de un evento del sistema.
+- Las pruebas en `packages/devices/__tests__/automation/automation_engine.test.ts`, `automation_e2e.test.ts` y `automation_scene_service.test.ts` cubren coincidencia, no coincidencia, rebotes concurrentes, target ya satisfecho, aislamiento de errores y atributos anidados.

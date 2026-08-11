@@ -2,18 +2,16 @@ import { AutomationEngine } from '../../../automation/application/AutomationEngi
 import { InMemoryAutomationRuleRepository } from '../../infrastructure/repositories/InMemoryAutomationRuleRepository';
 import { InMemoryActivityLogRepository } from '../../infrastructure/repositories/InMemoryActivityLogRepository';
 import { DeviceRepository } from '../../domain/repositories/DeviceRepository';
-import { SceneRepository } from '../../domain/repositories/SceneRepository';
 import { AutomationCommandDispatcher } from '../../../automation/application/AutomationEngine';
 import { InMemoryDeviceRepository } from '../../infrastructure/repositories/InMemoryDeviceRepository';
 import { SystemVariableService } from '../../../system-vars/application/SystemVariableService';
 import { DateTime, Settings } from 'luxon';
 
-describe('Automation Engine: Reactive Execution', () => {
+describe('Feature: Automation Engine V2 reactive execution', () => {
   let engine: AutomationEngine;
   let ruleRepo: InMemoryAutomationRuleRepository;
   let logRepo: InMemoryActivityLogRepository;
   let deviceRepo: InMemoryDeviceRepository;
-  let sceneRepoMock: jest.Mocked<SceneRepository>;
   let dispatcherMock: jest.Mocked<AutomationCommandDispatcher>;
   let systemVarServiceMock: jest.Mocked<SystemVariableService>;
 
@@ -25,14 +23,6 @@ describe('Automation Engine: Reactive Execution', () => {
     dispatcherMock = { 
       dispatchCommand: jest.fn().mockResolvedValue(undefined),
       executeScene: jest.fn().mockResolvedValue(undefined) 
-    };
-
-    sceneRepoMock = {
-      findSceneById: jest.fn(),
-      findScenesByHomeId: jest.fn(),
-      findAll: jest.fn(),
-      saveScene: jest.fn(),
-      deleteScene: jest.fn()
     };
 
     systemVarServiceMock = {
@@ -51,7 +41,6 @@ describe('Automation Engine: Reactive Execution', () => {
     engine = new AutomationEngine(
       ruleRepo,
       deviceRepo,
-      sceneRepoMock,
       dispatcherMock,
       logRepo,
       systemVarServiceMock,
@@ -178,6 +167,59 @@ describe('Automation Engine: Reactive Execution', () => {
     expect(dispatcherMock.dispatchCommand).toHaveBeenCalledWith('home-1', 'light-1', 'turn_on', expect.any(String), 'rule-1');
   });
 
+  it('Scenario: Given rebotes simultáneos When la misma regla coincide Then solo despacha una vez y audita los skips anti-loop', async () => {
+    await setupData();
+    const event = {
+      eventId: 'evt-loop',
+      occurredAt: new Date().toISOString(),
+      source: 'home_assistant' as const,
+      deviceId: 'sensor-1',
+      externalId: 'ext1',
+      newState: { state: 'on', attributes: { presence: true } },
+    };
+
+    await Promise.all([
+      engine.handleSystemEvent(event),
+      engine.handleSystemEvent({ ...event, eventId: 'evt-loop-2' }),
+      engine.handleSystemEvent({ ...event, eventId: 'evt-loop-3' }),
+    ]);
+
+    expect(dispatcherMock.dispatchCommand).toHaveBeenCalledTimes(1);
+    const logs = await logRepo.findRecentByDeviceId('light-1', 3);
+    expect(logs.filter((log) => log.data.status === 'skipped_loop_prevention')).toHaveLength(2);
+  });
+
+  it('Scenario: Given un target ya en el estado final When una regla turn_on coincide Then evita el despacho y deja auditoría estructurada', async () => {
+    await setupData();
+    await deviceRepo.saveDevice({
+      id: 'light-1', homeId: 'home-1', roomId: 'r1', externalId: 'ext2',
+      name: 'Light', type: 'light', vendor: 'v', status: 'ASSIGNED',
+      integrationSource: 'ha', invertState: false,
+      lastKnownState: { state: 'on' }, entityVersion: 1, createdAt: '', updatedAt: ''
+    });
+
+    await engine.handleSystemEvent({
+      eventId: 'evt-target-match', occurredAt: new Date().toISOString(), source: 'home_assistant',
+      deviceId: 'sensor-1', externalId: 'ext1', newState: { state: 'on', attributes: { presence: true } }
+    });
+
+    expect(dispatcherMock.dispatchCommand).not.toHaveBeenCalled();
+    const logs = await logRepo.findRecentByDeviceId('light-1', 1);
+    expect(logs[0].data.status).toBe('skipped_target_state_match');
+  });
+
+  it('Scenario: Given un estado que no satisface una regla When llega el evento Then no despacha y registra skipped_no_match', async () => {
+    await setupData();
+
+    await engine.handleSystemEvent({
+      eventId: 'evt-no-match', occurredAt: new Date().toISOString(), source: 'home_assistant',
+      deviceId: 'sensor-1', externalId: 'ext1', newState: { state: 'off', attributes: { presence: false } }
+    });
+
+    expect(dispatcherMock.dispatchCommand).not.toHaveBeenCalled();
+    const logs = await logRepo.findRecentByDeviceId('sensor-1', 1);
+    expect(logs[0].data).toMatchObject({ status: 'skipped_no_match', eventId: 'evt-no-match' });
+  });
   describe('Scheduled Triggers (Timezone Consistency)', () => {
     it('debe disparar una regla programada basado en la hora local del equipo (Ecuador UTC-5)', async () => {
       await setupData();

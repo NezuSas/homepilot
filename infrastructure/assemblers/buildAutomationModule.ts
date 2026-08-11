@@ -52,7 +52,6 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
   const automationEngine = new AutomationEngine(
     automationRuleRepository,
     deviceRepository,
-    sceneRepository,
     {
       /**
        * dispatchCommand — Ejecuta un comando individual sobre un dispositivo.

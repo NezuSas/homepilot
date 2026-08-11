@@ -3,7 +3,6 @@ import { AutomationController } from '../../api/controllers/AutomationController
 import { InMemoryAutomationRuleRepository } from '../../infrastructure/repositories/InMemoryAutomationRuleRepository';
 import { InMemoryDeviceRepository } from '../../infrastructure/repositories/InMemoryDeviceRepository';
 import { InMemoryActivityLogRepository } from '../../infrastructure/repositories/InMemoryActivityLogRepository';
-import { SceneRepository } from '../../domain/repositories/SceneRepository';
 import { AutomationCommandDispatcher } from '../../../automation/application/AutomationEngine';
 import { TopologyReferencePort } from '../../application/ports/TopologyReferencePort';
 import { AuthenticatedHttpRequest } from '../../../topology/api/core/http';
@@ -13,7 +12,6 @@ describe('Automation E2E: Full Reactive Flow', () => {
   let ruleRepo: InMemoryAutomationRuleRepository;
   let deviceRepo: InMemoryDeviceRepository;
   let logRepo: InMemoryActivityLogRepository;
-  let sceneRepoMock: jest.Mocked<SceneRepository>;
   let dispatcherMock: jest.Mocked<AutomationCommandDispatcher>;
   let topologyMock: jest.Mocked<TopologyReferencePort>;
   
@@ -33,14 +31,6 @@ describe('Automation E2E: Full Reactive Flow', () => {
       executeScene: jest.fn().mockResolvedValue(undefined) 
     };
 
-    sceneRepoMock = {
-      findSceneById: jest.fn(),
-      findScenesByHomeId: jest.fn(),
-      findAll: jest.fn(),
-      saveScene: jest.fn(),
-      deleteScene: jest.fn()
-    };
-
     topologyMock = { 
       validateHomeOwnership: jest.fn().mockResolvedValue(undefined), 
       validateHomeExists: jest.fn().mockResolvedValue(undefined),
@@ -56,7 +46,6 @@ describe('Automation E2E: Full Reactive Flow', () => {
     engine = new AutomationEngine(
       ruleRepo,
       deviceRepo,
-      sceneRepoMock,
       dispatcherMock,
       logRepo,
       systemVarServiceMock,

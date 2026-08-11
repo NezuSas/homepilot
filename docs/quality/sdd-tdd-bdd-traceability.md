@@ -11,6 +11,7 @@
 | Tuya policy | `tuya-integration-policy-v1.md` | `packages/devices/__tests__/HomeAssistantImportService.test.ts` | Cortina Tuya importada conserva el bridge Home Assistant |
 | Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
 | Automation lifecycle | `automation-rule-lifecycle-v1.md` | `packages/devices/__tests__/automation/automation_lifecycle.test.ts` | Creación horaria predeterminada conserva hora local, zona IANA y días |
+| Automation Engine V2 | `automation-engine-v2-event-driven.md` | `packages/devices/__tests__/automation/automation_engine.test.ts` | Rebotes concurrentes se deduplican y quedan auditados |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |
 | Assistant | `assistant-v1.md` | `packages/assistant/__tests__/assistant_execution.test.ts` | Resolución y ejecución de una intención |
 | Operator Console | `operator-console-v1.md` | `apps/operator-console/src/lib/__tests__/assistantApi.test.ts` | Envío de conversación desde la consola |

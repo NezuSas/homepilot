@@ -3,7 +3,6 @@ import { AutomationRuleRepository } from '../../devices/domain/repositories/Auto
 import type { AutomationTrigger } from '../../devices/domain/automation/types';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository, ActivityType } from '../../devices/domain/repositories/ActivityLogRepository';
-import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { SystemStateChangeEvent } from '../../integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import {
   AutomationRule,
@@ -50,7 +49,6 @@ export class AutomationEngine {
   constructor(
     private readonly ruleRepository: AutomationRuleRepository,
     private readonly deviceRepository: DeviceRepository,
-    private readonly sceneRepository: SceneRepository,
     private readonly commandDispatcher: AutomationCommandDispatcher,
     private readonly activityLogRepository: ActivityLogRepository,
     private readonly systemVariableService: SystemVariableService,
@@ -61,6 +59,7 @@ export class AutomationEngine {
    * Main entry point for state changes (Event-driven).
    */
   public async handleSystemEvent(event: SystemStateChangeEvent): Promise<void> {
+    this.cleanCache();
     const rules = await this.ruleRepository.findAll();
     const correlationId = `auto-evt-${Date.now()}`;
 
@@ -70,12 +69,16 @@ export class AutomationEngine {
       if (rule.trigger.type === 'device_state_changed') {
         const trigger = rule.trigger as DeviceStateTrigger;
         if (this.matchDeviceStateTrigger(trigger, event)) {
-          await this.fireRule(rule, correlationId);
+          await this.fireRule(rule, correlationId, event.eventId);
+        } else {
+          await this.logSkippedMatch(rule, correlationId, event);
         }
       } else if (rule.trigger.type === 'compound') {
         const trigger = rule.trigger as CompoundTrigger;
         if (await this.evaluateCompound(trigger, event, null, null)) {
-          await this.fireRule(rule, correlationId);
+          await this.fireRule(rule, correlationId, event.eventId);
+        } else {
+          await this.logSkippedMatch(rule, correlationId, event);
         }
       }
     }
@@ -226,14 +229,15 @@ export class AutomationEngine {
 
   // ─── Rule execution ───────────────────────────────────────────────────────────
 
-  private async fireRule(rule: AutomationRule, correlationId: string): Promise<void> {
-    await this.executeRuleAction(rule, rule.action, correlationId);
+  private async fireRule(rule: AutomationRule, correlationId: string, eventId?: string): Promise<void> {
+    await this.executeRuleAction(rule, rule.action, correlationId, eventId);
   }
 
   private async executeRuleAction(
     rule: AutomationRule,
     action: AutomationAction,
-    correlationId: string
+    correlationId: string,
+    eventId?: string
   ): Promise<void> {
     try {
       if (action.type === 'device_command') {
@@ -244,8 +248,16 @@ export class AutomationEngine {
         const projected = this.projectCommandToState(action.command);
         const lastState = targetDevice.lastKnownState as Record<string, unknown> | null;
         if (projected !== null && lastState?.state === projected) {
+          await this.logSkippedAction(rule, correlationId, eventId, action.targetDeviceId, 'skipped_target_state_match');
           return;
         }
+
+        const loopPreventionKey = this.createLoopPreventionKey(rule, action);
+        if (this.loopPreventionCache.has(loopPreventionKey)) {
+          await this.logSkippedAction(rule, correlationId, eventId, action.targetDeviceId, 'skipped_loop_prevention');
+          return;
+        }
+        this.loopPreventionCache.set(loopPreventionKey, Date.now());
 
         await this.commandDispatcher.dispatchCommand(
           targetDevice.homeId,
@@ -260,7 +272,7 @@ export class AutomationEngine {
           type: 'COMMAND_DISPATCHED',
           description: `Triggered by Automation: ${rule.name}`,
           correlationId,
-          data: { ruleId: rule.id, ruleName: rule.name, command: action.command }
+          data: { ruleId: rule.id, ruleName: rule.name, command: action.command, status: 'success', eventId }
         });
         this.totalSuccesses++;
         this.lastExecutionAt = new Date().toISOString();
@@ -283,7 +295,8 @@ export class AutomationEngine {
         correlationId,
         'error',
         `Automation failed: ${dispatchError.message}`,
-        action.type === 'device_command' ? action.targetDeviceId : undefined
+        action.type === 'device_command' ? action.targetDeviceId : undefined,
+        eventId
       );
     }
   }
@@ -296,12 +309,49 @@ export class AutomationEngine {
     return null;
   }
 
+  private async logSkippedMatch(
+    rule: AutomationRule,
+    correlationId: string,
+    event: SystemStateChangeEvent
+  ): Promise<void> {
+    await this.activityLogRepository.saveActivity({
+      timestamp: new Date().toISOString(),
+      deviceId: event.deviceId,
+      type: 'AUTOMATION_EXECUTED',
+      description: `Automation "${rule.name}" skipped: skipped_no_match.`,
+      correlationId,
+      data: { ruleId: rule.id, ruleName: rule.name, status: 'skipped_no_match', eventId: event.eventId },
+    });
+  }
+  private createLoopPreventionKey(rule: AutomationRule, action: Extract<AutomationAction, { type: 'device_command' }>): string {
+    const trigger = rule.trigger.type === 'device_state_changed' ? rule.trigger : null;
+    const expectedValue = trigger ? String(trigger.expectedValue) : 'compound';
+    return [rule.id, action.targetDeviceId, action.command, expectedValue].join(':');
+  }
+
+  private async logSkippedAction(
+    rule: AutomationRule,
+    correlationId: string,
+    eventId: string | undefined,
+    deviceId: string,
+    status: 'skipped_loop_prevention' | 'skipped_target_state_match'
+  ): Promise<void> {
+    await this.activityLogRepository.saveActivity({
+      timestamp: new Date().toISOString(),
+      deviceId,
+      type: 'AUTOMATION_EXECUTED',
+      description: `Automation "${rule.name}" skipped: ${status}.`,
+      correlationId,
+      data: { ruleId: rule.id, ruleName: rule.name, status, eventId },
+    });
+  }
   private async logExecution(
     rule: AutomationRule,
     correlationId: string,
     status: 'success' | 'error',
     reason: string,
-    deviceId: string | null = null
+    deviceId: string | null = null,
+    eventId?: string
   ): Promise<void> {
     try {
       await this.activityLogRepository.saveActivity({
@@ -317,6 +367,7 @@ export class AutomationEngine {
           action: rule.action,
           status: status === 'error' ? 'failed' : 'executed',
           reason: status === 'error' ? reason : undefined,
+          eventId,
         },
       });
     } catch {

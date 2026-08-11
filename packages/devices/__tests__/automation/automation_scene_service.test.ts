@@ -13,7 +13,6 @@ import { InMemoryDeviceRepository } from '../../infrastructure/repositories/InMe
 import type { DeviceCommandDispatcherPort } from '../../application/ports/DeviceCommandDispatcherPort';
 import type { DeviceCommandRequest } from '../../domain/commands';
 import type { DeviceCommandV1 } from '../../domain/commands';
-import type { SceneRepository } from '../../domain/repositories/SceneRepository';
 import type { SystemVariableService } from '../../../../packages/system-vars/application/SystemVariableService';
 
 /**
@@ -63,7 +62,6 @@ describe('Automation → SceneExecutionService integration', () => {
   let ruleRepo: InMemoryAutomationRuleRepository;
   let logRepo: InMemoryActivityLogRepository;
   let deviceRepo: InMemoryDeviceRepository;
-  let sceneRepoMock: jest.Mocked<SceneRepository>;
   let systemVarServiceMock: jest.Mocked<SystemVariableService>;
   let engine: AutomationEngine;
 
@@ -75,14 +73,6 @@ describe('Automation → SceneExecutionService integration', () => {
     ruleRepo = new InMemoryAutomationRuleRepository();
     logRepo = new InMemoryActivityLogRepository();
     deviceRepo = new InMemoryDeviceRepository();
-
-    sceneRepoMock = {
-      findSceneById: jest.fn().mockResolvedValue(null),
-      findScenesByHomeId: jest.fn().mockResolvedValue([]),
-      findAll: jest.fn().mockResolvedValue([]),
-      saveScene: jest.fn(),
-      deleteScene: jest.fn(),
-    };
 
     systemVarServiceMock = {
       getSystemTimezone: jest.fn().mockResolvedValue('UTC'),
@@ -99,7 +89,6 @@ describe('Automation → SceneExecutionService integration', () => {
     engine = new AutomationEngine(
       ruleRepo,
       deviceRepo,
-      sceneRepoMock,
       automationDispatcher,
       logRepo,
       systemVarServiceMock,
