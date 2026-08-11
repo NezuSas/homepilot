@@ -2,6 +2,7 @@
 
 | Bounded context | Spec primaria | Suite TDD | Escenario BDD ejecutable |
 | --- | --- | --- | --- |
+| Administración de usuarios | `user-management-v2-admin-user-administration.md` | `__tests__/UserManagement.test.ts` | `apps/api/__tests__/AdminRoutes.test.ts` — administración solo para admin y DTO sin secretos |
 | Auth | `auth-rbac-v1-local-edge-security.md` | `apps/api/__tests__/AuthRoutes.security.test.ts` | Bloqueo de inicio de sesión tras intentos fallidos |
 | Devices | `device-command-execution.md` | `packages/devices/__tests__/command_api.test.ts` | Despacho de comando válido y rechazo de estados inválidos |
 | Device discovery | `device-discovery-inbox.md` | `apps/api/__tests__/DeviceRoutes.state-sync.test.ts` | Gateway sin clave M2M no puede crear dispositivos pendientes |

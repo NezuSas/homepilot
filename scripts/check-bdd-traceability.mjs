@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const traceabilityFile = 'docs/quality/sdd-tdd-bdd-traceability.md';
 const criticalSuites = [
   'apps/api/__tests__/AuthRoutes.security.test.ts',
+  'apps/api/__tests__/AdminRoutes.test.ts',
   'packages/devices/__tests__/command_api.test.ts',
   'apps/api/__tests__/DeviceRoutes.state-sync.test.ts',
   'packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts',
