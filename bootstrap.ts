@@ -18,6 +18,7 @@ import { AssistantConfirmationPolicy } from './packages/assistant/application/As
 import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
 import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
 import { AssistantFastPathResolver } from './packages/assistant/application/AssistantFastPathResolver';
+import { AssistantAliasManagementService } from './packages/assistant/application/AssistantAliasManagementService';
 import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
 import { FollowUpResolver } from './packages/assistant/application/FollowUpResolver';
 import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Validator';
@@ -270,6 +271,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantSpeechToTextService = new AssistantSpeechToTextService();
 
   const assistantFastPathResolver = new AssistantFastPathResolver();
+  const assistantAliasManagementService = new AssistantAliasManagementService(
+    assistantMemoryService,
+    repos.deviceRepository,
+    repos.roomRepository
+  );
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
     assistantConfirmationPolicy,
@@ -289,7 +295,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.executionRecordRepository,
     systemVariableService,
     shadowService,
-    assistantFastPathResolver
+    assistantFastPathResolver,
+    assistantAliasManagementService
   );
 
   const container: BootstrapContainer = {

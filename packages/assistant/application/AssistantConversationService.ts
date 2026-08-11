@@ -47,6 +47,8 @@ import { AssistantQuickResponseService } from './AssistantQuickResponseService';
 import { extractNezuWakeCommand } from '../../shared/domain/nezuWakePhrases';
 import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
 import { detectAssistantLanguage, detectAssistantLanguageOverride } from './AssistantLanguagePolicy';
+import { AssistantAliasManagementService } from './AssistantAliasManagementService';
+import { normalizeAssistantPrompt } from './AssistantPromptNormalizer';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -147,8 +149,13 @@ export class AssistantConversationService {
     private readonly executionRecordRepository: ExecutionRecordRepository,
     private readonly systemVariableService: SystemVariableService,
     private readonly shadowService?: AssistantPlannerV2ShadowService,
-    private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver()
-  ) {}
+    private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver(),
+    aliasManagementService?: AssistantAliasManagementService
+  ) {
+    this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
+  }
+
+  private readonly aliasManagementService: AssistantAliasManagementService;
 
   private withJarvisStyle(
     response: AssistantConversationResponse,
@@ -178,7 +185,7 @@ export class AssistantConversationService {
     const userId = request.userId || 'system';
     let userName = request.userName?.trim() || null;
     const namePrefix = userName ? `${userName}, ` : '';
-    const normalized = this.normalizePrompt(prompt);
+    const normalized = normalizeAssistantPrompt(prompt);
 
     // V2: Load Contextual Memory & Aliases FIRST
     const [memory, aliases, storedLangPref, storedResponsePreference, storedPreferredAddress, storedConversationTone] = await Promise.all([
@@ -343,12 +350,12 @@ export class AssistantConversationService {
     if (this.isDateTimeQuery(normalized)) return await this.handleDateTimeQuery(normalized, language);
 
     // --- 3. ALIAS MANAGEMENT ---
-    if (this.isAliasListQuery(normalized)) return await this.handleAliasList(userId, language);
-    const meaningAlias = this.extractAliasMeaningQuery(normalized);
-    if (meaningAlias) return await this.handleAliasMeaning(userId, meaningAlias, language);
-    const deleteAliasReq = this.extractAliasDeleteRequest(normalized);
-    if (deleteAliasReq) return await this.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
-    if (this.isAliasCreation(normalized)) return await this.handleAliasCreation(normalized, userId, language);
+    if (this.aliasManagementService.isAliasListQuery(normalized)) return await this.aliasManagementService.handleAliasList(userId, language);
+    const meaningAlias = this.aliasManagementService.extractAliasMeaningQuery(normalized);
+    if (meaningAlias) return await this.aliasManagementService.handleAliasMeaning(userId, meaningAlias, language);
+    const deleteAliasReq = this.aliasManagementService.extractAliasDeleteRequest(normalized);
+    if (deleteAliasReq) return await this.aliasManagementService.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
+    if (this.aliasManagementService.isAliasCreation(normalized)) return await this.aliasManagementService.handleAliasCreation(normalized, userId, language);
 
     activePrompt = normalized;
 
@@ -400,7 +407,7 @@ export class AssistantConversationService {
     activePrompt = followUp.resolvedPrompt;
 
     // --- 11. PLANNER V2 / V1 FALLBACK ---
-    const resolvedNormalized = this.normalizePrompt(activePrompt);
+    const resolvedNormalized = normalizeAssistantPrompt(activePrompt);
     if (this.isEquivalenceQuery(resolvedNormalized)) return this.handleEquivalenceQuery(language);
     if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language);
     if (this.isDraftCreation(resolvedNormalized)) return await this.handleDraftCreation(resolvedNormalized, language, userId);
@@ -476,7 +483,7 @@ export class AssistantConversationService {
     const correlationId = `assistant:chat:${t0}`;
 
     if (intent.type === 'unknown') {
-      if (this.isLikelyHomeControlPrompt(this.normalizePrompt(prompt))) {
+      if (this.isLikelyHomeControlPrompt(normalizeAssistantPrompt(prompt))) {
         return {
           type: 'answer',
           message: language === 'en'
@@ -873,7 +880,7 @@ export class AssistantConversationService {
   }
 
   private resolveSelectionFromMemory(text: string, options: { id: string; label: string }[], language: string): string | null {
-    let normalized = this.normalizePrompt(text);
+    let normalized = normalizeAssistantPrompt(text);
     if (normalized.startsWith('seleccione ')) normalized = normalized.replace('seleccione ', '').trim();
     if (normalized.startsWith('selected ')) normalized = normalized.replace('selected ', '').trim();
 
@@ -895,12 +902,12 @@ export class AssistantConversationService {
     }
 
     // Exact candidate label match
-    const exactLabel = options.find(opt => this.normalizePrompt(opt.label) === normalized);
+    const exactLabel = options.find(opt => normalizeAssistantPrompt(opt.label) === normalized);
     if (exactLabel) return exactLabel.id;
 
     // Partial label match (e.g. "luz sala")
     const partialLabel = options.find(opt => {
-      const optLabel = this.normalizePrompt(opt.label);
+      const optLabel = normalizeAssistantPrompt(opt.label);
       return normalized.includes(optLabel) || optLabel.includes(normalized);
     });
     if (partialLabel) return partialLabel.id;
@@ -908,7 +915,7 @@ export class AssistantConversationService {
     return null;
   }
   private inferCommandFromPrompt(prompt: string): DeviceCommandV1 | undefined {
-    const normalized = this.normalizePrompt(prompt);
+    const normalized = normalizeAssistantPrompt(prompt);
     // Explicit keywords
     if (normalized.includes('cierra') || normalized.includes('cerrar') || normalized.includes('close')) return 'close';
     if (normalized.includes('abre') || normalized.includes('abrir') || normalized.includes('open')) return 'open';
@@ -921,359 +928,6 @@ export class AssistantConversationService {
 
     return undefined;
   }
-
-  private isAliasCreation(normalized: string): boolean {
-    // Patrones explícitos ES
-    if (normalized.includes('cuando diga') && (normalized.includes('me refiero a') || normalized.includes('entiende'))) return true;
-    if (normalized.includes('guarda') && normalized.includes('como alias')) return true;
-    if (normalized.includes('crea alias')) return true;
-    if (normalized.includes('llama ') && normalized.includes(' a ')) return true;
-
-    const questionWords = ['que', 'qué', 'cual', 'cuál', 'como', 'cómo', 'donde', 'dónde', 'quien', 'quién'];
-    const isQuestion = questionWords.some(w => normalized.startsWith(w + ' ')) || normalized.includes('?');
-    if (normalized.includes(' es ') && !isQuestion) return true;
-
-    // Patrones explícitos EN
-    if (normalized.includes('when i say') && normalized.includes('i mean')) return true;
-    if (normalized.includes('save') && normalized.includes('as alias')) return true;
-    if (normalized.includes('create alias')) return true;
-    if (normalized.includes('call ') && !normalized.includes('call me')) return true;
-    if (normalized.includes(' means ')) return true;
-
-    return false;
-  }
-
-  private async handleAliasCreation(normalized: string, userId: string, language: string): Promise<AssistantConversationResponse> {
-    // 1. "cuando diga X me refiero a Y" / "when i say X i mean Y"
-    const match1 = normalized.match(/(?:cuando diga|when i say) (.+) (?:me refiero a|i mean) (.+)/i);
-    if (match1) {
-      return await this.tryCreateAlias(userId, match1[1].trim(), match1[2].trim(), language);
-    }
-
-    // 2. "llama X a Y" (ES) / "call X to Y" or "call X as Y" (EN)
-    const match2 = normalized.match(/(?:llama|call) (.+?) (?:a|to|as) (.+)/i);
-    if (match2) {
-      return await this.tryCreateAlias(userId, match2[1].trim(), match2[2].trim(), language);
-    }
-
-    // 3. "X es Y" / "X means Y"
-    const match3 = normalized.match(/(.+) (?:es|means) (.+)/i);
-    if (match3) {
-      return await this.tryCreateAlias(userId, match3[1].trim(), match3[2].trim(), language);
-    }
-
-    // 4. Fallback for "call X Y" (EN)
-    if (language === 'en') {
-      const match4 = normalized.match(/call (.+?) (.+)/i);
-      if (match4) {
-        return await this.tryCreateAlias(userId, match4[2].trim(), match4[1].trim(), language);
-      }
-    }
-
-    return {
-      type: 'answer',
-      message: language === 'en'
-        ? "I couldn't understand the alias you want to create."
-        : "No pude entender el alias que quieres crear."
-    };
-  }
-
-  private async tryCreateAlias(userId: string, alias: string, targetName: string, language: string): Promise<AssistantConversationResponse> {
-    const [devices, rooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll()
-    ]);
-
-    // --- COLLISION GUARD ---
-    const normAlias = this.normalizePrompt(alias);
-    const existingRoom = rooms.find(r => this.normalizePrompt(r.name) === normAlias);
-    if (existingRoom) {
-      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, alias, targetName: existingRoom.name, collisionType: 'room' })}`);
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `A room or device named '${existingRoom.name}' already exists. Use another alias to avoid confusion.`
-          : `Ya existe una estancia o dispositivo llamado '${existingRoom.name}'. Usa otro alias para evitar confusiones.`
-      };
-    }
-    const existingDevice = devices.find(d => this.normalizePrompt(d.name) === normAlias);
-    if (existingDevice) {
-      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, alias, targetName: existingDevice.name, collisionType: 'device' })}`);
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `A room or device named '${existingDevice.name}' already exists. Use another alias to avoid confusion.`
-          : `Ya existe una estancia o dispositivo llamado '${existingDevice.name}'. Usa otro alias para evitar confusiones.`
-      };
-    }
-
-    // Check if target is a room
-    const targetRoom = rooms.find(r => this.normalizePrompt(r.name) === this.normalizePrompt(targetName));
-    if (targetRoom) {
-      await this.memoryService.setAlias(userId, alias, targetRoom.id);
-      console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, alias, targetId: targetRoom.id, targetName: targetRoom.name, type: 'room' })}`);
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `Perfect, now '${alias}' refers to ${targetRoom.name}.`
-          : `Perfecto, ahora '${alias}' se refiere a ${targetRoom.name}.`
-      };
-    }
-
-    // Check if target is a device
-    const targetDevice = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(targetName));
-    if (targetDevice) {
-      await this.memoryService.setAlias(userId, alias, targetDevice.id);
-      console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, alias, targetId: targetDevice.id, targetName: targetDevice.name, type: 'device' })}`);
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `Perfect, now '${alias}' refers to ${targetDevice.name}.`
-          : `Perfecto, ahora '${alias}' se refiere a ${targetDevice.name}.`
-      };
-    }
-
-    console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias, targetName, reason: 'target_not_found' })}`);
-    return {
-      type: 'answer',
-      message: language === 'en'
-        ? `I couldn't find a device or room named '${targetName}'.`
-        : `No pude encontrar un dispositivo o estancia llamado '${targetName}'.`
-    };
-  }
-
-  // --- ALIAS MANAGEMENT HANDLERS ---
-  private isAliasListQuery(normalized: string): boolean {
-    const listTriggersES = ['qué aliases tengo', 'que aliases tengo', 'qué nombres has aprendido', 'que nombres has aprendido', 'lista mis aliases', 'muestra mis aliases'];
-    const listTriggersEN = ['what aliases do i have', 'list my aliases', 'show my aliases', 'what names have you learned'];
-    return listTriggersES.some(t => normalized.includes(t)) || listTriggersEN.some(t => normalized.includes(t));
-  }
-
-  private async handleAliasList(userId: string, language: string): Promise<AssistantConversationResponse> {
-    const aliases = await this.memoryService.getAliases(userId);
-    const aliasKeys = Object.keys(aliases);
-
-    if (aliasKeys.length === 0) {
-      console.info(`[ASSISTANT_USER_ALIAS_LIST] ${JSON.stringify({ userId, count: 0 })}`);
-      return {
-        type: 'answer',
-        message: language === 'en' ? "You haven't created any aliases yet." : "Aún no has creado aliases."
-      };
-    }
-
-    const [devices, rooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll()
-    ]);
-
-    const lines: string[] = [];
-    for (const alias of aliasKeys) {
-      const targetId = aliases[alias];
-      let targetName = null;
-      const room = rooms.find(r => r.id === targetId);
-      if (room) {
-        targetName = room.name;
-      } else {
-        const device = devices.find(d => d.id === targetId);
-        if (device) targetName = device.name;
-      }
-
-      if (targetName) {
-        lines.push(`• ${alias} → ${targetName}`);
-      } else {
-        console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias, targetId, reason: 'entity_not_found' })}`);
-        lines.push(language === 'en' ? `• ${alias} → target not found` : `• ${alias} → objetivo no encontrado`);
-      }
-    }
-
-    console.info(`[ASSISTANT_USER_ALIAS_LIST] ${JSON.stringify({ userId, count: lines.length })}`);
-    const prefix = language === 'en' ? "These are the names I've learned:\n" : "Estos son los nombres que he aprendido:\n";
-    return {
-      type: 'answer',
-      message: prefix + lines.join('\n')
-    };
-  }
-
-  private extractAliasMeaningQuery(normalized: string): string | null {
-    const matchES = normalized.match(/(?:qué significa|que significa|a qué se refiere|a que se refiere) (.+)/i);
-    if (matchES) return matchES[1].trim();
-
-    const matchEN = normalized.match(/(?:what does) (.+?) (?:mean|refer to)/i);
-    if (matchEN) return matchEN[1].trim();
-
-    return null;
-  }
-
-  private findBestAliasMatch(input: string, aliases: Record<string, string>): {
-    alias: string;
-    targetId: string;
-    status: 'resolved' | 'not_found' | 'ambiguous';
-    candidates?: string[];
-  } {
-    const normInput = this.normalizePrompt(input);
-    let longestMatchLen = -1;
-    let matches: Array<{ norm: string; original: string; targetId: string }> = [];
-
-    for (const [alias, targetId] of Object.entries(aliases)) {
-      const normAlias = this.normalizePrompt(alias);
-      if (normInput === normAlias || normInput.includes(normAlias)) {
-        matches.push({ norm: normAlias, original: alias, targetId });
-        if (normAlias.length > longestMatchLen) {
-          longestMatchLen = normAlias.length;
-        }
-      }
-    }
-
-    if (matches.length === 0) {
-      return { alias: '', targetId: '', status: 'not_found' };
-    }
-
-    const bestMatches = matches.filter(m => m.norm.length === longestMatchLen);
-
-    if (bestMatches.length === 1) {
-      return { alias: bestMatches[0].original, targetId: bestMatches[0].targetId, status: 'resolved' };
-    }
-
-    return {
-      alias: '',
-      targetId: '',
-      status: 'ambiguous',
-      candidates: bestMatches.map(m => m.original)
-    };
-  }
-
-  private async handleAliasMeaning(userId: string, targetAlias: string, language: string): Promise<AssistantConversationResponse> {
-    const aliases = await this.memoryService.getAliases(userId);
-
-    const match = this.findBestAliasMatch(targetAlias, aliases);
-
-    if (match.status === 'ambiguous') {
-      const list = match.candidates?.join(', ') || '';
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `I found multiple possible aliases: ${list}. Which one do you want to use?`
-          : `Encontré varios aliases posibles: ${list}. ¿Cuál quieres usar?`
-      };
-    }
-
-    if (match.status === 'not_found') {
-      console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, alias: targetAlias, found: false })}`);
-      return {
-        type: 'answer',
-        message: language === 'en' ? "I didn't find that alias." : "No encontré ese alias."
-      };
-    }
-
-    const matchedKey = match.alias;
-    const targetId = match.targetId;
-    const [devices, rooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll()
-    ]);
-
-    let targetName = null;
-    const room = rooms.find(r => r.id === targetId);
-    if (room) {
-      targetName = room.name;
-    } else {
-      const device = devices.find(d => d.id === targetId);
-      if (device) targetName = device.name;
-    }
-
-    if (!targetName) {
-      console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias: matchedKey, targetId, reason: 'entity_not_found' })}`);
-      return {
-        type: 'answer',
-        message: language === 'en' ? `• ${matchedKey} → target not found` : `• ${matchedKey} → objetivo no encontrado`
-      };
-    }
-
-    console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, alias: matchedKey, found: true })}`);
-    return {
-      type: 'answer',
-      message: language === 'en'
-        ? `'${matchedKey}' refers to ${targetName}.`
-        : `'${matchedKey}' se refiere a ${targetName}.`
-    };
-  }
-
-  private extractAliasDeleteRequest(normalized: string): string | null {
-    const matchES = normalized.match(/(?:olvida|elimina|borra alias|borra el alias) (.+)/i);
-    if (matchES) return matchES[1].trim();
-
-    const matchEN = normalized.match(/(?:forget|delete alias|remove alias) (.+)|(?:delete) (.+) (?:alias)/i);
-    if (matchEN) return (matchEN[1] || matchEN[2]).trim();
-
-    return null;
-  }
-
-  private async handleAliasDeleteRequest(userId: string, targetAlias: string, language: string, memory: AssistantMemoryState | null): Promise<AssistantConversationResponse> {
-    const aliases = await this.memoryService.getAliases(userId);
-
-    const match = this.findBestAliasMatch(targetAlias, aliases);
-
-    if (match.status === 'ambiguous') {
-      const list = match.candidates?.join(', ') || '';
-      return {
-        type: 'answer',
-        message: language === 'en'
-          ? `I found multiple possible aliases: ${list}. Which one do you want to use?`
-          : `Encontré varios aliases posibles: ${list}. ¿Cuál quieres usar?`
-      };
-    }
-
-    if (match.status === 'not_found') {
-      console.info(`[ASSISTANT_USER_ALIAS_DELETE_NOT_FOUND] ${JSON.stringify({ userId, alias: targetAlias })}`);
-      return {
-        type: 'answer',
-        message: language === 'en' ? "I didn't find that alias." : "No encontré ese alias."
-      };
-    }
-
-    const matchedKey = match.alias;
-    const targetId = match.targetId;
-    const [devices, rooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll()
-    ]);
-
-    let targetName = 'Unknown';
-    const room = rooms.find(r => r.id === targetId);
-    if (room) targetName = room.name;
-    else {
-      const device = devices.find(d => d.id === targetId);
-      if (device) targetName = device.name;
-    }
-
-    await this.memoryService.saveShortTermMemory(userId, {
-      ...(memory || { lastQueryType: 'none', entities: [], timestamp: new Date().toISOString() }),
-      pendingAliasDelete: {
-        alias: matchedKey,
-        targetId,
-        targetName,
-        timestamp: new Date().toISOString()
-      }
-    });
-
-    console.info(`[ASSISTANT_USER_ALIAS_DELETE_CONFIRMATION_REQUIRED] ${JSON.stringify({ userId, alias: matchedKey, targetName })}`);
-
-    return {
-      type: 'clarification',
-      message: language === 'en'
-        ? `Do you want me to forget the alias '${matchedKey}' for ${targetName}?`
-        : `¿Quieres que olvide el alias '${matchedKey}' para ${targetName}?`,
-      clarification: {
-        question: language === 'en' ? 'Delete alias?' : '¿Eliminar alias?',
-        options: [
-          { id: 'confirm', label: language === 'en' ? 'Yes, delete' : 'Sí, eliminar', kind: 'alias_target' },
-          { id: 'cancel', label: language === 'en' ? 'No, keep it' : 'No, mantener', kind: 'alias_target' }
-        ]
-      }
-    };
-  }
-
-
 
   private isEquivalenceQuery(normalized: string): boolean {
     const triggersES = [
@@ -1485,7 +1139,7 @@ export class AssistantConversationService {
 
     // Priority 4: Conservative fallback for HA switches with an explicit light name.
     // Manual semantic classification above always takes precedence.
-    const normalizedName = this.normalizePrompt(device.name);
+    const normalizedName = normalizeAssistantPrompt(device.name);
     return /^(luz|luces|lampara|lamparas|foco|focos)(\s|$)/.test(normalizedName);
   }
 
@@ -1677,86 +1331,6 @@ export class AssistantConversationService {
       type: 'error',
       message: language === 'en' ? "Invalid selection or pending action." : "Selección o acción pendiente inválida."
     };
-  }
-
-  private normalizePrompt(prompt: string): string {
-    let normalized = prompt
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Remove accents
-      .replace(/[¿?¡!.,]/g, "")        // Remove punctuation
-      .replace(/\s+/g, " ")            // Normalize spaces
-      .trim();
-
-    // Fix common typos
-    normalized = normalized
-      .replace(/\bcomoe stas\b/g, "como estas")
-      .replace(/\bcomo stas\b/g, "como estas")
-      .replace(/\bcm estas\b/g, "como estas")
-      .replace(/\bq tal\b/g, "que tal")
-      .replace(/\bk tal\b/g, "que tal")
-      .replace(/\bapagues\b/g, "apaga")
-      .replace(/\benciendas\b/g, "enciende")
-      .replace(/\bprendas\b/g, "prende")
-      .replace(/\ba\s+pagar\b/g, "apagar")
-      .replace(/\ba\s+paga\b/g, "apaga")
-      .replace(/\ba\s+pa\b/g, "apaga")
-      .replace(/\bapage\b/g, "apaga")
-      .replace(/\bla\s+luz\s+a\s+la\s+sala\b/g, "la luz de la sala")
-      .replace(/\b(el|la)\s+luceje\b/g, "luces")
-      .replace(/\bluceje\b/g, "luces")
-      .replace(/\bluseje\b/g, "luces")
-      .replace(/\bsentidas\b/g, "encendidas")
-      .replace(/\bsendidas\b/g, "encendidas")
-      .replace(/\bluces\s+esta\s+en\s+encendidas\b/g, "luces estan encendidas")
-      .replace(/\bque\s+luces\s+esta\s+en\s+encendidas\b/g, "que luces estan encendidas")
-      .replace(/\bensaila\b/g, "en sala")
-      .replace(/\bensala\b/g, "en sala")
-      .replace(/\bcierres\b/g, "cierra")
-      .replace(/\babras\b/g, "abre");
-
-    const wakeCommand = extractNezuWakeCommand(normalized);
-    if (wakeCommand.activated) {
-      normalized = wakeCommand.command;
-    }
-
-    // Strip conversational wrappers so intent matching works on the core request.
-    const politePrefixes = [
-      'oye ', 'ok ',
-      'puedes ', 'puede ', 'podrias ', 'podria ', 'me puedes ', 'me podrias ',
-      'me ayudas a ', 'me ayudas ', 'ayudame a ', 'ayudame ',
-      'quiero que ', 'quisiera que ', 'necesito que ', 'haz que ', 'haz ',
-      'por favor ', 'porfa ', 'porfis '
-    ];
-
-    let strippedPrefix = true;
-    while (strippedPrefix) {
-      strippedPrefix = false;
-      for (const prefix of politePrefixes) {
-        if (normalized.startsWith(prefix)) {
-          normalized = normalized.slice(prefix.length).trim();
-          strippedPrefix = true;
-          break;
-        }
-      }
-    }
-
-    const politeSuffixes = [
-      ' por favor', ' porfa', ' porfis', ' gracias'
-    ];
-    let strippedSuffix = true;
-    while (strippedSuffix) {
-      strippedSuffix = false;
-      for (const suffix of politeSuffixes) {
-        if (normalized.endsWith(suffix)) {
-          normalized = normalized.slice(0, -suffix.length).trim();
-          strippedSuffix = true;
-          break;
-        }
-      }
-    }
-
-    return normalized;
   }
 
   private isNameQuery(normalized: string): boolean {
@@ -2191,7 +1765,7 @@ export class AssistantConversationService {
     language: 'es' | 'en',
     request: AssistantConverseRequest
   ): Promise<AssistantConversationResponse | null> {
-    const normalized = this.normalizePrompt(prompt);
+    const normalized = normalizeAssistantPrompt(prompt);
     const targetPhrase = this.extractTargetPhrase(prompt);
 
     // A. Unknown Target Blocker
@@ -2207,7 +1781,7 @@ export class AssistantConversationService {
       const isMultiCommand = /\s(y|and|then|&)\s/i.test(normalized) || prompt.includes(',') || prompt.includes(';');
       const isBulk = normalized.includes('todo') || normalized.includes('everything');
       const rooms = await this.roomRepository.findAll();
-      const isRoomMentioned = rooms.some(r => normalized.includes(this.normalizePrompt(r.name)));
+      const isRoomMentioned = rooms.some(r => normalized.includes(normalizeAssistantPrompt(r.name)));
 
       if (isOrdinal || isPronoun || isMultiCommand || isBulk || isRoomMentioned) {
         return null; // Let it pass to Follow-up resolver or Interpreter
@@ -2329,7 +1903,7 @@ export class AssistantConversationService {
 
   private isClarificationSelectionReply(normalized: string): boolean {
     // 1. Detect fresh high-level intents
-    if (this.isAliasCreation(normalized)) return false;
+    if (this.aliasManagementService.isAliasCreation(normalized)) return false;
     if (this.isRoomBulkFastPath(normalized)) return false;
     if (this.isBulkFastPath(normalized)) return false;
     if (this.isManagementIntent(normalized)) return false;
@@ -2490,13 +2064,13 @@ export class AssistantConversationService {
         const devices = await this.deviceRepository.findAll();
         const rooms = await this.roomRepository.findAll();
 
-        const matchingDevices = devices.filter(d => this.normalizePrompt(d.name) === this.normalizePrompt(target));
-        const matchingRooms = rooms.filter(r => this.normalizePrompt(r.name) === this.normalizePrompt(target));
+        const matchingDevices = devices.filter(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(target));
+        const matchingRooms = rooms.filter(r => normalizeAssistantPrompt(r.name) === normalizeAssistantPrompt(target));
 
         const totalMatches = matchingDevices.length + matchingRooms.length;
 
         // Safety: check alias does not match existing device name
-        const nameCollision = devices.some(d => this.normalizePrompt(d.name) === this.normalizePrompt(alias));
+        const nameCollision = devices.some(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(alias));
         // Safety: check alias does not already exist
         const existingAlias = await this.memoryService.getAlias(userId, alias);
 
@@ -3100,20 +2674,20 @@ export class AssistantConversationService {
   }
 
   private async findMatchingDevices(prompt: string, userId: string = 'system'): Promise<Device[]> {
-    const normalized = this.normalizePrompt(prompt);
+    const normalized = normalizeAssistantPrompt(prompt);
     let devices = await this.deviceRepository.findAll();
 
     // Filter out non-controllable/deprecated devices
     devices = devices.filter(d => this.isDeviceAvailable(d));
 
     // 1. Check for Exact Match first (highest priority)
-    const exactMatch = devices.find(d => this.normalizePrompt(d.name) === normalized);
+    const exactMatch = devices.find(d => normalizeAssistantPrompt(d.name) === normalized);
     if (exactMatch) return [exactMatch];
 
     // 2. Phrase Matching (Requirement: normalized prompt contains device name)
     // "prende luz escritorio" -> matchea "luz escritorio" pero no "luz cocina"
     const phraseMatches = devices.filter(d => {
-      const deviceName = this.normalizePrompt(d.name);
+      const deviceName = normalizeAssistantPrompt(d.name);
       return normalized.includes(deviceName);
     });
 
@@ -3140,7 +2714,7 @@ export class AssistantConversationService {
     // 3. Fallback: Token-based matching (Requirement C: "Solo si no hay phraseMatches usar token/fuzzy ranking")
     // "prende luz" -> no matchea ninguna frase completa, buscamos tokens
     const scored = devices.map(d => {
-      const name = this.normalizePrompt(d.name);
+      const name = normalizeAssistantPrompt(d.name);
       const tokens = name.split(' ');
       let score = 0;
 
@@ -3206,12 +2780,12 @@ export class AssistantConversationService {
     const devices = await this.deviceRepository.findAll();
 
     // Buscar dispositivo en el prompt
-    const matches = devices.filter(d => normalized.includes(this.normalizePrompt(d.name)));
+    const matches = devices.filter(d => normalized.includes(normalizeAssistantPrompt(d.name)));
 
     if (matches.length === 0) {
       // Intentar buscar habitación
       const rooms = (await this.roomRepository.findAll()) || [];
-      const roomMatch = rooms.find(r => normalized.includes(this.normalizePrompt(r.name)));
+      const roomMatch = rooms.find(r => normalized.includes(normalizeAssistantPrompt(r.name)));
 
       if (roomMatch) {
         const roomDevices = devices.filter(d => d.roomId === roomMatch.id && this.isControllableDevice(d, 'turn_on'));
@@ -3334,7 +2908,7 @@ export class AssistantConversationService {
       const oldName = renameSceneMatch[1].trim();
       const newName = renameSceneMatch[2].trim();
       const scenes = await this.sceneRepository.findAll();
-      const scene = scenes.find(s => this.normalizePrompt(s.name) === this.normalizePrompt(oldName));
+      const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(oldName));
 
       if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${oldName}" not found.` : `No encontré la escena "${oldName}".` };
 
@@ -3375,7 +2949,7 @@ export class AssistantConversationService {
       const enabled = ['activa', 'enable', 'activate', 'resume'].includes(actionStr);
 
       const automations = await this.automationRepository.findAll();
-      const auto = automations.find(a => this.normalizePrompt(a.name) === this.normalizePrompt(autoName));
+      const auto = automations.find(a => normalizeAssistantPrompt(a.name) === normalizeAssistantPrompt(autoName));
 
       if (!auto) return { type: 'answer', message: language === 'en' ? `Automation "${autoName}" not found.` : `No encontré la automatización "${autoName}".` };
 
@@ -3416,11 +2990,11 @@ export class AssistantConversationService {
       const sceneName = addActionMatch[2].trim();
 
       const scenes = await this.sceneRepository.findAll();
-      const scene = scenes.find(s => this.normalizePrompt(s.name) === this.normalizePrompt(sceneName));
+      const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(sceneName));
       if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
 
       const devices = await this.deviceRepository.findAll();
-      const device = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(deviceName));
+      const device = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(deviceName));
       if (!device) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" not found.` : `No encontré el dispositivo "${deviceName}".` };
 
       await this.memoryService.saveShortTermMemory(userId, {
@@ -3459,11 +3033,11 @@ export class AssistantConversationService {
       const sceneName = removeActionMatch[2].trim();
 
       const scenes = await this.sceneRepository.findAll();
-      const scene = scenes.find(s => this.normalizePrompt(s.name) === this.normalizePrompt(sceneName));
+      const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(sceneName));
       if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
 
       const devices = await this.deviceRepository.findAll();
-      const device = devices.find(d => this.normalizePrompt(d.name) === this.normalizePrompt(deviceName));
+      const device = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(deviceName));
       const action = scene.actions.find(a => a.deviceId === device?.id || a.deviceId === deviceName);
 
       if (!action) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" is not in the scene.` : `El dispositivo "${deviceName}" no está en la escena.` };
@@ -3978,7 +3552,7 @@ export class AssistantConversationService {
     };
   }
   private extractTargetPhrase(prompt: string): string {
-    const norm = this.normalizePrompt(prompt);
+    const norm = normalizeAssistantPrompt(prompt);
     const verbs = ['prende', 'enciende', 'apaga', 'encender', 'apagar', 'activa', 'desactiva', 'abre', 'abrir', 'cierra', 'cerrar', 'turn on', 'turn off', 'open', 'close', 'toggle'];
     for (const v of verbs) {
       if (norm.startsWith(v + ' ')) return norm.substring(v.length + 1).trim();
@@ -4104,8 +3678,8 @@ export class AssistantConversationService {
   }
 
   private resolveRoomAlias(roomName: string, rooms: ReadonlyArray<Room>, devices: ReadonlyArray<Device>, userId: string, userAliases: Record<string, string>): RoomAliasResolution {
-    const normPromptRoom = this.normalizePrompt(roomName);
-    const roomEntries = rooms.map(r => ({ room: r, norm: this.normalizePrompt(r.name) }));
+    const normPromptRoom = normalizeAssistantPrompt(roomName);
+    const roomEntries = rooms.map(r => ({ room: r, norm: normalizeAssistantPrompt(r.name) }));
 
     // Priority 1: Exact Match (normalized equality)
     const exactMatches = roomEntries.filter(e => e.norm === normPromptRoom);
@@ -4127,7 +3701,7 @@ export class AssistantConversationService {
 
     // Priority 3: User-defined alias (NEW)
     const normUserAliases = Object.entries(userAliases).map(([alias, targetId]) => ({
-      norm: this.normalizePrompt(alias),
+      norm: normalizeAssistantPrompt(alias),
       targetId
     }));
 
@@ -4395,7 +3969,7 @@ export class AssistantConversationService {
     const TURN_OFF_VERBS = ['apaga', 'apagar', 'desactiva', 'desactivar'];
     const TOGGLE_VERBS = ['alterna', 'alternar', 'toggle'];
 
-    const normPrompt = this.normalizePrompt(activePrompt);
+    const normPrompt = normalizeAssistantPrompt(activePrompt);
     let command: DeviceCommandV1 | null = null;
     let targetPhrase = normPrompt;
 
@@ -4428,10 +4002,10 @@ export class AssistantConversationService {
     if (!command || !targetPhrase) return null;
 
     const devices = await this.deviceRepository.findAll();
-    const normTarget = this.normalizePrompt(targetPhrase);
+    const normTarget = normalizeAssistantPrompt(targetPhrase);
 
     // Priority 1: Exact real device name wins over alias
-    const exactDevice = devices.find(d => this.normalizePrompt(d.name) === normTarget);
+    const exactDevice = devices.find(d => normalizeAssistantPrompt(d.name) === normTarget);
     if (exactDevice) {
       return null;
     }
@@ -4444,7 +4018,7 @@ export class AssistantConversationService {
       }
     }
 
-    const match = this.findBestAliasMatch(targetPhrase, deviceAliases);
+    const match = this.aliasManagementService.findBestAliasMatch(targetPhrase, deviceAliases);
 
     if (match.status === 'not_found') {
       return null;
@@ -4609,7 +4183,7 @@ export class AssistantConversationService {
   ): Promise<AssistantConversationResponse | null> {
     if (!sourceRoomId) return null;
 
-    const normalized = this.normalizePrompt(prompt);
+    const normalized = normalizeAssistantPrompt(prompt);
     const vagueMatch = this.isVagueLightCommand(normalized, language);
     if (!vagueMatch) return null;
 
@@ -4621,15 +4195,15 @@ export class AssistantConversationService {
 
     // Ensure prompt does not contain explicit room names
     for (const room of rooms) {
-      if (normalized.includes(this.normalizePrompt(room.name))) return null;
+      if (normalized.includes(normalizeAssistantPrompt(room.name))) return null;
     }
     // Ensure prompt does not contain explicit device names
     for (const device of devices) {
-      if (normalized.includes(this.normalizePrompt(device.name))) return null;
+      if (normalized.includes(normalizeAssistantPrompt(device.name))) return null;
     }
     // Ensure prompt does not contain user-defined aliases
     for (const alias of Object.keys(aliases)) {
-      if (normalized.includes(this.normalizePrompt(alias))) return null;
+      if (normalized.includes(normalizeAssistantPrompt(alias))) return null;
     }
 
     // 3. Contextual Resolution
