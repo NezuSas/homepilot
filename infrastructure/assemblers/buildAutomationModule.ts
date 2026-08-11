@@ -14,7 +14,7 @@ import type { SqliteSceneRepository } from '../../packages/devices/infrastructur
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import type { DeviceCommandDispatcherPort } from '../../packages/devices/application/ports/DeviceCommandDispatcherPort';
 import type { SystemVariableService } from '../../packages/system-vars/application/SystemVariableService';
-import type { HomeAssistantRealtimeSyncManager } from '../../packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
+import type { HomeAssistantRealtimeSyncManager, SystemStateChangeEvent } from '../../packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import type { EventBus } from '../../packages/shared/domain/events/EventBus';
 
 export interface AutomationModuleAssembly {
@@ -152,7 +152,7 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
   // Wire Engine to the EventBus for local/non-HA status changes
   eventBus.subscribe('DeviceStateUpdatedEvent', async (event) => {
     const payload = event.payload as DeviceStateUpdatedPayload;
-    const systemEvent: any = {
+    const systemEvent: SystemStateChangeEvent = {
       eventId: event.eventId,
       occurredAt: event.timestamp,
       source: 'local_sensor',
