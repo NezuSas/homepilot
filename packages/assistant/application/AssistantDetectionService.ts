@@ -1,6 +1,6 @@
 import { Device } from '../../devices/domain/types';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
-import { HomeAssistantClient } from '../../devices/infrastructure/adapters/HomeAssistantClient';
+import { HomeAssistantStateReader } from '../../integrations/home-assistant/application/ports/HomeAssistantStateReader';
 import { AssistantFinding, generateFindingFingerprint, FindingSeverity, FindingType, AssistantAction } from '../domain/AssistantFinding';
 import { ContextAnalysisService, SystemContext } from './ContextAnalysisService';
 import { FindingScorer } from './FindingScorer';
@@ -12,7 +12,7 @@ import { EnergyAnalysisService } from './EnergyAnalysisService';
 export class AssistantDetectionService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
-    private readonly haClient: HomeAssistantClient,
+    private readonly haStateReader: HomeAssistantStateReader,
     private readonly contextService: ContextAnalysisService,
     private readonly behaviorService: BehaviorAnalysisService,
     private readonly draftService: AssistantDraftService,
@@ -88,7 +88,7 @@ export class AssistantDetectionService {
 
   private async detectNewDevices(homeId: string): Promise<Partial<AssistantFinding>[]> {
     try {
-      const haStates = await this.haClient.getAllStates();
+      const haStates = await this.haStateReader.getAllStates();
       if (!haStates || !Array.isArray(haStates)) return [];
 
       const findings: Partial<AssistantFinding>[] = [];

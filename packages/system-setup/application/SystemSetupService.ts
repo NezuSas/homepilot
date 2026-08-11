@@ -1,7 +1,7 @@
 import { SystemSetupRepository } from '../domain/SystemSetupState';
 import { HomeAssistantSettingsService } from '../../integrations/home-assistant/application/HomeAssistantSettingsService';
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
-import { SqliteUserRepository } from '../../auth/infrastructure/SqliteUserRepository';
+import { SystemSetupUserRepository } from './ports/SystemSetupUserRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { Home } from '../../topology/domain/types';
 
@@ -28,7 +28,7 @@ export interface SetupStatusResponse {
 export class SystemSetupService {
   constructor(
     private readonly systemSetupRepository: SystemSetupRepository,
-    private readonly userRepository: SqliteUserRepository,
+    private readonly userRepository: SystemSetupUserRepository,
     private readonly homeRepository: HomeRepository,
     private readonly settingsRepository: SettingsRepository,
     private readonly homeAssistantSettingsService: HomeAssistantSettingsService,

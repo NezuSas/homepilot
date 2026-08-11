@@ -1,17 +1,15 @@
-import { User, UserRole } from '../domain/User';
+import { User } from '../domain/User';
 import { Session } from '../domain/Session';
-import { SqliteUserRepository } from '../infrastructure/SqliteUserRepository';
-import { SqliteSessionRepository } from '../infrastructure/SqliteSessionRepository';
-import { CryptoService } from '../infrastructure/CryptoService';
+import { AuthCryptoService, AuthSessionRepository, AuthUserRepository } from './ports/AuthPorts';
 
 export class AuthService {
   // Session lifespan: 7 days
   private static readonly SESSION_LIFESPAN_MS = 7 * 24 * 60 * 60 * 1000;
 
   constructor(
-    private userRepository: SqliteUserRepository,
-    private sessionRepository: SqliteSessionRepository,
-    private cryptoService: CryptoService
+    private readonly userRepository: AuthUserRepository,
+    private readonly sessionRepository: AuthSessionRepository,
+    private readonly cryptoService: AuthCryptoService
   ) {}
 
   private async createSessionForUser(user: User): Promise<{ token: string; user: User }> {
