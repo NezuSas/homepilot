@@ -19,8 +19,8 @@ Establecer una definición verificable de cumplimiento SDD, TDD, BDD y SOLID par
 ## Criterios de aceptación
 
 - [ ] AC1: Todas las specs primarias activas tienen estado, tareas y criterios de aceptación completos.
-- [ ] AC2: Cada bounded context tiene una matriz que enlaza specs, escenarios BDD y suites TDD.
-- [ ] AC3: Los flujos críticos de auth, dispositivos, escenas, automatizaciones, asistente y consola tienen escenarios BDD verificables.
+- [x] AC2: Cada bounded context tiene una matriz que enlaza specs, escenarios BDD y suites TDD. Evidencia: `docs/quality/sdd-tdd-bdd-traceability.md`.
+- [x] AC3: Los flujos críticos de auth, dispositivos, escenas, automatizaciones, asistente y consola tienen escenarios BDD verificables. Evidencia: `npm run check:bdd-traceability` exige 12 flujos Given/When/Then.
 - [ ] AC4: Los módulos sin cobertura directa incorporan pruebas de comportamiento o se justifican como tipos/puertos sin lógica ejecutable.
 - [ ] AC5: Los orquestadores con responsabilidades múltiples se dividen en colaboradores inyectables y testeables.
-- [ ] AC6: CI bloquea cambios que incumplan los controles SDD/TDD/BDD/SOLID.
+- [x] AC6: CI bloquea cambios que incumplan los controles SDD/TDD/BDD/SOLID. Evidencia: `.github/workflows/ci.yml` ejecuta `npm run verify:quality` en cada push y PR.
