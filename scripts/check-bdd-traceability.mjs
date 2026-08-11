@@ -9,6 +9,7 @@ const criticalSuites = [
   'packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts',
   'packages/devices/__tests__/HomeAssistantImportService.test.ts',
   'packages/devices/__tests__/automation/automation_engine.test.ts',
+  'packages/shared/infrastructure/database/__tests__/SqliteDatabaseManager.test.ts',
   'packages/integrations/sonoff/__tests__/SonoffDeviceDriver.test.ts',
   'packages/devices/__tests__/CommandCapabilityValidator.test.ts',
   'packages/devices/__tests__/SceneExecutionService.test.ts',

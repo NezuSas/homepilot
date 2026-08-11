@@ -12,6 +12,7 @@
 | Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
 | Automation lifecycle | `automation-rule-lifecycle-v1.md` | `packages/devices/__tests__/automation/automation_lifecycle.test.ts` | Creación horaria predeterminada conserva hora local, zona IANA y días |
 | Automation Engine V2 | `automation-engine-v2-event-driven.md` | `packages/devices/__tests__/automation/automation_engine.test.ts` | Rebotes concurrentes se deduplican y quedan auditados |
+| Local durable persistence | `local-durable-persistence-v1.md` | `packages/shared/infrastructure/database/__tests__/SqliteDatabaseManager.test.ts` | Journal DELETE no crea sidecars WAL/SHM en bind mount Windows |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |
 | Assistant | `assistant-v1.md` | `packages/assistant/__tests__/assistant_execution.test.ts` | Resolución y ejecución de una intención |
 | Local voice conversation | `home-conversation-natural-voice-v1.md` | `apps/operator-console/src/lib/__tests__/homeConversationVoice.test.ts` | Activador canónico extrae la orden sin aceptar frases no permitidas |
