@@ -9,3 +9,12 @@
 - [ ] Validar los criterios conversacionales de `assistant-v1.md` mediante las suites `packages/assistant/__tests__`.
 - [ ] Mantener el formato residencial opcional: sin nombre de usuario, las respuestas conservan el mensaje funcional original.
 - [ ] Registrar en esta tarea cualquier cambio de comportamiento conversacional antes de implementarlo.
+
+
+## Perfil conversacional
+
+- [ ] AC-01: Cubrir persistencia de nombre preferido y su reconocimiento por usuario.
+- [ ] AC-02: Cubrir rechazo de entradas inválidas.
+- [ ] AC-03: Cubrir detección y persistencia de tono.
+- [ ] AC-04: Cubrir que las preferencias no modifiquen la ejecución de comandos.
+

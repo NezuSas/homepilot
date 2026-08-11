@@ -3,6 +3,11 @@ import {
   detectAssistantResponsePreferenceCommand,
   getAssistantResponsePreferenceAcknowledgement
 } from '../application/response/AssistantResponsePreference';
+import {
+  detectAssistantConversationToneCommand,
+  detectAssistantPreferredAddressCommand,
+  normalizeAssistantPreferredAddress
+} from '../application/response/AssistantConversationProfile';
 
 describe('AssistantResponsePreference', () => {
   it('detects explicit response-style requests in Spanish and English', () => {
@@ -35,5 +40,17 @@ describe('AssistantResponsePreference', () => {
         'en'
       )
     ).toBe('There are two lights on. I can expand on any part if useful.');
+  });
+});
+describe('AssistantConversationProfile', () => {
+  it('accepts explicit preferred-address commands and rejects unsafe values', () => {
+    expect(detectAssistantPreferredAddressCommand('llámame Ana')).toBe('Ana');
+    expect(detectAssistantPreferredAddressCommand('call me Alex')).toBe('Alex');
+    expect(normalizeAssistantPreferredAddress('system')).toBeNull();
+  });
+
+  it('detects the supported conversational tones', () => {
+    expect(detectAssistantConversationToneCommand('usa un tono formal')).toBe('formal');
+    expect(detectAssistantConversationToneCommand('use a warm tone')).toBe('warm');
   });
 });
