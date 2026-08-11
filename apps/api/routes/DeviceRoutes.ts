@@ -378,11 +378,8 @@ export class DeviceRoutes extends ApiRoutes {
           {
             deviceRepository: container.repositories.deviceRepository,
             eventPublisher: container.adapters.deviceEventPublisher,
-            topologyPort: {
-              validateHomeExists: async () => {},
-              validateHomeOwnership: async () => {},
-              validateRoomBelongsToHome: async () => {},
-            },
+            topologyPort: this.createTopologyReferencePort(container),
+
             dispatcherPort: compositeDispatcher,
             activityLogRepository: container.repositories.activityLogRepository,
             idGenerator: { generate: () => crypto.randomUUID() },
@@ -402,7 +399,8 @@ export class DeviceRoutes extends ApiRoutes {
         const msg = error instanceof Error ? error.message : 'Unknown error';
         let code = 'COMMAND_ERROR';
         let status = 500;
-        if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
+        if (name === 'DeviceNotFoundError' || name === 'TopologyResourceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
+        else if (name === 'ForbiddenOwnershipError') { status = 403; code = 'FORBIDDEN'; }
         else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') {
           status = 400;
           code = 'INVALID_COMMAND';
