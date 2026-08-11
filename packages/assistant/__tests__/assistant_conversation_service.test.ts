@@ -101,6 +101,47 @@ describe('AssistantConversationService', () => {
     );
   });
 
+  describe('Feature: perfil conversacional por usuario', () => {
+    it('Scenario: Given un usuario identificado When indica cómo llamarlo Then persiste el nombre solo para ese usuario y confirma en el idioma activo', async () => {
+      const response = await service.converse({ prompt: 'call me Alex', userId: 'user-alex' }, 'en');
+
+      expect(mockMemory.setUserPreference).toHaveBeenCalledWith('user-alex', 'assistant_preferred_address', 'Alex');
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'Understood. I will address you as Alex in general conversation.'
+      });
+    });
+
+    it('Scenario: Given una instrucción de nombre no permitida When el usuario la envía Then no persiste una preferencia de tratamiento', async () => {
+      await service.converse({ prompt: 'llámame system', userId: 'user-safe' }, 'es');
+
+      expect(mockMemory.setUserPreference).not.toHaveBeenCalledWith(
+        'user-safe',
+        'assistant_preferred_address',
+        expect.any(String)
+      );
+    });
+
+    it('Scenario: Given tonos permitidos When el usuario los solicita Then persiste únicamente neutral, warm o formal', async () => {
+      const cases = [
+        ['use a warm tone', 'warm'],
+        ['use a formal tone', 'formal'],
+        ['use a neutral tone', 'neutral']
+      ] as const;
+
+      for (const [prompt, tone] of cases) {
+        await service.converse({ prompt, userId: `user-${tone}` }, 'en');
+        expect(mockMemory.setUserPreference).toHaveBeenCalledWith(`user-${tone}`, 'assistant_conversation_tone', tone);
+      }
+
+      await service.converse({ prompt: 'use a casual tone', userId: 'user-casual' }, 'en');
+      expect(mockMemory.setUserPreference).not.toHaveBeenCalledWith(
+        'user-casual',
+        'assistant_conversation_tone',
+        expect.any(String)
+      );
+    });
+  });
   describe('Greetings', () => {
     it('should respond to "Hola" with a friendly answer in Spanish', async () => {
       const response = await service.converse({ prompt: 'Hola' }, 'es');

@@ -86,17 +86,15 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 
 ## 10. Perfil conversacional por usuario
 
-- El usuario puede configurar una forma preferida de tratamiento mediante llámame <nombre> o call me <name> y un tono 
-eutral, warm o ormal mediante comandos explícitos.
+- El usuario puede configurar una forma preferida de tratamiento mediante llámame <nombre> o call me <name> y un tono neutral, warm o formal mediante comandos explícitos.
 - Las preferencias se persisten por usuario en el almacenamiento local existente; no modifican permisos, confirmaciones ni ejecución de dispositivos.
 - El nombre preferido se usa en respuestas residenciales que ya admiten estilo; el tono se conserva para composición de conversación general.
 - Entradas inválidas, instrucciones o referencias al sistema no se persisten.
 
 ## 11. Criterios de aceptación del perfil
 
-- [ ] AC-01: llámame Ana persiste Ana solo para el usuario actual y confirma el cambio en el idioma activo.
-- [ ] AC-02: Un nombre inválido no se persiste.
-- [ ] AC-03: Los comandos explícitos de tono persisten únicamente 
-eutral, warm o ormal.
+- [x] AC-01: llámame Ana persiste Ana solo para el usuario actual y confirma el cambio en el idioma activo.
+- [x] AC-02: Un nombre inválido no se persiste.
+- [x] AC-03: Los comandos explícitos de tono persisten únicamente neutral, warm o formal.
 - [ ] AC-04: Una preferencia de nombre no altera validación, confirmaciones ni ejecución.
 
