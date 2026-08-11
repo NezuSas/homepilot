@@ -1,7 +1,7 @@
 import { validateDeviceCommand } from '../domain/CommandCapabilityValidator';
 import { Device } from '../domain/types';
 
-describe('CommandCapabilityValidator', () => {
+describe('Feature: validación de capacidades de dispositivos', () => {
   const baseDevice: Device = {
     id: 'd1',
     homeId: 'h1',
@@ -24,7 +24,7 @@ describe('CommandCapabilityValidator', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('should reject invalid commands for light', () => {
+  it('Scenario: Given una luz When solicita un comando no soportado Then la validación lo rechaza', () => {
     const result = validateDeviceCommand(baseDevice, { name: 'set_position', params: { position: 50 } });
     expect(result.valid).toBe(false);
     expect(result.error).toContain('no soportado');

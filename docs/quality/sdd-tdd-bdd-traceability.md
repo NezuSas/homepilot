@@ -4,6 +4,7 @@
 | --- | --- | --- | --- |
 | Auth | `auth-rbac-v1-local-edge-security.md` | `apps/api/__tests__/AuthRoutes.security.test.ts` | Bloqueo de inicio de sesión tras intentos fallidos |
 | Devices | `device-command-execution.md` | `packages/devices/__tests__/command_api.test.ts` | Despacho de comando válido y rechazo de estados inválidos |
+| Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |
 | Assistant | `assistant-v1.md` | `packages/assistant/__tests__/assistant_execution.test.ts` | Resolución y ejecución de una intención |
 | Operator Console | `operator-console-v1.md` | `apps/operator-console/src/lib/__tests__/assistantApi.test.ts` | Envío de conversación desde la consola |
