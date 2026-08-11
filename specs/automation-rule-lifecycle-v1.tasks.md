@@ -17,7 +17,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Contrato del Repositorio
 
-- [ ] **T01: Extender `AutomationRuleRepository` con el método `update`**
+- [x] **T01: Extender `AutomationRuleRepository` con el método `update`**
   - Archivo: `packages/devices/domain/repositories/AutomationRuleRepository.ts`
   - Agregar: `update(rule: AutomationRule): Promise<void>`
   - La firma debe recibir la entidad completa (inmutable por convención).
@@ -25,7 +25,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Lógica Pura de Actualización
 
-- [ ] **T02: Crear función de dominio `updateAutomationRule`**
+- [x] **T02: Crear función de dominio `updateAutomationRule`**
   - Archivo: `packages/devices/domain/automation/updateAutomationRule.ts`
   - Responsabilidad: aplicar un patch parcial sobre una `AutomationRule` existente.
   - Campos permitidos: `name`, `trigger`, `action`.
@@ -41,7 +41,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ## Fase 2: Capa de Infraestructura (Infrastructure)
 
-- [ ] **T03: Implementar `update` en `InMemoryAutomationRuleRepository`**
+- [x] **T03: Implementar `update` en `InMemoryAutomationRuleRepository`**
   - Archivo: `packages/devices/infrastructure/repositories/InMemoryAutomationRuleRepository.ts`
   - Comportamiento: reemplazar la entrada existente en el mapa interno por la nueva entidad recibida.
   - Si la regla no existe (no hay entrada para el `id`), lanzar `AutomationRuleNotFoundError`.
@@ -53,7 +53,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Enable Rule
 
-- [ ] **T04: Implementar `EnableAutomationRuleUseCase`**
+- [x] **T04: Implementar `EnableAutomationRuleUseCase`**
   - Archivo: `packages/devices/application/usecases/automation/EnableAutomationRuleUseCase.ts`
   - Pasos:
     1. Obtener la regla mediante `automationRuleRepository.findById(ruleId)`.
@@ -66,7 +66,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Disable Rule
 
-- [ ] **T05: Implementar `DisableAutomationRuleUseCase`**
+- [x] **T05: Implementar `DisableAutomationRuleUseCase`**
   - Archivo: `packages/devices/application/usecases/automation/DisableAutomationRuleUseCase.ts`
   - Pasos:
     1. Obtener la regla.
@@ -79,7 +79,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Update Rule
 
-- [ ] **T06: Implementar `UpdateAutomationRuleUseCase`**
+- [x] **T06: Implementar `UpdateAutomationRuleUseCase`**
   - Archivo: `packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase.ts`
   - Pasos:
     1. Obtener la regla mediante `findById`.
@@ -100,21 +100,21 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Handlers
 
-- [ ] **T07: Agregar handler `enableRule` en `AutomationController`**
+- [x] **T07: Agregar handler `enableRule` en `AutomationController`**
   - Archivo: `packages/devices/api/controllers/AutomationController.ts`
   - Ruta: `PATCH /rules/:ruleId/enable`
   - Extraer `ruleId` de `req.params` y `userId` del token autenticado.
   - Invocar `EnableAutomationRuleUseCase` y retornar la regla con `statusCode: 200`.
   - _Dependencias:_ T04.
 
-- [ ] **T08: Agregar handler `disableRule` en `AutomationController`**
+- [x] **T08: Agregar handler `disableRule` en `AutomationController`**
   - Archivo: `packages/devices/api/controllers/AutomationController.ts`
   - Ruta: `PATCH /rules/:ruleId/disable`
   - Extraer `ruleId` de `req.params` y `userId` del token autenticado.
   - Invocar `DisableAutomationRuleUseCase` y retornar la regla con `statusCode: 200`.
   - _Dependencias:_ T05.
 
-- [ ] **T09: Agregar handler `updateRule` en `AutomationController`**
+- [x] **T09: Agregar handler `updateRule` en `AutomationController`**
   - Archivo: `packages/devices/api/controllers/AutomationController.ts`
   - Ruta: `PATCH /rules/:ruleId`
   - Aplicar narrowing estricto del body (sin `any`):
@@ -127,7 +127,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Mapeo de Errores
 
-- [ ] **T10: Verificar mapeos en `errorHandler.ts`**
+- [x] **T10: Verificar mapeos en `errorHandler.ts`**
   - Archivo: `packages/devices/api/core/errorHandler.ts`
   - Los errores `AutomationRuleNotFoundError`, `InvalidAutomationRuleError` y `AutomationLoopError` ya deben estar mapeados desde la implementación V1.
   - Confirmar que no se requieren entradas nuevas. Si falta algún mapeo, añadirlo.
@@ -139,7 +139,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Pruebas de Dominio
 
-- [ ] **T11: Pruebas de `updateAutomationRule` en `automation_domain.test.ts`**
+- [x] **T11: Pruebas de `updateAutomationRule` en `automation_domain.test.ts`**
   - Archivo: `packages/devices/__tests__/automation/automation_domain.test.ts`
   - Casos:
     - Actualización parcial de nombre aplica trimming y preserva los demás campos.
@@ -150,29 +150,29 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Pruebas de Aplicación
 
-- [ ] **T12: Pruebas de `EnableAutomationRuleUseCase` y `DisableAutomationRuleUseCase`**
+- [x] **T12: Pruebas de `EnableAutomationRuleUseCase` y `DisableAutomationRuleUseCase`**
   - Archivo: `packages/devices/__tests__/automation/automation_lifecycle.test.ts`
   - Casos para enable/disable:
     - Éxito: regla pasa de `enabled:false` a `enabled:true` y viceversa (vincula a **AC1**, **AC2**).
     - Idempotencia: habilitar una regla ya habilitada retorna éxito sin error (vincula a **AC3**).
-    - Regla no encontrada lanza `AutomationRuleNotFoundError` (vincula a **AC8**).
-    - Usuario sin ownership lanza `ForbiddenOwnershipError` → `403` (vincula a **AC7**).
+    - Regla no encontrada lanza `AutomationRuleNotFoundError` (vincula a **AC9**).
+    - Usuario sin ownership lanza `ForbiddenOwnershipError` → `403` (vincula a **AC8**).
   - _Dependencias:_ T04, T05.
 
-- [ ] **T13: Pruebas de `UpdateAutomationRuleUseCase`**
+- [x] **T13: Pruebas de `UpdateAutomationRuleUseCase`**
   - Archivo: `packages/devices/__tests__/automation/automation_lifecycle.test.ts`
   - Casos:
     - Actualización solo del nombre preserva `trigger` y `action` originales (vincula a **AC4**).
     - Actualización de `trigger.deviceId` a un dispositivo de otro hogar lanza `InvalidAutomationRuleError` (vincula a **AC5**).
     - Actualización que genera auto-bucle lanza `AutomationLoopError` (vincula a **AC6**).
-    - Usuario sin ownership lanza `ForbiddenOwnershipError` (vincula a **AC7**).
-    - Regla no encontrada lanza `AutomationRuleNotFoundError` (vincula a **AC8**).
+    - Usuario sin ownership lanza `ForbiddenOwnershipError` (vincula a **AC8**).
+    - Regla no encontrada lanza `AutomationRuleNotFoundError` (vincula a **AC9**).
     - Actualización de `action.targetDeviceId` a un dispositivo inexistente lanza `DeviceNotFoundError`.
   - _Dependencias:_ T06.
 
 ### Pruebas de API
 
-- [ ] **T14: Pruebas de handlers en `automation_api.test.ts`**
+- [x] **T14: Pruebas de handlers en `automation_api.test.ts`**
   - Archivo: `packages/devices/__tests__/automation/automation_api.test.ts`
   - Casos para `enableRule` / `disableRule`:
     - Retorna `200 OK` con la regla actualizada.
@@ -188,7 +188,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ### Prueba de Compatibilidad con el Motor
 
-- [ ] **T15: Verificar compatibilidad del Engine con reglas deshabilitadas**
+- [x] **T15: Verificar compatibilidad del Engine con reglas deshabilitadas**
   - Archivo: `packages/devices/__tests__/automation/automation_engine.test.ts`
   - Caso nuevo: al disparar un `DeviceStateUpdated`, el motor NO ejecuta la acción si la regla tiene `enabled: false`.
   - Este test valida que ningún cambio de esta fase rompe el comportamiento del `AutomationEngine` existente.
@@ -196,6 +196,14 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 
 ---
 
+### Prueba de aceptación de consola
+
+- [x] **T16: Verificar creación horaria predeterminada desde la consola**
+  - Archivo: `apps/operator-console/tests/responsive-shell.spec.ts`
+  - Escenario BDD: al crear una regla horaria y conservar los valores por defecto, el payload contiene `timeLocal: "12:00"`, zona IANA y los siete días.
+  - _Dependencias:_ T09.
+
+---
 ## Resumen de Dependencias
 
 | Tarea | Depende de |
@@ -227,5 +235,6 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 | **AC4** | Un patch solo con `name` actualiza el nombre y preserva `trigger` y `action` | T13 |
 | **AC5** | Actualizar `trigger.deviceId` a un dispositivo de otro hogar retorna `400` | T13 |
 | **AC6** | Un update que resulta en `trigger.deviceId == action.targetDeviceId` retorna `400` | T11, T13 |
-| **AC7** | Un usuario sin ownership recibe `403 Forbidden` en cualquier operación de lifecycle | T12, T13, T14 |
-| **AC8** | Cualquier operación sobre un `ruleId` inexistente retorna `404 Not Found` | T12, T13, T14 |
+| **AC7** | La creación horaria predeterminada envía hora local, zona IANA y siete días | T16 |
+| **AC8** | Un usuario sin ownership recibe `403 Forbidden` en cualquier operación de lifecycle | T12, T13, T14 |
+| **AC9** | Cualquier operación sobre un `ruleId` inexistente retorna `404 Not Found` | T12, T13, T14 |

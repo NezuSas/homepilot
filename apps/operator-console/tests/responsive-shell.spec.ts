@@ -200,3 +200,56 @@ for (const viewport of viewports) {
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   });
 }
+
+test('Feature: Automation lifecycle — Scenario: Given a new time automation When the default schedule is submitted Then it sends the complete local schedule', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+
+  let submittedPayload: unknown;
+  await page.route('**/api/v1/automations', async (route) => {
+    if (route.request().method() === 'POST') {
+      submittedPayload = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'time-rule', ...(submittedPayload as object) }),
+      });
+      return;
+    }
+
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 'light-1', name: 'Living Room Light' }]),
+    });
+  });
+  await page.route('**/api/v1/scenes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+
+  await page.goto('/routines/automations');
+  const createRule = page.getByRole('button', { name: /create rule|crear regla/i });
+  await createRule.first().click();
+
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel(/naming this automation|nombrar esta automatizaci[oó]n/i).fill('Daily light');
+  await dialog.getByRole('radio', { name: /time|hora/i }).click();
+
+  const deviceSelector = dialog.locator('button[aria-haspopup="listbox"]').nth(2);
+  await deviceSelector.click();
+  await page.getByRole('option', { name: 'Living Room Light' }).click();
+  await dialog.getByRole('button', { name: /confirm automation|confirmar automatizaci[oó]n/i }).click();
+
+  await expect.poll(() => submittedPayload).toBeDefined();
+  expect(submittedPayload).toMatchObject({
+    name: 'Daily light',
+    trigger: {
+      type: 'time',
+      timeLocal: '12:00',
+      days: [0, 1, 2, 3, 4, 5, 6],
+    },
+    action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' },
+  });
+  expect((submittedPayload as { trigger: { timezone: string } }).trigger.timezone).toMatch(/.+/);
+});

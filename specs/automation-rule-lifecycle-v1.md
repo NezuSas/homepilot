@@ -1,6 +1,6 @@
 # SPEC: Gestión de ciclo de vida de reglas de automatización V1 (Automation Rule Lifecycle Management V1)
 
-**Estado:** Borrador  
+**Estado:** Implementado
 **Autor:** Antigravity (IA Architect)  
 **Fecha:** 2026-03-30  
 **Dependencias:** `automation-rules-engine-v1.md`
@@ -23,7 +23,7 @@ HomePilot ya permite crear, listar y eliminar reglas de automatización, y un mo
 
 ## 3. Fuera de Alcance (Out of Scope)
 
-- Interfaz de usuario (UI).
+- Interfaz de usuario (UI), excepto el payload completo del disparador horario definido por REQ-09.
 - Historial de cambios o versionado de reglas.
 - Soft delete / papelera de reciclaje.
 - Pausado automático de reglas por fallos consecutivos (candidato a V2).
@@ -50,8 +50,8 @@ HomePilot ya permite crear, listar y eliminar reglas de automatización, y un mo
 - **REQ-07: Revalidación de dispositivos**: Al actualizar `trigger` o `action`, el sistema revalida que los dispositivos referenciados existan y pertenezcan al mismo `homeId` de la regla.
 - **REQ-08: Revalidación de auto-bucle**: Si se actualizan `trigger.deviceId` y/o `action.targetDeviceId`, el sistema debe verificar que no se configura un bucle directo (`trigger.deviceId == action.targetDeviceId`).
 - **REQ-09: Disparador horario completo**: La consola debe enviar siempre `timeLocal`, zona horaria IANA y días seleccionados para reglas `time`, incluso cuando el usuario conserve la hora predeterminada visible.
-- **REQ-09: Regla no encontrada en update**: Si el `ruleId` no existe, se retorna `AutomationRuleNotFoundError`.
-- **REQ-10: Actualización parcial (PATCH semántico)**: Solo se aplican los campos presentes en el payload. Los campos ausentes mantienen su valor anterior.
+- **REQ-10: Regla no encontrada en update**: Si el `ruleId` no existe, se retorna `AutomationRuleNotFoundError`.
+- **REQ-11: Actualización parcial (PATCH semántico)**: Solo se aplican los campos presentes en el payload. Los campos ausentes mantienen su valor anterior.
 
 ---
 
@@ -137,18 +137,26 @@ No se introducen nuevos modelos. Se reutiliza íntegramente la entidad `Automati
 
 ## 8. Criterios de Aceptación (Acceptance Criteria)
 
-- **AC1: Desactivación exitosa**: Dado un hogar con una regla habilitada, cuando el dueño llama a `PATCH /rules/:ruleId/disable`, la regla persiste con `enabled: false` y el motor ya no la evalúa en subsiguientes eventos de estado.
-- **AC2: Activación exitosa**: Dado un hogar con una regla deshabilitada, cuando el dueño llama a `PATCH /rules/:ruleId/enable`, la regla persiste con `enabled: true` y el motor vuelve a evaluarla.
-- **AC3: Idempotencia**: Llamar a `/enable` sobre una regla ya habilitada retorna `200 OK` sin error, y el estado no cambia.
-- **AC4: Actualización parcial de nombre**: El dueño envía solo `{ "name": "Nuevo nombre" }` y la regla actualiza únicamente el nombre, preservando `trigger` y `action` intactos.
-- **AC5: Revalidación de dispositivos en update**: Si se actualiza `trigger.deviceId` con un dispositivo que pertenece a otro hogar, el sistema retorna `400 Bad Request`.
-- **AC6: Prevención de bucle en update**: Si el update resulta en `trigger.deviceId == action.targetDeviceId`, el sistema retorna `400 Bad Request`.
-- **AC7: Creación horaria predeterminada**: Al seleccionar el disparador por tiempo y conservar `12:00`, la regla se crea con `timeLocal: "12:00"`, zona horaria válida y los siete días seleccionados.
-- **AC7: Zero-Trust en todas las operaciones**: Un usuario que no es dueño del hogar recibe `403 Forbidden` en cualquier operación de lifecycle (enable, disable, update).
-- **AC8: Regla inexistente**: Cualquier operación sobre un `ruleId` que no existe retorna `404 Not Found`.
+- [x] **AC1: Desactivación exitosa**: Dado un hogar con una regla habilitada, cuando el dueño llama a `PATCH /rules/:ruleId/disable`, la regla persiste con `enabled: false` y el motor ya no la evalúa en subsiguientes eventos de estado.
+- [x] **AC2: Activación exitosa**: Dado un hogar con una regla deshabilitada, cuando el dueño llama a `PATCH /rules/:ruleId/enable`, la regla persiste con `enabled: true` y el motor vuelve a evaluarla.
+- [x] **AC3: Idempotencia**: Llamar a `/enable` sobre una regla ya habilitada retorna `200 OK` sin error, y el estado no cambia.
+- [x] **AC4: Actualización parcial de nombre**: El dueño envía solo `{ "name": "Nuevo nombre" }` y la regla actualiza únicamente el nombre, preservando `trigger` y `action` intactos.
+- [x] **AC5: Revalidación de dispositivos en update**: Si se actualiza `trigger.deviceId` con un dispositivo que pertenece a otro hogar, el sistema retorna `400 Bad Request`.
+- [x] **AC6: Prevención de bucle en update**: Si el update resulta en `trigger.deviceId == action.targetDeviceId`, el sistema retorna `400 Bad Request`.
+- [x] **AC7: Creación horaria predeterminada**: Al seleccionar el disparador por tiempo y conservar `12:00`, la regla se crea con `timeLocal: "12:00"`, zona horaria válida y los siete días seleccionados.
+- [x] **AC8: Zero-Trust en todas las operaciones**: Un usuario que no es dueño del hogar recibe `403 Forbidden` en cualquier operación de lifecycle (enable, disable, update).
+- [x] **AC9: Regla inexistente**: Cualquier operación sobre un `ruleId` que no existe retorna `404 Not Found`.
 
 ---
 
+## 8.1 Evidencia de implementación y pruebas
+
+- AC1–AC3, AC8–AC9: `packages/devices/__tests__/automation/automation_lifecycle.test.ts` y `automation_api.test.ts` cubren toggle, idempotencia, ownership y regla inexistente.
+- AC1–AC2: `packages/devices/__tests__/automation/automation_engine.test.ts` verifica que el motor omite reglas deshabilitadas y las vuelve a ejecutar al reactivarlas.
+- AC4–AC6: `packages/devices/__tests__/automation/automation_domain.test.ts` y `automation_lifecycle.test.ts` cubren patch parcial, pertenencia del dispositivo y prevención de bucles.
+- AC7: `apps/operator-console/tests/responsive-shell.spec.ts` verifica que la creación horaria con valores predeterminados envía `timeLocal: "12:00"`, zona IANA no vacía y los siete días.
+
+---
 ## 9. Notas Técnicas y Arquitectura
 
 ### Capa de Dominio
