@@ -76,6 +76,12 @@ Si el comando no es soportado:
   - **No** se debe registrar nada en el `ActivityLog`.
   - El historial solo debe contener acciones que el hardware intentó o ejecutó realmente.
 
+
+### Evidencia V1 verificada
+
+- AC1–AC2: `packages/devices/__tests__/capabilities_domain.test.ts`.
+- AC2–AC4: `packages/devices/__tests__/capabilities_application.test.ts` verifica el error de dominio, ausencia de despacho, eventos y actividad ante incompatibilidad.
+- Contrato HTTP: `packages/devices/__tests__/capabilities_api.test.ts` verifica el mapeo de `UnsupportedCommandError` a HTTP 400.
 ## 8. Notas Técnicas y Arquitectura
 - **Tipo de Error**: `UnsupportedCommandError` se define como un **Error de Dominio**.
   - *Justificación*: La incapacidad de un hardware de realizar una acción es una regla intrínseca de la lógica del negocio de dispositivos, no un fallo de orquestación o infraestructura.
