@@ -4,6 +4,10 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { assignDeviceUseCase } from '../../../packages/devices/application/assignDeviceUseCase';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { syncDeviceStateUseCase } from '../../../packages/devices/application/syncDeviceStateUseCase';
+import { getDeviceStateUseCase } from '../../../packages/devices/application/getDeviceStateUseCase';
+import { getDeviceActivityHistoryUseCase } from '../../../packages/devices/application/getDeviceActivityHistoryUseCase';
+import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
+import type { TopologyReferencePort } from '../../../packages/devices/application/ports/TopologyReferencePort';
 import { DeviceCommandV1, isValidCommand } from '../../../packages/devices/domain/commands';
 import { HomeAssistantState } from '../../../packages/devices/infrastructure/adapters/HomeAssistantClient';
 import { ApiRoutes } from './ApiRoutes';
@@ -42,6 +46,49 @@ export class DeviceRoutes extends ApiRoutes {
     };
   }
 
+  private hasValidIntegrationKey(req: HomePilotRequest): boolean {
+    const expectedKey = process.env.HOMEPILOT_INTEGRATION_API_KEY;
+    const headerValue = req.headers['x-homepilot-integration-key'];
+    const providedKey = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+
+    if (!expectedKey || !providedKey) return false;
+
+    const expected = Buffer.from(expectedKey);
+    const provided = Buffer.from(providedKey);
+    return expected.length === provided.length && crypto.timingSafeEqual(expected, provided);
+  }
+
+  private createTopologyReferencePort(container: BootstrapContainer): TopologyReferencePort {
+    return {
+      validateHomeExists: async (homeId: string) => {
+        const home = await container.repositories.homeRepository.findHomeById(homeId);
+        if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
+      },
+      validateHomeOwnership: async (homeId: string, userId: string) => {
+        const home = await container.repositories.homeRepository.findHomeById(homeId);
+        if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
+        if (home.ownerId !== userId) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
+      },
+      validateRoomBelongsToHome: async (roomId: string, expectedHomeId: string) => {
+        const room = await container.repositories.roomRepository.findRoomById(roomId);
+        if (!room) throw new TopologyResourceNotFoundError('Room', roomId);
+        if (room.homeId !== expectedHomeId) throw new ForbiddenOwnershipError(`Room ${roomId} does not belong to home ${expectedHomeId}`);
+      },
+    };
+  }
+
+  private sendDeviceReadError(res: http.ServerResponse, error: unknown): void {
+    const { name, message } = this.getErrorDetails(error);
+    if (name === 'DeviceNotFoundError' || name === 'TopologyResourceNotFoundError') {
+      this.sendError(res, 404, 'DEVICE_NOT_FOUND', message);
+      return;
+    }
+    if (name === 'ForbiddenOwnershipError') {
+      this.sendError(res, 403, 'FORBIDDEN', message);
+      return;
+    }
+    this.sendError(res, 500, 'INTERNAL_ERROR', message);
+  }
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -49,9 +96,64 @@ export class DeviceRoutes extends ApiRoutes {
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
+    if (method === 'POST' && pathname === '/api/v1/integrations/state-sync') {
+      if (!this.hasValidIntegrationKey(req)) {
+        this.sendError(res, 401, 'UNAUTHORIZED', 'Missing or invalid integration key');
+        return true;
+      }
+
+      try {
+        const payload = await this.parseBody<{ deviceId?: unknown; state?: unknown }>(req);
+        if (typeof payload.deviceId !== 'string' || !payload.deviceId.trim() || typeof payload.state !== 'object' || payload.state === null || Array.isArray(payload.state)) {
+          this.sendError(res, 400, 'VALIDATION_ERROR', 'deviceId and a state object are required');
+          return true;
+        }
+        await syncDeviceStateUseCase(payload.deviceId.trim(), payload.state as Record<string, unknown>, 'm2m-state-sync', {
+          deviceRepository: container.repositories.deviceRepository,
+          eventPublisher: container.adapters.deviceEventPublisher,
+          activityLogRepository: container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() },
+        });
+        this.sendJson(res, { status: 'ok' });
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
+        if (name === 'DeviceNotFoundError') this.sendError(res, 404, 'DEVICE_NOT_FOUND', message);
+        else this.sendError(res, 500, 'INTERNAL_ERROR', message);
+      }
+      return true;
+    }
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
+    const stateMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/state$/);
+    if (stateMatch) {
+      try {
+        const state = await getDeviceStateUseCase(stateMatch[1], req.user!.id, {
+          deviceRepository: container.repositories.deviceRepository,
+          topologyPort: this.createTopologyReferencePort(container),
+        });
+        this.sendJson(res, state);
+      } catch (error: unknown) {
+        this.sendDeviceReadError(res, error);
+      }
+      return true;
+    }
+
+    const historyMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/history$/);
+    if (historyMatch) {
+      try {
+        const history = await getDeviceActivityHistoryUseCase(historyMatch[1], req.user!.id, 50, {
+          deviceRepository: container.repositories.deviceRepository,
+          activityLogRepository: container.repositories.activityLogRepository,
+          topologyPort: this.createTopologyReferencePort(container),
+        });
+        this.sendJson(res, history);
+      } catch (error: unknown) {
+        this.sendDeviceReadError(res, error);
+      }
+      return true;
+    }
     // GET /api/v1/devices/:id/activity-logs
     const deviceLogsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/activity-logs$/);
     if (deviceLogsMatch) {
