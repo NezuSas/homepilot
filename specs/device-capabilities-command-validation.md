@@ -77,6 +77,10 @@ Si el comando no es soportado:
   - El historial solo debe contener acciones que el hardware intentó o ejecutó realmente.
 
 
+### Evidencia V2 verificada
+
+- AC5–AC7: `packages/devices/__tests__/DeviceProfiles.test.ts` y `packages/devices/__tests__/HomeAssistantImportService.test.ts`.
+- AC8: `apps/operator-console/src/lib/__tests__/devicePresentation.test.ts` verifica clasificación UI desde metadata de perfil sin depender de marca.
 ### Evidencia V1 verificada
 
 - AC1–AC2: `packages/devices/__tests__/capabilities_domain.test.ts`.
@@ -107,8 +111,8 @@ Centralizar la adaptación de dispositivos importados desde integraciones extern
 - Dominios no reconocidos quedan en perfil `unknown` y no deben recibir comandos por inferencia.
 
 ### 10.3 Criterios de Aceptación
-- **AC5:** Un `ha:cover.*` resuelve perfil de cortina/persiana, capacidad `cover` y comandos `open`, `close`, `stop`, `set_position`.
-- **AC6:** Un `ha:switch.*` resuelve perfil de interruptor sin reclasificarse automáticamente como luz por nombre.
-- **AC7:** La lista de dominios soportados por descubrimiento se deriva del catálogo de perfiles, no de arrays locales duplicados.
-- **AC8:** La UI puede mostrar el perfil y configuración aplicable usando metadata opcional sin depender de `if` por marca.
+- [x] **AC5:** Un `ha:cover.*` resuelve perfil de cortina/persiana, capacidad `cover` y comandos `open`, `close`, `stop`, `set_position`.
+- [x] **AC6:** Un `ha:switch.*` resuelve perfil de interruptor sin reclasificarse automáticamente como luz por nombre.
+- [x] **AC7:** La lista de dominios soportados por descubrimiento se deriva del catálogo de perfiles, no de arrays locales duplicados.
+- [x] **AC8:** La UI puede mostrar el perfil y configuración aplicable usando metadata opcional sin depender de `if` por marca.
 
