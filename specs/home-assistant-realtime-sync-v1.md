@@ -1,6 +1,6 @@
 # Specification: Home Assistant Real-Time Sync V1 (WebSocket)
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 > **Nota de evolución:** la reconexión automática y la reconciliación se especifican y verifican exclusivamente en `home-assistant-sync-resilience-v2.md`. Este documento conserva el contrato fundacional de WebSocket y no debe introducir un comportamiento contradictorio.
 
