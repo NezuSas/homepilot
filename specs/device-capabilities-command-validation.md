@@ -1,6 +1,6 @@
 # Especificación Funcional: Capacidades de Dispositivo y Validación de Comandos por Tipo
 
-**Estado:** Borrador
+**Estado:** Implementado
 
 ## 1. Problema
 Actualmente, HomePilot permite el envío de comandos operativos (`turn_on`, `turn_off`, `toggle`) a cualquier dispositivo en estado `ASSIGNED`, sin verificar si el hardware físico realmente soporta esa acción según su tipo (ej. mandar un `turn_on` a un sensor de temperatura). Esto genera ruido en el dispatcher, registros de actividad inválidos y posibles errores de integración que deben ser interceptados antes de salir de la lógica de negocio.
@@ -58,20 +58,20 @@ Si el comando no es soportado:
 
 ## 7. Criterios de Aceptación (AC)
 
-### AC1: Derivación Correcta de Capacidades
+### [x] AC1: Derivación Correcta de Capacidades
 - Dado un dispositivo de tipo `light`.
 - Cuando se valida el comando `toggle`.
 - Entonces la validación debe ser positiva.
 
-### AC2: Rechazo por Tipo Incompatible
+### [x] AC2: Rechazo por Tipo Incompatible
 - Dado un dispositivo de tipo `sensor`.
 - Cuando se intenta ejecutar `turn_on`.
 - Entonces el sistema debe lanzar `UnsupportedCommandError`.
 
-### AC3: Preservación del Flow
+### [x] AC3: Preservación del Flow
 - El proceso de validación de capacidades debe ocurrir **después** del chequeo de `ownership` pero **antes** de cualquier comunicación externa con el hardware.
 
-### AC4: Política de Silencio en Auditoría (Sin Ruido)
+### [x] AC4: Política de Silencio en Auditoría (Sin Ruido)
 - Cuando un comando es rechazado por capacidad:
   - **No** se debe registrar nada en el `ActivityLog`.
   - El historial solo debe contener acciones que el hardware intentó o ejecutó realmente.
