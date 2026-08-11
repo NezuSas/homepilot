@@ -10,5 +10,5 @@ export interface HomeAssistantReconciliationState {
 
 /** Puerto de salida para consultar el estado completo de Home Assistant. */
 export interface HomeAssistantStateReader {
-  getAllStates(): Promise<readonly HomeAssistantReconciliationState[]>;
+  getAllStates(): Promise<HomeAssistantReconciliationState[]>;
 }

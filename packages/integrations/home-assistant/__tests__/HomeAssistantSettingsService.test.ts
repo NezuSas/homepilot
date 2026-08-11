@@ -14,7 +14,7 @@ describe('HomeAssistantSettingsService', () => {
     };
     const service = new HomeAssistantSettingsService(
       repository,
-      new HomeAssistantConnectionProvider(),
+      new HomeAssistantConnectionProvider({ create: () => { throw new Error('not used'); } }),
       {},
     );
     jest.spyOn(global, 'fetch').mockRejectedValue('network unavailable');

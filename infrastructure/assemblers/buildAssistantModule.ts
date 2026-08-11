@@ -23,7 +23,7 @@ import type { SQLiteRoomRepository } from '../../packages/topology/infrastructur
 import type { SQLiteAutomationRuleRepository } from '../../packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import type { SqliteSceneRepository } from '../../packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
-import type { HomeAssistantClient } from '../../packages/devices/infrastructure/adapters/HomeAssistantClient';
+import type { HomeAssistantStateReader } from '../../packages/integrations/home-assistant/application/ports/HomeAssistantStateReader';
 import type { EventBus } from '../../packages/shared/domain/events/EventBus';
 
 export interface AssistantAssembly {
@@ -41,7 +41,7 @@ export interface AssistantModuleDeps {
   automationRuleRepository: SQLiteAutomationRuleRepository;
   sceneRepository: SqliteSceneRepository;
   activityLogRepository: SQLiteActivityLogRepository;
-  haClientProxy: HomeAssistantClient;
+  haClientProxy: HomeAssistantStateReader;
   eventBus: EventBus;
 }
 

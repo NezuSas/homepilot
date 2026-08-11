@@ -58,7 +58,7 @@ import type { SystemVariableService } from './packages/system-vars/application/S
 import type { SonoffLanDiscoveryService } from './packages/integrations/sonoff/application/SonoffLanDiscoveryService';
 import type { AuthGuard } from './packages/auth/infrastructure/AuthGuard';
 import type { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
-import type { HomeAssistantClient } from './packages/devices/infrastructure/adapters/HomeAssistantClient';
+import type { HomeAssistantClientPort } from './packages/integrations/home-assistant/application/ports/HomeAssistantClientPort';
 import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
 import type { EventBusDeviceEventPublisher } from './packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
 import type { EventBusTopologyEventPublisher } from './packages/topology/infrastructure/adapters/EventBusTopologyEventPublisher';
@@ -110,7 +110,7 @@ export interface BootstrapContainer {
   };
   adapters: {
     homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
-    homeAssistantClient: HomeAssistantClient;
+    homeAssistantClient: HomeAssistantClientPort;
     commandDispatcher: DeviceCommandDispatcherPort;
     deviceEventPublisher: EventBusDeviceEventPublisher;
     topologyEventPublisher: EventBusTopologyEventPublisher;

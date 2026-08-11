@@ -10,7 +10,7 @@ import { getDeviceActivityHistoryUseCase } from '../../../packages/devices/appli
 import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
 import type { TopologyReferencePort } from '../../../packages/devices/application/ports/TopologyReferencePort';
 import { DeviceCommandV1, isValidCommand } from '../../../packages/devices/domain/commands';
-import { HomeAssistantState } from '../../../packages/devices/infrastructure/adapters/HomeAssistantClient';
+import { HomeAssistantReconciliationState } from '../../../packages/integrations/home-assistant/application/ports/HomeAssistantStateReader';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { resolveCapabilitiesForDevice } from '../../../packages/devices/domain/CapabilityResolver';
@@ -516,7 +516,7 @@ export class DeviceRoutes extends ApiRoutes {
     res: http.ServerResponse,
     container: BootstrapContainer
   ): Promise<boolean> {
-    let allStates: HomeAssistantState[] = [];
+    let allStates: HomeAssistantReconciliationState[] = [];
 
     try {
       allStates = await container.adapters.homeAssistantClient.getAllStates();

@@ -5,7 +5,8 @@
  * Incluye: ConnectionProvider, SettingsService, haClientProxy, SyncManager
  * y la carga inicial de configuración (DB → env fallback).
  */
-import { HomeAssistantClient } from '../../packages/devices/infrastructure/adapters/HomeAssistantClient';
+import { HomeAssistantHttpClientFactory } from '../../packages/integrations/home-assistant/infrastructure/HomeAssistantHttpClientFactory';
+import type { HomeAssistantClientPort } from '../../packages/integrations/home-assistant/application/ports/HomeAssistantClientPort';
 import { HomeAssistantConnectionProvider } from '../../packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import { HomeAssistantSettingsService } from '../../packages/integrations/home-assistant/application/HomeAssistantSettingsService';
 import { HomeAssistantRealtimeSyncManager } from '../../packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
@@ -18,7 +19,7 @@ import type { SQLiteHomeRepository } from '../../packages/topology/infrastructur
 export interface HomeAssistantAssembly {
   connectionProvider: HomeAssistantConnectionProvider;
   settingsService: HomeAssistantSettingsService;
-  haClientProxy: HomeAssistantClient;
+  haClientProxy: HomeAssistantClientPort;
   syncManager: HomeAssistantRealtimeSyncManager;
   haImportService: HomeAssistantImportService;
 }
@@ -33,7 +34,7 @@ export interface HomeAssistantModuleDeps {
 export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): Promise<HomeAssistantAssembly> {
   const { settingsRepository, deviceRepository, activityLogRepository, homeRepository } = deps;
 
-  const connectionProvider = new HomeAssistantConnectionProvider();
+  const connectionProvider = new HomeAssistantConnectionProvider(new HomeAssistantHttpClientFactory());
 
   const envFallback = {
     baseUrl: process.env.INTERNAL_HA_URL || process.env.HOME_ASSISTANT_URL,
@@ -52,7 +53,7 @@ export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): P
 
   // Proxy que siempre delega al cliente activo del provider.
   // Permite que la reconciliación use credenciales actualizadas post-reconfigure.
-  const haClientProxy: HomeAssistantClient = {
+  const haClientProxy: HomeAssistantClientPort = {
     getEntityState: (entityId: string) =>
       connectionProvider.hasClient()
         ? connectionProvider.getClient().getEntityState(entityId)
@@ -81,7 +82,7 @@ export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): P
       connectionProvider.hasClient()
         ? connectionProvider.getClient().getCameraHlsMedia(path, signal)
         : Promise.resolve(new Response(null, { status: 503 })),
-  } as HomeAssistantClient;
+  };
 
   const syncManager = new HomeAssistantRealtimeSyncManager(
     settingsService,
