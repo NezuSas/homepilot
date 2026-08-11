@@ -2,14 +2,20 @@
 import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript } from '../homeConversationVoice';
 import { NEZU_WAKE_PHRASES } from '../../../../../packages/shared/domain/nezuWakePhrases';
 
-describe('homeConversationVoice', () => {
-  it.each(NEZU_WAKE_PHRASES)('uses the canonical wake phrase "%s" for every voice action', phrase => {
+describe('Feature: Local voice wake command normalization', () => {
+  it.each(NEZU_WAKE_PHRASES)('Scenario: Given canonical wake phrase "%s" When a voice command is captured Then it extracts the command', phrase => {
     expect(extractWakeCommand(`${phrase}, apaga la luz de la sala`)).toEqual({
       activated: true,
       command: 'apaga la luz de la sala'
     });
   });
 
+  it('Scenario: Given the canonical wake phrase When a voice command is captured Then it extracts the normalized command', () => {
+    expect(extractWakeCommand('ok nezu apaga la luz de la sala')).toEqual({
+      activated: true,
+      command: 'apaga la luz de la sala'
+    });
+  });
   it('does not activate when a wake phrase is embedded inside another sentence', () => {
     expect(extractWakeCommand('mi automatizacion se llama ok nezu nocturno')).toEqual({
       activated: false,
