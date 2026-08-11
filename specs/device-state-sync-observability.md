@@ -1,6 +1,6 @@
 # Especificación: Sincronización de Estado de Dispositivos y Observabilidad Básica
 
-**Estado:** Borrador
+**Estado:** Implementado
 *(Device State Synchronization & Basic Observability)*
 
 ---
@@ -84,11 +84,20 @@ HomePilot ya es capaz de descubrir dispositivos y enviar comandos unidireccional
     *   `data`: `Record<string, unknown>`.
 
 ## 9. Criterios de Aceptación (AC)
-*   **AC1: Ingesta Exitosa**: Dado un dispositivo, cuando recibe un estado diferente al actual, el dispositivo incrementa su `entityVersion`, actualiza `updatedAt` y emite un `DeviceStateUpdatedEvent`.
-*   **AC2: Deduplicación Silenciosa**: Si el estado entrante es igual al actual, la API retorna `200 OK`, pero la base de datos no se toca y el historial de actividad no crece.
-*   **AC3: Seguridad Zero-Trust**: Un usuario autenticado intenta leer el `/state` de un dispositivo de otro hogar y recibe un `403 Forbidden`.
-*   **AC4: Historial Combinado**: El `/history` debe mostrar tanto el reporte de estado enviado desde el gateway como los comandos previos enviados desde la UI, ordenados por fecha.
-*   **AC5: Visibilidad en Inbox**: Un dispositivo en el Inbox (`PENDING`) muestra su estado actual correctamente al dueño del hogar asignado.
+*   [x] **AC1: Ingesta Exitosa**: Dado un dispositivo, cuando recibe un estado diferente al actual, el dispositivo incrementa su `entityVersion`, actualiza `updatedAt` y emite un `DeviceStateUpdatedEvent`.
+*   [x] **AC2: Deduplicación Silenciosa**: Si el estado entrante es igual al actual, la API retorna `200 OK`, pero la base de datos no se toca y el historial de actividad no crece.
+*   [x] **AC3: Seguridad Zero-Trust**: Un usuario autenticado intenta leer el `/state` de un dispositivo de otro hogar y recibe un `403 Forbidden`.
+*   [x] **AC4: Historial Combinado**: El `/history` debe mostrar tanto el reporte de estado enviado desde el gateway como los comandos previos enviados desde la UI, ordenados por fecha.
+*   [x] **AC5: Visibilidad en Inbox**: Un dispositivo en el Inbox (`PENDING`) muestra su estado actual correctamente al dueño del hogar asignado.
+
+## 9.1 Evidencia de implementación y pruebas
+
+- AC1–AC2: packages/devices/__tests__/state_application.test.ts y state_e2e.test.ts validan persistencia, evento y deduplicación sin efectos secundarios.
+- AC3 y AC5: state_e2e.test.ts cubre ownership y dispositivos PENDING.
+- AC4: state_e2e.test.ts verifica el historial combinado en orden LIFO.
+- Contrato HTTP real: pps/api/__tests__/DeviceRoutes.state-sync.test.ts cubre la clave M2M obligatoria, la ingesta y la lectura autorizada.
+
+---
 
 ## 10. Notas Técnicas y Arquitectura
 *   **Atomicidad**: La actualización del estado en la entidad `Device` debe realizarse mediante el repositorio existente, asegurando que `entityVersion` y `updatedAt` se gestionen en la misma transacción o comando de guardado.
