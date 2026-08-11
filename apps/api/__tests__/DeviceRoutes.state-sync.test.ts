@@ -75,7 +75,7 @@ describe('Feature: Device discovery M2M boundary', () => {
     expect(res.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
   });
 
-  it('creates a discovered device with a valid integration key', async () => {
+  it('Scenario: Given a valid gateway payload When discovery is accepted Then it persists a pending device with 201', async () => {
     process.env.HOMEPILOT_INTEGRATION_API_KEY = 'edge-secret';
     const container = containerFor();
     container.repositories.deviceRepository.findByExternalIdAndHomeId = jest.fn().mockResolvedValue(null);
@@ -83,5 +83,16 @@ describe('Feature: Device discovery M2M boundary', () => {
     await routes.handle({ headers: { 'x-homepilot-integration-key': 'edge-secret' }, _fastifyParsedBody: JSON.stringify({ homeId: 'home-1', externalId: 'edge:2', name: 'Sensor', type: 'sensor', vendor: 'Edge' }) } as unknown as HomePilotRequest, res, '/api/v1/integrations/discovery', 'POST', container);
     expect(container.repositories.deviceRepository.saveDevice).toHaveBeenCalledWith(expect.objectContaining({ status: 'PENDING', roomId: null, externalId: 'edge:2' }));
     expect(res.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
+  });
+  it('Scenario: Given a duplicate external identifier When discovery is reported again Then it returns 409 without persisting', async () => {
+    process.env.HOMEPILOT_INTEGRATION_API_KEY = 'edge-secret';
+    const container = containerFor();
+    container.repositories.deviceRepository.findByExternalIdAndHomeId = jest.fn().mockResolvedValue(device);
+    const res = response();
+
+    await routes.handle({ headers: { 'x-homepilot-integration-key': 'edge-secret' }, _fastifyParsedBody: JSON.stringify({ homeId: 'home-1', externalId: device.externalId, name: 'Sensor', type: 'sensor', vendor: 'Edge' }) } as unknown as HomePilotRequest, res, '/api/v1/integrations/discovery', 'POST', container);
+
+    expect(container.repositories.deviceRepository.saveDevice).not.toHaveBeenCalled();
+    expect(res.writeHead).toHaveBeenCalledWith(409, expect.any(Object));
   });
 });
