@@ -3,7 +3,7 @@ import { HomeAssistantWebSocketClient } from './HomeAssistantWebSocketClient';
 import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository } from '../../../devices/domain/repositories/ActivityLogRepository';
 import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
-import { HomeAssistantClient } from '../../../devices/infrastructure/adapters/HomeAssistantClient';
+import { HomeAssistantStateReader } from './ports/HomeAssistantStateReader';
 import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
 import { buildUnavailableDeviceState } from '../../../devices/application/deviceAvailability';
 import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
@@ -103,7 +103,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     private readonly deviceRepository: DeviceRepository,
     private readonly activityLogRepository: ActivityLogRepository,
     /** Opcional: inyectado para reconciliación. Si no se proporciona, se omite. */
-    private readonly haClient: HomeAssistantClient | null = null,
+    private readonly haStateReader: HomeAssistantStateReader | null = null,
     private readonly socketFactory: HomeAssistantRealtimeSocketFactory = (baseUrl, token) => (
       new HomeAssistantWebSocketClient(baseUrl, token)
     ),
@@ -330,7 +330,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
    * de forma silenciosa (sin emitir system_event para no activar automatizaciones).
    */
   private async _runReconciliation(): Promise<void> {
-    if (!this.haClient) return;
+    if (!this.haStateReader) return;
 
     // Guard: solo 1 reconciliación activa a la vez.
     if (this.isReconciling) {
@@ -345,11 +345,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
       let allStates;
       try {
-        allStates = await this.haClient.getAllStates();
-        if (!allStates) {
-          logRuntimeDiagnostic('log', '[HA-Sync] Reconciliation: No states returned (HA may not be configured).');
-          return;
-        }
+        allStates = await this.haStateReader.getAllStates();
       } catch (fetchError: unknown) {
         // /api/states falló: log de warning pero NO cerrar el WS.
         const errorMessage = getErrorMessage(fetchError);

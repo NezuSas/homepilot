@@ -2,9 +2,9 @@ import { EventEmitter } from 'events';
 import { Device } from '../../../devices/domain/types';
 import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository } from '../../../devices/domain/repositories/ActivityLogRepository';
-import { HomeAssistantClient } from '../../../devices/infrastructure/adapters/HomeAssistantClient';
 import { HomeAssistantRealtimeSocket, HomeAssistantRealtimeSyncManager } from '../application/HomeAssistantRealtimeSyncManager';
 import { HomeAssistantSettingsService } from '../application/HomeAssistantSettingsService';
+import { HomeAssistantStateReader } from '../application/ports/HomeAssistantStateReader';
 
 const createDevice = (id: string, entityId: string): Device => ({
   id,
@@ -70,7 +70,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
       {} as HomeAssistantSettingsService,
       deviceRepository,
       activityLogRepository,
-      { getAllStates } as unknown as HomeAssistantClient,
+      { getAllStates } satisfies HomeAssistantStateReader,
     );
     const systemEvent = jest.fn();
     manager.on('system_event', systemEvent);
@@ -103,7 +103,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
       { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
       { findByExternalId } as unknown as DeviceRepository,
       { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
-      { getAllStates } as unknown as HomeAssistantClient,
+      { getAllStates } satisfies HomeAssistantStateReader,
       () => asRealtimeSocket(socket),
     );
 
