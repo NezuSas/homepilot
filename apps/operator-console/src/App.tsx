@@ -50,7 +50,8 @@ import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
 import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
-import { useDemoGuideStore, type DemoStep } from './stores/useDemoGuideStore';
+import { useDemoGuideStore } from './stores/useDemoGuideStore';
+import { APP_DEMO_STEPS } from './config/appDemoSteps';
 import { DemoGuideOverlay } from './components/DemoGuideOverlay';
 import { UserProfileModal } from './components/UserProfileModal';
 import { GlobalWakeListener } from './components/GlobalWakeListener';
@@ -214,44 +215,6 @@ function App() {
   const refreshAssistantFindings = useAssistantStore((state) => state.refreshFindings);
   const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const startDemo = useDemoGuideStore((state) => state.startDemo);
-
-  const DEMO_STEPS: DemoStep[] = [
-    {
-      id: 'dashboard-nav',
-      target: '[data-demo="nav-dashboard"]',
-      titleKey: 'demo.steps.dashboard.title',
-      descriptionKey: 'demo.steps.dashboard.description',
-      view: 'dashboard'
-    },
-    {
-      id: 'routines',
-      target: '[data-demo="dashboard-routines"]',
-      titleKey: 'demo.steps.routines.title',
-      descriptionKey: 'demo.steps.routines.description',
-      view: 'dashboard'
-    },
-    {
-      id: 'conversation',
-      target: '[data-demo="nav-home-conversation"]',
-      titleKey: 'demo.steps.conversation.title',
-      descriptionKey: 'demo.steps.conversation.description',
-      view: 'home-conversation'
-    },
-    {
-      id: 'automations',
-      target: '[data-demo="nav-routines"]',
-      titleKey: 'demo.steps.automations.title',
-      descriptionKey: 'demo.steps.automations.description',
-      view: 'automations'
-    },
-    {
-      id: 'resilience',
-      target: '[data-demo="nav-resilience"]',
-      titleKey: 'demo.steps.resilience.title',
-      descriptionKey: 'demo.steps.resilience.description',
-      view: 'resilience-showcase'
-    }
-  ];
 
   const toggleLanguage = () => {
     const nextLang = i18n.language.startsWith('es') ? 'en' : 'es';
@@ -1010,7 +973,7 @@ function App() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => startDemo(DEMO_STEPS)}
+            onClick={() => startDemo(APP_DEMO_STEPS)}
             className={cn(
               "hidden xl:flex h-auto items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 group",
               "hover:bg-primary/15 hover:border-primary/30",
@@ -1026,7 +989,7 @@ function App() {
                 {t('demo.start_button')}
               </span>
               <span className="mt-0.5 truncate text-nano font-semibold uppercase tracking-normal text-primary/70">
-                {t('demo.sidebar_summary', { count: DEMO_STEPS.length })}
+                {t('demo.sidebar_summary', { count: APP_DEMO_STEPS.length })}
               </span>
             </div>
           </Button>
