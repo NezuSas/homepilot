@@ -1,5 +1,7 @@
 # Specification: Dockerization & Edge Runtime V1
 
+**Estado:** Borrador
+
 ## Problem
 HomePilot Edge needs to be easily deployable and reproducible as an Edge Appliance. Currently, it runs as a dispersed set of Node.js processes and a Vite development server, which is not suitable for production deployment on Edge devices (e.g., MiniPCs).
 
@@ -67,3 +69,4 @@ The implementation is correct if:
 - [ ] Onboarding detects the system status correctly.
 - [ ] `testConnection()` against `http://homeassistant:8123` works from the API.
 - [ ] **Data Persistence**: `docker-compose down` followed by `docker-compose up` preserves the DB, setup state, sessions, and HA configuration.
+

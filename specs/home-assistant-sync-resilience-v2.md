@@ -1,5 +1,7 @@
 # Home Assistant Sync Resilience V2 (Reconnect + State Reconciliation)
 
+**Estado:** Borrador
+
 ## 1. Contexto y Problema
 
 El sistema integra Real-Time Sync V1 y Automation Engine V2. Sin embargo, no existe recuperación automática tras una caída de red o de Home Assistant, ni compensación de cambios físicos ocurridos durante la desconexión (State Drift), lo que desalinea la topología local con la realidad y rompe las subsecuentes lógicas de automatización.
@@ -94,3 +96,4 @@ No bastan scripts visuales. El código exigirá test unitarios automatizados for
 - **Reconciliation Applier**: Test mockeando `/api/states` donde la data falsa llega y las llamadas a BD se verifican que ocurren sin lanzar el Node Event Emitter internamente.
 - **Auth Fatal Drop**: Test para certificar que retornar un HTTP 401 Unauthorized paraliza netamente el Retry.
 - **Recovering Gracefully**: Test garantizando que si `/api/states` explota a Exception, el Event Listener sigue atado al WebSocket intacto.
+

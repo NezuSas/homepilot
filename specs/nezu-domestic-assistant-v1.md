@@ -1,4 +1,6 @@
-# SPEC: Asistente Doméstico Nezu V1
+# SPEC: Asistente Doméstico Nezu V1
+
+**Estado:** Borrador
 
 - Estado: borrador preparado para implementación
 - Fecha: 2026-08-05
@@ -252,3 +254,4 @@ Cada fase requiere su actualización de tareas, pruebas y aceptación antes de c
 - Retención y activación voluntaria de telemetría de voz sin contenido.
 - Personalidad por hogar frente a una personalidad única Nezu.
 - Tratamiento final de restricciones de autoplay en navegadores.
+

@@ -1,5 +1,7 @@
 # Spec: Navegación de Tableros por Usuario
 
+**Estado:** Borrador
+
 ## Problema
 La consola mostraba "Paneles" como una pantalla única y además repetía una navegación interna de paneles dentro del contenido. Para un flujo similar a Home Assistant, los tableros deben vivir como una familia de navegación del sidebar, evitando llenar la navegación principal y evitando duplicar listas dentro de la pantalla.
 
@@ -81,3 +83,4 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC35:** El ancho de una zona se controla con un selector discreto (1..N columnas según el breakpoint activo); el valor persiste aunque un breakpoint más angosto lo clamée visualmente sin sobrescribir el dato guardado.
 - **AC36:** Una cortina en el tablero muestra el control reutilizado del Gestor de Dispositivos, ejecuta comandos contra el inventario local y no supera el ancho máximo legible en escritorio si es la única unidad. El preview del editor conserva la misma jerarquía visual y muestra el nombre y la estancia de la cortina seleccionada, sin controles activos ni secundarios simulados. Al usar tres tarjetas por fila, tanto el preview como la tarjeta final emplean la variante compacta y mantienen una acción primaria legible sin recortes; en tamaños medio y completo, el preview reserva la altura de cortina correspondiente y muestra íntegramente acción y posición; la variante media se centra con un ancho máximo menor que la completa. Al regresar a Tableros, el preview conserva su estructura no interactiva aunque la cortina ya esté seleccionada.
 - **AC37:** La cortina representa visualmente la posición sincronizada mediante lamas proporcionales, conserva nombre, estancia, clase e inclinación cuando existan, y no inventa controles para capacidades no importadas. El preview reutiliza la misma composición visual no interactiva y no difiere de la tarjeta final por una estructura alternativa.
+

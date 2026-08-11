@@ -1,5 +1,7 @@
 # Spec: Descubrimiento de Dispositivos y Bandeja (Device Discovery & Device Inbox)
 
+**Estado:** Borrador
+
 ## 1. Problema
 Una vez que el usuario ha configurado su topología física (Hogares y Habitaciones), el ecosistema debe integrar dispositivos físicos provenientes de redes locales, puentes o plataformas externas (Hubs, MQTT, Zigbee, etc.). Sin embargo, un dispositivo recién descubierto no posee un contexto lógico inmediato dentro de la vivienda (desconoce en qué habitación se encuentra). Se requiere un paso de transición donde los dispositivos "huérfanos" aguarden en una bandeja temporal (Inbox) hasta que el usuario decida lógicamente a qué habitación (Room) pertenecen, garantizando que el modelo topológico se mantenga estricto y sin contaminación.
 
@@ -102,3 +104,4 @@ Ambos heredarán campos core (`eventId`, `timestamp`, `schemaVersion`, `source`,
 
 ## 11. Preguntas Abiertas / TODOs
 - **[TODO: Stack Architecture Review]:** Se requiere evaluación inmediata sobre si la ingesta proveniente del Local Gateway / MQTT Broker deberá llamar a este spec REST vía HTTP Loopback (`/integrations/discovery`) o será inyectado de forma agnóstica a la web bypassando los controllers nativos e interfiriendo de manera directa al *Application Service* en capas internas Edge.
+

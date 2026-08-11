@@ -1,5 +1,7 @@
 # Release Hardening V1 (Test, Validation & Production Readiness)
 
+**Estado:** Borrador
+
 ## Contexto
 El sistema HomePilot Edge cuenta con las funcionalidades core de automatización, integración con Home Assistant, gestión de usuarios y onboarding. Sin embargo, para transicionar a un estado de "Production Ready", se requiere una fase de endurecimiento que consolide la seguridad, la estabilidad de los contratos (APIs) y la verificabilidad de los procesos críticos.
 
@@ -58,3 +60,4 @@ Se considera la V1 lista para release cuando:
 5. El documento `docs/release-readiness-v1.md` ha sido completado.
 6. El script `scripts/verify_release_v1.ts` se ejecuta con éxito en el entorno objetivo.
 7. Las vulnerabilidades reportadas por `npm audit` tienen decisión explícita de corrección, mitigación o aceptación temporal.
+

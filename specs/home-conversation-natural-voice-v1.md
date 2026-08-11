@@ -1,5 +1,7 @@
 # Home Conversation Natural Voice V1
 
+**Estado:** Borrador
+
 ## Objetivo
 Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y permita interacción por voz desde la Operator Console, manteniendo el Edge como fuente de verdad y las confirmaciones de seguridad existentes.
 
@@ -110,3 +112,4 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.
 - Si el servicio STT local falla, la conversación sigue funcionando por texto sin depender del reconocimiento de voz del navegador.
 - Typecheck, build, build de Operator Console, tests y Docker pasan.
+

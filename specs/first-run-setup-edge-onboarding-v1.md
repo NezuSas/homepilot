@@ -1,5 +1,7 @@
 # First-Run Setup & Edge Onboarding V1
 
+**Estado:** Implementado
+
 ## Objetivo
 Transformar a HomePilot Edge en un appliance realmente instalable y operable de caja. Implementar un flujo guiado ("First-Run Setup") para administradores, de forma persistente e inyectada en la UI pre-existente, asegurando la configuración mandatoria para inicializar el sistema sin hacky scripts o pre-conocimiento de bases de datos.
 
@@ -22,7 +24,7 @@ Transformar a HomePilot Edge en un appliance realmente instalable y operable de 
 ## Modelado y Arquitectura
 
 ### 1. Dominio: `SystemSetupState`
-La identidad del sistema y su estado recaen sobre el entorno local. 
+La identidad del sistema y su estado recaen sobre el entorno local.
 
 Ubicación: `packages/system-setup/domain/SystemSetupState.ts`
 Shape:
@@ -46,7 +48,7 @@ Se integra reciclando lógica existente (sin copypaste):
 Casos de Uso:
 - `getSetupStatus()`: Devuelve el estado calculando `requiresOnboarding` (!isInitialized).
 - `bootstrapFirstAdmin(payload)`: Crea el primer usuario `admin` solamente si no existe ningún usuario local. Devuelve sesión autenticada para continuar onboarding.
-- `completeOnboarding(userId: string)`: 
+- `completeOnboarding(userId: string)`:
   - **REGLA ESTRICTA 1:** Ejecuta una **validación viva obligatoria** a Home Assistant empleando el setting persistido. No se aceptan cacheos de test previos.
   - **REGLA ESTRICTA 2:** Si el sistema **ya está inicializado**, la llamada debe ser puramente idempotente, no lanzará error y devolverá un `HTTP 200 OK` limpio sin reimprimir nuevos instantes en memoria ni mutar `initializedAt`.
 
@@ -64,7 +66,7 @@ Restricción Global: Nada aquí esquiva Auth/RBAC salvo el estado de fábrica si
 {
   "isInitialized": false,
   "requiresOnboarding": true,
-  "hasAdminUser": true, 
+  "hasAdminUser": true,
   "hasHAConfig": false,
   "haConnectionValid": false,
   "runtimeTarget": "docker_desktop",
@@ -85,7 +87,7 @@ Restricción Global: Nada aquí esquiva Auth/RBAC salvo el estado de fábrica si
 - Si se invoca sobre un sistema `isInitialized: true`, responde `200 OK` de forma idempotente ignorando los checks para no crashear retries perdidos.
 
 ### 5. UI (Frontend) / Pasos de Flujo
-El onboarding redirecciona la UI preexistente obligando foco si `requiresOnboarding === true`. 
+El onboarding redirecciona la UI preexistente obligando foco si `requiresOnboarding === true`.
 **Si isInitialized === true, el onboarding abandona su flujo obligatorio pero permanece en Settings/Sistema como consulta o reevaluación técnica mediante la entrada "Asistente de Instalación".**
 
 Flujo:
@@ -100,7 +102,7 @@ Flujo:
 ### 6. Observabilidad (Activity Logs Structured)
 Generación controlada de auditoría sin fugas de secretos (`token: *`).
 - `ONBOARDING_STARTED`: Log con el User ID/Role.
-- `ONBOARDING_HA_TESTED`: `result: success | failure` al tocar o reconfigurar HA desde dentro del paso de Setup. 
+- `ONBOARDING_HA_TESTED`: `result: success | failure` al tocar o reconfigurar HA desde dentro del paso de Setup.
 - `ONBOARDING_COMPLETED`: `completedByUserId: <uuid>`.
 
 ---

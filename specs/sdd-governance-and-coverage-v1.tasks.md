@@ -8,5 +8,10 @@
 
 ## Pendiente planificado
 
-- [ ] Añadir validación CI de cobertura de rutas y specs cuando se acuerde el formato del chequeo.
+- [ ] Definir el formato de identificadores de prueba para enlazar requisitos y criterios de aceptación a casos automatizados.
 
+## En curso
+
+- [ ] Validar que cada spec primaria referenciada por código exista, declare estado y tenga tareas.
+- [ ] Actualizar el total auditado de la matriz desde la comprobación ejecutable.
+- [ ] Registrar las verificaciones de aceptación pendientes sin marcarlas como completadas.

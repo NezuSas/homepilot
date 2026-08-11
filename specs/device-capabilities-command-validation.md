@@ -1,5 +1,7 @@
 # Especificación Funcional: Capacidades de Dispositivo y Validación de Comandos por Tipo
 
+**Estado:** Borrador
+
 ## 1. Problema
 Actualmente, HomePilot permite el envío de comandos operativos (`turn_on`, `turn_off`, `toggle`) a cualquier dispositivo en estado `ASSIGNED`, sin verificar si el hardware físico realmente soporta esa acción según su tipo (ej. mandar un `turn_on` a un sensor de temperatura). Esto genera ruido en el dispatcher, registros de actividad inválidos y posibles errores de integración que deben ser interceptados antes de salir de la lógica de negocio.
 
@@ -103,3 +105,4 @@ Centralizar la adaptación de dispositivos importados desde integraciones extern
 - **AC6:** Un `ha:switch.*` resuelve perfil de interruptor sin reclasificarse automáticamente como luz por nombre.
 - **AC7:** La lista de dominios soportados por descubrimiento se deriva del catálogo de perfiles, no de arrays locales duplicados.
 - **AC8:** La UI puede mostrar el perfil y configuración aplicable usando metadata opcional sin depender de `if` por marca.
+

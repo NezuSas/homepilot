@@ -1,5 +1,7 @@
 # Auth & RBAC V1 (Local Edge Security)
 
+**Estado:** Implementado
+
 ## 1. Goal
 Implement a robust, localized authentication and basic Role-Based Access Control (RBAC) layer for the HomePilot Edge device.
 
@@ -8,7 +10,7 @@ Implement a robust, localized authentication and basic Role-Based Access Control
   - *Details*: Tokens will be securely generated random strings saved in the `sessions` SQLite table.
   - *Expiration*: Fixed 7-day expiration. No sliding sessions for V1.
   - *Logout*: Invalidates strictly the current token requested to be logged out.
-- **Token Storage**: The Frontend will store the token exclusively in **LocalStorage**. 
+- **Token Storage**: The Frontend will store the token exclusively in **LocalStorage**.
   - *Justification*: As an Edge appliance serving a React SPA, LocalStorage is straightforward, survives browser restarts reliably across different kiosk/PWA contexts, and facilitates cleanly mounting the Authorization logic programmatically on `fetch` interceptors.
 - **Password Security**: Standard Node `crypto.scrypt` (dependency-free and secure).
 - **Login abuse protection**: Login attempts are throttled locally by normalized username and source address. After five failed attempts, the pair is paused for 15 minutes by default. The limits are configurable through `HOMEPILOT_AUTH_MAX_FAILURES` and `HOMEPILOT_AUTH_LOCKOUT_MS`.
@@ -26,7 +28,7 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 | **`GET /api/v1/automation-rules`** | ✅ | ✅ |
 | **`POST / PUT / DELETE /api/v1/automation-rules/*`** | ❌ | ✅ |
 | **`POST /api/v1/devices/:id/assign`** | ❌ | ✅ |
-| **`POST /api/v1/ha/import` & `/api/v1/ha/refresh` (Manual HA Actions)** | ❌ | ✅ | 
+| **`POST /api/v1/ha/import` & `/api/v1/ha/refresh` (Manual HA Actions)** | ❌ | ✅ |
 | **`GET /api/v1/ha/entities` (Discovery)** | ❌ | ✅ |
 | **`GET / POST /api/v1/settings/*` (Settings Read/Write)** | ❌ | ✅ |
 | **`POST /api/v1/auth/change-password`** | ✅ | ✅ |
@@ -52,7 +54,7 @@ Development exception:
 ### Auth Endpoints
 - `POST /api/v1/auth/login` (body: `{ username, password }`)
 - `POST /api/v1/system/bootstrap-admin` (public only while no users exist; body: `{ username, password, displayName? }`)
-- `POST /api/v1/auth/logout` 
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me`
 - `POST /api/v1/auth/change-password` (body: `{ currentPassword, newPassword }`)
 
@@ -66,7 +68,7 @@ Guards/Middlewares will be decoupled into independent functions (`AuthGuard.ts`,
 6. Validates if user is active. **(If Inactive -> 403)**.
 7. Mutates/Injects the verified user context onto the incoming HTTP connection: `req.user = { id, username, role }`.
 
-*Handling Invalid Sessions*: 
+*Handling Invalid Sessions*:
 Logging out a garbage or already-expired token will elegantly skip failure and respond `200` to guarantee frontend state clearing without crashing.
 
 ## 6. Secure Accounting & Diagnostics Integration

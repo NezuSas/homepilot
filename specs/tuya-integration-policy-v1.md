@@ -1,5 +1,7 @@
 # Tuya Integration Policy V1
 
+**Estado:** Borrador
+
 ## Status
 
 HomePilot does not provide a direct Tuya Cloud integration. Tuya devices are supported when they are integrated into Home Assistant and imported through the Home Assistant bridge.

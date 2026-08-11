@@ -1,4 +1,6 @@
 # Especificación: Ejecución de Comandos de Dispositivo y Control Básico
+
+**Estado:** Implementado
 *(Device Command Execution & Basic Device Control)*
 
 ---

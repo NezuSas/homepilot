@@ -1,5 +1,7 @@
 # Specification: Home Assistant Real-Time Sync V1 (WebSocket)
 
+**Estado:** Borrador
+
 ## 1. Objetivo
 Implementar una conexión en tiempo real con Home Assistant utilizando su API de WebSocket nativa. El sistema escuchará los eventos `state_changed` y actualizará el inventario local reactivamente de forma robusta e integrada con el actual Configuration Management.
 
@@ -70,3 +72,4 @@ El endpoint `POST /api/v1/devices/:id/refresh` debe aplicar el mismo contrato de
 - **AC3 — Covers:** al refrescar un `cover` abierto con posición reportada, el dispositivo local conserva `state: "open"`, sus atributos y `current_position`.
 - **AC4 — Entidad eliminada:** una entidad ausente devuelve `404 HA_ENTITY_NOT_FOUND` y no degrada el estado global de conectividad de Home Assistant.
 - **AC5 — Bridge no disponible:** si el timeout fuerza el cierre de un WebSocket aún en `CONNECTING`, el error nativo de `ws` queda manejado y la API continúa disponible para autenticación y operación local.
+

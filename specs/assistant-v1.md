@@ -1,5 +1,7 @@
 # Specification: HomePilot Assistant V1
 
+**Estado:** Implementado
+
 ## 1. Goal
 Introduce an intelligent assistant layer that detects system issues and suggests actionable improvements to the user.
 

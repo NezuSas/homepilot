@@ -1,5 +1,7 @@
 # Specification: Automation Engine V2 (Sistema Event-Driven)
 
+**Estado:** Borrador
+
 ## 1. Objetivo
 Convertir a HomePilot en un sistema verdaderamente reactivo. Desarrollar el **Automation Engine V2** como el cerebro de automatización del sistema global. Éste consumirá eventos de estado general (normalizados) provenientes de cualquier origen (actualmente V1 provenientes de Home Assistant), evaluará las reglas activas de automatización (`AutomationRule`), y despachará mecánicas sin bloquear el EventLoop.
 
@@ -82,3 +84,4 @@ Al regenerarse (`bootstrap.ts` o reconfiguraciones):
 4. Prevención Lógica Base (Saltar porque el target ya estaba prendido).
 5. Error Handling Continuo (Prueba que si `dispatch()` escupe una falla masiva temporal, se atrape silenciosamente y la Regla N° 2 siga su curso).
 6. StateKey Anidado (Busca un key en payload `.attributes.brightness == 255`).
+

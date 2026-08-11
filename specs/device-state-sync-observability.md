@@ -1,4 +1,6 @@
 # Especificación: Sincronización de Estado de Dispositivos y Observabilidad Básica
+
+**Estado:** Borrador
 *(Device State Synchronization & Basic Observability)*
 
 ---
@@ -96,3 +98,4 @@ HomePilot ya es capaz de descubrir dispositivos y enviar comandos unidireccional
 ## 11. Preguntas Abiertas / TODOs
 *   ¿Qué ventana de tiempo o cantidad de registros máxima queremos en el historial de V1 (ej. últimos 50 eventos)?
 *   ¿El integrador M2M requiere autenticación de API Key específica en este slice o se asume canal seguro perimetral?
+

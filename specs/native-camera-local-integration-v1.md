@@ -1,5 +1,7 @@
 # Spec: Native Camera Local Integration V1
 
+**Estado:** Implementado
+
 ## Contexto
 HomePilot necesita actuar como un bridge local de cámaras, permitiendo configurar cámaras IP nativamente sin depender de Home Assistant. HomePilot guardará las credenciales localmente y se encargará de hacer el proxy del video RTSP a un stream HLS compatible con el navegador.
 

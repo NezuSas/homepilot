@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 const root = process.cwd();
@@ -20,7 +20,6 @@ const rules = [
   ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice)/i],
   ['home-assistant-settings-connection-management-v1.md', /(?:home-assistant|HomeAssistant|SettingsRoutes|HomeAssistantDiscovery)/i],
   ['sonoff-local-integration-v1.md', /Sonoff/i],
-  ['tuya-cloud-integration-v1.md', /(?:Tuya|tuya)/i],
   ['energy-management-v1.md', /(?:EnergyView|EnergySnapshot|useEnergyStore)/i],
   ['dashboard-layout-and-widgets-v1.md', /(?:Dashboard|Dashboards|views\/dashboards)/i],
   ['system-variables-v1.md', /(?:system-vars|SystemVariable)/i],
@@ -51,6 +50,12 @@ const files = sourceRoots
   .map((file) => relative(root, file).split(sep).join('/'))
   .sort();
 
+const invalidPrimarySpecs = rules.map(([spec]) => spec).filter((spec) => {
+  const specPath = join(root, 'specs', spec);
+  const tasksPath = join(root, 'specs', spec.replace(/\.md$/, '.tasks.md'));
+  return !existsSync(specPath) || !existsSync(tasksPath) || !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(readFileSync(specPath, 'utf8'));
+});
+
 const coverage = new Map();
 const missing = [];
 const missingComponentDocs = modularComponentDocs.filter(
@@ -66,9 +71,18 @@ for (const file of files) {
   coverage.set(spec, (coverage.get(spec) ?? 0) + 1);
 }
 
-if (missing.length > 0 || missingComponentDocs.length > 0) {
+const allSpecIntegrityIssues = readdirSync(join(root, 'specs'))
+  .filter((name) => name.endsWith('.md') && !name.endsWith('.tasks.md') && name !== 'README.md' && name !== 'spec-template.md')
+  .filter((spec) => {
+    const specPath = join(root, 'specs', spec);
+    const tasksPath = join(root, 'specs', spec.replace(/\.md$/, '.tasks.md'));
+    return !existsSync(tasksPath) || !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(readFileSync(specPath, 'utf8'));
+  });
+
+if (missing.length > 0 || missingComponentDocs.length > 0 || allSpecIntegrityIssues.length > 0) {
   console.error(`Spec coverage failed: ${missing.length} file(s) without a valid spec mapping.`);
   for (const file of missing) console.error(`- ${file}`);
+  if (allSpecIntegrityIssues.length > 0) console.error('Specs without valid status or tasks: ' + allSpecIntegrityIssues.join(', '));
   if (missingComponentDocs.length > 0) {
     console.error(`Missing modular component documentation: ${missingComponentDocs.join(', ')}`);
   }
@@ -77,3 +91,4 @@ if (missing.length > 0 || missingComponentDocs.length > 0) {
   console.log(`Spec coverage passed: ${files.length} TypeScript source file(s) mapped to ${coverage.size} specs; ${modularComponentDocs.length} modular components documented individually.`);
   for (const [spec, count] of [...coverage.entries()].sort()) console.log(`- ${spec}: ${count}`);
 }
+

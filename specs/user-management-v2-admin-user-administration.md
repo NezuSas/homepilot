@@ -1,5 +1,7 @@
 # User Management V2 (Admin User Administration)
 
+**Estado:** Borrador
+
 ## Contexto
 HomePilot Edge cuenta con una sólida arquitectura `Auth & RBAC V1`, incluyendo manejo granular de base de datos para `users` y `sessions`. Sin embargo, no hay un área administrativa (UI ni API) para permitir a los administradores gestionar cuentas (crear nuevos operadores, revocar acceso). 
 
@@ -66,3 +68,4 @@ El payload serializado en el bloque `data` contendrá siempre que aplique: `{ ad
 - `USER_PASSWORD_RESET`
 
 ---
+

@@ -1,5 +1,7 @@
 # Observability & Diagnostics V1
 
+**Estado:** Implementado
+
 ## 1. Contexto y Problema
 
 El sistema HomePilot es funcional y resiliente, pero carece de una capa explícita de observabilidad operativa. Un instalador u operador no puede determinar rápidamente si el sistema está sano, por qué falló una automatización, o cuándo ocurrió el último reconnect. Los datos existen dispersos en repositorios de logs y en estado interno de cada módulo, pero no están consolidados ni son consultables.
@@ -141,7 +143,7 @@ Responsabilidad única: consolidar estado desde múltiples fuentes y derivar el 
 ]
 ```
 
-**Categorías filtradas:** `resilience`, `automation`, `auth`, `command`.  
+**Categorías filtradas:** `resilience`, `automation`, `auth`, `command`.
 **Reducción de ruido en la vista:** las entradas consecutivas `STATE_CHANGED` y `DEVICE_SYNC` del mismo dispositivo se agrupan dentro de una ventana de diez minutos. El resumen muestra el total y la última hora; fallos, comandos, automatizaciones y acciones de usuario se muestran de forma individual.
 
 ## 8. Instrumentación Mínima Requerida

@@ -1,5 +1,7 @@
 # Spec: Home Assistant Settings & Connection Management V1 (REVISADO)
 
+**Estado:** Implementado
+
 ## Contexto
 La conexión con Home Assistant (HA) debe ser dinámica, persistente y administrable. Esta revisión corrige deficiencias de diseño iniciales para asegurar una arquitectura modular y una experiencia de usuario coherente con el estado actual del sistema.
 
@@ -18,7 +20,7 @@ La conexión con Home Assistant (HA) debe ser dinámica, persistente y administr
 - `updatedAt`: ISO Timestamp.
 
 ### Estados de Conexión y Prioridad
-- **Prioridad de Carga**: 
+- **Prioridad de Carga**:
   1. **Database**: Siempre tiene precedencia absoluta.
   2. **Env-Fallback**: Solo si la DB está vacía.
   3. **None**: Si ambos están vacíos.
