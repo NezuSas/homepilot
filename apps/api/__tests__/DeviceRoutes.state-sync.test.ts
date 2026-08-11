@@ -12,7 +12,7 @@ const response = () => ({ writeHead: jest.fn().mockReturnThis(), end: jest.fn().
 
 function containerFor(stored: Device = device): BootstrapContainer {
   return {
-    guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
+    guards: { authGuard: { protect: jest.fn().mockResolvedValue(true), requireRole: jest.fn().mockReturnValue(true) } },
     repositories: {
       deviceRepository: { findDeviceById: jest.fn().mockResolvedValue(stored), saveDevice: jest.fn().mockResolvedValue(undefined) },
       activityLogRepository: { saveActivity: jest.fn().mockResolvedValue(undefined), findRecentByDeviceId: jest.fn().mockResolvedValue([]) },
@@ -94,5 +94,14 @@ describe('Feature: Device discovery M2M boundary', () => {
 
     expect(container.repositories.deviceRepository.saveDevice).not.toHaveBeenCalled();
     expect(res.writeHead).toHaveBeenCalledWith(409, expect.any(Object));
+  });
+  it('Scenario: Given an admin from another home When assigning a pending device Then it returns 403 without saving', async () => {
+    const container = containerFor();
+    const res = response();
+
+    await routes.handle({ headers: {}, user: { id: 'other-admin' }, _fastifyParsedBody: JSON.stringify({ roomId: 'room-1' }) } as unknown as HomePilotRequest, res, '/api/v1/devices/device-1/assign', 'POST', container);
+
+    expect(container.repositories.deviceRepository.saveDevice).not.toHaveBeenCalled();
+    expect(res.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
   });
 });
