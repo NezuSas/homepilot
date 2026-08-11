@@ -9,6 +9,8 @@ import { updateAutomationRuleUseCase } from '../../../packages/devices/applicati
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { AutomationAction, AutomationTrigger } from '../../../packages/devices/domain/automation/types';
+import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
+import type { TopologyReferencePort } from '../../../packages/devices/application/ports/TopologyReferencePort';
 
 interface CreateAutomationPayload {
   name: string;
@@ -26,6 +28,24 @@ interface UpdateAutomationPayload {
  * Automation routes: /api/v1/automations/*
  */
 export class AutomationRoutes extends ApiRoutes {
+  private createTopologyReferencePort(container: BootstrapContainer): TopologyReferencePort {
+    return {
+      validateHomeExists: async (homeId) => {
+        const home = await container.repositories.homeRepository.findHomeById(homeId);
+        if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
+      },
+      validateHomeOwnership: async (homeId, userId) => {
+        const home = await container.repositories.homeRepository.findHomeById(homeId);
+        if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
+        if (home.ownerId !== userId) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
+      },
+      validateRoomBelongsToHome: async (roomId, homeId) => {
+        const room = await container.repositories.roomRepository.findRoomById(roomId);
+        if (!room) throw new TopologyResourceNotFoundError('Room', roomId);
+        if (room.homeId !== homeId) throw new ForbiddenOwnershipError(`Room ${roomId} does not belong to home ${homeId}`);
+      },
+    };
+  }
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -69,11 +89,8 @@ export class AutomationRoutes extends ApiRoutes {
           {
             automationRuleRepository: container.repositories.automationRuleRepository,
             deviceRepository: container.repositories.deviceRepository,
-            topologyReferencePort: {
-              validateHomeExists: async () => {},
-              validateHomeOwnership: async () => {},
-              validateRoomBelongsToHome: async () => {},
-            },
+            topologyReferencePort: this.createTopologyReferencePort(container),
+
             idGenerator: { generate: () => crypto.randomUUID() },
           }
         );
@@ -96,11 +113,8 @@ export class AutomationRoutes extends ApiRoutes {
       const ruleId = patchAutoMatch[1];
       try {
         const payload = await this.parseBody<UpdateAutomationPayload>(req);
-        const ports = {
-          validateHomeOwnership: async () => {},
-          validateHomeExists: async () => {},
-          validateRoomBelongsToHome: async () => {},
-        };
+        const ports = this.createTopologyReferencePort(container);
+
         const result = await updateAutomationRuleUseCase(ruleId, req.user!.id, payload, {
           automationRuleRepository: container.repositories.automationRuleRepository,
           deviceRepository: container.repositories.deviceRepository,
@@ -125,11 +139,8 @@ export class AutomationRoutes extends ApiRoutes {
       const ruleId = autoMatch[1];
       const act = autoMatch[2];
       try {
-        const ports = {
-          validateHomeOwnership: async () => {},
-          validateHomeExists: async () => {},
-          validateRoomBelongsToHome: async () => {},
-        };
+        const ports = this.createTopologyReferencePort(container);
+
         const result =
           act === 'enable'
             ? await enableAutomationRuleUseCase(ruleId, req.user!.id, {
@@ -154,11 +165,8 @@ export class AutomationRoutes extends ApiRoutes {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       const ruleId = deleteMatch[1];
       try {
-        const ports = {
-          validateHomeOwnership: async () => {},
-          validateHomeExists: async () => {},
-          validateRoomBelongsToHome: async () => {},
-        };
+        const ports = this.createTopologyReferencePort(container);
+
         await deleteAutomationRuleUseCase(ruleId, req.user!.id, {
           automationRuleRepository: container.repositories.automationRuleRepository,
           topologyReferencePort: ports,
