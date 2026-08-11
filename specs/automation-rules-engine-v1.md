@@ -1,6 +1,6 @@
 # SPEC: Motor de reglas de automatización V1 (Automation Rules Engine V1)
 
-**Estado:** Borrador  
+**Estado:** Implementado
 **Autor:** Antigravity (IA Architect)  
 **Fecha:** 2026-03-29  
 
@@ -96,12 +96,17 @@ HomePilot permite actualmente el control manual de dispositivos y la visualizaci
     *   `command`: `turn_on | turn_off | toggle`
 
 ## 9. Criterios de Aceptación (Acceptance Criteria)
-*   **AC1: Creación Válida**: Dado un hogar con un sensor y una lámpara, cuando el dueño crea una regla con el payload unificado, esta se persiste y se retorna 201.
-*   **AC2: Ejecución por Estado**: Dado un dispositivo con una regla, cuando se emite `DeviceStateUpdatedEvent`, el motor evalúa la condición y dispara el comando en el dispositivo objetivo si coincide.
-*   **AC3: Gestión de Fallos de Acción**: Si una regla intenta ejecutar un comando no soportado, el sistema debe registrar un registro de tipo `AUTOMATION_FAILED` en el `ActivityLog` del dispositivo objetivo.
-*   **AC4: Protección Zero-Trust**: Un usuario intenta borrar o crear una regla en un hogar que no le pertenece y recibe un `403 Forbidden`.
-*   **AC5: Prevención de Auto-Bucle**: El sistema rechaza la creación de una regla que use el mismo dispositivo para trigger y action sobre la misma clave de estado.
+*   [x] **AC1: Creación Válida**: Dado un hogar con un sensor y una lámpara, cuando el dueño crea una regla con el payload unificado, esta se persiste y se retorna 201.
+*   [x] **AC2: Ejecución por Estado**: Dado un dispositivo con una regla, cuando se emite `DeviceStateUpdatedEvent`, el motor evalúa la condición y dispara el comando en el dispositivo objetivo si coincide.
+*   [x] **AC3: Gestión de Fallos de Acción**: Si una regla intenta ejecutar un comando no soportado, el sistema debe registrar un registro de tipo `AUTOMATION_FAILED` en el `ActivityLog` del dispositivo objetivo.
+*   [x] **AC4: Protección Zero-Trust**: Un usuario intenta borrar o crear una regla en un hogar que no le pertenece y recibe un `403 Forbidden`.
+*   [x] **AC5: Prevención de Auto-Bucle**: El sistema rechaza la creación de una regla que use el mismo dispositivo para trigger y action sobre la misma clave de estado.
 
+## Evidencia verificada
+
+- AC1 y AC4: `packages/devices/__tests__/automation/automation_application.test.ts` y `automation_api.test.ts`.
+- AC2 y AC3: `packages/devices/__tests__/automation/automation_engine.test.ts` y `automation_e2e.test.ts`.
+- AC5: `packages/devices/__tests__/automation/automation_domain.test.ts` y `automation_e2e.test.ts`.
 ## 10. Notas Técnicas y Arquitectura
 *   **Suscriptor de Eventos**: El componente `AutomationEngine` escucha `DeviceStateUpdatedEvent`.
 *   **Contexto de Seguridad**: La ejecución de la regla debe recuperar el `userId` guardado en la regla para invocar el caso de uso de ejecución de comandos.
