@@ -55,4 +55,10 @@ The system has undergone a comprehensive hardening phase to transition from a pr
 - **SSL at Edge**: Release V1 assumes a secure local network or VPN; production SSL terminates at the proxy/load balancer.
 
 ---
-**Status: READY FOR RELEASE V1**
+**Status: baseline verificado; Release Hardening V1 sigue en Borrador hasta completar todos sus criterios de aceptación.**
+
+## Evidencia más reciente
+- `npm audit --omit=dev --json`: 0 vulnerabilidades de producción (Fastify, ws, React Router y fast-uri actualizados de forma compatible).
+- `npm run verify:quality`: aprobado (i18n, modularidad, trazabilidad SDD/BDD, lint, 123 suites/1078 tests, typecheck y builds).
+- Perfil Docker Desktop: API y proxy UI responden `{"status":"ok"}` tras `docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d --build`.
+- La prueba BDD `ApiRoutes.error-sanitization.test.ts` confirma que fallos 5xx no exponen los detalles internos al operador.
