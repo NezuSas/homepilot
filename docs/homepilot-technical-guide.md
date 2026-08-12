@@ -370,6 +370,7 @@ Ese comando ejecuta un ciclo seguro:
 4. Construye e inicia HomePilot con `docker-compose.office.yml`.
 5. Repite la limpieza segura despues del build.
 6. Muestra el espacio disponible final.
+7. Verifica API, UI, Ollama, STT, TTS y el bridge Home Assistant antes de declarar la instalación saludable.
 
 Por defecto conserva hasta `2GB` de cache util:
 
@@ -383,7 +384,7 @@ Para solo limpiar sin reconstruir:
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --yes
 ```
 
-Para diagnosticar sin modificar nada:
+Para diagnosticar sin modificar nada, incluidos contenedores y endpoints locales:
 
 ```bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --status

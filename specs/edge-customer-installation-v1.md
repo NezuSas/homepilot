@@ -36,6 +36,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - **REQ-08:** El script debe ofrecer `--status` para verificar contenedores, healthchecks y endpoints sin crear archivos, limpiar ni iniciar servicios.
 - **REQ-09:** Cuando se use `--start`, el script debe esperar hasta un timeout explicito a que API, UI, Ollama, STT y TTS queden operativos antes de reportar el resultado final.
 - **REQ-10:** La salida de `--status` debe mostrar el puerto host configurado para cada servicio HomePilot y el puerto comprobado para Home Assistant.
+- **REQ-11:** El mantenimiento debe verificar de forma no destructiva los contenedores y endpoints locales de la instalación antes de declarar un despliegue saludable; debe devolver un código distinto de cero si un servicio obligatorio no responde.
 
 ## 5. Requisitos No Funcionales
 
@@ -54,6 +55,8 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC7: `--status` indica el estado de API, UI, Ollama, STT, TTS y Home Assistant; devuelve un codigo distinto de cero si algun componente esperado no esta sano.
 - [x] AC8: `--start` no declara el sistema listo mientras existan servicios HomePilot en arranque; si el timeout vence, reporta la falla y termina con codigo distinto de cero.
 - [x] AC9: `--status` identifica en su salida los puertos de API, UI, Ollama, STT, TTS y Home Assistant.
+- [x] AC10: `bash scripts/homepilot-maintenance.sh --status` verifica API, UI, STT, TTS, contenedor Ollama y, en el perfil `bridge_ha`, el Home Assistant existente; falla de forma explícita si una comprobación requerida no es saludable. Evidencia Docker Desktop 2026-08-12: todos los servicios y endpoints respondieron `200`.
+- [ ] AC11: `bash scripts/homepilot-maintenance.sh --deploy --yes` ejecuta la misma verificación al finalizar el despliegue y no declara éxito si la instalación queda incompleta.
 
 ## 7. Notas Tecnicas y Arquitectura
 

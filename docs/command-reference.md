@@ -129,7 +129,7 @@ Con perfil explícito:
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
 ```
 
-Estado de espacio y Docker, sin cambios:
+Estado de espacio, Docker y salud de API, UI, Ollama, STT, TTS y Home Assistant, sin cambios:
 
 ```bash
 bash scripts/homepilot-maintenance.sh --status

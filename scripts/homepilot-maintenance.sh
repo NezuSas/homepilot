@@ -11,6 +11,7 @@ clean_only=false
 status_only=false
 assume_yes=false
 truncate_logs=false
+runtime_failures=0
 
 if [[ -t 1 ]]; then
   RED='\033[0;31m'
@@ -40,7 +41,7 @@ de Docker. No borra volumenes ni bases de datos.
 Opciones:
   --deploy                 Limpia cache, construye/inicia HomePilot y limpia otra vez.
   --clean                  Solo limpia residuos seguros de Docker.
-  --status                 Solo muestra espacio y consumo de Docker.
+  --status                 Muestra espacio, contenedores y salud de servicios sin modificar nada.
   --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
   --compose FILE           Compose personalizado. Sobrescribe la selección automática de runtime.
   --keep-storage SIZE      Cache maximo para BuildKit/buildx. Default: 2GB
@@ -170,7 +171,103 @@ validate_profile_environment() {
 
   [[ "$configured_profile" == "$profile" ]] || fail ".env declara el perfil ${configured_profile}; ejecuta este comando con --profile ${configured_profile}."
 }
+env_value() {
+  local key="$1"
+  local fallback="$2"
+  local value
 
+  value="$(sed -n "s/^${key}=//p" .env | tail -n 1)"
+  value="${value%$'\r'}"
+  printf '%s' "${value:-$fallback}"
+}
+
+compose_args() {
+  local file
+  for file in "${compose_files[@]}"; do
+    printf '%s\n' '-f' "$file"
+  done
+}
+
+check_container() {
+  local service="$1"
+  local label="$2"
+  local -a args=()
+
+  mapfile -t args < <(compose_args)
+  if docker compose "${args[@]}" ps --status running -q "$service" | grep -q '.'; then
+    ok "${label} en ejecución."
+  else
+    warn "${label} no está en ejecución."
+    runtime_failures=$((runtime_failures + 1))
+  fi
+}
+
+check_endpoint() {
+  local label="$1"
+  local url="$2"
+  local expected_codes="$3"
+  local status_code
+
+  status_code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 "$url" || true)"
+  if [[ ",$expected_codes," == *",$status_code,"* ]]; then
+    ok "${label} responde (HTTP ${status_code})."
+  else
+    warn "${label} no responde como se esperaba (HTTP ${status_code:-000})."
+    runtime_failures=$((runtime_failures + 1))
+  fi
+}
+
+verify_runtime_once() {
+  local api_port ui_port stt_port tts_port ha_port
+
+  api_port="$(env_value HOMEPILOT_API_PORT 3000)"
+  if is_docker_desktop && [[ "$api_port" == "3000" ]]; then
+    api_port="13000"
+  fi
+  ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
+  stt_port="$(env_value HOMEPILOT_STT_PORT 8090)"
+  tts_port="$(env_value HOMEPILOT_TTS_PORT 8088)"
+  ha_port="$(env_value HOMEPILOT_HOME_ASSISTANT_PORT 8123)"
+
+  runtime_failures=0
+  check_container "homepilot-api" "API HomePilot"
+  check_container "homepilot-ui" "UI HomePilot"
+  check_container "ollama" "Ollama"
+  check_container "homepilot-stt" "STT Whisper"
+  check_container "homepilot-tts" "TTS Piper"
+  check_endpoint "API HomePilot · puerto ${api_port}" "http://127.0.0.1:${api_port}/health" "200"
+  check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
+  check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
+  check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+
+  if [[ "$profile" == "bridge_ha" ]]; then
+    check_endpoint "Home Assistant existente · puerto ${ha_port}" "http://127.0.0.1:${ha_port}/" "200,301,302,401,403"
+  fi
+}
+
+verify_runtime() {
+  local timeout_seconds="${1:-0}"
+  local elapsed=0
+
+  section "Verificación operativa"
+  while true; do
+    verify_runtime_once
+    if (( runtime_failures == 0 )); then
+      ok "Instalación saludable: todos los servicios requeridos respondieron."
+      return 0
+    fi
+
+    if (( elapsed >= timeout_seconds )); then
+      warn "La instalación requiere atención: ${runtime_failures} comprobación(es) no está(n) saludable(s)."
+      return 1
+    fi
+
+    info "Esperando servicios: ${elapsed}/${timeout_seconds}s."
+    sleep 5
+
+    elapsed=$((elapsed + 5))
+  done
+}
 clean_docker_residue() {
   section "Limpieza segura de residuos Docker"
   info "BuildKit/buildx conservara hasta ${keep_storage} de cache util."
@@ -286,6 +383,7 @@ validate_profile_environment
 show_disk
 
 if [[ "$status_only" == true ]]; then
+  verify_runtime
   exit 0
 fi
 
@@ -305,6 +403,7 @@ if [[ "$deploy" == true ]]; then
     deploy_homepilot
     clean_docker_residue
     show_disk
+    verify_runtime 180
   else
     warn "Despliegue cancelado."
   fi
