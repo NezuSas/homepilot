@@ -253,3 +253,40 @@ test('Feature: Automation lifecycle — Scenario: Given a new time automation Wh
   });
   expect((submittedPayload as { trigger: { timezone: string } }).trigger.timezone).toMatch(/.+/);
 });
+
+test('Feature: Home Assistant discovery — Scenario: Given more than one discovery batch When the inbox opens discovery Then it requests a summary and progressively renders candidates', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  const candidates = Array.from({ length: 49 }, (_, index) => ({
+    entityId: `light.discovery_${index + 1}`,
+    friendlyName: `Discovery light ${index + 1}`,
+    domain: 'light',
+    profile: { displayName: 'Light', category: 'lighting', supportedCommandCount: 2 },
+  }));
+  let discoveryRequestUrl = '';
+
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([]) });
+  });
+  await page.route('**/api/v1/homes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([]) });
+  });
+  await page.route('**/api/v1/rooms', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([]) });
+  });
+  await page.route('**/api/v1/ha/entities?mode=all&view=summary', async (route) => {
+    discoveryRequestUrl = route.request().url();
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(candidates) });
+  });
+
+  await page.goto('/system/inbox');
+  await page.getByRole('button', { name: /discover entities|descubrir entidades/i }).click();
+
+  const discovery = page.locator('section[aria-labelledby="ha-discovery-title"]');
+  await expect(discovery.locator('article')).toHaveCount(48);
+  expect(discoveryRequestUrl).toContain('mode=all');
+  expect(discoveryRequestUrl).toContain('view=summary');
+  await expect(discovery).not.toContainText('attributes');
+
+  await discovery.getByRole('button', { name: /show 1 more|mostrar 1 más/i }).click();
+  await expect(discovery.locator('article')).toHaveCount(49);
+});

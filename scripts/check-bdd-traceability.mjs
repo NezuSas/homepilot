@@ -19,6 +19,7 @@ const criticalSuites = [
   'apps/operator-console/src/lib/__tests__/homeConversationVoice.test.ts',
   'apps/operator-console/src/config/__tests__/appDemoSteps.test.ts',
   'apps/operator-console/src/views/dashboards/widgets/__tests__/sectionCardCatalog.test.ts',
+  'apps/operator-console/tests/responsive-shell.spec.ts',
 ];
 
 const failures = [];
@@ -31,10 +32,10 @@ for (const suite of criticalSuites) {
   }
 
   const suiteContent = readFileSync(suite, 'utf8');
-  if (!/describe\(['"]Feature: /u.test(suiteContent)) {
+  if (!/(?:describe|test(?:\.describe)?)\(['"]Feature: /u.test(suiteContent)) {
     failures.push(`BDD feature declaration missing in ${suite}`);
   }
-  if (!/it\(['"]Scenario: Given .+ When .+ Then /u.test(suiteContent)) {
+  if (!/(?:it|test)\(['"](?:Feature: .+ — )?Scenario: Given .+ When .+ Then /u.test(suiteContent)) {
     failures.push(`BDD Given/When/Then scenario missing in ${suite}`);
   }
 }

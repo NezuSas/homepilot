@@ -5,7 +5,7 @@
 | Administración de usuarios | `user-management-v2-admin-user-administration.md` | `__tests__/UserManagement.test.ts` | `apps/api/__tests__/AdminRoutes.test.ts` — administración solo para admin y DTO sin secretos |
 | Auth | `auth-rbac-v1-local-edge-security.md` | `apps/api/__tests__/AuthRoutes.security.test.ts` | Bloqueo de inicio de sesión tras intentos fallidos |
 | Devices | `device-command-execution.md` | `packages/devices/__tests__/command_api.test.ts` | Despacho de comando válido y rechazo de estados inválidos |
-| Device discovery | `device-discovery-inbox.md` | `apps/api/__tests__/DeviceRoutes.state-sync.test.ts` | Gateway sin clave M2M no puede crear dispositivos pendientes |
+| Device discovery | `device-discovery-inbox.md` | `apps/api/__tests__/DeviceRoutes.state-sync.test.ts` + `apps/operator-console/tests/responsive-shell.spec.ts` | Gateway M2M y consola: consulta resumen sin atributos y carga progresiva de candidatos |
 | Home Assistant WebSocket | `home-assistant-realtime-sync-v1.md` | `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` | Handshake válido suscribe el stream y timeout se clasifica como no alcanzable |
 | Sonoff LAN | `sonoff-local-integration-v1.md` | `packages/integrations/sonoff/__tests__/SonoffDeviceDriver.test.ts` | Despacho local validado y rechazo previo de comando no soportado |
 | Tuya policy | `tuya-integration-policy-v1.md` | `packages/devices/__tests__/HomeAssistantImportService.test.ts` | Cortina Tuya importada conserva el bridge Home Assistant |
