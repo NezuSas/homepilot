@@ -1,21 +1,21 @@
 ## Phase 1: Documentation & Flows
-- [ ] Crear `docs/core-release-flows-v1.md` definiendo flujos críticos e idempotencia. [id: 1.1]
+- [x] Crear `docs/core-release-flows-v1.md` definiendo flujos críticos e idempotencia. Evidencia: `docs/core-release-flows-v1.md`. [id: 1.1]
 - [ ] Definir shape de DTOs para todos los endpoints (incl. setup-status/diagnostics). [id: 1.2]
 
 ## Phase 2: API & DTO Hardening
-- [ ] Implementar estándar `{ error: { code, message } }` en `sendError`. [id: 2.1]
+- [x] Implementar estándar `{ error: { code, message } }` en `sendError`. Evidencia: `apps/api/routes/ApiRoutes.ts` y `apps/api/__tests__/ApiRoutes.error-sanitization.test.ts`. [id: 2.1]
 - [ ] Refactorizar handlers en `OperatorConsoleServer.ts` extrayendo validación/mapping. [id: 2.2]
-- [ ] Endurecer validaciones y respuestas en Auth y User Management. [id: 2.3]
+- [x] Endurecer validaciones y respuestas en Auth y User Management. Evidencia: `apps/api/__tests__/AuthRoutes.security.test.ts` y `AdminRoutes.test.ts`. [id: 2.3]
 - [ ] Audit y Hardening de: Onboarding, Diagnostics, HA Settings, Setup-status. [id: 2.4]
 
 ## Phase 3: Debt Cleanup (Pragmatic)
-- [ ] Eliminar `window.alert()` residuales en `UsersView.tsx`. [id: 3.1]
-- [ ] Limpiar `any` en módulos `Auth`, `UserManagement` y `HA`. [id: 3.2]
-- [ ] Auditoría de seguridad: verificar no existencia de bypass en Auth/RBAC. [id: 3.3]
-- [ ] Eliminar logs/debug innecesarios. [id: 3.4]
+- [x] Eliminar `window.alert()` residuales en `UsersView.tsx`. Evidencia: búsqueda de producción sin `window.alert` y notificación basada en estado. [id: 3.1]
+- [x] Limpiar `any` en módulos `Auth`, `UserManagement` y `HA`. Evidencia: `npm run check:no-production-any`. [id: 3.2]
+- [x] Auditoría de seguridad: verificar no existencia de bypass en Auth/RBAC. Evidencia: `apps/api/__tests__/AuthRoutes.security.test.ts` y `AdminRoutes.test.ts`. [id: 3.3]
+- [x] Eliminar logs/debug innecesarios. Evidencia: SQLite no registra SQL por defecto en `buildDatabase.ts`/`bootstrap.ts`. [id: 3.4]
 
 ## Phase 4: Readiness
-- [ ] Implementar `scripts/verify_release_v1.ts` con alcance completo definido. [id: 4.1]
-- [ ] Crear `docs/release-readiness-v1.md` con checklist de producción. [id: 4.2]
+- [x] Implementar `scripts/verify_release_v1.ts` con alcance completo definido. Evidencia: valida contrato público, autenticación, setup, diagnósticos, HA, directorio y revocación sin imprimir secretos. [id: 4.1]
+- [x] Crear `docs/release-readiness-v1.md` con checklist de producción. Evidencia: `docs/release-readiness-v1.md`. [id: 4.2]
 - [ ] Validar criterios de "Release Ready" y documentar en walkthrough. [id: 4.3]
 
