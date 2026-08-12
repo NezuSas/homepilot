@@ -4,7 +4,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { AssistantSpeechToTextUnavailableError } from '../../../packages/assistant/application/AssistantSpeechToTextService';
 
-describe('AssistantRoutes', () => {
+describe('Feature: Local assistant speech transport', () => {
   let routes: AssistantRoutes;
   let mockReq: Partial<HomePilotRequest>;
   let mockRes: Partial<http.ServerResponse>;
@@ -98,7 +98,7 @@ describe('AssistantRoutes', () => {
     consoleSpy.mockRestore();
   });
 
-  it('POST /api/v1/assistant/tts returns professional speech audio', async () => {
+  it('Scenario: Given a local TTS request When Piper produces audio Then the route returns the audio payload', async () => {
     (mockReq as any)._fastifyParsedBody = JSON.stringify({ text: 'Hola casa' });
 
     await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/tts', 'POST', mockContainer as BootstrapContainer);
@@ -115,7 +115,7 @@ describe('AssistantRoutes', () => {
     }));
   });
 
-  it('POST /api/v1/assistant/stt returns local speech transcript', async () => {
+  it('Scenario: Given local recorded audio When Whisper transcribes it Then the route returns the normalized transcript', async () => {
     (mockReq as any)._fastifyParsedBody = JSON.stringify({
       audioBase64: 'YWJj',
       audioContentType: 'audio/webm'
@@ -135,7 +135,7 @@ describe('AssistantRoutes', () => {
     }));
   });
 
-  it('POST /api/v1/assistant/stt returns a safe error when local speech is unavailable', async () => {
+  it('Scenario: Given local speech is unavailable When audio is submitted Then the route returns a safe recoverable error', async () => {
     const originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     mockAssistantSpeechToTextService.transcribe.mockRejectedValue(
