@@ -258,6 +258,17 @@ for (const viewport of viewports) {
     sensorCardWidths.forEach(({ clientWidth, scrollWidth }) => {
       expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
     });
+
+    const compactBadgeVisibility = await page.locator('.sensor-metric-card').evaluateAll((cards) => cards.map((card) => {
+      const badge = card.querySelector('.sensor-category-badge');
+      return {
+        clientWidth: card.clientWidth,
+        display: badge ? getComputedStyle(badge).display : null,
+      };
+    }));
+    compactBadgeVisibility
+      .filter(({ clientWidth }) => clientWidth <= 192)
+      .forEach(({ display }) => expect(display).toBe('none'));
     await expect(page.getByText('Cortina de sala').first()).toBeVisible();
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
   });

@@ -550,15 +550,6 @@
 @layer components {
   @container (max-width: 12rem) {
     .sensor-category-badge {
-      display: grid;
-      width: 2rem;
-      height: 2rem;
-      max-width: none;
-      padding: 0;
-      place-items: center;
-    }
-
-    .sensor-category-text {
       display: none;
     }
 

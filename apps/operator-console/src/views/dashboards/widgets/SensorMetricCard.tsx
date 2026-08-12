@@ -250,23 +250,12 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
       </div>
 
       <div className={cn(
-        'sensor-reading-status mt-3 flex min-w-0 items-center gap-2 rounded-2xl border border-border/45 bg-background/40 px-3 py-2',
-        isUnavailable ? 'justify-center' : 'justify-between',
+        'sensor-reading-status mt-3 flex min-w-0 items-center justify-center rounded-2xl border border-border/45 bg-background/40 px-3 py-2',
+        isUnavailable ? 'text-muted-foreground' : 'text-primary',
       )}>
-        {isUnavailable ? (
-          <span className="text-micro font-black uppercase tracking-status text-muted-foreground">
-            {t('dashboard.editor.sections.sensor_unavailable')}
-          </span>
-        ) : (
-          <>
-            <span className="min-w-0 truncate text-micro font-black uppercase tracking-status text-muted-foreground">
-              {t('dashboard.editor.sections.sensor_live_reading')}
-            </span>
-            <span className="shrink-0 text-micro font-black uppercase tracking-status text-primary">
-              {t('dashboard.editor.sections.ready')}
-            </span>
-          </>
-        )}
+        <span className="text-micro font-black uppercase tracking-status">
+          {isUnavailable ? t('dashboard.editor.sections.sensor_unavailable') : t('dashboard.editor.sections.ready')}
+        </span>
       </div>
     </div>
   );
