@@ -153,4 +153,4 @@
 - Pruebas: pps/api/__tests__/TopologyRoutes.delete-room.test.ts y packages/topology/__tests__/application.test.ts.
 - [x] Redistribuir detalle de estancia en escritorio: tarjetas de estancias superiores y detalle seleccionado de ancho completo, con resumen compacto y luces en cuadrícula responsive.
 - [x] Refinar detalle residencial: métricas compactas y luces a ancho completo; eliminar la etiqueta técnica “Cluster de hogar” de topología e inspector.
-- [x] Alinear las luces del detalle de estancia: columnas estables para nombre, estado y control; etiquetas de estado compactas.
+- [x] Alinear las luces del detalle de estancia: columnas estables para nombre, estado y control; etiquetas de estado compactas y sin desbordes.
