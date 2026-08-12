@@ -42,9 +42,9 @@ export default function RoutinesView({
           onChange={onSectionChange}
           label={t('routines.title')}
           tone="primary"
-          layout="scroll"
-          className="h-11 w-full shrink-0 items-center gap-1 overflow-y-hidden border-border/60 bg-card/60 p-1 sm:w-[min(100%,20rem)]"
-          optionClassName="h-8 min-h-0 gap-1 px-2.5 py-0 text-micro font-semibold leading-none tracking-normal [&>svg]:h-3.5 [&>svg]:w-3.5"
+          layout="wrap"
+          className="h-11 w-full shrink-0 items-center gap-1 overflow-hidden border-border/60 bg-card/60 p-1 sm:w-[min(100%,20rem)]"
+          optionClassName="h-8 min-h-0 gap-1 px-2 py-0 text-micro font-semibold leading-none tracking-normal [&>svg]:h-3.5 [&>svg]:w-3.5"
         />
       </section>
 
