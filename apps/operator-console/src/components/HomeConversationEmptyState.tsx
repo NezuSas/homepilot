@@ -11,9 +11,9 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
   suggestions,
   onSuggestionClick
 }) => (
-  <div className="flex min-h-conversation-sm items-center justify-center py-4 md:min-h-conversation-md">
+  <div className="flex min-h-full items-end justify-center px-1 pb-2 pt-8 sm:px-2">
     <div className="w-full max-w-3xl">
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex flex-wrap justify-center gap-2 rounded-panel border border-border/45 bg-background/45 p-2 shadow-depth-1">
         {suggestions.map((suggestion, index) => (
           <Button
             key={`${suggestion}-${index}`}
@@ -21,7 +21,7 @@ export const HomeConversationEmptyState: React.FC<HomeConversationEmptyStateProp
             variant="secondary"
             size="sm"
             onClick={() => onSuggestionClick(suggestion)}
-            className="max-w-full rounded-full border-border/60 bg-card/70 px-3 text-left text-caption font-semibold"
+            className="max-w-full rounded-full border-border/70 bg-card px-3 text-left text-caption font-semibold shadow-sm"
           >
             <Lightbulb className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span className="whitespace-normal">{suggestion}</span>
