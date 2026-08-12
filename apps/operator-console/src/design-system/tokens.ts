@@ -73,6 +73,12 @@ export const lightColors = {
   eco: '#87983D',
   /** Physical light ON state */
   lightActive: '#D79A3D',
+  /** Healthy / confirmed state — deep olive */
+  success: '#557B57',
+  /** Attention state — tempered amber */
+  warning: '#B37A2F',
+  /** Error state — terracotta */
+  danger: '#B14F42',
 } as const;
 
 // ── Typography ──────────────────────────────────────────────────────────────
