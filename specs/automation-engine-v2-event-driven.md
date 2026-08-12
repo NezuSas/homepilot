@@ -86,7 +86,7 @@ Al regenerarse (`bootstrap.ts` o reconfiguraciones):
 6. StateKey Anidado (Busca un key en payload `.attributes.brightness == 255`).
 
 
-## 7. Evidencia de implementación y aceptación
+## 6. Criterios de aceptación y evidencia
 
 - El motor consume `SystemStateChangeEvent` normalizado en `packages/automation/application/AutomationEngine.ts` y solo depende de repositorios y del puerto `AutomationCommandDispatcher`.
 - `infrastructure/assemblers/buildAutomationModule.ts` conecta el motor a Home Assistant con remoción previa de listeners, al `EventBus` local y al pulso horario alineado al minuto.

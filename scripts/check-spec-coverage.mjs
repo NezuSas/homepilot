@@ -82,7 +82,10 @@ const allSpecIntegrityIssues = readdirSync(join(root, 'specs'))
   .filter((spec) => {
     const specPath = join(root, 'specs', spec);
     const tasksPath = join(root, 'specs', spec.replace(/\.md$/, '.tasks.md'));
-    return !existsSync(tasksPath) || !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(readFileSync(specPath, 'utf8'));
+    if (!existsSync(tasksPath)) return true;
+
+    const contents = readFileSync(specPath, 'utf8');
+    return !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(contents) || !hasAcceptanceCriteria(contents);
   });
 
 const coverageMatrixContents = readFileSync(coverageMatrixPath, 'utf8');
@@ -98,7 +101,7 @@ if (missing.length > 0 || missingComponentDocs.length > 0 || invalidPrimarySpecs
   console.error(`Spec coverage failed: ${missing.length} file(s) without a valid spec mapping.`);
   for (const file of missing) console.error(`- ${file}`);
   if (invalidPrimarySpecs.length > 0) console.error('Primary specs without valid status, tasks or acceptance criteria: ' + invalidPrimarySpecs.join(', '));
-  if (allSpecIntegrityIssues.length > 0) console.error('Specs without valid status or tasks: ' + allSpecIntegrityIssues.join(', '));
+  if (allSpecIntegrityIssues.length > 0) console.error('Specs without valid status, tasks or acceptance criteria: ' + allSpecIntegrityIssues.join(', '));
   if (missingComponentDocs.length > 0) {
     console.error(`Missing modular component documentation: ${missingComponentDocs.join(', ')}`);
   }
