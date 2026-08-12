@@ -136,11 +136,11 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
       {/* Control Bar */}
       <SectionHeader 
-        className="mb-4 border-b border-border/50 pb-3 sm:!flex-col sm:!items-start sm:!justify-start sm:gap-3"
+        className="mb-4 border-b border-border/50 pb-3 sm:!flex-row sm:!items-center sm:!justify-start sm:gap-5 sm:[&>div:first-child]:flex-none sm:[&>div:last-child]:flex-1 sm:[&>div:last-child]:max-w-none"
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="grid w-full min-w-0 gap-2 min-[520px]:w-[min(100%,44rem)] min-[520px]:grid-cols-[minmax(15rem,1fr)_minmax(20rem,1.5fr)]">
+          <div className="grid w-full min-w-0 gap-2 min-[520px]:grid-cols-[15rem_minmax(0,1fr)] sm:!w-full">
             {/* Origin Filter */}
             <SegmentedControl
               value={originFilter}
@@ -163,7 +163,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               value={filter}
               onChange={setFilter}
               label={t('inbox.filters.type_label')}
-              className="grid w-full grid-cols-2 gap-1 rounded-xl p-1"
+              className="grid w-full grid-cols-2 gap-1 rounded-xl p-1 md:grid-cols-3 xl:grid-cols-6"
               optionClassName="h-8 min-h-0 px-2 text-micro font-semibold tracking-normal [&>span]:whitespace-nowrap"
               options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map((value) => ({
                 value,
