@@ -1199,7 +1199,7 @@
       "create_failed": "Error al registrar el nuevo usuario"
     },
     "roles": {
-      "admin": "Administrador del Sistema",
+      "admin": "Admin",
       "operator": "Soporte Técnico",
       "parent": "Padre / Dueño",
       "child": "Hijo / Miembro",

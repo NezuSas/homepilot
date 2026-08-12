@@ -140,3 +140,5 @@
 - [x] Refinar tarjetas de sugerencias inteligentes de Inicio: jerarquía de título, categoría y prioridad técnica compacta; menor densidad vertical y acciones alineadas en un pie común.
 
 - [x] Compactar etiquetas de auditoría y alinear los controles de seguridad de usuarios mediante columnas estables, sin alterar los permisos ni las acciones disponibles.
+
+- [x] Simplificar la etiqueta visible del rol administrador a "Admin" en el selector de controles de seguridad, sin modificar el valor de rol ni sus permisos.
