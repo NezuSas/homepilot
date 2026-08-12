@@ -41,7 +41,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         className={cn(
-          'relative flex h-full min-w-0 flex-col overflow-hidden rounded-panel border border-border/80 bg-card p-5 shadow-depth-1 transition-all duration-300 sm:p-6',
+          'relative flex h-full min-w-0 flex-col overflow-hidden rounded-panel border border-border/80 bg-card p-4 shadow-depth-1 transition-all duration-300 sm:p-5',
           isDismissed ? 'pointer-events-none translate-x-12 scale-95 opacity-0' : 'hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-depth-2',
           className,
         )}
@@ -49,13 +49,13 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
         {severity && (
           <span
             aria-hidden="true"
-            className={cn('absolute bottom-5 left-0 top-5 w-1 rounded-r-full sm:bottom-6 sm:top-6', severityAccentClasses[severity])}
+            className={cn('absolute bottom-4 left-0 top-4 w-1 rounded-r-full sm:bottom-5 sm:top-5', severityAccentClasses[severity])}
           />
         )}
 
-        <div className="flex min-w-0 items-start gap-3 pl-2 sm:gap-4">
+        <div className="flex min-w-0 items-start gap-3 pl-2">
           <div className={cn(
-            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border',
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-control border',
             severity ? severityClasses[severity] : 'border-primary/20 bg-primary/10 text-primary',
           )}>
             <Icon aria-hidden="true" className={cn('h-5 w-5', iconClassName)} />
@@ -71,20 +71,20 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
           </div>
 
           {severity && (
-            <span className={cn('shrink-0 rounded-full border px-2.5 py-1 text-nano font-bold uppercase tracking-label', severityClasses[severity])}>
+            <span className={cn('shrink-0 rounded-full border px-2 py-0.5 text-[0.5625rem] font-semibold uppercase leading-none tracking-label', severityClasses[severity])}>
               {t(`common.severity_${severity}`, { defaultValue: severity })}
             </span>
           )}
         </div>
 
-        <p id={descriptionId} className="mt-4 break-words pl-2 text-caption leading-relaxed text-muted-foreground">
+        <p id={descriptionId} className="mt-3 break-words pl-2 text-caption leading-relaxed text-muted-foreground">
           {description}
         </p>
 
-        {children && <div className="mt-4 pl-2">{children}</div>}
+        {children && <div className="mt-3 pl-2">{children}</div>}
 
         {actions && (
-          <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border/60 pt-4 pl-2 sm:gap-3">
+          <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 pl-2">
             {actions}
           </div>
         )}
