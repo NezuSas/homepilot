@@ -107,7 +107,7 @@ Generación controlada de auditoría sin fugas de secretos (`token: *`).
 
 ---
 
-## Verificación Mínima
+## Criterios de aceptación
 Los Tests exigidos para la suite V1 son formales:
 - Testeo de retorno inmaculado en `GET /setup-status` con Edge Factory Reset (sin iniciar).
 - Testeo de retorno de `GET /setup-status` ya inicializado formalmente.

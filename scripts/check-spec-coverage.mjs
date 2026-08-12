@@ -4,6 +4,7 @@ import { join, relative, sep } from 'node:path';
 const root = process.cwd();
 const sourceRoots = ['apps/api', 'apps/operator-console/src', 'packages'];
 const sourceExtensions = new Set(['.ts', '.tsx']);
+const coverageMatrixPath = join(root, 'docs', 'spec-coverage-matrix.md');
 const modularComponentDocs = [
   'AlertBanner', 'AssistantCard', 'Button', 'Card', 'DeviceTileBase', 'DeviceTileShell',
   'EmptyState', 'IconButton', 'Input', 'Textarea', 'Modal', 'PageFrame', 'SearchFilterBar',
@@ -51,12 +52,16 @@ const files = sourceRoots
   .map((file) => relative(root, file).split(sep).join('/'))
   .sort();
 
+const hasAcceptanceCriteria = (contents) => /^#{1,3}\s+.*(?:criterios de aceptaci[oó]n|acceptance criteria)/imu.test(contents);
+
 const invalidPrimarySpecs = rules.map(([spec]) => spec).filter((spec) => {
   const specPath = join(root, 'specs', spec);
   const tasksPath = join(root, 'specs', spec.replace(/\.md$/, '.tasks.md'));
-  return !existsSync(specPath) || !existsSync(tasksPath) || !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(readFileSync(specPath, 'utf8'));
-});
+  if (!existsSync(specPath) || !existsSync(tasksPath)) return true;
 
+  const contents = readFileSync(specPath, 'utf8');
+  return !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(contents) || !hasAcceptanceCriteria(contents);
+});
 const coverage = new Map();
 const missing = [];
 const missingComponentDocs = modularComponentDocs.filter(
@@ -80,13 +85,24 @@ const allSpecIntegrityIssues = readdirSync(join(root, 'specs'))
     return !existsSync(tasksPath) || !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(readFileSync(specPath, 'utf8'));
   });
 
-if (missing.length > 0 || missingComponentDocs.length > 0 || invalidPrimarySpecs.length > 0 || allSpecIntegrityIssues.length > 0) {
+const coverageMatrixContents = readFileSync(coverageMatrixPath, 'utf8');
+const documentedCoverageMatch = coverageMatrixContents.match(
+  /- Los (\d+) archivos TypeScript\/TSX auditados tienen una regla de mapeo a una spec existente\./u
+);
+const documentedCoverage = documentedCoverageMatch ? Number(documentedCoverageMatch[1]) : null;
+const coverageMatrixIssue = documentedCoverage !== files.length
+  ? 'Spec coverage matrix declares ' + (documentedCoverage ?? 'no') + ' audited file(s), expected ' + files.length + '.'
+  : null;
+
+if (missing.length > 0 || missingComponentDocs.length > 0 || invalidPrimarySpecs.length > 0 || allSpecIntegrityIssues.length > 0 || coverageMatrixIssue) {
   console.error(`Spec coverage failed: ${missing.length} file(s) without a valid spec mapping.`);
   for (const file of missing) console.error(`- ${file}`);
+  if (invalidPrimarySpecs.length > 0) console.error('Primary specs without valid status, tasks or acceptance criteria: ' + invalidPrimarySpecs.join(', '));
   if (allSpecIntegrityIssues.length > 0) console.error('Specs without valid status or tasks: ' + allSpecIntegrityIssues.join(', '));
   if (missingComponentDocs.length > 0) {
     console.error(`Missing modular component documentation: ${missingComponentDocs.join(', ')}`);
   }
+  if (coverageMatrixIssue) console.error(coverageMatrixIssue);
   process.exitCode = 1;
 } else {
   console.log(`Spec coverage passed: ${files.length} TypeScript source file(s) mapped to ${coverage.size} specs; ${modularComponentDocs.length} modular components documented individually.`);

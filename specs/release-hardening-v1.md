@@ -55,7 +55,7 @@ El script `verify_release_v1.ts` debe validar:
 - `ApiRoutes.sendError` centraliza el contrato público y registra internamente el detalle recibido.
 - `apps/api/__tests__/ApiRoutes.error-sanitization.test.ts` cubre el escenario BDD de una excepción 5xx sin filtración de detalles y una validación 4xx con mensaje seguro.
 - `npm audit --omit=dev --json` se ejecutó con 0 vulnerabilidades de producción después de actualizar Fastify, ws, React Router y fijar `fast-uri` 3.1.5.
-## Criterios de "Release Ready"
+## Criterios de aceptación para "Release Ready"
 Se considera la V1 lista para release cuando:
 1. Todos los **Core Release Flows** han sido validados exitosamente.
 2. No existen **bypass conocidos** en Auth/RBAC.

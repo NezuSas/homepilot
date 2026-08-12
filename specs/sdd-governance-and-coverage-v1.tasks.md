@@ -12,6 +12,6 @@
 
 ## En curso
 
-- [ ] Validar que cada spec primaria referenciada por código exista, declare estado y tenga tareas.
-- [ ] Actualizar el total auditado de la matriz desde la comprobación ejecutable.
+- [x] Validar que cada spec primaria referenciada por código exista, declare estado, criterios de aceptación y tenga tareas mediante `npm run check:spec-coverage`.
+- [x] Validar el total auditado de la matriz desde la comprobación ejecutable.
 - [ ] Registrar las verificaciones de aceptación pendientes sin marcarlas como completadas.

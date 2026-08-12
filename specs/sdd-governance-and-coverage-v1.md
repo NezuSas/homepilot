@@ -39,8 +39,8 @@ El producto contiene dominios, rutas y vistas crecientes. Sin una matriz de traz
 - [x] AC1: Todos los contextos de `packages/`, rutas API y áreas de consola tienen una referencia de spec en la matriz.
 - [x] AC2: Las áreas que carecían de spec funcional tienen spec y tareas propias.
 - [x] AC3: El índice de specs explica el flujo obligatorio para cambios futuros.
-- [ ] AC4: La comprobación de cobertura valida la integridad de las referencias a specs y los metadatos mínimos de las specs primarias.
-- [ ] AC5: La matriz declara el mismo total de archivos que la comprobación automatizada.
+- [x] AC4: La comprobación de cobertura valida la integridad de las referencias a specs, los metadatos mínimos y los criterios de aceptación de las specs primarias. Evidencia: `npm run check:spec-coverage`.
+- [x] AC5: La matriz declara el mismo total de archivos que la comprobación automatizada. Evidencia: `npm run check:spec-coverage` compara el total documentado contra las fuentes auditadas.
 - [ ] AC6: Las tareas de specs primarias identifican cómo se valida cada criterio de aceptación aplicable.
 
 ## 7. Notas Técnicas y Arquitectura
