@@ -85,6 +85,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC21**: Dado un Home activo, al pulsarlo nuevamente no se emite una segunda petición a `GET /homes/:homeId/rooms` ni se borra la Room seleccionada.
 - [x] **AC22**: Con una Room seleccionada en escritorio, sus tarjetas permanecen como selector superior y el detalle presenta encabezado y métricas compactas antes de una cuadrícula de luces a ancho completo; no introduce columnas vacías ni reserva una banda lateral.
 - [x] **AC23**: Las superficies residenciales no muestran la etiqueta técnica “Cluster de hogar”; el nombre del Home y su creador son suficientes para identificarlo.
+- [x] **AC24**: Las luces de una Room mantienen nombre, estado y control en columnas estables. Las etiquetas Encendido y Apagado son compactas y no cambian de posición cuando varía el nombre del dispositivo.
 
 ## 8. Notas Técnicas y Arquitectura
 

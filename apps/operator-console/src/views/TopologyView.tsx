@@ -771,7 +771,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                             )}
                             {visibleSelectedRoomDevices.map((device) => (
                               <div key={device.id} className="rounded-2xl border border-border/60 bg-background/60 p-3">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="grid grid-cols-[minmax(0,1fr)_auto_2rem] items-center gap-3">
                                   <div className="min-w-0">
                                     <p className="truncate text-body font-bold text-foreground">{device.name}</p>
                                     <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
@@ -779,7 +779,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                                     </p>
                                   </div>
                                   <span className={cn(
-                                    "shrink-0 rounded-full px-2 py-1 text-micro font-black uppercase tracking-widest",
+                                    "inline-flex h-6 w-24 items-center justify-center rounded-full px-2 text-nano font-black uppercase tracking-label",
                                     isActiveDevice(device) ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                                   )}>
                                     {isActiveDevice(device) ? t('device_states.on') : t('device_states.off')}
