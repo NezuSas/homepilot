@@ -280,6 +280,12 @@ for (const viewport of viewports) {
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
 
     await page.evaluate(() => document.documentElement.classList.add('light'));
+    const lightBackdrop = page.locator('.homepilot-dashboard-backdrop');
+    await expect(lightBackdrop).toBeVisible();
+    const lightBackdropOverlay = await lightBackdrop.evaluate((element) => (
+      getComputedStyle(element, '::after').backgroundImage
+    ));
+    expect(lightBackdropOverlay).not.toBe('none');
     const lightDeviceSurface = page.locator('.homepilot-dashboard-screen .device-state-off').first();
     await expect(lightDeviceSurface).toBeVisible();
     const lightSurfaceStyle = await lightDeviceSurface.evaluate((element) => {

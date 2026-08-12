@@ -508,21 +508,18 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
 
   return (
     <div className="homepilot-dashboard-screen relative isolate flex min-h-screen-dvh flex-col gap-0">
-      {activeTab?.background && (
-        // Pinned to the true viewport (not the content wrapper below, whose
-        // height shrinks to fit short dashboards) so the background always
-        // covers the whole visible screen, not just the top sliver of it.
-        <div
-          className="fixed inset-0 z-0 transition-all duration-700 pointer-events-none"
-          style={{
-            backgroundImage: `url(${activeTab.background.startsWith('/') ? `${API_BASE_URL}${activeTab.background}` : activeTab.background})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            opacity: (activeTab.backgroundOpacity ?? 100) / 100,
-          }}
-        />
-      )}
+      {/* Pinned to the true viewport so a selected background and its light-mode veil
+          cover the complete dashboard, including short canvases. */}
+      <div
+        className="homepilot-dashboard-backdrop fixed inset-0 z-0 transition-all duration-700 pointer-events-none"
+        style={activeTab?.background ? {
+          backgroundImage: `url(${activeTab.background.startsWith('/') ? `${API_BASE_URL}${activeTab.background}` : activeTab.background})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: (activeTab.backgroundOpacity ?? 100) / 100,
+        } : undefined}
+      />
 
       <div className="relative isolate flex min-h-screen-dvh flex-1 flex-col gap-0 animate-in fade-in duration-700">
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
