@@ -12,7 +12,7 @@ interface HomeConversationComposerProps {
   placeholder: string;
   sendLabel: string;
   statusLabel: string;
-  versionLabel: string;
+
   inputHint: string;
   isListening: boolean;
   isSpeechRecordingSupported: boolean;
@@ -39,7 +39,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   placeholder,
   sendLabel,
   statusLabel,
-  versionLabel,
+
   inputHint,
   isListening,
   isSpeechRecordingSupported,
@@ -80,7 +80,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             className="custom-scrollbar min-h-touch-target max-h-40 w-full flex-1 resize-none border-none bg-transparent px-3 py-3 text-body leading-relaxed text-foreground placeholder:text-muted-foreground/45 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 md:max-h-48 md:text-body-lg"
             disabled={isLoading}
           />
-          <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1 shadow-inner shadow-black/5 md:w-auto md:justify-end md:flex-nowrap">
+          <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 rounded-2xl border border-border/55 bg-muted/35 p-1 shadow-inner shadow-black/5 md:w-auto md:justify-end md:flex-nowrap">
             {isSpeechRecordingSupported && (
               <>
               <AudioInputPicker
@@ -142,9 +142,6 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
             dotLabel={statusLabel}
             className="h-3 w-3 shrink-0"
           />
-          <p className="min-w-0 break-words text-micro font-bold uppercase leading-snug tracking-widest text-muted-foreground/60">
-            {versionLabel}
-          </p>
         </div>
         <div id="home-conversation-input-hint" className="flex shrink-0 items-center gap-1.5 text-muted-foreground/55">
           <Zap className="h-3 w-3 text-primary" />

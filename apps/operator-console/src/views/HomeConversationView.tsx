@@ -589,7 +589,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         placeholder={t('assistant.conversation.placeholder')}
         sendLabel={t('assistant.conversation.send')}
         statusLabel={isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
-        versionLabel={t('assistant.conversation.version_label')}
         inputHint={speechNotice || t('assistant.conversation.input_hint')}
         isListening={isListening}
         isSpeechRecordingSupported={speechSupport.recording}

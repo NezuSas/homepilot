@@ -181,7 +181,6 @@
       "view_execution_history": "View execution history",
       "ready": "Ready",
       "input_hint": "Shift + Enter for newline",
-      "version_label": "HomePilot Conversation V1.0",
       "empty_chat_title": "Systems ready to operate",
       "empty_chat_description": "I can read home status, control devices, and run scenes through natural commands. Sensitive actions are always confirmed before proceeding.",
       "capability_status": "Home readout",

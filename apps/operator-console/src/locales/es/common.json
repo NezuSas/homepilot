@@ -181,7 +181,6 @@
       "view_execution_history": "Ver historial de ejecución",
       "ready": "Listo",
       "input_hint": "Shift + Enter para nueva línea",
-      "version_label": "Conversación HomePilot V1.0",
       "empty_chat_title": "Sistemas listos para operar",
       "empty_chat_description": "Puedo consultar estados, controlar dispositivos y ejecutar escenas con órdenes naturales. Las acciones sensibles siempre se confirman antes de proceder.",
       "capability_status": "Lectura del hogar",
