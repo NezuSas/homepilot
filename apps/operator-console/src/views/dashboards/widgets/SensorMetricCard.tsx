@@ -184,7 +184,7 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
 
   return (
     <div
-      className="sensor-metric-card relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground shadow-surface-card ring-1 ring-background/45"
+      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground"
       style={{ containerType: 'inline-size' }}
     >
       <div className={cn('absolute inset-x-0 top-0 h-1', isUnavailable ? 'bg-muted' : 'bg-primary/70')} aria-hidden="true" />

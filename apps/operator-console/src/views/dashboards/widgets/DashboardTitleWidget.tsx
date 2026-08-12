@@ -303,7 +303,7 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, on
     <div className={cn('flex h-full w-full', blockJustifyClass)}>
     <div
       className={cn(
-        'flex h-full min-w-0 flex-col justify-center overflow-hidden rounded-section border border-border/35 bg-background/10 px-widget-pad-x py-widget-pad-y',
+        'homepilot-dashboard-title flex h-full min-w-0 flex-col justify-center overflow-hidden px-widget-pad-x py-widget-pad-y',
         widthClass,
         alignmentClass,
       )}

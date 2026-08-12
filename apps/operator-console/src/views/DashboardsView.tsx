@@ -507,7 +507,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
   const activeTab = active?.tabs[activeTabIdx];
 
   return (
-    <div className="relative isolate flex min-h-screen-dvh flex-col gap-0">
+    <div className="homepilot-dashboard-screen relative isolate flex min-h-screen-dvh flex-col gap-0">
       {activeTab?.background && (
         // Pinned to the true viewport (not the content wrapper below, whose
         // height shrinks to fit short dashboards) so the background always
@@ -549,7 +549,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
           {/* Dashboard Area */}
           {active && (
             <div className="flex min-w-0 flex-col">
-              <div className="sticky top-0 z-40 bg-background/95 shadow-depth-1 backdrop-blur-xl">
+              <div className="homepilot-dashboard-chrome sticky top-0 z-40">
                 {isOwner && (
                   <DashboardTitleBar
                   title={active.title}
@@ -621,7 +621,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className={cn("relative flex flex-col gap-4 w-full", (isEditing && isOwner) ? "p-3 sm:p-4" : "px-4 sm:px-6 md:px-8 py-3 sm:py-4")}>
+                <div className={cn("homepilot-dashboard-content relative flex w-full flex-col gap-5", (isEditing && isOwner) ? "p-3 sm:p-4" : "px-4 py-4 sm:px-6 sm:py-6 md:px-8")}>
                    {activeTab.widgets.length === 0 && !(isEditing && isOwner) ? (
                      <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
                        <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>

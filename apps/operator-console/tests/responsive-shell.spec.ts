@@ -238,6 +238,13 @@ for (const viewport of viewports) {
 
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
     await expect(page.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+    await expect(page.locator('.homepilot-dashboard-chrome')).toBeVisible();
+    await expect(page.locator('.homepilot-dashboard-content')).toBeVisible();
+
+    const dashboardChromeBorder = await page.locator('.homepilot-dashboard-chrome').evaluate((element) => (
+      getComputedStyle(element).borderBottomWidth
+    ));
+    expect(dashboardChromeBorder).toBe('1px');
 
     const layout = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,

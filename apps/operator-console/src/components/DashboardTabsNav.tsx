@@ -76,8 +76,8 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   };
 
   return (
-    <div className="min-w-0 border-b border-border/60">
-      <div className="flex min-w-0 min-h-12 items-center gap-0 overflow-x-auto no-scrollbar px-3">
+    <div className="homepilot-dashboard-tabs min-w-0">
+      <div className="flex min-h-12 min-w-0 items-center gap-0 overflow-x-auto px-3 no-scrollbar">
         {onOpenMobileMenu && (
           <IconButton icon={Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/80 shadow-sm backdrop-blur-md lg:hidden" />
         )}

@@ -64,7 +64,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   const importInputRef = useRef<HTMLInputElement>(null);
 
   return (
-  <div className="flex min-h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/95 px-4 py-2 shadow-depth-1 sm:px-6">
+  <div className="homepilot-dashboard-titlebar flex min-h-16 items-center justify-between gap-4 px-4 py-2 sm:px-6">
     {isEditingTitle ? (
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Input

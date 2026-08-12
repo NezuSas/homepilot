@@ -548,6 +548,66 @@
 }
 
 @layer components {
+  /* Calm, architectural dashboard treatment: separation comes from rhythm and
+     quiet rules instead of stacked rounded cards and elevated shadows. */
+  .homepilot-dashboard-screen {
+    background-color: hsl(var(--background));
+  }
+
+  .homepilot-dashboard-chrome {
+    border-bottom: 1px solid hsl(var(--border-subtle));
+    background-color: hsl(var(--background) / 0.94);
+    backdrop-filter: blur(18px);
+  }
+
+  .homepilot-dashboard-titlebar {
+    border-bottom: 1px solid hsl(var(--border-subtle));
+    background-color: transparent;
+  }
+
+  .homepilot-dashboard-tabs {
+    border-bottom: 1px solid hsl(var(--border-subtle));
+  }
+
+  .homepilot-dashboard-content {
+    max-width: 96rem;
+    margin-inline: auto;
+  }
+
+  .homepilot-dashboard-widget {
+    box-shadow: none;
+  }
+
+  .homepilot-dashboard-widget:not(:has(.homepilot-dashboard-title)) {
+    border-color: hsl(var(--border-subtle));
+  }
+
+  .homepilot-dashboard-title {
+    border-left: 2px solid hsl(var(--primary));
+    border-radius: 0;
+    border-block: 0;
+    border-right: 0;
+    background-color: transparent;
+  }
+
+  .homepilot-sensor-reading {
+    border-color: hsl(var(--border-subtle));
+    box-shadow: none;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-status {
+    border-color: transparent;
+    background-color: hsl(var(--muted) / 0.42);
+  }
+
+  @media (min-width: 768px) {
+    .homepilot-dashboard-titlebar {
+      padding-inline: 2rem;
+    }
+  }
+}
+
+@layer components {
   @container (max-width: 12rem) {
     .sensor-category-badge {
       display: none;
