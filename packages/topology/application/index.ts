@@ -8,3 +8,5 @@ export * from './listHomesUseCase';
 export * from './createRoomUseCase';
 export * from './listRoomsUseCase';
 export * from './renameRoomUseCase';
+
+export * from './deleteRoomUseCase';

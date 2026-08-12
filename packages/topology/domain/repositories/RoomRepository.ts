@@ -26,4 +26,10 @@ export interface RoomRepository {
    * Retorna todas las habitaciones registradas en el sistema.
    */
   findAll(): Promise<ReadonlyArray<Room>>;
+
+  /**
+   * Elimina una habitación y desasigna atómicamente los dispositivos vinculados.
+   * Retorna cuántos dispositivos quedaron sin habitación.
+   */
+  deleteRoomAndUnassignDevices(roomId: string, deletedAt: string): Promise<number>;
 }

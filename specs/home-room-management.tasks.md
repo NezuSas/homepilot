@@ -144,3 +144,10 @@
   - Test E2E Inexistente: `POST /rooms` a un `homeId` inventado (Verifica HTTP 404).
 - **Dependencia previa**: Todo lo anterior.
 - **Criterio de terminado**: Pruebas de seguridad validadas positivamente en el flujo integrado sin logs de excepciones no controladas.
+
+## Evidencia implementada — DELETE Room (AC8, AC9)
+
+- deleteRoomUseCase valida existencia y propiedad mediante puertos de topología antes de eliminar.
+- SQLiteRoomRepository.deleteRoomAndUnassignDevices preserva la transacción local que desasigna dispositivos y elimina la Room.
+- TopologyRoutes traduce NotFoundError y ForbiddenError a los contratos HTTP existentes, sin SQL de borrado en la ruta.
+- Pruebas: pps/api/__tests__/TopologyRoutes.delete-room.test.ts y packages/topology/__tests__/application.test.ts.

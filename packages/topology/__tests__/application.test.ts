@@ -2,6 +2,7 @@ import {
   createHomeUseCase, 
   createRoomUseCase, 
   renameRoomUseCase,
+  deleteRoomUseCase,
   listHomesUseCase, 
   ForbiddenError, 
   NotFoundError, 
@@ -106,5 +107,36 @@ describe('Topology Application Layer', () => {
       eventPublisher: new InMemoryEventPublisher(),
       ...mockDeps,
     })).rejects.toThrow(ForbiddenError);
+  });
+
+  it('BDD AC8: deletes an owned room through the application port', async () => {
+    const homeRepo = new InMemoryHomeRepository();
+    const roomRepo = new InMemoryRoomRepository();
+    await homeRepo.saveHome({ id: 'h1', ownerId: 'user-A', name: 'Casa', entityVersion: 1, createdAt: '', updatedAt: '' });
+    await roomRepo.saveRoom({ id: 'r1', homeId: 'h1', name: 'Sala', entityVersion: 1, createdAt: '', updatedAt: '' });
+
+    const deleted = await deleteRoomUseCase('r1', 'user-A', {
+      homeRepository: homeRepo,
+      roomRepository: roomRepo,
+      clock: { now: () => '2026-08-11T00:00:00.000Z' },
+    });
+
+    expect(deleted).toEqual(expect.objectContaining({ unassignedDevices: 0 }));
+    expect(await roomRepo.findRoomById('r1')).toBeNull();
+  });
+
+  it('BDD AC9: does not delete a room when the parent home belongs to another user', async () => {
+    const homeRepo = new InMemoryHomeRepository();
+    const roomRepo = new InMemoryRoomRepository();
+    await homeRepo.saveHome({ id: 'h1', ownerId: 'user-A', name: 'Casa', entityVersion: 1, createdAt: '', updatedAt: '' });
+    await roomRepo.saveRoom({ id: 'r1', homeId: 'h1', name: 'Sala', entityVersion: 1, createdAt: '', updatedAt: '' });
+
+    await expect(deleteRoomUseCase('r1', 'user-B', {
+      homeRepository: homeRepo,
+      roomRepository: roomRepo,
+      clock: { now: () => '2026-08-11T00:00:00.000Z' },
+    })).rejects.toThrow(ForbiddenError);
+
+    expect(await roomRepo.findRoomById('r1')).not.toBeNull();
   });
 });

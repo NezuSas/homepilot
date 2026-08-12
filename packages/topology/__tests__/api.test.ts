@@ -85,7 +85,8 @@ describe('Topology API Boundary', () => {
         saveRoom: async() => {}, 
         findRoomsByHomeId: async() => [],
         findRoomById: async() => null,
-        findAll: async () => []
+        findAll: async () => [],
+        deleteRoomAndUnassignDevices: async () => 0
       },
       eventPublisher: { publish: async () => {} },
       idGenerator: { generate: () => 'fixed-id' },

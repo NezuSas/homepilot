@@ -33,6 +33,11 @@ export class InMemoryRoomRepository implements RoomRepository {
     return Promise.resolve(results);
   }
 
+  async deleteRoomAndUnassignDevices(roomId: string, _deletedAt: string): Promise<number> {
+    this.store.delete(roomId);
+    return 0;
+  }
+
   /**
    * Limpia el estado interno de la memoria temporal.
    */

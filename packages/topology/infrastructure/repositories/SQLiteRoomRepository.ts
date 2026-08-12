@@ -74,6 +74,29 @@ export class SQLiteRoomRepository implements RoomRepository {
     return rows.map(row => this.mapToEntity(row));
   }
 
+
+  public async deleteRoomAndUnassignDevices(roomId: string, deletedAt: string): Promise<number> {
+    const deleteRoom = this.db.transaction(() => {
+      const deviceCount = (this.db
+        .prepare('SELECT COUNT(*) AS count FROM devices WHERE room_id = ?')
+        .get(roomId) as { count: number }).count;
+
+      this.db.prepare(`
+        UPDATE devices
+        SET room_id = NULL,
+            status = 'PENDING',
+            entity_version = entity_version + 1,
+            updated_at = ?
+        WHERE room_id = ?
+      `).run(deletedAt, roomId);
+
+      this.db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
+      return deviceCount;
+    });
+
+    return deleteRoom();
+  }
+
   /**
    * Realiza la transformación de fila de base de datos a entidad de dominio.
    */

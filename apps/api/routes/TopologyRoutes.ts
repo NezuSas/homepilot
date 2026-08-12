@@ -5,6 +5,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { createHomeUseCase } from '../../../packages/topology/application/createHomeUseCase';
 import { createRoomUseCase } from '../../../packages/topology/application/createRoomUseCase';
 import { renameRoomUseCase } from '../../../packages/topology/application/renameRoomUseCase';
+import { deleteRoomUseCase } from '../../../packages/topology/application/deleteRoomUseCase';
 import { ForbiddenError, NotFoundError } from '../../../packages/topology/application/errors';
 import { InvalidHomeNameError, InvalidRoomNameError } from '../../../packages/topology/domain/errors';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
@@ -39,12 +40,6 @@ interface LocalDeviceRow {
   updated_at: string;
 }
 
-interface LocalRoomOwnershipRow {
-  room_id: string;
-  home_id: string;
-  owner_id: string;
-  room_name: string;
-}
 
 /**
  * Topology routes: /api/v1/homes, /api/v1/rooms, /api/v1/homes/:id/rooms
@@ -276,54 +271,27 @@ export class TopologyRoutes extends ApiRoutes {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const roomId = deleteRoomMatch[1];
-        const ownership = db
-          .prepare(`
-            SELECT rooms.id AS room_id, rooms.home_id, rooms.name AS room_name, homes.owner_id
-            FROM rooms
-            INNER JOIN homes ON homes.id = rooms.home_id
-            WHERE rooms.id = ?
-          `)
-          .get(roomId) as LocalRoomOwnershipRow | undefined;
-
-        if (!ownership) {
-          this.sendError(res, 404, 'ROOM_NOT_FOUND', 'Room not found');
-          return true;
-        }
-
-        if (ownership.owner_id !== req.user!.id) {
-          this.sendError(res, 403, 'FORBIDDEN', 'Room does not belong to current user');
-          return true;
-        }
-
-        const deletedAt = new Date().toISOString();
-        const deleteRoom = db.transaction(() => {
-          const deviceCount = (db
-            .prepare('SELECT COUNT(*) AS count FROM devices WHERE room_id = ?')
-            .get(roomId) as { count: number }).count;
-
-          db.prepare(`
-            UPDATE devices
-            SET room_id = NULL,
-                status = 'PENDING',
-                entity_version = entity_version + 1,
-                updated_at = ?
-            WHERE room_id = ?
-          `).run(deletedAt, roomId);
-
-          db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
-          return deviceCount;
+        const deletedRoom = await deleteRoomUseCase(roomId, req.user!.id, {
+          homeRepository: container.repositories.homeRepository,
+          roomRepository: container.repositories.roomRepository,
+          clock: { now: () => new Date().toISOString() },
         });
 
-        const unassignedDevices = deleteRoom();
         this.sendJson(res, {
           deleted: true,
           roomId,
-          homeId: ownership.home_id,
-          name: ownership.room_name,
-          unassignedDevices,
+          homeId: deletedRoom.room.homeId,
+          name: deletedRoom.room.name,
+          unassignedDevices: deletedRoom.unassignedDevices,
         });
       } catch (error: unknown) {
-        this.sendError(res, 500, 'ROOM_DELETE_ERROR', (error instanceof Error ? error.message : String(error)));
+        if (error instanceof NotFoundError) {
+          this.sendError(res, 404, 'ROOM_NOT_FOUND', 'Room not found');
+        } else if (error instanceof ForbiddenError) {
+          this.sendError(res, 403, 'FORBIDDEN', 'Room does not belong to current user');
+        } else {
+          this.sendError(res, 500, 'ROOM_DELETE_ERROR', error instanceof Error ? error.message : String(error));
+        }
       }
       return true;
     }
