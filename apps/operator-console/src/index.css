@@ -600,25 +600,18 @@
     background-color: hsl(var(--muted) / 0.42);
   }
 
-  /* Light dashboards need opaque, calm surfaces when an owner selects an image background. */
-  .light .homepilot-dashboard-widget:not(:has(.homepilot-dashboard-title)) {
-    border-color: hsl(215 22% 70% / 0.88);
-    background-color: hsl(var(--card) / 0.98);
-    box-shadow: 0 14px 30px -24px hsl(216 30% 18% / 0.58), inset 0 1px 0 hsl(0 0% 100% / 0.9);
-  }
-
-  .light .homepilot-dashboard-widget .device-state-off {
+  /* Light dashboards keep device controls legible over owner-selected image backgrounds. */
+  .light .homepilot-dashboard-screen .device-state-off {
     border-color: hsl(215 22% 70% / 0.9);
     background: hsl(0 0% 100% / 0.98);
     box-shadow: 0 12px 26px -22px hsl(216 30% 18% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.92);
   }
 
-  .light .homepilot-dashboard-widget .device-state-on {
+  .light .homepilot-dashboard-screen .device-state-on {
     border-color: hsl(var(--primary) / 0.58);
     background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(0 0% 100% / 0.98) 78%);
     box-shadow: 0 14px 30px -22px hsl(var(--primary) / 0.38), inset 0 1px 0 hsl(0 0% 100% / 0.92);
   }
-
   .homepilot-home {
     width: 100%;
     max-width: none;
@@ -660,6 +653,7 @@
       hsl(var(--background) / 0.34) 100%
     );
   }
+
   .homepilot-home-context > div {
     border-color: hsl(var(--border-subtle));
     background-color: hsl(var(--background) / 0.76);
@@ -675,7 +669,6 @@
   .homepilot-home-insights > div:first-child {
     padding-inline: 0;
   }
-
   @media (min-width: 768px) {
     .homepilot-dashboard-titlebar {
       padding-inline: 2rem;

@@ -280,7 +280,7 @@ for (const viewport of viewports) {
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
 
     await page.evaluate(() => document.documentElement.classList.add('light'));
-    const lightDeviceSurface = page.locator('.homepilot-dashboard-widget .device-state-off').first();
+    const lightDeviceSurface = page.locator('.homepilot-dashboard-screen .device-state-off').first();
     await expect(lightDeviceSurface).toBeVisible();
     const lightSurfaceStyle = await lightDeviceSurface.evaluate((element) => {
       const style = getComputedStyle(element);
