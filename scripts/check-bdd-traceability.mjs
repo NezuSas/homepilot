@@ -10,6 +10,7 @@ const criticalSuites = [
   'apps/api/__tests__/AssistantRoutes.test.ts',
   'apps/api/__tests__/SystemRoutes.diagnostics.test.ts',
   'apps/api/__tests__/SettingsRoutes.test.ts',
+  'apps/api/__tests__/NativeCameraRoutes.test.ts',
   'packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts',
   'packages/devices/__tests__/HomeAssistantImportService.test.ts',
   'packages/devices/__tests__/automation/automation_engine.test.ts',
