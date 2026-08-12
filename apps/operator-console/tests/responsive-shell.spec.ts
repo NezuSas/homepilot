@@ -290,8 +290,9 @@ for (const viewport of viewports) {
     await expect(lightDeviceSurface).toBeVisible();
     const lightSurfaceStyle = await lightDeviceSurface.evaluate((element) => {
       const style = getComputedStyle(element);
-      return { backgroundImage: style.backgroundImage, boxShadow: style.boxShadow };
+      return { backgroundColor: style.backgroundColor, backgroundImage: style.backgroundImage, boxShadow: style.boxShadow };
     });
+    expect(lightSurfaceStyle.backgroundColor).not.toBe('rgb(255, 255, 255)');
     expect(lightSurfaceStyle.backgroundImage).toBe('none');
     expect(lightSurfaceStyle.boxShadow).not.toBe('none');
     await page.evaluate(() => document.documentElement.classList.remove('light'));

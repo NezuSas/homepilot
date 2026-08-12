@@ -554,6 +554,13 @@
     background-color: hsl(var(--background));
   }
 
+  .light .homepilot-dashboard-screen {
+    --dashboard-canvas: 34 12% 82%;
+    --dashboard-surface: 34 14% 91%;
+    --dashboard-surface-raised: 34 18% 94%;
+    --dashboard-edge: 30 10% 68%;
+  }
+
   .homepilot-dashboard-backdrop::after {
     content: '';
     position: absolute;
@@ -598,14 +605,14 @@
   }
 
   .light .homepilot-dashboard-backdrop::after {
-    background: linear-gradient(135deg, hsl(36 24% 96% / 0.8) 0%, hsl(38 30% 98% / 0.72) 58%, hsl(32 20% 94% / 0.78) 100%);
+    background: linear-gradient(135deg, hsl(var(--dashboard-canvas) / 0.78) 0%, hsl(var(--dashboard-surface) / 0.68) 58%, hsl(var(--dashboard-canvas) / 0.8) 100%);
     backdrop-filter: saturate(0.48) contrast(0.86) blur(1px);
   }
 
   .light .homepilot-dashboard-widget:has(.homepilot-dashboard-title) {
-    border-color: hsl(215 22% 70% / 0.82);
-    background-color: hsl(0 0% 100% / 0.88);
-    box-shadow: 0 18px 36px -30px hsl(216 30% 18% / 0.58), inset 0 1px 0 hsl(0 0% 100% / 0.92);
+    border-color: hsl(var(--dashboard-edge) / 0.78);
+    background-color: hsl(var(--dashboard-surface-raised) / 0.92);
+    box-shadow: 0 18px 36px -30px hsl(30 12% 28% / 0.42), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.8);
   }
 
   .homepilot-sensor-reading {
@@ -620,15 +627,15 @@
 
   /* Light dashboards keep device controls legible over owner-selected image backgrounds. */
   .light .homepilot-dashboard-screen .device-state-off {
-    border-color: hsl(215 22% 70% / 0.9);
-    background: hsl(0 0% 100% / 0.98);
-    box-shadow: 0 12px 26px -22px hsl(216 30% 18% / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.92);
+    border-color: hsl(var(--dashboard-edge) / 0.72);
+    background: hsl(var(--dashboard-surface) / 0.96);
+    box-shadow: 0 12px 26px -22px hsl(30 12% 28% / 0.4), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.72);
   }
 
   .light .homepilot-dashboard-screen .device-state-on {
     border-color: hsl(var(--primary) / 0.58);
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(0 0% 100% / 0.98) 78%);
-    box-shadow: 0 14px 30px -22px hsl(var(--primary) / 0.38), inset 0 1px 0 hsl(0 0% 100% / 0.92);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(var(--dashboard-surface-raised) / 0.96) 78%);
+    box-shadow: 0 14px 30px -22px hsl(var(--primary) / 0.38), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.76);
   }
   .homepilot-home {
     width: 100%;

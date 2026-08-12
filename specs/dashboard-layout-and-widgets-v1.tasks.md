@@ -6,7 +6,7 @@
 - [x] Canvas responsive, widgets tipados y catálogo MDI diferido.
 - [x] Controles por capacidad, cámaras, sensores, reloj, escena y media player.
 - [x] Tipografía de métricas de sensores centralizada en tokens responsive del design system.
-- [x] Superficies claras de widgets con fondos activos: una veladura cálida y neutra reduce la competencia visual del fondo, mientras las tarjetas conservan blanco definido, bordes serenos y elevación moderada sin alterar estados ni comandos.
+- [x] Superficies claras de widgets con fondos activos: una veladura cálida y neutra reduce la competencia visual del fondo, mientras las tarjetas usan una escala mineral de piedra y arena, bordes serenos y elevación moderada sin alterar estados ni comandos.
 - [x] Placeholder de nueva sección en flujo secuencial, siempre posterior a las secciones existentes.
 - [x] Plantillas de título vinculadas únicamente al contexto autenticado local de HomePilot.
 - [x] Tarjeta multimedia compacta, visor de cámara proporcional e inspector técnico adaptativo para celdas, modal y cajón angostos.
