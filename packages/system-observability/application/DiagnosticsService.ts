@@ -68,7 +68,7 @@ export class DiagnosticsService {
       issues.push({ code: 'WS_RECONNECTING', severity: 'warning', message: 'diagnostics.messages.ws_reconnecting' });
     }
 
-    if (counters.recentReconnects >= 10) {
+    if (counters.recentReconnects >= 3) {
       issues.push({ code: 'RECENT_RECONNECTS', severity: 'warning', message: 'diagnostics.messages.recent_reconnects' });
     }
 
@@ -87,7 +87,7 @@ export class DiagnosticsService {
       overallStatus = 'offline';
     } else if (
       syncState.websocketStatus === 'reconnecting' ||
-      counters.recentReconnects >= 10 ||
+      counters.recentReconnects >= 3 ||
       syncState.reconciliationStatus === 'failed' ||
       counters.recentAutomationFailures >= 1
     ) {

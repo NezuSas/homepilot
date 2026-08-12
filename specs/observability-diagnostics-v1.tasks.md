@@ -38,8 +38,7 @@
     - [x] Issues list
     - [x] Recent events timeline
 
-- [x] Tests
-    - [x] Test overallStatus derivation rules (healthy / degraded / offline)
-    - [x] Test issue detection (all 7 codes)
-    - [x] Test snapshot structure validity
-    - [x] Test diagnostic events filtering
+- [ ] Tests
+    - [x] Verificar degradación por tres reconexiones y prioridad offline por error de autenticación en `DiagnosticsService.test.ts`.
+    - [x] Verificar estructura del snapshot, zona horaria y filtrado/normalización de eventos de diagnóstico.
+    - [ ] Cubrir en pruebas directas los códigos de issue restantes y la condición saludable explícita.
