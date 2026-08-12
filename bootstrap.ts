@@ -8,6 +8,7 @@ import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
+import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
 import { IntentInterpreterService } from './packages/assistant/application/IntentInterpreterService';
@@ -61,6 +62,7 @@ import type { AuthGuard } from './packages/auth/infrastructure/AuthGuard';
 import type { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
 import type { HomeAssistantClientPort } from './packages/integrations/home-assistant/application/ports/HomeAssistantClientPort';
 import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
+import type { TopologyReferencePort } from './packages/devices/application/ports/TopologyReferencePort';
 import type { EventBusDeviceEventPublisher } from './packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
 import type { EventBusTopologyEventPublisher } from './packages/topology/infrastructure/adapters/EventBusTopologyEventPublisher';
 import type { EventBus } from './packages/shared/domain/events/EventBus';
@@ -115,6 +117,7 @@ export interface BootstrapContainer {
     commandDispatcher: DeviceCommandDispatcherPort;
     deviceEventPublisher: EventBusDeviceEventPublisher;
     topologyEventPublisher: EventBusTopologyEventPublisher;
+    topologyReferencePort: TopologyReferencePort;
   };
   eventBus: EventBus;
   dbPath: string;
@@ -152,6 +155,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   // 2. Repositorios y Módulos Base
   const repos = buildRepositories(dbPath, db);
+  const topologyReferencePort = new RepositoryTopologyReferenceAdapter(
+    repos.homeRepository,
+    repos.roomRepository
+  );
   
   const haModule = await buildHomeAssistantModule({
     settingsRepository: repos.settingsRepository,
@@ -338,7 +345,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       homeAssistantClient: haModule.haClientProxy,
       commandDispatcher: commandRouterAssembly.commandDispatcher,
       deviceEventPublisher,
-      topologyEventPublisher
+      topologyEventPublisher,
+      topologyReferencePort
     },
     eventBus,
     dbPath,

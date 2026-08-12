@@ -3,6 +3,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { DeviceRoutes } from '../routes/DeviceRoutes';
+import { ForbiddenOwnershipError } from '../../../packages/devices/application/errors';
 
 const device: Device = {
   id: 'device-1', homeId: 'home-1', roomId: null, externalId: 'edge:device-1', name: 'Sensor', type: 'sensor', vendor: 'Edge', status: 'PENDING', integrationSource: 'native', invertState: false, lastKnownState: null, entityVersion: 1, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
@@ -19,7 +20,16 @@ function containerFor(stored: Device = device): BootstrapContainer {
       homeRepository: { findHomeById: jest.fn().mockResolvedValue({ id: 'home-1', ownerId: 'owner-1' }) },
       roomRepository: { findRoomById: jest.fn() },
     },
-    adapters: { deviceEventPublisher: { publish: jest.fn().mockResolvedValue(undefined) } },
+    adapters: {
+      deviceEventPublisher: { publish: jest.fn().mockResolvedValue(undefined) },
+      topologyReferencePort: {
+        validateHomeExists: jest.fn().mockResolvedValue(undefined),
+        validateHomeOwnership: jest.fn(async (_homeId: string, userId: string) => {
+          if (userId !== 'owner-1') throw new ForbiddenOwnershipError('Forbidden access to home home-1');
+        }),
+        validateRoomBelongsToHome: jest.fn().mockResolvedValue(undefined),
+      },
+    },
   } as unknown as BootstrapContainer;
 }
 

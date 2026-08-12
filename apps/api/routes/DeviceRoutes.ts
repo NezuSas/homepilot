@@ -59,25 +59,6 @@ export class DeviceRoutes extends ApiRoutes {
     return expected.length === provided.length && crypto.timingSafeEqual(expected, provided);
   }
 
-  private createTopologyReferencePort(container: BootstrapContainer): TopologyReferencePort {
-    return {
-      validateHomeExists: async (homeId: string) => {
-        const home = await container.repositories.homeRepository.findHomeById(homeId);
-        if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
-      },
-      validateHomeOwnership: async (homeId: string, userId: string) => {
-        const home = await container.repositories.homeRepository.findHomeById(homeId);
-        if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
-        if (home.ownerId !== userId) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
-      },
-      validateRoomBelongsToHome: async (roomId: string, expectedHomeId: string) => {
-        const room = await container.repositories.roomRepository.findRoomById(roomId);
-        if (!room) throw new TopologyResourceNotFoundError('Room', roomId);
-        if (room.homeId !== expectedHomeId) throw new ForbiddenOwnershipError(`Room ${roomId} does not belong to home ${expectedHomeId}`);
-      },
-    };
-  }
-
   private sendDeviceReadError(res: http.ServerResponse, error: unknown): void {
     const { name, message } = this.getErrorDetails(error);
     if (name === 'DeviceNotFoundError' || name === 'TopologyResourceNotFoundError') {
@@ -112,7 +93,7 @@ export class DeviceRoutes extends ApiRoutes {
         const device = await discoverDeviceUseCase(values[0], values[1], values[2], values[3], values[4], crypto.randomUUID(), {
           deviceRepository: container.repositories.deviceRepository,
           eventPublisher: container.adapters.deviceEventPublisher,
-          topologyPort: this.createTopologyReferencePort(container),
+          topologyPort: container.adapters.topologyReferencePort,
           idGenerator: { generate: () => crypto.randomUUID() },
           clock: { now: () => new Date().toISOString() },
         });
@@ -160,7 +141,7 @@ export class DeviceRoutes extends ApiRoutes {
       try {
         const state = await getDeviceStateUseCase(stateMatch[1], req.user!.id, {
           deviceRepository: container.repositories.deviceRepository,
-          topologyPort: this.createTopologyReferencePort(container),
+          topologyPort: container.adapters.topologyReferencePort,
         });
         this.sendJson(res, state);
       } catch (error: unknown) {
@@ -175,7 +156,7 @@ export class DeviceRoutes extends ApiRoutes {
         const history = await getDeviceActivityHistoryUseCase(historyMatch[1], req.user!.id, 50, {
           deviceRepository: container.repositories.deviceRepository,
           activityLogRepository: container.repositories.activityLogRepository,
-          topologyPort: this.createTopologyReferencePort(container),
+          topologyPort: container.adapters.topologyReferencePort,
         });
         this.sendJson(res, history);
       } catch (error: unknown) {
@@ -302,7 +283,7 @@ export class DeviceRoutes extends ApiRoutes {
         const result = await assignDeviceUseCase(assignMatch[1], payload.roomId, req.user!.id, 'op-console', {
           deviceRepository: container.repositories.deviceRepository,
           eventPublisher: container.adapters.deviceEventPublisher,
-          topologyPort: this.createTopologyReferencePort(container),
+          topologyPort: container.adapters.topologyReferencePort,
 
           idGenerator: { generate: () => crypto.randomUUID() },
           clock: { now: () => new Date().toISOString() },
@@ -378,7 +359,7 @@ export class DeviceRoutes extends ApiRoutes {
           {
             deviceRepository: container.repositories.deviceRepository,
             eventPublisher: container.adapters.deviceEventPublisher,
-            topologyPort: this.createTopologyReferencePort(container),
+            topologyPort: container.adapters.topologyReferencePort,
 
             dispatcherPort: compositeDispatcher,
             activityLogRepository: container.repositories.activityLogRepository,

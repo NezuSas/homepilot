@@ -45,7 +45,7 @@ El comando falla si un archivo no se puede asignar a una spec existente.
 
 ## Cobertura auditada
 
-- Los 565 archivos TypeScript/TSX auditados tienen una regla de mapeo a una spec existente.
+- Los 567 archivos TypeScript/TSX auditados tienen una regla de mapeo a una spec existente.
 - Todos los bounded contexts bajo `packages/` y familias de rutas de `apps/api/routes/` están cubiertos.
 - Las vistas de Operator Console se agrupan por comportamiento de dominio; una vista puramente composicional hereda la spec de su superficie.
 - Las nuevas superficies formalizadas en esta auditoría son escenas, dashboards/widgets, media player, system variables, energía, Sonoff local y fundamentos Edge.
