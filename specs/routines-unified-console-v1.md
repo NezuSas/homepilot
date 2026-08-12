@@ -50,3 +50,4 @@ Las escenas y automatizaciones son dos formas complementarias de operar el hogar
 - [x] AC6: Inicio no duplica secciones; muestra una sola colección de Rutinas favoritas y conserva la ejecución manual o alternancia de cada elemento.
 - [x] AC7: Rutinas mantiene una jerarquía de título, selector y contenido legible en móvil, tablet y escritorio sin tarjetas de escala hero heredadas.
 - [x] AC8: Las pestañas de Rutinas adaptan su distribución y altura cuando el ancho no permite una sola línea, preservando icono, etiqueta y área táctil.
+- [x] AC9: El selector de Rutinas contiene sus pestañas activas dentro de su borde en todos los anchos; no presenta desborde vertical ni recorte de icono o etiqueta.
