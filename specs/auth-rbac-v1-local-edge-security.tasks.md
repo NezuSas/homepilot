@@ -1,43 +1,19 @@
-# Auth & RBAC V1 Tasks
+# Tareas: Auth & RBAC V1
 
-- [ ] Documentation
-    - [x] Create `specs/auth-rbac-v1-local-edge-security.md`
-    - [x] Create `specs/auth-rbac-v1-local-edge-security.tasks.md`
+## Implementado
 
-- [ ] Data Layer (SQLite)
-    - [ ] Create `packages/auth/domain/User.ts` model.
-    - [ ] Create `packages/auth/infrastructure/SqliteUserRepository.ts`.
-    - [ ] Create `packages/auth/infrastructure/SqliteSessionRepository.ts`.
-    - [ ] Apply migration (or table creation on bootstrap).
+- [x] Persistencia: `packages/auth/domain/User.ts`, repositorios SQLite de usuarios y sesiones, y migraciones locales gestionan usuarios activos, roles y sesiones opacas con expiración.
+- [x] Aplicación: `AuthService` autentica, cierra sesión, verifica token, cambia contraseña y permite primer administrador únicamente cuando no existen usuarios; `CryptoService` usa `scrypt` y tokens aleatorios locales.
+- [x] Protección de abuso: `LoginAttemptRateLimiter` limita intentos por usuario/origen y `AuthRoutes` devuelve el estado de bloqueo sin revelar credenciales.
+- [x] HTTP/RBAC: `AuthGuard` inyecta el usuario autenticado; `AuthRoutes`, `AdminRoutes` y las rutas protegidas aplican autorización y roles desde el contenedor.
+- [x] Primer uso: `SystemRoutes` expone setup-status y bootstrap-admin de forma pública solo mientras no hay usuarios; el perfil de desarrollo `HOMEPILOT_DEV_BOOTSTRAP=true` mantiene `admin/admin` limitado a desarrollo.
+- [x] Consola: `LoginView`, `useSession`, navegación y perfil permiten login local, persistencia del token, logout, identidad del usuario y cambio de contraseña/perfil.
+- [x] Hardening: respuestas de auth sin caché, cabeceras de seguridad, rate limiting y validación de imágenes/medios se mantienen en rutas y servicios dedicados.
 
-- [ ] Domain & Application Layer
-    - [ ] Implement `CryptoService` utilizing Node's native `crypto.scrypt` and `randomBytes`.
-    - [ ] Implement `AuthService` handling `login`, `logout`, `verifyToken`, `changePassword`.
-    - [ ] Implement `InitialBootstrapAdmin` hook (Randomly generate first admin password).
+## Evidencia automatizada
 
-- [ ] HTTP Security (Guards & Routing)
-    - [ ] Create decoupled `AuthGuard` identifying headers and mutating `req.user`.
-    - [ ] Implement `POST /api/v1/auth/login`, `POST /logout`, `GET /me`, `POST /change-password`.
-    - [ ] Enforce Role checks across API mapping utilizing `req.user.role`.
-
-- [ ] Operator Console UI
-    - [ ] Add Basic Login View.
-    - [ ] Save Token locally (LocalStorage).
-    - [ ] Add Logout button to SideNav.
-    - [ ] Display logged-in user and role minimally.
-    - [ ] Add basic view/modal to consume `change-password` functionality.
-
-- [ ] Tests
-    - [ ] Auth successful and failure scenarios.
-    - [ ] Auth access denied when unauthenticated.
-    - [ ] Error behaviors (Session expired test -> 401).
-    - [ ] Error behaviors (User inactive test -> 403).
-    - [ ] Auth access denied by RBAC (operator executing admin actions).
-    - [ ] Auth logout flow and corrupted token graceful exit.
-    - [ ] User Change Password validation.
-    - [ ] Verify contextual injection `req.user`.
-
-- [ ] Integrations
-    - [x] Add secure observability event when auth fails.
-    - [x] Add secure observability event when auth succeeds.
-    - [x] Add local failed-login throttling, HTTP security headers and bounded image uploads.
+- [x] `apps/api/__tests__/AuthRoutes.security.test.ts` cubre bloqueo por intentos fallidos, `Retry-After` y dependencias inyectadas de la ruta.
+- [x] `packages/auth/application/AuthService.bootstrapFirstAdmin.test.ts` cubre creación del primer administrador y su perfil inicial.
+- [x] `packages/auth/application/LoginAttemptRateLimiter.test.ts` cubre límite, ventana de bloqueo y limpieza tras éxito.
+- [x] `apps/api/__tests__/AdminRoutes.test.ts` cubre denegación por RBAC y DTO público sin secretos.
+- [x] `npm run verify:quality` ejecuta estas pruebas junto con typecheck, builds y gates SDD/TDD/BDD/SOLID.
