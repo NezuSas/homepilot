@@ -106,3 +106,7 @@
   4. Presionar `[ON]` en UI graba comando ejecutado en DB y se lee en vista Logs (Validación **AC4**).
 - **Módulos**: Repositorio de test integrativo UI o matriz de calidad.
 - **Dependencias**: `BO-01`.
+### [UI-08] Jerarquía visual residencial en Inicio
+- **Descripción**: Integrar un activo ambiental local en el saludo de Inicio y ajustar la jerarquía de contexto, rutinas y sugerencias sin alterar sus acciones ni contratos.
+- **Módulos**: `/src/views/DashboardView.tsx`, `HomeClimateSummary.tsx`, `DashboardRoutinesSection.tsx`, `DashboardInsightsSection.tsx` y `/public/home-dashboard-ambient.png`.
+- **Criterio Relacionado**: Alineado con **AC25**.

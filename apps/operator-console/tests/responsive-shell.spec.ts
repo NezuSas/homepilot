@@ -287,6 +287,9 @@ for (const viewport of viewports) {
     await page.goto('/');
     const climateSummary = page.getByLabel(/contexto local del hogar|local home context/i);
     await expect(climateSummary).toBeVisible();
+    const ambientImage = page.locator('img[src="/home-dashboard-ambient.png"]');
+    await expect(ambientImage).toBeVisible();
+    await expect(ambientImage).toHaveAttribute('alt', '');
 
     const layout = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,

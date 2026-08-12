@@ -51,7 +51,7 @@ export function DashboardRoutinesSection({
   ];
 
   return (
-    <section className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-routines">
+    <section className="homepilot-home-routines animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-routines">
       <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         <div>
           <h2 className="text-section-title font-semibold tracking-tight text-foreground">{t('dashboard.favorite_routines')}</h2>
@@ -86,7 +86,7 @@ export function DashboardRoutinesSection({
                   onClick={() => onSceneExecute(routine.value)}
                   disabled={processingId !== null}
                   className={cn(
-                    'group relative flex min-h-28 w-full items-center justify-start gap-3 rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
+                    'group relative flex min-h-28 w-full items-center justify-start gap-3 homepilot-home-routine-card rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
                     isProcessing ? 'border-primary bg-primary text-primary-foreground shadow-depth-2' : 'border-border/65 hover:border-primary/35',
                   )}
                 >
@@ -117,7 +117,7 @@ export function DashboardRoutinesSection({
                 onClick={() => onAutomationToggle(routine.value)}
                 disabled={processingId !== null}
                 className={cn(
-                  'group relative flex min-h-28 w-full items-center justify-start gap-3 rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
+                  'group relative flex min-h-28 w-full items-center justify-start gap-3 homepilot-home-routine-card rounded-card border bg-card p-4 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
                   routine.value.enabled ? 'border-primary/35 hover:border-primary/55' : 'border-border/65 hover:border-primary/35',
                 )}
               >

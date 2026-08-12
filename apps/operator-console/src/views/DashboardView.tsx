@@ -172,18 +172,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   if (snapshotLoading && allDevices.length === 0) return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
 
   return (
-    <div className="flex flex-col gap-6 pb-10 animate-in fade-in duration-500 sm:gap-8 sm:pb-12">
+    <div className="homepilot-home flex flex-col gap-6 pb-10 animate-in fade-in duration-500 sm:gap-8 sm:pb-12">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
-      <header className="flex flex-col gap-5 pt-1 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
+      <header className="homepilot-home-hero flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <img
+          className="homepilot-home-hero-image"
+          src="/home-dashboard-ambient.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="homepilot-home-hero-overlay" aria-hidden="true" />
+        <div className="relative z-10 min-w-0">
           <p className="text-caption font-semibold text-primary">{t('dashboard.home_label')}</p>
           <h1 className="mt-1 text-view-title font-semibold tracking-display-tight text-foreground min-[380px]:text-display-title">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
           </h1>
-          <p className="mt-2 text-body text-muted-foreground">{t('dashboard.home_calm')}</p>
+          <p className="mt-2 max-w-xl text-body text-muted-foreground">{t('dashboard.home_calm')}</p>
         </div>
-        <HomeClimateSummary devices={allDevices} />
+        <div className="relative z-10">
+          <HomeClimateSummary devices={allDevices} />
+        </div>
       </header>
 
       <DashboardRoutinesSection

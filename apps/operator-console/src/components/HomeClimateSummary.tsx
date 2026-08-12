@@ -49,7 +49,7 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ devices 
   }).format(now), [i18n.language, now]);
 
   return (
-    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end" aria-label={t('dashboard.home_context')}>
+    <div className="homepilot-home-context flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end" aria-label={t('dashboard.home_context')}>
       <div className="flex min-w-0 basis-full items-center gap-2 rounded-card border border-border/60 bg-card/80 px-3 py-2.5 text-caption text-muted-foreground shadow-sm sm:basis-auto">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           <MapPin className="h-3.5 w-3.5" />
