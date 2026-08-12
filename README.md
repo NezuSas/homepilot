@@ -14,6 +14,8 @@ HomePilot Edge is a local-first smart home appliance platform. It runs the API, 
 
 ## Local Development
 
+La referencia completa de instalación, inicio, mantenimiento, validación y diagnóstico está en [docs/command-reference.md](docs/command-reference.md).
+
 Install dependencies once:
 
 ```bash
@@ -105,6 +107,7 @@ See `docs/local-wsl-workflow.md`.
 - `docs/design-system.md`: Operator Console visual tokens and UI primitives.
 - `docs/documentation-index.md`: documentation map and validation guide.
 - `docs/operator-console-frontend.md`: current UI architecture and modularity rules.
-- `docs/local-wsl-workflow.md`: Windows local to WSL operational flow.
+- docs/local-wsl-workflow.md: Windows local to WSL operational flow.
+- docs/command-reference.md: comandos operativos desde instalación hasta diagnóstico.
 - `docs/release-readiness-v1.md`: V1 readiness, hardening, and known debt.
 - `specs/`: feature specifications and acceptance criteria.

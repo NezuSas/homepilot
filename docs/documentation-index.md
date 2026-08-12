@@ -9,6 +9,7 @@ La documentacion principal ya cubre vision, arquitectura, frontend modular, vali
 | Documento | Uso principal | Estado |
 |---|---|---|
 | `README.md` | Entrada rapida al proyecto, comandos y puertos | Actualizado |
+| docs/command-reference.md | Referencia operativa: instalación, inicio, validación, mantenimiento y diagnóstico | Actualizado |
 | `AGENTS.md` | Reglas estrictas para agentes y cambios asistidos | Fuente normativa |
 | `docs/project-overview.md` | Vision de producto, principios y no-objetivos | Actualizado |
 | `docs/architecture.md` | Arquitectura Edge/Cloud, runtime actual y limites | Actualizado |
