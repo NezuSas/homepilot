@@ -136,11 +136,11 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
       {/* Control Bar */}
       <SectionHeader 
-        className="mb-4 border-b border-border/50 pb-3"
+        className="mb-4 border-b border-border/50 pb-3 sm:!flex-col sm:!items-start sm:!justify-start sm:gap-3"
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="grid w-full min-w-0 gap-2 min-[520px]:grid-cols-[minmax(15rem,1fr)_minmax(20rem,1.5fr)] xl:w-[min(100%,44rem)]">
+          <div className="grid w-full min-w-0 gap-2 min-[520px]:w-[min(100%,44rem)] min-[520px]:grid-cols-[minmax(15rem,1fr)_minmax(20rem,1.5fr)]">
             {/* Origin Filter */}
             <SegmentedControl
               value={originFilter}
