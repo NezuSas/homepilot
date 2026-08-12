@@ -1,12 +1,12 @@
 # Ejecución local en Windows
 
-Usa el perfil de Docker Desktop para levantar HomePilot en esta PC:
+El mismo comando de mantenimiento usado en Linux detecta Docker Desktop desde Windows o WSL y añade el overlay correcto:
 
 ```powershell
-docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d --build
+bash scripts/homepilot-maintenance.sh --deploy --yes
 ```
 
-Abre `http://localhost:8080`. La interfaz usa un proxy interno hacia la API, por lo que no se requiere configurar una URL de API en el navegador.
+Abre `http://localhost:8080`. Para una ejecución manual equivalente, usa `docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d --build`. La interfaz usa un proxy interno hacia la API, por lo que no se requiere configurar una URL de API en el navegador.
 
 El perfil usa la misma base canónica `data/homepilot.db` que el runtime Linux. Windows y Linux no deben crear bases de datos separadas para una misma instalación.
 

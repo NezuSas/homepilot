@@ -3,6 +3,7 @@ set -euo pipefail
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
+compose_files=()
 compose_explicit=false
 keep_storage="2GB"
 deploy=false
@@ -41,7 +42,7 @@ Opciones:
   --clean                  Solo limpia residuos seguros de Docker.
   --status                 Solo muestra espacio y consumo de Docker.
   --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
-  --compose FILE           Compose personalizado. Sobrescribe el compose del perfil.
+  --compose FILE           Compose personalizado. Sobrescribe la selección automática de runtime.
   --keep-storage SIZE      Cache maximo para BuildKit/buildx. Default: 2GB
   --truncate-logs          Vacia logs json de Docker. Puede pedir sudo.
   --yes                    No pide confirmacion.
@@ -53,6 +54,12 @@ Ejemplos:
   bash scripts/homepilot-maintenance.sh --clean --keep-storage 1GB --yes
   bash scripts/homepilot-maintenance.sh --status
 EOF
+}
+
+is_docker_desktop() {
+  local operating_system
+  operating_system="$(docker info --format '{{.OperatingSystem}}' 2>/dev/null || true)"
+  [[ "$operating_system" =~ [Dd]ocker[[:space:]][Dd]esktop ]]
 }
 
 configure_profile() {
@@ -67,6 +74,11 @@ configure_profile() {
       fail "Perfil no válido: ${profile}. Usa bridge_ha, native_only o ha_companion."
       ;;
   esac
+
+  compose_files=("$compose_file")
+  if [[ "$compose_explicit" == false && "$profile" != "ha_companion" ]] && is_docker_desktop; then
+    compose_files=("docker-compose.office.yml" "docker-compose.desktop.yml")
+  fi
 }
 
 banner() {
@@ -142,7 +154,10 @@ check_requirements() {
   command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta en PATH."
   docker version >/dev/null 2>&1 || fail "Docker no responde. Verifica que el daemon este activo."
   docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta disponible."
-  [[ -f "$compose_file" ]] || fail "No existe ${compose_file} en el directorio actual."
+  local file
+  for file in "${compose_files[@]}"; do
+    [[ -f "$file" ]] || fail "No existe ${file} en el directorio actual."
+  done
 }
 
 validate_profile_environment() {
@@ -182,17 +197,23 @@ clean_docker_residue() {
 
 deploy_homepilot() {
   section "Despliegue HomePilot"
-  info "Compose: ${compose_file}"
+  info "Compose: ${compose_files[*]}"
   info "Perfil: ${profile}"
   info "COMPOSE_BAKE=false evita que Compose use bake si no hace falta."
 
   local max_attempts=3
   local attempt=1
   local retry_delay=10
+  local compose_args=()
+  local file
+
+  for file in "${compose_files[@]}"; do
+    compose_args+=( -f "$file" )
+  done
 
   while (( attempt <= max_attempts )); do
     info "Construcción e inicio: intento ${attempt}/${max_attempts}."
-    if COMPOSE_BAKE=false docker compose -f "$compose_file" up -d --build; then
+    if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build; then
       ok "HomePilot construido e iniciado."
       break
     fi
@@ -207,7 +228,7 @@ deploy_homepilot() {
     retry_delay=$((retry_delay * 2))
   done
 
-  docker compose -f "$compose_file" ps
+  docker compose "${compose_args[@]}" ps
 }
 
 while [[ $# -gt 0 ]]; do
