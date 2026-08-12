@@ -290,3 +290,24 @@ test('Feature: Home Assistant discovery — Scenario: Given more than one discov
   await discovery.getByRole('button', { name: /show 1 more|mostrar 1 más/i }).click();
   await expect(discovery.locator('article')).toHaveCount(49);
 });
+test('Feature: User dashboard navigation — Scenario: Given an authenticated user When the dashboard group is toggled and a child is selected Then it expands independently and navigates to that dashboard', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+
+  await page.goto('/');
+  const dashboardGroup = page.getByRole('button', { name: /dashboards|tableros/i }).first();
+  await expect(dashboardGroup).toHaveAttribute('aria-expanded', 'false');
+
+  await dashboardGroup.click();
+  await expect(dashboardGroup).toHaveAttribute('aria-expanded', 'true');
+  const dashboardChild = page.getByRole('button', { name: 'Hogar de prueba' });
+  await expect(dashboardChild).toBeVisible();
+
+  await dashboardChild.click();
+  await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard/);
+  await expect(page.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+
+  await dashboardGroup.click();
+  await expect(dashboardGroup).toHaveAttribute('aria-expanded', 'false');
+  await expect(dashboardChild).toBeHidden();
+});

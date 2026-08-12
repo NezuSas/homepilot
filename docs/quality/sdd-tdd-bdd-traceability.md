@@ -19,5 +19,6 @@
 | Operator Console | `operator-console-v1.md` | `apps/operator-console/src/lib/__tests__/assistantApi.test.ts` | Envío de conversación desde la consola |
 | App shell | `operator-console-v1.md` | `apps/operator-console/src/config/__tests__/appDemoSteps.test.ts` | Guía de demostración con selectores y vistas estables |
 | Dashboard sections | `dashboard-layout-and-widgets-v1.md` | `apps/operator-console/src/views/dashboards/widgets/__tests__/sectionCardCatalog.test.ts` | Normalización de tarjetas y compatibilidad de layout |
+| User dashboard navigation | `user-dashboard-navigation.md` | `apps/operator-console/tests/responsive-shell.spec.ts` | Grupo de dashboards colapsable y navegación al dashboard hijo autenticado |
 
 Esta matriz inicia el criterio AC2 de `engineering-quality-compliance-v1`: cada fila se mantiene con pruebas automatizadas, y se ampliará antes de declarar el contexto Implementado.
