@@ -187,6 +187,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC71: La conversación residencial no duplica una cabecera operativa dentro de la vista. Sin mensajes, conserva únicamente accesos rápidos compactos y el compositor, sin pantalla introductoria, capacidades repetidas ni espacio vacío desproporcionado.
 - [x] AC72: La conversación residencial ocupa el alto disponible en móvil, tableta y escritorio; el compositor permanece anclado al borde inferior seguro y los accesos rápidos se sitúan inmediatamente encima cuando no hay mensajes.
 - [x] AC73: En móvil, los controles de voz, lectura y envío del compositor se agrupan al borde de acción; no se presenta una etiqueta de versión decorativa y el estado operativo conserva una alternativa accesible.
+- [x] AC74: Antes del primer mensaje, los atajos de conversación se muestran como sugerencias contextuales inmediatamente sobre el compositor; no ocupan una barra separada en la parte superior de la conversación.
 
 ## 8. Notas Técnicas y Arquitectura
 

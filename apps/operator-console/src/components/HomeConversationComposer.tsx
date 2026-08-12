@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Lightbulb, Mic, MicOff, Send, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AudioInputPicker } from './AudioInputPicker';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
@@ -14,6 +14,8 @@ interface HomeConversationComposerProps {
   statusLabel: string;
 
   inputHint: string;
+  suggestions: string[];
+  onSuggestionClick: (suggestion: string) => void;
   isListening: boolean;
   isSpeechRecordingSupported: boolean;
   isSpeechSynthesisSupported: boolean;
@@ -41,6 +43,8 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   statusLabel,
 
   inputHint,
+  suggestions,
+  onSuggestionClick,
   isListening,
   isSpeechRecordingSupported,
   isSpeechSynthesisSupported,
@@ -61,6 +65,24 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
 }) => (
   <footer className="sticky bottom-0 z-30 shrink-0 border-t border-border/60 bg-background/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4 md:px-6">
     <div className="mx-auto min-w-0 w-full max-w-7xl">
+      {suggestions.length > 0 && (
+        <div className="mb-2 flex flex-wrap justify-center gap-2" aria-label={placeholder}>
+          {suggestions.map((suggestion, index) => (
+            <Button
+              key={`${suggestion}-${index}`}
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onSuggestionClick(suggestion)}
+              className="rounded-full border-border/60 bg-card/85 px-3 shadow-sm"
+            >
+              <Lightbulb className="h-3.5 w-3.5 text-primary" />
+              <span className="whitespace-normal">{suggestion}</span>
+            </Button>
+          ))}
+        </div>
+      )}
+
       <form
         aria-busy={isLoading}
         onSubmit={(event: React.FormEvent<HTMLFormElement>) => {

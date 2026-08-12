@@ -7,7 +7,6 @@ import { generateId } from '../utils/generateId';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { AssistantConversationResponse, AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
-import { HomeConversationEmptyState } from '../components/HomeConversationEmptyState';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
 import {
@@ -563,12 +562,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
           aria-relevant="additions text"
           className="mx-auto flex w-full max-w-7xl flex-col gap-4 md:gap-5"
         >
-          {messages.length === 0 && (
-            <HomeConversationEmptyState
-              suggestions={suggestions}
-              onSuggestionClick={handleSend}
-            />
-          )}
 
           {messages.map(message => (
             <HomeConversationMessageBubble
@@ -590,6 +583,8 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         sendLabel={t('assistant.conversation.send')}
         statusLabel={isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
         inputHint={speechNotice || t('assistant.conversation.input_hint')}
+        suggestions={messages.length === 0 ? suggestions : []}
+        onSuggestionClick={handleSend}
         isListening={isListening}
         isSpeechRecordingSupported={speechSupport.recording}
         isSpeechSynthesisSupported={speechSupport.synthesis}
