@@ -48,7 +48,7 @@ const getStatusColor = (status: string) => {
 };
 
 const StatusBadge = ({ status, label }: { status: string; label?: string }) => (
-  <span className={cn("px-2 py-0.5 rounded text-micro font-black uppercase tracking-wider border", getStatusColor(status))}>
+  <span className={cn("rounded-control border px-1.5 py-0.5 text-nano font-semibold uppercase leading-none tracking-control", getStatusColor(status))}>
     {label || status.replace('_', ' ')}
   </span>
 );

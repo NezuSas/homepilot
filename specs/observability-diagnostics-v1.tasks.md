@@ -43,3 +43,4 @@
     - [x] Verificar estructura del snapshot, zona horaria y filtrado/normalización de eventos de diagnóstico.
     - [x] `DiagnosticsService.test.ts` cubre los códigos restantes (`HA_NOT_CONFIGURED`, `HA_UNREACHABLE`, `RECONCILIATION_FAILED`) y la condición saludable explícita.
     - [x] SystemRoutes.diagnostics.test.ts verifica autenticación y delegación de snapshot/timeline HTTP.
+- [x] Compactar badges operativos y reforzar el contraste del payload de Resilience en claro, oscuro y móvil.

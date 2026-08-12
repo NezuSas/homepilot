@@ -197,3 +197,4 @@ La ruta existente de estado del sistema presenta información comprensible para 
 2. La vista distingue entre conexión disponible y comprobación pendiente mediante texto, icono y color accesibles.
 3. Si la carga de escenas, automatizaciones o snapshot falla, la interfaz conserva los conteos previos y muestra el estado de revisión.
 4. Los detalles de eventos, sincronización y conectores continúan disponibles exclusivamente en Diagnóstico.
+- [x] AC16: Estados de sondas y categorías de línea de tiempo usan escala técnica compacta; el payload de Resilience conserva contraste legible con superficie sólida en modo claro y oscuro, sin sangría excesiva en móvil.

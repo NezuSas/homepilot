@@ -147,7 +147,7 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
                     </div>
                     <div className="flex-1 flex flex-col gap-1.5">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={cn("rounded px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
+                        <span className={cn("rounded-control px-1.5 py-0.5 text-[0.5625rem] font-semibold uppercase leading-none tracking-control", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
                           {t(`diagnostics.categories.${event.category}`, { defaultValue: event.category })}
                         </span>
                         <span className={cn("text-body-compact font-semibold tracking-tight", isError ? "text-danger" : "")}>
@@ -164,10 +164,10 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
                   </div>
 
                   {isExpanded && (hasData || hasChildren) && (
-                    <div className="ml-28 pl-4 border-l-2 border-border/50 flex flex-col gap-4 mt-2">
+                    <div className="ml-0 mt-2 flex flex-col gap-4 border-l-2 border-border/50 pl-3 sm:ml-28 sm:pl-4">
                       {hasData && (
-                        <div className="text-micro font-mono text-muted-foreground/80 leading-relaxed bg-black/5 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
-                          <span className="font-bold uppercase tracking-widest opacity-60 mb-2 block">{t('diagnostics.payload')}</span>
+                        <div className="overflow-x-auto rounded-control border border-border/70 bg-card p-3 text-micro font-mono leading-relaxed text-foreground shadow-inner">
+                          <span className="mb-2 block text-nano font-semibold uppercase tracking-control text-muted-foreground">{t('diagnostics.payload')}</span>
                           {Object.entries(data).map(([key, value]) => (
                             <div key={key}><span className="opacity-50">{key}:</span> {typeof value === 'object' ? JSON.stringify(value) : String(value)}</div>
                           ))}
