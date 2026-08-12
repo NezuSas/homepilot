@@ -184,11 +184,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         />
         <div className="homepilot-home-hero-overlay" aria-hidden="true" />
         <div className="relative z-10 min-w-0">
-          <p className="text-caption font-semibold text-primary">{t('dashboard.home_label')}</p>
-          <h1 className="mt-1 text-view-title font-semibold tracking-display-tight text-foreground min-[380px]:text-display-title">
+          <p className="text-caption font-semibold text-primary lg:text-label">{t('dashboard.home_label')}</p>
+          <h1 className="mt-2 text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
           </h1>
-          <p className="mt-2 max-w-xl text-body text-muted-foreground">{t('dashboard.home_calm')}</p>
+          <p className="mt-3 max-w-xl text-body text-muted-foreground lg:text-card-title">{t('dashboard.home_calm')}</p>
         </div>
         <div className="relative z-10">
           <HomeClimateSummary devices={allDevices} />
