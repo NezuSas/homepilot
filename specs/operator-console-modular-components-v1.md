@@ -185,6 +185,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC69: Tarjeta multimedia, visor de cámara e inspector técnico conservan texto, controles y proporción útil dentro de grids, overlays y cajones angostos sin overflow horizontal ni espacios vacíos desproporcionados; el visor ampliado puede ocupar el ancho disponible y el inspector no expone UUIDs de estancias en superficies residenciales.
 - [x] AC70: Inicio, Asistente, topología e inventario reducen cabeceras y etiquetas repetidas; las sugerencias conservan sus acciones con una jerarquía compacta, los dispositivos agrupados no repiten la estancia en su nombre o pie, y los nombres largos pueden ocupar dos líneas sin desbordar.
 - [x] AC71: La conversación residencial no duplica una cabecera operativa dentro de la vista. Sin mensajes, conserva únicamente accesos rápidos compactos y el compositor, sin pantalla introductoria, capacidades repetidas ni espacio vacío desproporcionado.
+- [x] AC72: La conversación residencial ocupa el alto disponible en móvil, tableta y escritorio; el compositor permanece anclado al borde inferior seguro y los accesos rápidos se sitúan inmediatamente encima cuando no hay mensajes.
 
 ## 8. Notas Técnicas y Arquitectura
 

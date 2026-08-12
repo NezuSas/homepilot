@@ -1066,7 +1066,12 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex min-h-screen-dvh min-w-0 flex-1 flex-col overflow-visible bg-background xl:h-full xl:overflow-hidden">
+      <main className={cn(
+        'flex min-w-0 flex-1 flex-col bg-background',
+        currentView === 'home-conversation'
+          ? 'h-screen-dvh overflow-hidden'
+          : 'min-h-screen-dvh overflow-visible xl:h-full xl:overflow-hidden'
+      )}>
         
         {currentView !== 'dashboards' && (
           <IconButton
