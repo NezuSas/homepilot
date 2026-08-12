@@ -14,7 +14,7 @@
 | Automation Engine V2 | `automation-engine-v2-event-driven.md` | `packages/devices/__tests__/automation/automation_engine.test.ts` | Rebotes concurrentes se deduplican y quedan auditados |
 | Local durable persistence | `local-durable-persistence-v1.md` | `packages/shared/infrastructure/database/__tests__/SqliteDatabaseManager.test.ts` | Journal DELETE no crea sidecars WAL/SHM en bind mount Windows |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |
-| Assistant | `assistant-v1.md` | `packages/assistant/__tests__/assistant_execution.test.ts` | Resolución y ejecución de una intención |
+| Assistant | `assistant-v1.md` + `nezu-domestic-assistant-v1.md` | `assistant_execution.test.ts` + `assistant_conversation_service.test.ts` | Resolución, ejecución y matriz conversacional residencial |
 | Local voice conversation | `home-conversation-natural-voice-v1.md` | `homeConversationVoice.test.ts` + `apps/api/__tests__/AssistantRoutes.test.ts` | Activador canónico, STT Whisper local, TTS Piper y error seguro |
 | Operator Console | `operator-console-v1.md` | `apps/operator-console/src/lib/__tests__/assistantApi.test.ts` | Envío de conversación desde la consola |
 | App shell | `operator-console-v1.md` | `apps/operator-console/src/config/__tests__/appDemoSteps.test.ts` | Guía de demostración con selectores y vistas estables |

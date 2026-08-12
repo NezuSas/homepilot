@@ -18,6 +18,7 @@ const criticalSuites = [
   'packages/devices/__tests__/CommandCapabilityValidator.test.ts',
   'packages/devices/__tests__/SceneExecutionService.test.ts',
   'packages/assistant/__tests__/assistant_execution.test.ts',
+  'packages/assistant/__tests__/assistant_conversation_service.test.ts',
   'apps/operator-console/src/lib/__tests__/assistantApi.test.ts',
   'apps/operator-console/src/lib/__tests__/homeConversationVoice.test.ts',
   'apps/operator-console/src/config/__tests__/appDemoSteps.test.ts',
