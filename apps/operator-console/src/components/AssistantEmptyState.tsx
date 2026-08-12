@@ -11,7 +11,7 @@ export const AssistantEmptyState: React.FC = () => {
       icon={CheckCircle2}
       title={t('assistant.no_findings')}
       description={t('assistant.subtitle')}
-      className="py-24"
+      className="mx-auto max-w-2xl py-12"
     />
   );
 };

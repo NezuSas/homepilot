@@ -58,6 +58,7 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
         <DashDeviceTile
           device={device}
           roomName={roomName}
+          showRoomName={false}
           isDuplicateName={isDuplicateName}
           onUpdate={onUpdate}
           onCommand={onCommand}

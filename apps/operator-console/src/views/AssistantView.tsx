@@ -238,7 +238,7 @@ export const AssistantView: React.FC<{
       {findings.length === 0 ? (
         <AssistantEmptyState />
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-8">
           {(() => {
             const processed = processFindings(findings);
             return (['proactive', 'usage', 'opportunities', 'system'] as const).map(sectionKey => {
@@ -246,7 +246,7 @@ export const AssistantView: React.FC<{
               if (sectionItems.length === 0) return null;
 
               return (
-                <div key={sectionKey} className="space-y-6">
+                <div key={sectionKey} className="space-y-4">
                   <div className="flex items-center gap-3 px-2">
                     <h2 className="text-micro font-black uppercase tracking-label text-muted-foreground/60">
                       {t(`assistant.sections.${sectionKey}`)}
@@ -254,7 +254,7 @@ export const AssistantView: React.FC<{
                     <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {sectionItems.map((item: ProcessedItem) => {
                       if ('isGroup' in item && item.isGroup) {
                         return (

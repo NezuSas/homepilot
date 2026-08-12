@@ -75,7 +75,6 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
   onDismiss,
 }) => {
   const { t } = useTranslation();
-  const reasonKey = getMetadataText(finding.metadata, ['reasonKey'], '');
   const safeMetadata = getSafeFindingMetadata(finding.metadata);
   const metadataDescription = getMetadataText(safeMetadata, ['displayDescription', 'description'], '');
   const description = metadataDescription || (hasTechnicalFindingMetadata(finding.metadata)
@@ -90,9 +89,9 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
   return (
     <div
       className={cn(
-        'group relative flex flex-col rounded-panel border p-4 transition-all duration-300 sm:p-5',
+        'group relative flex flex-col rounded-card border p-4 transition-colors sm:p-5',
         isProactiveType(finding.type)
-          ? 'bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-xl shadow-primary/5 hover:shadow-primary/10 hover:-translate-y-1'
+          ? 'border-primary/20 bg-card shadow-depth-1 hover:border-primary/35'
           : 'bg-card border-border hover:border-primary/30'
       )}
     >
@@ -124,17 +123,7 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
             {context}
           </span>
         </div>
-      )}
-
-      {reasonKey !== '' && (
-        <div className="mb-4 rounded-xl border border-primary/10 bg-primary/5 p-2.5 font-primary">
-          <p className="flex items-center gap-2 text-micro font-semibold italic leading-normal text-primary">
-            <Info className="w-3 h-3" />
-            {t(`assistant.types.reasons.${reasonKey}`)}
-          </p>
-        </div>
-      )}
-
+      )}`r`n
       {finding.metadata.ready === true && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-2.5 py-2 text-success">
           <Sparkles className="w-3 h-3" />

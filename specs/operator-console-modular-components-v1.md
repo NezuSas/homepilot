@@ -183,6 +183,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC67: La navegación entre vistas reutiliza la instantánea de dispositivos durante una ventana corta de frescura, comparte solicitudes simultáneas y conserva los datos visibles; eventos realtime relevantes invalidan esa ventana para sincronizar el cambio de inmediato.
 - [x] AC68: Los tableros no bloquean su primer render con el catálogo MDI completo; el selector de iconos conserva la carga inmediata de su catálogo y los iconos personalizados visibles se resuelven al quedar libre el navegador.
 - [x] AC69: Tarjeta multimedia, visor de cámara e inspector técnico conservan texto, controles y proporción útil dentro de grids, overlays y cajones angostos sin overflow horizontal ni espacios vacíos desproporcionados; el visor ampliado puede ocupar el ancho disponible y el inspector no expone UUIDs de estancias en superficies residenciales.
+- [x] AC70: Inicio, Asistente, topología e inventario reducen cabeceras y etiquetas repetidas; las sugerencias conservan sus acciones con una jerarquía compacta, los dispositivos agrupados no repiten la estancia en su nombre o pie, y los nombres largos pueden ocupar dos líneas sin desbordar.
 
 ## 8. Notas Técnicas y Arquitectura
 

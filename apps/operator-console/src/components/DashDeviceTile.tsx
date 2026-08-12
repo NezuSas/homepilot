@@ -21,11 +21,12 @@ interface DashDeviceTileProps {
   onUpdate?: (updated: Device) => void;
   onCommand?: (deviceId: string, command: string) => Promise<Device | null>;
   roomName?: string;
+  showRoomName?: boolean;
   isDuplicateName?: boolean;
   onActionExecute?: (label: string) => void;
 }
 
-export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate, onCommand, roomName, isDuplicateName, onActionExecute }) => {
+export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate, onCommand, roomName, showRoomName = true, isDuplicateName, onActionExecute }) => {
   const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [optimisticState, setOptimisticState] = useState<boolean | null>(null);
@@ -35,7 +36,10 @@ export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate
   const isOffline = device.status === 'PENDING' || isDeviceUnavailable(device);
   const isSonoff = device.integrationSource === 'sonoff';
   const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
-  const displayName = isDuplicateName ? disambiguate(humanize(device.id, device.name), roomName) : humanize(device.id, device.name);
+  const baseName = humanize(device.id, device.name);
+  const roomSuffix = roomName ? ' (' + roomName + ')' : '';
+  const hasRoomSuffix = roomSuffix !== '' && baseName.toLocaleLowerCase().endsWith(roomSuffix.toLocaleLowerCase());
+  const displayName = isDuplicateName ? disambiguate(baseName, roomName) : hasRoomSuffix ? baseName.slice(0, -roomSuffix.length).trimEnd() : baseName;
   const isLight = hasCapability(device, 'light');
   const isSwitch = hasCapability(device, 'switch');
   const isSensor = hasCapability(device, 'sensor') || hasCapability(device, 'binary_sensor');
@@ -97,7 +101,7 @@ export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate
             <Icon className={cn('h-5 w-5', isProcessing && 'animate-pulse')} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
+            <span className="block line-clamp-2 text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
             <span className={cn('mt-1 block text-caption font-medium', isOn && !isOffline ? isLight ? 'text-light-active' : 'text-primary' : 'text-muted-foreground')}>
               {detail}
             </span>
@@ -112,10 +116,10 @@ export const DashDeviceTile: React.FC<DashDeviceTileProps> = ({ device, onUpdate
           </span>
         )}
       </div>
-      <div className="relative z-10 mt-5 flex items-center justify-between gap-3 border-t border-border/45 pt-3">
+      {showRoomName && <div className="relative z-10 mt-5 flex items-center justify-between gap-3 border-t border-border/45 pt-3">
         <span className="truncate text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
         {isSonoff && <span className={cn('shrink-0 text-micro font-semibold', isOnline ? 'text-success' : 'text-danger')}>{isOnline ? t('common.online') : t('common.offline')}</span>}
-      </div>
+      </div>}
     </DeviceTileShell>
   );
 };

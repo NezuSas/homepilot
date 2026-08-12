@@ -152,7 +152,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.identity}</th>
             <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.access}</th>
             <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.status}</th>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider text-right">{labels.controls}</th>
+            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider text-center">{labels.controls}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -195,8 +195,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   )}
                 </div>
               </td>
-              <td className="px-5 py-4 text-right">
-                <div className="flex flex-wrap items-center justify-end gap-2 transition-all">
+              <td className="px-5 py-4 text-center">
+                <div className="flex flex-wrap items-center justify-center gap-2 transition-all">
                   <IconButton
                     onClick={() => onToggleActive(user)}
                     icon={Power}

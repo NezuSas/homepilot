@@ -136,7 +136,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
       {/* Control Bar */}
       <SectionHeader 
-        className="pb-4 border-b border-border/50"
+        className="mb-4 border-b border-border/50 pb-3"
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         subtitle={mode === 'manager' ? t('inbox.manager_subtitle') : t('inbox.discovery_subtitle')}
         icon={mode === 'manager' ? Settings : Inbox}
@@ -174,9 +174,9 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       />
 
       {/* Adaptive Grid Rendering */}
-      <div className="flex flex-col gap-12">
+      <div className="flex flex-col gap-8">
         {Array.isArray(Object.entries(grouped)) && Object.entries(grouped).map(([id, group]) => (
-          <section key={id} className="flex flex-col gap-6">
+          <section key={id} className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/header">
               <h3 className="text-body font-black uppercase tracking-widest flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-primary rounded-full shadow-primary-pill" />

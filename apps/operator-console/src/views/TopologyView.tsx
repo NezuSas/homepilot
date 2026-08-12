@@ -405,7 +405,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)] xl:gap-8">
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)] xl:gap-6">
       {topologyError && (
         <AlertBanner className="xl:col-span-2" variant="danger" message={topologyError} />
       )}
@@ -603,7 +603,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
             ) : (
               <div className={cn(
                 "grid grid-cols-1 items-start gap-4",
-                selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]",
+                selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(18rem,21rem)]",
               )}>
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-body italic">
@@ -638,7 +638,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                               if (editingRoomId !== room.id) cancelRoomRename();
                             }}
                             className={cn(
-                              "group h-auto min-h-28 self-start justify-start rounded-xl border bg-card p-4 text-left shadow-sm hover:border-primary/50 hover:shadow-md sm:p-5",
+                              "group h-auto min-h-24 self-start justify-start rounded-xl border bg-card p-3.5 text-left shadow-sm hover:border-primary/50 hover:shadow-md sm:p-4",
                               isRoomSelected ? "border-primary bg-primary/5 shadow-primary/10" : "border-border",
                             )}
                           >
@@ -654,7 +654,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                                 <Lightbulb className={cn("h-5 w-5", hasActiveLight && "fill-current")} />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <span className="block truncate font-semibold text-foreground">{room.name}</span>
+                                <span className="block line-clamp-2 font-semibold text-foreground">{room.name}</span>
                                 <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                                   {t('topology.room_device_count', { count: roomDevices.length })}
                                 </span>
@@ -666,7 +666,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       })}
                     </div>
 
-                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
@@ -704,7 +704,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                             </form>
                           ) : (
                             <div className="mt-1 flex items-center gap-2">
-                              <h4 className="min-w-0 truncate text-section-title font-black tracking-tight text-foreground">
+                              <h4 className="min-w-0 break-words text-section-title font-black tracking-tight text-foreground">
                                 {selectedRoom?.name || t('topology.select_room_hint')}
                               </h4>
                               {selectedRoom && canManageHome(selectedHome) && (
