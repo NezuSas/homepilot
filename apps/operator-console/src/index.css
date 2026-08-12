@@ -629,13 +629,19 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
+    filter: brightness(1.42) saturate(0.92);
   }
 
   .homepilot-home-hero-overlay {
     z-index: 1;
-    background-color: hsl(var(--background) / 0.78);
+    background: linear-gradient(
+      90deg,
+      hsl(var(--background) / 0.88) 0%,
+      hsl(var(--background) / 0.72) 34%,
+      hsl(var(--background) / 0.22) 66%,
+      hsl(var(--background) / 0.34) 100%
+    );
   }
-
   .homepilot-home-context > div {
     border-color: hsl(var(--border-subtle));
     background-color: hsl(var(--background) / 0.76);
