@@ -12,6 +12,7 @@
 | Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
 | Automation lifecycle | `automation-rule-lifecycle-v1.md` | `packages/devices/__tests__/automation/automation_lifecycle.test.ts` | Creación horaria predeterminada conserva hora local, zona IANA y días |
 | Automation Engine V2 | `automation-engine-v2-event-driven.md` | `packages/devices/__tests__/automation/automation_engine.test.ts` | Rebotes concurrentes se deduplican y quedan auditados |
+| Diagnósticos del sistema | observability-diagnostics-v1.md | packages/system-observability/__tests__/DiagnosticsService.test.ts | pps/api/__tests__/SystemRoutes.diagnostics.test.ts — snapshot y timeline requieren autenticación y delegan al servicio |
 | Local durable persistence | `local-durable-persistence-v1.md` | `packages/shared/infrastructure/database/__tests__/SqliteDatabaseManager.test.ts` | Journal DELETE no crea sidecars WAL/SHM en bind mount Windows |
 | Scenes | `scene-lifecycle-v1.md` | `packages/devices/__tests__/SceneExecutionService.test.ts` | Ejecución paralela de una escena |
 | Assistant | `assistant-v1.md` + `nezu-domestic-assistant-v1.md` | `assistant_execution.test.ts` + `assistant_conversation_service.test.ts` | Resolución, ejecución y matriz conversacional residencial |
