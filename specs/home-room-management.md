@@ -62,12 +62,12 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - **`500 Internal Server Error`**: Error interno, como falla de persistencia en disco o caída de red hacia la BD.
 
 ## 7. Criterios de Aceptación
-- [ ] **AC1**: Dado un `userId` "U-1", al enviar `POST /homes` con `{"name": "Casa"}`, el sistema retorna `201 Created` incluyendo un nuevo `id`, `ownerId` "U-1" y `entityVersion` 1.
-- [ ] **AC2**: Dado un `userId` "U-1" dueño de "H-1", al enviar `GET /homes`, el sistema retorna `200 OK` con un array conteniendo "H-1".
-- [ ] **AC3**: Dado un `userId` "U-2" sin hogares creados, al enviar `GET /homes`, el sistema retorna `200 OK` con un array vacío `[]`.
-- [ ] **AC4**: Dado el `userId` "U-1" dueño de "H-1", al enviar `POST /rooms` con `{"homeId": "H-1", "name": "Salón"}`, persiste el registro BD, retorna `201 Created` y emite `RoomCreatedEvent`.
-- [ ] **AC5**: Dado el `userId` "U-2", al enviar `POST /rooms` referenciando "H-1" (propiedad de U-1), el sistema retorna `403 Forbidden` sin guardar datos ni emitir eventos.
-- [ ] **AC6**: Dado un `userId` "U-1", al enviar `POST /rooms` referenciando un id "H-99" inexistente, el sistema retorna `404 Not Found` sin guardar datos ni emitir eventos.
+- [x] **AC1**: Dado un `userId` "U-1", al enviar `POST /homes` con `{"name": "Casa"}`, el sistema retorna `201 Created` incluyendo un nuevo `id`, `ownerId` "U-1" y `entityVersion` 1. Evidencia: `packages/topology/__tests__/e2e.test.ts`.
+- [x] **AC2**: Dado un `userId` "U-1" dueño de "H-1", al enviar `GET /homes`, el sistema retorna `200 OK` con un array conteniendo "H-1". Evidencia: `packages/topology/__tests__/e2e.test.ts`.
+- [x] **AC3**: Dado un `userId` "U-2" sin hogares creados, al enviar `GET /homes`, el sistema retorna `200 OK` con un array vacío `[]`. Evidencia: `packages/topology/__tests__/e2e.test.ts`.
+- [x] **AC4**: Dado el `userId` "U-1" dueño de "H-1", al enviar `POST /rooms` con `{"homeId": "H-1", "name": "Salón"}`, persiste el registro BD, retorna `201 Created` y emite `RoomCreatedEvent`. Evidencia: `packages/topology/__tests__/e2e.test.ts`.
+- [x] **AC5**: Dado el `userId` "U-2", al enviar `POST /rooms` referenciando "H-1" (propiedad de U-1), el sistema retorna `403 Forbidden` sin guardar datos ni emitir eventos. Evidencia: `packages/topology/__tests__/e2e.test.ts`.
+- [x] **AC6**: Dado un `userId` "U-1", al enviar `POST /rooms` referenciando un id "H-99" inexistente, el sistema retorna `404 Not Found` sin guardar datos ni emitir eventos. Evidencia: `packages/topology/__tests__/e2e.test.ts`.
 - [ ] **AC7**: Dado un usuario autenticado con Rooms y Devices asignados, al seleccionar una Room en la vista de espacios, la consola muestra un panel de detalle con conteos y dispositivos de esa Room manteniendo visible la lista de Rooms.
 - [x] **AC8**: Dado un administrador propietario de una Room con dispositivos asignados, al enviar `DELETE /api/v1/rooms/:id`, el sistema desasigna esos dispositivos (`roomId = null`), elimina la Room y retorna `200 OK` con el conteo de dispositivos desasignados. Evidencia: `apps/api/__tests__/TopologyRoutes.delete-room.test.ts` y `packages/topology/__tests__/application.test.ts`.
 - [x] **AC9**: Dado un usuario que no es propietario del Home padre de la Room, al enviar `DELETE /api/v1/rooms/:id`, el sistema retorna `403 Forbidden` sin desasignar dispositivos ni eliminar la Room. Evidencia: `apps/api/__tests__/TopologyRoutes.delete-room.test.ts` y `packages/topology/__tests__/application.test.ts`.
