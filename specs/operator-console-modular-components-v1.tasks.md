@@ -135,3 +135,4 @@
 - [x] Anclaje responsive de la conversación residencial: el contenedor inmersivo ocupa el viewport en móvil y tableta, manteniendo el compositor y sus accesos rápidos junto al borde inferior seguro.
 - [x] Compactación móvil del compositor: los controles se agrupan junto a la acción de envío y se elimina la etiqueta de versión decorativa, manteniendo el estado anunciado para tecnologías de asistencia.
 - [x] Reubicación de atajos de conversación: las sugerencias de inicio viven junto al compositor y desaparecen al comenzar el historial, eliminando la barra superior aislada.
+- [x] Refinar filtros del Gestor de Dispositivos: origen compacto y tipos en dos columnas legibles, sin cortes de palabras ni desborde.

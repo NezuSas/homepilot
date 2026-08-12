@@ -147,6 +147,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               onChange={setOriginFilter}
               label={t('inbox.filters.origin_label')}
               className="grid w-full grid-cols-3 gap-1 rounded-xl p-1"
+              optionClassName="h-8 min-h-0 px-1 text-nano font-semibold tracking-normal [&>span]:whitespace-nowrap"
               options={(['all', 'local', 'bridged'] as const).map((value) => ({
                 value,
                 label: value === 'all'
@@ -162,7 +163,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               value={filter}
               onChange={setFilter}
               label={t('inbox.filters.type_label')}
-              className="grid w-full grid-cols-3 gap-1 rounded-xl p-1"
+              className="grid w-full grid-cols-2 gap-1 rounded-xl p-1"
+              optionClassName="h-8 min-h-0 px-2 text-micro font-semibold tracking-normal [&>span]:whitespace-nowrap"
               options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map((value) => ({
                 value,
                 label: t(`inbox.filters.${value}`),
