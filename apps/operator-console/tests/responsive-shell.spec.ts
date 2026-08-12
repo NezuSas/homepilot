@@ -280,6 +280,8 @@ for (const viewport of viewports) {
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
 
     await page.evaluate(() => document.documentElement.classList.add('light'));
+    const lightCanvasColor = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(lightCanvasColor).not.toBe('rgb(255, 255, 255)');
     const lightBackdrop = page.locator('.homepilot-dashboard-backdrop');
     await expect(lightBackdrop).toBeVisible();
     const lightBackdropOverlay = await lightBackdrop.evaluate((element) => (

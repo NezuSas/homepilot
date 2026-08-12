@@ -53,6 +53,22 @@ export const colors = {
   danger: '#EF4444',
 } as const;
 
+/** Light-mode mineral palette — warm stone rather than clinical white. */
+export const lightColors = {
+  /** App canvas — warm stone */
+  background: '#E9E5DE',
+  /** Standard cards and panels — soft sand */
+  surface: '#F3F0EA',
+  /** Elevated dialogs and focused surfaces */
+  elevated: '#FAF7F2',
+  /** Quiet structural dividers */
+  border: '#C9C1B6',
+  /** High-contrast ink for light surfaces */
+  textPrimary: '#20262E',
+  /** Secondary labels and metadata */
+  textSecondary: '#596270',
+} as const;
+
 // ── Typography ──────────────────────────────────────────────────────────────
 
 /**
