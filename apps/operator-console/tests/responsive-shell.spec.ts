@@ -278,6 +278,17 @@ for (const viewport of viewports) {
       .forEach(({ display }) => expect(display).toBe('none'));
     await expect(page.getByText('Cortina de sala').first()).toBeVisible();
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
+
+    await page.evaluate(() => document.documentElement.classList.add('light'));
+    const lightDeviceSurface = page.locator('.homepilot-dashboard-widget .device-state-off').first();
+    await expect(lightDeviceSurface).toBeVisible();
+    const lightSurfaceStyle = await lightDeviceSurface.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { backgroundImage: style.backgroundImage, boxShadow: style.boxShadow };
+    });
+    expect(lightSurfaceStyle.backgroundImage).toBe('none');
+    expect(lightSurfaceStyle.boxShadow).not.toBe('none');
+    await page.evaluate(() => document.documentElement.classList.remove('light'));
   });
 
   test(`keeps the home climate summary responsive on ${viewport.name}`, async ({ page }) => {
