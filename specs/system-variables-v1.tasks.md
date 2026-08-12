@@ -8,6 +8,6 @@
 
 ## Verificación obligatoria ante cambios
 
-- [ ] Probar aislamiento por hogar y rechazo de permisos.
-- [ ] Probar validación de tipo y persistencia después de reinicio.
+- [x] Probar aislamiento por hogar y validación de datos directamente en `SystemVariableService.test.ts`.
+- [ ] Probar autorización de ruta y persistencia SQLite después de reinicio en una prueba de integración.
 
