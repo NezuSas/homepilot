@@ -83,6 +83,7 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [ ] **AC19**: Dado el nombre de Room `🇪🇨 Sala`, la consola muestra el emoji de bandera como bandera y no lo degrada a `EC` en navegadores de escritorio, tablet o móvil compatibles con una fuente de emoji del sistema.
 - [ ] **AC20**: Dado un administrador que consulta un Home creado por otro usuario, la consola muestra el creador y oculta los controles de renombrar Home y de crear, renombrar o eliminar Rooms. El creador del Home sí ve estos controles y el servidor conserva su respuesta `403 Forbidden` ante una llamada no autorizada.
 - [ ] **AC21**: Dado un Home activo, al pulsarlo nuevamente no se emite una segunda petición a `GET /homes/:homeId/rooms` ni se borra la Room seleccionada.
+- [x] **AC22**: Con una Room seleccionada en escritorio, sus tarjetas permanecen como selector superior y el detalle usa el ancho restante en una composición de resumen y cuadrícula de luces; no queda limitado a una columna lateral angosta.
 
 ## 8. Notas Técnicas y Arquitectura
 

@@ -592,7 +592,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
               onChange={(event) => setRoomSearch(event.target.value)}
               placeholder={t('topology.search_rooms')}
               aria-label={t('topology.search_rooms')}
-              className="max-w-xl"
+              className="w-full max-w-2xl xl:max-w-none"
             />
 
             {loadingRooms ? (
@@ -603,7 +603,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
             ) : (
               <div className={cn(
                 "grid grid-cols-1 items-start gap-4",
-                selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(17rem,19rem)]",
               )}>
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-body italic">
@@ -612,7 +611,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                 ) : (
                   <>
                     <div
-                      className="grid self-start grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-3"
+                      className="grid self-start grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3"
                       onClick={(event) => {
                         if (event.target === event.currentTarget) setSelectedRoomId(null);
                       }}
@@ -666,8 +665,8 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       })}
                     </div>
 
-                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-4">
+                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 xl:grid xl:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.5fr)] xl:gap-x-6 xl:gap-y-4">
+                      <div className="flex items-start justify-between gap-4 xl:col-start-1">
                         <div className="min-w-0">
                           <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.room_details')}
@@ -736,7 +735,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                         </div>
                       </div>
 
-                      <div className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="mt-5 grid grid-cols-2 gap-3 xl:col-start-1 xl:mt-0">
                         <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
                           <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.lights_total')}
@@ -751,7 +750,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                         </div>
                       </div>
 
-                      <div className="mt-5 border-t border-border/50 pt-5">
+                      <div className="mt-5 border-t border-border/50 pt-5 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:mt-0 xl:border-t-0 xl:pt-0">
                         <p className="mb-3 text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                           {t('topology.lights_in_room')}
                         </p>
@@ -767,7 +766,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                               placeholder={t('topology.search_lights')}
                               aria-label={t('topology.search_lights')}
                             />
-                            <div className="flex max-h-topology-list flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="grid max-h-topology-list grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar sm:grid-cols-2">
                             {visibleSelectedRoomDevices.length === 0 && (
                               <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-body font-medium text-muted-foreground">
                                 {t('topology.no_light_search_results')}
@@ -819,7 +818,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                           disabled={isDeletingRoom}
                           variant="ghost"
                           size="md"
-                          className="mt-5 w-full border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 hover:text-danger"
+                          className="mt-5 w-full border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 hover:text-danger xl:col-start-1 xl:mt-0"
                         >
                           <Trash2 className="h-4 w-4" />
                           {t('topology.delete_room')}

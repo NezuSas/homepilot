@@ -151,3 +151,4 @@
 - SQLiteRoomRepository.deleteRoomAndUnassignDevices preserva la transacción local que desasigna dispositivos y elimina la Room.
 - TopologyRoutes traduce NotFoundError y ForbiddenError a los contratos HTTP existentes, sin SQL de borrado en la ruta.
 - Pruebas: pps/api/__tests__/TopologyRoutes.delete-room.test.ts y packages/topology/__tests__/application.test.ts.
+- [x] Redistribuir detalle de estancia en escritorio: tarjetas de estancias superiores y detalle seleccionado de ancho completo, con resumen compacto y luces en cuadrícula responsive.
