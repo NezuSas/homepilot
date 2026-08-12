@@ -602,8 +602,7 @@
 
   .homepilot-home {
     width: 100%;
-    max-width: 96rem;
-    margin-inline: auto;
+    max-width: none;
   }
 
   .homepilot-home-hero {
@@ -661,6 +660,11 @@
   @media (min-width: 768px) {
     .homepilot-dashboard-titlebar {
       padding-inline: 2rem;
+    }
+
+    .homepilot-home-hero {
+      min-height: clamp(22rem, 28vw, 30rem);
+      padding: clamp(2rem, 4vw, 4rem);
     }
   }
 }
