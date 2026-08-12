@@ -183,23 +183,32 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
   const categoryLabel = getCategoryLabel(reading.category, t);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground shadow-surface-card ring-1 ring-background/45" style={{ containerType: 'inline-size' }}>
+    <div
+      className="sensor-metric-card relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground shadow-surface-card ring-1 ring-background/45"
+      style={{ containerType: 'inline-size' }}
+    >
       <div className={cn('absolute inset-x-0 top-0 h-1', isUnavailable ? 'bg-muted' : 'bg-primary/70')} aria-hidden="true" />
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <span className={cn(
-          'grid h-[clamp(2rem,14cqi,2.5rem)] w-[clamp(2rem,14cqi,2.5rem)] shrink-0 place-items-center rounded-2xl border border-border/60 bg-muted/60 text-muted-foreground',
-          !isUnavailable && toneClassName,
-        )}>
+        <span
+          className={cn(
+            'grid h-[clamp(2rem,14cqi,2.5rem)] w-[clamp(2rem,14cqi,2.5rem)] shrink-0 place-items-center rounded-2xl border border-border/60 bg-muted/60 text-muted-foreground',
+            !isUnavailable && toneClassName,
+          )}
+          aria-label={categoryLabel}
+        >
           <CategoryIcon category={reading.category} percentage={reading.percentage} />
         </span>
-        <span className="max-w-[62%] truncate rounded-full border border-border/55 bg-background/80 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
-          {categoryLabel}
+        <span className="sensor-category-badge max-w-[62%] truncate rounded-full border border-border/55 bg-background/80 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
+          <span className="sensor-category-text">{categoryLabel}</span>
         </span>
       </div>
 
-      <div className="mt-[clamp(0.5rem,3cqi,1rem)] flex min-h-0 flex-1 flex-wrap items-center gap-3">
+      <div className={cn(
+        'sensor-reading-layout mt-[clamp(0.5rem,3cqi,1rem)] flex min-h-0 flex-1 items-center gap-3',
+        showRing ? 'sensor-reading-layout--ring' : 'sensor-reading-layout--value',
+      )}>
         {showRing ? (
-          <div className="relative grid h-[clamp(3.5rem,26cqi,6rem)] w-[clamp(3.5rem,26cqi,6rem)] shrink-0 place-items-center" aria-label={categoryLabel}>
+          <div className="sensor-reading-gauge relative grid h-[clamp(3.5rem,26cqi,6rem)] w-[clamp(3.5rem,26cqi,6rem)] shrink-0 place-items-center" aria-label={categoryLabel}>
             <svg viewBox="0 0 104 104" className="h-full w-full -rotate-90" aria-hidden="true">
               <circle cx="52" cy="52" r="42" fill="none" stroke="currentColor" strokeWidth="9" className="text-muted/80" />
               <circle
@@ -220,31 +229,44 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
             </span>
           </div>
         ) : (
-          <div className="min-w-0 shrink-0">
+          <div className="sensor-reading-value min-w-0 shrink-0">
             <span className={cn('block text-sensor-value-fluid font-black tabular-nums', isUnavailable ? 'text-foreground' : toneClassName)}>
               {reading.value ?? '—'}
             </span>
-            {reading.unit ? (
+            {!isUnavailable && reading.unit ? (
               <span className="mt-1 block text-caption font-black uppercase tracking-control text-muted-foreground">{reading.unit}</span>
             ) : null}
           </div>
         )}
 
-        <div className="min-w-0 flex-1">
+        <div className="sensor-reading-copy min-w-0 flex-1">
           <span className="block line-clamp-2 text-sensor-title-fluid font-black text-foreground">{title}</span>
-          <span className="mt-1 block line-clamp-2 text-caption font-semibold leading-snug text-muted-foreground">
-            {isUnavailable ? t('dashboard.editor.sections.sensor_unavailable') : categoryLabel}
-          </span>
+          {!isUnavailable ? (
+            <span className="mt-1 block line-clamp-2 text-caption font-semibold leading-snug text-muted-foreground">
+              {categoryLabel}
+            </span>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-3 flex min-w-0 items-center justify-between gap-2 rounded-2xl border border-border/45 bg-background/40 px-3 py-2">
-        <span className="min-w-0 truncate text-micro font-black uppercase tracking-status text-muted-foreground">
-          {t('dashboard.editor.sections.sensor_live_reading')}
-        </span>
-        <span className={cn('shrink-0 text-micro font-black uppercase tracking-status', isUnavailable ? 'text-muted-foreground' : 'text-primary')}>
-          {isUnavailable ? t('dashboard.editor.sections.sensor_unavailable') : t('dashboard.editor.sections.ready')}
-        </span>
+      <div className={cn(
+        'sensor-reading-status mt-3 flex min-w-0 items-center gap-2 rounded-2xl border border-border/45 bg-background/40 px-3 py-2',
+        isUnavailable ? 'justify-center' : 'justify-between',
+      )}>
+        {isUnavailable ? (
+          <span className="text-micro font-black uppercase tracking-status text-muted-foreground">
+            {t('dashboard.editor.sections.sensor_unavailable')}
+          </span>
+        ) : (
+          <>
+            <span className="min-w-0 truncate text-micro font-black uppercase tracking-status text-muted-foreground">
+              {t('dashboard.editor.sections.sensor_live_reading')}
+            </span>
+            <span className="shrink-0 text-micro font-black uppercase tracking-status text-primary">
+              {t('dashboard.editor.sections.ready')}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

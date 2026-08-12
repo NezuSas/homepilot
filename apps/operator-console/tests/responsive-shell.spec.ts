@@ -33,7 +33,27 @@ const responsiveDevices = [
     type: 'sensor',
     semanticType: 'sensor',
     status: 'ASSIGNED',
-    lastKnownState: { state: '23.4', unit_of_measurement: '°C' },
+    lastKnownState: { state: 'unavailable', unit_of_measurement: '°C' },
+  },
+  {
+    id: 'sensor-memory',
+    homeId: 'responsive-home',
+    roomId: 'responsive-room',
+    name: 'GUS-RAM',
+    type: 'sensor',
+    semanticType: 'sensor',
+    status: 'ASSIGNED',
+    lastKnownState: { state: 'unavailable', unit_of_measurement: '%' },
+  },
+  {
+    id: 'sensor-battery',
+    homeId: 'responsive-home',
+    roomId: 'responsive-room',
+    name: 'iPad Guest Level',
+    type: 'sensor',
+    semanticType: 'sensor',
+    status: 'ASSIGNED',
+    lastKnownState: { state: '90', unit_of_measurement: '%', attributes: { device_class: 'battery' } },
   },
   {
     id: 'cover-living',
@@ -83,7 +103,9 @@ const responsiveDashboard = {
             appearance: { title: 'Lecturas del hogar', showTitle: true },
             extra: {
               cards: [
-                { id: 'responsive-sensor', kind: 'sensor', title: 'Temperatura de sala', entityId: 'sensor-climate', span: 'medium', icon: 'Gauge' },
+                { id: 'responsive-sensor', kind: 'sensor', title: 'Temperatura de sala', entityId: 'sensor-climate', span: 'small', icon: 'Gauge' },
+                { id: 'responsive-memory', kind: 'sensor', title: 'GUS-RAM', entityId: 'sensor-memory', span: 'small', icon: 'MemoryStick' },
+                { id: 'responsive-battery', kind: 'sensor', title: 'iPad Guest Level', entityId: 'sensor-battery', span: 'small', icon: 'BatteryFull' },
                 { id: 'responsive-cover', kind: 'cover', title: 'Cortina de sala', entityId: 'cover-living', span: 'medium', icon: 'Blinds' },
                 { id: 'responsive-weather', kind: 'clock_minimal', title: 'Clima local', span: 'full', icon: 'Clock' },
               ],
@@ -224,6 +246,18 @@ for (const viewport of viewports) {
 
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
     await expect(page.getByText('Temperatura de sala').first()).toBeVisible();
+    await expect(page.getByText('GUS-RAM').first()).toBeVisible();
+    await expect(page.getByText('iPad Guest Level').first()).toBeVisible();
+    await expect(page.getByText(/sin lectura|no reading/i).first()).toBeVisible();
+
+    const sensorCardWidths = await page.locator('.sensor-metric-card').evaluateAll((cards) => cards.map((card) => ({
+      clientWidth: card.clientWidth,
+      scrollWidth: card.scrollWidth,
+    })));
+    expect(sensorCardWidths).toHaveLength(3);
+    sensorCardWidths.forEach(({ clientWidth, scrollWidth }) => {
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+    });
     await expect(page.getByText('Cortina de sala').first()).toBeVisible();
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
   });

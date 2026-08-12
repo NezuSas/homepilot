@@ -8,5 +8,6 @@
 - [x] **Evidencia E2E de sidebar (AC1, AC2, AC5, AC10).** `apps/operator-console/tests/responsive-shell.spec.ts` comprueba la etiqueta localizada, expansión/colapso independiente y navegación del dashboard hijo autenticado.
 - [ ] **Evidencia de aceptación restante de navegación por usuario.** Añadir escenarios E2E explícitos para AC3–AC4, AC8–AC9, AC11 y AC17–AC21.
 - [ ] **Evidencia visual y de interacción de widgets.** Añadir escenarios E2E para AC12–AC16, AC22–AC37 en los breakpoints definidos por la spec.
+- [x] **Tarjetas de sensores compactas (AC38).** `SensorMetricCard.tsx` y `responsive-shell.spec.ts` validan que sensores sin lectura y con porcentaje conserven una jerarquía legible y sin desbordamiento en los breakpoints definidos.
 
 > La spec sigue en **Borrador**: esta auditoría no declara implementados criterios que todavía carecen de escenario de aceptación directo.
