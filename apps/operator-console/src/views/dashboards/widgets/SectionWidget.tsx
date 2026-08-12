@@ -818,6 +818,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div
         key={card.id}
+        style={{ containerType: 'inline-size' }}
         draggable={isEditing}
         onDragStart={(event) => {
           event.stopPropagation();

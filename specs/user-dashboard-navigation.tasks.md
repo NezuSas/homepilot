@@ -12,3 +12,4 @@
 - [x] **Jerarquía residencial del tablero (AC39).** `DashboardsView.tsx`, `DashboardTitleBar.tsx`, `DashboardTabsNav.tsx`, `DashboardWidget.tsx` y `index.css` reducen capas decorativas, ordenan el shell por líneas discretas y conservan el contenido en un ancho legible; `responsive-shell.spec.ts` comprueba la presencia y separación del shell en todos los breakpoints definidos.
 
 > La spec sigue en **Borrador**: esta auditoría no declara implementados criterios que todavía carecen de escenario de aceptación directo.
+- [x] Ajustar cortina en contenedores estrechos: se adapta al ancho real de la tarjeta y prioriza estado, nombre y acción primaria sin recortar posición o controles secundarios.
