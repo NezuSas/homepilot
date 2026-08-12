@@ -28,11 +28,16 @@ describe('Feature: Native camera configuration', () => {
 
   beforeEach(() => {
     SqliteDatabaseManager.closeAll();
-    routes['ensureTable']();
     const db = SqliteDatabaseManager.getInstance(dbPath);
     db.exec(`
       CREATE TABLE IF NOT EXISTS homes (id TEXT PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS devices (id TEXT PRIMARY KEY);
+      CREATE TABLE IF NOT EXISTS native_camera_sources (
+        device_id TEXT PRIMARY KEY, home_id TEXT NOT NULL, source_type TEXT NOT NULL DEFAULT 'onvif-ptz',
+        name TEXT NOT NULL, host TEXT NOT NULL, onvif_port INTEGER NOT NULL DEFAULT 8000, rtsp_port INTEGER NOT NULL DEFAULT 554,
+        username TEXT NOT NULL, password TEXT NOT NULL, rtsp_path TEXT NOT NULL DEFAULT '', enabled INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      );
     `);
   });
 
