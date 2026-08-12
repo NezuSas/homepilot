@@ -137,3 +137,4 @@
 - [x] Reubicación de atajos de conversación: las sugerencias de inicio viven junto al compositor y desaparecen al comenzar el historial, eliminando la barra superior aislada.
 - [x] Refinar filtros del Gestor de Dispositivos: origen compacto y tipos en dos columnas legibles, sin cortes de palabras ni desborde.
 - [x] Compactar cabecera del Gestor de Dispositivos: título a la izquierda y filtros que ocupan toda la franja restante de escritorio, con tipos repartidos sin tarjetas cuadradas.
+- [x] Refinar tarjetas de sugerencias inteligentes de Inicio: jerarquía de título, categoría y prioridad; acciones compactas y alineadas en un pie común.

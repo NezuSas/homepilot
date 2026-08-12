@@ -55,14 +55,14 @@ export const DashboardInsightsSection: React.FC<DashboardInsightsSectionProps> =
               description={description}
               severity={finding.severity}
               actions={
-                <div className="flex gap-2 w-full mt-2">
+                <div className="flex w-full gap-2">
                   {finding.actions.map((action, index) => (
                     <Button
                       key={`${finding.id}-${action.type}-${index}`}
                       size="sm"
                       variant={index === 0 ? 'primary' : 'secondary'}
                       onClick={() => onAction(finding, action)}
-                      className="flex-1 text-micro uppercase tracking-widest h-auto py-3"
+                      className="h-9 flex-1 px-3 text-nano uppercase tracking-label"
                     >
                       {t(action.label)}
                     </Button>
