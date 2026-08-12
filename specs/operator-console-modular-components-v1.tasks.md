@@ -124,6 +124,7 @@
 - [x] Endurecimiento de autenticación: eliminación y prueba de ausencia de trazas de consola con detalles de credenciales o validación.
 - [x] Endurecimiento de privacidad en consola: telemetría de voz mediante evento local sin `console`, eventos realtime sin payloads de depuración y mensajes globales de voz migrados a i18n ES/EN.
 - [x] Refuerzo de superficies densas: reproductor multimedia compacto con comandos envolventes, visor de cámara proporcional e inspector técnico de columnas adaptativas.
+- [x] Simplificación de conversación residencial: se elimina la cabecera interna redundante y el estado vacío se limita a comandos sugeridos compactos, preservando el compositor y la conversación existente.
 
 ## Verificación obligatoria ante cambios
 

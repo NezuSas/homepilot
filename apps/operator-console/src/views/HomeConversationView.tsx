@@ -8,7 +8,6 @@ import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { AssistantConversationResponse, AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
 import { HomeConversationEmptyState } from '../components/HomeConversationEmptyState';
-import { HomeConversationHeader } from '../components/HomeConversationHeader';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
 import {
@@ -542,11 +541,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     t('assistant.conversation.suggestion_4')
   ], [t]);
 
-  const capabilityLabels = useMemo(() => [
-    t('assistant.conversation.capability_status'),
-    t('assistant.conversation.capability_actions'),
-    t('assistant.conversation.capability_safety')
-  ], [t]);
 
   const audioInputOptions = useMemo(() => audioInputDevices.map((device, index) => ({
     id: device.deviceId,
@@ -558,13 +552,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background"
       style={{ height: keyboardInset > 0 ? `calc(100% - ${keyboardInset}px)` : '100%' }}
     >
-      <HomeConversationHeader
-        title={t('assistant.conversation.header_title')}
-        subtitle={t('assistant.conversation.header_subtitle')}
-        statusLabel={isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
-        isLoading={isLoading}
-        messageCount={messages.length}
-      />
 
       <div
         ref={scrollRef}
@@ -578,10 +565,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         >
           {messages.length === 0 && (
             <HomeConversationEmptyState
-              title={t('assistant.conversation.empty_chat_title')}
-              description={t('assistant.conversation.empty_chat_description')}
-              capabilities={capabilityLabels}
-              suggestionLabel={t('assistant.conversation.suggestions_label')}
               suggestions={suggestions}
               onSuggestionClick={handleSend}
             />
