@@ -8,6 +8,6 @@
 - [x] **Timeout y telemetría local.** `apps/operator-console/src/lib/__tests__/assistantApi.test.ts` y `homeConversationTelemetry.test.ts` cubren límite de espera de voz y eventos locales tipados.
 - [x] **Confirmación sonora local.** `apps/operator-console/src/lib/__tests__/wakeAcknowledgementSound.test.ts` cubre la señal de dos tonos independiente de red.
 - [ ] **Evidencia E2E de hardware/navegador.** Verificar en navegador real permisos de micrófono, múltiples entradas, `MediaRecorder`, silencio, barge-in y reproducción contra STT/TTS Docker.
-- [ ] **Evidencia runtime Docker.** Verificar cargas de modelo, integridad y healthchecks de `homepilot-stt` y `homepilot-tts` en el perfil objetivo.
+- [x] **Evidencia runtime Docker.** Docker Desktop validado el 2026-08-11: `homepilot-stt` healthy (`whisper-local`, modelo `small`, `ready:true`), `homepilot-tts`, API y consola responden healthchecks. La integridad del modelo queda gestionada por el healthcheck de STT.
 
 > La spec sigue en **Borrador** hasta completar las validaciones de hardware, navegador y runtime que las pruebas unitarias no pueden sustituir.
