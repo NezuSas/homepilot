@@ -16,6 +16,14 @@ describe('Feature: Native camera configuration', () => {
 
   const container = (allowed = true) => ({
     guards: { authGuard: { protect: jest.fn().mockResolvedValue(allowed) } },
+    repositories: {
+      homeRepository: { findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }) },
+      deviceRepository: {
+        saveDevice: jest.fn().mockImplementation(async (device: { id: string }) => {
+          SqliteDatabaseManager.getInstance(dbPath).prepare('INSERT INTO devices VALUES (?)').run(device.id);
+        }),
+      },
+    },
   }) as unknown as BootstrapContainer;
 
   beforeEach(() => {
@@ -68,5 +76,27 @@ describe('Feature: Native camera configuration', () => {
     await routes.handle(request, res, '/api/v1/native-cameras', 'GET', container());
 
     expect(res.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+  });
+
+  it('Scenario: Given a reachable RTSP/DVR camera When it is created Then a pending camera device and masked source are persisted', async () => {
+    const db = SqliteDatabaseManager.getInstance(dbPath);
+    db.prepare("INSERT INTO homes VALUES ('home-1')").run();
+    const res = response();
+    const target = routes as unknown as { checkTcpReachable: jest.Mock };
+    target.checkTcpReachable = jest.fn().mockResolvedValue(true);
+    const dependencies = container();
+    const request = {
+      url: '/api/v1/native-cameras',
+      headers: {},
+      _fastifyParsedBody: JSON.stringify({ homeId: 'home-1', sourceType: 'rtsp-dvr', name: 'DVR', host: '192.168.1.20', rtspPort: 554, onvifPort: 80, username: 'admin', password: 'secret', rtspPath: '/stream' }),
+    } as HomePilotRequest;
+
+    await routes.handle(request, res, '/api/v1/native-cameras', 'POST', dependencies);
+
+    expect(res.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
+    expect(dependencies.repositories.deviceRepository.saveDevice).toHaveBeenCalledWith(expect.objectContaining({ type: 'camera', status: 'PENDING', integrationSource: 'native-camera', vendor: 'rtsp-dvr' }));
+    const payload = JSON.parse((res.end as jest.Mock).mock.calls[0][0]) as { camera: Record<string, unknown> };
+    expect(payload.camera).toEqual(expect.objectContaining({ sourceType: 'rtsp-dvr', maskedPassword: '••••••••' }));
+    expect(payload.camera).not.toHaveProperty('password');
   });
 });
