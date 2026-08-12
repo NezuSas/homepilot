@@ -184,14 +184,15 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground shadow-surface-card ring-1 ring-background/45" style={{ containerType: 'inline-size' }}>
-      <div className="flex items-start justify-between gap-2">
+      <div className={cn('absolute inset-x-0 top-0 h-1', isUnavailable ? 'bg-muted' : 'bg-primary/70')} aria-hidden="true" />
+      <div className="flex min-w-0 items-start justify-between gap-2">
         <span className={cn(
           'grid h-[clamp(2rem,14cqi,2.5rem)] w-[clamp(2rem,14cqi,2.5rem)] shrink-0 place-items-center rounded-2xl border border-border/60 bg-muted/60 text-muted-foreground',
           !isUnavailable && toneClassName,
         )}>
           <CategoryIcon category={reading.category} percentage={reading.percentage} />
         </span>
-        <span className="min-w-0 truncate rounded-full border border-border/55 bg-background/80 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
+        <span className="max-w-[62%] truncate rounded-full border border-border/55 bg-background/80 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
           {categoryLabel}
         </span>
       </div>
@@ -237,8 +238,8 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl border border-border/45 bg-background/40 px-3 py-2">
-        <span className="truncate text-micro font-black uppercase tracking-status text-muted-foreground">
+      <div className="mt-3 flex min-w-0 items-center justify-between gap-2 rounded-2xl border border-border/45 bg-background/40 px-3 py-2">
+        <span className="min-w-0 truncate text-micro font-black uppercase tracking-status text-muted-foreground">
           {t('dashboard.editor.sections.sensor_live_reading')}
         </span>
         <span className={cn('shrink-0 text-micro font-black uppercase tracking-status', isUnavailable ? 'text-muted-foreground' : 'text-primary')}>

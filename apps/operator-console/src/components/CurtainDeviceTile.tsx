@@ -185,7 +185,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
       <CurtainBackdrop position={visualPosition} isMoving={isMoving} />
 
-      <div className="relative z-10 flex flex-col h-full justify-between">
+      <div className="relative z-10 flex h-full min-w-0 flex-col justify-between">
         <div className="flex items-start justify-between gap-3">
           <div className={cn(
             "surface-transition flex h-10 w-10 shrink-0 items-center justify-center rounded-card border sm:h-12 sm:w-12",
@@ -214,9 +214,9 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 overflow-hidden">
-           <h4 className="text-card-title font-bold truncate tracking-tight text-foreground">{displayName}</h4>
-            <span className="text-caption text-muted-foreground">
+        <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
+           <h4 className="truncate text-card-title font-bold tracking-tight text-foreground">{displayName}</h4>
+            <span className="truncate text-caption text-muted-foreground">
               {roomName || t('common.unassigned')}
             </span>
         </div>
@@ -229,7 +229,18 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
 
 
         {/* Dynamic Action Strip based on capabilities */}
-        <div className="flex flex-col gap-3 mt-4">
+        <div className="mt-4 flex min-w-0 flex-col gap-3">
+          {position !== undefined && !unavailable && !isCompact ? (
+            <div className="min-w-0 rounded-2xl border border-border/35 bg-background/35 px-3 py-2 shadow-inner">
+              <div className="mb-1.5 flex items-center justify-between gap-2 text-micro font-black uppercase tracking-status text-muted-foreground">
+                <span className="truncate">{t('common.cover.position')}</span>
+                <span className="shrink-0 tabular-nums text-foreground">{Math.round(visualPosition)}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
+                <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-out" style={{ width: `${visualPosition}%` }} />
+              </div>
+            </div>
+          ) : null}
           {(primaryCoverCommand || canStop) && (
             <div className="flex items-center gap-1.5 rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner backdrop-blur-md">
               {primaryCoverCommand && (
@@ -336,9 +347,9 @@ export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> =
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 overflow-hidden">
+        <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
           <h4 className="truncate text-card-title font-bold tracking-tight text-foreground">{title}</h4>
-          <span className="text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
+          <span className="truncate text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
         </div>
 
         <div className={cn('mt-4 flex flex-col', isCompact ? 'gap-0' : 'gap-2')}>

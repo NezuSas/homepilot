@@ -24,6 +24,34 @@ const dashboardUser = {
   avatarDataUri: null,
 };
 
+const responsiveDevices = [
+  {
+    id: 'sensor-climate',
+    homeId: 'responsive-home',
+    roomId: 'responsive-room',
+    name: 'Temperatura de sala',
+    type: 'sensor',
+    semanticType: 'sensor',
+    status: 'ASSIGNED',
+    lastKnownState: { state: '23.4', unit_of_measurement: '°C' },
+  },
+  {
+    id: 'cover-living',
+    homeId: 'responsive-home',
+    roomId: 'responsive-room',
+    name: 'Cortina de sala',
+    type: 'cover',
+    semanticType: 'cover',
+    status: 'ASSIGNED',
+    capabilities: [
+      { type: 'command', name: 'open' },
+      { type: 'command', name: 'close' },
+      { type: 'command', name: 'set_position' },
+    ],
+    lastKnownState: { state: 'open', current_position: 65, attributes: { device_class: 'curtain' } },
+  },
+];
+
 const responsiveDashboard = {
   id: 'responsive-dashboard',
   ownerId: dashboardUser.id,
@@ -43,6 +71,23 @@ const responsiveDashboard = {
             binding: { entityId: 'responsive-dashboard', entityType: 'system', entityName: 'Hogar de prueba' },
             visibility: { rules: [], defaultState: 'show' },
             appearance: { title: 'Hogar de prueba', showTitle: true },
+          },
+        },
+        {
+          id: 'responsive-section',
+          type: 'section',
+          config: {
+            layout: { x: 0, y: 1, w: 3, h: 4, span: 3 },
+            binding: { entityId: 'responsive-section', entityType: 'system', entityName: 'Lecturas del hogar' },
+            visibility: { rules: [], defaultState: 'show' },
+            appearance: { title: 'Lecturas del hogar', showTitle: true },
+            extra: {
+              cards: [
+                { id: 'responsive-sensor', kind: 'sensor', title: 'Temperatura de sala', entityId: 'sensor-climate', span: 'medium', icon: 'Gauge' },
+                { id: 'responsive-cover', kind: 'cover', title: 'Cortina de sala', entityId: 'cover-living', span: 'medium', icon: 'Blinds' },
+                { id: 'responsive-weather', kind: 'clock_minimal', title: 'Clima local', span: 'full', icon: 'Clock' },
+              ],
+            },
           },
         },
       ],
@@ -85,7 +130,7 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
     });
   });
   await page.route('**/api/v1/devices', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: '[]' });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(responsiveDevices) });
   });
   await page.route('**/api/v1/homes', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: '[]' });
@@ -177,6 +222,24 @@ for (const viewport of viewports) {
       clientWidth: document.documentElement.clientWidth,
     }));
 
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+    await expect(page.getByText('Temperatura de sala').first()).toBeVisible();
+    await expect(page.getByText('Cortina de sala').first()).toBeVisible();
+    await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
+  });
+
+  test(`keeps the home climate summary responsive on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+
+    await page.goto('/');
+    const climateSummary = page.getByLabel(/contexto local del hogar|local home context/i);
+    await expect(climateSummary).toBeVisible();
+
+    const layout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   });
 

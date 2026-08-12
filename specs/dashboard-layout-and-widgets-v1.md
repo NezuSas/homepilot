@@ -66,6 +66,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC13: Las tarjetas multimedia compactas, el visor ampliado de cámara y el inspector técnico preservan contenido y acciones legibles en móvil, tablet y escritorio, sin desborde ni áreas vacías desproporcionadas.
 - [x] AC14: Una pestaña nueva en edición conserva el fondo cuadriculado y los placeholders hasta el borde inferior del viewport visible.
 - [x] AC15: Una zona puede reordenarse desde su control de arrastre mediante teclado y una cancelación no deja overlay ni opacidad residual.
+- [x] AC16: Las tarjetas de sensor, clima y cortina mantienen jerarquía visual, controles táctiles y ausencia de overflow horizontal a 320px, 768px y 1440px. Las lecturas y porcentajes siguen siendo legibles sin alterar sus contratos de datos ni comandos.
 
 ## 7. Notas Técnicas y Arquitectura
 
