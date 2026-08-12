@@ -779,9 +779,11 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                                     </p>
                                   </div>
                                   <span className={cn(
-                                    "inline-flex h-5 w-[4.5rem] max-w-full items-center justify-center rounded-full px-1 text-nano font-semibold uppercase tracking-normal",
+                                    "inline-flex h-4 w-16 max-w-full items-center justify-center rounded-full px-1 font-medium uppercase",
                                     isActiveDevice(device) ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-                                  )}>
+                                  )}
+                                  style={{ fontSize: '0.625rem', lineHeight: 1, letterSpacing: '0' }}
+                                >
                                     {isActiveDevice(device) ? t('device_states.on') : t('device_states.off')}
                                   </span>
                                   {canToggleDevice(device) && (
