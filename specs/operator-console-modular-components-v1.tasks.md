@@ -138,3 +138,5 @@
 - [x] Refinar filtros del Gestor de Dispositivos: origen compacto y tipos en dos columnas legibles, sin cortes de palabras ni desborde.
 - [x] Compactar cabecera del Gestor de Dispositivos: título a la izquierda y filtros que ocupan toda la franja restante de escritorio, con tipos repartidos sin tarjetas cuadradas.
 - [x] Refinar tarjetas de sugerencias inteligentes de Inicio: jerarquía de título, categoría y prioridad técnica compacta; menor densidad vertical y acciones alineadas en un pie común.
+
+- [x] Compactar etiquetas de auditoría y alinear los controles de seguridad de usuarios mediante columnas estables, sin alterar los permisos ni las acciones disponibles.
