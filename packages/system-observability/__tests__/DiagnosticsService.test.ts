@@ -94,6 +94,53 @@ describe('Feature: system diagnostics', () => {
     ]));
   });
 
+  it('Scenario: Given Home Assistant is not configured When the snapshot is requested Then it exposes the configuration issue without inventing an offline connection', async () => {
+    const service = createService({ configurationStatus: 'not_configured', connectivityStatus: 'unknown' });
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.overallStatus).toBe('healthy');
+    expect(snapshot.haConnectionStatus).toBe('not_configured');
+    expect(snapshot.issues).toContainEqual({
+      code: 'HA_NOT_CONFIGURED',
+      severity: 'critical',
+      message: 'diagnostics.messages.ha_not_configured',
+    });
+  });
+
+  it('Scenario: Given Home Assistant is unreachable When the snapshot is requested Then it is offline and reports the unreachable issue', async () => {
+    const service = createService({ connectivityStatus: 'unreachable' });
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.overallStatus).toBe('offline');
+    expect(snapshot.issues).toContainEqual({
+      code: 'HA_UNREACHABLE',
+      severity: 'critical',
+      message: 'diagnostics.messages.ha_unreachable',
+    });
+  });
+
+  it('Scenario: Given reconciliation has failed When the snapshot is requested Then it is degraded and reports the reconciliation issue', async () => {
+    const service = createService({ reconciliationStatus: 'failed' });
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.overallStatus).toBe('degraded');
+    expect(snapshot.issues).toContainEqual({
+      code: 'RECONCILIATION_FAILED',
+      severity: 'warning',
+      message: 'diagnostics.messages.reconciliation_failed',
+    });
+  });
+
+  it('Scenario: Given all observable sources are healthy When the snapshot is requested Then it reports healthy without active issues', async () => {
+    const snapshot = await createService().getSnapshot();
+
+    expect(snapshot.overallStatus).toBe('healthy');
+    expect(snapshot.issues).toEqual([]);
+  });
+
   it('Scenario: Given noisy raw state changes When recent events are requested Then noise is excluded and resilience events are normalized', async () => {
     const service = createService({
       logs: [

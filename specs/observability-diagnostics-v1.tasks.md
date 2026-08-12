@@ -41,4 +41,4 @@
 - [ ] Tests
     - [x] Verificar degradación por tres reconexiones y prioridad offline por error de autenticación en `DiagnosticsService.test.ts`.
     - [x] Verificar estructura del snapshot, zona horaria y filtrado/normalización de eventos de diagnóstico.
-    - [ ] Cubrir en pruebas directas los códigos de issue restantes y la condición saludable explícita.
+    - [x] `DiagnosticsService.test.ts` cubre los códigos restantes (`HA_NOT_CONFIGURED`, `HA_UNREACHABLE`, `RECONCILIATION_FAILED`) y la condición saludable explícita.
