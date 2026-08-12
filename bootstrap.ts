@@ -34,6 +34,7 @@ import type { SQLiteDashboardRepository } from './packages/topology/infrastructu
 import type { SQLiteHomeRepository } from './packages/topology/infrastructure/repositories/SQLiteHomeRepository';
 import type { SQLiteRoomRepository } from './packages/topology/infrastructure/repositories/SQLiteRoomRepository';
 import type { SQLiteDeviceRepository } from './packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
+import type { SQLiteNativeCameraSourceRepository } from './packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
 import type { SqliteSceneRepository } from './packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import type { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import type { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
@@ -75,6 +76,7 @@ export interface BootstrapContainer {
     homeRepository: SQLiteHomeRepository;
     roomRepository: SQLiteRoomRepository;
     deviceRepository: SQLiteDeviceRepository;
+    nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
     sceneRepository: SqliteSceneRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;

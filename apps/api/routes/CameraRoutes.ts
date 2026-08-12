@@ -7,7 +7,7 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
+import type { NativeCameraSourceRepository, NativeCameraSource } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
 import { ApiRoutes } from './ApiRoutes';
 
 type CameraMediaKind = 'snapshot' | 'stream';
@@ -36,16 +36,6 @@ interface CameraHlsProxySession {
 const CAMERA_PROXY_TOKEN_TTL_MS = 30 * 60 * 1000;
 const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
 
-interface NativeCameraSourceRow {
-  device_id: string;
-  host: string;
-  rtsp_port: number;
-  username: string;
-  password: string;
-  rtsp_path: string;
-  enabled: number;
-}
-
 interface NativeHlsRuntime {
   readonly process: ChildProcessWithoutNullStreams;
   readonly directory: string;
@@ -56,7 +46,7 @@ export class CameraRoutes extends ApiRoutes {
   private readonly hlsSessions = new Map<string, CameraHlsProxySession>();
   private readonly nativeHlsRuntimes = new Map<string, NativeHlsRuntime>();
 
-  constructor(private readonly dbPath?: string) {
+  constructor(private readonly nativeCameraSourceRepository?: NativeCameraSourceRepository) {
     super();
   }
 
@@ -106,7 +96,7 @@ export class CameraRoutes extends ApiRoutes {
 
       if (device.integrationSource === 'native-camera') {
         const nativeSource = this.getNativeCameraSource(device.id);
-        if (!nativeSource || nativeSource.enabled !== 1) {
+        if (!nativeSource || !nativeSource.enabled) {
           this.sendError(res, 409, 'CAMERA_UNAVAILABLE', 'Native camera is not configured');
           return true;
         }
@@ -291,7 +281,7 @@ export class CameraRoutes extends ApiRoutes {
 
     if (device.integrationSource === 'native-camera') {
       const nativeSource = this.getNativeCameraSource(device.id);
-      if (!nativeSource || nativeSource.enabled !== 1) {
+      if (!nativeSource || !nativeSource.enabled) {
         this.sendError(res, 409, 'CAMERA_UNAVAILABLE', 'Native camera is not configured');
         return;
       }
@@ -394,14 +384,11 @@ export class CameraRoutes extends ApiRoutes {
     });
   }
 
-  private getNativeCameraSource(deviceId: string): NativeCameraSourceRow | null {
-    if (!this.dbPath) return null;
-    const db = SqliteDatabaseManager.getInstance(this.dbPath);
-    const row = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow | undefined;
-    return row || null;
+  private getNativeCameraSource(deviceId: string): NativeCameraSource | null {
+    return this.nativeCameraSourceRepository?.findByDeviceId(deviceId) ?? null;
   }
 
-  private async ensureNativeHlsRuntime(device: Device, source: NativeCameraSourceRow): Promise<string> {
+  private async ensureNativeHlsRuntime(device: Device, source: NativeCameraSource): Promise<string> {
     const existing = this.nativeHlsRuntimes.get(device.id);
     const indexPath = existing ? path.join(existing.directory, 'index.m3u8') : '';
     if (existing && !existing.process.killed && fs.existsSync(indexPath)) return existing.directory;
@@ -496,21 +483,21 @@ export class CameraRoutes extends ApiRoutes {
     this.nativeHlsRuntimes.delete(deviceId);
   }
 
-  private buildNativeRtspUrl(source: NativeCameraSourceRow): string {
-    const rtspPath = source.rtsp_path.startsWith('/') ? source.rtsp_path : `/${source.rtsp_path}`;
+  private buildNativeRtspUrl(source: NativeCameraSource): string {
+    const rtspPath = source.rtspPath.startsWith('/') ? source.rtspPath : `/${source.rtspPath}`;
     const hasEmbeddedCreds = rtspPath.toLowerCase().includes('username=') || 
                              rtspPath.toLowerCase().includes('password=') || 
                              rtspPath.toLowerCase().includes('user=') || 
                              rtspPath.toLowerCase().includes('pwd=');
     if (hasEmbeddedCreds) {
-      return `rtsp://${source.host}:${source.rtsp_port}${rtspPath}`;
+      return `rtsp://${source.host}:${source.rtspPort}${rtspPath}`;
     }
     const username = encodeURIComponent(source.username);
     const password = encodeURIComponent(source.password);
-    return `rtsp://${username}:${password}@${source.host}:${source.rtsp_port}${rtspPath}`;
+    return `rtsp://${username}:${password}@${source.host}:${source.rtspPort}${rtspPath}`;
   }
 
-  private serveNativeCameraSnapshot(res: http.ServerResponse, source: NativeCameraSourceRow): void {
+  private serveNativeCameraSnapshot(res: http.ServerResponse, source: NativeCameraSource): void {
     const rtspUrl = this.buildNativeRtspUrl(source);
     const process = spawn('ffmpeg', [
       '-hide_banner',
@@ -540,7 +527,7 @@ export class CameraRoutes extends ApiRoutes {
     });
   }
 
-  private serveNativeCameraStream(res: http.ServerResponse, source: NativeCameraSourceRow): void {
+  private serveNativeCameraStream(res: http.ServerResponse, source: NativeCameraSource): void {
     const rtspUrl = this.buildNativeRtspUrl(source);
     const process = spawn('ffmpeg', [
       '-hide_banner',

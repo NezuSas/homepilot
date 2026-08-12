@@ -41,7 +41,7 @@ export class OperatorConsoleServer {
         new MediaRoutes(mediaService),
         new MediaPlayerRoutes(),
         new NativeCameraRoutes(dbPath),
-        new CameraRoutes(dbPath),
+        new CameraRoutes(container.repositories.nativeCameraSourceRepository),
         new SystemRoutes(),
         new AuthRoutes(mediaService, loginAttemptRateLimiter),
         new AdminRoutes(),
