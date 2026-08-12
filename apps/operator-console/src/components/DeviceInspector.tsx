@@ -581,7 +581,6 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
                   <div className="flex items-center gap-2 mb-2 text-primary">
                     <Cpu className="w-4 h-4 opacity-40" />
-                    <span className="text-micro font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.home_cluster')}</span>
                   </div>
                   <span className="text-body font-bold truncate">{device.homeId}</span>
                   <div className="mt-auto pt-4 text-micro text-muted-foreground opacity-30 italic leading-snug">

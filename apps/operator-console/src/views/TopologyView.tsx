@@ -516,9 +516,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                               isSelected ? "text-primary" : "text-foreground"
                             )}>{home.name}</span>
                           )}
-                          {isSelected && (
-                            <span className="text-micro font-black tracking-tighter uppercase text-primary/60">{t('inbox.inspector.home_cluster')}</span>
-                          )}
                           <span className="text-micro text-muted-foreground">{getOwnerLabel(home)}</span>
                         </div>
                       </div>
@@ -665,8 +662,8 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       })}
                     </div>
 
-                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 xl:grid xl:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.5fr)] xl:gap-x-6 xl:gap-y-4">
-                      <div className="flex items-start justify-between gap-4 xl:col-start-1">
+                    {selectedRoom && <aside className="self-start rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.room_details')}
@@ -735,7 +732,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                         </div>
                       </div>
 
-                      <div className="mt-5 grid grid-cols-2 gap-3 xl:col-start-1 xl:mt-0">
+                      <div className="mt-4 grid max-w-md grid-cols-2 gap-3">
                         <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
                           <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                             {t('topology.lights_total')}
@@ -750,7 +747,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                         </div>
                       </div>
 
-                      <div className="mt-5 border-t border-border/50 pt-5 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:mt-0 xl:border-t-0 xl:pt-0">
+                      <div className="mt-5 border-t border-border/50 pt-5">
                         <p className="mb-3 text-micro font-black uppercase tracking-widest text-muted-foreground/50">
                           {t('topology.lights_in_room')}
                         </p>
@@ -766,7 +763,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                               placeholder={t('topology.search_lights')}
                               aria-label={t('topology.search_lights')}
                             />
-                            <div className="grid max-h-topology-list grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar sm:grid-cols-2">
+                            <div className="grid max-h-topology-list grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar sm:grid-cols-2 xl:grid-cols-3">
                             {visibleSelectedRoomDevices.length === 0 && (
                               <p className="rounded-2xl border border-dashed border-border bg-muted/10 p-4 text-body font-medium text-muted-foreground">
                                 {t('topology.no_light_search_results')}
@@ -818,7 +815,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                           disabled={isDeletingRoom}
                           variant="ghost"
                           size="md"
-                          className="mt-5 w-full border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 hover:text-danger xl:col-start-1 xl:mt-0"
+                          className="mt-5 w-full border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 hover:text-danger sm:w-auto"
                         >
                           <Trash2 className="h-4 w-4" />
                           {t('topology.delete_room')}

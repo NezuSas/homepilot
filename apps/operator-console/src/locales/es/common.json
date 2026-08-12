@@ -741,7 +741,6 @@
         "unassign_success": "Dispositivo desasignado correctamente"
       },
       "alias_only": "Solo Alias Local",
-      "home_cluster": "Cluster de Hogar",
       "placement": "Ubicación",
       "entity_id": "ID de entidad",
       "actions_header": "Acciones Soportadas",

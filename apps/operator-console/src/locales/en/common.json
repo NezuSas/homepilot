@@ -741,7 +741,6 @@
         "unassign_success": "Device unassigned successfully"
       },
       "alias_only": "Local Alias Only",
-      "home_cluster": "Home Cluster",
       "placement": "Placement",
       "entity_id": "Entity ID",
       "actions_header": "Supported Actions",
