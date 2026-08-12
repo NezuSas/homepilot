@@ -35,7 +35,7 @@ Tabla: `native_camera_sources`
 - `rtsp_path` (string)
 - `enabled` (integer, boolean flag)
 
-Al crear una fuente, el sistema crea automáticamente un dispositivo en la tabla `devices` con tipo `camera`, estado `active` y `integration_source` de `native-camera`.
+Al crear una fuente, el sistema crea automáticamente un dispositivo en la tabla `devices` con tipo `camera`, estado `PENDING` hasta su asignación y `integration_source` de `native-camera`.
 
 No se permite registrar dos cámaras nativas con el mismo `home_id`, `host`, `rtsp_port` y `rtsp_path`. Si el endpoint ya existe, el API debe responder `409 NATIVE_CAMERA_ALREADY_EXISTS`.
 
