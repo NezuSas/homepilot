@@ -1,6 +1,6 @@
 # SPEC: Persistencia Durable Local V1 (Local Durable Persistence V1)
 
-**Estado:** Borrador  
+**Estado:** Implementado
 **Autor:** Antigravity (IA Architect)  
 **Fecha:** 2026-03-31
 
@@ -95,6 +95,13 @@ HomePilot contará con un sistema básico de migraciones:
 *   **AC4: Robustez de Arranque**: El sistema debe ser capaz de crear su propia base de datos (.db) desde cero en un entorno de miniPC recién instalado.
 *   **AC5: Compatibilidad de Volumen**: Con `HOMEPILOT_SQLITE_JOURNAL_MODE=DELETE`, la API debe abrir la misma base SQLite desde un bind mount de Docker sin requerir archivos `-wal` o `-shm` compartidos.
 
+## 10.1 Evidencia de aceptación
+
+- **AC1, AC2 y AC3:** __tests__/bootstrap.test.ts simula un cierre de proceso (SqliteDatabaseManager.closeAll()), rearma el bootstrap y verifica ownership del hogar, lastKnownState, automatización y payload JSON de actividad.
+- **AC4:** la misma suite inicia sobre una ruta de base inexistente y comprueba la creación del archivo, las tablas y _migrations.
+- **AC5:** packages/shared/infrastructure/database/__tests__/SqliteDatabaseManager.test.ts configura HOMEPILOT_SQLITE_JOURNAL_MODE=DELETE y verifica escritura sin archivos -wal ni -shm.
+
+La meta NFR-03 continúa siendo una validación operativa en hardware miniPC real; no se declara medida por las pruebas de CI ni por Docker Desktop.
 ## 11. Notas Técnicas y Arquitectura
 
 *   **SQLite vs Postgres**: En un despliegue Edge (miniPC), SQLite ofrece la ventaja de "cero-configuración", requiere mínimos recursos y es extremadamente portátil. La arquitectura modular asegura que si el sistema escala a una versión Cloud masiva, el cambio a Postgres sea transparente para el resto del código.

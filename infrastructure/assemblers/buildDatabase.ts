@@ -30,7 +30,10 @@ export function buildDatabase(options: DatabaseBuildOptions): DatabaseAssembly {
       ? '/app/migrations'
       : path.resolve(process.cwd(), 'migrations'));
 
-  const isVerbose = options.verbose ?? process.env.NODE_ENV !== 'production';
+  // SQL statements may contain session or authentication material. Diagnostics
+  // must be explicitly requested; production and direct assembler callers are
+  // safe by default.
+  const isVerbose = options.verbose ?? false;
 
   console.log(`[Bootstrap] Inicializando persistencia SQLite en: ${dbPath}`);
   const db = SqliteDatabaseManager.getInstance(dbPath, isVerbose);
