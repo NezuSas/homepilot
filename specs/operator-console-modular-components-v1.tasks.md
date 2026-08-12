@@ -6,7 +6,7 @@
 - [x] Integración de tipografía de marca local: Rubik para interfaz y Disket Mono para metadatos técnicos, centralizadas en tokens CSS y Tailwind.
 - [x] Cobertura responsive automatizada con Playwright para la pantalla de acceso en móvil, tablet y escritorio, integrada al pipeline de CI.
 - [x] Contratos de responsive, accesibilidad, i18n, loading y tokens.
-- [x] Paleta global de modo claro mineral: piedra cálida para canvas, arena para tarjetas y superficies elevadas, con bordes sobrios y naranja conservado para interacción y estados activos.
+- [x] Paleta global residencial de modo claro: piedra arquitectónica para canvas, arena para tarjetas, caliza para superficies elevadas, tinta carbón para lectura y cobre bruñido reservado para interacción y estados activos.
 - [x] Mapeo de cobertura de los componentes compartidos.
 - [x] Consolidación de todos los selectores generales de Escenas, Automatizaciones, editor de tableros, usuarios, cámaras e inspección en `SearchableSelectField`.
 - [x] Consolidación de acciones textuales generales de autenticación, confirmación, perfil, escenas y automatizaciones en `Button`; las acciones exclusivamente icónicas usan `IconButton`.

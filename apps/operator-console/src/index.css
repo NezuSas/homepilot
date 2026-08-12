@@ -143,36 +143,36 @@
 
   .light {
     /* ── Core Surfaces (mineral elevation ladder) ─────────── */
-    --background:          34 17% 90%;       /* warm stone #E9E5DE */
-    --card:                40 20% 94%;       /* soft sand #F3F0EA */
+    --background:          32 19% 82%;       /* architectural stone #D8D2C8 */
+    --card:                35 20% 89%;       /* warm sand #E9E4DC */
     --card-foreground:     215 18% 15%;
-    --popover:             36 31% 97%;       /* raised mineral #FAF7F2 */
+    --popover:             36 25% 95%;       /* quiet limestone #F2EEE7 */
     --popover-foreground:  215 18% 15%;
 
     /* ── Text ───────────────────────────────────────────────── */
     --foreground:          215 18% 15%;      /* ink #20262E */
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              34 14% 75%;       /* quiet stone #C9C1B6 */
-    --border-subtle:       36 15% 83%;
-    --input:               34 14% 75%;
+    --border:              32 14% 70%;       /* weathered stone #BDB4A8 */
+    --border-subtle:       34 13% 78%;
+    --input:               32 14% 70%;
     --ring:                14 69% 43%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             14 69% 43%;
+    --primary:             14 57% 46%;       /* burnished copper #B84F32 */
     --primary-foreground:  0 0% 100%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           215 24% 91%;
-    --secondary-foreground: 218 28% 14%;
-    --muted:               215 24% 91%;
-    --muted-foreground:    218 13% 38%;
+    --secondary:           34 15% 84%;
+    --secondary-foreground: 215 18% 15%;
+    --muted:               34 12% 80%;
+    --muted-foreground:    215 10% 38%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              69 65% 42%;
+    --accent:              70 43% 42%;       /* muted olive */
     --accent-foreground:   72 70% 8%;
 
-    --light-active:        34 90% 48%;
+    --light-active:        37 65% 54%;       /* warm brass */
     --light-active-foreground: 30 60% 10%;
 
     /* ── Destructive / Danger ───────────────────────────────── */
@@ -194,7 +194,7 @@
     --premium-glow-warning:   0 8px 20px -6px hsl(var(--warning) / 0.25);
 
     --device-on-glow:    0 10px 28px -14px hsl(var(--primary) / 0.36), inset 0 1px 0 hsl(var(--accent) / 0.12);
-    --device-off-shadow: 0 12px 30px -22px hsl(30 12% 28% / 0.35), inset 0 1px 0 hsl(var(--popover) / 0.7);
+    --device-off-shadow: 0 12px 30px -22px hsl(26 12% 24% / 0.32), inset 0 1px 0 hsl(var(--popover) / 0.7);
   }
 }
 
@@ -391,7 +391,7 @@
     box-shadow: 0 1px 3px hsl(210 30% 2% / 0.35), 0 1px 0 hsl(210 30% 100% / 0.03) inset;
   }
   .light .premium-card {
-    box-shadow: 0 14px 34px -28px hsl(30 12% 28% / 0.42), 0 1px 0 hsl(var(--popover) / 0.72) inset;
+    box-shadow: 0 14px 34px -28px hsl(26 12% 24% / 0.38), 0 1px 0 hsl(var(--popover) / 0.72) inset;
     @apply bg-card;
   }
   
@@ -402,7 +402,7 @@
   }
   
   .light .premium-card:hover {
-    box-shadow: 0 18px 42px -30px hsl(30 12% 28% / 0.48), 0 1px 0 hsl(var(--popover) / 0.75) inset;
+    box-shadow: 0 18px 42px -30px hsl(26 12% 24% / 0.44), 0 1px 0 hsl(var(--popover) / 0.75) inset;
   }
 
   .luxury-text-gradient {
@@ -555,10 +555,10 @@
   }
 
   .light .homepilot-dashboard-screen {
-    --dashboard-canvas: 34 12% 82%;
-    --dashboard-surface: 34 14% 91%;
-    --dashboard-surface-raised: 34 18% 94%;
-    --dashboard-edge: 30 10% 68%;
+    --dashboard-canvas: 32 19% 82%;
+    --dashboard-surface: 35 16% 86%;
+    --dashboard-surface-raised: 36 18% 90%;
+    --dashboard-edge: 32 14% 70%;
   }
 
   .homepilot-dashboard-backdrop::after {
@@ -612,7 +612,7 @@
   .light .homepilot-dashboard-widget:has(.homepilot-dashboard-title) {
     border-color: hsl(var(--dashboard-edge) / 0.78);
     background-color: hsl(var(--dashboard-surface-raised) / 0.92);
-    box-shadow: 0 18px 36px -30px hsl(30 12% 28% / 0.42), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.8);
+    box-shadow: 0 18px 36px -30px hsl(26 12% 24% / 0.38), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.8);
   }
 
   .homepilot-sensor-reading {
@@ -828,12 +828,12 @@
     box-shadow: 0 12px 40px hsl(210 30% 2% / 0.6), 0 1px 0 hsl(210 30% 100% / 0.06) inset;
   }
   .light .shadow-depth-1 {
-    box-shadow: 0 10px 28px -24px hsl(30 12% 28% / 0.38), 0 1px 0 hsl(var(--popover) / 0.75) inset;
+    box-shadow: 0 10px 28px -24px hsl(26 12% 24% / 0.34), 0 1px 0 hsl(var(--popover) / 0.75) inset;
   }
   .light .shadow-depth-2 {
-    box-shadow: 0 16px 38px -28px hsl(30 12% 28% / 0.44), 0 1px 0 hsl(var(--popover) / 0.8) inset;
+    box-shadow: 0 16px 38px -28px hsl(26 12% 24% / 0.4), 0 1px 0 hsl(var(--popover) / 0.8) inset;
   }
   .light .shadow-depth-3 {
-    box-shadow: 0 24px 60px -34px hsl(30 12% 28% / 0.5), 0 1px 0 hsl(var(--popover) / 0.82) inset;
+    box-shadow: 0 24px 60px -34px hsl(26 12% 24% / 0.46), 0 1px 0 hsl(var(--popover) / 0.82) inset;
   }
 }
