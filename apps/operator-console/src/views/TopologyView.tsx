@@ -405,7 +405,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)] xl:gap-6">
+    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(14rem,16rem)_minmax(0,1fr)] xl:gap-5">
       {topologyError && (
         <AlertBanner className="xl:col-span-2" variant="danger" message={topologyError} />
       )}
@@ -603,7 +603,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
             ) : (
               <div className={cn(
                 "grid grid-cols-1 items-start gap-4",
-                selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(18rem,21rem)]",
+                selectedRoom && "xl:grid-cols-[minmax(0,1fr)_minmax(17rem,19rem)]",
               )}>
                 {rooms.length === 0 ? (
                   <div className="col-span-full p-8 text-center border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground text-body italic">
@@ -612,7 +612,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                 ) : (
                   <>
                     <div
-                      className="grid self-start grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3"
+                      className="grid self-start grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-3"
                       onClick={(event) => {
                         if (event.target === event.currentTarget) setSelectedRoomId(null);
                       }}

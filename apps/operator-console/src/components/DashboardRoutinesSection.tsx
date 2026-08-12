@@ -54,7 +54,7 @@ export function DashboardRoutinesSection({
     <section className="homepilot-home-routines animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-routines">
       <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         <div>
-          <h2 className="text-section-title font-semibold tracking-tight text-foreground">{t('dashboard.favorite_routines')}</h2>
+          <h2 className="text-body font-semibold tracking-tight text-foreground">{t('dashboard.favorite_routines')}</h2>
           <p className="text-caption text-muted-foreground">{t('dashboard.favorite_routines_hint')}</p>
         </div>
         <Button variant="ghost" onClick={onManage} className="h-auto gap-2 self-start px-0 text-caption font-semibold text-primary min-[420px]:self-auto">
@@ -73,7 +73,7 @@ export function DashboardRoutinesSection({
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
           {routines.map((routine) => {
             if (routine.type === 'scene') {
               const isProcessing = processingId === `scene_${routine.value.id}`;

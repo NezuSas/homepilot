@@ -107,7 +107,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
 
   return (
-    <div className="flex flex-col gap-7 sm:gap-10">
+    <div className="flex flex-col gap-5 sm:gap-6">
       {hasLocalDevices && (
         <div className="mt-2 flex flex-col gap-2 rounded-xl border border-success/20 bg-success/5 px-4 py-2 shadow-sm animate-in fade-in slide-in-from-top-2 duration-1000 sm:flex-row sm:items-center">
           <Cpu className="w-3.5 h-3.5 text-success/80" />
@@ -138,16 +138,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       <SectionHeader 
         className="mb-4 border-b border-border/50 pb-3"
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
-        subtitle={mode === 'manager' ? t('inbox.manager_subtitle') : t('inbox.discovery_subtitle')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="flex w-full min-w-0 flex-col items-stretch gap-3 xl:w-auto">
+          <div className="grid w-full min-w-0 gap-2 min-[520px]:grid-cols-[minmax(15rem,1fr)_minmax(20rem,1.5fr)] xl:w-[min(100%,44rem)]">
             {/* Origin Filter */}
             <SegmentedControl
               value={originFilter}
               onChange={setOriginFilter}
               label={t('inbox.filters.origin_label')}
-              className="grid w-full grid-cols-3 gap-1 rounded-2xl p-1"
+              className="grid w-full grid-cols-3 gap-1 rounded-xl p-1"
               options={(['all', 'local', 'bridged'] as const).map((value) => ({
                 value,
                 label: value === 'all'
@@ -163,7 +162,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               value={filter}
               onChange={setFilter}
               label={t('inbox.filters.type_label')}
-              className="grid w-full grid-cols-2 gap-1 rounded-2xl p-1 min-[420px]:grid-cols-3"
+              className="grid w-full grid-cols-3 gap-1 rounded-xl p-1"
               options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map((value) => ({
                 value,
                 label: t(`inbox.filters.${value}`),
@@ -191,9 +190,9 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             </div>
 
             <div className={cn(
-              'grid gap-4 sm:gap-6',
+              'grid gap-3 sm:gap-4',
               mode === 'manager'
-                ? 'grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]'
+                ? 'grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))]'
                 : 'grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
             )}>
               {Array.isArray(group.devices) && group.devices.map((device) => {
@@ -226,7 +225,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         ))}
 
         {Object.keys(grouped).length === 0 && (
-          <div className="py-24 border-2 border-dashed border-border/40 rounded-hero flex flex-col items-center justify-center text-center bg-card/5">
+          <div className="py-12 border border-dashed border-border/40 rounded-card flex flex-col items-center justify-center text-center bg-card/5">
              <Zap className="w-12 h-12 mb-4 text-primary opacity-20" />
              <h3 className="text-panel-title font-black mb-2 tracking-tight">
                {mode === 'discovery' ? t('inbox.discovery.no_entities') : t('inbox.empty_state')}

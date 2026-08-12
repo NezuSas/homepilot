@@ -123,7 +123,8 @@ export const AssistantFindingCard: React.FC<AssistantFindingCardProps> = ({
             {context}
           </span>
         </div>
-      )}`r`n
+      )}
+
       {finding.metadata.ready === true && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-2.5 py-2 text-success">
           <Sparkles className="w-3 h-3" />

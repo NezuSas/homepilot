@@ -141,7 +141,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
   };
 
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="ha-discovery-title">
+    <section className="flex flex-col gap-3" aria-labelledby="ha-discovery-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 id="ha-discovery-title" className="flex items-center gap-2 text-micro font-semibold uppercase tracking-control text-muted-foreground">
           <RadioTower className="h-4 w-4" /> {t('inbox.discovery.bridge_title')}
@@ -158,7 +158,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
       </div>
 
       {showDiscovery && (
-        <div className="flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
+        <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
           {loading && entities.length === 0 ? (
             <div className="flex min-h-36 items-center justify-center gap-3 rounded-panel border border-border/60 bg-card/35 text-body text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -183,9 +183,9 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleEntities.map((entity) => (
-                  <article key={entity.entityId} className="group relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4">
+                  <article key={entity.entityId} className="group relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-card border border-border bg-card p-3.5">
                     <RadioTower className="absolute right-2 top-2 h-8 w-8 opacity-5" aria-hidden="true" />
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate font-mono text-micro uppercase text-muted-foreground" title={entity.entityId}>{entity.entityId}</span>
