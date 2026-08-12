@@ -23,7 +23,7 @@ const device: Device = {
 };
 
 describe('Feature: Local device deletion integrity', () => {
-  const routes = new DeviceRoutes('test.db');
+  const routes = new DeviceRoutes();
   const request = { user: { id: 'owner-1' }, headers: {} } as unknown as HomePilotRequest;
   const createResponse = () => ({
     writeHead: jest.fn().mockReturnThis(),

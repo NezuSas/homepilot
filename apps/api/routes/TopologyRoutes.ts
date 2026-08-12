@@ -1,6 +1,5 @@
 import * as crypto from 'crypto';
 import * as http from 'http';
-import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 import { BootstrapContainer } from '../../../bootstrap';
 import { createHomeUseCase } from '../../../packages/topology/application/createHomeUseCase';
 import { createRoomUseCase } from '../../../packages/topology/application/createRoomUseCase';
@@ -15,40 +14,11 @@ import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { ActivityType } from '../../../packages/devices/domain/repositories/ActivityLogRepository';
 
-interface LocalRoomRow {
-  id: string;
-  home_id: string;
-  name: string;
-  entity_version: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface LocalDeviceRow {
-  id: string;
-  home_id: string;
-  room_id: string | null;
-  external_id: string;
-  name: string;
-  type: string;
-  vendor: string;
-  status: string;
-  last_known_state: string | null;
-  invert_state: number;
-  entity_version: number;
-  created_at: string;
-  updated_at: string;
-}
-
 
 /**
  * Topology routes: /api/v1/homes, /api/v1/rooms, /api/v1/homes/:id/rooms
  */
 export class TopologyRoutes extends ApiRoutes {
-  constructor(private readonly dbPath: string) {
-    super();
-  }
-
   private canReadSharedTopology(role: string): boolean {
     return role === 'admin'
       || role === 'operator'
@@ -67,7 +37,6 @@ export class TopologyRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
     
-    const db = SqliteDatabaseManager.getInstance(this.dbPath);
 
     // GET /api/v1/rooms
     if (method === 'GET' && pathname === '/api/v1/rooms') {
@@ -80,23 +49,8 @@ export class TopologyRoutes extends ApiRoutes {
           return true;
         }
 
-        const homeIds = homes.map((h) => h.id);
-        const placeholders = homeIds.map(() => '?').join(',');
-        const rows = db
-          .prepare(`SELECT * FROM rooms WHERE home_id IN (${placeholders})`)
-          .all(...homeIds) as LocalRoomRow[];
-
-        this.sendJson(
-          res,
-          rows.map((r) => ({
-            id: r.id,
-            homeId: r.home_id,
-            name: r.name,
-            entityVersion: r.entity_version,
-            createdAt: r.created_at,
-            updatedAt: r.updated_at,
-          }))
-        );
+        const rooms = (await Promise.all(homes.map((home) => container.repositories.roomRepository.findRoomsByHomeId(home.id)))).flat();
+        this.sendJson(res, rooms);
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', (error instanceof Error ? error.message : String(error)));
       }
@@ -306,14 +260,10 @@ export class TopologyRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid or missing action'), true;
         }
 
-        const room = db.prepare('SELECT name FROM rooms WHERE id = ?').get(roomId) as { name: string } | undefined;
+        const room = await container.repositories.roomRepository.findRoomById(roomId);
         const roomName = room?.name || 'Room';
-
-        const roomDevices = db
-          .prepare('SELECT id, type FROM devices WHERE room_id = ?')
-          .all(roomId) as LocalDeviceRow[];
-
-        const targetDevices = roomDevices.filter((d) => ['light', 'switch'].includes(d.type));
+        const roomDevices = (await container.repositories.deviceRepository.findAll()).filter((device) => device.roomId === roomId);
+        const targetDevices = roomDevices.filter((device) => ['light', 'switch'].includes(device.type));
 
         if (targetDevices.length === 0) {
           this.sendJson(res, { success: true, executed: 0, failed: 0 });

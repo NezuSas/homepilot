@@ -9,7 +9,7 @@ import { TopologyRoutes } from '../routes/TopologyRoutes';
 
 describe('TopologyRoutes - delete room', () => {
   const dbPath = 'topology-delete-room-test.db';
-  const routes = new TopologyRoutes(dbPath);
+  const routes = new TopologyRoutes();
   const ownerRequest = { user: { id: 'owner-1' }, headers: {} } as unknown as HomePilotRequest;
 
   const createResponse = () => ({

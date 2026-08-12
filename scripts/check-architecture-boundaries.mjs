@@ -36,6 +36,9 @@ function collectRouteDependencyViolations(directory) {
       if (/\bnew\s+(?:MediaService|SceneExecutionService|AssistantMultiCommandParser)\s*\(/.test(line)) {
         violations.push(`${relative(process.cwd(), fullPath)}:${index + 1}: ${line.trim()}`);
       }
+      if (/from\s+['"][^'"]*SqliteDatabaseManager['"]/.test(line)) {
+        violations.push(`${relative(process.cwd(), fullPath)}:${index + 1}: route handlers must use injected repository ports instead of SqliteDatabaseManager.`);
+      }
     });
   }
 }
@@ -45,9 +48,9 @@ collectRouteDependencyViolations(join(process.cwd(), 'apps', 'api', 'routes'));
 
 
 if (violations.length > 0) {
-  console.error('Architecture boundary failed: application code must not import infrastructure or instantiate composed collaborators, and routes must not instantiate composed services.');
+  console.error('Architecture boundary failed: application code must not import infrastructure or instantiate composed collaborators, and routes must not instantiate composed services or import SQLite persistence.');
   violations.forEach((violation) => console.error(`- ${violation}`));
   process.exit(1);
 }
 
-console.log('Architecture boundary passed: application code has no infrastructure imports or composed collaborator instantiation, and routes instantiate no composed services.');
+console.log('Architecture boundary passed: application code has no infrastructure imports or composed collaborator instantiation, and routes instantiate no composed services or import SQLite persistence.');

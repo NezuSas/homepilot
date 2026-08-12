@@ -34,7 +34,7 @@ function containerFor(stored: Device = device): BootstrapContainer {
 }
 
 describe('DeviceRoutes state sync', () => {
-  const routes = new DeviceRoutes('test.db');
+  const routes = new DeviceRoutes();
   const previousKey = process.env.HOMEPILOT_INTEGRATION_API_KEY;
 
   afterEach(() => {
@@ -68,7 +68,7 @@ describe('DeviceRoutes state sync', () => {
   });
 });
 describe('Feature: Device discovery M2M boundary', () => {
-  const routes = new DeviceRoutes('test.db');
+  const routes = new DeviceRoutes();
   const previousKey = process.env.HOMEPILOT_INTEGRATION_API_KEY;
   afterEach(() => {
     if (previousKey === undefined) {

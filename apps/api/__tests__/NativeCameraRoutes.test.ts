@@ -2,12 +2,13 @@ import * as fs from 'fs';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
+import { SQLiteNativeCameraSourceRepository } from '../../../packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { NativeCameraRoutes } from '../routes/NativeCameraRoutes';
 
 describe('Feature: Native camera configuration', () => {
   const dbPath = 'native-camera-routes-test.db';
-  const routes = new NativeCameraRoutes(dbPath);
+  const routes = new NativeCameraRoutes(new SQLiteNativeCameraSourceRepository(dbPath));
 
   const response = () => ({
     writeHead: jest.fn().mockReturnThis(),

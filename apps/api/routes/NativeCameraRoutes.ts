@@ -3,27 +3,10 @@ import * as crypto from 'crypto';
 import * as net from 'net';
 import { BootstrapContainer } from '../../../bootstrap';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/database/SqliteDatabaseManager';
+import type { NativeCameraSource, NativeCameraSourceRepository, NativeCameraSourceType } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
 import { ApiRoutes } from './ApiRoutes';
 import { OnvifDiscovery } from '../OnvifDiscovery';
 
-interface NativeCameraSourceRow {
-  device_id: string;
-  home_id: string;
-  source_type?: NativeCameraSourceType;
-  name: string;
-  host: string;
-  onvif_port: number;
-  rtsp_port: number;
-  username: string;
-  password: string;
-  rtsp_path: string;
-  enabled: number;
-  created_at: string;
-  updated_at: string;
-}
-
-type NativeCameraSourceType = 'onvif-ptz' | 'rtsp-dvr' | 'sonoff-rtsp';
 
 interface CreateNativeCameraBody {
   homeId: string;
@@ -69,26 +52,26 @@ function sourceTypeRequiresManualRtspPath(sourceType: NativeCameraSourceType): b
   return sourceType !== 'onvif-ptz';
 }
 
-function toNativeCameraDto(row: NativeCameraSourceRow): Record<string, unknown> {
+function toNativeCameraDto(source: NativeCameraSource): Record<string, unknown> {
   return {
-    deviceId: row.device_id,
-    homeId: row.home_id,
-    sourceType: row.source_type || 'onvif-ptz',
-    name: row.name,
-    host: row.host,
-    onvifPort: row.onvif_port,
-    rtspPort: row.rtsp_port,
+    deviceId: source.deviceId,
+    homeId: source.homeId,
+    sourceType: source.sourceType,
+    name: source.name,
+    host: source.host,
+    onvifPort: source.onvifPort,
+    rtspPort: source.rtspPort,
     // password is intentionally omitted from API responses
-    maskedPassword: row.password.length > 0 ? '••••••••' : '',
-    rtspPath: row.rtsp_path,
-    enabled: row.enabled === 1,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    maskedPassword: source.password.length > 0 ? '••••••••' : '',
+    rtspPath: source.rtspPath,
+    enabled: source.enabled,
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
   };
 }
 
 export class NativeCameraRoutes extends ApiRoutes {
-  constructor(private readonly dbPath: string) {
+  constructor(private readonly nativeCameraSourceRepository: NativeCameraSourceRepository) {
     super();
   }
 
@@ -169,11 +152,7 @@ export class NativeCameraRoutes extends ApiRoutes {
         this.sendError(res, 400, 'MISSING_HOME_ID', 'homeId query parameter is required');
         return;
       }
-
-      const db = SqliteDatabaseManager.getInstance(this.dbPath);
-      const rows = db
-        .prepare('SELECT * FROM native_camera_sources WHERE home_id = ? ORDER BY created_at ASC')
-        .all(homeId) as NativeCameraSourceRow[];
+      const rows = this.nativeCameraSourceRepository.findByHomeId(homeId);
 
       this.sendJson(res, { cameras: rows.map(toNativeCameraDto) });
     } catch (error: unknown) {
@@ -281,12 +260,7 @@ export class NativeCameraRoutes extends ApiRoutes {
         }
       }
 
-      const db = SqliteDatabaseManager.getInstance(this.dbPath);
-      const duplicate = db.prepare(`
-        SELECT * FROM native_camera_sources
-        WHERE home_id = ? AND host = ? AND rtsp_port = ? AND rtsp_path = ?
-        LIMIT 1
-      `).get(body.homeId, body.host.trim(), resolvedRtspPort, resolvedRtspPath) as NativeCameraSourceRow | undefined;
+      const duplicate = this.nativeCameraSourceRepository.findDuplicate(body.homeId, body.host.trim(), resolvedRtspPort, resolvedRtspPath);
       if (duplicate) {
         this.sendError(res, 409, 'NATIVE_CAMERA_ALREADY_EXISTS', `La cámara "${duplicate.name}" ya está integrada en HomePilot.`);
         return;
@@ -310,13 +284,8 @@ export class NativeCameraRoutes extends ApiRoutes {
         updatedAt: now,
       });
 
-      // Create the native camera source record
-      db.prepare(`
-        INSERT INTO native_camera_sources (device_id, home_id, source_type, name, host, onvif_port, rtsp_port, username, password, rtsp_path, enabled, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `).run(deviceId, body.homeId, sourceType, body.name.trim(), body.host.trim(), onvifPort, resolvedRtspPort, body.username, body.password, resolvedRtspPath, now, now);
-
-      const created = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow;
+      const created: NativeCameraSource = { deviceId, homeId: body.homeId, sourceType, name: body.name.trim(), host: body.host.trim(), onvifPort, rtspPort: resolvedRtspPort, username: body.username, password: body.password, rtspPath: resolvedRtspPath, enabled: true, createdAt: now, updatedAt: now };
+      this.nativeCameraSourceRepository.save(created);
 
       res.writeHead(201, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ camera: toNativeCameraDto(created) }));
@@ -335,8 +304,7 @@ export class NativeCameraRoutes extends ApiRoutes {
     if (!isProtected) return;
 
     try {
-      const db = SqliteDatabaseManager.getInstance(this.dbPath);
-      const existing = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow | undefined;
+      const existing = this.nativeCameraSourceRepository.findByDeviceId(deviceId);
       if (!existing) {
         this.sendError(res, 404, 'CAMERA_NOT_FOUND', 'Native camera not found');
         return;
@@ -346,16 +314,16 @@ export class NativeCameraRoutes extends ApiRoutes {
       const now = new Date().toISOString();
 
       const newName = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : existing.name;
-      const newSourceType = isNativeCameraSourceType(body.sourceType) ? body.sourceType : (existing.source_type || 'onvif-ptz');
+      const newSourceType = isNativeCameraSourceType(body.sourceType) ? body.sourceType : (existing.sourceType);
       const newHost = typeof body.host === 'string' && body.host.trim() ? body.host.trim() : existing.host;
-      const newRtspPort = body.rtspPort !== undefined ? body.rtspPort : existing.rtsp_port;
-      const newOnvifPort = body.onvifPort !== undefined ? body.onvifPort : existing.onvif_port;
+      const newRtspPort = body.rtspPort !== undefined ? body.rtspPort : existing.rtspPort;
+      const newOnvifPort = body.onvifPort !== undefined ? body.onvifPort : existing.onvifPort;
       const newUsername = typeof body.username === 'string' && body.username ? body.username : existing.username;
       const newPassword = typeof body.password === 'string' && body.password ? body.password : existing.password;
       const newRtspPath = typeof body.rtspPath === 'string'
         ? normalizeRtspPath(body.rtspPath)
-        : existing.rtsp_path;
-      const newEnabled = typeof body.enabled === 'boolean' ? (body.enabled ? 1 : 0) : existing.enabled;
+        : existing.rtspPath;
+      const newEnabled = typeof body.enabled === 'boolean' ? body.enabled : existing.enabled;
       if (sourceTypeRequiresManualRtspPath(newSourceType) && !newRtspPath) {
         this.sendError(res, 400, 'VALIDATION_ERROR', 'rtspPath is required for RTSP/DVR and Sonoff cameras');
         return;
@@ -410,28 +378,19 @@ export class NativeCameraRoutes extends ApiRoutes {
         }
       }
 
-      const duplicate = db.prepare(`
-        SELECT * FROM native_camera_sources
-        WHERE home_id = ? AND host = ? AND rtsp_port = ? AND rtsp_path = ? AND device_id <> ?
-        LIMIT 1
-      `).get(existing.home_id, newHost, resolvedRtspPort, resolvedRtspPath, deviceId) as NativeCameraSourceRow | undefined;
+      const duplicate = this.nativeCameraSourceRepository.findDuplicate(existing.homeId, newHost, resolvedRtspPort, resolvedRtspPath, deviceId);
       if (duplicate) {
         this.sendError(res, 409, 'NATIVE_CAMERA_ALREADY_EXISTS', `La cámara "${duplicate.name}" ya está integrada en HomePilot.`);
         return;
       }
 
-      db.prepare(`
-        UPDATE native_camera_sources
-        SET source_type = ?, name = ?, host = ?, rtsp_port = ?, onvif_port = ?, username = ?, password = ?, rtsp_path = ?, enabled = ?, updated_at = ?
-        WHERE device_id = ?
-      `).run(newSourceType, newName, newHost, resolvedRtspPort, newOnvifPort, newUsername, newPassword, resolvedRtspPath, newEnabled, now, deviceId);
+      const updated: NativeCameraSource = { ...existing, sourceType: newSourceType, name: newName, host: newHost, rtspPort: resolvedRtspPort, onvifPort: newOnvifPort, username: newUsername, password: newPassword, rtspPath: resolvedRtspPath, enabled: newEnabled, updatedAt: now };
+      this.nativeCameraSourceRepository.save(updated);
 
-      // Sync device name if changed
       if (newName !== existing.name) {
-        db.prepare('UPDATE devices SET name = ?, updated_at = ? WHERE id = ?').run(newName, now, deviceId);
+        const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (device) await container.repositories.deviceRepository.saveDevice({ ...device, name: newName, updatedAt: now, entityVersion: device.entityVersion });
       }
-
-      const updated = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow;
       this.sendJson(res, { camera: toNativeCameraDto(updated) });
     } catch (error: unknown) {
       this.sendError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to update camera');
@@ -448,15 +407,14 @@ export class NativeCameraRoutes extends ApiRoutes {
     if (!isProtected) return;
 
     try {
-      const db = SqliteDatabaseManager.getInstance(this.dbPath);
-      const existing = db.prepare('SELECT * FROM native_camera_sources WHERE device_id = ?').get(deviceId) as NativeCameraSourceRow | undefined;
+      const existing = this.nativeCameraSourceRepository.findByDeviceId(deviceId);
       if (!existing) {
         this.sendError(res, 404, 'CAMERA_NOT_FOUND', 'Native camera not found');
         return;
       }
 
       // Deleting the device cascades to native_camera_sources via FK ON DELETE CASCADE
-      db.prepare('DELETE FROM devices WHERE id = ?').run(deviceId);
+      await container.repositories.deviceRepository.deleteDevice(deviceId);
 
       res.writeHead(204);
       res.end();

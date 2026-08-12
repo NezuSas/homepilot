@@ -13,13 +13,10 @@ describe('SQLiteNativeCameraSourceRepository', () => {
     const db = SqliteDatabaseManager.getInstance(dbPath);
     db.exec(`
       CREATE TABLE native_camera_sources (
-        device_id TEXT PRIMARY KEY,
-        host TEXT NOT NULL,
-        rtsp_port INTEGER NOT NULL,
-        username TEXT NOT NULL,
-        password TEXT NOT NULL,
-        rtsp_path TEXT NOT NULL,
-        enabled INTEGER NOT NULL
+        device_id TEXT PRIMARY KEY, home_id TEXT NOT NULL, source_type TEXT NOT NULL,
+        name TEXT NOT NULL, host TEXT NOT NULL, onvif_port INTEGER NOT NULL,
+        rtsp_port INTEGER NOT NULL, username TEXT NOT NULL, password TEXT NOT NULL,
+        rtsp_path TEXT NOT NULL, enabled INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
       );
     `);
   });
@@ -29,22 +26,36 @@ describe('SQLiteNativeCameraSourceRepository', () => {
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
   });
 
-  it('returns the RTSP source in domain form for an enabled native camera', () => {
-    const db = SqliteDatabaseManager.getInstance(dbPath);
-    db.prepare(`
-      INSERT INTO native_camera_sources (device_id, host, rtsp_port, username, password, rtsp_path, enabled)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run('camera-1', '192.168.1.20', 554, 'admin', 'secret', '/stream', 1);
-
-    const source = new SQLiteNativeCameraSourceRepository(dbPath).findByDeviceId('camera-1');
-
-    expect(source).toEqual({
-      deviceId: 'camera-1', host: '192.168.1.20', rtspPort: 554,
-      username: 'admin', password: 'secret', rtspPath: '/stream', enabled: true,
-    });
+  const source = (overrides = {}) => ({
+    deviceId: 'camera-1', homeId: 'home-1', sourceType: 'rtsp-dvr' as const,
+    name: 'DVR', host: '192.168.1.20', onvifPort: 80, rtspPort: 554,
+    username: 'admin', password: 'secret', rtspPath: '/stream', enabled: true,
+    createdAt: '2026-08-11T00:00:00.000Z', updatedAt: '2026-08-11T00:00:00.000Z',
+    ...overrides,
   });
 
-  it('returns null when no native camera source exists', () => {
-    expect(new SQLiteNativeCameraSourceRepository(dbPath).findByDeviceId('missing')).toBeNull();
+  it('returns the complete source in domain form for an enabled native camera', () => {
+    const repository = new SQLiteNativeCameraSourceRepository(dbPath);
+    repository.save(source());
+
+    expect(repository.findByDeviceId('camera-1')).toEqual(source());
+  });
+
+  it('lists sources by home and detects duplicates without matching the excluded camera', () => {
+    const repository = new SQLiteNativeCameraSourceRepository(dbPath);
+    repository.save(source());
+
+    expect(repository.findByHomeId('home-1')).toEqual([source()]);
+    expect(repository.findDuplicate('home-1', '192.168.1.20', 554, '/stream')).toEqual(source());
+    expect(repository.findDuplicate('home-1', '192.168.1.20', 554, '/stream', 'camera-1')).toBeNull();
+  });
+
+  it('updates an existing source and returns null when no source exists', () => {
+    const repository = new SQLiteNativeCameraSourceRepository(dbPath);
+    repository.save(source());
+    repository.save(source({ name: 'Updated DVR', enabled: false, updatedAt: '2026-08-12T00:00:00.000Z' }));
+
+    expect(repository.findByDeviceId('camera-1')).toEqual(source({ name: 'Updated DVR', enabled: false, updatedAt: '2026-08-12T00:00:00.000Z' }));
+    expect(repository.findByDeviceId('missing')).toBeNull();
   });
 });

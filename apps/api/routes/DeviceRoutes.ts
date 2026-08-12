@@ -24,9 +24,6 @@ import { buildUnavailableDeviceState } from '../../../packages/devices/applicati
  * Device routes: /api/v1/devices/*, /api/v1/activity-logs, /api/v1/ha/*
  */
 export class DeviceRoutes extends ApiRoutes {
-  constructor(private readonly dbPath: string) {
-    super();
-  }
 
   /**
    * Helper para enriquecer el dispositivo con sus capacidades resueltas operacionalmente.

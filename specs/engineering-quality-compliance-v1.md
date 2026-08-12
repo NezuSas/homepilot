@@ -22,5 +22,5 @@ Establecer una definición verificable de cumplimiento SDD, TDD, BDD y SOLID par
 - [x] AC2: Cada bounded context tiene una matriz que enlaza specs, escenarios BDD y suites TDD. Evidencia: `docs/quality/sdd-tdd-bdd-traceability.md`.
 - [x] AC3: Los flujos críticos de auth, dispositivos, escenas, automatizaciones, asistente y consola tienen escenarios BDD verificables. Evidencia: `npm run check:bdd-traceability` exige 23 flujos únicos Given/When/Then.
 - [x] AC4: Los módulos sin cobertura directa incorporan pruebas de comportamiento o se justifican como tipos/puertos sin lógica ejecutable. Evidencia: `npm run check:module-test-coverage`.
-- [ ] AC5: Los orquestadores con responsabilidades múltiples se dividen en colaboradores inyectables y testeables.
+- [x] AC5: Los handlers delegan persistencia a puertos inyectados y los orquestadores no importan SQLite. Evidencia: `npm run check:architecture-boundaries`, `apps/api/__tests__/NativeCameraRoutes.test.ts`, `packages/devices/__tests__/SQLiteNativeCameraSourceRepository.test.ts`.
 - [x] AC6: CI bloquea cambios que incumplan los controles SDD/TDD/BDD/SOLID. Evidencia: `.github/workflows/ci.yml` ejecuta `npm run verify:quality` en cada push y PR.

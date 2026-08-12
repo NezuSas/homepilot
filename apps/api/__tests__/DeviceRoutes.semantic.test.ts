@@ -51,7 +51,7 @@ describe('DeviceRoutes - Semantic Classification', () => {
       services: {} as any,
     };
 
-    routes = new DeviceRoutes('test.db');
+    routes = new DeviceRoutes();
 
     mockReq = {
       url: '/api/v1/devices/dev-1/semantic-type',

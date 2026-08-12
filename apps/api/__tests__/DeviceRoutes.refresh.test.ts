@@ -23,7 +23,7 @@ const createDevice = (): Device => ({
 });
 
 describe('Feature: Home Assistant device refresh', () => {
-  const routes = new DeviceRoutes('test.db');
+  const routes = new DeviceRoutes();
   const request = {
     user: { id: 'admin-1' },
     headers: {},
