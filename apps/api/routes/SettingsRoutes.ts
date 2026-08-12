@@ -19,8 +19,8 @@ export class SettingsRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
-    // POST /api/v1/settings/test-ha-connection
-    if (method === 'POST' && pathname === '/api/v1/settings/test-ha-connection') {
+    // POST /api/v1/settings/home-assistant/test (canonical) and legacy test-ha-connection
+    if (method === 'POST' && (pathname === '/api/v1/settings/home-assistant/test' || pathname === '/api/v1/settings/test-ha-connection')) {
       try {
         const payload = await this.parseBody<{ baseUrl?: string; accessToken?: string }>(req);
         if (!payload.baseUrl || !payload.accessToken) {
@@ -49,8 +49,8 @@ export class SettingsRoutes extends ApiRoutes {
 
       try {
         const payload = await this.parseBody<{ baseUrl?: string; accessToken?: string }>(req);
-        if (!payload.baseUrl || !payload.accessToken) {
-          return this.sendError(res, 400, 'VALIDATION_ERROR', 'baseUrl and accessToken are required'), true;
+        if (!payload.baseUrl) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'baseUrl is required'), true;
         }
 
         await container.services.homeAssistantSettingsService.saveSettings(payload.baseUrl, payload.accessToken);
@@ -73,6 +73,19 @@ export class SettingsRoutes extends ApiRoutes {
         this.sendJson(res, safeStatus);
       } catch {
         this.sendError(res, 500, 'HA_CONNECTION_ERROR', 'Failed to get Home Assistant settings');
+      }
+      return true;
+    }
+    // GET /api/v1/settings/home-assistant/status
+    if (method === 'GET' && pathname === '/api/v1/settings/home-assistant/status') {
+      try {
+        const status = await container.services.homeAssistantSettingsService.getStatus();
+        this.sendJson(res, {
+          connectivityStatus: status.connectivityStatus,
+          lastCheckedAt: status.lastCheckedAt,
+        });
+      } catch {
+        this.sendError(res, 500, 'HA_CONNECTION_ERROR', 'Failed to get Home Assistant connection status');
       }
       return true;
     }

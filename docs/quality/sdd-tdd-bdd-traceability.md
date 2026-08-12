@@ -7,6 +7,7 @@
 | Devices | `device-command-execution.md` | `packages/devices/__tests__/command_api.test.ts` | Despacho de comando válido y rechazo de estados inválidos |
 | Device discovery | `device-discovery-inbox.md` | `apps/api/__tests__/DeviceRoutes.state-sync.test.ts`, `DeviceRoutes.delete.test.ts` + `apps/operator-console/tests/responsive-shell.spec.ts` | Gateway M2M, integridad de borrado y consola: consulta resumen sin atributos y carga progresiva de candidatos |
 | Home Assistant WebSocket | `home-assistant-realtime-sync-v1.md` | `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` | Handshake válido suscribe el stream y timeout se clasifica como no alcanzable |
+| Configuración Home Assistant | home-assistant-settings-connection-management-v1.md | packages/integrations/home-assistant/__tests__/HomeAssistantSettingsService.test.ts | pps/api/__tests__/SettingsRoutes.test.ts — prueba, token enmascarado, guardado opcional y estado reducido |
 | Sonoff LAN | `sonoff-local-integration-v1.md` | `packages/integrations/sonoff/__tests__/SonoffDeviceDriver.test.ts` | Despacho local validado y rechazo previo de comando no soportado |
 | Tuya policy | `tuya-integration-policy-v1.md` | `packages/devices/__tests__/HomeAssistantImportService.test.ts` | Cortina Tuya importada conserva el bridge Home Assistant |
 | Device capabilities | `device-capabilities-command-validation.md` | `packages/devices/__tests__/CommandCapabilityValidator.test.ts` | Rechazo de comandos no soportados por la capacidad del dispositivo |
