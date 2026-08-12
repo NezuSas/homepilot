@@ -16,5 +16,5 @@
 - [x] AC-01: Cubrir persistencia de nombre preferido y su reconocimiento por usuario.
 - [x] AC-02: Cubrir rechazo de entradas inválidas.
 - [x] AC-03: Cubrir detección y persistencia de tono.
-- [ ] AC-04: Cubrir que las preferencias no modifiquen la ejecución de comandos.
+- [x] AC-04: `packages/assistant/__tests__/assistant_conversation_service.test.ts` verifica que el nombre preferido conserva la misma validación, confirmación y despacho del comando.
 

@@ -96,5 +96,5 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - [x] AC-01: llámame Ana persiste Ana solo para el usuario actual y confirma el cambio en el idioma activo.
 - [x] AC-02: Un nombre inválido no se persiste.
 - [x] AC-03: Los comandos explícitos de tono persisten únicamente neutral, warm o formal.
-- [ ] AC-04: Una preferencia de nombre no altera validación, confirmaciones ni ejecución.
+- [x] AC-04: Una preferencia de nombre no altera validación, confirmaciones ni ejecución.
 

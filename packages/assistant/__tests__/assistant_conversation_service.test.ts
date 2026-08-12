@@ -141,6 +141,29 @@ describe('AssistantConversationService', () => {
         expect.any(String)
       );
     });
+
+    it('Scenario: Given un nombre preferido When ejecuta una orden Then conserva la misma validación, confirmación y despacho', async () => {
+      const intent = { type: 'command' as const, deviceId: 'light-1', command: 'turn_off' as const, prompt: 'apaga luz sala' };
+      mockInterpreter.interpret.mockResolvedValue(intent);
+      mockDeviceRepo.findDeviceById.mockResolvedValue(
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } })
+      );
+      mockMemory.getUserPreference.mockImplementation(async (_userId, key) =>
+        key === 'assistant_preferred_address' ? 'Ana' : null
+      );
+
+      const response = await service.converse({ prompt: intent.prompt, userId: 'user-ana', confirmed: true }, 'es');
+
+      expect(mockConfirmationPolicy.evaluate).toHaveBeenCalledWith(intent, 'es');
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith(
+        'light-1',
+        expect.objectContaining({
+          name: 'turn_off',
+          metadata: expect.objectContaining({ source: 'scene' })
+        })
+      );
+      expect(response.type).toBe('execution');
+    });
   });
   describe('Greetings', () => {
     it('should respond to "Hola" with a friendly answer in Spanish', async () => {
