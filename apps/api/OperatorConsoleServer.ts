@@ -16,6 +16,7 @@ import { DashboardRoutes } from './routes/DashboardRoutes';
 
 import { MediaRoutes } from './routes/MediaRoutes';
 import { MediaService } from '../../packages/shared/infrastructure/MediaService';
+import { LoginAttemptRateLimiter } from '../../packages/auth/application/LoginAttemptRateLimiter';
 import { MediaPlayerRoutes } from './routes/MediaPlayerRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
@@ -35,13 +36,14 @@ export class OperatorConsoleServer {
 
   constructor(container: BootstrapContainer, dbPath: string, port: number = 3000) {
     const mediaService = new MediaService();
+    const loginAttemptRateLimiter = new LoginAttemptRateLimiter();
     const handlers: RouteHandler[] = [
         new MediaRoutes(mediaService),
         new MediaPlayerRoutes(),
         new NativeCameraRoutes(dbPath),
         new CameraRoutes(dbPath),
         new SystemRoutes(),
-        new AuthRoutes(undefined, mediaService),
+        new AuthRoutes(mediaService, loginAttemptRateLimiter),
         new AdminRoutes(),
       new AssistantRoutes(),
       new SettingsRoutes(),

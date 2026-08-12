@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { LoginAttemptRateLimiter } from '../../../packages/auth/application/LoginAttemptRateLimiter';
+import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { AuthRoutes } from '../routes/AuthRoutes';
 
@@ -36,7 +37,7 @@ function createContainer(): BootstrapContainer {
 describe('Feature: protección de inicio de sesión', () => {
   it('Scenario: Given credenciales fallidas When se excede el límite Then bloquea nuevos intentos con 429 y Retry-After', async () => {
     const limiter = new LoginAttemptRateLimiter({ maxFailures: 1, lockoutMs: 60_000 });
-    const routes = new AuthRoutes(limiter);
+    const routes = new AuthRoutes(new MediaService(), limiter);
     const container = createContainer();
 
     const lockoutResponse = new MockResponse();

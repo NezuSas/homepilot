@@ -4,7 +4,6 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { Scene } from '../../../packages/devices/domain/Scene';
-import { SceneExecutionService } from '../../../packages/devices/application/SceneExecutionService';
 
 /**
  * Scene routes: /api/v1/scenes/*
@@ -164,8 +163,7 @@ export class SceneRoutes extends ApiRoutes {
           },
         });
 
-        const executionService = new SceneExecutionService(container.adapters.commandDispatcher);
-        const result = await executionService.execute(scene);
+        const result = await container.services.sceneExecutionService.execute(scene);
 
         const failedCount = result.actions.filter(a => a.status === 'failed').length;
         const successCount = result.actions.filter(a => a.status === 'success').length;

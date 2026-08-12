@@ -20,7 +20,7 @@ La cobertura SDD existente valida referencias por patrón, pero no asegura que l
 
 - [x] AC1: CI rechaza evidencia que apunte a una spec inexistente, borrador o a AC no declarado.
 - [x] AC2: El chequeo de cobertura falla ante una spec primaria inválida.
-- [x] AC3: Las rutas afectadas no instancian MediaService ni SceneExecutionService directamente.
+- [x] AC3: `AuthRoutes`, `DashboardRoutes` y `SceneRoutes` reciben o consumen servicios compuestos sin instanciar `MediaService` ni `SceneExecutionService` directamente. Evidencia: `npm run check:architecture-boundaries`.
 - [x] AC4: AssistantConversationService recibe el resolvedor fast-path por dependencia explícita.
 - [x] AC5: Las rutas de automatización y dispositivos afectadas no declaran `any` en producción.
 

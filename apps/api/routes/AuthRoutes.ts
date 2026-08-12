@@ -2,21 +2,18 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
-import { LoginAttemptRateLimiter } from '../../../packages/auth/application/LoginAttemptRateLimiter';
+import type { MediaService } from '../../../packages/shared/infrastructure/MediaService';
+import type { LoginAttemptRateLimiter } from '../../../packages/auth/application/LoginAttemptRateLimiter';
 
 /**
  * Auth routes: /api/v1/auth/*
  */
 export class AuthRoutes extends ApiRoutes {
-  private readonly loginAttemptRateLimiter: LoginAttemptRateLimiter;
-
   constructor(
-    loginAttemptRateLimiter: LoginAttemptRateLimiter = new LoginAttemptRateLimiter(),
-    private readonly mediaService: MediaService = new MediaService()
+    private readonly mediaService: MediaService,
+    private readonly loginAttemptRateLimiter: LoginAttemptRateLimiter
   ) {
     super();
-    this.loginAttemptRateLimiter = loginAttemptRateLimiter;
   }
 
   async handle(
@@ -152,8 +149,7 @@ export class AuthRoutes extends ApiRoutes {
 
         // If the payload contains a raw Base64 data URI (new upload), process it physically
         if (finalAvatarDataUri?.startsWith('data:image/')) {
-          const mediaService = new MediaService();
-          const savedPath = await mediaService.saveUserAvatar(req.user!.username, finalAvatarDataUri);
+          const savedPath = await this.mediaService.saveUserAvatar(req.user!.username, finalAvatarDataUri);
           const cacheBuster = Date.now();
           finalAvatarDataUri = `${savedPath}?v=${cacheBuster}`;
         }

@@ -3,7 +3,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { DashboardTab, DashboardVisibility } from '../../../packages/topology/domain/Dashboard';
-import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
+import type { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 
 /**
  * Dashboard routes: /api/v1/dashboards/*
@@ -151,7 +151,6 @@ export class DashboardRoutes extends ApiRoutes {
         }>(req);
 
         if (body.tabs) {
-          const mediaService = new MediaService();
           const dashboardId = patchMatch[1];
 
           // Clean up background files for deleted tabs
@@ -201,7 +200,6 @@ export class DashboardRoutes extends ApiRoutes {
     if (deleteMatch) {
       try {
         const dashboardId = deleteMatch[1];
-        const mediaService = new MediaService();
         await this.mediaService.deleteDashboardBackgrounds(dashboardId);
 
         await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, dashboardId);
