@@ -11,6 +11,7 @@ import { DiagnosticsService } from './packages/system-observability/application/
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
 import { IntentInterpreterService } from './packages/assistant/application/IntentInterpreterService';
+import { AssistantMultiCommandParser } from './packages/assistant/application/AssistantMultiCommandParser';
 import { OllamaClient } from './packages/assistant/infrastructure/OllamaClient';
 import { AssistantContextBuilder } from './packages/assistant/application/AssistantContextBuilder';
 import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
@@ -249,10 +250,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService, repos.roomRepository);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
 
+  const assistantMultiCommandParser = new AssistantMultiCommandParser(repos.deviceRepository, repos.roomRepository);
   const intentInterpreterService = new IntentInterpreterService(
     repos.deviceRepository, 
     repos.sceneRepository,
     repos.roomRepository,
+    assistantMultiCommandParser,
     llmInterpreter,
     assistantMemoryService
   );

@@ -1,4 +1,5 @@
 import { IntentInterpreterService } from '../application/IntentInterpreterService';
+import { AssistantMultiCommandParser } from '../application/AssistantMultiCommandParser';
 import { Intent } from '../application/ports/IntentInterpreterPort';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
@@ -28,6 +29,7 @@ describe('IntentInterpreterService Integration', () => {
       mockDeviceRepo,
       mockSceneRepo,
       mockRoomRepo,
+      new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo),
       mockLlmInterpreter
     );
   });
@@ -91,7 +93,7 @@ describe('IntentInterpreterService Integration', () => {
     
     // Inject mock memory service for this specific test
     const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
-    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, mockLlmInterpreter, mockMemoryService);
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo), mockLlmInterpreter, mockMemoryService);
 
     const intent = await localService.interpret('apágala');
 
@@ -109,7 +111,7 @@ describe('IntentInterpreterService Integration', () => {
     });
     
     const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
-    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, mockLlmInterpreter, mockMemoryService);
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo), mockLlmInterpreter, mockMemoryService);
 
     const intent = await localService.interpret('préndelo');
 

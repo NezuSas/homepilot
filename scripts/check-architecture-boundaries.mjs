@@ -20,6 +20,9 @@ function collect(directory) {
       if (/^\s*import(?:\s+type)?\s+.*?from\s+['\"][^'\"]*\/infrastructure\//.test(line)) {
         violations.push(`${relative(process.cwd(), fullPath)}:${index + 1}: ${line.trim()}`);
       }
+      if (/\bnew\s+AssistantMultiCommandParser\s*\(/.test(line)) {
+        violations.push(`${relative(process.cwd(), fullPath)}:${index + 1}: ${line.trim()}`);
+      }
     });
   }
 }
@@ -30,7 +33,7 @@ function collectRouteDependencyViolations(directory) {
     const fullPath = join(directory, entry.name);
     const lines = readFileSync(fullPath, 'utf8').split(/\r?\n/);
     lines.forEach((line, index) => {
-      if (/\bnew\s+(?:MediaService|SceneExecutionService)\s*\(/.test(line)) {
+      if (/\bnew\s+(?:MediaService|SceneExecutionService|AssistantMultiCommandParser)\s*\(/.test(line)) {
         violations.push(`${relative(process.cwd(), fullPath)}:${index + 1}: ${line.trim()}`);
       }
     });
@@ -42,9 +45,9 @@ collectRouteDependencyViolations(join(process.cwd(), 'apps', 'api', 'routes'));
 
 
 if (violations.length > 0) {
-  console.error('Architecture boundary failed: application code must not import infrastructure and routes must not instantiate composed services.');
+  console.error('Architecture boundary failed: application code must not import infrastructure or instantiate composed collaborators, and routes must not instantiate composed services.');
   violations.forEach((violation) => console.error(`- ${violation}`));
   process.exit(1);
 }
 
-console.log('Architecture boundary passed: application code has no infrastructure imports and routes instantiate no composed services.');
+console.log('Architecture boundary passed: application code has no infrastructure imports or composed collaborator instantiation, and routes instantiate no composed services.');

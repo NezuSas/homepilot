@@ -15,6 +15,7 @@ import {
   createMockSystemVariableService
 } from './test_helpers';
 import { IntentInterpreterService } from '../application/IntentInterpreterService';
+import { AssistantMultiCommandParser } from '../application/AssistantMultiCommandParser';
 import { AssistantConfirmationPolicy } from '../application/AssistantConfirmationPolicy';
 
 describe('AssistantConversationService - Multi-Command V1', () => {
@@ -38,7 +39,7 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     sceneRepo = createMockSceneRepository();
     
     // Use real instances for the parser and confirmation policy to test the full logic
-    intentInterpreter = new IntentInterpreterService(deviceRepo, sceneRepo, roomRepo);
+    intentInterpreter = new IntentInterpreterService(deviceRepo, sceneRepo, roomRepo, new AssistantMultiCommandParser(deviceRepo, roomRepo));
     confirmationPolicy = new AssistantConfirmationPolicy(sceneRepo, deviceRepo);
     
     sceneExecutionService = { execute: jest.fn().mockResolvedValue({ status: 'success', actions: [] }) };

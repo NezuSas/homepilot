@@ -1,4 +1,5 @@
 import { IntentInterpreterService } from '../application/IntentInterpreterService';
+import { AssistantMultiCommandParser } from '../application/AssistantMultiCommandParser';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
 import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
@@ -67,7 +68,7 @@ describe('Feature: ejecución de solicitudes del asistente', () => {
     };
 
     const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
-    interpreter = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo);
+    interpreter = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo));
     sceneService = new SceneExecutionService(mockDispatcher, mockExecutionRepo);
   });
 

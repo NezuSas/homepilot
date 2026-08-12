@@ -14,17 +14,15 @@ import { isDiagnosticLoggingEnabled } from '../../shared/config/runtimeEnvironme
  * Uses repositories to resolve entities by keywords/name.
  */
 export class IntentInterpreterService implements IntentInterpreterPort {
-  private multiCommandParser: AssistantMultiCommandParser;
 
   constructor(
     private readonly deviceRepository: DeviceRepository,
     private readonly sceneRepository: SceneRepository,
     private readonly roomRepository: RoomRepository,
+    private readonly multiCommandParser: AssistantMultiCommandParser,
     private readonly llmInterpreter?: LlmIntentInterpreterPort,
     private readonly memoryService?: AssistantMemoryPort
-  ) {
-    this.multiCommandParser = new AssistantMultiCommandParser(this.deviceRepository, this.roomRepository);
-  }
+  ) {}
 
   public async interpret(prompt: string): Promise<Intent | AssistantMultiCommandResult> {
     const t0 = Date.now();
