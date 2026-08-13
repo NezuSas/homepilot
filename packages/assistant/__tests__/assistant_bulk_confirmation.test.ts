@@ -76,7 +76,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
   it('recognizes an infinitive bulk shortcut and requires confirmation', async () => {
     mockMemory.getShortTermMemory.mockResolvedValue(null);
     mockDeviceRepo.findAll.mockResolvedValue([
-      createTestDevice({ id: 'd1', name: 'Luz Sala', homeId: 'h1', type: 'light' })
+      createTestDevice({ id: 'd1', name: 'Luz Sala', homeId: 'h1', type: 'light', lastKnownState: { on: true } })
     ]);
 
     const res = await service.converse({ prompt: 'Apagar todo', userId: 'u1' }, 'es');
@@ -85,6 +85,23 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(res.message).toContain('¿Confirmas');
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['d1'] })
+    }));
+    expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
+  });
+  it('understands a conversational whole-house command and only targets devices that need to turn off', async () => {
+    mockMemory.getShortTermMemory.mockResolvedValue(null);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'on-light', name: 'Luz Sala', homeId: 'h1', type: 'light', lastKnownState: { on: true } }),
+      createTestDevice({ id: 'off-light', name: 'Luz Cocina', homeId: 'h1', type: 'light', lastKnownState: { on: false } }),
+      createTestDevice({ id: 'unknown-light', name: 'Luz Patio', homeId: 'h1', type: 'light', lastKnownState: null })
+    ]);
+
+    const res = await service.converse({ prompt: '¿Podrías apagar todas las luces de toda la casa, por favor?', userId: 'u1' }, 'es');
+
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('1 luces');
+    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+      pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['on-light'] })
     }));
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
@@ -257,7 +274,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     it('triggers bulk confirmation for "apaga todas las luces" without calling shadow', async () => {
       const lights = [
-        createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light' })
+        createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light', lastKnownState: { on: true } })
       ];
       mockDeviceRepo.findAll.mockResolvedValue(lights);
       mockMemory.getShortTermMemory.mockResolvedValue(null);

@@ -1160,11 +1160,17 @@ export class AssistantConversationService {
       return false;
     }
 
-    if (bulkType === 'lights') {
-      return this.isLightEntity(device);
-    }
+    if (bulkType === 'lights' && !this.isLightEntity(device)) return false;
 
     return true;
+  }
+
+  private requiresBulkStateChange(device: Device, command: DeviceCommandV1): boolean {
+    const state = device.lastKnownState;
+    const isOn = state?.on === true || state?.state === 'on' || state?.power === 'on';
+    const isOff = state?.on === false || state?.state === 'off' || state?.power === 'off';
+
+    return command === 'turn_off' ? isOn : command === 'turn_on' ? isOff : false;
   }
 
   private isControllableDevice(device: Device, command: DeviceCommandV1): boolean {
@@ -3895,51 +3901,32 @@ export class AssistantConversationService {
   }
 
   private isBulkFastPath(normalized: string): { command: 'turn_on' | 'turn_off', bulkType: 'all' | 'lights' } | null {
-    // Exclusion syntax must go through multi-command parser, not bulk fast-path
+    // Exclusion syntax must go through multi-command parser, not bulk fast-path.
     const exclusionWords = ['menos', 'excepto', 'salvo', 'except', 'minus'];
-    if (exclusionWords.some(w => normalized.includes(w))) return null;
+    if (exclusionWords.some(word => normalized.includes(word))) return null;
 
-    const lightsTriggers = [
-      'enciende todas las luces',
-      'prende todas las luces',
-      'apaga todas las luces',
-      'apagar todas las luces',
-      'encender todas las luces',
-      'turn on all lights',
-      'turn off all lights',
-    ];
-    const allTriggers = [
-      'apaga todo',
-      'apagar todo',
-      'deja todo apagado',
-      'prende todo',
-      'enciende todo',
-      'encender todo',
-      'deja todo encendido',
-      'turn off everything',
-      'turn on everything',
-      'turn everything off',
-      'turn everything on'
-    ];
+    const offVerbs = ['apaga', 'apagar', 'apagues', 'apaguen', 'desactiva', 'desactivar', 'desactives', 'desconecta', 'desconectar'];
+    const onVerbs = ['prende', 'prender', 'prendas', 'enciende', 'encender', 'enciendas', 'activa', 'activar', 'actives'];
+    const words = normalized.split(' ');
+    const hasOffCommand = offVerbs.some(verb => words.includes(verb)) || /\\bturn off\\b/.test(normalized);
+    const hasOnCommand = onVerbs.some(verb => words.includes(verb)) || /\\bturn on\\b/.test(normalized);
+    if (hasOffCommand === hasOnCommand) return null;
 
-    const isOff = normalized.includes('apaga') || normalized.includes('apagar') || normalized.includes('turn off') || normalized.includes('off');
-    const command = isOff ? 'turn_off' : 'turn_on';
+    const hasGlobalScope = /\b(todo|everything)\b|\btoda la casa\b|\bcasa (completa|entera)\b|\bhogar (completo|entero)\b|\bwhole house\b/.test(normalized);
+    const targetsLights = /\b(luz|luces|iluminacion|lampara|lamparas|light|lights)\b/.test(normalized);
+    const targetsAllLights = /\btodas? las luces\b|\ball (the )?lights\b/.test(normalized);
+    if (!hasGlobalScope && !targetsAllLights) return null;
 
-    if (lightsTriggers.some(t => normalized.includes(t))) {
-      return { command, bulkType: 'lights' };
-    }
-    if (allTriggers.some(t => normalized.includes(t))) {
-      return { command, bulkType: 'all' };
-    }
-
-    return null;
+    return {
+      command: hasOffCommand ? 'turn_off' : 'turn_on',
+      bulkType: targetsLights ? 'lights' : 'all'
+    };
   }
-
   private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string, interactionMode: 'chat' | 'voice' = 'chat'): Promise<AssistantConversationResponse | null> {
     const allDevices = await this.deviceRepository.findAll();
 
     const targetDevices = allDevices.filter(d => {
-      return this.isControllableForBulk(d, command, bulkType);
+      return this.isControllableForBulk(d, command, bulkType) && this.requiresBulkStateChange(d, command);
     });
 
     if (targetDevices.length === 0) {

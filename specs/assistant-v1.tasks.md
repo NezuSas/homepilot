@@ -31,3 +31,4 @@
 - [x] Eliminar prompt, respuesta e identidad de los registros del planificador en sombra.
 - [x] Verificar autorización del hogar antes de ejecutar dispositivos, escenas, atajos y reintentos conversacionales.
 - [x] Reconocer atajos masivos en imperativo e infinitivo sin pasar por el modelo local.
+- [x] Limitar confirmaciones masivas a dispositivos cuyo estado actual requiere la transición solicitada.

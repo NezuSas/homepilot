@@ -106,6 +106,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - La interfaz no envía nombre de usuario ni confirmaciones; ambos datos se determinan exclusivamente en el servidor.
 - El intérprete local de lenguaje natural usa el mismo modelo configurado para el planificador y un presupuesto de latencia acotado para conversación; no bloquea acciones deterministas.
 - Los atajos y órdenes deterministas aceptan formas naturales equivalentes, incluidos infinitivo e imperativo, antes de consultar al modelo.
+- Las órdenes masivas seleccionan solamente dispositivos con estado conocido que requieren transición: apagar incluye los encendidos y encender incluye los apagados.
 - Ningún campo enviado por el cliente puede confirmar una acción. Una confirmación sólo es válida cuando corresponde a una intención pendiente del mismo usuario y se procesa mediante una respuesta positiva (`confirm` o lenguaje natural equivalente).
 - Cada hallazgo incorpora el `homeId` que produjo su detección. Listados, resumen, resolución, descarte y acciones sólo operan sobre hogares pertenecientes al usuario autenticado. Los comandos de dispositivos y la ejecución de escenas validan el mismo hogar antes de despacharse.
 - Las acciones administrativas sobre hallazgos exigen el rol `parent` o superior; el estado y las métricas del planificador en sombra exigen `admin`.

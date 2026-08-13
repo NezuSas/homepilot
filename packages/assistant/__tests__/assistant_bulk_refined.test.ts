@@ -103,7 +103,10 @@ describe('Assistant Bulk Refined Semantics', () => {
   });
 
   it('global "apaga todo" uses "dispositivos" terminology', async () => {
-    mockDeviceRepo.findAll.mockResolvedValue([light1, switchEscritorio]);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      { ...light1, lastKnownState: { on: true } },
+      { ...switchEscritorio, lastKnownState: { on: true } }
+    ]);
     
     const res = await service.converse({ prompt: 'apaga todo', userId: 'u1' }, 'es');
 
@@ -113,7 +116,10 @@ describe('Assistant Bulk Refined Semantics', () => {
   });
 
   it('global "apaga todas las luces" uses "luces" terminology', async () => {
-    mockDeviceRepo.findAll.mockResolvedValue([light1, switchEscritorio]);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      { ...light1, lastKnownState: { on: true } },
+      { ...switchEscritorio, lastKnownState: { on: true } }
+    ]);
     
     const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
 
