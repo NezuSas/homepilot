@@ -3908,8 +3908,12 @@ export class AssistantConversationService {
     const offVerbs = ['apaga', 'apagar', 'apagues', 'apaguen', 'desactiva', 'desactivar', 'desactives', 'desconecta', 'desconectar'];
     const onVerbs = ['prende', 'prender', 'prendas', 'enciende', 'encender', 'enciendas', 'activa', 'activar', 'actives'];
     const words = normalized.split(' ');
-    const hasOffCommand = offVerbs.some(verb => words.includes(verb)) || /\\bturn off\\b/.test(normalized);
-    const hasOnCommand = onVerbs.some(verb => words.includes(verb)) || /\\bturn on\\b/.test(normalized);
+    const hasPassiveOffRequest = /^(apagado|apagada|apagados|apagadas)\s+(todo|todas? las luces)\b/.test(normalized)
+      || /^(deja|dejes|dejar|mantiene|mantener)\s+.*\bapagadas?\b/.test(normalized);
+    const hasPassiveOnRequest = /^(encendido|encendida|encendidos|encendidas)\s+(todo|todas? las luces)\b/.test(normalized)
+      || /^(deja|dejes|dejar|mantiene|mantener)\s+.*\bencendidas?\b/.test(normalized);
+    const hasOffCommand = offVerbs.some(verb => words.includes(verb)) || hasPassiveOffRequest || /\bturn off\b/.test(normalized);
+    const hasOnCommand = onVerbs.some(verb => words.includes(verb)) || hasPassiveOnRequest || /\bturn on\b/.test(normalized);
     if (hasOffCommand === hasOnCommand) return null;
 
     const hasGlobalScope = /\b(todo|everything)\b|\btoda la casa\b|\bcasa (completa|entera)\b|\bhogar (completo|entero)\b|\bwhole house\b/.test(normalized);

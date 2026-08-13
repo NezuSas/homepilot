@@ -105,6 +105,22 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     }));
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
+  it('understands an invoked elliptical whole-house shutdown without waiting for the model', async () => {
+    mockMemory.getShortTermMemory.mockResolvedValue(null);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'on-light', name: 'Luz Sala', homeId: 'h1', type: 'light', lastKnownState: { on: true } }),
+      createTestDevice({ id: 'off-light', name: 'Luz Cocina', homeId: 'h1', type: 'light', lastKnownState: { on: false } })
+    ]);
+
+    const res = await service.converse({ prompt: 'HomePilot, apagado todo', userId: 'u1' }, 'es');
+
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('1 dispositivos');
+    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+      pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['on-light'] })
+    }));
+    expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
+  });
   it('triggers confirmation when multiple devices are resolved', async () => {
     mockShadowService.attemptHybridExecution.mockResolvedValue({
       command: 'turn_on',

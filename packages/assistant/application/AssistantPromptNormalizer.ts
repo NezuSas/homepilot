@@ -44,7 +44,7 @@ export function normalizeAssistantPrompt(prompt: string): string {
 
     // Strip conversational wrappers so intent matching works on the core request.
     const politePrefixes = [
-      'oye ', 'ok ',
+      'oye ', 'ok ', 'homepilot ', 'home pilot ', 'jarvis ',
       'puedes ', 'puede ', 'podrias ', 'podria ', 'me puedes ', 'me podrias ',
       'me ayudas a ', 'me ayudas ', 'ayudame a ', 'ayudame ',
       'quiero que ', 'quisiera que ', 'necesito que ', 'haz que ', 'haz ',
