@@ -156,7 +156,7 @@ export const AuditLogsView: React.FC = () => {
                   <span className="text-label font-mono font-bold">{new Date(log.timestamp).toLocaleTimeString()}</span>
                </div>
                <div className={cn(
-                 "rounded-control border px-1.5 py-0.5 text-micro font-semibold uppercase leading-none tracking-control self-start",
+                 "rounded-control border px-1.5 py-0.5 text-nano font-medium uppercase leading-none tracking-micro self-start",
                  log.type.includes('FAILED') ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/5 text-primary border-primary/10"
                )}>
                  {mapActivityType(log.type, t)}

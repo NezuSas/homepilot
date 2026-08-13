@@ -13,6 +13,7 @@ import {
   AssistantSpeechToTextValidationError
 } from '../../../packages/assistant/application/AssistantSpeechToTextService';
 import { sanitizeAssistantResponse } from '../../../packages/assistant/application/AssistantResponseSanitizer';
+import { SingleHomeInstallationError } from '../../../packages/topology/domain/errors';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -30,7 +31,17 @@ export class AssistantRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
-    const authorizedHomeIds = (await container.repositories.homeRepository.findHomesByUserId(req.user!.id)).map((home) => home.id);
+    let authorizedHomeIds: string[];
+    try {
+      authorizedHomeIds = (await container.repositories.homeRepository.findHomesByUserId(req.user!.id)).map((home) => home.id);
+    } catch (error: unknown) {
+      if (error instanceof SingleHomeInstallationError) {
+        this.sendError(res, 409, 'SINGLE_HOME_INSTALLATION', error.message);
+      } else {
+        this.sendError(res, 500, 'ASSISTANT_AUTHORIZATION_ERROR', error instanceof Error ? error.message : String(error));
+      }
+      return true;
+    }
 
     // GET /api/v1/assistant/shadow/status
     if (method === 'GET' && pathname === '/api/v1/assistant/shadow/status') {
@@ -233,6 +244,10 @@ export class AssistantRoutes extends ApiRoutes {
 
   private sendAssistantError(res: http.ServerResponse, error: unknown, fallbackCode: string = 'ASSISTANT_ERROR'): void {
     const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof SingleHomeInstallationError) {
+      this.sendError(res, 409, 'SINGLE_HOME_INSTALLATION', message);
+      return;
+    }
     if (message === 'ASSISTANT_FINDING_FORBIDDEN' || message === 'ASSISTANT_HOME_FORBIDDEN' || message === 'ASSISTANT_AUTHORIZATION_UNAVAILABLE') {
       this.sendError(res, 403, 'FORBIDDEN', 'No tienes acceso a este hallazgo del asistente.');
       return;

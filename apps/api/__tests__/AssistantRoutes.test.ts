@@ -3,6 +3,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { AssistantSpeechToTextUnavailableError } from '../../../packages/assistant/application/AssistantSpeechToTextService';
+import { SingleHomeInstallationError } from '../../../packages/topology/domain/errors';
 
 describe('Feature: Local assistant speech transport', () => {
   let routes: AssistantRoutes;
@@ -37,6 +38,7 @@ describe('Feature: Local assistant speech transport', () => {
     };
     mockContainer = {
       services: {
+        assistantService: { getSummary: jest.fn().mockResolvedValue({ totalOpen: 0, bySeverity: {}, byType: {} }) },
         assistantConversationService: mockAssistantConversationService,
         assistantTextToSpeechService: mockAssistantTextToSpeechService,
         assistantSpeechToTextService: mockAssistantSpeechToTextService
@@ -61,6 +63,14 @@ describe('Feature: Local assistant speech transport', () => {
     };
   });
 
+  it('GET /api/v1/assistant/summary returns an explicit installation error when legacy homes are duplicated', async () => {
+    (mockContainer.repositories as any).homeRepository.findHomesByUserId.mockRejectedValue(new SingleHomeInstallationError());
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/summary', 'GET', mockContainer as BootstrapContainer);
+
+    expect(mockRes.writeHead).toHaveBeenCalledWith(409, { 'Content-Type': 'application/json' });
+    expect(mockRes.end).toHaveBeenCalledWith(expect.stringContaining('SINGLE_HOME_INSTALLATION'));
+  });
   it('POST /api/v1/assistant/converse passes sourceRoomId to service', async () => {
     const body = { prompt: 'prende la luz', sourceRoomId: 'r1' };
     (mockReq as any)._fastifyParsedBody = JSON.stringify(body);

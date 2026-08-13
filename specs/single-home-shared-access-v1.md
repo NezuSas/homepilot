@@ -15,6 +15,7 @@ HomePilot Edge representa una única instalación física: una miniPC controla u
 - Las rutas administrativas mantienen su guardia de rol `admin`; los roles no administrativos no obtienen permisos para crear, editar o eliminar topología, dispositivos, escenas o rutinas.
 - La API rechaza crear un segundo hogar en la misma instalación.
 - La vista de topología no expone una acción para crear hogares adicionales; el alta inicial permanece disponible únicamente para el aprovisionamiento de una instalación vacía.
+- Una migración identificada y transaccional elimina únicamente el hogar histórico retirado d2765cc0-b139-4582-883e-ffe4613adf14 si el hogar operativo local-home está presente; sus datos dependientes dejan de formar parte de la instalación.
 
 ## Fuera de alcance
 
@@ -29,6 +30,7 @@ HomePilot Edge representa una única instalación física: una miniPC controla u
 - [x] AC4: si la base contiene más de un hogar, las operaciones de hogar compartido fallan cerradas con un error explícito; no se mezclan hogares.
 - [x] AC5: las acciones de administración de topología, dispositivos, escenas y automatizaciones continúan exigiendo el rol `admin`.
 - [x] AC6: con un hogar existente, la interfaz no muestra un campo ni una acción para crear otro hogar.
+- [x] AC7: la instalación afectada conserva local-home y elimina de forma atómica el hogar retirado y sus datos dependientes.
 
 ## Notas de seguridad
 

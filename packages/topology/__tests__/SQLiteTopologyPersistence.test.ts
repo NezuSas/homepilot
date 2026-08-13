@@ -116,6 +116,37 @@ describe('SQLite Topology Persistence Integration', () => {
     }));
   });
 
+  it('consolida la instalación Nezu retirando únicamente el hogar histórico autorizado', () => {
+    const migrationDbPath = path.join(__dirname, `test-single-home-repair-${randomUUID()}.db`);
+    const migrationDb = SqliteDatabaseManager.getInstance(migrationDbPath, false);
+    const migrationsDir = path.join(__dirname, '../../../migrations');
+    const migrationRunner = new SqliteMigrationsRunner(migrationDb);
+    const migrationFiles = fs.readdirSync(migrationsDir).filter((file) => file.endsWith('.sql') && file < '026_remove_retired_nezu_office_home.sql').sort();
+
+    for (const file of migrationFiles) {
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+      migrationDb.exec(sql);
+      migrationDb.prepare('CREATE TABLE IF NOT EXISTS _migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)').run();
+      migrationDb.prepare('INSERT OR IGNORE INTO _migrations (name) VALUES (?)').run(file);
+    }
+
+    migrationDb.prepare('INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)')
+      .run('local-home', 'admin', 'Oficina', '2026-06-26T01:08:46.930Z', '2026-06-26T01:08:46.930Z');
+    migrationDb.prepare('INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)')
+      .run('d2765cc0-b139-4582-883e-ffe4613adf14', 'admin', 'Nezu Oficina🇪🇨', '2026-06-30T00:39:12.240Z', '2026-06-30T00:39:12.240Z');
+    migrationDb.prepare('INSERT INTO devices (id, home_id, room_id, external_id, name, type, vendor, status, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)')
+      .run('active-device', 'local-home', 'active-external', 'Activo', 'light', 'test', 'ASSIGNED', '2026-06-26T01:08:46.930Z', '2026-06-26T01:08:46.930Z');
+    migrationDb.prepare('INSERT INTO devices (id, home_id, room_id, external_id, name, type, vendor, status, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)')
+      .run('retired-device', 'd2765cc0-b139-4582-883e-ffe4613adf14', 'retired-external', 'Retirado', 'light', 'test', 'ASSIGNED', '2026-06-30T00:39:12.240Z', '2026-06-30T00:39:12.240Z');
+
+    migrationRunner.run(migrationsDir);
+
+    expect(migrationDb.prepare('SELECT id FROM homes ORDER BY id').all()).toEqual([{ id: 'local-home' }]);
+    expect(migrationDb.prepare('SELECT id FROM devices ORDER BY id').all()).toEqual([{ id: 'active-device' }]);
+
+    SqliteDatabaseManager.close(migrationDbPath);
+    fs.unlinkSync(migrationDbPath);
+  });
   it('debe filtrar dashboards por usuario sin bypass automático por rol admin', async () => {
     const now = new Date().toISOString();
     const dashboard: Dashboard = {
