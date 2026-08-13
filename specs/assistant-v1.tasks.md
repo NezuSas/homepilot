@@ -30,3 +30,4 @@
 - [x] Limitar acciones administrativas y telemetría del planificador por rol.
 - [x] Eliminar prompt, respuesta e identidad de los registros del planificador en sombra.
 - [x] Verificar autorización del hogar antes de ejecutar dispositivos, escenas, atajos y reintentos conversacionales.
+- [x] Reconocer atajos masivos en imperativo e infinitivo sin pasar por el modelo local.

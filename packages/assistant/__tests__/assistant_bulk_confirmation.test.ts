@@ -73,6 +73,21 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     delete process.env.ASSISTANT_PLANNER_V2_EXECUTION;
   });
 
+  it('recognizes an infinitive bulk shortcut and requires confirmation', async () => {
+    mockMemory.getShortTermMemory.mockResolvedValue(null);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'd1', name: 'Luz Sala', homeId: 'h1', type: 'light' })
+    ]);
+
+    const res = await service.converse({ prompt: 'Apagar todo', userId: 'u1' }, 'es');
+
+    expect(res.type).toBe('clarification');
+    expect(res.message).toContain('¿Confirmas');
+    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
+      pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['d1'] })
+    }));
+    expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
+  });
   it('triggers confirmation when multiple devices are resolved', async () => {
     mockShadowService.attemptHybridExecution.mockResolvedValue({
       command: 'turn_on',

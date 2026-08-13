@@ -3903,20 +3903,26 @@ export class AssistantConversationService {
       'enciende todas las luces',
       'prende todas las luces',
       'apaga todas las luces',
+      'apagar todas las luces',
+      'encender todas las luces',
       'turn on all lights',
       'turn off all lights',
     ];
     const allTriggers = [
       'apaga todo',
+      'apagar todo',
+      'deja todo apagado',
       'prende todo',
       'enciende todo',
+      'encender todo',
+      'deja todo encendido',
       'turn off everything',
       'turn on everything',
       'turn everything off',
       'turn everything on'
     ];
 
-    const isOff = normalized.includes('apaga') || normalized.includes('turn off') || normalized.includes('off');
+    const isOff = normalized.includes('apaga') || normalized.includes('apagar') || normalized.includes('turn off') || normalized.includes('off');
     const command = isOff ? 'turn_off' : 'turn_on';
 
     if (lightsTriggers.some(t => normalized.includes(t))) {
