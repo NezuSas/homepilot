@@ -136,6 +136,9 @@ describe('Assistant Bulk Response UX', () => {
     expect(res.message).toContain('• Luz d2: Offline');
     expect(res.message).not.toContain('Luz d1');
     expect(res.message).not.toContain('Luz d3');
+    // A mix of success and failure must be 'partial', not 'failed' — otherwise the
+    // UI shows the red "could not complete" pill for a run that mostly succeeded.
+    expect(res.execution?.status).toBe('partial');
   });
 
   it('formats total failure as bullet list', async () => {
@@ -150,5 +153,6 @@ describe('Assistant Bulk Response UX', () => {
     expect(res.message).toContain('No pude ejecutar ninguna acción:');
     expect(res.message).toContain('• Luz d1: Timeout');
     expect(res.message).toContain('• Luz d2: Timeout');
+    expect(res.execution?.status).toBe('failed');
   });
 });

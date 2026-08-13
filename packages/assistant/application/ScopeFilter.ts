@@ -16,6 +16,10 @@ import { normalizeAssistantPrompt } from './AssistantPromptNormalizer';
  */
 export class ScopeFilter {
   public isDeviceAvailable(device: Device): boolean {
+    // A PENDING device sits unassigned in the Inbox (freshly discovered, never
+    // placed in a room) — it isn't a real, working part of the home yet and must
+    // never be swept into a bulk action just because it matches a category/room.
+    if (device.status !== 'ASSIGNED') return false;
     return device.lastKnownState?.state !== 'unavailable';
   }
 

@@ -9,6 +9,16 @@ describe('ScopeFilter', () => {
     expect(scopeFilter.isDeviceAvailable(createTestDevice({ lastKnownState: { state: 'unavailable' } }))).toBe(false);
   });
 
+  it('excludes PENDING (Inbox, never assigned to a room) devices from availability', () => {
+    // A freshly-discovered device sitting in the Inbox isn't a real, working part
+    // of the home yet — it must never be swept into a bulk action just because it
+    // happens to match a category/room, even if its lastKnownState looks fine.
+    expect(scopeFilter.isDeviceAvailable(createTestDevice({ status: 'PENDING', lastKnownState: { on: true } }))).toBe(false);
+    expect(scopeFilter.isDeviceAvailable(createTestDevice({ status: 'ASSIGNED', lastKnownState: { on: true } }))).toBe(true);
+    expect(scopeFilter.isControllableForBulk(createTestDevice({ status: 'PENDING', type: 'light' }), 'turn_off', 'all')).toBe(false);
+    expect(scopeFilter.isControllableDevice(createTestDevice({ status: 'PENDING', type: 'light' }), 'turn_on')).toBe(false);
+  });
+
   it('supports turn_on/turn_off/toggle for known controllable types', () => {
     const light = createTestDevice({ type: 'light' });
     expect(scopeFilter.supportsCommand(light, 'turn_on')).toBe(true);

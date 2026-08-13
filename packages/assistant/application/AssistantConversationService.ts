@@ -852,7 +852,7 @@ export class AssistantConversationService {
           message,
           execution: {
             sceneId: 'multi_command',
-            status: failures.length === 0 ? 'success' : 'failed',
+            status: failures.length === 0 ? 'success' : (failures.length === results.length ? 'failed' : 'partial'),
             actions: results.flatMap(r => r.result.actions)
           }
         }, userId, language, memory, 'multi_command');
@@ -2050,7 +2050,11 @@ export class AssistantConversationService {
       message: summary,
       execution: {
         sceneId: 'bulk_action',
-        status: results.every(r => r.result.status === 'success') ? 'success' : 'failed',
+        status: (() => {
+          const successCount = results.filter(r => r.result.status === 'success').length;
+          if (successCount === results.length) return 'success';
+          return successCount === 0 ? 'failed' : 'partial';
+        })(),
         actions: results.flatMap(r => r.result.actions)
       }
     }, userId, language, memory, 'multi_command');

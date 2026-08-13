@@ -278,5 +278,31 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Ejecuté 1 de 2 acciones correctamente.');
     expect(res.message).toContain('• d2: Device unreachable');
+    // A mix of success and failure must report as 'partial', not 'failed' — otherwise
+    // the UI shows a red "could not complete" pill for a run that mostly worked.
+    expect(res.execution?.status).toBe('partial');
+  });
+
+  it('9. Total failure reports status "failed", not "partial"', async () => {
+    const userId = 'u1';
+    memory.getShortTermMemory.mockResolvedValue({
+      pendingIntent: {
+        type: 'multi_command',
+        prompt: 'test',
+        actions: [
+          { deviceId: 'd1', command: 'turn_on', targetName: 'Luz 1' }
+        ],
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date().toISOString(),
+      entities: []
+    });
+
+    deviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(createTestDevice({ id, name: id })));
+    service['executeSingleCommand'] = jest.fn().mockResolvedValue({ status: 'failed', actions: [{ error: 'fetch failed' }] });
+
+    const res = await service.converse({ prompt: 'sí', userId });
+    expect(res.type).toBe('execution');
+    expect(res.execution?.status).toBe('failed');
   });
 });

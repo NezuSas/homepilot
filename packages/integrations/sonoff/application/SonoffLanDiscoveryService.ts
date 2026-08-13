@@ -19,9 +19,14 @@ export interface SonoffLanDiscoveryServiceDependencies {
 
 export class SonoffConnectionRegistry {
   private static readonly connections = new Map<string, { ip: string, lastSeen: number }>();
+  private static readonly failureCounts = new Map<string, number>();
+
+  /** Consecutive failed poll probes (~30s apart) before a device is marked unavailable. */
+  static readonly UNAVAILABLE_THRESHOLD = 3;
 
   static registerIp(externalIdMatch: string, ip: string): void {
     this.connections.set(externalIdMatch, { ip, lastSeen: Date.now() });
+    this.failureCounts.delete(externalIdMatch);
   }
 
   static getIp(externalIdMatch: string): string | null {
@@ -30,6 +35,17 @@ export class SonoffConnectionRegistry {
 
   static getAllConnections(): Array<[string, { ip: string, lastSeen: number }]> {
     return Array.from(this.connections.entries());
+  }
+
+  /** Returns the new consecutive-failure count after recording one more failed probe. */
+  static recordPollFailure(externalIdMatch: string): number {
+    const next = (this.failureCounts.get(externalIdMatch) ?? 0) + 1;
+    this.failureCounts.set(externalIdMatch, next);
+    return next;
+  }
+
+  static resetPollFailures(externalIdMatch: string): void {
+    this.failureCounts.delete(externalIdMatch);
   }
 }
 
@@ -124,10 +140,10 @@ export class SonoffLanDiscoveryService {
     if (!this.deps.syncDeps) return;
 
     for (const [externalIdMatch, { ip }] of SonoffConnectionRegistry.getAllConnections()) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
         const url = `http://${ip}:8081/zeroconf/info`;
         const res = await fetch(url, { 
           method: 'POST', 
@@ -138,37 +154,64 @@ export class SonoffLanDiscoveryService {
           }),
           signal: controller.signal
         });
-        
-        clearTimeout(timeoutId);
+
+        // The fetch itself succeeded (no thrown network error), so the device is
+        // reachable on the LAN even if it returned a non-OK response — reset the
+        // failure streak that would otherwise mark it unavailable.
+        SonoffConnectionRegistry.resetPollFailures(externalIdMatch);
 
         if (!res.ok) continue;
 
         const infoBody = await res.json();
         const reportedSwitch = infoBody?.data?.switch;
-        
+
         if (typeof reportedSwitch === 'string') {
           const externalId = `sonoff:${externalIdMatch}`;
           const device = await this.deps.deviceRepository.findByExternalId(externalId);
           if (!device) continue;
 
           const currentStateOn = reportedSwitch === 'on';
-          const newState = { 
-            ...device.lastKnownState, 
-            on: currentStateOn, 
-            state: currentStateOn ? 'on' : 'off' 
+          const newState = {
+            ...device.lastKnownState,
+            on: currentStateOn,
+            state: currentStateOn ? 'on' : 'off'
           };
 
-          // Compare logic to avoid spamming the event bus if state hasn't changed
+          // Compare logic to avoid spamming the event bus if state hasn't changed.
+          // A device previously marked unavailable always needs the sync, even if
+          // its on/off value happens to match what it was before going offline —
+          // otherwise `state: 'unavailable'` would never get cleared.
           const wasOn = device.lastKnownState?.on === true || device.lastKnownState?.state === 'on';
-          if (wasOn !== currentStateOn) {
+          const wasMarkedUnavailable = device.lastKnownState?.state === 'unavailable';
+          if (wasOn !== currentStateOn || wasMarkedUnavailable) {
             await syncDeviceStateUseCase(device.id, newState, 'sonoff-lan-poll', this.deps.syncDeps);
             this.logInfo(`[Sonoff Sync] Estado actualizado via Polling para ${externalIdMatch}: ${reportedSwitch}`);
           }
         }
       } catch (e) {
-        // Silent generic catch for network unavailability during aggressive polling
+        // Network-level failure (timeout, connection refused, DHCP IP change, etc.):
+        // after a few consecutive misses, mark the device unavailable so bulk
+        // assistant actions ("apaga todo") stop trying to reach a device that
+        // consistently doesn't answer, instead of failing loudly every time.
+        const failureCount = SonoffConnectionRegistry.recordPollFailure(externalIdMatch);
+        if (failureCount >= SonoffConnectionRegistry.UNAVAILABLE_THRESHOLD) {
+          await this.markUnreachable(externalIdMatch);
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
+  }
+
+  private async markUnreachable(externalIdMatch: string): Promise<void> {
+    if (!this.deps.syncDeps) return;
+    const externalId = `sonoff:${externalIdMatch}`;
+    const device = await this.deps.deviceRepository.findByExternalId(externalId);
+    if (!device || device.lastKnownState?.state === 'unavailable') return;
+
+    const newState = { ...device.lastKnownState, state: 'unavailable' };
+    await syncDeviceStateUseCase(device.id, newState, 'sonoff-lan-poll', this.deps.syncDeps);
+    this.logInfo(`[Sonoff Sync] Dispositivo marcado no disponible tras fallos consecutivos: ${externalIdMatch}`);
   }
 
   private async getTargetHomeId(): Promise<string | null> {

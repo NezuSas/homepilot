@@ -196,7 +196,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     });
   });
 
-  it('8. unavailable lights are ignored', async () => {
+  it('8. unavailable and PENDING (unassigned/Inbox) lights are ignored', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Sala' });
     // d1 is unavailable
     const d1 = createTestDevice({ 
@@ -206,17 +206,25 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
       roomId: 'r1', 
       lastKnownState: { state: 'unavailable' }
     });
-    // d2 is available (even if status is not ASSIGNED, as long as it's not explicitly unavailable)
-    const d2 = createTestDevice({ 
-      id: 'd2', 
-      name: 'Luz 2', 
-      type: 'light', 
-      roomId: 'r1', 
+    // d2 is available: ASSIGNED and not explicitly unavailable
+    const d2 = createTestDevice({
+      id: 'd2',
+      name: 'Luz 2',
+      type: 'light',
+      roomId: 'r1'
+    });
+    // d3 is PENDING (still sitting in the Inbox, never assigned to a room by the
+    // user) — must also be ignored, same as an explicitly unavailable device.
+    const d3 = createTestDevice({
+      id: 'd3',
+      name: 'Luz 3',
+      type: 'light',
+      roomId: 'r1',
       status: 'PENDING'
     });
-    
+
     mockRoomRepo.findAll.mockResolvedValue([room]);
-    mockDeviceRepo.findAll.mockResolvedValue([d1, d2]);
+    mockDeviceRepo.findAll.mockResolvedValue([d1, d2, d3]);
     mockMemory.getAliases.mockResolvedValue({});
     mockMemory.getShortTermMemory.mockResolvedValue(null);
     mockMemory.getUserPreference.mockResolvedValue(null);
