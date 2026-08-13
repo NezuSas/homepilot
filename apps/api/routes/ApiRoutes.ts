@@ -34,6 +34,7 @@ const SAFE_MESSAGES: Record<string, string> = {
   'ASSISTANT_TTS_ERROR': 'No se pudo generar la respuesta hablada.',
   'STT_UNAVAILABLE': 'La transcripción de voz local no está disponible.',
   'HOME_NOT_FOUND': 'Hogar no encontrado.',
+  'SINGLE_HOME_INSTALLATION': 'La instalación debe tener exactamente un hogar configurado.',
   'HA_ENTITY_NOT_FOUND': 'Entidad de Home Assistant no encontrada.',
   'CAMERA_UNAVAILABLE': 'La camara no esta disponible en este momento.',
   'CAMERA_MEDIA_ERROR': 'No se pudo obtener el video de la camara.',
@@ -64,6 +65,7 @@ const DEFAULT_STATUS_CODES: Record<string, number> = {
   'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 400,
   'DASHBOARD_NOT_FOUND': 404,
   'DASHBOARD_REVISION_NOT_FOUND': 404,
+  'SINGLE_HOME_INSTALLATION': 409,
 };
 
 /**

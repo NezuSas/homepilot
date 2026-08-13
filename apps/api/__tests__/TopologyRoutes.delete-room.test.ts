@@ -62,15 +62,15 @@ describe('TopologyRoutes - delete room', () => {
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('"unassignedDevices":1'));
   });
 
-  it('BDD AC9: rejects a non-owner without changing the room or its devices', async () => {
+  it('BDD AC9: allows another active user on the shared home to delete a room', async () => {
     const response = createResponse();
     const foreignRequest = { user: { id: 'other-owner' }, headers: {} } as unknown as HomePilotRequest;
     await routes.handle(foreignRequest, response, '/api/v1/rooms/room-1', 'DELETE', createContainer());
 
     const db = SqliteDatabaseManager.getInstance(dbPath, false);
-    expect(db.prepare('SELECT id FROM rooms WHERE id = ?').get('room-1')).toBeDefined();
-    expect(db.prepare('SELECT room_id FROM devices WHERE id = ?').get('device-1')).toEqual({ room_id: 'room-1' });
-    expect(response.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(db.prepare('SELECT id FROM rooms WHERE id = ?').get('room-1')).toBeUndefined();
+    expect(db.prepare('SELECT room_id FROM devices WHERE id = ?').get('device-1')).toEqual({ room_id: null });
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
   });
 
   it('BDD AC8: reports a missing room without changing persisted devices', async () => {

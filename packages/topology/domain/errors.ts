@@ -47,3 +47,14 @@ export class InvalidHomeIdError extends TopologyDomainError {
     this.name = 'InvalidHomeIdError';
   }
 }
+
+/**
+ * La instalación Edge debe contener a lo sumo un hogar. Se falla cerrada para
+ * evitar que una base configurada incorrectamente mezcle datos de clientes.
+ */
+export class SingleHomeInstallationError extends TopologyDomainError {
+  constructor() {
+    super('HomePilot Edge supports exactly one home per installation.');
+    this.name = 'SingleHomeInstallationError';
+  }
+}

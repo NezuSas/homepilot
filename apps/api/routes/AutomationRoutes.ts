@@ -38,7 +38,8 @@ export class AutomationRoutes extends ApiRoutes {
       validateHomeOwnership: async (homeId, userId) => {
         const home = await container.repositories.homeRepository.findHomeById(homeId);
         if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
-        if (home.ownerId !== userId) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
+        const homes = await container.repositories.homeRepository.findHomesByUserId(userId);
+        if (homes[0]?.id !== home.id) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
       },
       validateRoomBelongsToHome: async (roomId, homeId) => {
         const room = await container.repositories.roomRepository.findRoomById(roomId);

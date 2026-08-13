@@ -1,4 +1,5 @@
 import { InMemoryHomeRepository, InMemoryRoomRepository } from '../infrastructure/repositories';
+import { SingleHomeInstallationError } from '../domain/errors';
 import { InMemoryEventPublisher } from '../domain/events/InMemoryEventPublisher';
 import { HomeCreatedEvent } from '../domain/events/types';
 
@@ -8,9 +9,7 @@ describe('Topology Infrastructure Adapters', () => {
     await repo.saveHome({ id: 'h1', ownerId: 'u1', name: 'H1', entityVersion: 1, createdAt: '', updatedAt: '' });
     await repo.saveHome({ id: 'h2', ownerId: 'u2', name: 'H2', entityVersion: 1, createdAt: '', updatedAt: '' });
     
-    const user1Homes = await repo.findHomesByUserId('u1');
-    expect(user1Homes.length).toBe(1);
-    expect(user1Homes[0].id).toBe('h1');
+    await expect(repo.findHomesByUserId('u1')).rejects.toBeInstanceOf(SingleHomeInstallationError);
   });
 
   it('InMemoryRoomRepository almacena y enlaza relacionalmente rooms', async () => {

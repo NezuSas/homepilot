@@ -31,8 +31,9 @@ export class SceneRoutes extends ApiRoutes {
           if (homes.length > 0) homeId = homes[0].id;
         } else {
           const home = await container.repositories.homeRepository.findHomeById(homeId);
-          if (!home || home.ownerId !== req.user!.id) {
-            return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+          const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+          if (!home || homes[0]?.id !== home.id) {
+            return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to this installation'), true;
           }
         }
         if (!homeId) return this.sendJson(res, []), true;
@@ -63,8 +64,9 @@ export class SceneRoutes extends ApiRoutes {
 
         const home = await container.repositories.homeRepository.findHomeById(payload.homeId);
         if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
-        if (home.ownerId !== req.user!.id) {
-          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (homes[0]?.id !== home.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to this installation'), true;
         }
         if (payload.actions.length === 0) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'At least one scene action is required'), true;

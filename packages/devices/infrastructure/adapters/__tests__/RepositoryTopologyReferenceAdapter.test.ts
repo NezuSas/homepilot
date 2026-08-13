@@ -10,7 +10,7 @@ function repositories(homeExists = true, roomHomeId: string | null = 'home-1'): 
   return {
     homeRepository: {
       saveHome: jest.fn(),
-      findHomesByUserId: jest.fn(),
+      findHomesByUserId: jest.fn().mockResolvedValue(homeExists ? [{ id: 'home-1', ownerId: 'owner-1' }] : []),
       findHomeById: jest.fn().mockResolvedValue(homeExists ? { id: 'home-1', ownerId: 'owner-1' } : null),
       findAll: jest.fn(),
     },
@@ -42,7 +42,7 @@ describe('Feature: Repository topology reference adapter', () => {
   it('Scenario: Given a foreign home or room When a topology reference is validated Then the adapter rejects access', async () => {
     const foreignHome = repositories();
     const ownershipAdapter = new RepositoryTopologyReferenceAdapter(foreignHome.homeRepository, foreignHome.roomRepository);
-    await expect(ownershipAdapter.validateHomeOwnership('home-1', 'other-user')).rejects.toBeInstanceOf(ForbiddenOwnershipError);
+    await expect(ownershipAdapter.validateHomeOwnership('home-1', 'other-user')).resolves.toBeUndefined();
 
     const foreignRoom = repositories(true, 'other-home');
     const roomAdapter = new RepositoryTopologyReferenceAdapter(foreignRoom.homeRepository, foreignRoom.roomRepository);

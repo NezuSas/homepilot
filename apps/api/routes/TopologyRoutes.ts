@@ -6,7 +6,7 @@ import { createRoomUseCase } from '../../../packages/topology/application/create
 import { renameRoomUseCase } from '../../../packages/topology/application/renameRoomUseCase';
 import { deleteRoomUseCase } from '../../../packages/topology/application/deleteRoomUseCase';
 import { ForbiddenError, NotFoundError } from '../../../packages/topology/application/errors';
-import { InvalidHomeNameError, InvalidRoomNameError } from '../../../packages/topology/domain/errors';
+import { InvalidHomeNameError, InvalidRoomNameError, SingleHomeInstallationError } from '../../../packages/topology/domain/errors';
 import { executeDeviceCommandUseCase } from '../../../packages/devices/application/executeDeviceCommandUseCase';
 import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
 import { DeviceCommandV1 } from '../../../packages/devices/domain/commands';
@@ -74,6 +74,11 @@ export class TopologyRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/homes') {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
+        const existingHomes = await container.repositories.homeRepository.findAll();
+        if (existingHomes.length > 0) {
+          return this.sendError(res, 409, 'SINGLE_HOME_INSTALLATION', 'A home already exists for this installation'), true;
+        }
+
         const payload = await this.parseBody<{ name?: string }>(req);
         if (typeof payload.name !== 'string') {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Home name is required'), true;
@@ -114,8 +119,9 @@ export class TopologyRoutes extends ApiRoutes {
 
         const home = await container.repositories.homeRepository.findHomeById(renameHomeMatch[1]);
         if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
-        if (home.ownerId !== req.user!.id) {
-          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (homes[0]?.id !== home.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to this installation'), true;
         }
 
         const updatedHome = {
@@ -139,8 +145,9 @@ export class TopologyRoutes extends ApiRoutes {
         const homeId = roomsMatch[1];
         const home = await container.repositories.homeRepository.findHomeById(homeId);
         if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'Home not found'), true;
-        if (home.ownerId !== req.user!.id && !this.canReadSharedTopology(req.user!.role)) {
-          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (homes[0]?.id !== home.id) {
+          return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to this installation'), true;
         }
         const rooms = await container.repositories.roomRepository.findRoomsByHomeId(homeId);
         this.sendJson(res, rooms);
@@ -300,7 +307,8 @@ export class TopologyRoutes extends ApiRoutes {
                   validateHomeOwnership: async (homeId, userId) => {
                     const targetHome = await container.repositories.homeRepository.findHomeById(homeId);
                     if (!targetHome) throw new TopologyResourceNotFoundError('Home', homeId);
-                    if (targetHome.ownerId !== userId) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
+                    const homes = await container.repositories.homeRepository.findHomesByUserId(userId);
+                    if (homes[0]?.id !== targetHome.id) throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
                   },
                   validateRoomBelongsToHome: async (targetRoomId, homeId) => {
                     const targetRoom = await container.repositories.roomRepository.findRoomById(targetRoomId);

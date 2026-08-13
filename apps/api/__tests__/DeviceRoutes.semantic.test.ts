@@ -23,6 +23,7 @@ const mockHomeRepository = {
   findHomeById: jest.fn(),
   createHome: jest.fn(),
   findHomesByOwnerId: jest.fn(),
+  findHomesByUserId: jest.fn(),
 };
 
 const mockAuthGuard = {
@@ -101,6 +102,7 @@ describe('DeviceRoutes - Semantic Classification', () => {
 
     mockDeviceRepository.findDeviceById.mockResolvedValue(mockDevice);
     mockHomeRepository.findHomeById.mockResolvedValue(mockHome);
+    mockHomeRepository.findHomesByUserId.mockResolvedValue([mockHome]);
   });
 
   const runRoute = async (body: any) => {

@@ -46,6 +46,7 @@ describe('Feature: Local device deletion integrity', () => {
         },
         homeRepository: {
           findHomeById: jest.fn().mockResolvedValue({ id: device.homeId, ownerId: 'owner-1' }),
+        findHomesByUserId: jest.fn().mockResolvedValue([{ id: device.homeId }]),
         },
         sceneRepository: { findAll: jest.fn().mockResolvedValue(scenes) },
         automationRuleRepository: { findAll: jest.fn().mockResolvedValue(automations) },

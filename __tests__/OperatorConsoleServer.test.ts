@@ -41,15 +41,6 @@ describe('OperatorConsoleServer Integration Tests', () => {
       createdAt: now,
       updatedAt: now
     });
-
-    await container.repositories.homeRepository.saveHome({
-      id: 'h-02',
-      ownerId: 'u-02',
-      name: 'Other Home',
-      entityVersion: 1,
-      createdAt: now,
-      updatedAt: now
-    });
     await container.repositories.roomRepository.saveRoom({
       id: 'r-01',
       homeId: 'h-01',
@@ -81,16 +72,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
     const ownScene: Scene = {
       id: 'scene-own', homeId: 'h-01', roomId: 'r-01', name: 'Own Scene', actions: [], createdAt: now, updatedAt: now,
     };
-    const otherScene: Scene = {
-      id: 'scene-other', homeId: 'h-02', roomId: null, name: 'Other Scene', actions: [], createdAt: now, updatedAt: now,
-    };
     await container.repositories.sceneRepository.saveScene(ownScene);
-    await container.repositories.sceneRepository.saveScene(otherScene);
-    await container.repositories.automationRuleRepository.save({
-      id: 'rule-other', homeId: 'h-02', userId: 'u-02', name: 'Other Rule', enabled: true,
-      trigger: { type: 'time', time: '08:00', timeLocal: '08:00', timeUTC: '13:00', timezone: 'America/Guayaquil' },
-      action: { type: 'device_command', targetDeviceId: 'd-01', command: 'turn_off' },
-    });
     server = new OperatorConsoleServer(container, DB_PATH, PORT);
     server.start();
   });
@@ -100,7 +82,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
   });
 
   describe('Routine visibility API', () => {
-    it('lists only scenes from the authenticated user home and rejects another home', async () => {
+    it('lists scenes from the single shared home', async () => {
       const ownResponse = await fetch(`http://localhost:${PORT}/api/v1/scenes`, {
         headers: { 'x-hp-test-bypass': 'true' },
       });
@@ -114,13 +96,13 @@ describe('OperatorConsoleServer Integration Tests', () => {
       expect(otherResponse.status).toBe(403);
     });
 
-    it('does not expose automations from another user home', async () => {
+    it('lists automations from the single shared home', async () => {
       const response = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
         headers: { 'x-hp-test-bypass': 'true' },
       });
       expect(response.status).toBe(200);
       const rules = (await response.json()) as AutomationRule[];
-      expect(rules.some((rule) => rule.id === 'rule-other')).toBe(false);
+      expect(rules).toEqual([]);
     });
   });
   describe('Automation API', () => {

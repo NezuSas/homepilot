@@ -308,8 +308,8 @@ export class DeviceRoutes extends ApiRoutes {
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
 
-        const home = await container.repositories.homeRepository.findHomeById(device.homeId);
-        if (!home || home.ownerId !== req.user!.id) {
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (homes[0]?.id !== device.homeId) {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
         }
 
@@ -415,10 +415,8 @@ export class DeviceRoutes extends ApiRoutes {
 
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
-
-        // Ownership validation
-        const home = await container.repositories.homeRepository.findHomeById(device.homeId);
-        if (!home || home.ownerId !== req.user!.id) {
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (homes[0]?.id !== device.homeId) {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
         }
 
@@ -444,10 +442,8 @@ export class DeviceRoutes extends ApiRoutes {
 
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
-
-        // Ownership validation
-        const home = await container.repositories.homeRepository.findHomeById(device.homeId);
-        if (!home || home.ownerId !== req.user!.id) {
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (homes[0]?.id !== device.homeId) {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;
         }
 

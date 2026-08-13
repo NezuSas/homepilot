@@ -1,5 +1,6 @@
 import { Home } from '../../domain/types';
 import { HomeRepository } from '../../domain/repositories/HomeRepository';
+import { SingleHomeInstallationError } from '../../domain/errors';
 
 /**
  * Adaptador de Infraestructura: Almacenamiento efímero en memoria para Home.
@@ -17,14 +18,10 @@ export class InMemoryHomeRepository implements HomeRepository {
   }
 
   async findHomesByUserId(userId: string): Promise<ReadonlyArray<Home>> {
-    const results: Home[] = [];
-    for (const home of this.store.values()) {
-      if (home.ownerId === userId) {
-        results.push(home);
-      }
-    }
-    // Devolvemos el array congelado asegurando su inmutabilidad
-    return Promise.resolve(Object.freeze(results));
+    void userId;
+    const homes = Array.from(this.store.values());
+    if (homes.length > 1) throw new SingleHomeInstallationError();
+    return Promise.resolve(Object.freeze(homes));
   }
 
   async findHomeById(homeId: string): Promise<Home | null> {

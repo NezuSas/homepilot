@@ -75,7 +75,7 @@ describe('Home-Room Management Spec Verification E2E', () => {
       }
     });
 
-    it('AC3: GET /homes devuelve [] si el usuario no tiene Homes', async () => {
+    it('AC3: GET /homes devuelve el hogar único a cualquier usuario autenticado', async () => {
       const response = await guardHomeList({ headers: { 'x-user-id': 'tenant-test' } });
       
       expect(response.statusCode).toBe(200);
@@ -93,7 +93,7 @@ describe('Home-Room Management Spec Verification E2E', () => {
       expect(response.statusCode).toBe(201);
     });
 
-    it('AC5: POST /rooms sobre Home ajeno devuelve 403', async () => {
+    it('AC5: POST /rooms permite a un usuario del hogar compartido', async () => {
       await homeRepo.saveHome({ id: 'home-base', ownerId: 'user-alfa', name: 'Alpha', entityVersion: 1, createdAt: '', updatedAt: '' });
 
       const attackResponse = await guardRoomCreate({ 
@@ -101,7 +101,7 @@ describe('Home-Room Management Spec Verification E2E', () => {
           body: { name: 'Sala Robada', homeId: 'home-base' } 
       });
       
-      expect(attackResponse.statusCode).toBe(403);
+      expect(attackResponse.statusCode).toBe(201);
     });
 
     it('AC6: POST /rooms sobre Home inexistente devuelve 404', async () => {

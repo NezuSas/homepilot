@@ -19,9 +19,10 @@ export class RepositoryTopologyReferenceAdapter implements TopologyReferencePort
   }
 
   async validateHomeOwnership(homeId: string, userId: string): Promise<void> {
-    const home = await this.homeRepository.findHomeById(homeId);
-    if (!home) throw new TopologyResourceNotFoundError('Home', homeId);
-    if (home.ownerId !== userId) {
+    const requestedHome = await this.homeRepository.findHomeById(homeId);
+    if (!requestedHome) throw new TopologyResourceNotFoundError('Home', homeId);
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (homes[0]?.id !== requestedHome.id) {
       throw new ForbiddenOwnershipError(`Forbidden access to home ${homeId}`);
     }
   }

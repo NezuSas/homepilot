@@ -42,7 +42,7 @@ describe('Topology Application Layer', () => {
     expect(events[0].eventType).toBe('HomeCreatedEvent');
   });
 
-  it('createRoomUseCase NFR-09 prohíbe creación si el Home pertenece a otro Tenant (Zero-Trust)', async () => {
+  it('createRoomUseCase permite a un usuario del hogar compartido', async () => {
     const homeRepo = new InMemoryHomeRepository();
     await homeRepo.saveHome({ id: 'h1', ownerId: 'user-ALPHA', name: 'Casa Alpha', entityVersion: 1, createdAt: '', updatedAt: '' });
     
@@ -53,7 +53,7 @@ describe('Topology Application Layer', () => {
       ...mockDeps
     });
 
-    await expect(useCasePromise).rejects.toThrow(ForbiddenError);
+    await expect(useCasePromise).resolves.toEqual(expect.objectContaining({ homeId: 'h1' }));
   });
 
   it('createRoomUseCase eleva NotFoundError si el padre topológico es inexistente referencialmente', async () => {
@@ -95,7 +95,7 @@ describe('Topology Application Layer', () => {
     }));
   });
 
-  it('renameRoomUseCase rejects changes from a different home owner', async () => {
+  it('renameRoomUseCase permite cambios de un usuario del hogar compartido', async () => {
     const homeRepo = new InMemoryHomeRepository();
     const roomRepo = new InMemoryRoomRepository();
     await homeRepo.saveHome({ id: 'h1', ownerId: 'user-A', name: 'Casa', entityVersion: 1, createdAt: '', updatedAt: '' });
@@ -106,7 +106,7 @@ describe('Topology Application Layer', () => {
       roomRepository: roomRepo,
       eventPublisher: new InMemoryEventPublisher(),
       ...mockDeps,
-    })).rejects.toThrow(ForbiddenError);
+    })).resolves.toEqual(expect.objectContaining({ name: 'Otra sala' }));
   });
 
   it('BDD AC8: deletes an owned room through the application port', async () => {
@@ -125,7 +125,7 @@ describe('Topology Application Layer', () => {
     expect(await roomRepo.findRoomById('r1')).toBeNull();
   });
 
-  it('BDD AC9: does not delete a room when the parent home belongs to another user', async () => {
+  it('BDD AC9: allows a member to delete a room in the shared home', async () => {
     const homeRepo = new InMemoryHomeRepository();
     const roomRepo = new InMemoryRoomRepository();
     await homeRepo.saveHome({ id: 'h1', ownerId: 'user-A', name: 'Casa', entityVersion: 1, createdAt: '', updatedAt: '' });
@@ -135,8 +135,8 @@ describe('Topology Application Layer', () => {
       homeRepository: homeRepo,
       roomRepository: roomRepo,
       clock: { now: () => '2026-08-11T00:00:00.000Z' },
-    })).rejects.toThrow(ForbiddenError);
+    })).resolves.toEqual(expect.objectContaining({ unassignedDevices: 0 }));
 
-    expect(await roomRepo.findRoomById('r1')).not.toBeNull();
+    expect(await roomRepo.findRoomById('r1')).toBeNull();
   });
 });

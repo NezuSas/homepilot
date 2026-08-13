@@ -1,5 +1,6 @@
 import { Database as SqliteDatabase } from 'better-sqlite3';
 import { Home } from '../../domain/types';
+import { SingleHomeInstallationError } from '../../domain/errors';
 import { HomeRepository } from '../../domain/repositories/HomeRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 
@@ -48,13 +49,14 @@ export class SQLiteHomeRepository implements HomeRepository {
   }
 
   /**
-   * Recupera todos los hogares que pertenezcan a un usuario específico.
+   * Resuelve el hogar único de esta instalación local. El usuario ya fue
+   * autenticado en el perímetro; owner_id conserva procedencia, no es una ACL.
    */
   public async findHomesByUserId(userId: string): Promise<ReadonlyArray<Home>> {
-    const stmt = this.db.prepare('SELECT * FROM homes WHERE owner_id = ?');
-    const rows = stmt.all(userId) as HomeRow[];
-    const result = rows.map(row => this.mapToEntity(row));
-    return result;
+    void userId;
+    const rows = this.db.prepare('SELECT * FROM homes ORDER BY created_at ASC').all() as HomeRow[];
+    if (rows.length > 1) throw new SingleHomeInstallationError();
+    return rows.map(row => this.mapToEntity(row));
   }
 
   /**
