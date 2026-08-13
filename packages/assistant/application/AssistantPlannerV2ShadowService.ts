@@ -29,6 +29,7 @@ export class AssistantPlannerV2ShadowService {
   private readonly promptMode: 'full' | 'light' | 'ultra_light';
   private readonly shadowTimeoutMs: number;
   private readonly shadowModel: string | undefined;
+  private readonly executionTimeoutMs: number;
   /** Resolved model for logging: shadow override → OLLAMA_MODEL env → 'phi3' fallback */
   private readonly resolvedModelName: string;
 
@@ -54,6 +55,7 @@ export class AssistantPlannerV2ShadowService {
     
     this.promptMode = ultraLightEnabled ? 'ultra_light' : (lightEnabled ? 'light' : 'full');
     this.shadowTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS || '8000', 10);
+    this.executionTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_EXECUTION_TIMEOUT_MS || '3500', 10);
 
     // Resolve model name: specific override → OLLAMA_MODEL env → hardcoded fallback
     const modelOverride = process.env.ASSISTANT_PLANNER_V2_SHADOW_MODEL;
@@ -302,7 +304,11 @@ export class AssistantPlannerV2ShadowService {
     if (skipReason) return skip(skipReason);
 
     try {
-      const result = await this.llmInterpreter.interpretV2(prompt, userId, { promptMode: this.promptMode });
+      const result = await this.llmInterpreter.interpretV2(prompt, userId, {
+        promptMode: this.promptMode,
+        timeoutMs: this.executionTimeoutMs,
+        model: this.shadowModel
+      });
       if (result.error) return skip('llm_error');
       if (!result.plan) return skip('empty_plan');
 
@@ -410,6 +416,7 @@ export class AssistantPlannerV2ShadowService {
     return {
       enabled: this.isShadowEnabled,
       sampleRate: this.sampleRate,
+      executionTimeout: this.executionTimeoutMs,
       environment: process.env.NODE_ENV || 'development',
       promptMode: this.promptMode,
       timeout: this.shadowTimeoutMs,
