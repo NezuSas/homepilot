@@ -28,12 +28,14 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
   let mockDeviceRepo: any;
   let mockShadowService: any;
   let mockSceneExecutionService: any;
+  let mockHomeRepository: any;
 
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
     mockMemory = createMockAssistantMemory();
     mockDeviceRepo = createMockDeviceRepository();
     mockSceneExecutionService = createMockSceneExecutionService();
+    mockHomeRepository = { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'h1' }]) };
     
     mockShadowService = {
       attemptHybridExecution: jest.fn(),
@@ -58,7 +60,10 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
       createMockSystemVariableService(),
-      mockShadowService
+      mockShadowService,
+      undefined,
+      undefined,
+      mockHomeRepository
     );
 
     process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
@@ -143,6 +148,26 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     }));
   });
 
+  it('rejects a confirmed bulk command outside the authenticated user home', async () => {
+    const device = createTestDevice({ id: 'd1', name: 'Luz privada', homeId: 'h1' });
+    mockDeviceRepo.findDeviceById.mockResolvedValue(device);
+    mockHomeRepository.findHomesByUserId.mockResolvedValue([]);
+    mockMemory.getShortTermMemory.mockResolvedValue({
+      lastQueryType: 'confirmation',
+      entities: [],
+      timestamp: new Date().toISOString(),
+      pendingBulkAction: {
+        type: 'bulk_action',
+        deviceIds: ['d1'],
+        command: 'turn_on',
+        timestamp: new Date().toISOString(),
+        originalPrompt: 'prende las luces'
+      }
+    });
+
+    await expect(service.converse({ prompt: 'sí', userId: 'u1' }, 'es')).rejects.toThrow('ASSISTANT_HOME_FORBIDDEN');
+    expect(mockSceneExecutionService.execute).not.toHaveBeenCalled();
+  });
   it('discards pending action and clears memory when cancelled with "no"', async () => {
     mockMemory.getShortTermMemory.mockResolvedValue({
       lastQueryType: 'confirmation',

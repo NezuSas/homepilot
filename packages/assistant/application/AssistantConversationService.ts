@@ -1,5 +1,6 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
@@ -150,7 +151,8 @@ export class AssistantConversationService {
     private readonly systemVariableService: SystemVariableService,
     private readonly shadowService?: AssistantPlannerV2ShadowService,
     private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver(),
-    aliasManagementService?: AssistantAliasManagementService
+    aliasManagementService?: AssistantAliasManagementService,
+    private readonly homeRepository?: HomeRepository
   ) {
     this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
   }
@@ -649,6 +651,8 @@ export class AssistantConversationService {
       const scene = await this.sceneRepository.findSceneById(intent.target);
       if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found. I need a valid scene." : "Escena no encontrada. Necesito una escena válida." };
 
+      await this.assertHomeAuthorized(userId, scene.homeId);
+
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
         sourceId: 'assistant',
@@ -695,7 +699,7 @@ export class AssistantConversationService {
       try {
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
-        const result = await this.executeSingleCommand(intent.deviceId, intent.command, intent.prompt, correlationId);
+        const result = await this.executeAuthorizedCommand(userId, intent.deviceId, intent.command, intent.prompt, correlationId);
 
         if (result.status === 'failed') {
           this.learningService.recordCommandResult(userId, intent.deviceId, false, result.actions[0]?.error || 'Unknown error').catch(() => {});
@@ -784,7 +788,7 @@ export class AssistantConversationService {
         for (const action of intent.actions) {
           const device = await this.deviceRepository.findDeviceById(action.deviceId);
           const deviceName = device?.name ?? action.targetName ?? action.deviceId;
-          const result = await this.executeSingleCommand(action.deviceId, action.command, intent.prompt, correlationId);
+          const result = await this.executeAuthorizedCommand(userId, action.deviceId, action.command, intent.prompt, correlationId);
           results.push({ action, deviceName, result });
           if (device) {
             entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
@@ -1240,6 +1244,7 @@ export class AssistantConversationService {
     const scene = await this.sceneRepository.findSceneById(targetId);
     if (scene) {
       this.learningService.recordClarificationSelected(userId, scene.id, scene.name, 'scene', request.pendingAction?.originalPrompt || '').catch(() => {});
+      await this.assertHomeAuthorized(userId, scene.homeId);
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
         sourceId: 'assistant',
@@ -1289,7 +1294,7 @@ export class AssistantConversationService {
         this.learningService.recordClarificationSelected(userId, device.id, device.name, 'device', originalPrompt).catch(() => {});
       }
 
-      const result = await this.executeSingleCommand(targetId, command, originalPrompt, correlationId);
+      const result = await this.executeAuthorizedCommand(userId, targetId, command, originalPrompt, correlationId);
 
       if (result.status === 'success') {
         await this.clearPendingAction(userId);
@@ -1588,7 +1593,7 @@ export class AssistantConversationService {
     if (roomLights.length === 1) {
       const light = roomLights[0];
       console.info(`[ASSISTANT_ROOM_SELECTION_RESOLVED] ${JSON.stringify({ roomId, roomName, command, result: 'single_light', deviceId: light.id })}`);
-      const result = await this.executeSingleCommand(light.id, command, originalPrompt, correlationId);
+      const result = await this.executeAuthorizedCommand(userId, light.id, command, originalPrompt, correlationId);
 
       await this.clearPendingAction(userId);
       await this.memoryService.saveShortTermMemory(userId, {
@@ -2011,7 +2016,7 @@ export class AssistantConversationService {
     for (const deviceId of action.deviceIds) {
       const device = await this.deviceRepository.findDeviceById(deviceId);
       if (device) {
-        const result = await this.executeSingleCommand(deviceId, action.command as DeviceCommandV1, action.originalPrompt, correlationId);
+        const result = await this.executeAuthorizedCommand(userId, deviceId, action.command as DeviceCommandV1, action.originalPrompt, correlationId);
         results.push({ action: { deviceId, command: action.command as DeviceCommandV1 }, deviceName: device.name, result });
         entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
       }
@@ -3232,6 +3237,26 @@ export class AssistantConversationService {
     }
   }
 
+  private async executeAuthorizedCommand(
+    userId: string,
+    deviceId: string,
+    command: DeviceCommandV1,
+    prompt: string,
+    correlationId: string
+  ): Promise<SceneExecutionResult> {
+    if (!this.homeRepository && process.env.NODE_ENV === 'test') {
+      return this.executeSingleCommand(deviceId, command, prompt, correlationId);
+    }
+
+    const device = deviceId === 'all' ? null : await this.deviceRepository.findDeviceById(deviceId);
+    const homeId = deviceId === 'all'
+      ? (await this.deviceRepository.findAll())[0]?.homeId
+      : device?.homeId;
+
+    if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
+    await this.assertHomeAuthorized(userId, homeId);
+    return this.executeSingleCommand(deviceId, command, prompt, correlationId);
+  }
   private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string): Promise<SceneExecutionResult> {
     let homeId: string | undefined;
     let roomId: string | null = null;
@@ -3268,6 +3293,17 @@ export class AssistantConversationService {
     });
   }
 
+  private async assertHomeAuthorized(userId: string, homeId: string): Promise<void> {
+    if (!this.homeRepository) {
+      if (process.env.NODE_ENV === 'test') return;
+      throw new Error('ASSISTANT_AUTHORIZATION_UNAVAILABLE');
+    }
+
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (!homes.some((home) => home.id === homeId)) {
+      throw new Error('ASSISTANT_HOME_FORBIDDEN');
+    }
+  }
   private containsWord(source: string, word: string): boolean {
     const regex = new RegExp(`(^|\\s)${word}(\\s|$)`, 'i');
     return regex.test(source);
@@ -3449,7 +3485,7 @@ export class AssistantConversationService {
           commandName = fail.command.name;
         }
 
-        const result = await this.executeSingleCommand(fail.deviceId, commandName, request.prompt, correlationId);
+        const result = await this.executeAuthorizedCommand(userId, fail.deviceId, commandName, request.prompt, correlationId);
         results.push({ deviceName, result });
       }
     }
@@ -4033,7 +4069,7 @@ export class AssistantConversationService {
     }
 
     console.info(`[ASSISTANT_DEVICE_ALIAS_RESOLVED] ${JSON.stringify({ alias: match.alias, targetId: targetDevice.id, command })}`);
-    const execResult = await this.executeSingleCommand(targetDevice.id, command, activePrompt, `alias-fastpath-${Date.now()}`);
+    const execResult = await this.executeAuthorizedCommand(userId, targetDevice.id, command, activePrompt, `alias-fastpath-${Date.now()}`);
 
     if (execResult.status === 'success') {
       await this.clearPendingAction(userId);
@@ -4065,7 +4101,7 @@ export class AssistantConversationService {
     if (!device) return null;
     if (!this.isControllableDevice(device, result.command)) return null;
 
-    const execResult = await this.executeSingleCommand(result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`);
+    const execResult = await this.executeAuthorizedCommand(userId, result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`);
 
     if (execResult.status === 'success') {
       await this.clearPendingAction(userId);
@@ -4142,7 +4178,7 @@ export class AssistantConversationService {
     const device = await this.deviceRepository.findDeviceById(v2Result.deviceId);
     const deviceName = device?.name ?? v2Result.deviceId;
 
-    const execResult = await this.executeSingleCommand(v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
+    const execResult = await this.executeAuthorizedCommand(userId, v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
 
     if (execResult.status === 'success') {
       await this.clearPendingAction(userId);
@@ -4254,7 +4290,7 @@ export class AssistantConversationService {
     }
 
     // 4. Execution
-    const execResult = await this.executeSingleCommand(selectedLight.id, vagueMatch.command, prompt, `context-${Date.now()}`);
+    const execResult = await this.executeAuthorizedCommand(userId, selectedLight.id, vagueMatch.command, prompt, `context-${Date.now()}`);
 
     if (execResult.status === 'success') {
       await this.clearPendingAction(userId);

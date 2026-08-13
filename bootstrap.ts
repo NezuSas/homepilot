@@ -308,7 +308,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     systemVariableService,
     shadowService,
     assistantFastPathResolver,
-    assistantAliasManagementService
+    assistantAliasManagementService,
+    repos.homeRepository
   );
 
   const container: BootstrapContainer = {

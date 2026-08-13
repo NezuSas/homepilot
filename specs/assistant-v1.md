@@ -103,7 +103,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 
 - La identidad de la sesión autenticada prevalece sobre cualquier `userId` o nombre recibido en el cuerpo de la petición.
 - Ningún campo enviado por el cliente puede confirmar una acción. Una confirmación sólo es válida cuando corresponde a una intención pendiente del mismo usuario y se procesa mediante una respuesta positiva (`confirm` o lenguaje natural equivalente).
-- Cada hallazgo incorpora el `homeId` que produjo su detección. Listados, resumen, resolución, descarte y acciones sólo operan sobre hogares pertenecientes al usuario autenticado.
+- Cada hallazgo incorpora el `homeId` que produjo su detección. Listados, resumen, resolución, descarte y acciones sólo operan sobre hogares pertenecientes al usuario autenticado. Los comandos de dispositivos y la ejecución de escenas validan el mismo hogar antes de despacharse.
 - Las acciones administrativas sobre hallazgos exigen el rol `parent` o superior; el estado y las métricas del planificador en sombra exigen `admin`.
 - El registro del planificador no conserva el texto original de la conversación, la respuesta visible ni el identificador de usuario; registra únicamente métricas técnicas y longitudes.
 
@@ -114,4 +114,4 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - [x] AC-07: Un hallazgo de un hogar no autorizado no se lista, resuelve, descarta ni ejecuta.
 - [x] AC-08: Un escaneo resuelve únicamente hallazgos del hogar escaneado.
 - [x] AC-09: Las rutas administrativas del planificador y las acciones de hallazgos validan el rol requerido.
-- [x] AC-10: Los eventos operativos del planificador no incluyen prompt, respuesta ni usuario en texto plano.
+- [x] AC-10: Los eventos operativos del planificador no incluyen prompt, respuesta ni usuario en texto plano.`r`n- [x] AC-11: Un comando de dispositivo o escena fuera de un hogar autorizado no se despacha.
