@@ -29,6 +29,11 @@ export class SceneRoutes extends ApiRoutes {
         if (!homeId) {
           const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
           if (homes.length > 0) homeId = homes[0].id;
+        } else {
+          const home = await container.repositories.homeRepository.findHomeById(homeId);
+          if (!home || home.ownerId !== req.user!.id) {
+            return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to current user'), true;
+          }
         }
         if (!homeId) return this.sendJson(res, []), true;
 

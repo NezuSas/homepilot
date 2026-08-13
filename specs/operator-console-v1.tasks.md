@@ -110,3 +110,5 @@
 - **Descripción**: Integrar un activo ambiental local en el saludo de Inicio y ajustar la jerarquía de contexto, rutinas y sugerencias sin alterar sus acciones ni contratos.
 - **Módulos**: `/src/views/DashboardView.tsx`, `HomeClimateSummary.tsx`, `DashboardRoutinesSection.tsx`, `DashboardInsightsSection.tsx` y `/public/home-dashboard-ambient.png`.
 - **Criterio Relacionado**: Alineado con **AC25**.
+
+- [x] Aislar el listado de escenas y automatizaciones por hogar propietario; Inicio delega la selección al endpoint autorizado y la cobertura de integración rechaza hogares ajenos.

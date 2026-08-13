@@ -6,6 +6,7 @@ import { enableAutomationRuleUseCase } from '../../../packages/devices/applicati
 import { disableAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/DisableAutomationRuleUseCase';
 import { deleteAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/DeleteAutomationRuleUseCase';
 import { updateAutomationRuleUseCase } from '../../../packages/devices/application/usecases/automation/UpdateAutomationRuleUseCase';
+import { listAutomationRulesUseCase } from '../../../packages/devices/application/usecases/automation/ListAutomationRulesUseCase';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { AutomationAction, AutomationTrigger } from '../../../packages/devices/domain/automation/types';
@@ -61,7 +62,14 @@ export class AutomationRoutes extends ApiRoutes {
     // GET /api/v1/automations
     if (method === 'GET' && pathname === '/api/v1/automations') {
       try {
-        const rules = await container.repositories.automationRuleRepository.findAll();
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const home = homes[0];
+        if (!home) return this.sendJson(res, []), true;
+
+        const rules = await listAutomationRulesUseCase(home.id, req.user!.id, {
+          automationRuleRepository: container.repositories.automationRuleRepository,
+          topologyReferencePort: this.createTopologyReferencePort(container),
+        });
         this.sendJson(res, rules);
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', this.getErrorDetails(error).message);

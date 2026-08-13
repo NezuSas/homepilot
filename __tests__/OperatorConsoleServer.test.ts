@@ -5,6 +5,7 @@ import { SqliteDatabaseManager } from '../packages/shared/infrastructure/databas
 import { AutomationRule } from '../packages/devices/domain/automation/types';
 import { ActivityRecord } from '../packages/devices/domain/repositories/ActivityLogRepository';
 import { Device } from '../packages/devices/domain/types';
+import { Scene } from '../packages/devices/domain/Scene';
 
 /**
  * Tests de integración para OperatorConsoleServer.
@@ -21,11 +22,12 @@ describe('OperatorConsoleServer Integration Tests', () => {
     const db = SqliteDatabaseManager.getInstance(DB_PATH);
     db.exec(`
       DELETE FROM automation_rules;
+      DELETE FROM scenes;
+      DELETE FROM activity_logs;
       DELETE FROM devices;
       DELETE FROM rooms;
-      DELETE FROM homes;
-      DELETE FROM activity_logs;
       DELETE FROM dashboards;
+      DELETE FROM homes;
       DELETE FROM sessions;
       DELETE FROM users;
     `);
@@ -40,6 +42,14 @@ describe('OperatorConsoleServer Integration Tests', () => {
       updatedAt: now
     });
 
+    await container.repositories.homeRepository.saveHome({
+      id: 'h-02',
+      ownerId: 'u-02',
+      name: 'Other Home',
+      entityVersion: 1,
+      createdAt: now,
+      updatedAt: now
+    });
     await container.repositories.roomRepository.saveRoom({
       id: 'r-01',
       homeId: 'h-01',
@@ -68,6 +78,19 @@ describe('OperatorConsoleServer Integration Tests', () => {
       lastKnownState: { on: false }, entityVersion: 1, createdAt: now, updatedAt: now
     });
 
+    const ownScene: Scene = {
+      id: 'scene-own', homeId: 'h-01', roomId: 'r-01', name: 'Own Scene', actions: [], createdAt: now, updatedAt: now,
+    };
+    const otherScene: Scene = {
+      id: 'scene-other', homeId: 'h-02', roomId: null, name: 'Other Scene', actions: [], createdAt: now, updatedAt: now,
+    };
+    await container.repositories.sceneRepository.saveScene(ownScene);
+    await container.repositories.sceneRepository.saveScene(otherScene);
+    await container.repositories.automationRuleRepository.save({
+      id: 'rule-other', homeId: 'h-02', userId: 'u-02', name: 'Other Rule', enabled: true,
+      trigger: { type: 'time', time: '08:00', timeLocal: '08:00', timeUTC: '13:00', timezone: 'America/Guayaquil' },
+      action: { type: 'device_command', targetDeviceId: 'd-01', command: 'turn_off' },
+    });
     server = new OperatorConsoleServer(container, DB_PATH, PORT);
     server.start();
   });
@@ -76,6 +99,30 @@ describe('OperatorConsoleServer Integration Tests', () => {
     await server.stop();
   });
 
+  describe('Routine visibility API', () => {
+    it('lists only scenes from the authenticated user home and rejects another home', async () => {
+      const ownResponse = await fetch(`http://localhost:${PORT}/api/v1/scenes`, {
+        headers: { 'x-hp-test-bypass': 'true' },
+      });
+      expect(ownResponse.status).toBe(200);
+      const ownScenes = (await ownResponse.json()) as Scene[];
+      expect(ownScenes.map((scene) => scene.id)).toEqual(['scene-own']);
+
+      const otherResponse = await fetch(`http://localhost:${PORT}/api/v1/scenes?homeId=h-02`, {
+        headers: { 'x-hp-test-bypass': 'true' },
+      });
+      expect(otherResponse.status).toBe(403);
+    });
+
+    it('does not expose automations from another user home', async () => {
+      const response = await fetch(`http://localhost:${PORT}/api/v1/automations`, {
+        headers: { 'x-hp-test-bypass': 'true' },
+      });
+      expect(response.status).toBe(200);
+      const rules = (await response.json()) as AutomationRule[];
+      expect(rules.some((rule) => rule.id === 'rule-other')).toBe(false);
+    });
+  });
   describe('Automation API', () => {
     const rid = 'rule-01';
 

@@ -73,7 +73,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       await Promise.all([refreshSnapshot(), refreshFindings()]);
       if (!homeId) return;
 
-      const scenesResponse = await apiFetch(`${API_URL}/scenes?homeId=${homeId}`);
+      const scenesResponse = await apiFetch(`${API_URL}/scenes`);
       if (scenesResponse.ok) setScenes(await scenesResponse.json() as Scene[]);
       if (!canManageAutomations) {
         setAutomations([]);
@@ -86,7 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       setScenes([]);
       setAutomations([]);
     }
-  }, [canManageAutomations, homeId, refreshFindings, refreshSnapshot]);
+  }, [canManageAutomations, refreshFindings, refreshSnapshot]);
 
   useEffect(() => {
     void fetchData();

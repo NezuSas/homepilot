@@ -94,6 +94,7 @@ Se propone una consola de administración pragmática:
 - [ ] AC13: Los estados físicos se distinguen por significado: iluminación activa en ámbar cálido, cortinas y acciones de marca en naranja Nezu, Noche en violeta tenue, Eco en lima y apagado/no disponible en neutros accesibles.
 - [ ] AC14: Inicio evita analítica decorativa, microtexto técnico y efectos visuales excesivos. La información operativa existente permanece disponible mediante composición clara y controles con contraste equivalente en modo claro y oscuro.
 - [x] AC25: Inicio usa una imagen ambiental residencial local, no dependiente de red, como contexto visual del saludo. Mantiene legibles ciudad, hora, temperatura, rutinas y sugerencias, y conserva sus acciones, contratos y comportamiento responsive.
+- [x] AC26: Inicio y Rutinas solo reciben escenas y automatizaciones pertenecientes al hogar del usuario autenticado; solicitar explícitamente un hogar ajeno es rechazado por la API.
 
 ## 9. Notas Técnicas y Arquitectura
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).
