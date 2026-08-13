@@ -78,6 +78,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - Device execution responses must stay explicit about what was controlled.
 - Successful command, scene and query responses must not append inventory-maintenance notices about devices without a room. Those notices belong to dedicated diagnostics surfaces, not every conversation turn.
 - Visible and spoken answers must be concise, focused on the current request, and contain no emojis.
+- En la conversación visual, confirmaciones, aclaraciones y resultados se distinguen mediante una jerarquía compacta y accesible; los estados no duplican ni compiten con el mensaje principal.
 - Conversation, STT, and TTS language must follow the language selected inside HomePilot rather than the browser's original language.
 - Las acciones masivas, tanto por voz como por chat, requieren una confirmación explícita y persistida antes de ejecutarse.
 - Ambiguous, unsafe, or unknown commands must be acknowledged immediately and ask for a clearer device/room target.

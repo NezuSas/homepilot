@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, CheckCircle2, ChevronRight, HelpCircle, XCircle } from 'lucide-react';
+import { Bot, CheckCircle2, ChevronRight, HelpCircle, ShieldCheck, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { cn } from '../lib/utils';
@@ -31,6 +31,8 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
   const isClarification = message.responseType === 'clarification';
   const userLabel = user?.displayName || user?.username || t('assistant.conversation.user_fallback');
   const hasConfirmationOptions = message.options?.some(option => option.id === 'confirm' || option.id === 'cancel') ?? false;
+  const requiresConfirmation = isClarification && /\b(confirm|confirma|confirmas|confirmacion)\b/i.test(message.content);
+  const isSuccessfulExecution = message.execution?.status === 'success';
 
   return (
     <div
@@ -75,6 +77,35 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                 ? "rounded-tl-md border-danger/25 bg-danger/5 text-foreground"
                 : "rounded-tl-md bg-card/90 text-foreground"
           )}>
+            {!isUserMessage && (requiresConfirmation || (isClarification && !message.options?.length) || message.execution) && (
+              <div className={cn(
+                "mb-3 flex items-start gap-2.5 border-b pb-3",
+                requiresConfirmation ? "border-primary/20 text-primary" : isSuccessfulExecution ? "border-success/20 text-success" : "border-border/60 text-muted-foreground"
+              )}>
+                {requiresConfirmation ? (
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                ) : isSuccessfulExecution ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                ) : (
+                  <HelpCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-caption font-bold leading-tight">
+                    {requiresConfirmation
+                      ? t('assistant.conversation.confirmation_required')
+                      : isSuccessfulExecution
+                        ? t('assistant.conversation.execution_completed')
+                        : t('assistant.conversation.clarification_required')}
+                  </p>
+                  {requiresConfirmation && !hasConfirmationOptions && (
+                    <p className="mt-0.5 text-micro leading-snug text-muted-foreground">
+                      {t('assistant.conversation.confirmation_reply_hint')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <p className="whitespace-pre-wrap break-words text-body font-medium leading-relaxed">
               {message.content}
             </p>
@@ -120,24 +151,13 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
               </div>
             )}
 
-            {message.execution && (
+            {message.execution && !isSuccessfulExecution && (
               <div className="mt-4 flex items-center gap-2 border-t border-border/50 pt-4">
-                {message.execution.status === 'success' ? (
-                  <StatusPill variant="success">{t('assistant.conversation.execution_success')}</StatusPill>
-                ) : message.execution.status === 'partial' ? (
+                {message.execution.status === 'partial' ? (
                   <StatusPill variant="warning">{t('assistant.conversation.execution_partial')}</StatusPill>
                 ) : (
                   <StatusPill variant="danger">{t('assistant.conversation.execution_failed')}</StatusPill>
                 )}
-              </div>
-            )}
-
-            {isClarification && !message.options?.length && (
-              <div className="mt-4 border-t border-border/50 pt-4">
-                <StatusPill variant="primary">
-                  <HelpCircle className="h-3 w-3" />
-                  {t('assistant.conversation.needs_clarification')}
-                </StatusPill>
               </div>
             )}
           </Card>
