@@ -152,3 +152,5 @@
 - [x] Profesionalizar el rail plegado: los ítems conservan la geometría compacta del sidebar abierto, el activo no crece verticalmente y el pie muestra solo el avatar.
 
 - [x] Alinear visualmente el rail plegado con el sidebar abierto: ítems de la misma altura, iconos centrados y avatar final sin bloque ni divisor independiente.
+
+- [x] Simplificar el estado plegado del sidebar: ocultar por completo la navegación y conservar exclusivamente el control de marca y el avatar de perfil, sin cambiar el sidebar abierto.
