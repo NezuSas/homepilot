@@ -166,3 +166,6 @@
 - [x] Permitir contraer y expandir las subopciones de Sistema en el rail plegado, conservando su visibilidad inicial y el comportamiento equivalente al sidebar abierto.
 
 - [x] Corregir el plegado de Sistema tras navegar a una subopción: el estado compacto tiene precedencia sobre la expansión automática usada por el sidebar abierto.
+
+
+- [x] Permitir cerrar el sidebar en móvil y tablet tocando fuera o deslizando el panel hacia la izquierda, sin cerrar durante desplazamiento vertical ni alterar el rail de escritorio.

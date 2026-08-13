@@ -489,3 +489,30 @@ const systemGroup = page.getByRole('button', { name: /^system$/i });
   await systemGroup.click();
   await expect(discovery).toBeHidden();
 });
+for (const viewport of viewports.filter((viewport) => viewport.name !== 'desktop')) {
+  test(`Feature: Responsive sidebar dismissal — Scenario: Given an open ${viewport.name} sidebar When the operator taps outside or swipes left Then the drawer closes without affecting vertical scrolling`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.goto('/');
+
+    const menuToggle = page.locator('main').getByRole('button', { name: /show or hide menu|mostrar u ocultar menú/i });
+    const sidebar = page.locator('aside').first();
+    const backdrop = page.getByTestId('mobile-sidebar-backdrop');
+
+    await menuToggle.click();
+    await expect(backdrop).toBeVisible();
+    await backdrop.click({ position: { x: viewport.width - 16, y: 96 } });
+    await expect(backdrop).toBeHidden();
+
+    await menuToggle.click();
+    await expect(backdrop).toBeVisible();
+    await sidebar.dispatchEvent('pointerdown', { pointerType: 'touch', clientX: 240, clientY: 240 });
+    await sidebar.dispatchEvent('pointerup', { pointerType: 'touch', clientX: 144, clientY: 244 });
+    await expect(backdrop).toBeHidden();
+
+    await menuToggle.click();
+    await sidebar.dispatchEvent('pointerdown', { pointerType: 'touch', clientX: 176, clientY: 220 });
+    await sidebar.dispatchEvent('pointerup', { pointerType: 'touch', clientX: 178, clientY: 116 });
+    await expect(backdrop).toBeVisible();
+  });
+}

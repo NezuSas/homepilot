@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -150,6 +150,7 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [loadingSetup, setLoadingSetup] = useState<boolean>(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const mobileSidebarPointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => (
     !window.matchMedia('(pointer: coarse) and (max-width: 1366px)').matches
   ));
@@ -566,6 +567,23 @@ function App() {
     );
   }
 
+  const handleMobileSidebarPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'touch') return;
+    mobileSidebarPointerStartRef.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const handleMobileSidebarPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
+    const start = mobileSidebarPointerStartRef.current;
+    mobileSidebarPointerStartRef.current = null;
+    if (!start || event.pointerType !== 'touch') return;
+
+    const horizontalDistance = event.clientX - start.x;
+    const verticalDistance = event.clientY - start.y;
+    if (horizontalDistance <= -64 && Math.abs(horizontalDistance) > Math.abs(verticalDistance)) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   const navigateTo = (view: View) => {
     const resolved = resolveView(view);
     navigate(viewToPath(view === 'scenes' || view === 'automations' ? view : resolved));
@@ -678,6 +696,8 @@ function App() {
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[40] xl:hidden animate-in fade-in duration-300"
+          data-testid="mobile-sidebar-backdrop"
+          aria-hidden="true"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -689,7 +709,11 @@ function App() {
         // Desktop override:
         "xl:relative",
         isDesktopSidebarOpen ? "xl:w-sidebar-expanded xl:translate-x-0" : "xl:w-sidebar-collapsed xl:translate-x-0 xl:overflow-hidden"
-      )}>
+      )}
+        onPointerDown={handleMobileSidebarPointerDown}
+        onPointerUp={handleMobileSidebarPointerUp}
+        onPointerCancel={() => { mobileSidebarPointerStartRef.current = null; }}
+      >
         {/* Brand and desktop sidebar toggle. The redundant local-control label was removed to preserve navigation space. */}
         <div className={cn("border-b border-border/40 px-4 py-3 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "xl:px-3")}>
           <div className={cn("flex items-center gap-2.5", isSidebarContentCollapsed && "xl:justify-center")}>
