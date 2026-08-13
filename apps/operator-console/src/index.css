@@ -534,8 +534,7 @@
       overflow-y: auto;
       overscroll-behavior: contain;
     }
-    .sidebar-collapsed-rail > *,
-    .sidebar-collapsed-rail > * > * {
+    .sidebar-collapsed-rail > * {
       flex: none;
     }
   }

@@ -148,3 +148,5 @@
 - [x] Refinar el rail lateral plegado: navegación con altura natural y densidad uniforme, acción demo oculta y pie compacto para evitar iconos dispersos.
 
 - [x] Garantizar que el rail lateral plegado conserva todas las opciones: la navegación ocupa el alto disponible, agrupa los ítems sin expansión vertical y permite desplazamiento interno cuando sea necesario.
+
+- [x] Profesionalizar el rail plegado: los ítems conservan la geometría compacta del sidebar abierto, el activo no crece verticalmente y el pie muestra solo el avatar.

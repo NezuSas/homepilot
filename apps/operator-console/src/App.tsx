@@ -747,7 +747,7 @@ function App() {
                       activeDashboardsSection
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      isSidebarContentCollapsed && "xl:justify-center xl:px-2"
+                      isSidebarContentCollapsed && "xl:h-10 xl:flex-none xl:justify-center xl:px-2 xl:py-1.5"
                     )}
                     title={isSidebarContentCollapsed ? t('nav.dashboards') : undefined}
                   >
@@ -861,7 +861,7 @@ function App() {
                       activeSystemSection
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      isSidebarContentCollapsed && "xl:justify-center xl:px-2"
+                      isSidebarContentCollapsed && "xl:h-10 xl:flex-none xl:justify-center xl:px-2 xl:py-1.5"
                     )}
                     title={isSidebarContentCollapsed ? t('nav.system') : undefined}
                   >
@@ -986,7 +986,7 @@ function App() {
               onClick={() => setShowProfileModal(true)}
               className={cn(
                 "h-auto flex items-center gap-3 w-full p-2 rounded-2xl bg-muted/30 hover:bg-muted/80 border border-border/40 group",
-                isSidebarContentCollapsed && "xl:justify-center"
+                isSidebarContentCollapsed && "xl:h-12 xl:w-12 xl:justify-center xl:rounded-full xl:border-0 xl:bg-transparent xl:p-1"
               )}
               title={t('users.profile.title', 'Mi Perfil')}
             >
@@ -1012,7 +1012,7 @@ function App() {
             {/* Quick Actions Row */}
             <div className={cn(
               "flex items-center justify-around px-1 py-1 bg-muted/20 rounded-xl border border-border/30 transition-all duration-300",
-              isSidebarContentCollapsed && "xl:flex-col xl:gap-1 xl:px-1"
+              isSidebarContentCollapsed && "xl:hidden"
             )}>
               <IconButton
                 icon={theme === 'dark' ? Sun : Moon}
