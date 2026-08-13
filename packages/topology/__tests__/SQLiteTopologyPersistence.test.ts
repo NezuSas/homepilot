@@ -147,7 +147,7 @@ describe('SQLite Topology Persistence Integration', () => {
     SqliteDatabaseManager.close(migrationDbPath);
     fs.unlinkSync(migrationDbPath);
   });
-  it('debe filtrar dashboards por usuario sin bypass automático por rol admin', async () => {
+  it('solo publica dashboards a su propietario o a usuarios autorizados en el tablero', async () => {
     const now = new Date().toISOString();
     const dashboard: Dashboard = {
       id: 'dashboard-oscar',
@@ -164,11 +164,13 @@ describe('SQLite Topology Persistence Integration', () => {
 
     await dashboardRepo.saveDashboard(dashboard);
 
+    const ownerDashboards = await dashboardRepo.findAllVisibleTo('oscar-user', 'admin', []);
     const adminDashboards = await dashboardRepo.findAllVisibleTo('admin-user', 'admin', []);
     const gustavoDashboards = await dashboardRepo.findAllVisibleTo('gustavo-user', 'guest', []);
 
+    expect(ownerDashboards.some(item => item.id === dashboard.id)).toBe(true);
     expect(adminDashboards.some(item => item.id === dashboard.id)).toBe(false);
-    expect(gustavoDashboards.some(item => item.id === dashboard.id)).toBe(true);
+    expect(gustavoDashboards.some(item => item.id === dashboard.id)).toBe(false);
   });
 
   it('persists dashboard revisions ordered from newest to oldest', async () => {

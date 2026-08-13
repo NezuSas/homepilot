@@ -73,10 +73,7 @@ export class SQLiteDashboardRepository implements DashboardRepository {
       if (d.ownerId === userId) return true;
       
       const v = d.visibility;
-      if (v.users?.includes(userId)) return true;
-      if (d.tabs.some(tab => tab.visibility?.users?.includes(userId))) return true;
-      
-      return false;
+      return v.users?.includes(userId) ?? false;
     });
   }
 
