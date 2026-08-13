@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home as HomeIcon, ArrowRight, Loader2, CheckCircle2, Layers3, Lightbulb, Trash2, Pencil, X, Plus, Power } from 'lucide-react';
+import { Home as HomeIcon, ArrowRight, Loader2, CheckCircle2, Layers3, Lightbulb, Trash2, Pencil, X, Power } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -78,8 +78,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const [roomNameDraft, setRoomNameDraft] = useState('');
   const [roomRenameError, setRoomRenameError] = useState('');
   const [isRenamingRoom, setIsRenamingRoom] = useState(false);
-  const [newHomeName, setNewHomeName] = useState('');
-  const [isCreatingHome, setIsCreatingHome] = useState(false);
   const [editingHomeId, setEditingHomeId] = useState<string | null>(null);
   const [homeNameDraft, setHomeNameDraft] = useState('');
   const [isRenamingHome, setIsRenamingHome] = useState(false);
@@ -282,28 +280,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
     }
   };
 
-  const handleAddHome = async () => {
-    if (!newHomeName.trim()) return;
-    setIsCreatingHome(true);
-    setTopologyError('');
-    try {
-      const res = await apiFetch(`${API_URL}/homes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newHomeName.trim() }),
-      });
-      if (!res.ok) throw new Error(await readApiError(res, t('topology.create_home_error')));
-      const home = await res.json() as Home;
-      setHomes((currentHomes) => [...currentHomes, home]);
-      setNewHomeName('');
-      await handleSelectHome(home);
-    } catch (error_: unknown) {
-      setTopologyError(error_ instanceof Error ? error_.message : t('topology.create_home_error'));
-    } finally {
-      setIsCreatingHome(false);
-    }
-  };
-
   const beginHomeRename = (home: Home) => {
     if (!canManageHome(home)) return;
     setEditingHomeId(home.id);
@@ -421,29 +397,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
           </h3>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Input
-              type="text"
-              containerClassName="min-w-0 flex-1"
-              placeholder={t('topology.home_placeholder')}
-              value={newHomeName}
-              onChange={(event) => setNewHomeName(event.target.value)}
-              onKeyDown={(event) => { if (event.key === 'Enter') void handleAddHome(); }}
-              className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
-            />
-            <IconButton
-              icon={isCreatingHome ? Loader2 : Plus}
-              label={t('topology.add_home')}
-              onClick={() => { void handleAddHome(); }}
-              disabled={isCreatingHome || !newHomeName.trim()}
-              variant="primary"
-              size="md"
-              className={cn('h-10 w-10', isCreatingHome && '[&_svg]:animate-spin')}
-            />
-          </div>
-        </div>
-        
         <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
           {homes.length === 0 ? (
             <div className="p-8 text-center text-body text-muted-foreground italic bg-muted/20">

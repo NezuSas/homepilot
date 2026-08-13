@@ -14,6 +14,7 @@ HomePilot Edge representa una única instalación física: una miniPC controla u
 - Las validaciones llamadas históricamente `validateHomeOwnership` verifican que el hogar solicitado sea el único hogar local. La identidad activa ya fue validada por `AuthGuard` en el perímetro HTTP.
 - Las rutas administrativas mantienen su guardia de rol `admin`; los roles no administrativos no obtienen permisos para crear, editar o eliminar topología, dispositivos, escenas o rutinas.
 - La API rechaza crear un segundo hogar en la misma instalación.
+- La vista de topología no expone una acción para crear hogares adicionales; el alta inicial permanece disponible únicamente para el aprovisionamiento de una instalación vacía.
 
 ## Fuera de alcance
 
@@ -27,6 +28,7 @@ HomePilot Edge representa una única instalación física: una miniPC controla u
 - [x] AC3: crear un segundo hogar en una instalación con uno existente devuelve `409`.
 - [x] AC4: si la base contiene más de un hogar, las operaciones de hogar compartido fallan cerradas con un error explícito; no se mezclan hogares.
 - [x] AC5: las acciones de administración de topología, dispositivos, escenas y automatizaciones continúan exigiendo el rol `admin`.
+- [x] AC6: con un hogar existente, la interfaz no muestra un campo ni una acción para crear otro hogar.
 
 ## Notas de seguridad
 
