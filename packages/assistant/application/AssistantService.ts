@@ -29,7 +29,7 @@ export class AssistantService {
       const detectedFingerprints = detected.map(f => f.fingerprint!);
 
       // 1. Resolve findings that are no longer detected
-      await this.repository.resolveMissing(detectedFingerprints);
+      await this.repository.resolveMissing(detectedFingerprints, homeId);
 
       // 2. Process detected findings
       for (const partial of detected) {
@@ -49,7 +49,7 @@ export class AssistantService {
             relatedEntityId: partial.relatedEntityId || null,
             status: 'open',
             actions: partial.actions || [],
-            metadata: partial.metadata || {},
+            metadata: { ...partial.metadata, homeId },
             score: partial.score || 0,
             createdAt: now,
             updatedAt: now
@@ -60,7 +60,7 @@ export class AssistantService {
           await this.repository.save({
             ...existing,
             actions: partial.actions || [],
-            metadata: { ...existing.metadata, ...partial.metadata },
+            metadata: { ...existing.metadata, ...partial.metadata, homeId },
             score: partial.score || existing.score,
             explanation: partial.explanation || existing.explanation,
             updatedAt: now
@@ -73,30 +73,53 @@ export class AssistantService {
     }
   }
 
-  public async listOpen(): Promise<AssistantFinding[]> {
-    return this.repository.findAllOpen();
+  public async listOpen(authorizedHomeIds: ReadonlyArray<string>): Promise<AssistantFinding[]> {
+    const findings = await this.repository.findAllOpen();
+    return findings.filter((finding) => this.belongsToAuthorizedHome(finding, authorizedHomeIds));
   }
 
-  public async getSummary() {
-    return this.repository.getSummary();
+  public async getSummary(authorizedHomeIds: ReadonlyArray<string>) {
+    const findings = await this.listOpen(authorizedHomeIds);
+    return {
+      totalOpen: findings.length,
+      bySeverity: this.countBy(findings, (finding) => finding.severity),
+      byType: this.countBy(findings, (finding) => finding.type)
+    };
   }
 
-  public async dismiss(id: string): Promise<void> {
-    const finding = await this.repository.findById(id);
-    if (finding) {
-      await this.recordFeedback(finding, 'dismissed');
-    }
+  public async dismiss(id: string, authorizedHomeIds: ReadonlyArray<string>): Promise<void> {
+    const finding = await this.requireAuthorizedFinding(id, authorizedHomeIds);
+    await this.recordFeedback(finding, 'dismissed');
     const cooldownDays = 7;
     const dismissedUntil = new Date(Date.now() + cooldownDays * 24 * 60 * 60 * 1000).toISOString();
     await this.repository.updateStatus(id, 'dismissed', dismissedUntil);
   }
 
-  public async resolve(id: string): Promise<void> {
-    const finding = await this.repository.findById(id);
-    if (finding) {
-      await this.recordFeedback(finding, 'completed');
-    }
+  public async resolve(id: string, authorizedHomeIds: ReadonlyArray<string>): Promise<void> {
+    const finding = await this.requireAuthorizedFinding(id, authorizedHomeIds);
+    await this.recordFeedback(finding, 'completed');
     await this.repository.updateStatus(id, 'resolved');
+  }
+
+  private async requireAuthorizedFinding(id: string, authorizedHomeIds: ReadonlyArray<string>): Promise<AssistantFinding> {
+    const finding = await this.repository.findById(id);
+    if (!finding || !this.belongsToAuthorizedHome(finding, authorizedHomeIds)) {
+      throw new Error('ASSISTANT_FINDING_FORBIDDEN');
+    }
+    return finding;
+  }
+
+  private belongsToAuthorizedHome(finding: AssistantFinding, authorizedHomeIds: ReadonlyArray<string>): boolean {
+    const homeId = typeof finding.metadata.homeId === 'string' ? finding.metadata.homeId : null;
+    return homeId !== null && authorizedHomeIds.includes(homeId);
+  }
+
+  private countBy(findings: ReadonlyArray<AssistantFinding>, selector: (finding: AssistantFinding) => string): Record<string, number> {
+    return findings.reduce<Record<string, number>>((counts, finding) => {
+      const key = selector(finding);
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {});
   }
 
   private async recordFeedback(finding: AssistantFinding, type: AssistantFeedbackType): Promise<void> {

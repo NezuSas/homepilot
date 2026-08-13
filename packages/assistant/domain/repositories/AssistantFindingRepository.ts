@@ -8,6 +8,6 @@ export interface AssistantFindingRepository {
   findAllByStatus(status: FindingStatus): Promise<AssistantFinding[]>;
   updateStatus(id: string, status: FindingStatus, dismissedUntil?: string | null): Promise<void>;
   /** Bulk update status for findings that are no longer detected */
-  resolveMissing(currentFingerprints: string[]): Promise<number>;
+  resolveMissing(currentFingerprints: string[], homeId: string): Promise<number>;
   getSummary(): Promise<{ totalOpen: number; bySeverity: Record<string, number>; byType: Record<string, number> }>;
 }

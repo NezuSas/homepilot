@@ -79,7 +79,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - Successful command, scene and query responses must not append inventory-maintenance notices about devices without a room. Those notices belong to dedicated diagnostics surfaces, not every conversation turn.
 - Visible and spoken answers must be concise, focused on the current request, and contain no emojis.
 - Conversation, STT, and TTS language must follow the language selected inside HomePilot rather than the browser's original language.
-- Bulk actions requested through voice execute without a second confirmation; the text chat keeps explicit confirmation controls.
+- Las acciones masivas, tanto por voz como por chat, requieren una confirmación explícita y persistida antes de ejecutarse.
 - Ambiguous, unsafe, or unknown commands must be acknowledged immediately and ask for a clearer device/room target.
 - The assistant must not claim that an action was executed unless the execution result confirms it.
 
@@ -98,3 +98,20 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - [x] AC-03: Los comandos explícitos de tono persisten únicamente neutral, warm o formal.
 - [x] AC-04: Una preferencia de nombre no altera validación, confirmaciones ni ejecución.
 
+
+## 12. Seguridad, identidad y aislamiento
+
+- La identidad de la sesión autenticada prevalece sobre cualquier `userId` o nombre recibido en el cuerpo de la petición.
+- Ningún campo enviado por el cliente puede confirmar una acción. Una confirmación sólo es válida cuando corresponde a una intención pendiente del mismo usuario y se procesa mediante una respuesta positiva (`confirm` o lenguaje natural equivalente).
+- Cada hallazgo incorpora el `homeId` que produjo su detección. Listados, resumen, resolución, descarte y acciones sólo operan sobre hogares pertenecientes al usuario autenticado.
+- Las acciones administrativas sobre hallazgos exigen el rol `parent` o superior; el estado y las métricas del planificador en sombra exigen `admin`.
+- El registro del planificador no conserva el texto original de la conversación, la respuesta visible ni el identificador de usuario; registra únicamente métricas técnicas y longitudes.
+
+## 13. Criterios de aceptación de seguridad
+
+- [x] AC-05: `POST /assistant/converse` ignora `userId` y `confirmed` suministrados por el cliente y usa la sesión autenticada.
+- [x] AC-06: Una acción masiva por voz no se ejecuta sin confirmación persistida.
+- [x] AC-07: Un hallazgo de un hogar no autorizado no se lista, resuelve, descarta ni ejecuta.
+- [x] AC-08: Un escaneo resuelve únicamente hallazgos del hogar escaneado.
+- [x] AC-09: Las rutas administrativas del planificador y las acciones de hallazgos validan el rol requerido.
+- [x] AC-10: Los eventos operativos del planificador no incluyen prompt, respuesta ni usuario en texto plano.

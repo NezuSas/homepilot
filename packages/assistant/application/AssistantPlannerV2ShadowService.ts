@@ -100,11 +100,11 @@ export class AssistantPlannerV2ShadowService {
     else if (['habla en español', 'habla en ingles', 'habla en inglés', 'speak in english', 'speak in spanish', 'english', 'spanish', 'español', 'ingles', 'inglés'].includes(lowerPrompt)) skipReason = 'language_override';
     
     if (skipReason) {
-      console.info(`[PLANNER_V2_SHADOW_SKIPPED] ${JSON.stringify({ reason: skipReason, prompt })}`);
+      console.info(`[PLANNER_V2_SHADOW_SKIPPED] ${JSON.stringify({ reason: skipReason, promptLength: prompt.length })}`);
       return;
     }
 
-    console.info(`[PLANNER_V2_SHADOW_TRIGGER] ${JSON.stringify({ prompt, userId, language })}`);
+    console.info(`[PLANNER_V2_SHADOW_TRIGGER] ${JSON.stringify({ promptLength: prompt.length, language })}`);
 
     // Apply sampling
     if (this.sampleRate < 1.0 && Math.random() > this.sampleRate) {
@@ -196,7 +196,7 @@ export class AssistantPlannerV2ShadowService {
       const latencyMs = Date.now() - t0;
 
       if (latencyMs > 1500) {
-        console.warn(`[PLANNER_V2_SHADOW] Slow execution: ${latencyMs}ms for prompt "${prompt}"`);
+        console.warn(`[PLANNER_V2_SHADOW] Slow execution: ${latencyMs}ms`);
       }
 
       // 4. Structured diagnostic log — always emitted, even on failure
@@ -235,12 +235,13 @@ export class AssistantPlannerV2ShadowService {
       console.info(`[PLANNER_V2_SHADOW_V2] ${JSON.stringify({
         version: 'v2',
         timestamp: new Date().toISOString(),
-        userId,
-        prompt,
+
+
         language,
+        promptLength: prompt.length,
         v1: {
           type: v1Response.type,
-          message: v1Response.message
+          messageLength: v1Response.message.length
         },
         v2: {
           plan: safePlan,
@@ -287,7 +288,7 @@ export class AssistantPlannerV2ShadowService {
     if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
 
     const skip = (reason: string, extra?: Record<string, unknown>) => {
-      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason, prompt, ...extra })}`);
+      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason, promptLength: prompt.length, ...extra })}`);
       return null;
     };
 
@@ -352,8 +353,7 @@ export class AssistantPlannerV2ShadowService {
         
         console.info(`[PLANNER_V2_CONTEXT_RESOLVED] ${JSON.stringify({
           context_source: 'short_term_memory',
-          resolvedIds: [resolved.deviceId],
-          prompt
+          resolvedIds: [resolved.deviceId]
         })}`);
       } else {
         const res = await this.resolver.resolve(action.target, userId);
@@ -385,7 +385,7 @@ export class AssistantPlannerV2ShadowService {
 
       // 3. SUCCESSFUL GATE PASS
       console.info(`[PLANNER_V2_EXECUTION_APPROVED] ${JSON.stringify({
-        prompt,
+
         deviceId: resolved.deviceId,
         command: action.command,
         confidence: action.confidence,

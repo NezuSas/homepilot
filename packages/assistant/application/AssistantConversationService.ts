@@ -3913,14 +3913,6 @@ export class AssistantConversationService {
     }
 
     const deviceIds = targetDevices.map(d => d.id);
-    if (interactionMode === 'voice') {
-      return this.handleBulkActionAccept(userId, language, {
-        deviceIds,
-        command,
-        bulkType,
-        originalPrompt: normalized,
-      });
-    }
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
       source: 'bulk_fast_path',
       count: targetDevices.length,

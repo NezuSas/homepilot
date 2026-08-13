@@ -510,8 +510,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         prompt: `Selected: ${label}`,
         userName: user?.displayName || user?.username,
         selectedOptionId: optionId,
-        pendingAction,
-        confirmed: optionId === 'confirm'
+        pendingAction
       }, { signal: conversationController.signal });
       if (requestId !== conversationRequestIdRef.current) return;
       handleResponse(response);

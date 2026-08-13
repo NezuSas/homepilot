@@ -18,3 +18,11 @@
 - [x] AC-03: Cubrir detección y persistencia de tono.
 - [x] AC-04: `packages/assistant/__tests__/assistant_conversation_service.test.ts` verifica que el nombre preferido conserva la misma validación, confirmación y despacho del comando.
 
+
+## Endurecimiento de seguridad conversacional
+
+- [x] Vincular la identidad de conversación a la sesión autenticada y descartar confirmaciones inyectadas por el cliente.
+- [x] Requerir confirmación persistida para acciones masivas por voz y chat.
+- [x] Aislar hallazgos, acciones y escaneos por hogar autorizado.
+- [x] Limitar acciones administrativas y telemetría del planificador por rol.
+- [x] Eliminar prompt, respuesta e identidad de los registros del planificador en sombra.

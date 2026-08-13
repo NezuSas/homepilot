@@ -25,10 +25,14 @@ export class AssistantActionService {
     actionType: string,
     payload: Record<string, unknown>,
     userId: string,
-    correlationId: string
+    correlationId: string,
+    authorizedHomeIds: ReadonlyArray<string>
   ): Promise<void> {
     const finding = await this.deps.assistantFindingRepository.findById(findingId);
-    if (!finding) throw new Error('FINDING_NOT_FOUND');
+    const findingHomeId = typeof finding?.metadata.homeId === 'string' ? finding.metadata.homeId : null;
+    if (!finding || !findingHomeId || !authorizedHomeIds.includes(findingHomeId)) {
+      throw new Error('ASSISTANT_FINDING_FORBIDDEN');
+    }
 
     let success = false;
     await this.recordFeedback(finding, 'accepted', actionType);

@@ -32,7 +32,8 @@ describe('Feature: Local assistant speech transport', () => {
       })
     };
     mockAuthGuard = {
-      protect: jest.fn().mockResolvedValue(true)
+      protect: jest.fn().mockResolvedValue(true),
+      requireRole: jest.fn().mockReturnValue(true)
     };
     mockContainer = {
       services: {
@@ -42,6 +43,9 @@ describe('Feature: Local assistant speech transport', () => {
       } as any,
       guards: {
         authGuard: mockAuthGuard
+      } as any,
+      repositories: {
+        homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) }
       } as any
     };
     routes = new AssistantRoutes();
@@ -71,6 +75,25 @@ describe('Feature: Local assistant speech transport', () => {
     );
   });
 
+  it('POST /api/v1/assistant/converse binds identity and confirmation to the authenticated session', async () => {
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({
+      prompt: 'apaga todo',
+      userId: 'another-user',
+      confirmed: true,
+      selectedOptionId: 'confirm'
+    });
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/converse', 'POST', mockContainer as BootstrapContainer);
+
+    expect(mockAssistantConversationService.converse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        confirmed: false,
+        selectedOptionId: 'confirm'
+      }),
+      'es'
+    );
+  });
   it('POST /api/v1/assistant/converse handles request without sourceRoomId', async () => {
     const body = { prompt: 'prende la luz' };
     (mockReq as any)._fastifyParsedBody = JSON.stringify(body);

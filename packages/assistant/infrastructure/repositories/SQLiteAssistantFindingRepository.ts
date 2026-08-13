@@ -115,22 +115,23 @@ export class SQLiteAssistantFindingRepository implements AssistantFindingReposit
     this.db.prepare(query).run(...params);
   }
 
-  public async resolveMissing(currentFingerprints: string[]): Promise<number> {
+  public async resolveMissing(currentFingerprints: string[], homeId: string): Promise<number> {
+    const homeScope = "json_extract(metadata, '$.homeId') = ?";
     if (currentFingerprints.length === 0) {
       const result = this.db.prepare(`
-        UPDATE assistant_findings 
+        UPDATE assistant_findings
         SET status = 'resolved', resolved_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
-        WHERE status = 'open'
-      `).run();
+        WHERE status = 'open' AND ${homeScope}
+      `).run(homeId);
       return result.changes;
     }
 
     const placeholders = currentFingerprints.map(() => '?').join(',');
     const result = this.db.prepare(`
-      UPDATE assistant_findings 
+      UPDATE assistant_findings
       SET status = 'resolved', resolved_at = STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW')
-      WHERE status = 'open' AND fingerprint NOT IN (${placeholders})
-    `).run(...currentFingerprints);
+      WHERE status = 'open' AND ${homeScope} AND fingerprint NOT IN (${placeholders})
+    `).run(homeId, ...currentFingerprints);
 
     return result.changes;
   }
