@@ -101,7 +101,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 
 ## 12. Seguridad, identidad y aislamiento
 
-- La identidad de la sesión autenticada prevalece sobre cualquier `userId` o nombre recibido en el cuerpo de la petición.
+- La identidad y nombre de la sesión autenticada prevalecen sobre cualquier `userId`, nombre o `pendingAction` recibido en el cuerpo de la petición.
 - Ningún campo enviado por el cliente puede confirmar una acción. Una confirmación sólo es válida cuando corresponde a una intención pendiente del mismo usuario y se procesa mediante una respuesta positiva (`confirm` o lenguaje natural equivalente).
 - Cada hallazgo incorpora el `homeId` que produjo su detección. Listados, resumen, resolución, descarte y acciones sólo operan sobre hogares pertenecientes al usuario autenticado. Los comandos de dispositivos y la ejecución de escenas validan el mismo hogar antes de despacharse.
 - Las acciones administrativas sobre hallazgos exigen el rol `parent` o superior; el estado y las métricas del planificador en sombra exigen `admin`.
@@ -109,7 +109,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 
 ## 13. Criterios de aceptación de seguridad
 
-- [x] AC-05: `POST /assistant/converse` ignora `userId` y `confirmed` suministrados por el cliente y usa la sesión autenticada.
+- [x] AC-05: `POST /assistant/converse` ignora `userId`, nombre, `confirmed` y `pendingAction` suministrados por el cliente y usa exclusivamente la sesión y la memoria persistida.
 - [x] AC-06: Una acción masiva por voz no se ejecuta sin confirmación persistida.
 - [x] AC-07: Un hallazgo de un hogar no autorizado no se lista, resuelve, descarta ni ejecuta.
 - [x] AC-08: Un escaneo resuelve únicamente hallazgos del hogar escaneado.

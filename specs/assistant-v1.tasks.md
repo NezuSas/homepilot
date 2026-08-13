@@ -22,6 +22,7 @@
 ## Endurecimiento de seguridad conversacional
 
 - [x] Vincular la identidad de conversación a la sesión autenticada y descartar confirmaciones inyectadas por el cliente.
+- [x] Descartar pendingAction y nombre enviados por el cliente; usar sólo la sesión autenticada y la memoria persistida.
 - [x] Requerir confirmación persistida para acciones masivas por voz y chat.
 - [x] Aislar hallazgos, acciones y escaneos por hogar autorizado.
 - [x] Limitar acciones administrativas y telemetría del planificador por rol.

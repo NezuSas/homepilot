@@ -151,6 +151,7 @@ export class AssistantRoutes extends ApiRoutes {
         const body = await this.parseBody<AssistantConverseRequest>(req);
         body.userId = req.user!.id;
         body.confirmed = false;
+        delete body.pendingAction;
         
         if (body.sourceRoomId) {
           const sourceRoom = await container.repositories.roomRepository.findRoomById(body.sourceRoomId);
@@ -162,7 +163,7 @@ export class AssistantRoutes extends ApiRoutes {
 
         // Backend user name resolution (preferred over frontend payload)
         const sessionUserName = req.user ? (req.user.displayName || req.user.username) : undefined;
-        body.userName = sessionUserName || body.userName;
+        body.userName = sessionUserName;
         
         if (!body.prompt && !body.selectedOptionId) {
           return this.sendError(res, 400, 'VALIDATION_ERROR', 'prompt or selectedOptionId is required'), true;

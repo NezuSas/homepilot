@@ -81,7 +81,9 @@ describe('Feature: Local assistant speech transport', () => {
       prompt: 'apaga todo',
       userId: 'another-user',
       confirmed: true,
-      selectedOptionId: 'confirm'
+      selectedOptionId: 'confirm',
+      pendingAction: { targetId: 'another-device', command: 'turn_off', originalPrompt: 'apaga todo' },
+      userName: 'another-user'
     });
 
     await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/converse', 'POST', mockContainer as BootstrapContainer);
@@ -89,11 +91,14 @@ describe('Feature: Local assistant speech transport', () => {
     expect(mockAssistantConversationService.converse).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'u1',
+        userName: 'Test User',
         confirmed: false,
         selectedOptionId: 'confirm'
       }),
       'es'
     );
+    const forwardedRequest = mockAssistantConversationService.converse.mock.calls[0][0];
+    expect(forwardedRequest).not.toHaveProperty('pendingAction');
   });
   it('POST /api/v1/assistant/converse returns 403 without exposing authorization internals', async () => {
     mockAssistantConversationService.converse.mockRejectedValue(new Error('ASSISTANT_HOME_FORBIDDEN'));
