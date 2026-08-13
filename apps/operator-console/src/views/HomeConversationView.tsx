@@ -5,7 +5,7 @@ import { blobToBase64, canUseLocalSpeechRecording, createSpeechAudioUrl, getPref
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
-import type { AssistantConversationResponse, AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
+import type { AssistantConversationResponse, ChatMessage } from '../types/assistantConversation';
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
@@ -214,8 +214,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       content: response.message,
       responseType: response.type,
       options: response.clarification?.options,
-      execution: response.execution,
-      pendingAction: response.clarification?.pendingAction
+      execution: response.execution
     });
     if (response.type === 'execution' && response.execution?.status !== 'failed') {
       void refreshDeviceSnapshot({ force: true });
@@ -492,7 +491,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     setIsSpeechEnabled(nextSpeechEnabled);
   };
 
-  const handleOptionClick = async (optionId: string, label: string, pendingAction?: AssistantConverseRequest['pendingAction']) => {
+  const handleOptionClick = async (optionId: string, label: string) => {
     if (isLoading) return;
 
     addMessage({
@@ -509,8 +508,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const response = await converseWithAssistant({
         prompt: `Selected: ${label}`,
         userName: user?.displayName || user?.username,
-        selectedOptionId: optionId,
-        pendingAction
+        selectedOptionId: optionId
       }, { signal: conversationController.signal });
       if (requestId !== conversationRequestIdRef.current) return;
       handleResponse(response);

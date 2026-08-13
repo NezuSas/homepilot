@@ -3,7 +3,7 @@ import { Bot, CheckCircle2, ChevronRight, HelpCircle, XCircle } from 'lucide-rea
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { cn } from '../lib/utils';
-import type { AssistantConverseRequest, ChatMessage } from '../types/assistantConversation';
+import type { ChatMessage } from '../types/assistantConversation';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { StatusPill } from './ui/StatusPill';
@@ -17,7 +17,7 @@ interface ConversationUser {
 interface HomeConversationMessageBubbleProps {
   message: ChatMessage;
   user?: ConversationUser | null;
-  onOptionClick: (optionId: string, label: string, pendingAction?: AssistantConverseRequest['pendingAction']) => void;
+  onOptionClick: (optionId: string, label: string) => void;
 }
 
 export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubbleProps> = ({
@@ -102,7 +102,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                         type="button"
                         variant={isConfirm ? 'primary' : isCancel ? 'outline' : 'secondary'}
                         size="sm"
-                        onClick={() => onOptionClick(option.id, option.label, message.pendingAction)}
+                        onClick={() => onOptionClick(option.id, option.label)}
                         className={cn(
                           "min-h-10 rounded-xl bg-background/60",
                           isConfirm && "bg-success text-success-foreground hover:bg-success/90 shadow-success/15",

@@ -34,11 +34,6 @@ export interface AssistantConverseRequest {
   prompt: string;
   userName?: string;
   selectedOptionId?: string;
-  pendingAction?: {
-    command?: DeviceCommandV1;
-    targetId?: string;
-    originalPrompt: string;
-  };
   confirmed?: boolean;
   sourceRoomId?: string;
   interactionMode?: 'chat' | 'voice';
@@ -66,10 +61,5 @@ export interface ChatMessage {
     kind: "device" | "scene" | "alias_target" | "room";
   }>;
   execution?: SceneExecutionResult;
-  pendingAction?: {
-    command?: DeviceCommandV1;
-    targetId?: string;
-    originalPrompt: string;
-  };
   timestamp: string;
 }
