@@ -890,7 +890,7 @@ function App() {
                 </Button>
 
                 {/* System sub-items — inline collapsible */}
-                {(isSystemExpanded || (isSidebarContentCollapsed && !isCollapsedSystemSubmenuHidden)) && (
+                {(isSidebarContentCollapsed ? !isCollapsedSystemSubmenuHidden : isSystemExpanded) && (
                   <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-1 xl:border-l xl:pl-1 xl:gap-0.5")}>
                      <SidebarItem
                         icon={Network}

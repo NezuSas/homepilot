@@ -164,3 +164,5 @@
 - [x] Evitar solapamiento de clics en el rail plegado: las etiquetas se retiran del flujo visual y una prueba Playwright confirma rutas y estado activo correctos para iconos consecutivos.
 
 - [x] Permitir contraer y expandir las subopciones de Sistema en el rail plegado, conservando su visibilidad inicial y el comportamiento equivalente al sidebar abierto.
+
+- [x] Corregir el plegado de Sistema tras navegar a una subopción: el estado compacto tiene precedencia sobre la expansión automática usada por el sidebar abierto.

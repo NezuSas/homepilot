@@ -486,4 +486,6 @@ const systemGroup = page.getByRole('button', { name: /^system$/i });
   await expect(page).toHaveURL(/\/system\/inbox$/);
   await expect(discovery).toHaveAttribute('aria-current', 'page');
   await expect(conversation).not.toHaveAttribute('aria-current', 'page');
+  await systemGroup.click();
+  await expect(discovery).toBeHidden();
 });
