@@ -170,7 +170,7 @@ export class AssistantRoutes extends ApiRoutes {
         response.message = sanitizeAssistantResponse(response.message);
         return this.sendJson(res, response), true;
       } catch (e: unknown) {
-        this.sendError(res, 500, 'ASSISTANT_CONVERSE_ERROR', e instanceof Error ? e.message : String(e));
+        this.sendAssistantError(res, e, 'ASSISTANT_CONVERSE_ERROR');
       }
       return true;
     }
@@ -228,7 +228,7 @@ export class AssistantRoutes extends ApiRoutes {
 
   private sendAssistantError(res: http.ServerResponse, error: unknown, fallbackCode: string = 'ASSISTANT_ERROR'): void {
     const message = error instanceof Error ? error.message : String(error);
-    if (message === 'ASSISTANT_FINDING_FORBIDDEN') {
+    if (message === 'ASSISTANT_FINDING_FORBIDDEN' || message === 'ASSISTANT_HOME_FORBIDDEN' || message === 'ASSISTANT_AUTHORIZATION_UNAVAILABLE') {
       this.sendError(res, 403, 'FORBIDDEN', 'No tienes acceso a este hallazgo del asistente.');
       return;
     }

@@ -94,6 +94,15 @@ describe('Feature: Local assistant speech transport', () => {
       'es'
     );
   });
+  it('POST /api/v1/assistant/converse returns 403 without exposing authorization internals', async () => {
+    mockAssistantConversationService.converse.mockRejectedValue(new Error('ASSISTANT_HOME_FORBIDDEN'));
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({ prompt: 'prende la luz' });
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/converse', 'POST', mockContainer as BootstrapContainer);
+
+    expect(mockRes.writeHead).toHaveBeenCalledWith(403, { 'Content-Type': 'application/json' });
+    expect(mockRes.end).toHaveBeenCalledWith(expect.not.stringContaining('ASSISTANT_HOME_FORBIDDEN'));
+  });
   it('POST /api/v1/assistant/converse handles request without sourceRoomId', async () => {
     const body = { prompt: 'prende la luz' };
     (mockReq as any)._fastifyParsedBody = JSON.stringify(body);
