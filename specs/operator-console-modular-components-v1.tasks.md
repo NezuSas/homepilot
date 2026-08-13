@@ -146,3 +146,5 @@
 - [x] Compactar la cabecera lateral: conservar marca y control de plegado, eliminar la etiqueta redundante "Control local" y liberar altura para la navegación.
 
 - [x] Refinar el rail lateral plegado: navegación con altura natural y densidad uniforme, acción demo oculta y pie compacto para evitar iconos dispersos.
+
+- [x] Garantizar que el rail lateral plegado conserva todas las opciones: la navegación ocupa el alto disponible, agrupa los ítems sin expansión vertical y permite desplazamiento interno cuando sea necesario.

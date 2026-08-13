@@ -526,6 +526,20 @@
     box-shadow: 0 0 8px hsl(var(--primary) / 0.6);
   }
 
+  @media (min-width: 1280px) {
+    .sidebar-collapsed-rail {
+      flex: 1 1 0%;
+      justify-content: flex-start;
+      align-content: flex-start;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .sidebar-collapsed-rail > *,
+    .sidebar-collapsed-rail > * > * {
+      flex: none;
+    }
+  }
+
   /* ── View header decoration ───────────────────────────────── */
   .view-header-accent {
     position: relative;

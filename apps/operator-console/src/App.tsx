@@ -715,7 +715,7 @@ function App() {
           </div>
         </div>
         
-        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isSidebarContentCollapsed && "xl:flex-none xl:gap-1 xl:px-2 xl:py-2")}>
+        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isSidebarContentCollapsed && "sidebar-collapsed-rail xl:gap-1 xl:px-2 xl:py-2")}>
 
           {/* ── PRIMARY ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-0.5">
