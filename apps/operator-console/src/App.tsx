@@ -689,8 +689,8 @@ function App() {
         "xl:relative",
         isDesktopSidebarOpen ? "xl:w-sidebar-expanded xl:translate-x-0" : "xl:w-sidebar-collapsed xl:translate-x-0 xl:overflow-hidden"
       )}>
-        {/* Logo area */}
-          <div className={cn("px-4 py-4 border-b border-border/40 flex flex-col gap-0.5 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "xl:px-3")}>
+        {/* Brand and desktop sidebar toggle. The redundant local-control label was removed to preserve navigation space. */}
+        <div className={cn("border-b border-border/40 px-4 py-3 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "xl:px-3")}>
           <div className={cn("flex items-center gap-2.5", isSidebarContentCollapsed && "xl:justify-center")}>
             <Button
               type="button"
@@ -703,32 +703,15 @@ function App() {
                   setIsSidebarOpen(false);
                 }
               }}
-              className="flex h-14 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-opacity hover:opacity-75"
+              className="flex h-12 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-opacity hover:opacity-75"
               title={t('shell.toggle_sidebar')}
               aria-label={t('shell.toggle_sidebar')}
             >
-              <img src="/nezu.png" alt="Nezu" className={cn("h-10 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "xl:opacity-100")} />
+              <img src="/nezu.png" alt="Nezu" className={cn("h-8 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "xl:opacity-100")} />
             </Button>
             <h2 className={cn("font-black tracking-tighter text-body-lg leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0")}>
               {t('shell.app_title')}
             </h2>
-          </div>
-          <div className={cn("mt-1 ml-brand-indent flex items-center gap-2 whitespace-nowrap overflow-hidden transition-[opacity,width,height,margin] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:h-0 xl:ml-0 xl:opacity-0")}>
-            <IconButton
-              icon={Menu}
-              label={t('shell.toggle_sidebar')}
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (window.matchMedia('(min-width: 1280px)').matches) {
-                  setIsDesktopSidebarOpen((current) => !current);
-                } else {
-                  setIsSidebarOpen(false);
-                }
-              }}
-              className="h-6 w-6 text-muted-foreground/45"
-            />
-            <span className="text-nano uppercase font-semibold tracking-label text-muted-foreground/50">{t('shell.sidebar_subtitle')}</span>
           </div>
         </div>
         

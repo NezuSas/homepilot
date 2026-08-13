@@ -142,3 +142,5 @@
 - [x] Compactar etiquetas de auditoría y alinear los controles de seguridad de usuarios mediante columnas estables, sin alterar los permisos ni las acciones disponibles.
 
 - [x] Simplificar la etiqueta visible del rol administrador a "Admin" en el selector de controles de seguridad, sin modificar el valor de rol ni sus permisos.
+
+- [x] Compactar la cabecera lateral: conservar marca y control de plegado, eliminar la etiqueta redundante "Control local" y liberar altura para la navegación.
