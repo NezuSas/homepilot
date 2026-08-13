@@ -18,7 +18,8 @@ import {
   createTestDevice,
   createTestRoom,
   createMockSceneExecutionService,
-  createMockSystemVariableService
+  createMockSystemVariableService,
+  createFakeConfirmationTicketRepository
 } from './test_helpers';
 
 describe('Assistant Room Bulk Fast-Path', () => {
@@ -27,12 +28,14 @@ describe('Assistant Room Bulk Fast-Path', () => {
   let mockRoomRepo: any;
   let mockMemory: any;
   let mockIntentInterpreter: any;
+  let mockConfirmationTicketRepository: any;
 
   beforeEach(() => {
     mockDeviceRepo = createMockDeviceRepository();
     mockRoomRepo = createMockRoomRepository();
     mockMemory = createMockAssistantMemory();
     mockIntentInterpreter = createMockIntentInterpreterPort();
+    mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
 
     service = new AssistantConversationService(
       mockIntentInterpreter,
@@ -52,13 +55,17 @@ describe('Assistant Room Bulk Fast-Path', () => {
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
       createMockSystemVariableService(),
-      undefined
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      mockConfirmationTicketRepository
     );
   });
 
   it('detects "apaga todas las luces de la sala" correctly', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
-    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1' })];
+    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1', lastKnownState: { on: true } })];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -73,7 +80,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
   it('detects English "turn off all lights in the kitchen" correctly', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Kitchen' })];
-    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1' })];
+    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1', lastKnownState: { on: true } })];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -88,7 +95,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
   it('resolves alias "mi cuarto" to "Cuarto Master" correctly', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Cuarto Master' })];
-    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1' })];
+    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1', lastKnownState: { on: true } })];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -102,7 +109,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
   it('resolves natural phrases like "apaga luces de mi cuarto porfa"', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Cuarto Master' })];
-    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1' })];
+    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1', lastKnownState: { on: true } })];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -121,8 +128,8 @@ describe('Assistant Room Bulk Fast-Path', () => {
       createTestRoom({ id: 'r2', name: 'Cuarto Master' })
     ];
     const devices = [
-      createTestDevice({ id: 'l1', type: 'light', roomId: 'r1' }),
-      createTestDevice({ id: 'l2', type: 'light', roomId: 'r2' })
+      createTestDevice({ id: 'l1', type: 'light', roomId: 'r1', lastKnownState: { on: true } }),
+      createTestDevice({ id: 'l2', type: 'light', roomId: 'r2', lastKnownState: { on: true } })
     ];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
@@ -154,7 +161,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
   it('resolves English "turn off lights in my bedroom" correctly', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Master Bedroom' })];
-    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1' })];
+    const devices = [createTestDevice({ id: 'l1', type: 'light', roomId: 'r1', lastKnownState: { on: true } })];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -169,9 +176,9 @@ describe('Assistant Room Bulk Fast-Path', () => {
   it('includes automatic HA switches with explicit light names and excludes unrelated switches', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
     const devices = [
-      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }),
-      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1' }),
-      createTestDevice({ id: 's1', name: 'Ventilador', type: 'switch', roomId: 'r1' })
+      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1', lastKnownState: { on: true } }),
+      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1', lastKnownState: { on: true } }),
+      createTestDevice({ id: 's1', name: 'Ventilador', type: 'switch', roomId: 'r1', lastKnownState: { on: true } })
     ];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
@@ -182,16 +189,18 @@ describe('Assistant Room Bulk Fast-Path', () => {
     const res = await service.converse({ prompt: 'apaga luces de la sala', userId: 'u1' }, 'es');
 
     expect(res.message).toContain('Encontré 2 luces');
-    const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
-    expect(saveCall.pendingBulkAction.deviceIds).toEqual(expect.arrayContaining(['l1', 'l2']));
-    expect(saveCall.pendingBulkAction.deviceIds).not.toContain('s1');
+    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      deviceIds: expect.arrayContaining(['l1', 'l2'])
+    }));
+    const ticket = mockConfirmationTicketRepository.create.mock.calls[0][0];
+    expect(ticket.deviceIds).not.toContain('s1');
   });
 
   it('includes both devices when using "todo" in the room', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
     const devices = [
-      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1' }),
-      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1' })
+      createTestDevice({ id: 'l1', name: 'Lámpara pie', type: 'switch', roomId: 'r1', lastKnownState: { on: true } }),
+      createTestDevice({ id: 'l2', name: 'Luz techo', type: 'light', roomId: 'r1', lastKnownState: { on: true } })
     ];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);

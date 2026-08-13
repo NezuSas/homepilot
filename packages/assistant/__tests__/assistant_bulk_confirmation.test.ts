@@ -1,8 +1,8 @@
 import { AssistantConversationService } from '../application/AssistantConversationService';
-import { 
-  createMockIntentInterpreterPort, 
-  createMockAssistantSmallTalk, 
-  createMockDeviceCommandDispatcher, 
+import {
+  createMockIntentInterpreterPort,
+  createMockAssistantSmallTalk,
+  createMockDeviceCommandDispatcher,
   createMockSmartEntityResolver,
   createMockAssistantMemory,
   createMockAssistantLearningService,
@@ -15,10 +15,10 @@ import {
   createMockSceneRepository,
   createMockAutomationRuleRepository,
   createMockAssistantDraftService,
-  createMockAssistantDraftRepository,
   createTestDevice,
   createMockSceneExecutionService,
-  createMockSystemVariableService
+  createMockSystemVariableService,
+  createFakeConfirmationTicketRepository
 } from './test_helpers';
 
 describe('Assistant Multi-Target Confirmation Guard', () => {
@@ -29,6 +29,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
   let mockShadowService: any;
   let mockSceneExecutionService: any;
   let mockHomeRepository: any;
+  let mockConfirmationTicketRepository: any;
 
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
@@ -36,7 +37,8 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     mockDeviceRepo = createMockDeviceRepository();
     mockSceneExecutionService = createMockSceneExecutionService();
     mockHomeRepository = { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'h1' }]) };
-    
+    mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
+
     mockShadowService = {
       attemptHybridExecution: jest.fn(),
       runShadow: jest.fn().mockResolvedValue(undefined)
@@ -63,7 +65,8 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       mockShadowService,
       undefined,
       undefined,
-      mockHomeRepository
+      mockHomeRepository,
+      mockConfirmationTicketRepository
     );
 
     process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
@@ -83,12 +86,12 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     expect(res.type).toBe('clarification');
     expect(res.message).toContain('¿Confirmas');
-    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['d1'] })
+    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'u1', command: 'turn_off', deviceIds: ['d1']
     }));
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
-  it('understands a conversational whole-house command and only targets devices that need to turn off', async () => {
+  it('understands a conversational whole-house command, skips only lights confirmed already off, and includes unknown-state lights', async () => {
     mockMemory.getShortTermMemory.mockResolvedValue(null);
     mockDeviceRepo.findAll.mockResolvedValue([
       createTestDevice({ id: 'on-light', name: 'Luz Sala', homeId: 'h1', type: 'light', lastKnownState: { on: true } }),
@@ -99,9 +102,11 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     const res = await service.converse({ prompt: '¿Podrías apagar todas las luces de toda la casa, por favor?', userId: 'u1' }, 'es');
 
     expect(res.type).toBe('clarification');
-    expect(res.message).toContain('1 luces');
-    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['on-light'] })
+    // An unreported/unknown state is never assumed to already satisfy "off" — only
+    // off-light is provably off, so on-light and unknown-light are both included.
+    expect(res.message).toContain('2 luces');
+    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      command: 'turn_off', deviceIds: ['on-light', 'unknown-light']
     }));
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
@@ -116,8 +121,8 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     expect(res.type).toBe('clarification');
     expect(res.message).toContain('1 dispositivos');
-    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingBulkAction: expect.objectContaining({ command: 'turn_off', deviceIds: ['on-light'] })
+    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      command: 'turn_off', deviceIds: ['on-light']
     }));
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
@@ -143,6 +148,41 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     }));
   });
 
+  it('a same-command multi-action semantic plan creates a confirmable ticket, then executes both devices', async () => {
+    const devices = [
+      createTestDevice({ id: 'd1', name: 'Ventilador Pasillo', homeId: 'h1', type: 'switch', lastKnownState: { on: false } }),
+      createTestDevice({ id: 'd2', name: 'Persiana Estudio', homeId: 'h1', type: 'switch', lastKnownState: { on: false } })
+    ];
+    mockDeviceRepo.findAll.mockResolvedValue(devices);
+    mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id) || null));
+    mockShadowService.attemptHybridExecution.mockResolvedValue({
+      command: 'turn_on',
+      confidence: 0.9,
+      resolvedType: 'multiple',
+      resolvedIds: ['d1', 'd2']
+    });
+    mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+    const res = await service.converse({ prompt: 'ejecuta la rutina combinada dos', userId: 'u1' }, 'es');
+
+    // Guard: this prompt must actually reach the semantic path, not be intercepted
+    // by an earlier deterministic fast path — otherwise this test would silently
+    // exercise the wrong code path (see the sibling tests above for that pitfall).
+    expect(mockShadowService.attemptHybridExecution).toHaveBeenCalled();
+    expect(res.type).toBe('clarification');
+    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      command: 'turn_on', deviceIds: ['d1', 'd2']
+    }));
+
+    mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
+
+    const confirmRes = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
+
+    expect(confirmRes.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
+  });
+
   it('triggers confirmation when a category is resolved', async () => {
     mockShadowService.attemptHybridExecution.mockResolvedValue({
       command: 'turn_off',
@@ -161,24 +201,21 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
   it('executes all devices when confirmed with "sí"', async () => {
     const devices = [
-      createTestDevice({ id: 'd1', name: 'Luz 1', homeId: 'h1' }),
-      createTestDevice({ id: 'd2', name: 'Luz 2', homeId: 'h1' })
+      createTestDevice({ id: 'd1', name: 'Luz 1', homeId: 'h1', type: 'light', lastKnownState: { on: false } }),
+      createTestDevice({ id: 'd2', name: 'Luz 2', homeId: 'h1', type: 'light', lastKnownState: { on: false } })
     ];
+    mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id)));
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
 
-    mockMemory.getShortTermMemory.mockResolvedValue({
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds: ['d1', 'd2'],
-        command: 'turn_on',
-        timestamp: new Date().toISOString(),
-        originalPrompt: 'prende las luces'
-      }
+    await mockConfirmationTicketRepository.create({
+      id: 'ticket-1', userId: 'u1', homeId: 'h1', command: 'turn_on',
+      deviceIds: ['d1', 'd2'], originalPrompt: 'prende las luces',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
     });
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
 
     const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
 
@@ -186,7 +223,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
     // SHADOW CHECK: verify runShadow was NOT called (it's skipped for bulk actions)
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-    
+
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       lastQueryType: 'command',
       entities: expect.arrayContaining([
@@ -197,73 +234,89 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
   });
 
   it('rejects a confirmed bulk command outside the authenticated user home', async () => {
-    const device = createTestDevice({ id: 'd1', name: 'Luz privada', homeId: 'h1' });
+    const device = createTestDevice({ id: 'd1', name: 'Luz privada', homeId: 'h1', type: 'light', lastKnownState: { on: false } });
+    mockDeviceRepo.findAll.mockResolvedValue([device]);
     mockDeviceRepo.findDeviceById.mockResolvedValue(device);
-    mockHomeRepository.findHomesByUserId.mockResolvedValue([]);
-    mockMemory.getShortTermMemory.mockResolvedValue({
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds: ['d1'],
-        command: 'turn_on',
-        timestamp: new Date().toISOString(),
-        originalPrompt: 'prende las luces'
-      }
-    });
 
-    await expect(service.converse({ prompt: 'sí', userId: 'u1' }, 'es')).rejects.toThrow('ASSISTANT_HOME_FORBIDDEN');
+    await mockConfirmationTicketRepository.create({
+      id: 'ticket-2', userId: 'u1', homeId: 'h1', command: 'turn_on',
+      deviceIds: ['d1'], originalPrompt: 'prende las luces',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
+    });
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
+
+    // Access to h1 was revoked between the proposal and the confirmation.
+    mockHomeRepository.findHomesByUserId.mockResolvedValue([]);
+
+    const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
+
+    expect(res.type).toBe('error');
+    expect(res.message).toContain('autorización');
     expect(mockSceneExecutionService.execute).not.toHaveBeenCalled();
+    // The ticket must be consumed even on a rejected revalidation, so it can't be retried.
+    expect(await mockConfirmationTicketRepository.findActiveByUserId('u1')).toBeNull();
   });
   it('discards pending action and clears memory when cancelled with "no"', async () => {
-    mockMemory.getShortTermMemory.mockResolvedValue({
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds: ['d1'],
-        command: 'turn_on',
-        timestamp: new Date().toISOString(),
-        originalPrompt: 'prende las luces'
-      }
+    await mockConfirmationTicketRepository.create({
+      id: 'ticket-3', userId: 'u1', homeId: 'h1', command: 'turn_on',
+      deviceIds: ['d1'], originalPrompt: 'prende las luces',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
     });
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
 
     const res = await service.converse({ prompt: 'no', userId: 'u1' }, 'es');
 
     expect(res.type).toBe('answer');
     expect(res.message).toContain('Acción cancelada');
-    // Verify memory clear was called with pendingBulkAction: undefined
-    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingBulkAction: undefined
-    }));
+    // The ticket is consumed on rejection too, so it can never be replayed.
+    expect(await mockConfirmationTicketRepository.findActiveByUserId('u1')).toBeNull();
     // SHADOW CHECK: verify runShadow was NOT called
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   it('rejects invalid bulk command and clears memory', async () => {
-    mockMemory.getShortTermMemory.mockResolvedValue({
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds: ['d1'],
-        command: 'invalid_cmd',
-        timestamp: new Date().toISOString(),
-        originalPrompt: 'do something'
-      }
+    await mockConfirmationTicketRepository.create({
+      id: 'ticket-4', userId: 'u1', homeId: 'h1', command: 'invalid_cmd',
+      deviceIds: ['d1'], originalPrompt: 'do something',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
     });
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
 
     const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
 
     expect(res.type).toBe('error');
     expect(res.message).toContain('inválido');
-    // Verify memory clear was called
-    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingBulkAction: undefined
-    }));
+  });
+
+  it('a confirmation cannot be replayed after it was already consumed', async () => {
+    const devices = [createTestDevice({ id: 'd1', name: 'Luz 1', homeId: 'h1', type: 'light', lastKnownState: { on: false } })];
+    mockDeviceRepo.findAll.mockResolvedValue(devices);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(devices[0]);
+    mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
+
+    await mockConfirmationTicketRepository.create({
+      id: 'ticket-5', userId: 'u1', homeId: 'h1', command: 'turn_on',
+      deviceIds: ['d1'], originalPrompt: 'prende las luces',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
+    });
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
+
+    const first = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
+    expect(first.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+
+    // A second "sí" has nothing to confirm any more — no active ticket remains.
+    const second = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
+    expect(second.type).not.toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
   });
 
   describe('Bulk Fast-Path (Deterministic)', () => {
@@ -280,11 +333,8 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       expect(res.type).toBe('clarification');
       expect(res.message).toContain('Encontré 2 luces');
       expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
-      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-        pendingBulkAction: expect.objectContaining({
-          command: 'turn_on',
-          deviceIds: ['l1', 'l2']
-        })
+      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        command: 'turn_on', deviceIds: ['l1', 'l2']
       }));
     });
 
@@ -300,11 +350,8 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       expect(res.type).toBe('clarification');
       expect(res.message).toContain('Encontré 1 luces');
       expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
-      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-        pendingBulkAction: expect.objectContaining({
-          command: 'turn_off',
-          deviceIds: ['l1']
-        })
+      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        command: 'turn_off', deviceIds: ['l1']
       }));
     });
 
@@ -330,10 +377,8 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
       expect(res.type).toBe('clarification');
       expect(res.message).toContain('Encontré 1 luces');
-      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-        pendingBulkAction: expect.objectContaining({
-          deviceIds: ['l1']
-        })
+      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        deviceIds: ['l1']
       }));
     });
   });

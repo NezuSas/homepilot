@@ -563,5 +563,114 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       const result = await shadowService.attemptHybridExecution('enciéndela', 'u1', memory);
       expect(result).toEqual({ deviceId: 'luz-cocina', command: 'turn_on', confidence: 0.9, contextSource: 'short_term_memory' });
     });
+
+    // ─── Multi-action plans ("prende la sala y la cocina") ────────────────
+    // These let the model handle compound phrasing without the deterministic
+    // multi-command parser's fixed connector-word list, while still requiring
+    // the same confirmation-ticket flow as any other multi-device resolution.
+
+    const makeMultiActionPlan = (commands: string[]) => ({
+      plan: {
+        type: 'plan',
+        plan_confidence: 0.9,
+        actions: commands.map((command, i) => ({
+          type: 'set_state',
+          target: { type: 'device', name: `dispositivo ${i}` },
+          command,
+          confidence: 0.9
+        })),
+        user_feedback_draft: 'Ejecutando'
+      },
+      metadata: { promptChars: 620, devicesCount: 8 }
+    });
+
+    it('returns a guarded multi-target result for a same-command multi-action plan', async () => {
+      llmInterpreter.interpretV2.mockResolvedValue(makeMultiActionPlan(['turn_on', 'turn_on']));
+      resolver.resolve
+        .mockResolvedValueOnce({ type: 'single', deviceId: 'dev-1' })
+        .mockResolvedValueOnce({ type: 'single', deviceId: 'dev-2' });
+
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la sala y la cocina', 'u1');
+
+      expect(result).toEqual({ command: 'turn_on', confidence: 0.9, resolvedType: 'multiple', resolvedIds: ['dev-1', 'dev-2'] });
+    });
+
+    it('rejects a multi-action plan whose actions use different commands', async () => {
+      llmInterpreter.interpretV2.mockResolvedValue(makeMultiActionPlan(['turn_on', 'turn_off']));
+
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la sala y apaga la cocina', 'u1');
+
+      expect(result).toBeNull();
+      expect(resolver.resolve).not.toHaveBeenCalled();
+    });
+
+    it('rejects the whole multi-action plan if any single action fails to resolve', async () => {
+      llmInterpreter.interpretV2.mockResolvedValue(makeMultiActionPlan(['turn_on', 'turn_on']));
+      resolver.resolve
+        .mockResolvedValueOnce({ type: 'single', deviceId: 'dev-1' })
+        .mockResolvedValueOnce({ type: 'none' });
+
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la sala y la cocina', 'u1');
+
+      expect(result).toBeNull();
+    });
+
+    it('rejects a multi-action plan containing a context/pronoun reference', async () => {
+      const plan = makeMultiActionPlan(['turn_on', 'turn_on']);
+      (plan.plan.actions[1].target as any).type = 'context_reference';
+      llmInterpreter.interpretV2.mockResolvedValue(plan);
+
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende la sala y esa también', 'u1');
+
+      expect(result).toBeNull();
+    });
+
+    it('rejects a plan with more than 8 actions', async () => {
+      llmInterpreter.interpretV2.mockResolvedValue(makeMultiActionPlan(new Array(9).fill('turn_on')));
+
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const result = await shadowService.attemptHybridExecution('prende todo esto', 'u1');
+
+      expect(result).toBeNull();
+      expect(resolver.resolve).not.toHaveBeenCalled();
+    });
+
+    // ─── Circuit breaker: don't pay the full timeout on every turn during an outage ───
+
+    it('stops calling the LLM after 3 consecutive failures, instead of retrying every turn', async () => {
+      llmInterpreter.interpretV2.mockResolvedValue({ error: new Error('Ollama request timed out after 3500ms'), metadata: { promptChars: 0, devicesCount: 0 } });
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+      await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      expect(llmInterpreter.interpretV2).toHaveBeenCalledTimes(3);
+
+      // The 4th turn should skip the LLM call entirely — the breaker is open.
+      const result = await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      expect(result).toBeNull();
+      expect(llmInterpreter.interpretV2).toHaveBeenCalledTimes(3);
+      expect(shadowService.getStatus().circuitBreaker.open).toBe(true);
+    });
+
+    it('a successful call resets the failure count so the breaker never opens on it alone', async () => {
+      llmInterpreter.interpretV2
+        .mockResolvedValueOnce({ error: new Error('timed out'), metadata: { promptChars: 0, devicesCount: 0 } })
+        .mockResolvedValueOnce({ error: new Error('timed out'), metadata: { promptChars: 0, devicesCount: 0 } })
+        .mockResolvedValue(makePlan());
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+      await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      await shadowService.attemptHybridExecution('prende la luz', 'u1');
+      const successResult = await shadowService.attemptHybridExecution('prende la luz de cocina', 'u1');
+
+      expect(successResult).not.toBeNull();
+      expect(shadowService.getStatus().circuitBreaker.open).toBe(false);
+      expect(shadowService.getStatus().circuitBreaker.consecutiveFailures).toBe(0);
+    });
   });
 });

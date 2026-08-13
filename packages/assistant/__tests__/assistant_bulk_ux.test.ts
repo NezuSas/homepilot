@@ -1,8 +1,8 @@
 import { AssistantConversationService } from '../application/AssistantConversationService';
-import { 
-  createMockIntentInterpreterPort, 
-  createMockAssistantSmallTalk, 
-  createMockDeviceCommandDispatcher, 
+import {
+  createMockIntentInterpreterPort,
+  createMockAssistantSmallTalk,
+  createMockDeviceCommandDispatcher,
   createMockSmartEntityResolver,
   createMockAssistantMemory,
   createMockAssistantLearningService,
@@ -17,7 +17,8 @@ import {
   createMockAssistantDraftService,
   createTestDevice,
   createMockSceneExecutionService,
-  createMockSystemVariableService
+  createMockSystemVariableService,
+  createFakeConfirmationTicketRepository
 } from './test_helpers';
 
 describe('Assistant Bulk Response UX', () => {
@@ -25,11 +26,13 @@ describe('Assistant Bulk Response UX', () => {
   let mockDeviceRepo: any;
   let mockSceneExecutionService: any;
   let mockMemory: any;
+  let mockConfirmationTicketRepository: any;
 
   beforeEach(() => {
     mockDeviceRepo = createMockDeviceRepository();
     mockSceneExecutionService = createMockSceneExecutionService();
     mockMemory = createMockAssistantMemory();
+    mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
 
     service = new AssistantConversationService(
       createMockIntentInterpreterPort(),
@@ -49,32 +52,39 @@ describe('Assistant Bulk Response UX', () => {
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
       createMockSystemVariableService(),
-      {} as any
+      {} as any,
+      undefined,
+      undefined,
+      undefined,
+      mockConfirmationTicketRepository
     );
   });
 
-  const setupConfirmationMemory = (ids: string[], command: string) => {
-    mockMemory.getShortTermMemory.mockResolvedValue({
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds: ids,
-        command,
-        bulkType: 'lights',
-        timestamp: new Date().toISOString(),
-        originalPrompt: 'bulk prompt'
-      }
+  // Seeds a confirmable ticket for the given devices/command, and wires findAll so the
+  // accept flow's scope revalidation sees the same devices the ticket was issued for.
+  const setupConfirmation = async (devices: ReturnType<typeof createTestDevice>[], command: string) => {
+    mockDeviceRepo.findAll.mockResolvedValue(devices);
+    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
+    await mockConfirmationTicketRepository.create({
+      id: `ticket-${devices.map(d => d.id).join('-')}`,
+      userId: 'u1',
+      homeId: devices[0]?.homeId || 'h1',
+      command,
+      bulkType: 'lights',
+      deviceIds: devices.map(d => d.id),
+      originalPrompt: 'bulk prompt',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
     });
   };
 
   it('formats all-success bulk > 3 compact (Spanish)', async () => {
     const ids = ['d1', 'd2', 'd3', 'd4'];
-    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1' }));
+    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1', lastKnownState: { on: false } }));
     mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id)));
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
-    setupConfirmationMemory(ids, 'turn_on');
+    await setupConfirmation(devices, 'turn_on');
 
     const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
 
@@ -83,10 +93,10 @@ describe('Assistant Bulk Response UX', () => {
 
   it('formats all-success bulk > 3 compact (English)', async () => {
     const ids = ['d1', 'd2', 'd3', 'd4'];
-    const devices = ids.map(id => createTestDevice({ id, name: `Light ${id}`, homeId: 'h1' }));
+    const devices = ids.map(id => createTestDevice({ id, name: `Light ${id}`, homeId: 'h1', lastKnownState: { on: true } }));
     mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id)));
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
-    setupConfirmationMemory(ids, 'turn_off');
+    await setupConfirmation(devices, 'turn_off');
 
     const res = await service.converse({ prompt: 'yes', userId: 'u1' }, 'en');
 
@@ -95,10 +105,10 @@ describe('Assistant Bulk Response UX', () => {
 
   it('lists device names briefly for small group <= 3', async () => {
     const ids = ['d1', 'd2'];
-    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1' }));
+    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1', lastKnownState: { on: false } }));
     mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id)));
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
-    setupConfirmationMemory(ids, 'turn_on');
+    await setupConfirmation(devices, 'turn_on');
 
     const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
 
@@ -107,9 +117,9 @@ describe('Assistant Bulk Response UX', () => {
 
   it('formats partial failure listing only failed devices', async () => {
     const ids = ['d1', 'd2', 'd3'];
-    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1' }));
+    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1', lastKnownState: { on: false } }));
     mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id)));
-    
+
     mockSceneExecutionService.execute.mockImplementation((scene: any) => {
       const deviceId = scene.actions[0].deviceId;
       if (deviceId === 'd2') {
@@ -117,8 +127,8 @@ describe('Assistant Bulk Response UX', () => {
       }
       return Promise.resolve({ status: 'success', actions: [{ status: 'success' }] });
     });
-    
-    setupConfirmationMemory(ids, 'turn_on');
+
+    await setupConfirmation(devices, 'turn_on');
 
     const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
 
@@ -130,10 +140,10 @@ describe('Assistant Bulk Response UX', () => {
 
   it('formats total failure as bullet list', async () => {
     const ids = ['d1', 'd2'];
-    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1' }));
+    const devices = ids.map(id => createTestDevice({ id, name: `Luz ${id}`, homeId: 'h1', lastKnownState: { on: false } }));
     mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id)));
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'failed', actions: [{ status: 'failed', error: 'Timeout' }] });
-    setupConfirmationMemory(ids, 'turn_on');
+    await setupConfirmation(devices, 'turn_on');
 
     const res = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
 

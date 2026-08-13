@@ -17,7 +17,8 @@ import {
   createTestDevice,
   createTestRoom,
   createMockSystemVariableService,
-  createRealSmartEntityResolver
+  createRealSmartEntityResolver,
+  createFakeConfirmationTicketRepository
 } from './test_helpers';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
 
@@ -28,6 +29,7 @@ describe('Assistant Semantic Hardening', () => {
   let mockMemory: any;
   let mockDispatcher: any;
   let mockInterpreter: any;
+  let mockConfirmationTicketRepository: any;
 
   beforeEach(() => {
     mockDeviceRepo = createMockDeviceRepository();
@@ -35,7 +37,8 @@ describe('Assistant Semantic Hardening', () => {
     mockMemory = createMockAssistantMemory();
     mockDispatcher = createMockDeviceCommandDispatcher();
     mockInterpreter = createMockIntentInterpreterService();
-    
+    mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
+
     const mockExecutionRepo = createMockExecutionRecordRepository();
     const mockSceneExecution = new SceneExecutionService(mockDispatcher, mockExecutionRepo);
 
@@ -56,7 +59,12 @@ describe('Assistant Semantic Hardening', () => {
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, createMockSceneRepository(), createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
       mockExecutionRepo,
-      createMockSystemVariableService()
+      createMockSystemVariableService(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      mockConfirmationTicketRepository
     );
   });
 
@@ -194,11 +202,11 @@ describe('Assistant Semantic Hardening', () => {
 
   it('After room clarification, typing "apaga todo el cuarto master" bypasses selection', async () => {
     const rooms = [createTestRoom({ id: 'r1', name: 'Cuarto Master' })];
-    const devices = [createTestDevice({ id: 'l1', name: 'Luz', type: 'light', roomId: 'r1', homeId: 'h1' })];
+    const devices = [createTestDevice({ id: 'l1', name: 'Luz', type: 'light', roomId: 'r1', homeId: 'h1', lastKnownState: { on: true } })];
     mockRoomRepo.findAll.mockResolvedValue(rooms);
     mockDeviceRepo.findAll.mockResolvedValue(devices);
     mockMemory.getAliases.mockResolvedValue({});
-    
+
     // Simulate pending clarification
     mockMemory.getShortTermMemory.mockResolvedValue({
       lastQueryType: 'clarification',
@@ -390,11 +398,12 @@ describe('Assistant Semantic Hardening', () => {
       // HA may report a physical light as type: 'switch'. semanticType overrides.
       const haLight = createTestDevice({
         id: 'ha-sw-1', name: 'Lámpara Comedor', type: 'switch', roomId: 'r1',
-        semanticType: 'light'
+        semanticType: 'light', lastKnownState: { on: true }
       });
       const regularSwitch = createTestDevice({
-        id: 'sw-2', name: 'Enchufe Cocina', type: 'switch', roomId: 'r1'
+        id: 'sw-2', name: 'Enchufe Cocina', type: 'switch', roomId: 'r1',
         // no semanticType → not a light
+        lastKnownState: { on: true }
       });
       const room = createTestRoom({ id: 'r1', name: 'Sala' });
 
@@ -406,9 +415,11 @@ describe('Assistant Semantic Hardening', () => {
 
       // haLight should be included; regularSwitch excluded (no semanticType=light)
       expect(res.type).toBe('clarification');
-      const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
-      expect(saveCall.pendingBulkAction.deviceIds).toContain('ha-sw-1');
-      expect(saveCall.pendingBulkAction.deviceIds).not.toContain('sw-2');
+      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        deviceIds: expect.arrayContaining(['ha-sw-1'])
+      }));
+      const ticket = mockConfirmationTicketRepository.create.mock.calls[0][0];
+      expect(ticket.deviceIds).not.toContain('sw-2');
     });
 
     it('switch device with semanticType=switch is NOT included in light bulk', async () => {
@@ -427,7 +438,7 @@ describe('Assistant Semantic Hardening', () => {
 
     it('"todo" still includes controllable switches regardless of semanticType', async () => {
       const sw = createTestDevice({
-        id: 'sw-1', name: 'Ventilador', type: 'switch', roomId: 'r1'
+        id: 'sw-1', name: 'Ventilador', type: 'switch', roomId: 'r1', lastKnownState: { on: true }
       });
       const room = createTestRoom({ id: 'r1', name: 'Sala' });
       mockDeviceRepo.findAll.mockResolvedValue([sw]);
@@ -438,9 +449,10 @@ describe('Assistant Semantic Hardening', () => {
       const res = await service.converse({ prompt: 'apaga todo en la sala', userId: 'u1' }, 'es');
 
       expect(res.type).toBe('clarification');
-      const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
-      expect(saveCall.pendingBulkAction.deviceIds).toContain('sw-1');
-      expect(saveCall.pendingBulkAction.bulkType).toBe('all');
+      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        deviceIds: expect.arrayContaining(['sw-1']),
+        bulkType: 'all'
+      }));
     });
   });
 
@@ -489,7 +501,7 @@ describe('Assistant Semantic Hardening', () => {
 
     it('"apaga todo cocina" can produce room bulk confirmation (explicit bulk keyword)', async () => {
       const cocina = createTestRoom({ id: 'r-cocina', name: 'Cocina' });
-      const d1 = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r-cocina' });
+      const d1 = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r-cocina', lastKnownState: { on: true } });
       mockRoomRepo.findAll.mockResolvedValue([cocina]);
       mockDeviceRepo.findAll.mockResolvedValue([d1]);
       mockMemory.getAliases.mockResolvedValue({});
@@ -498,8 +510,7 @@ describe('Assistant Semantic Hardening', () => {
 
       // "todo" is a bulk keyword → room bulk fast-path → confirmation
       expect(res.type).toBe('clarification');
-      const saveCall = mockMemory.saveShortTermMemory.mock.calls[0][1];
-      expect(saveCall?.pendingBulkAction?.bulkType).toBe('all');
+      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ bulkType: 'all' }));
     });
   });
 

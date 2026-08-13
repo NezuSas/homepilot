@@ -17,6 +17,7 @@ import { SQLiteSettingsRepository } from '../../packages/integrations/home-assis
 import { SqliteSystemVariableRepository } from '../../packages/system-vars/infrastructure/SqliteSystemVariableRepository';
 import { SQLiteAssistantMemoryRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantMemoryRepository';
 import { SQLiteAssistantLearningRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantLearningRepository';
+import { SQLiteConfirmationTicketRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteConfirmationTicketRepository';
 import type { SqliteDatabaseManager } from '../../packages/shared/infrastructure/database/SqliteDatabaseManager';
 
 export interface RepositoriesAssembly {
@@ -33,6 +34,7 @@ export interface RepositoriesAssembly {
   systemVariableRepository: SqliteSystemVariableRepository;
   assistantMemoryRepository: SQLiteAssistantMemoryRepository;
   assistantLearningRepository: SQLiteAssistantLearningRepository;
+  confirmationTicketRepository: SQLiteConfirmationTicketRepository;
 }
 
 export function buildRepositories(
@@ -53,5 +55,6 @@ export function buildRepositories(
     systemVariableRepository: new SqliteSystemVariableRepository(dbPath),
     assistantMemoryRepository: new SQLiteAssistantMemoryRepository(dbPath),
     assistantLearningRepository: new SQLiteAssistantLearningRepository(dbPath),
+    confirmationTicketRepository: new SQLiteConfirmationTicketRepository(dbPath),
   };
 }

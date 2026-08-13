@@ -6,6 +6,8 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
+import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
+import { Home } from '../../topology/domain/types';
 import { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
 import { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
 import { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
@@ -24,6 +26,8 @@ import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpre
 import { AssistantDraftService } from '../application/AssistantDraftService';
 import { AssistantDraftRepository } from '../domain/repositories/AssistantDraftRepository';
 import { AssistantLearningRepository } from '../domain/repositories/AssistantLearningRepository';
+import { ConfirmationTicketRepository } from '../domain/repositories/ConfirmationTicketRepository';
+import { ConfirmationTicket } from '../domain/ConfirmationTicket';
 
 export const createTestDevice = (overrides?: Partial<Device>): Device => ({
   id: 'dev-1',
@@ -38,6 +42,16 @@ export const createTestDevice = (overrides?: Partial<Device>): Device => ({
   invertState: false,
   capabilities: [],
   lastKnownState: { on: false },
+  entityVersion: 1,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides
+});
+
+export const createTestHome = (overrides?: Partial<Home>): Home => ({
+  id: 'h1',
+  ownerId: 'u1',
+  name: 'Home',
   entityVersion: 1,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -66,48 +80,107 @@ export const createTestScene = (overrides?: Partial<Scene>): Scene => ({
   ...overrides
 });
 
-export const createMockDeviceRepository = (overrides?: Partial<jest.Mocked<DeviceRepository>>): jest.Mocked<DeviceRepository> => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findDeviceById: jest.fn().mockResolvedValue(null),
-  findAllByHomeId: jest.fn().mockResolvedValue([]),
-  saveDevice: jest.fn().mockResolvedValue(undefined),
-  deleteDevice: jest.fn().mockResolvedValue(undefined),
-  findInboxByHomeId: jest.fn().mockResolvedValue([]),
-  findAllOrderedByStatus: jest.fn().mockResolvedValue([]),
-  findAllExternalIdsByPrefix: jest.fn().mockResolvedValue([]),
-  findByExternalIdAndHomeId: jest.fn().mockResolvedValue(null),
-  findByExternalId: jest.fn().mockResolvedValue(null),
-  updateSemanticType: jest.fn().mockResolvedValue(undefined),
-  ...overrides
-} as jest.Mocked<DeviceRepository>);
+export const createMockDeviceRepository = (overrides?: Partial<jest.Mocked<DeviceRepository>>): jest.Mocked<DeviceRepository> => {
+  const repo = {
+    findAll: jest.fn().mockResolvedValue([]),
+    findDeviceById: jest.fn().mockResolvedValue(null),
+    // Defaults to whatever findAll() currently resolves, so existing tests that only
+    // configure findAll() behave the same whether the caller takes the home-scoped
+    // or the legacy unrestricted path.
+    findAllByHomeId: jest.fn().mockImplementation(() => repo.findAll()),
+    saveDevice: jest.fn().mockResolvedValue(undefined),
+    deleteDevice: jest.fn().mockResolvedValue(undefined),
+    findInboxByHomeId: jest.fn().mockResolvedValue([]),
+    findAllOrderedByStatus: jest.fn().mockResolvedValue([]),
+    findAllExternalIdsByPrefix: jest.fn().mockResolvedValue([]),
+    findByExternalIdAndHomeId: jest.fn().mockResolvedValue(null),
+    findByExternalId: jest.fn().mockResolvedValue(null),
+    updateSemanticType: jest.fn().mockResolvedValue(undefined),
+    ...overrides
+  } as jest.Mocked<DeviceRepository>;
+  return repo;
+};
 
-export const createMockRoomRepository = (overrides?: Partial<jest.Mocked<RoomRepository>>): jest.Mocked<RoomRepository> => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findRoomsByHomeId: jest.fn().mockResolvedValue([]),
-  findRoomById: jest.fn().mockResolvedValue(null),
-  saveRoom: jest.fn().mockResolvedValue(undefined),
-  deleteRoomAndUnassignDevices: jest.fn().mockResolvedValue(0),
-  ...overrides
-} as jest.Mocked<RoomRepository>);
+export const createMockRoomRepository = (overrides?: Partial<jest.Mocked<RoomRepository>>): jest.Mocked<RoomRepository> => {
+  const repo = {
+    findAll: jest.fn().mockResolvedValue([]),
+    // Defaults to whatever findAll() currently resolves — see createMockDeviceRepository.
+    findRoomsByHomeId: jest.fn().mockImplementation(() => repo.findAll()),
+    findRoomById: jest.fn().mockResolvedValue(null),
+    saveRoom: jest.fn().mockResolvedValue(undefined),
+    deleteRoomAndUnassignDevices: jest.fn().mockResolvedValue(0),
+    ...overrides
+  } as jest.Mocked<RoomRepository>;
+  return repo;
+};
 
-export const createMockSceneRepository = (overrides?: Partial<jest.Mocked<SceneRepository>>): jest.Mocked<SceneRepository> => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findSceneById: jest.fn().mockResolvedValue(null),
-  findScenesByHomeId: jest.fn().mockResolvedValue([]),
-  saveScene: jest.fn().mockResolvedValue(undefined),
-  deleteScene: jest.fn().mockResolvedValue(undefined),
-  ...overrides
-} as jest.Mocked<SceneRepository>);
+export const createMockSceneRepository = (overrides?: Partial<jest.Mocked<SceneRepository>>): jest.Mocked<SceneRepository> => {
+  const repo = {
+    findAll: jest.fn().mockResolvedValue([]),
+    findSceneById: jest.fn().mockResolvedValue(null),
+    // Defaults to whatever findAll() currently resolves — see createMockDeviceRepository.
+    findScenesByHomeId: jest.fn().mockImplementation(() => repo.findAll()),
+    saveScene: jest.fn().mockResolvedValue(undefined),
+    deleteScene: jest.fn().mockResolvedValue(undefined),
+    ...overrides
+  } as jest.Mocked<SceneRepository>;
+  return repo;
+};
 
-export const createMockAutomationRuleRepository = (overrides?: Partial<jest.Mocked<AutomationRuleRepository>>): jest.Mocked<AutomationRuleRepository> => ({
-  save: jest.fn().mockResolvedValue(undefined),
-  findById: jest.fn().mockResolvedValue(null),
-  findByTriggerDevice: jest.fn().mockResolvedValue([]),
-  findByHomeId: jest.fn().mockResolvedValue([]),
+export const createMockAutomationRuleRepository = (overrides?: Partial<jest.Mocked<AutomationRuleRepository>>): jest.Mocked<AutomationRuleRepository> => {
+  const repo = {
+    save: jest.fn().mockResolvedValue(undefined),
+    findById: jest.fn().mockResolvedValue(null),
+    findByTriggerDevice: jest.fn().mockResolvedValue([]),
+    // Defaults to whatever findAll() currently resolves — see createMockDeviceRepository.
+    findByHomeId: jest.fn().mockImplementation(() => repo.findAll()),
+    findAll: jest.fn().mockResolvedValue([]),
+    delete: jest.fn().mockResolvedValue(undefined),
+    ...overrides
+  } as jest.Mocked<AutomationRuleRepository>;
+  return repo;
+};
+
+export const createMockHomeRepository = (overrides?: Partial<jest.Mocked<HomeRepository>>): jest.Mocked<HomeRepository> => ({
+  saveHome: jest.fn().mockResolvedValue(undefined),
+  findHomesByUserId: jest.fn().mockResolvedValue([]),
+  findHomeById: jest.fn().mockResolvedValue(null),
   findAll: jest.fn().mockResolvedValue([]),
-  delete: jest.fn().mockResolvedValue(undefined),
   ...overrides
-} as jest.Mocked<AutomationRuleRepository>);
+} as jest.Mocked<HomeRepository>);
+
+/**
+ * Stateful in-memory fake for ConfirmationTicketRepository. Unlike a plain jest.fn()
+ * with a fixed resolved value, this actually tracks create → findActiveByUserId →
+ * consume across a test's multiple converse() calls, exactly like the real SQLite
+ * repository (single-use, TTL-bound).
+ */
+export const createFakeConfirmationTicketRepository = (): jest.Mocked<ConfirmationTicketRepository> => {
+  const tickets = new Map<string, ConfirmationTicket>();
+
+  const repo = {
+    create: jest.fn(async (ticket: ConfirmationTicket) => {
+      tickets.set(ticket.id, { ...ticket });
+    }),
+    findActiveByUserId: jest.fn(async (userId: string) => {
+      const now = new Date().toISOString();
+      const active = Array.from(tickets.values())
+        .filter(t => t.userId === userId && !t.consumedAt && t.expiresAt > now)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      return active ? { ...active } : null;
+    }),
+    consume: jest.fn(async (id: string) => {
+      const now = new Date().toISOString();
+      const ticket = tickets.get(id);
+      if (!ticket || ticket.consumedAt || ticket.expiresAt <= now) return false;
+      tickets.set(id, { ...ticket, consumedAt: now });
+      return true;
+    }),
+    deleteExpired: jest.fn(async () => {})
+  };
+
+  return repo as unknown as jest.Mocked<ConfirmationTicketRepository>;
+};
 
 export const createMockAssistantMemory = (overrides?: Partial<jest.Mocked<AssistantMemoryPort>>): jest.Mocked<AssistantMemoryPort> => ({
   getShortTermMemory: jest.fn().mockResolvedValue(null),

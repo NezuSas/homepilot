@@ -41,8 +41,8 @@ export class LlmIntentInterpreter implements LlmIntentInterpreterPort {
    * Returns null if the LLM fails, times out, or produces an invalid proposal, 
    * signaling that the system should fall back to deterministic parsing.
    */
-  public async interpret(prompt: string): Promise<Intent | null> {
-    const context = await this.contextBuilder.build();
+  public async interpret(prompt: string, userId?: string): Promise<Intent | null> {
+    const context = await this.contextBuilder.build(userId ?? null);
     
     const systemPrompt = `You are HomePilot AI Assistant, a flexible and smart controller for a smart home.
 Interpret the user's natural language command into a structured JSON intent.
@@ -182,7 +182,11 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
     try {
       const response = await this.ollamaClient.generateJson(systemPrompt, {
         timeoutMs: options?.timeoutMs,
-        model: options?.model
+        model: options?.model,
+        // Grammar-constrained decoding against the real schema — this matters most in
+        // ultra_light mode, whose prompt text omits the schema entirely in favor of
+        // few-shot examples, so this is otherwise the only enforcement of valid enums.
+        format: PLANNER_V2_SCHEMA
       });
 
       if (!response || typeof response !== 'object') {

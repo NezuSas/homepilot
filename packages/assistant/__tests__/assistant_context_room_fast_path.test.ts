@@ -131,7 +131,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
 
   it('5. explicit room bulk still wins over sourceRoomId', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Sala' });
-    const device = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
+    const device = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } });
     mockRoomRepo.findAll.mockResolvedValue([room]);
     mockDeviceRepo.findAll.mockResolvedValue([device]);
     mockMemory.getAliases.mockResolvedValue({});

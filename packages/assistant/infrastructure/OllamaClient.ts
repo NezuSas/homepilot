@@ -1,7 +1,7 @@
 /**
  * Infrastructure adapter for interacting with Ollama API.
  */
-import { OllamaClientPort } from '../application/ports/OllamaClientPort';
+import { OllamaClientPort, OllamaGenerateOptions } from '../application/ports/OllamaClientPort';
 
 export class OllamaClient implements OllamaClientPort {
   constructor(
@@ -12,9 +12,14 @@ export class OllamaClient implements OllamaClientPort {
 
   /**
    * Generates a structured JSON response from Ollama.
-   * Uses 'format: json' to enforce structured output if supported by the model.
+   * `format` defaults to `'json'` (unconstrained JSON) but callers that already
+   * know the expected shape (e.g. the Planner V2 schema) can pass it directly so
+   * Ollama's grammar-constrained decoding rules out invalid enums/fields outright,
+   * rather than relying solely on post-hoc validation.
+   * `keep_alive` keeps the model resident between requests — without it, every
+   * single call pays the full model-load cost on top of inference time.
    */
-  public async generateJson(prompt: string, options?: { model?: string; timeoutMs?: number }): Promise<unknown> {
+  public async generateJson(prompt: string, options?: OllamaGenerateOptions): Promise<unknown> {
     const targetModel = options?.model || this.model;
     const targetTimeout = options?.timeoutMs || this.timeoutMs;
 
@@ -23,7 +28,7 @@ export class OllamaClient implements OllamaClientPort {
 
     try {
       const url = `${this.baseUrl.replace(/\/$/, '')}/api/generate`;
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -33,7 +38,15 @@ export class OllamaClient implements OllamaClientPort {
           model: targetModel,
           prompt,
           stream: false,
-          format: 'json',
+          format: options?.format ?? 'json',
+          keep_alive: '30m',
+          options: {
+            temperature: options?.temperature ?? 0,
+            num_predict: options?.numPredict ?? 256,
+            num_ctx: 1024,
+            top_k: 20,
+            top_p: 0.9
+          }
         }),
         signal: controller.signal,
       });

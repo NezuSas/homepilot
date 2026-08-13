@@ -80,8 +80,8 @@ describe('Assistant User Alias', () => {
 
   it('resolves user alias in natural language phrase', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Cuarto Master' });
-    const light = createTestDevice({ id: 'l1', name: 'Luz Techo', type: 'light', roomId: 'r1' });
-    
+    const light = createTestDevice({ id: 'l1', name: 'Luz Techo', type: 'light', roomId: 'r1', lastKnownState: { on: true } });
+
     mockRoomRepo.findAll.mockResolvedValue([room]);
     mockDeviceRepo.findAll.mockResolvedValue([light]);
     mockMemory.getAliases.mockResolvedValue({ 'mi oficina': 'r1' });

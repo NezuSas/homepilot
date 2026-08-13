@@ -56,7 +56,7 @@ describe('IntentInterpreterService Integration', () => {
     const intent = await service.interpret('test');
 
     expect(intent).toEqual(expectedIntent);
-    expect(mockLlmInterpreter.interpret).toHaveBeenCalledWith('test');
+    expect(mockLlmInterpreter.interpret).toHaveBeenCalledWith('test', undefined);
   });
 
   it('should fallback to deterministic if LLM returns unknown', async () => {

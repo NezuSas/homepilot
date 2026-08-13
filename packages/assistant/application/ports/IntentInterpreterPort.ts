@@ -29,5 +29,5 @@ export type AssistantMultiCommandResult =
   | { type: 'failure'; message: string };
 
 export interface IntentInterpreterPort {
-  interpret(prompt: string): Promise<Intent | AssistantMultiCommandResult>;
+  interpret(prompt: string, userId?: string): Promise<Intent | AssistantMultiCommandResult>;
 }

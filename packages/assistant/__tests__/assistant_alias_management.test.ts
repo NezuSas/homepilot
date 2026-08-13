@@ -194,9 +194,9 @@ describe('Assistant Alias Management V1', () => {
 
   it('12. room bulk still resolves user alias after these changes', async () => {
     mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master' })]);
-    mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', name: 'Luz Techo', type: 'light', roomId: 'r1' })]);
+    mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'd1', name: 'Luz Techo', type: 'light', roomId: 'r1', lastKnownState: { on: true } })]);
     mockMemory.getAliases.mockResolvedValue({ 'mi oficina': 'r1' });
-    
+
     const res = await service.converse({ prompt: 'apaga luces de mi oficina', userId: 'u1' }, 'es');
     
     expect(res.type).toBe('clarification'); // Because it's "luces", which could be multiple, etc.

@@ -1,6 +1,6 @@
 # Specification: Voice Catalog V1
 
-**Estado:** Propuesto
+**Estado:** Borrador
 
 ## Objetivo
 

@@ -256,17 +256,18 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantSuggestionService = new AssistantSuggestionService(assistantLearningService, repos.deviceRepository);
 
   const followUpResolver = new FollowUpResolver();
-  const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService, repos.roomRepository);
+  const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService, repos.roomRepository, repos.homeRepository);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
 
   const assistantMultiCommandParser = new AssistantMultiCommandParser(repos.deviceRepository, repos.roomRepository);
   const intentInterpreterService = new IntentInterpreterService(
-    repos.deviceRepository, 
+    repos.deviceRepository,
     repos.sceneRepository,
     repos.roomRepository,
     assistantMultiCommandParser,
     llmInterpreter,
-    assistantMemoryService
+    assistantMemoryService,
+    repos.homeRepository
   );
 
   const assistantConfirmationPolicy = new AssistantConfirmationPolicy(
@@ -277,7 +278,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantSmallTalkService = new AssistantSmallTalkService(ollamaClient, contextBuilder);
 
   const plannerV2Validator = new PlannerV2Validator();
-  const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService);
+  const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService, repos.homeRepository);
   const shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, plannerV2Validator, plannerV2Resolver);
   const assistantTextToSpeechService = new AssistantTextToSpeechService();
   const assistantSpeechToTextService = new AssistantSpeechToTextService();
@@ -309,7 +310,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     shadowService,
     assistantFastPathResolver,
     assistantAliasManagementService,
-    repos.homeRepository
+    repos.homeRepository,
+    repos.confirmationTicketRepository
   );
 
   const container: BootstrapContainer = {

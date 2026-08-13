@@ -29,6 +29,51 @@ describe('OllamaClient', () => {
     );
   });
 
+  it('should keep the model resident and use deterministic, bounded generation options', async () => {
+    const mockResponse = { response: JSON.stringify({ ok: true }) };
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue(mockResponse),
+    });
+
+    await client.generateJson('test prompt');
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.keep_alive).toBe('30m');
+    expect(body.options).toEqual({ temperature: 0, num_predict: 256, num_ctx: 1024, top_k: 20, top_p: 0.9 });
+  });
+
+  it('should use a caller-provided JSON Schema as the format instead of plain "json"', async () => {
+    const mockResponse = { response: JSON.stringify({ ok: true }) };
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue(mockResponse),
+    });
+
+    const schema = { type: 'object', properties: { ok: { type: 'boolean' } } };
+    await client.generateJson('test prompt', { format: schema });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.format).toEqual(schema);
+  });
+
+  it('should allow overriding temperature and generation length', async () => {
+    const mockResponse = { response: JSON.stringify({ ok: true }) };
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue(mockResponse),
+    });
+
+    await client.generateJson('test prompt', { temperature: 0.7, numPredict: 100 });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.options.temperature).toBe(0.7);
+    expect(body.options.num_predict).toBe(100);
+  });
+
   it('should throw error on API failure', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,

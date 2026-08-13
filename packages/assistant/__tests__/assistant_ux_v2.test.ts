@@ -17,7 +17,8 @@ import {
   createMockExecutionRecordRepository,
   createTestDevice,
   createTestRoom,
-  createMockSystemVariableService
+  createMockSystemVariableService,
+  createFakeConfirmationTicketRepository
 } from './test_helpers';
 
 describe('AssistantConversationService UX V2', () => {
@@ -33,6 +34,7 @@ describe('AssistantConversationService UX V2', () => {
   let memory: any;
   let followUp: any;
   let draftService: any;
+  let confirmationTicketRepository: any;
 
   beforeEach(() => {
     intentInterpreter = createMockIntentInterpreterService();
@@ -45,10 +47,11 @@ describe('AssistantConversationService UX V2', () => {
     smallTalk = createMockAssistantSmallTalk();
     memory = createMockAssistantMemory();
     followUp = createMockFollowUpResolver();
-    draftService = { 
-      createSceneDraft: jest.fn(), 
-      createAutomationDraft: jest.fn(), 
-      activateDraft: jest.fn() 
+    confirmationTicketRepository = createFakeConfirmationTicketRepository();
+    draftService = {
+      createSceneDraft: jest.fn(),
+      createAutomationDraft: jest.fn(),
+      activateDraft: jest.fn()
     };
     deviceRepo.findAll.mockResolvedValue([]);
     roomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
@@ -71,7 +74,12 @@ describe('AssistantConversationService UX V2', () => {
       createRealSmartEntityResolver(deviceRepo, roomRepo, sceneRepo, createMockAutomationRuleRepository(), memory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      createMockSystemVariableService()
+      createMockSystemVariableService(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      confirmationTicketRepository
     );
   });
 
@@ -97,21 +105,17 @@ describe('AssistantConversationService UX V2', () => {
     sceneExecutionService.execute.mockResolvedValue({ status: 'success', sceneId: 'global', actions: [] });
 
     const res1 = await service.converse({ prompt, userId });
-    
+
     expect(res1.type).toBe('clarification');
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingBulkAction: expect.objectContaining({ command: 'turn_off', bulkType: 'all' })
+    expect(confirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      command: 'turn_off', bulkType: 'all'
     }));
 
     // 2. Positive confirmation
-    memory.getShortTermMemory.mockResolvedValue({
-      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', bulkType: 'all', prompt, timestamp: new Date().toISOString(), originalPrompt: prompt },
-      timestamp: new Date().toISOString(),
-      entities: []
-    });
+    memory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', timestamp: new Date().toISOString(), entities: [] });
 
     const res2 = await service.converse({ prompt: 'sí', userId });
-    
+
     expect(res2.type).toBe('execution');
     expect(res2.message).toBe('Apagué Device.');
     expect(sceneExecutionService.execute).toHaveBeenCalled();
@@ -119,48 +123,56 @@ describe('AssistantConversationService UX V2', () => {
 
   it('apaga todo: should cancel on "no"', async () => {
     const userId = 'u1';
-    memory.getShortTermMemory.mockResolvedValue({
-      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt: 'apaga todo', timestamp: new Date().toISOString(), originalPrompt: 'apaga todo' },
-      timestamp: new Date().toISOString(),
-      entities: []
+    await confirmationTicketRepository.create({
+      id: 'ticket-cancel', userId, homeId: 'h1', command: 'turn_off',
+      deviceIds: ['d1'], originalPrompt: 'apaga todo',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
     });
+    memory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', timestamp: new Date().toISOString(), entities: [] });
 
     const res = await service.converse({ prompt: 'no', userId });
-    
+
     expect(res.type).toBe('answer');
     expect(res.message).toContain('cancelada');
-    // Verify memory cleanup
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingBulkAction: undefined
-    }));
+    // The ticket must be consumed so it can never be replayed.
+    expect(await confirmationTicketRepository.findActiveByUserId(userId)).toBeNull();
   });
 
-  it('confirmation: should NOT execute if pendingIntent is expired (>5m)', async () => {
+  it('confirmation: should NOT execute an expired confirmation ticket (TTL)', async () => {
     const userId = 'u1';
-    const expiredDate = new Date(Date.now() - 400000).toISOString(); // > 6 mins
-    
-    memory.getShortTermMemory.mockResolvedValue({
-      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt: 'apaga todo', timestamp: expiredDate, originalPrompt: 'apaga todo' },
-      timestamp: new Date().toISOString(),
-      entities: []
+    // Expired 1 second ago — findActiveByUserId must exclude it, same guarantee the
+    // real SQLite repository enforces via its expires_at query condition.
+    await confirmationTicketRepository.create({
+      id: 'ticket-expired', userId, homeId: 'h1', command: 'turn_off',
+      deviceIds: ['d1'], originalPrompt: 'apaga todo',
+      createdAt: new Date(Date.now() - 130000).toISOString(),
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+      consumedAt: null
     });
+    memory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', timestamp: new Date().toISOString(), entities: [] });
 
-    // We need to mock interpretation because since it's expired, it will fallback to regular flow
+    // Since the ticket is expired, "sí" falls through to regular interpretation.
     intentInterpreter.interpret.mockResolvedValue({ type: 'unknown' });
     smallTalk.handle.mockResolvedValue({ type: 'answer', message: 'expired' });
 
     await service.converse({ prompt: 'sí', userId });
-    
-    // Should have cleared memory
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingBulkAction: undefined
-    }));
+
+    expect(sceneExecutionService.execute).not.toHaveBeenCalled();
   });
 
   it('new intent: should clear pending actions to avoid context mixing', async () => {
     const userId = 'u1';
+    await confirmationTicketRepository.create({
+      id: 'ticket-mix', userId, homeId: 'h1', command: 'turn_off',
+      deviceIds: ['d1'], originalPrompt: 'apaga todo',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      consumedAt: null
+    });
     memory.getShortTermMemory.mockResolvedValue({
-      pendingBulkAction: { type: 'bulk_action', deviceIds: ['d1'], command: 'turn_off', prompt: 'apaga todo', timestamp: new Date().toISOString(), originalPrompt: 'apaga todo' },
+      pendingIntent: { type: 'command', command: 'turn_off', deviceId: 'd1', prompt: 'apaga todo', timestamp: new Date().toISOString() },
       timestamp: new Date().toISOString(),
       entities: []
     });
@@ -175,11 +187,12 @@ describe('AssistantConversationService UX V2', () => {
     deviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'light-1', name: 'Luz Sala' }));
     deviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', name: 'Luz Sala' })]);
 
-    // Should have cleared previous pending intent before executing new one
+    // Should have cleared the previous pendingIntent before executing the new one —
+    // the unrelated bulk ticket above is untouched by clearPendingAction (it lives in
+    // its own table now, not the shared memory blob), so it is asserted separately.
     await service.converse({ prompt: 'enciende luz sala', userId });
 
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingBulkAction: undefined,
       pendingIntent: undefined
     }));
   });

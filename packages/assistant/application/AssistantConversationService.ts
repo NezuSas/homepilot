@@ -1,6 +1,9 @@
+import { randomUUID } from 'crypto';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
+import { ConfirmationTicketRepository } from '../domain/repositories/ConfirmationTicketRepository';
+import { ConfirmationTicket, ConfirmationTicketCommand } from '../domain/ConfirmationTicket';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
@@ -15,8 +18,6 @@ import { SceneExecutionResult } from '../../devices/domain/ExecutionRecord';
 import { DeviceCommandV1, isValidCommand } from '../../devices/domain/commands';
 import { Scene } from '../../devices/domain/Scene';
 import { Device } from '../../devices/domain/types';
-import { resolveCapabilitiesForDevice } from '../../devices/domain/CapabilityResolver';
-import { validateDeviceCommand } from '../../devices/domain/CommandCapabilityValidator';
 import { Room } from '../../topology/domain/types';
 import type { Intent, MultiCommandAction, IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
@@ -50,6 +51,9 @@ import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTime
 import { detectAssistantLanguage, detectAssistantLanguageOverride } from './AssistantLanguagePolicy';
 import { AssistantAliasManagementService } from './AssistantAliasManagementService';
 import { normalizeAssistantPrompt } from './AssistantPromptNormalizer';
+import { ScopeFilter } from './ScopeFilter';
+import { PermissionGate } from './PermissionGate';
+import { normalizeText as sharedNormalizeText, levenshteinDistance } from './textMatching';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -152,12 +156,50 @@ export class AssistantConversationService {
     private readonly shadowService?: AssistantPlannerV2ShadowService,
     private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver(),
     aliasManagementService?: AssistantAliasManagementService,
-    private readonly homeRepository?: HomeRepository
+    private readonly homeRepository?: HomeRepository,
+    private readonly confirmationTicketRepository?: ConfirmationTicketRepository
   ) {
     this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
+    this.permissionGate = new PermissionGate(deviceRepository, roomRepository, sceneRepository, automationRepository, homeRepository);
   }
 
   private readonly aliasManagementService: AssistantAliasManagementService;
+  private readonly permissionGate: PermissionGate;
+  private readonly scopeFilter = new ScopeFilter();
+
+  /** Single TTL for confirmation tickets, enforced both here and by the repository query. */
+  private static readonly CONFIRMATION_TICKET_TTL_MS = 120_000;
+
+  /**
+   * Persists a single-use, TTL-bound confirmation ticket for a proposed bulk/multi-device
+   * action. No-op if no ConfirmationTicketRepository is wired (legacy/test contexts) —
+   * callers degrade gracefully to "propose but never confirmable", never to
+   * "execute without confirmation".
+   */
+  private async createConfirmationTicket(
+    userId: string,
+    homeId: string,
+    command: ConfirmationTicketCommand,
+    deviceIds: string[],
+    originalPrompt: string,
+    bulkType?: 'all' | 'lights'
+  ): Promise<void> {
+    if (!this.confirmationTicketRepository) return;
+    const now = Date.now();
+    const ticket: ConfirmationTicket = {
+      id: randomUUID(),
+      userId,
+      homeId,
+      command,
+      bulkType,
+      deviceIds,
+      originalPrompt,
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + AssistantConversationService.CONFIRMATION_TICKET_TTL_MS).toISOString(),
+      consumedAt: null
+    };
+    await this.confirmationTicketRepository.create(ticket);
+  }
 
   private withJarvisStyle(
     response: AssistantConversationResponse,
@@ -250,15 +292,13 @@ export class AssistantConversationService {
       if (isNegative) { await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }; }
     }
 
-    // C) Bulk Action Confirmation
-    if (memory?.pendingBulkAction) {
-      const now = Date.now();
-      const pendingTime = new Date(memory.pendingBulkAction.timestamp).getTime();
-      if (now - pendingTime < 300000) {
-        if (this.isBulkActionAccept(normalized)) return await this.handleBulkActionAccept(userId, language, memory.pendingBulkAction);
-        if (this.isBulkActionReject(normalized)) return await this.handleBulkActionReject(userId, language, memory.pendingBulkAction);
-      } else {
-        await this.clearPendingAction(userId);
+    // C) Bulk Action Confirmation — persisted ticket, single-use, TTL enforced by the
+    // repository query itself (no separate in-code timestamp/window to keep in sync).
+    if (this.confirmationTicketRepository) {
+      const pendingTicket = await this.confirmationTicketRepository.findActiveByUserId(userId);
+      if (pendingTicket) {
+        if (this.isBulkActionAccept(normalized)) return await this.handleBulkActionAccept(userId, language, pendingTicket);
+        if (this.isBulkActionReject(normalized)) return await this.handleBulkActionReject(userId, language, pendingTicket);
       }
     }
 
@@ -373,7 +413,7 @@ export class AssistantConversationService {
     }
 
     const roomBulk = this.isRoomBulkFastPath(normalized);
-    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases, request.interactionMode);
+    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases);
 
     // --- 6. GLOBAL BULK FAST-PATH ---
     const globalBulk = this.isBulkFastPath(normalized);
@@ -384,7 +424,7 @@ export class AssistantConversationService {
     if (deviceAliasFastPath) return deviceAliasFastPath;
 
     // --- DETERMINISTIC GENERAL ROUTES ---
-    if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language);
+    if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language, userId);
     if (this.isRecentActivityQuery(normalized)) return await this.handleRecentActivity(language);
     if (this.isConversationContextQuery(normalized)) return this.handleConversationContext(memory, language);
     if (this.isGreeting(normalized)) return AssistantQuickResponseService.format('greeting', language, userName);
@@ -411,14 +451,14 @@ export class AssistantConversationService {
     // --- 11. PLANNER V2 / V1 FALLBACK ---
     const resolvedNormalized = normalizeAssistantPrompt(activePrompt);
     if (this.isEquivalenceQuery(resolvedNormalized)) return this.handleEquivalenceQuery(language);
-    if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language);
+    if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language, userId);
     if (this.isDraftCreation(resolvedNormalized)) return await this.handleDraftCreation(resolvedNormalized, language, userId);
     if (this.isPointStateQuery(resolvedNormalized)) return await this.handlePointStateQuery(resolvedNormalized, language, userId);
     if (this.isStateQuery(resolvedNormalized)) return await this.handleStateQuery(resolvedNormalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
     if (this.isManagementIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language);
-    if (this.isListScenesIntent(resolvedNormalized)) return await this.handleListScenes(language);
-    if (this.isListAutomationsIntent(resolvedNormalized)) return await this.handleListAutomations(language);
-    if (this.isDetailFollowUp(resolvedNormalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) return await this.handleDetailFollowUp(memory, language);
+    if (this.isListScenesIntent(resolvedNormalized)) return await this.handleListScenes(language, userId);
+    if (this.isListAutomationsIntent(resolvedNormalized)) return await this.handleListAutomations(language, userId);
+    if (this.isDetailFollowUp(resolvedNormalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) return await this.handleDetailFollowUp(memory, language, userId);
 
     const responsePreferenceOverride = detectAssistantResponsePreferenceCommand(resolvedNormalized);
     if (responsePreferenceOverride && !this.isLikelyHomeControlPrompt(resolvedNormalized)) {
@@ -447,7 +487,7 @@ export class AssistantConversationService {
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
     if (v2Response) return this.returnWithShadow(activePrompt, userId, language, v2Response);
 
-    const intentResult = await this.intentInterpreter.interpret(activePrompt);
+    const intentResult = await this.intentInterpreter.interpret(activePrompt, userId);
     if (intentResult && 'type' in intentResult) {
       if (intentResult.type === 'failure') return { type: 'error', message: intentResult.message };
       if (intentResult.type === 'clarificationRequired') {
@@ -510,7 +550,7 @@ export class AssistantConversationService {
 
       if (!intent.deviceId && allMatches.length === 0) {
         const targetPhrase = this.extractTargetPhrase(prompt);
-        const allDevices = await this.deviceRepository.findAll();
+        const allDevices = await this.permissionGate.getAuthorizedDevices(userId);
         const fuzzyResult = this.findFuzzyCandidateSuggestions(targetPhrase, allDevices, language, intent.command, prompt);
 
         if (fuzzyResult) {
@@ -651,7 +691,7 @@ export class AssistantConversationService {
       const scene = await this.sceneRepository.findSceneById(intent.target);
       if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found. I need a valid scene." : "Escena no encontrada. Necesito una escena válida." };
 
-      await this.assertHomeAuthorized(userId, scene.homeId);
+      await this.permissionGate.assertHomeAuthorized(userId, scene.homeId);
 
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
@@ -850,7 +890,6 @@ export class AssistantConversationService {
         pendingDraft: undefined,
         pendingManagementAction: undefined,
         pendingSuggestion: undefined,
-        pendingBulkAction: undefined,
         pendingAliasDelete: undefined,
         originalPrompt: undefined
       });
@@ -974,8 +1013,8 @@ export class AssistantConversationService {
     try {
       const isScene = normalized.includes('escena') || normalized.includes('scene');
       const [devices, allRooms] = await Promise.all([
-        this.deviceRepository.findAll(),
-        this.roomRepository.findAll()
+        this.permissionGate.getAuthorizedDevices(userId),
+        this.permissionGate.getAuthorizedRooms(userId)
       ]);
 
       // --- Room matching ---
@@ -1012,7 +1051,7 @@ export class AssistantConversationService {
       }
 
       // --- Filter: controllable devices ---
-      const controllableDevices = roomDevices.filter((d: Device) => this.isControllableDevice(d, command));
+      const controllableDevices = roomDevices.filter((d: Device) => this.scopeFilter.isControllableDevice(d, command));
 
       if (controllableDevices.length === 0) {
         return {
@@ -1100,90 +1139,6 @@ export class AssistantConversationService {
    * Uses a type-based check as primary filter, then validates via domain capabilities.
    * The type-based check runs first to handle HA devices or devices without explicit capabilities.
    */
-  private isDeviceAvailable(device: Device): boolean {
-    return device.lastKnownState?.state !== 'unavailable';
-  }
-
-  private supportsCommand(device: Device, command: DeviceCommandV1): boolean {
-    // A. Priority: Capability Validation
-    const validation = validateDeviceCommand(device, { name: command, params: {} });
-    if (validation.valid) return true;
-
-    // B. Fallback: Known controllable domain types if capabilities missing/incomplete
-    const type = device.type.toLowerCase();
-    const CONTROLLABLE_TYPES = ['light', 'switch', 'outlet', 'dimmer'];
-    const isKnownType = CONTROLLABLE_TYPES.includes(type);
-
-    if (isKnownType && ['turn_on', 'turn_off', 'toggle'].includes(command)) {
-      return true;
-    }
-
-    const COVER_COMMANDS = ['open', 'close', 'stop', 'set_position'];
-    if (type === 'cover' && COVER_COMMANDS.includes(command)) {
-      return true;
-    }
-
-    return false;
-  }
-
-  private isLightEntity(device: Device): boolean {
-    // Priority 1: User-assigned semantic classification (overrides hardware type)
-    if (device.semanticType === 'light') return true;
-    if (device.semanticType != null && device.semanticType !== 'unknown') {
-      // Any other explicit semanticType means it's NOT a light
-      return false;
-    }
-
-    // Priority 2: Capability-based detection
-    const caps = resolveCapabilitiesForDevice(device);
-    if (caps.some(c => c.type === 'light' || c.type === 'dimmer')) return true;
-
-    // Priority 3: Hardware device.type fallback
-    if (['light', 'dimmer'].includes(device.type.toLowerCase())) return true;
-
-    // Priority 4: Conservative fallback for HA switches with an explicit light name.
-    // Manual semantic classification above always takes precedence.
-    const normalizedName = normalizeAssistantPrompt(device.name);
-    return /^(luz|luces|lampara|lamparas|foco|focos)(\s|$)/.test(normalizedName);
-  }
-
-  private isControllableForBulk(device: Device, command: DeviceCommandV1, bulkType: 'all' | 'lights'): boolean {
-    if (!this.isDeviceAvailable(device)) return false;
-    if (!this.supportsCommand(device, command)) return false;
-
-    // Exclude sensors/cameras even if they somehow report turn_on/off support
-    const type = device.type.toLowerCase();
-    if (['sensor', 'binary_sensor', 'camera'].includes(type)) return false;
-
-    // Exclude covers/blinds/curtains for turn_on/turn_off
-    if (['cover', 'blind', 'curtain', 'shutter'].includes(type) && (command === 'turn_on' || command === 'turn_off')) {
-      return false;
-    }
-
-    if (bulkType === 'lights' && !this.isLightEntity(device)) return false;
-
-    return true;
-  }
-
-  private requiresBulkStateChange(device: Device, command: DeviceCommandV1): boolean {
-    const state = device.lastKnownState;
-    const isOn = state?.on === true || state?.state === 'on' || state?.power === 'on';
-    const isOff = state?.on === false || state?.state === 'off' || state?.power === 'off';
-
-    return command === 'turn_off' ? isOn : command === 'turn_on' ? isOff : false;
-  }
-
-  private isControllableDevice(device: Device, command: DeviceCommandV1): boolean {
-    if (!this.isDeviceAvailable(device)) return false;
-
-    // Always exclude pure sensors/cameras — these are never controllable
-    const type = device.type.toLowerCase();
-    if (['sensor', 'binary_sensor', 'camera'].includes(type)) return false;
-
-    return this.supportsCommand(device, command);
-  }
-
-
   private isRoomQuery(normalized: string): boolean {
     const triggers = [
       "que estancias conoces", "que estancia conoces", "que estancia nomas conoces",
@@ -1193,8 +1148,8 @@ export class AssistantConversationService {
     return triggers.some(t => normalized.includes(t));
   }
 
-  private async handleRoomQuery(language: string): Promise<AssistantConversationResponse> {
-    const rooms = await this.roomRepository.findAll();
+  private async handleRoomQuery(language: string, userId: string): Promise<AssistantConversationResponse> {
+    const rooms = await this.permissionGate.getAuthorizedRooms(userId);
     if (rooms.length === 0) {
       return {
         type: 'answer',
@@ -1250,7 +1205,7 @@ export class AssistantConversationService {
     const scene = await this.sceneRepository.findSceneById(targetId);
     if (scene) {
       this.learningService.recordClarificationSelected(userId, scene.id, scene.name, 'scene', request.pendingAction?.originalPrompt || '').catch(() => {});
-      await this.assertHomeAuthorized(userId, scene.homeId);
+      await this.permissionGate.assertHomeAuthorized(userId, scene.homeId);
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
         sourceId: 'assistant',
@@ -1394,17 +1349,17 @@ export class AssistantConversationService {
 
   private async handleCapabilitiesGuide(userId: string, language: string): Promise<AssistantConversationResponse> {
     const [devices, rooms, scenes, automations, aliases] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll(),
-      this.sceneRepository.findAll(),
-      this.automationRepository.findAll(),
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedRooms(userId),
+      this.permissionGate.getAuthorizedScenes(userId),
+      this.permissionGate.getAuthorizedAutomations(userId),
       this.memoryService.getAliases(userId)
     ]);
 
     const controllableDevices = devices.filter((device: Device) => (
-      this.isControllableDevice(device, 'turn_on') ||
-      this.isControllableDevice(device, 'turn_off') ||
-      this.isControllableDevice(device, 'toggle')
+      this.scopeFilter.isControllableDevice(device, 'turn_on') ||
+      this.scopeFilter.isControllableDevice(device, 'turn_off') ||
+      this.scopeFilter.isControllableDevice(device, 'toggle')
     ));
     const roomNames = rooms.slice(0, 5).map((room: Room) => room.name);
     const sceneNames = scenes.slice(0, 5).map((scene: Scene) => scene.name);
@@ -1498,10 +1453,10 @@ export class AssistantConversationService {
     ].some(trigger => normalized.includes(trigger));
   }
 
-  private async handleHomeSummary(language: string): Promise<AssistantConversationResponse> {
-    const devices = await this.deviceRepository.findAll();
+  private async handleHomeSummary(language: string, userId: string): Promise<AssistantConversationResponse> {
+    const devices = await this.permissionGate.getAuthorizedDevices(userId);
     const active = devices.filter(device => device.lastKnownState?.on === true || device.lastKnownState?.state === 'on').length;
-    const unavailable = devices.filter(device => !this.isDeviceAvailable(device)).length;
+    const unavailable = devices.filter(device => !this.scopeFilter.isDeviceAvailable(device)).length;
 
     if (language === 'en') {
       return {
@@ -1580,10 +1535,10 @@ export class AssistantConversationService {
     const roomName = room?.name ?? roomId;
 
     // 1. Find controllable lights in that room
-    const allDevices = await this.deviceRepository.findAll();
+    const allDevices = await this.permissionGate.getAuthorizedDevices(userId);
     const roomDevices = allDevices.filter(d => d.roomId === roomId);
 
-    const roomLights = roomDevices.filter(d => this.isLightEntity(d) && this.isDeviceAvailable(d));
+    const roomLights = roomDevices.filter(d => this.scopeFilter.isLightEntity(d) && this.scopeFilter.isDeviceAvailable(d));
 
     // 2. Resolution Logic
     if (roomLights.length === 0) {
@@ -1791,7 +1746,7 @@ export class AssistantConversationService {
       const isPronoun = ['la', 'lo', 'las', 'los', 'it', 'them', 'esa', 'eso', 'esas', 'esos', 'that', 'those'].includes(targetPhrase) || normalized.endsWith('la') || normalized.endsWith('lo');
       const isMultiCommand = /\s(y|and|then|&)\s/i.test(normalized) || prompt.includes(',') || prompt.includes(';');
       const isBulk = normalized.includes('todo') || normalized.includes('everything');
-      const rooms = await this.roomRepository.findAll();
+      const rooms = await this.permissionGate.getAuthorizedRooms(userId);
       const isRoomMentioned = rooms.some(r => normalized.includes(normalizeAssistantPrompt(r.name)));
 
       if (isOrdinal || isPronoun || isMultiCommand || isBulk || isRoomMentioned) {
@@ -1804,7 +1759,7 @@ export class AssistantConversationService {
         const isVague = ['la luz', 'las luces', 'luz', 'luces', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
         if (!isVague) {
           // Attempt Fuzzy Matching before hard blocking
-          const allDevices = await this.deviceRepository.findAll();
+          const allDevices = await this.permissionGate.getAuthorizedDevices(userId);
           const command = (this.inferCommandFromPrompt(normalized) || 'turn_on') as DeviceCommandV1;
           const fuzzyResult = this.findFuzzyCandidateSuggestions(targetPhrase, allDevices, language, command, prompt);
 
@@ -1846,7 +1801,7 @@ export class AssistantConversationService {
     // B. Vague Light Blocker
     const isVague = ['la luz', 'las luces', 'luz', 'luces', 'light', 'lights', 'the light', 'the lights'].includes(targetPhrase);
     if (hasVerb && isVague && !request.sourceRoomId) {
-      const rooms = await this.roomRepository.findAll();
+      const rooms = await this.permissionGate.getAuthorizedRooms(userId);
       const options = rooms.slice(0, 5).map(r => ({
         id: r.id,
         label: r.name,
@@ -2002,30 +1957,76 @@ export class AssistantConversationService {
     return triggers.includes(normalized);
   }
 
-  private async handleBulkActionAccept(userId: string, language: string, action: { deviceIds: string[], command: string, originalPrompt: string, bulkType?: 'all' | 'lights' }): Promise<AssistantConversationResponse> {
+  private async handleBulkActionAccept(userId: string, language: string, ticket: ConfirmationTicket): Promise<AssistantConversationResponse> {
     const memory = await this.memoryService.getShortTermMemory(userId);
     const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
-    if (!allowedCommands.includes(action.command)) {
-      console.warn(`[ASSISTANT_BULK_EXECUTION_INVALID] {"command":"${action.command}"}`);
-      await this.clearPendingAction(userId);
+    if (!allowedCommands.includes(ticket.command)) {
+      console.warn(`[ASSISTANT_BULK_EXECUTION_INVALID] {"command":"${ticket.command}"}`);
       return {
         type: 'error',
         message: language === 'en' ? "Invalid command for bulk action." : "Comando inválido para acción en lote."
       };
     }
 
-    console.info(`[ASSISTANT_BULK_EXECUTION_APPROVED] ${JSON.stringify({ count: action.deviceIds.length, command: action.command })}`);
+    // Single-use guarantee: an already-consumed or expired ticket cannot be replayed
+    // (e.g. a late "sí", or the same confirmation answered twice in a race).
+    const consumed = this.confirmationTicketRepository ? await this.confirmationTicketRepository.consume(ticket.id) : false;
+    if (!consumed) {
+      console.warn(`[ASSISTANT_BULK_CONFIRMATION_ALREADY_CONSUMED] ${JSON.stringify({ ticketId: ticket.id })}`);
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "That confirmation is no longer available. Please ask again."
+          : "Esa confirmación ya no está disponible. Pídemelo de nuevo."
+      };
+    }
+
+    // Revalidate permissions: the home this ticket was issued for must still be authorized
+    // for this user (e.g. access could have been revoked between proposal and confirmation).
+    try {
+      await this.permissionGate.assertHomeAuthorized(userId, ticket.homeId);
+    } catch {
+      console.warn(`[ASSISTANT_BULK_CONFIRMATION_HOME_REVOKED] ${JSON.stringify({ userId, homeId: ticket.homeId })}`);
+      await this.clearPendingAction(userId);
+      return {
+        type: 'error',
+        message: language === 'en' ? "You're no longer authorized for that action." : "Ya no tienes autorización para esa acción."
+      };
+    }
+
+    // Revalidate scope: re-check availability/capability/current-state against the CURRENT
+    // device state, restricted to the originally proposed device set. A device that changed
+    // state, lost its capability, or disappeared in the meantime is dropped rather than
+    // blindly re-executed on stale information.
+    const command = ticket.command as DeviceCommandV1;
+    const currentDevices = await this.permissionGate.getAuthorizedDevices(userId);
+    const stillEligible = currentDevices.filter(d => {
+      if (!ticket.deviceIds.includes(d.id)) return false;
+      if (ticket.command === 'toggle') return this.scopeFilter.isControllableDevice(d, command);
+      return this.scopeFilter.isControllableForBulk(d, command, ticket.bulkType || 'all') && this.scopeFilter.requiresBulkStateChange(d, command);
+    });
+
+    if (stillEligible.length === 0) {
+      await this.clearPendingAction(userId);
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? "Nothing to do — those devices are already in the requested state."
+          : "No hay nada que hacer: esos dispositivos ya estaban en el estado solicitado."
+      };
+    }
+
+    const skippedCount = ticket.deviceIds.length - stillEligible.length;
+
+    console.info(`[ASSISTANT_BULK_EXECUTION_APPROVED] ${JSON.stringify({ count: stillEligible.length, originalCount: ticket.deviceIds.length, command: ticket.command })}`);
     const correlationId = `bulk-${Date.now()}`;
     const results: ExecutedCommandResult[] = [];
     const entities = [];
 
-    for (const deviceId of action.deviceIds) {
-      const device = await this.deviceRepository.findDeviceById(deviceId);
-      if (device) {
-        const result = await this.executeAuthorizedCommand(userId, deviceId, action.command as DeviceCommandV1, action.originalPrompt, correlationId);
-        results.push({ action: { deviceId, command: action.command as DeviceCommandV1 }, deviceName: device.name, result });
-        entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
-      }
+    for (const device of stillEligible) {
+      const result = await this.executeAuthorizedCommand(userId, device.id, command, ticket.originalPrompt, correlationId);
+      results.push({ action: { deviceId: device.id, command }, deviceName: device.name, result });
+      entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
     }
 
     await this.clearPendingAction(userId);
@@ -2037,7 +2038,13 @@ export class AssistantConversationService {
       timestamp: new Date().toISOString()
     });
 
-    const summary = this.formatMultiCommandSummary(results, language, action.bulkType);
+    let summary = this.formatMultiCommandSummary(results, language, ticket.bulkType);
+    if (skippedCount > 0) {
+      summary += language === 'en'
+        ? ` (${skippedCount} device(s) were already in the requested state and were skipped.)`
+        : ` (${skippedCount} dispositivo(s) ya estaban en el estado solicitado y se omitieron.)`;
+    }
+
     return await this.attachSuggestionIfNeeded({
       type: 'execution',
       message: summary,
@@ -2049,8 +2056,9 @@ export class AssistantConversationService {
     }, userId, language, memory, 'multi_command');
   }
 
-  private async handleBulkActionReject(userId: string, language: string, action: { deviceIds: string[], command: string }): Promise<AssistantConversationResponse> {
-    console.info(`[ASSISTANT_BULK_EXECUTION_CANCELLED] ${JSON.stringify({ count: action.deviceIds.length, command: action.command })}`);
+  private async handleBulkActionReject(userId: string, language: string, ticket: ConfirmationTicket): Promise<AssistantConversationResponse> {
+    console.info(`[ASSISTANT_BULK_EXECUTION_CANCELLED] ${JSON.stringify({ count: ticket.deviceIds.length, command: ticket.command })}`);
+    if (this.confirmationTicketRepository) await this.confirmationTicketRepository.consume(ticket.id);
     await this.clearPendingAction(userId);
     return {
       type: 'answer',
@@ -2072,8 +2080,8 @@ export class AssistantConversationService {
       const confidence = typeof metadata['confidence'] === 'string' ? metadata['confidence'] : undefined;
 
       if (confidence === 'high' && alias && target) {
-        const devices = await this.deviceRepository.findAll();
-        const rooms = await this.roomRepository.findAll();
+        const devices = await this.permissionGate.getAuthorizedDevices(userId);
+        const rooms = await this.permissionGate.getAuthorizedRooms(userId);
 
         const matchingDevices = devices.filter(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(target));
         const matchingRooms = rooms.filter(r => normalizeAssistantPrompt(r.name) === normalizeAssistantPrompt(target));
@@ -2223,10 +2231,10 @@ export class AssistantConversationService {
 
     if (entitiesFromMemory && entitiesFromMemory.length > 0) {
       const ids = entitiesFromMemory.map(e => e.id);
-      const devices = await this.deviceRepository.findAll();
+      const devices = await this.permissionGate.getAuthorizedDevices(userId);
       allDevices = devices.filter(d => ids.includes(d.id));
     } else {
-      allDevices = await this.deviceRepository.findAll();
+      allDevices = await this.permissionGate.getAuthorizedDevices(userId);
     }
 
     if (!allDevices) {
@@ -2242,7 +2250,7 @@ export class AssistantConversationService {
 
     // Fallback: If no rooms found via device homes, try global room list
     if (roomMap.size === 0) {
-      const allRooms = await this.roomRepository.findAll();
+      const allRooms = await this.permissionGate.getAuthorizedRooms(userId);
       for (const r of allRooms) roomMap.set(r.id, r.name);
     }
 
@@ -2263,7 +2271,7 @@ export class AssistantConversationService {
 
     // We use the same resolution logic as in singular light path for consistency
     const userAliases = await this.memoryService.getAliases(userId);
-    const rooms = await this.roomRepository.findAll();
+    const rooms = await this.permissionGate.getAuthorizedRooms(userId);
 
     // We need to identify if there's a potential room mention in the prompt.
     // Since we don't have a static list, we'll look for room names or aliases in the prompt.
@@ -2318,7 +2326,7 @@ export class AssistantConversationService {
           !normalized.includes(' de ') &&
           !normalized.includes(' en ')
         ) {
-          const rooms = await this.roomRepository.findAll();
+          const rooms = await this.permissionGate.getAuthorizedRooms(userId);
           const options = rooms.map(r => ({ id: r.id, label: r.name, kind: 'room' as const }));
 
           await this.memoryService.saveShortTermMemory(userId, {
@@ -2342,7 +2350,7 @@ export class AssistantConversationService {
       }
 
       if (isLightsOnly) {
-        filteredDevices = filteredDevices.filter(d => this.isLightEntity(d));
+        filteredDevices = filteredDevices.filter(d => this.scopeFilter.isLightEntity(d));
       }
     }
 
@@ -2564,10 +2572,10 @@ export class AssistantConversationService {
     return detailTriggers.includes(normalized);
   }
 
-  private async handleDetailFollowUp(memory: AssistantMemoryState, language: string): Promise<AssistantConversationResponse> {
+  private async handleDetailFollowUp(memory: AssistantMemoryState, language: string, userId: string): Promise<AssistantConversationResponse> {
     const isEn = language === 'en';
     const rememberedIds = (memory.entities || []).map(e => e.id);
-    const devices = await this.deviceRepository.findAll();
+    const devices = await this.permissionGate.getAuthorizedDevices(userId);
     const filtered = devices.filter(d => rememberedIds.includes(d.id));
 
     if (filtered.length === 0) {
@@ -2606,48 +2614,24 @@ export class AssistantConversationService {
     };
   }
 
-  private levenshteinDistance(a: string, b: string): number {
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) {
-      matrix[i] = [i];
-    }
-    for (let j = 0; j <= a.length; j++) {
-      matrix[0][j] = j;
-    }
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
-          );
-        }
-      }
-    }
-    return matrix[b.length][a.length];
-  }
-
   private findFuzzyCandidateSuggestions(targetPhrase: string, devices: readonly Device[], language: string, command: DeviceCommandV1, originalPrompt: string): AssistantConversationResponse | null {
     if (!targetPhrase || targetPhrase.trim().length < 3) return null;
 
-    const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "").trim();
-    const targetNorm = normalize(targetPhrase);
+    const targetNorm = sharedNormalizeText(targetPhrase);
 
     let bestMatch: Device | null = null;
     let bestScore = 0; // 0 to 1, where 1 is exact match
 
     for (const d of devices) {
-      if (!this.isDeviceAvailable(d)) continue;
+      if (!this.scopeFilter.isDeviceAvailable(d)) continue;
       // Note: we don't strictly filter by supportsCommand here because maybe they asked "prende la tv" but it's a sensor?
       // Actually we should only suggest controllable devices if it's a command.
-      if (!this.isControllableDevice(d, command)) continue;
+      if (!this.scopeFilter.isControllableDevice(d, command)) continue;
 
-      const nameNorm = normalize(d.name);
+      const nameNorm = sharedNormalizeText(d.name);
 
       // Calculate similarity
-      const distance = this.levenshteinDistance(targetNorm, nameNorm);
+      const distance = levenshteinDistance(targetNorm, nameNorm);
       const maxLength = Math.max(targetNorm.length, nameNorm.length);
       const similarity = maxLength === 0 ? 1 : 1 - (distance / maxLength);
 
@@ -2686,10 +2670,10 @@ export class AssistantConversationService {
 
   private async findMatchingDevices(prompt: string, userId: string = 'system'): Promise<Device[]> {
     const normalized = normalizeAssistantPrompt(prompt);
-    let devices = await this.deviceRepository.findAll();
+    let devices = await this.permissionGate.getAuthorizedDevices(userId);
 
     // Filter out non-controllable/deprecated devices
-    devices = devices.filter(d => this.isDeviceAvailable(d));
+    devices = devices.filter(d => this.scopeFilter.isDeviceAvailable(d));
 
     // 1. Check for Exact Match first (highest priority)
     const exactMatch = devices.find(d => normalizeAssistantPrompt(d.name) === normalized);
@@ -2788,18 +2772,18 @@ export class AssistantConversationService {
   }
 
   private async handlePointStateQuery(normalized: string, language: string, userId: string): Promise<AssistantConversationResponse> {
-    const devices = await this.deviceRepository.findAll();
+    const devices = await this.permissionGate.getAuthorizedDevices(userId);
 
     // Buscar dispositivo en el prompt
     const matches = devices.filter(d => normalized.includes(normalizeAssistantPrompt(d.name)));
 
     if (matches.length === 0) {
       // Intentar buscar habitación
-      const rooms = (await this.roomRepository.findAll()) || [];
+      const rooms = (await this.permissionGate.getAuthorizedRooms(userId)) || [];
       const roomMatch = rooms.find(r => normalized.includes(normalizeAssistantPrompt(r.name)));
 
       if (roomMatch) {
-        const roomDevices = devices.filter(d => d.roomId === roomMatch.id && this.isControllableDevice(d, 'turn_on'));
+        const roomDevices = devices.filter(d => d.roomId === roomMatch.id && this.scopeFilter.isControllableDevice(d, 'turn_on'));
         if (roomDevices.length === 0) {
           return {
             type: 'answer',
@@ -2876,8 +2860,8 @@ export class AssistantConversationService {
     return normalized.includes('escenas') && (normalized.includes('que') || normalized.includes('lista') || normalized.includes('muestra') || normalized.includes('what') || normalized.includes('list') || normalized.includes('show'));
   }
 
-  private async handleListScenes(language: string): Promise<AssistantConversationResponse> {
-    const scenes = await this.sceneRepository.findAll();
+  private async handleListScenes(language: string, userId: string): Promise<AssistantConversationResponse> {
+    const scenes = await this.permissionGate.getAuthorizedScenes(userId);
     if (scenes.length === 0) {
       return { type: 'answer', message: language === 'en' ? "You don't have any scenes created yet." : "Aún no tienes escenas creadas." };
     }
@@ -2892,8 +2876,8 @@ export class AssistantConversationService {
     return (normalized.includes('automatizaciones') || normalized.includes('rutinas') || normalized.includes('automations')) && (normalized.includes('que') || normalized.includes('lista') || normalized.includes('muestra') || normalized.includes('what') || normalized.includes('list'));
   }
 
-  private async handleListAutomations(language: string): Promise<AssistantConversationResponse> {
-    const automations = await this.automationRepository.findAll();
+  private async handleListAutomations(language: string, userId: string): Promise<AssistantConversationResponse> {
+    const automations = await this.permissionGate.getAuthorizedAutomations(userId);
     if (automations.length === 0) {
       return { type: 'answer', message: language === 'en' ? "You don't have any automations yet." : "Aún no tienes automatizaciones." };
     }
@@ -2918,7 +2902,7 @@ export class AssistantConversationService {
     if (renameSceneMatch) {
       const oldName = renameSceneMatch[1].trim();
       const newName = renameSceneMatch[2].trim();
-      const scenes = await this.sceneRepository.findAll();
+      const scenes = await this.permissionGate.getAuthorizedScenes(userId);
       const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(oldName));
 
       if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${oldName}" not found.` : `No encontré la escena "${oldName}".` };
@@ -2959,7 +2943,7 @@ export class AssistantConversationService {
       const autoName = toggleAutoMatch[2].trim();
       const enabled = ['activa', 'enable', 'activate', 'resume'].includes(actionStr);
 
-      const automations = await this.automationRepository.findAll();
+      const automations = await this.permissionGate.getAuthorizedAutomations(userId);
       const auto = automations.find(a => normalizeAssistantPrompt(a.name) === normalizeAssistantPrompt(autoName));
 
       if (!auto) return { type: 'answer', message: language === 'en' ? `Automation "${autoName}" not found.` : `No encontré la automatización "${autoName}".` };
@@ -3000,11 +2984,11 @@ export class AssistantConversationService {
       const deviceName = addActionMatch[1].trim();
       const sceneName = addActionMatch[2].trim();
 
-      const scenes = await this.sceneRepository.findAll();
+      const scenes = await this.permissionGate.getAuthorizedScenes(userId);
       const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(sceneName));
       if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
 
-      const devices = await this.deviceRepository.findAll();
+      const devices = await this.permissionGate.getAuthorizedDevices(userId);
       const device = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(deviceName));
       if (!device) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" not found.` : `No encontré el dispositivo "${deviceName}".` };
 
@@ -3043,11 +3027,11 @@ export class AssistantConversationService {
       const deviceName = removeActionMatch[1].trim();
       const sceneName = removeActionMatch[2].trim();
 
-      const scenes = await this.sceneRepository.findAll();
+      const scenes = await this.permissionGate.getAuthorizedScenes(userId);
       const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(sceneName));
       if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
 
-      const devices = await this.deviceRepository.findAll();
+      const devices = await this.permissionGate.getAuthorizedDevices(userId);
       const device = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(deviceName));
       const action = scene.actions.find(a => a.deviceId === device?.id || a.deviceId === deviceName);
 
@@ -3256,11 +3240,11 @@ export class AssistantConversationService {
 
     const device = deviceId === 'all' ? null : await this.deviceRepository.findDeviceById(deviceId);
     const homeId = deviceId === 'all'
-      ? (await this.deviceRepository.findAll())[0]?.homeId
+      ? (await this.permissionGate.authorizedHomeIdsFor(userId))[0]
       : device?.homeId;
 
     if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
-    await this.assertHomeAuthorized(userId, homeId);
+    await this.permissionGate.assertHomeAuthorized(userId, homeId);
     return this.executeSingleCommand(deviceId, command, prompt, correlationId);
   }
   private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string): Promise<SceneExecutionResult> {
@@ -3299,17 +3283,6 @@ export class AssistantConversationService {
     });
   }
 
-  private async assertHomeAuthorized(userId: string, homeId: string): Promise<void> {
-    if (!this.homeRepository) {
-      if (process.env.NODE_ENV === 'test') return;
-      throw new Error('ASSISTANT_AUTHORIZATION_UNAVAILABLE');
-    }
-
-    const homes = await this.homeRepository.findHomesByUserId(userId);
-    if (!homes.some((home) => home.id === homeId)) {
-      throw new Error('ASSISTANT_HOME_FORBIDDEN');
-    }
-  }
   private containsWord(source: string, word: string): boolean {
     const regex = new RegExp(`(^|\\s)${word}(\\s|$)`, 'i');
     return regex.test(source);
@@ -3707,8 +3680,8 @@ export class AssistantConversationService {
     userAliases: Record<string, string>
   ): Promise<AssistantConversationResponse | null> {
     const [devices, rooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll()
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedRooms(userId)
     ]);
 
     const resolution = this.resolveRoomAlias(roomName, Array.from(rooms), Array.from(devices), userId, userAliases);
@@ -3794,12 +3767,11 @@ export class AssistantConversationService {
     roomName: string,
     bulkType: 'all' | 'lights',
     language: string,
-    userAliases: Record<string, string>,
-    interactionMode: 'chat' | 'voice' = 'chat'
+    userAliases: Record<string, string>
   ): Promise<AssistantConversationResponse> {
     const [devices, rooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.roomRepository.findAll()
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedRooms(userId)
     ]);
 
     console.info(`[ASSISTANT_USER_ALIAS_LOOKUP] ${JSON.stringify({ userId, aliases: userAliases, roomName })}`);
@@ -3831,7 +3803,9 @@ export class AssistantConversationService {
     const matchingDevices = devices.filter(d => {
       const isInRoom = d.roomId && targetRoomIds.includes(d.roomId);
       if (!isInRoom) return false;
-      return this.isControllableForBulk(d, command, bulkType);
+      // Same "only devices that actually need the change" filter as the global
+      // bulk fast-path, so "apaga todo en la sala" and "apaga todo" behave consistently.
+      return this.scopeFilter.isControllableForBulk(d, command, bulkType) && this.scopeFilter.requiresBulkStateChange(d, command);
     });
 
     if (matchingDevices.length === 0) {
@@ -3848,14 +3822,8 @@ export class AssistantConversationService {
 
     const deviceIds = matchingDevices.map(l => l.id);
 
-    if (interactionMode === 'voice') {
-      return this.handleBulkActionAccept(userId, language, {
-        deviceIds,
-        command,
-        bulkType,
-        originalPrompt: `Voice bulk room action for ${displayRoomName}`,
-      });
-    }
+    // Bulk/room-scale actions always require explicit confirmation, in chat and in
+    // voice alike — interactionMode must never skip this gate (security requirement).
 
     console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
       source: "room_bulk_fast_path",
@@ -3865,19 +3833,7 @@ export class AssistantConversationService {
       bulkType
     })}`);
 
-    await this.memoryService.saveShortTermMemory(userId, {
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds,
-        command,
-        bulkType,
-        timestamp: new Date().toISOString(),
-        originalPrompt: `Bulk room action for ${displayRoomName}`
-      }
-    });
+    await this.createConfirmationTicket(userId, matchingDevices[0].homeId, command, deviceIds, `Bulk room action for ${displayRoomName}`, bulkType);
 
     const deviceTerm = bulkType === 'lights'
       ? (language === 'en' ? 'lights' : 'luces')
@@ -3927,10 +3883,10 @@ export class AssistantConversationService {
     };
   }
   private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string, interactionMode: 'chat' | 'voice' = 'chat'): Promise<AssistantConversationResponse | null> {
-    const allDevices = await this.deviceRepository.findAll();
+    const allDevices = await this.permissionGate.getAuthorizedDevices(userId);
 
     const targetDevices = allDevices.filter(d => {
-      return this.isControllableForBulk(d, command, bulkType) && this.requiresBulkStateChange(d, command);
+      return this.scopeFilter.isControllableForBulk(d, command, bulkType) && this.scopeFilter.requiresBulkStateChange(d, command);
     });
 
     if (targetDevices.length === 0) {
@@ -3953,19 +3909,7 @@ export class AssistantConversationService {
       bulkType
     })}`);
 
-    await this.memoryService.saveShortTermMemory(userId, {
-      lastQueryType: 'confirmation',
-      entities: [],
-      timestamp: new Date().toISOString(),
-      pendingBulkAction: {
-        type: 'bulk_action',
-        deviceIds,
-        command,
-        bulkType,
-        timestamp: new Date().toISOString(),
-        originalPrompt: normalized
-      }
-    });
+    await this.createConfirmationTicket(userId, targetDevices[0].homeId, command, deviceIds, normalized, bulkType);
 
     const deviceTerm = bulkType === 'lights'
       ? (language === 'en' ? 'lights' : 'luces')
@@ -4026,7 +3970,7 @@ export class AssistantConversationService {
 
     if (!command || !targetPhrase) return null;
 
-    const devices = await this.deviceRepository.findAll();
+    const devices = await this.permissionGate.getAuthorizedDevices(userId);
     const normTarget = normalizeAssistantPrompt(targetPhrase);
 
     // Priority 1: Exact real device name wins over alias
@@ -4090,13 +4034,13 @@ export class AssistantConversationService {
   }
 
   private async attemptFastPathExecution(activePrompt: string, userId: string, language: string, userName: string | null): Promise<AssistantConversationResponse | null> {
-    const devices = await this.deviceRepository.findAll();
+    const devices = await this.permissionGate.getAuthorizedDevices(userId);
     const result = this.fastPathResolver.resolve(activePrompt, Array.from(devices));
     if (!result) return null;
 
     const device = devices.find((d) => d.id === result.deviceId);
     if (!device) return null;
-    if (!this.isControllableDevice(device, result.command)) return null;
+    if (!this.scopeFilter.isControllableDevice(device, result.command)) return null;
 
     const execResult = await this.executeAuthorizedCommand(userId, result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`);
 
@@ -4148,18 +4092,17 @@ export class AssistantConversationService {
     if ((v2Result.resolvedIds && v2Result.resolvedIds.length > 1) || v2Result.resolvedType === 'category') {
       console.info(`[ASSISTANT_CONFIRMATION_REQUIRED] prompt="${activePrompt}" count=${v2Result.resolvedIds?.length}`);
 
-      await this.memoryService.saveShortTermMemory(userId, {
-        lastQueryType: 'confirmation',
-        entities: [],
-        timestamp: new Date().toISOString(),
-        pendingBulkAction: {
-          type: 'bulk_action',
-          deviceIds: v2Result.resolvedIds || [],
-          command: v2Result.command,
-          timestamp: new Date().toISOString(),
-          originalPrompt: activePrompt
-        }
-      });
+      const resolvedIds = v2Result.resolvedIds || [];
+      const firstDevice = resolvedIds[0] ? await this.deviceRepository.findDeviceById(resolvedIds[0]) : null;
+      if (firstDevice) {
+        await this.createConfirmationTicket(
+          userId,
+          firstDevice.homeId,
+          v2Result.command as ConfirmationTicketCommand,
+          resolvedIds,
+          activePrompt
+        );
+      }
 
       return {
         type: 'clarification',
@@ -4214,8 +4157,8 @@ export class AssistantConversationService {
 
     // 2. Explicit target guard (MANDATORY)
     const [rooms, devices] = await Promise.all([
-      this.roomRepository.findAll(),
-      this.deviceRepository.findAll()
+      this.permissionGate.getAuthorizedRooms(userId),
+      this.permissionGate.getAuthorizedDevices(userId)
     ]);
 
     // Ensure prompt does not contain explicit room names
@@ -4236,7 +4179,7 @@ export class AssistantConversationService {
     if (!targetRoom) return null;
 
     const roomDevices = devices.filter(d => d.roomId === sourceRoomId);
-    const lights = roomDevices.filter(d => this.isLightEntity(d) && this.isDeviceAvailable(d));
+    const lights = roomDevices.filter(d => this.scopeFilter.isLightEntity(d) && this.scopeFilter.isDeviceAvailable(d));
 
     if (lights.length === 0) {
       return {

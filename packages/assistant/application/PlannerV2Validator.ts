@@ -1,6 +1,10 @@
 import { AssistantPlanV2, PlannerAction, TargetReference, ActionParams } from './ports/AssistantPlannerV2';
 
 export class PlannerV2Validator {
+  /** Hard ceiling on actions per plan — defense in depth against a runaway or
+   *  malicious plan, independent of any narrower limit an execution gate applies. */
+  private static readonly MAX_ACTIONS = 8;
+
   /**
    * Validates the structure and content of a Planner V2 result.
    * Returns null if valid, or a string describing the error.
@@ -21,6 +25,10 @@ export class PlannerV2Validator {
 
     if (!Array.isArray(plan.actions)) {
       return 'actions must be an array';
+    }
+
+    if (plan.actions.length > PlannerV2Validator.MAX_ACTIONS) {
+      return `Plan exceeds the maximum of ${PlannerV2Validator.MAX_ACTIONS} actions`;
     }
 
     if (typeof plan.user_feedback_draft !== 'string') {

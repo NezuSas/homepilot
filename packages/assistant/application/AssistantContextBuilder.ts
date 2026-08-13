@@ -3,13 +3,14 @@ import { Scene } from '../../devices/domain/Scene';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 
 import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
 
 /**
  * AssistantContextBuilder
- * 
+ *
  * Builds a privacy-aware context of the home setup for the LLM.
  * Limits the number of entities to avoid context window issues.
  */
@@ -22,8 +23,45 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
     private readonly deviceRepository: DeviceRepository,
     private readonly sceneRepository: SceneRepository,
     private readonly memoryService?: AssistantMemoryPort,
-    private readonly roomRepository?: RoomRepository
+    private readonly roomRepository?: RoomRepository,
+    private readonly homeRepository?: HomeRepository
   ) {}
+
+  /**
+   * Home-scoped replacement for deviceRepository.findAll(). When no homeRepository is
+   * configured (legacy tests / single-tenant setups), falls back to the unrestricted list
+   * so existing suites keep passing unchanged.
+   */
+  private async getAuthorizedDevices(userId: string | null): Promise<ReadonlyArray<Device>> {
+    if (!this.homeRepository || !userId) return this.deviceRepository.findAll();
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.deviceRepository.findAllByHomeId(home.id)));
+    return perHome.flatMap((devices) => Array.from(devices));
+  }
+
+  /**
+   * Home-scoped replacement for roomRepository.findAll().
+   */
+  private async getAuthorizedRooms(userId: string | null) {
+    if (!this.roomRepository) return [];
+    if (!this.homeRepository || !userId) return this.roomRepository.findAll();
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.roomRepository!.findRoomsByHomeId(home.id)));
+    return perHome.flatMap((rooms) => Array.from(rooms));
+  }
+
+  /**
+   * Home-scoped replacement for sceneRepository.findAll().
+   */
+  private async getAuthorizedScenes(userId: string | null): Promise<ReadonlyArray<Scene>> {
+    if (!this.homeRepository || !userId) return this.sceneRepository.findAll();
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.sceneRepository.findScenesByHomeId(home.id)));
+    return perHome.flat();
+  }
 
   /**
    * Generates a JSON string containing the minimal home setup context.
@@ -31,8 +69,8 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
    */
   public async build(userId: string | null = 'system'): Promise<string> {
     const [allDevices, allScenes] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.sceneRepository.findAll(),
+      this.getAuthorizedDevices(userId),
+      this.getAuthorizedScenes(userId),
     ]);
 
     const devices = allDevices.slice(0, this.MAX_DEVICES).map((d) => ({
@@ -85,9 +123,9 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
    */
   public async buildLlmHomeMap(userId: string | null = 'system'): Promise<string> {
     const [allDevices, allScenes, allRooms] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.sceneRepository.findAll(),
-      this.roomRepository ? this.roomRepository.findAll() : Promise.resolve([])
+      this.getAuthorizedDevices(userId),
+      this.getAuthorizedScenes(userId),
+      this.getAuthorizedRooms(userId)
     ]);
 
     const roomMap = new Map<string, string>(allRooms.map(r => [r.id, r.name]));
@@ -147,9 +185,9 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
    */
   public async buildLightLlmHomeMap(userId: string | null = 'system'): Promise<string> {
     const [allDevices, allScenes, allRooms, allAliases] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.sceneRepository.findAll(),
-      this.roomRepository ? this.roomRepository.findAll() : Promise.resolve([]),
+      this.getAuthorizedDevices(userId),
+      this.getAuthorizedScenes(userId),
+      this.getAuthorizedRooms(userId),
       this.memoryService && userId ? this.memoryService.getAliases(userId) : Promise.resolve([])
     ]);
 
@@ -181,9 +219,9 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
    */
   public async buildUltraLightLlmHomeMap(prompt: string, userId: string | null = 'system'): Promise<{ text: string, devicesCount: number }> {
     const [allDevices, allScenes, allRooms, allAliases] = await Promise.all([
-      this.deviceRepository.findAll(),
-      this.sceneRepository.findAll(),
-      this.roomRepository ? this.roomRepository.findAll() : Promise.resolve([]),
+      this.getAuthorizedDevices(userId),
+      this.getAuthorizedScenes(userId),
+      this.getAuthorizedRooms(userId),
       this.memoryService && userId ? this.memoryService.getAliases(userId) : Promise.resolve([])
     ]);
 

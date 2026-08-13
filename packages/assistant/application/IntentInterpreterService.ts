@@ -5,11 +5,12 @@ import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
 import { IntentInterpreterPort, Intent, AssistantMultiCommandResult } from './ports/IntentInterpreterPort';
 import { AssistantMultiCommandParser } from './AssistantMultiCommandParser';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
+import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { isDiagnosticLoggingEnabled } from '../../shared/config/runtimeEnvironment';
 
 /**
  * IntentInterpreterService
- * 
+ *
  * V1: Simple deterministic parsing of natural language prompts.
  * Uses repositories to resolve entities by keywords/name.
  */
@@ -21,12 +22,36 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     private readonly roomRepository: RoomRepository,
     private readonly multiCommandParser: AssistantMultiCommandParser,
     private readonly llmInterpreter?: LlmIntentInterpreterPort,
-    private readonly memoryService?: AssistantMemoryPort
+    private readonly memoryService?: AssistantMemoryPort,
+    private readonly homeRepository?: HomeRepository
   ) {}
 
-  public async interpret(prompt: string): Promise<Intent | AssistantMultiCommandResult> {
+  /**
+   * Home-scoped device list. Falls back to the unrestricted list only when no
+   * homeRepository is configured (legacy/single-tenant test setups).
+   */
+  private async getAuthorizedDevices(userId?: string) {
+    if (!this.homeRepository || !userId) return this.deviceRepository.findAll();
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.deviceRepository.findAllByHomeId(home.id)));
+    return perHome.flatMap((devices) => Array.from(devices));
+  }
+
+  /**
+   * Home-scoped scene list. Same fallback rule as getAuthorizedDevices.
+   */
+  private async getAuthorizedScenes(userId?: string) {
+    if (!this.homeRepository || !userId) return this.sceneRepository.findAll();
+    const homes = await this.homeRepository.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.sceneRepository.findScenesByHomeId(home.id)));
+    return perHome.flat();
+  }
+
+  public async interpret(prompt: string, userId?: string): Promise<Intent | AssistantMultiCommandResult> {
     const t0 = Date.now();
-    
+
     // 0. Check Multi-Command First
     const multiCommandResult = await this.multiCommandParser.parse(prompt);
     if (multiCommandResult) {
@@ -38,7 +63,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
 
     // 1. Always try deterministic first (fast path)
     const t_det = Date.now();
-    const deterministicResult = await this.interpretDeterministic(prompt);
+    const deterministicResult = await this.interpretDeterministic(prompt, userId);
     if (isDiagnosticLoggingEnabled()) {
       console.debug(`[IntentInterpreter] deterministic path: ${Date.now() - t_det}ms → ${deterministicResult.type}`);
     }
@@ -52,7 +77,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     if (isLlmEnabled && this.llmInterpreter) {
       const t_llm = Date.now();
       try {
-        const intent = await this.llmInterpreter.interpret(prompt);
+        const intent = await this.llmInterpreter.interpret(prompt, userId);
         if (intent && intent.type !== 'unknown') {
           if (isDiagnosticLoggingEnabled()) {
             console.debug(`[IntentInterpreter] LLM path: ${Date.now() - t_llm}ms → ${intent.type}`);
@@ -103,7 +128,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     return normalized;
   }
 
-  private async interpretDeterministic(prompt: string): Promise<Intent> {
+  private async interpretDeterministic(prompt: string, userId?: string): Promise<Intent> {
     const normalized = this.normalizeSpanishCommand(prompt).trim();
     const offKeywords = ['apaga', 'apagar', 'apagado', 'desactivar', 'off'];
     const onKeywords = ['prende', 'enciende', 'encender', 'encendido', 'activar', 'on'];
@@ -147,7 +172,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
           else return { type: 'unknown', prompt, reason: 'Ambiguous command intent.' };
         }
 
-        const scenes = await this.sceneRepository.findAll();
+        const scenes = await this.getAuthorizedScenes(userId);
         const found = scenes.find(s => {
           const name = s.name.toLowerCase();
           return name.includes('todo') && finalKeywords.some(kw => name.includes(kw));
@@ -178,8 +203,8 @@ export class IntentInterpreterService implements IntentInterpreterPort {
           else return { type: 'unknown', prompt, reason: 'Ambiguous command intent.' };
         }
 
-        const devices = await this.deviceRepository.findAll();
-        
+        const devices = await this.getAuthorizedDevices(userId);
+
         // V1 Matcher: find by name containing keywords
         const found = devices.find(d => {
           const name = d.name.toLowerCase();

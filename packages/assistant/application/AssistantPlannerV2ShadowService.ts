@@ -3,8 +3,9 @@ import { PlannerV2Validator } from './PlannerV2Validator';
 import { PlannerV2Resolver } from './PlannerV2Resolver';
 import { PlannerV2Normalizer } from './PlannerV2Normalizer';
 import { AssistantConversationResponse } from './AssistantConversationService';
-import { TargetReference, AssistantPlanV2 } from './ports/AssistantPlannerV2';
+import { TargetReference, AssistantPlanV2, PlannerAction } from './ports/AssistantPlannerV2';
 import { AssistantMemoryState } from './ports/AssistantMemoryPort';
+import { LlmCircuitBreaker } from './LlmCircuitBreaker';
 
 export interface ShadowResolutionResult {
   target: TargetReference;
@@ -38,6 +39,8 @@ export class AssistantPlannerV2ShadowService {
   private v2BetterCount = 0;
 
   private readonly normalizer = new PlannerV2Normalizer();
+  /** Only guards the live execution path — shadow mode is diagnostic-only and never blocks the user. */
+  private readonly circuitBreaker = new LlmCircuitBreaker();
 
   constructor(
     private readonly llmInterpreter: LlmIntentInterpreter,
@@ -303,14 +306,25 @@ export class AssistantPlannerV2ShadowService {
 
     if (skipReason) return skip(skipReason);
 
+    // Ollama down/struggling: skip the LLM call entirely instead of paying the
+    // full execution timeout on every single turn during an outage.
+    if (this.circuitBreaker.isOpen()) return skip('circuit_open');
+
     try {
       const result = await this.llmInterpreter.interpretV2(prompt, userId, {
         promptMode: this.promptMode,
         timeoutMs: this.executionTimeoutMs,
         model: this.shadowModel
       });
-      if (result.error) return skip('llm_error');
-      if (!result.plan) return skip('empty_plan');
+      if (result.error) {
+        this.circuitBreaker.recordFailure();
+        return skip('llm_error');
+      }
+      if (!result.plan) {
+        this.circuitBreaker.recordFailure();
+        return skip('empty_plan');
+      }
+      this.circuitBreaker.recordSuccess();
 
       // Always normalize before validating — same pipeline as shadow
       const normResult = this.normalizer.normalize(result.plan);
@@ -326,12 +340,25 @@ export class AssistantPlannerV2ShadowService {
 
       // 1. STRICT GATE CHECKS
       if (plan.type !== 'plan') return skip('invalid_root_type');
-      if (!plan.actions || plan.actions.length !== 1) return skip('multiple_actions');
+      if (!plan.actions || plan.actions.length === 0) return skip('empty_actions');
+
+      const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
+
+      if (plan.actions.length > 1) {
+        // Multi-action plan (e.g. "prende la sala y la cocina"): only supported when
+        // every action shares the same command and resolves to exactly one distinct
+        // device each. This lets the model handle compound phrasing the deterministic
+        // multi-command parser's fixed connector list (" y ", " tambien ", ...) would
+        // otherwise have to hardcode — while never auto-executing on more than one
+        // device: it reuses the exact same "guarded multi-target" return shape the
+        // single-action path already uses for category/multi-device resolutions,
+        // so the caller still requires an explicit confirmation ticket either way.
+        return this.attemptMultiActionResolution(plan.actions, allowedCommands, userId, skip);
+      }
 
       const action = plan.actions[0];
       if (action.type !== 'set_state') return skip('invalid_action_type');
 
-      const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
       if (!action.command || !allowedCommands.includes(action.command)) return skip('invalid_command');
 
       if (typeof action.confidence !== 'number' || action.confidence < 0.85) return skip('low_confidence');
@@ -412,6 +439,52 @@ export class AssistantPlannerV2ShadowService {
     }
   }
 
+  /**
+   * Resolves a multi-action plan into the same "guarded multi-target" shape
+   * `attemptHybridExecution` already returns for a single action resolving to a
+   * category/multiple devices — so the caller's existing confirmation-ticket
+   * flow handles it unchanged. Fails closed (skips the whole plan) rather than
+   * partially executing: mixed commands, non-single resolutions, pronoun/context
+   * references, or an over-long plan all abort the entire multi-action attempt.
+   */
+  private async attemptMultiActionResolution(
+    actions: PlannerAction[],
+    allowedCommands: string[],
+    userId: string,
+    skip: (reason: string, extra?: Record<string, unknown>) => null
+  ): Promise<{ command: string; confidence: number; resolvedType: string; resolvedIds: string[] } | null> {
+    if (actions.length > 8) return skip('too_many_actions');
+
+    const sharedCommand = actions[0].command;
+    for (const action of actions) {
+      if (action.type !== 'set_state') return skip('invalid_action_type');
+      if (!action.command || !allowedCommands.includes(action.command)) return skip('invalid_command');
+      if (action.command !== sharedCommand) return skip('mixed_commands_unsupported');
+      if (typeof action.confidence !== 'number' || action.confidence < 0.85) return skip('low_confidence');
+      // Pronoun/context resolution is inherently single-referent; mixing it into a
+      // multi-action plan is an ambiguous case left to the deterministic fallback.
+      if (action.target.type === 'context_reference') return skip('unsafe_context_resolution');
+    }
+
+    const deviceIds: string[] = [];
+    let minConfidence = 1;
+    for (const action of actions) {
+      const resolved = await this.resolver.resolve(action.target, userId);
+      if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
+      deviceIds.push(resolved.deviceId);
+      minConfidence = Math.min(minConfidence, action.confidence);
+    }
+
+    console.info(`[PLANNER_V2_MULTI_ACTION_RESOLVED] ${JSON.stringify({ count: deviceIds.length, command: sharedCommand })}`);
+
+    return {
+      command: sharedCommand as string,
+      confidence: minConfidence,
+      resolvedType: 'multiple',
+      resolvedIds: deviceIds
+    };
+  }
+
   public getStatus() {
     return {
       enabled: this.isShadowEnabled,
@@ -420,7 +493,8 @@ export class AssistantPlannerV2ShadowService {
       environment: process.env.NODE_ENV || 'development',
       promptMode: this.promptMode,
       timeout: this.shadowTimeoutMs,
-      model: this.resolvedModelName
+      model: this.resolvedModelName,
+      circuitBreaker: this.circuitBreaker.getState()
     };
   }
 

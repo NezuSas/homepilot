@@ -1,9 +1,13 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
+import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
 import { TargetReference, ContextHint } from './ports/AssistantPlannerV2';
 import { Device } from '../../devices/domain/types';
+import { Room } from '../../topology/domain/types';
+import { Scene } from '../../devices/domain/Scene';
+import { normalizeText } from './textMatching';
 
 export interface ResolvedTarget {
   deviceId?: string;
@@ -19,8 +23,43 @@ export class PlannerV2Resolver {
     private readonly deviceRepo: DeviceRepository,
     private readonly roomRepo: RoomRepository,
     private readonly sceneRepo: SceneRepository,
-    private readonly memoryService: AssistantMemoryPort
+    private readonly memoryService: AssistantMemoryPort,
+    private readonly homeRepo?: HomeRepository
   ) {}
+
+  /**
+   * Home-scoped device list. Falls back to the unrestricted list only when no
+   * homeRepo is configured (legacy/single-tenant test setups).
+   */
+  private async getAuthorizedDevices(userId: string): Promise<ReadonlyArray<Device>> {
+    if (!this.homeRepo) return this.deviceRepo.findAll();
+    const homes = await this.homeRepo.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.deviceRepo.findAllByHomeId(home.id)));
+    return perHome.flatMap((devices) => Array.from(devices));
+  }
+
+  /**
+   * Home-scoped room list. Same fallback rule as getAuthorizedDevices.
+   */
+  private async getAuthorizedRooms(userId: string): Promise<ReadonlyArray<Room>> {
+    if (!this.homeRepo) return this.roomRepo.findAll();
+    const homes = await this.homeRepo.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.roomRepo.findRoomsByHomeId(home.id)));
+    return perHome.flatMap((rooms) => Array.from(rooms));
+  }
+
+  /**
+   * Home-scoped scene list. Same fallback rule as getAuthorizedDevices.
+   */
+  private async getAuthorizedScenes(userId: string): Promise<Scene[]> {
+    if (!this.homeRepo) return this.sceneRepo.findAll();
+    const homes = await this.homeRepo.findHomesByUserId(userId);
+    if (homes.length === 0) return [];
+    const perHome = await Promise.all(homes.map((home) => this.sceneRepo.findScenesByHomeId(home.id)));
+    return perHome.flat();
+  }
 
   /**
    * Resolves a natural language TargetReference into internal candidates.
@@ -37,13 +76,13 @@ export class PlannerV2Resolver {
 
     switch (target.type) {
       case 'device':
-        return await this.resolveDevice(normalizedName);
+        return await this.resolveDevice(normalizedName, userId);
       case 'room':
-        return await this.resolveRoom(normalizedName);
+        return await this.resolveRoom(normalizedName, userId);
       case 'category':
-        return await this.resolveCategory(normalizedName);
+        return await this.resolveCategory(normalizedName, userId);
       case 'scene':
-        return await this.resolveScene(normalizedName);
+        return await this.resolveScene(normalizedName, userId);
       case 'alias':
         return await this.resolveAlias(target.name, userId);
       case 'zone':
@@ -56,17 +95,17 @@ export class PlannerV2Resolver {
 
   private async resolveAlias(aliasName: string, userId: string): Promise<ResolvedTarget> {
     const targetId = await this.memoryService.getAlias(userId, aliasName);
-    
+
     if (targetId) {
       return { type: 'single', deviceId: targetId };
     }
 
     // Fallback to searching by device name if no explicit alias record is found
-    return await this.resolveDevice(this.normalize(aliasName));
+    return await this.resolveDevice(this.normalize(aliasName), userId);
   }
 
-  private async resolveDevice(name: string): Promise<ResolvedTarget> {
-    const all = await this.deviceRepo.findAll();
+  private async resolveDevice(name: string, userId: string): Promise<ResolvedTarget> {
+    const all = await this.getAuthorizedDevices(userId);
     const matches = this.findBestMatches(name, all);
 
     if (matches.length === 1) {
@@ -77,25 +116,25 @@ export class PlannerV2Resolver {
     return { type: 'none' };
   }
 
-  private async resolveRoom(name: string): Promise<ResolvedTarget> {
-    const allRooms = await this.roomRepo.findAll();
+  private async resolveRoom(name: string, userId: string): Promise<ResolvedTarget> {
+    const allRooms = await this.getAuthorizedRooms(userId);
     const matches = this.findBestMatches(name, allRooms);
 
     if (matches.length > 0) {
       const room = matches[0]; // Take best match
-      const allDevices = await this.deviceRepo.findAll();
+      const allDevices = await this.getAuthorizedDevices(userId);
       const devicesInRoom = allDevices.filter(d => d.roomId === room.id);
-      return { 
-        type: 'room', 
-        roomIds: [room.id], 
-        deviceIds: devicesInRoom.map(d => d.id) 
+      return {
+        type: 'room',
+        roomIds: [room.id],
+        deviceIds: devicesInRoom.map(d => d.id)
       };
     }
     return { type: 'none' };
   }
 
-  private async resolveCategory(name: string): Promise<ResolvedTarget> {
-    const all = await this.deviceRepo.findAll();
+  private async resolveCategory(name: string, userId: string): Promise<ResolvedTarget> {
+    const all = await this.getAuthorizedDevices(userId);
     const normalizedQuery = this.normalize(name);
     
     const isLightCat = /^(luz|luces|foco|focos|lampara|lamparas|light|lights)$/.test(normalizedQuery);
@@ -127,8 +166,8 @@ export class PlannerV2Resolver {
     return { type: 'none' };
   }
 
-  private async resolveScene(name: string): Promise<ResolvedTarget> {
-    const all = await this.sceneRepo.findAll();
+  private async resolveScene(name: string, userId: string): Promise<ResolvedTarget> {
+    const all = await this.getAuthorizedScenes(userId);
     const matches = this.findBestMatches(name, all);
 
     if (matches.length === 1) {
@@ -167,10 +206,7 @@ export class PlannerV2Resolver {
   }
 
   private normalize(text: string): string {
-    return text.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9 ]/g, '')
-      .trim();
+    return normalizeText(text);
   }
 
   private tokenize(text: string): string[] {

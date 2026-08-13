@@ -1,5 +1,6 @@
 import { Device } from '../../devices/domain/types';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
+import { normalizeText as sharedNormalizeText, correctAgainstVocabulary, buildVocabulary } from './textMatching';
 
 export interface FastPathResult {
   deviceId: string;
@@ -65,15 +66,30 @@ export class AssistantFastPathResolver {
     'would',
     'you'
   ]);
-  private readonly TYPO_MAP: Record<string, string> = {
-    'luy': 'luz',
+  /**
+   * Real domain synonyms — words that mean the same *device category* in Spanish
+   * smart-home vocabulary, not misspellings. Kept intentionally tiny: spelling
+   * typos (e.g. "cosina" for "cocina") are handled generically by
+   * correctAgainstVocabulary() against the actual device names in this home,
+   * so they never need a hardcoded entry here.
+   */
+  private readonly DOMAIN_SYNONYMS: Record<string, string> = {
     'luces': 'luz',
-    'cosina': 'cocina',
-    'cosinna': 'cocina',
-    'abitacion': 'habitacion',
-    'avitecion': 'habitacion',
-    'foco': 'luz', // sometimes helpful to map common synonyms if exact match fails
+    'foco': 'luz',
     'focos': 'luz',
+  };
+
+  /**
+   * The one genuine exception to "no hardcoded typo list": words this short
+   * (3 letters) are inherently ambiguous for generic edit-distance/bigram
+   * matching — a single substituted letter already changes ~33% of the word,
+   * so "luy" and an unrelated word like "lux" score identically similar to
+   * "luz" and can't be told apart algorithmically. Any typo of four-plus
+   * letters (the vast majority of real device/room names) is handled
+   * generically by correctAgainstVocabulary() instead.
+   */
+  private readonly SHORT_WORD_TYPOS: Record<string, string> = {
+    'luy': 'luz',
   };
 
   private readonly GENERIC_TARGETS = new Set([
@@ -98,10 +114,14 @@ export class AssistantFastPathResolver {
     ...this.CLOSE_PHRASES.map(phrase => ({ command: 'close' as const, phrase })),
   ].sort((a, b) => b.phrase.split(/\s+/).length - a.phrase.split(/\s+/).length);
 
+  /**
+   * Structural/grammar fixes for the small, closed set of Spanish command
+   * verbs and prepositions \u2014 these don't grow per household (unlike device
+   * names), so a short fixed list here is proportionate. Device-name typos
+   * are handled generically by cleanTarget() instead.
+   */
   private normalizeText(text: string): string {
-    return text.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // remove diacritics
-      .replace(/[^\w\s]/gi, ' ') // remove punctuation
+    return sharedNormalizeText(text)
       .replace(/\ba\s+pagar\b/g, 'apagar')
       .replace(/\ba\s+paga\b/g, 'apaga')
       .replace(/\ba\s+pa\b/g, 'apaga')
@@ -113,8 +133,25 @@ export class AssistantFastPathResolver {
       .trim();
   }
 
-  private cleanTypos(text: string): string {
-    return text.split(/\s+/).map(token => this.TYPO_MAP[token] || token).join(' ');
+  private applySynonyms(text: string): string {
+    return text
+      .split(/\s+/)
+      .map(token => this.DOMAIN_SYNONYMS[token] || token)
+      .join(' ');
+  }
+
+  /**
+   * Applies domain synonyms and the short-word exception to the user's spoken
+   * target, then generically corrects any remaining misspelled word against
+   * `vocabulary` (the actual device names in this home) — see
+   * textMatching.correctAgainstVocabulary.
+   */
+  private cleanTarget(text: string, vocabulary: ReadonlySet<string>): string {
+    const withSynonyms = this.applySynonyms(text)
+      .split(/\s+/)
+      .map(token => this.SHORT_WORD_TYPOS[token] || token)
+      .join(' ');
+    return correctAgainstVocabulary(withSynonyms, vocabulary);
   }
 
   private containsCommandPhrase(text: string): boolean {
@@ -198,8 +235,11 @@ export class AssistantFastPathResolver {
     if (tokens.length === 0) return skip('only_stopwords_in_target');
     const concreteTokens = tokens.filter(token => !this.MEMORY_REFERENCE_TERMS.has(token));
     if (concreteTokens.length === 0) return skip('memory_reference_target');
-    
-    const cleanedTarget = this.cleanTypos(concreteTokens.join(' '));
+
+    // Vocabulary of words actually used in this home's device names — typo
+    // correction is derived from it instead of a fixed per-typo dictionary.
+    const vocabulary = buildVocabulary(devices.map(d => d.name), this.STOPWORDS);
+    const cleanedTarget = this.cleanTarget(concreteTokens.join(' '), vocabulary);
     if (this.GENERIC_TARGETS.has(cleanedTarget)) {
       const availableMatches = devices.filter(device => {
         const state = device.lastKnownState?.state;
@@ -226,7 +266,7 @@ export class AssistantFastPathResolver {
     // 3. Score devices
     const scoredDevices = devices.map(device => {
       const devName = this.normalizeText(device.name);
-      const cleanedDevName = this.cleanTypos(devName.split(/\s+/).filter(t => !this.STOPWORDS.has(t)).join(' '));
+      const cleanedDevName = this.applySynonyms(devName.split(/\s+/).filter(t => !this.STOPWORDS.has(t)).join(' '));
       
       let score = 0;
       

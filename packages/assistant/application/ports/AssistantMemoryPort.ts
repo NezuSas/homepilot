@@ -56,16 +56,6 @@ export interface AssistantMemoryState {
     createdAt: string;
   };
 
-  /** Bulk action waiting for user confirmation (multi-device) */
-  pendingBulkAction?: {
-    type: 'bulk_action';
-    deviceIds: string[];
-    command: string;
-    timestamp: string;
-    originalPrompt: string;
-    bulkType?: 'all' | 'lights';
-  };
-
   /** Alias deletion waiting for user confirmation */
   pendingAliasDelete?: {
     alias: string;

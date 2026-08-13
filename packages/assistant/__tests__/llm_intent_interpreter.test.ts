@@ -35,6 +35,18 @@ describe('LlmIntentInterpreter', () => {
     );
   });
 
+  it('interpretV2 constrains decoding with the Planner V2 JSON Schema', async () => {
+    mockContextBuilder.buildUltraLightLlmHomeMap = jest.fn().mockResolvedValue({ text: 'Devices:\n', devicesCount: 0 });
+    mockOllama.generateJson.mockResolvedValue({ type: 'small_talk', plan_confidence: 1, actions: [], user_feedback_draft: '' });
+
+    await interpreter.interpretV2('hola', 'u1', { promptMode: 'ultra_light' });
+
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ format: expect.objectContaining({ type: 'object' }) })
+    );
+  });
+
   it('should return scene intent if valid', async () => {
     const testScene = createTestScene({ id: 's1', name: 'Scene 1' });
     mockOllama.generateJson.mockResolvedValue({ type: 'scene', sceneId: 's1' });

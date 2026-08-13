@@ -95,6 +95,7 @@ export const PLANNER_V2_SCHEMA = {
     plan_confidence: { type: "number", minimum: 0, maximum: 1 },
     actions: {
       type: "array",
+      maxItems: 8,
       items: {
         type: "object",
         properties: {

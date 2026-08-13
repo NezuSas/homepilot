@@ -108,6 +108,38 @@ describe('Assistant Planner V2 Foundation', () => {
 
       expect(validator.validate(safePlan)).toBeNull();
     });
+
+    it('should reject a plan exceeding the maximum of 8 actions', () => {
+      const tooManyActions = {
+        type: 'plan',
+        plan_confidence: 0.9,
+        actions: new Array(9).fill(null).map(() => ({
+          type: 'set_state',
+          target: { type: 'device', name: 'luz' },
+          command: 'turn_on',
+          confidence: 0.9
+        })),
+        user_feedback_draft: 'test'
+      };
+
+      expect(validator.validate(tooManyActions)).toContain('maximum of 8 actions');
+    });
+
+    it('should accept a plan with exactly 8 actions', () => {
+      const eightActions = {
+        type: 'plan',
+        plan_confidence: 0.9,
+        actions: new Array(8).fill(null).map(() => ({
+          type: 'set_state',
+          target: { type: 'device', name: 'luz' },
+          command: 'turn_on',
+          confidence: 0.9
+        })),
+        user_feedback_draft: 'test'
+      };
+
+      expect(validator.validate(eightActions)).toBeNull();
+    });
   });
 
   describe('AssistantContextBuilder - Zero-ID Leakage', () => {
