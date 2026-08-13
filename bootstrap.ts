@@ -259,7 +259,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService, repos.roomRepository, repos.homeRepository);
   const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
 
-  const assistantMultiCommandParser = new AssistantMultiCommandParser(repos.deviceRepository, repos.roomRepository);
+  const assistantMultiCommandParser = new AssistantMultiCommandParser(repos.deviceRepository, repos.roomRepository, repos.homeRepository);
   const intentInterpreterService = new IntentInterpreterService(
     repos.deviceRepository,
     repos.sceneRepository,

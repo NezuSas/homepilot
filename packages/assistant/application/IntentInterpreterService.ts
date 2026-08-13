@@ -53,7 +53,7 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     const t0 = Date.now();
 
     // 0. Check Multi-Command First
-    const multiCommandResult = await this.multiCommandParser.parse(prompt);
+    const multiCommandResult = await this.multiCommandParser.parse(prompt, userId);
     if (multiCommandResult) {
       if (isDiagnosticLoggingEnabled()) {
         console.debug(`[IntentInterpreter] multi_command path: ${Date.now() - t0}ms`);

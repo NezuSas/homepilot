@@ -517,7 +517,6 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
-  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -734,12 +733,20 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     setProcessingCardId(card.id);
     try {
-      await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command }),
       });
-      await refreshSnapshot({ force: true });
+      if (response.ok) {
+        // Apply the already-updated device from the command response immediately
+        // instead of waiting on a second, heavier full-snapshot refetch — that
+        // extra round trip was what kept the spinner visible for ~2s after the
+        // device had already turned on. The WebSocket-driven background refresh
+        // (see App.tsx) still reconciles the rest of the snapshot in the background.
+        const updated = await response.json() as SnapshotDevice;
+        upsertDevice(updated);
+      }
     } catch (error) {
       console.error('[SectionWidget] Failed to execute card action:', error);
     } finally {
@@ -782,11 +789,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         body: JSON.stringify({ command: params ? { name: command, params } : command }),
       });
       if (!response.ok) throw new Error(`MEDIA_COMMAND_${response.status}`);
-      if (isVolumeChange) {
-        void refreshSnapshot({ force: true });
-      } else {
-        await refreshSnapshot({ force: true });
-      }
+      // Same fix as handleCardAction: apply the response device immediately
+      // instead of blocking the spinner on a second full-snapshot refetch.
+      const updated = await response.json() as SnapshotDevice;
+      upsertDevice(updated);
     } catch (error) {
       console.error('[SectionWidget] Failed to execute media card action:', error);
     } finally {
