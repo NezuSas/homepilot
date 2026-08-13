@@ -715,7 +715,7 @@ function App() {
           </div>
         </div>
         
-        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isSidebarContentCollapsed && "xl:px-2")}>
+        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isSidebarContentCollapsed && "xl:flex-none xl:gap-1 xl:px-2 xl:py-2")}>
 
           {/* ── PRIMARY ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-0.5">
@@ -951,7 +951,7 @@ function App() {
           )}
         </nav>
         
-        <div className={cn("p-4 border-t mt-auto flex flex-col gap-4 bg-background/40 transition-all duration-300", !isSidebarContentCollapsed && "xl:px-2 xl:py-3")}>
+        <div className={cn("p-4 border-t mt-auto flex flex-col gap-4 bg-background/40 transition-all duration-300", isSidebarContentCollapsed ? "xl:gap-2 xl:p-2" : "xl:px-2 xl:py-3")}>
           <Button
             type="button"
             variant="ghost"
@@ -960,7 +960,7 @@ function App() {
             className={cn(
               "hidden xl:flex h-auto items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 group",
               "hover:bg-primary/15 hover:border-primary/30",
-              isSidebarContentCollapsed && "xl:justify-center xl:px-2 xl:py-2.5"
+              isSidebarContentCollapsed && "xl:hidden"
             )}
             title={!isSidebarContentCollapsed ? t('demo.start_button') : undefined}
           >

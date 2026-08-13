@@ -144,3 +144,5 @@
 - [x] Simplificar la etiqueta visible del rol administrador a "Admin" en el selector de controles de seguridad, sin modificar el valor de rol ni sus permisos.
 
 - [x] Compactar la cabecera lateral: conservar marca y control de plegado, eliminar la etiqueta redundante "Control local" y liberar altura para la navegación.
+
+- [x] Refinar el rail lateral plegado: navegación con altura natural y densidad uniforme, acción demo oculta y pie compacto para evitar iconos dispersos.
