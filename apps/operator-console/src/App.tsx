@@ -733,6 +733,11 @@ function App() {
                  <Button
                     type="button"
                     onClick={() => {
+                      if (isSidebarContentCollapsed) {
+                        void refreshSidebarDashboards();
+                        navigateTo('dashboards');
+                        return;
+                      }
                       setIsDashboardsExpanded(prev => {
                         const next = !prev;
                         if (next) void refreshSidebarDashboards();
@@ -760,10 +765,10 @@ function App() {
                       : <ChevronRight className="w-4 h-4 opacity-60" />
                     )}
                  </Button>
-                 {isDashboardsExpanded && !isSidebarContentCollapsed && (
-                   <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
+                 {(isDashboardsExpanded || isSidebarContentCollapsed) && (
+                   <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-0 xl:border-l-0 xl:pl-0 xl:gap-0.5")}>
                      {sidebarDashboards.length === 0 ? (
-                       <span className="px-3 py-2 text-caption font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
+                       !isSidebarContentCollapsed && <span className="px-3 py-2 text-caption font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
                      ) : sidebarDashboards.map(dashboard => (
                        <SidebarItem
                          key={dashboard.id}
@@ -783,6 +788,7 @@ function App() {
                            setIsDashboardsExpanded(true);
                          }}
                          nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                        />
                      ))}
                    </div>
@@ -852,7 +858,13 @@ function App() {
               <div className="flex flex-col gap-0.5">
                 <Button
                     type="button"
-                    onClick={() => setIsSystemExpanded(prev => !prev)}
+                    onClick={() => {
+                      if (isSidebarContentCollapsed) {
+                        navigateTo('system-devices');
+                        return;
+                      }
+                      setIsSystemExpanded(prev => !prev);
+                    }}
                     aria-expanded={isSystemExpanded}
                     variant="ghost"
                     size="sm"
@@ -877,14 +889,15 @@ function App() {
                 </Button>
 
                 {/* System sub-items — inline collapsible */}
-                {isSystemExpanded && !isSidebarContentCollapsed && (
-                  <div className="mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1">
+                {(isSystemExpanded || isSidebarContentCollapsed) && (
+                  <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-0 xl:border-l-0 xl:pl-0 xl:gap-0.5")}>
                      <SidebarItem
                         icon={Network}
                         label={t('nav.system_devices')}
                         active={currentView === 'system-devices'}
                         onClick={() => navigateTo('system-devices')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       <SidebarItem
                         icon={Server}
@@ -892,6 +905,7 @@ function App() {
                         active={currentView === 'system-inbox'}
                         onClick={() => navigateTo('system-inbox')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       <SidebarItem
                         icon={Activity}
@@ -899,6 +913,7 @@ function App() {
                         active={currentView === 'system-diagnostics'}
                         onClick={() => navigateTo('system-diagnostics')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       <SidebarItem
                         icon={ShieldAlert}
@@ -906,6 +921,7 @@ function App() {
                         active={currentView === 'system-audit'}
                         onClick={() => navigateTo('system-audit')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       <SidebarItem
                         icon={Activity}
@@ -913,6 +929,7 @@ function App() {
                         active={currentView === 'system-executions'}
                         onClick={() => navigateTo('system-executions')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       {user?.role === 'admin' && (
                         <SidebarItem
@@ -921,6 +938,7 @@ function App() {
                           active={currentView === 'system-users'}
                           onClick={() => navigateTo('system-users')}
                           nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                         />
                       )}
                       <SidebarItem
@@ -929,6 +947,7 @@ function App() {
                         active={currentView === 'system-ha'}
                         onClick={() => navigateTo('system-ha')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       <SidebarItem
                         icon={Camera}
@@ -936,6 +955,7 @@ function App() {
                         active={currentView === 'system-cameras'}
                         onClick={() => navigateTo('system-cameras')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                       <SidebarItem
                         icon={Monitor}
@@ -943,6 +963,7 @@ function App() {
                         active={currentView === 'system-onboarding'}
                         onClick={() => navigateTo('system-onboarding')}
                         nested
+                         collapsedOnDesktop={isSidebarContentCollapsed}
                       />
                   </div>
                 )}

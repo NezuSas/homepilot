@@ -156,3 +156,5 @@
 - [x] Simplificar el estado plegado del sidebar: ocultar por completo la navegación y conservar exclusivamente el control de marca y el avatar de perfil, sin cambiar el sidebar abierto.
 
 - [x] Corregir la interpretación del modo plegado: conservar todos los iconos y estados de navegación del sidebar abierto, ocultando solo sus etiquetas y el contenido textual del perfil.
+
+- [x] Garantizar navegación completa en el sidebar plegado: renderizar y hacer seleccionables con iconos todas las opciones de Tableros y Sistema, preservando sus permisos y estados activos.
