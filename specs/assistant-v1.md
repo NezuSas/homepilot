@@ -103,6 +103,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 
 - La identidad y nombre de la sesión autenticada prevalecen sobre cualquier `userId`, nombre o `pendingAction` recibido en el cuerpo de la petición.
 - La interfaz sólo envía el identificador de opción seleccionado; no conserva ni reenvía acciones pendientes, objetivos o comandos.
+- La interfaz no envía nombre de usuario ni confirmaciones; ambos datos se determinan exclusivamente en el servidor.
 - Ningún campo enviado por el cliente puede confirmar una acción. Una confirmación sólo es válida cuando corresponde a una intención pendiente del mismo usuario y se procesa mediante una respuesta positiva (`confirm` o lenguaje natural equivalente).
 - Cada hallazgo incorpora el `homeId` que produjo su detección. Listados, resumen, resolución, descarte y acciones sólo operan sobre hogares pertenecientes al usuario autenticado. Los comandos de dispositivos y la ejecución de escenas validan el mismo hogar antes de despacharse.
 - Las acciones administrativas sobre hallazgos exigen el rol `parent` o superior; el estado y las métricas del planificador en sombra exigen `admin`.

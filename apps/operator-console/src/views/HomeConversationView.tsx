@@ -250,7 +250,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     try {
       const response = await converseWithAssistant({
         prompt: userText,
-        userName: user?.displayName || user?.username,
         interactionMode,
       }, { timeoutMs: responseTimeoutMs, signal: conversationController.signal });
       if (requestId !== conversationRequestIdRef.current) return;
@@ -507,7 +506,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     try {
       const response = await converseWithAssistant({
         prompt: `Selected: ${label}`,
-        userName: user?.displayName || user?.username,
         selectedOptionId: optionId
       }, { signal: conversationController.signal });
       if (requestId !== conversationRequestIdRef.current) return;

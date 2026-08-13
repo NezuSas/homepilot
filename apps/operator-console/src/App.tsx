@@ -633,7 +633,6 @@ function App() {
 
       void converseWithAssistant({
         prompt: text,
-        userName: user?.displayName || user?.username,
         interactionMode: 'voice',
       }, {
         timeoutMs: ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS,
