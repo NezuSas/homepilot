@@ -114,4 +114,4 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - [x] AC-07: Un hallazgo de un hogar no autorizado no se lista, resuelve, descarta ni ejecuta.
 - [x] AC-08: Un escaneo resuelve únicamente hallazgos del hogar escaneado.
 - [x] AC-09: Las rutas administrativas del planificador y las acciones de hallazgos validan el rol requerido.
-- [x] AC-10: Los eventos operativos del planificador no incluyen prompt, respuesta ni usuario en texto plano.`r`n- [x] AC-11: Un comando de dispositivo o escena fuera de un hogar autorizado no se despacha ni expone detalles internos al cliente.
+- [x] AC-10: Los eventos operativos del planificador no incluyen prompt, respuesta ni usuario en texto plano.`r`n- [x] AC-11: Un comando de dispositivo, escena o estancia de contexto fuera de un hogar autorizado no se despacha ni expone detalles internos al cliente.

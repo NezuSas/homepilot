@@ -45,7 +45,8 @@ describe('Feature: Local assistant speech transport', () => {
         authGuard: mockAuthGuard
       } as any,
       repositories: {
-        homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) }
+        homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) },
+        roomRepository: { findRoomById: jest.fn().mockResolvedValue({ id: 'r1', homeId: 'home-1' }) }
       } as any
     };
     routes = new AssistantRoutes();
@@ -117,6 +118,15 @@ describe('Feature: Local assistant speech transport', () => {
     );
   });
 
+  it('POST /api/v1/assistant/converse rejects a source room outside the authenticated home', async () => {
+    (mockContainer.repositories as any).roomRepository.findRoomById.mockResolvedValue({ id: 'external-room', homeId: 'other-home' });
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({ prompt: 'prende la luz', sourceRoomId: 'external-room' });
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/converse', 'POST', mockContainer as BootstrapContainer);
+
+    expect(mockRes.writeHead).toHaveBeenCalledWith(403, { 'Content-Type': 'application/json' });
+    expect(mockAssistantConversationService.converse).not.toHaveBeenCalled();
+  });
   it('POST /api/v1/assistant/converse logs [ASSISTANT_CONTEXT_SOURCE] when sourceRoomId is present', async () => {
     const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
     const body = { prompt: 'prende la luz', sourceRoomId: 'r1' };

@@ -153,6 +153,10 @@ export class AssistantRoutes extends ApiRoutes {
         body.confirmed = false;
         
         if (body.sourceRoomId) {
+          const sourceRoom = await container.repositories.roomRepository.findRoomById(body.sourceRoomId);
+          if (!sourceRoom || !authorizedHomeIds.includes(sourceRoom.homeId)) {
+            throw new Error('ASSISTANT_HOME_FORBIDDEN');
+          }
           console.info(`[ASSISTANT_CONTEXT_SOURCE] {"sourceRoomId":"${body.sourceRoomId}","source":"operator_console"}`);
         }
 
