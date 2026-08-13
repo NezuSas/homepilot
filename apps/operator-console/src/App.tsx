@@ -155,6 +155,7 @@ function App() {
   ));
   const [isBackendOffline, setIsBackendOffline] = useState(false);
   const [isSystemExpanded, setIsSystemExpanded] = useState(false);
+  const [isCollapsedSystemSubmenuHidden, setIsCollapsedSystemSubmenuHidden] = useState(false);
   const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
   const [sidebarDashboards, setSidebarDashboards] = useState<Array<{ id: string; ownerId: string; title: string }>>([]);
   const selectedSidebarDashboardId = urlDashboardId;
@@ -860,12 +861,12 @@ function App() {
                     type="button"
                     onClick={() => {
                       if (isSidebarContentCollapsed) {
-                        navigateTo('system-devices');
+                        setIsCollapsedSystemSubmenuHidden((hidden) => !hidden);
                         return;
                       }
                       setIsSystemExpanded(prev => !prev);
                     }}
-                    aria-expanded={isSystemExpanded}
+                    aria-expanded={isSidebarContentCollapsed ? !isCollapsedSystemSubmenuHidden : isSystemExpanded}
                     variant="ghost"
                     size="sm"
                     className={cn(
@@ -889,7 +890,7 @@ function App() {
                 </Button>
 
                 {/* System sub-items — inline collapsible */}
-                {(isSystemExpanded || isSidebarContentCollapsed) && (
+                {(isSystemExpanded || (isSidebarContentCollapsed && !isCollapsedSystemSubmenuHidden)) && (
                   <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-1 xl:border-l xl:pl-1 xl:gap-0.5")}>
                      <SidebarItem
                         icon={Network}

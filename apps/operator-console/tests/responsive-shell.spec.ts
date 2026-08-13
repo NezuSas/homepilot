@@ -475,7 +475,12 @@ test('Feature: Collapsed sidebar navigation — Scenario: Given an authenticated
   await expect(page).toHaveURL(/\/home-conversation$/);
   await expect(conversation).toHaveAttribute('aria-current', 'page');
 
+const systemGroup = page.getByRole('button', { name: /^system$/i });
   const discovery = page.getByRole('button', { name: /system inbox|discovery|descubrimiento/i });
+  await systemGroup.click();
+  await expect(discovery).toBeHidden();
+  await systemGroup.click();
+  await expect(discovery).toBeVisible();
   await expect(discovery).toBeVisible();
   await discovery.click();
   await expect(page).toHaveURL(/\/system\/inbox$/);
