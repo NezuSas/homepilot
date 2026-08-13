@@ -33,7 +33,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
             ? 'opacity-50 cursor-not-allowed pointer-events-none'
             : 'interactive-lift cursor-pointer',
           // Duration
-          collapsedOnDesktop && 'xl:h-10 xl:flex-none xl:justify-center xl:px-2 xl:py-1.5',
+          collapsedOnDesktop && 'xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2',
           className
         )}
         {...props}

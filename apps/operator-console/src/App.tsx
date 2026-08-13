@@ -747,7 +747,7 @@ function App() {
                       activeDashboardsSection
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      isSidebarContentCollapsed && "xl:h-10 xl:flex-none xl:justify-center xl:px-2 xl:py-1.5"
+                      isSidebarContentCollapsed && "xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2"
                     )}
                     title={isSidebarContentCollapsed ? t('nav.dashboards') : undefined}
                   >
@@ -861,7 +861,7 @@ function App() {
                       activeSystemSection
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      isSidebarContentCollapsed && "xl:h-10 xl:flex-none xl:justify-center xl:px-2 xl:py-1.5"
+                      isSidebarContentCollapsed && "xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2"
                     )}
                     title={isSidebarContentCollapsed ? t('nav.system') : undefined}
                   >
@@ -951,7 +951,7 @@ function App() {
           )}
         </nav>
         
-        <div className={cn("p-4 border-t mt-auto flex flex-col gap-4 bg-background/40 transition-all duration-300", isSidebarContentCollapsed ? "xl:gap-2 xl:p-2" : "xl:px-2 xl:py-3")}>
+        <div className={cn("p-4 border-t mt-auto flex flex-col gap-4 bg-background/40 transition-all duration-300", isSidebarContentCollapsed ? "xl:gap-0 xl:border-t-0 xl:bg-transparent xl:p-3" : "xl:px-2 xl:py-3")}>
           <Button
             type="button"
             variant="ghost"
