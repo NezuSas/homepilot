@@ -460,3 +460,25 @@ test('Feature: User dashboard navigation — Scenario: Given an authenticated us
   await expect(dashboardGroup).toHaveAttribute('aria-expanded', 'false');
   await expect(dashboardChild).toBeHidden();
 });
+test('Feature: Collapsed sidebar navigation — Scenario: Given an authenticated desktop user When each icon-only item is selected Then its exact route and active state are applied', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+
+  await page.goto('/');
+  const sidebar = page.locator('aside').first();
+  await page.getByRole('button', { name: /show or hide menu|mostrar u ocultar menú/i }).click();
+  await expect.poll(() => sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThan(100);
+
+  const conversation = page.getByTitle(/talk to.*home|conversar con mi casa/i);
+  await expect(conversation).toBeVisible();
+  await conversation.click();
+  await expect(page).toHaveURL(/\/home-conversation$/);
+  await expect(conversation).toHaveAttribute('aria-current', 'page');
+
+  const discovery = page.getByRole('button', { name: /system inbox|discovery|descubrimiento/i });
+  await expect(discovery).toBeVisible();
+  await discovery.click();
+  await expect(page).toHaveURL(/\/system\/inbox$/);
+  await expect(discovery).toHaveAttribute('aria-current', 'page');
+  await expect(conversation).not.toHaveAttribute('aria-current', 'page');
+});

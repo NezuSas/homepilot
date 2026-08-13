@@ -160,3 +160,5 @@
 - [x] Garantizar navegación completa en el sidebar plegado: renderizar y hacer seleccionables con iconos todas las opciones de Tableros y Sistema, preservando sus permisos y estados activos.
 
 - [x] Preservar la jerarquía visual en el rail plegado: subopciones con sangría y separador; únicamente la vista concreta activa se resalta para evitar ambigüedad entre iconos similares.
+
+- [x] Evitar solapamiento de clics en el rail plegado: las etiquetas se retiran del flujo visual y una prueba Playwright confirma rutas y estado activo correctos para iconos consecutivos.

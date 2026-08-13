@@ -61,7 +61,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
               // Navigation hierarchy is communicated by indentation and icon size,
               // never by a different text scale.
               active ? 'font-semibold text-primary' : 'font-medium',
-              collapsedOnDesktop && 'xl:w-0 xl:flex-none xl:opacity-0 xl:ml-0 xl:overflow-hidden'
+              collapsedOnDesktop && 'xl:hidden'
             )}
           >
             {label}
