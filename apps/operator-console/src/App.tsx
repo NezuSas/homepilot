@@ -749,24 +749,24 @@ function App() {
                     size="sm"
                     className={cn(
                       "group relative h-auto w-full justify-start gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact",
-                      activeDashboardsSection
+                      activeDashboardsSection && !isSidebarContentCollapsed
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                       isSidebarContentCollapsed && "xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2"
                     )}
                     title={isSidebarContentCollapsed ? t('nav.dashboards') : undefined}
                   >
-                    <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeDashboardsSection ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
+                    <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeDashboardsSection && !isSidebarContentCollapsed ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
                         <BarChart2 className="h-4 w-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 min-w-0 overflow-hidden text-left text-caption font-medium leading-tight tracking-tight transition-[opacity,width] duration-200", activeDashboardsSection && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.dashboards')}</span>
+                    <span className={cn("flex-1 min-w-0 overflow-hidden text-left text-caption font-medium leading-tight tracking-tight transition-[opacity,width] duration-200", activeDashboardsSection && !isSidebarContentCollapsed && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.dashboards')}</span>
                     {!isSidebarContentCollapsed && (isDashboardsExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
                     )}
                  </Button>
                  {(isDashboardsExpanded || isSidebarContentCollapsed) && (
-                   <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-0 xl:border-l-0 xl:pl-0 xl:gap-0.5")}>
+                   <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-1 xl:border-l xl:pl-1 xl:gap-0.5")}>
                      {sidebarDashboards.length === 0 ? (
                        !isSidebarContentCollapsed && <span className="px-3 py-2 text-caption font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
                      ) : sidebarDashboards.map(dashboard => (
@@ -870,17 +870,17 @@ function App() {
                     size="sm"
                     className={cn(
                       "group relative h-auto w-full justify-start gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact",
-                      activeSystemSection
+                      activeSystemSection && !isSidebarContentCollapsed
                         ? 'sidebar-item-active text-primary'
                         : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                       isSidebarContentCollapsed && "xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2"
                     )}
                     title={isSidebarContentCollapsed ? t('nav.system') : undefined}
                   >
-                    <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeSystemSection ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
+                    <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeSystemSection && !isSidebarContentCollapsed ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
                         <Settings className="h-4 w-4 shrink-0" />
                     </div>
-                    <span className={cn("flex-1 min-w-0 overflow-hidden text-left text-caption font-medium leading-tight tracking-tight transition-[opacity,width] duration-200", activeSystemSection && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.system')}</span>
+                    <span className={cn("flex-1 min-w-0 overflow-hidden text-left text-caption font-medium leading-tight tracking-tight transition-[opacity,width] duration-200", activeSystemSection && !isSidebarContentCollapsed && "font-semibold text-primary", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>{t('nav.system')}</span>
                     {!isSidebarContentCollapsed && (isSystemExpanded
                       ? <ChevronDown className="w-4 h-4 opacity-60" />
                       : <ChevronRight className="w-4 h-4 opacity-60" />
@@ -890,7 +890,7 @@ function App() {
 
                 {/* System sub-items — inline collapsible */}
                 {(isSystemExpanded || isSidebarContentCollapsed) && (
-                  <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-0 xl:border-l-0 xl:pl-0 xl:gap-0.5")}>
+                  <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-1 xl:border-l xl:pl-1 xl:gap-0.5")}>
                      <SidebarItem
                         icon={Network}
                         label={t('nav.system_devices')}
