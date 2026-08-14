@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Camera, Plus, Edit2, Trash2, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { PageFrame } from '../components/ui/PageFrame';
@@ -59,7 +59,8 @@ const sourceTypeDefaults: Record<NativeCameraSourceType, { rtspPort: number; onv
 
 export const NativeCamerasView: React.FC = () => {
   const { t } = useTranslation();
-  const { homes } = useDeviceSnapshotStore();
+  const homes = useDeviceSnapshotStore((state) => state.homes);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   
   const [cameras, setCameras] = useState<NativeCamera[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,17 +99,14 @@ export const NativeCamerasView: React.FC = () => {
     }
   }, [homes, formData.homeId]);
 
-  const loadCameras = async (showSpinner = true) => {
-    if (!homes.length) {
-      setIsLoading(false);
-      return;
-    }
-    
+  const activeHomeId = homes[0]?.id ?? null;
+
+  const loadCameras = useCallback(async (showSpinner = true) => {
+    if (!activeHomeId) return;
+
     if (showSpinner) setIsLoading(true);
     try {
-      // For now, load for the first home
-      const homeId = homes[0].id;
-      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras?homeId=${homeId}`);
+      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras?homeId=${encodeURIComponent(activeHomeId)}`);
       if (res.ok) {
         const data = await res.json();
         setCameras(data.cameras || []);
@@ -118,12 +116,16 @@ export const NativeCamerasView: React.FC = () => {
     } finally {
       if (showSpinner) setIsLoading(false);
     }
-  };
+  }, [activeHomeId]);
 
   useEffect(() => {
-    loadCameras(cameras.length === 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [homes[0]?.id]);
+    void refreshSnapshot();
+  }, [refreshSnapshot]);
+
+  useEffect(() => {
+    if (!activeHomeId) return;
+    void loadCameras();
+  }, [activeHomeId, loadCameras]);
 
   const handleOpenDiscoveryModal = async () => {
     setIsDiscoveryModalOpen(true);
