@@ -70,3 +70,4 @@ No se permite registrar dos cámaras nativas con el mismo `home_id`, `host`, `rt
 10. En el alta de cámaras, el usuario debe poder seleccionar ONVIF/PTZ, RTSP/DVR o Sonoff/RTSP antes del formulario de conexión. Los resultados descubiertos por ONVIF pueden mostrarse también en RTSP/DVR y Sonoff/RTSP solo como ayuda para prellenar datos.
 11. Para `rtsp-dvr` y `sonoff-rtsp`, el formulario y el backend deben exigir una ruta RTSP explícita; para `onvif-ptz`, el formulario debe priorizar el puerto ONVIF y ocultar la ruta RTSP manual.
 12. Al abrir la sección de cámaras nativas, la consola debe refrescar el snapshot de topología y solicitar `GET /api/v1/native-cameras` solo después de resolver el `homeId` activo, incluso si el usuario entra directamente a la sección.
+13. Una sesión de cámara nativa debe incluir siempre una ruta HLS firmada y reproducir video continuo; no debe degradarse silenciosamente a una imagen estática o a un stream MJPEG cuando HLS está disponible.

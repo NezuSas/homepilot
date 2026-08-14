@@ -4,6 +4,9 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { CameraRoutes } from '../routes/CameraRoutes';
+import type { NativeCameraSource, NativeCameraSourceRepository } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
+import { NativeCameraStreamingService } from '../../../packages/integrations/native-camera/application/NativeCameraStreamingService';
+import type { MediaTranscoderPort } from '../../../packages/integrations/native-camera/application/ports/MediaTranscoderPort';
 
 const cameraDevice: Device = {
   id: 'camera-1',
@@ -114,6 +117,67 @@ describe('CameraRoutes', () => {
     expect(container.adapters.homeAssistantClient.getCameraHlsStreamPath).not.toHaveBeenCalled();
   });
 
+  it('creates an HLS session by default for a native camera', async () => {
+    const response = new MockResponse();
+    const nativeCamera: Device = {
+      ...cameraDevice,
+      externalId: 'native:camera-1',
+      integrationSource: 'native-camera',
+      vendor: 'native-camera',
+    };
+    const nativeSource: NativeCameraSource = {
+      deviceId: nativeCamera.id,
+      homeId: nativeCamera.homeId,
+      sourceType: 'onvif-ptz',
+      name: nativeCamera.name,
+      host: '192.168.1.56',
+      onvifPort: 8000,
+      rtspPort: 554,
+      username: 'admin',
+      password: 'secret',
+      rtspPath: '/stream',
+      enabled: true,
+      createdAt: '2026-06-26T00:00:00.000Z',
+      updatedAt: '2026-06-26T00:00:00.000Z',
+      profileToken: null,
+      ptzConfigurationToken: null,
+      ptzSupported: false,
+    };
+    const nativeCameraSourceRepository: NativeCameraSourceRepository = {
+      findByDeviceId: jest.fn().mockReturnValue(nativeSource),
+      findByHomeId: jest.fn().mockReturnValue([nativeSource]),
+      findDuplicate: jest.fn().mockReturnValue(null),
+      save: jest.fn(),
+    };
+    const mediaTranscoder: MediaTranscoderPort = {
+      ensureHlsRuntime: jest.fn().mockResolvedValue({ directory: '/tmp/homepilot-native-cameras/camera-1' }),
+      stopHlsRuntime: jest.fn(),
+      streamSnapshot: jest.fn(),
+      streamMjpeg: jest.fn(),
+    };
+    const nativeCameraStreamingService = new NativeCameraStreamingService(mediaTranscoder);
+    const container = createContainer();
+    (container.repositories.deviceRepository.findDeviceById as jest.Mock).mockResolvedValue(nativeCamera);
+    const routes = new CameraRoutes(nativeCameraSourceRepository, nativeCameraStreamingService);
+
+    await routes.handle(
+      createRequest('/api/v1/devices/camera-1/camera/session'),
+      response as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/session',
+      'GET',
+      container,
+    );
+
+    const payload = JSON.parse(response.end.mock.calls[0][0] as string) as Record<string, string>;
+    expect(payload.hlsPath).toContain('/camera/hls/master.m3u8?token=');
+    expect(mediaTranscoder.ensureHlsRuntime).toHaveBeenCalledWith('camera-1', {
+      host: nativeSource.host,
+      rtspPort: nativeSource.rtspPort,
+      rtspPath: nativeSource.rtspPath,
+      username: nativeSource.username,
+      password: nativeSource.password,
+    });
+  });
   it('includes proxied HLS only when the viewer explicitly requests it', async () => {
     const response = new MockResponse();
     const container = createContainer();

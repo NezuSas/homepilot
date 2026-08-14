@@ -98,12 +98,12 @@ export class CameraRoutes extends ApiRoutes {
         const encodedDeviceId = encodeURIComponent(device.id);
         const cameraProxyToken = this.createCameraProxyToken(device.id);
         const encodedToken = encodeURIComponent(cameraProxyToken);
-        let hlsPath: string | undefined;
-        if (includeHls) {
-          const runtime = await this.nativeCameraStreamingService!.ensureHlsRuntime(device.id, nativeSource);
-          this.registerHlsSession(cameraProxyToken, device.id, path.join(runtime.directory, 'index.m3u8'), 'native', runtime.directory);
-          hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
-        }
+        // Native RTSP feeds are browser-incompatible by themselves. Always
+        // establish their HLS session so every consumer receives a continuous
+        // stream instead of falling back to a one-shot snapshot or MJPEG.
+        const runtime = await this.nativeCameraStreamingService!.ensureHlsRuntime(device.id, nativeSource);
+        this.registerHlsSession(cameraProxyToken, device.id, path.join(runtime.directory, 'index.m3u8'), 'native', runtime.directory);
+        const hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
         this.sendJson(res, {
           snapshotPath: `/api/v1/devices/${encodedDeviceId}/camera/snapshot?token=${encodedToken}`,
           streamPath: `/api/v1/devices/${encodedDeviceId}/camera/stream?token=${encodedToken}`,
