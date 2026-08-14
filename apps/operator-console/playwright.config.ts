@@ -2,7 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  // The responsive shell shares one Vite development server and route mocks;
+  // serial execution within the spec keeps first-load assertions deterministic.
+  fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? 'github' : 'list',
   use: {

@@ -5,7 +5,9 @@ import { generateId } from '../../utils/generateId';
 const DASHBOARD_TABLET_CANVAS_MIN_WIDTH = 640;
 const DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH = 1024;
 const DASHBOARD_MAX_SECTION_SPAN = 3;
-
+const PORTRAIT_KIOSK_MIN_VIEWPORT_WIDTH = 1080;
+const PORTRAIT_KIOSK_MIN_VIEWPORT_HEIGHT = 1280;
+const PORTRAIT_KIOSK_MIN_ASPECT_RATIO = 1.3;
 /**
  * Resolves the display name from the explicit authenticated user context.
  * Dashboard widgets must never inspect arbitrary browser storage because it
@@ -32,6 +34,32 @@ export function getDashboardSectionColumns(width: number): 1 | 2 | 3 {
   if (width > 0 && width < DASHBOARD_TABLET_CANVAS_MIN_WIDTH) return 1;
   if (width > 0 && width < DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH) return 2;
   return 3;
+}
+
+/**
+ * Identifies high-resolution portrait kiosks without treating conventional
+ * phones or tablets as kiosks. Their available canvas can be wide enough for
+ * three columns, but that makes controls too small at arm's length.
+ */
+export function isPortraitKioskViewport(viewportWidth: number, viewportHeight: number): boolean {
+  if (viewportWidth < PORTRAIT_KIOSK_MIN_VIEWPORT_WIDTH || viewportHeight < PORTRAIT_KIOSK_MIN_VIEWPORT_HEIGHT) {
+    return false;
+  }
+
+  return viewportHeight / viewportWidth >= PORTRAIT_KIOSK_MIN_ASPECT_RATIO;
+}
+
+/**
+ * Preserves the normal canvas breakpoints while keeping each control legible
+ * on a high-resolution portrait kiosk.
+ */
+export function getDashboardSectionColumnsForViewport(
+  canvasWidth: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): 1 | 2 | 3 {
+  const columns = getDashboardSectionColumns(canvasWidth);
+  return isPortraitKioskViewport(viewportWidth, viewportHeight) && columns === 3 ? 2 : columns;
 }
 
 /**

@@ -19,8 +19,9 @@ import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
 import {
   clampSectionSpan,
-  getDashboardSectionColumns,
+  getDashboardSectionColumnsForViewport,
   getSectionSpan,
+  isPortraitKioskViewport,
   sanitizeWidget,
 } from './dashboardUtils';
 
@@ -166,7 +167,15 @@ export function DashboardCanvas({
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const columns = useMemo(() => getDashboardSectionColumns(containerWidth), [containerWidth]);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
+  const columns = useMemo(
+    () => getDashboardSectionColumnsForViewport(containerWidth, viewportSize.width, viewportSize.height),
+    [containerWidth, viewportSize.height, viewportSize.width],
+  );
+  const isPortraitKiosk = isPortraitKioskViewport(viewportSize.width, viewportSize.height);
   const gap = getCanvasGap(columns);
   // Editing (reorder + span) is available at every breakpoint: the flow model
   // no longer needs a desktop-only coordinate system to stay coherent.
@@ -182,6 +191,15 @@ export function DashboardCanvas({
     observer.observe(el);
     setContainerWidth(el.getBoundingClientRect().width);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const updateViewportSize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    window.addEventListener('resize', updateViewportSize);
+    return () => window.removeEventListener('resize', updateViewportSize);
   }, []);
 
   const sanitizedWidgets = useMemo(() => {
@@ -268,6 +286,7 @@ export function DashboardCanvas({
         ref={containerRef}
         className={cn(
           "relative w-full grid transition-all duration-500",
+          isPortraitKiosk && "homepilot-portrait-kiosk-canvas",
           isEditing
             ? "min-h-[calc(100dvh-8rem)] border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
             : "border-transparent bg-transparent p-0"

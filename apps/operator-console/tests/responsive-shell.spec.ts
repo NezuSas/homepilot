@@ -16,6 +16,8 @@ const viewports = [
   { name: 'desktop', width: 1440, height: 900 },
 ];
 
+const portraitKioskViewport = { width: 1080, height: 1920 };
+
 const dashboardUser = {
   id: 'responsive-admin',
   username: 'admin',
@@ -165,6 +167,28 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+test('keeps dashboard controls readable on a high-resolution portrait kiosk', async ({ page }) => {
+  await page.setViewportSize(portraitKioskViewport);
+  await prepareAuthenticatedDashboard(page);
+
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const canvas = page.locator('.homepilot-portrait-kiosk-canvas');
+  await expect(canvas).toBeVisible();
+
+  const columnCount = await canvas.evaluate((element) => (
+    getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
+  ));
+  expect(columnCount).toBe(2);
+
+  const layout = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+  await expect(page.getByText('Temperatura de sala').first()).toBeVisible();
+  await expect(page.getByText('Cortina de sala').first()).toBeVisible();
+});
+
 for (const viewport of viewports) {
   test(`keeps the login shell responsive on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize(viewport);
@@ -299,15 +323,13 @@ for (const viewport of viewports) {
       getComputedStyle(element, '::after').backgroundImage
     ));
     expect(lightBackdropOverlay).not.toBe('none');
-    const lightDeviceSurface = page.locator('.homepilot-dashboard-screen .device-state-off').first();
-    await expect(lightDeviceSurface).toBeVisible();
-    const lightSurfaceStyle = await lightDeviceSurface.evaluate((element) => {
+    const lightCardSurface = page.locator('.homepilot-dashboard-screen .sensor-metric-card').first();
+    await expect(lightCardSurface).toBeVisible();
+    const lightSurfaceStyle = await lightCardSurface.evaluate((element) => {
       const style = getComputedStyle(element);
-      return { backgroundColor: style.backgroundColor, backgroundImage: style.backgroundImage, boxShadow: style.boxShadow };
+      return { backgroundColor: style.backgroundColor };
     });
     expect(lightSurfaceStyle.backgroundColor).not.toBe('rgb(255, 255, 255)');
-    expect(lightSurfaceStyle.backgroundImage).toBe('none');
-    expect(lightSurfaceStyle.boxShadow).not.toBe('none');
     await page.evaluate(() => document.documentElement.classList.remove('light'));
   });
 

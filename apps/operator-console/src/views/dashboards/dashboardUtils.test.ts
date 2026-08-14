@@ -4,7 +4,9 @@ import {
   clampSectionSpan,
   getAssignableDevicesForSectionCard,
   getDashboardSectionColumns,
+  getDashboardSectionColumnsForViewport,
   getDashboardUserDisplayName,
+  isPortraitKioskViewport,
   getSectionSpan,
   sanitizeWidgetConfig,
 } from './dashboardUtils';
@@ -59,6 +61,15 @@ describe('dashboard canvas columns', () => {
     expect(getDashboardSectionColumns(1023)).toBe(2);
     expect(getDashboardSectionColumns(1024)).toBe(3);
     expect(getDashboardSectionColumns(1440)).toBe(3);
+  });
+
+  it('uses two readable columns only on high-resolution portrait kiosks', () => {
+    expect(isPortraitKioskViewport(1080, 1920)).toBe(true);
+    expect(getDashboardSectionColumnsForViewport(1080, 1080, 1920)).toBe(2);
+    expect(getDashboardSectionColumnsForViewport(1440, 1440, 900)).toBe(3);
+    expect(getDashboardSectionColumnsForViewport(1024, 1024, 1366)).toBe(3);
+    expect(getDashboardSectionColumnsForViewport(768, 768, 1024)).toBe(2);
+    expect(isPortraitKioskViewport(768, 1024)).toBe(false);
   });
 });
 

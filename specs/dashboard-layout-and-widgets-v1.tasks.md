@@ -14,6 +14,8 @@
 - [x] AC17: `DashboardsView` gatea el montaje del canvas con `LoadingState` hasta la primera carga del
       snapshot de dispositivos, eliminando el parpadeo de widgets "no configurados" antes de que
       llegue el estado real.
+- [x] AC18: El canvas limita la distribución a dos columnas en kioscos verticales de alta resolución;
+      prueba unitaria y prueba responsive cubren el caso 1080×1920 sin cambiar móvil, tablet ni escritorio.
 
 ## Verificación obligatoria ante cambios
 

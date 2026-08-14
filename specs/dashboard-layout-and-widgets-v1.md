@@ -48,6 +48,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-10:** Las tarjetas multimedia deben adaptarse a la celda que ocupan: en celdas compactas conservan sus comandos soportados en una composición envolvente, sin recortar controles, títulos o progreso. El visor ampliado de cámara prioriza la proporción del medio y aprovecha el viewport sin crear una columna vertical vacía.
 - **NFR-11:** En edición, el lienzo ocupa como mínimo el área visible restante del viewport, incluso cuando una pestaña todavía no contiene widgets.
 - **NFR-12:** El reordenamiento de zonas funciona mediante puntero y teclado desde el control de arrastre. Si una interacción se cancela, el estado visual transitorio se limpia sin alterar el orden persistido.
+- **NFR-13:** Los kioscos verticales de alta resolución usan como máximo dos columnas en el canvas para conservar controles legibles a distancia, sin modificar los breakpoints de móvil, tablet o escritorio.
 
 ## 6. Criterios de Aceptación
 
@@ -68,6 +69,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC15: Una zona puede reordenarse desde su control de arrastre mediante teclado y una cancelación no deja overlay ni opacidad residual.
 - [x] AC16: Las tarjetas de sensor, clima y cortina mantienen jerarquía visual, controles táctiles y ausencia de overflow horizontal a 320px, 768px y 1440px. Las lecturas y porcentajes siguen siendo legibles sin alterar sus contratos de datos ni comandos.
 - [x] AC17: `DashboardsView` no monta el lienzo de widgets hasta que el snapshot de dispositivos (`useDeviceSnapshotStore`) tuvo su primera carga — evita que `DeviceWidget`/`RoomWidget`/`SectionWidget` muestren brevemente su estado "no configurado" antes de recibir datos reales, mostrando en su lugar el mismo `LoadingState` ya usado para la carga del propio tablero.
+- [x] AC18: Un kiosco vertical de 1080×1920 distribuye el canvas en dos columnas y mantiene controles legibles, mientras móvil, tablet y escritorio conservan sus breakpoints existentes.
 
 ## 7. Notas Técnicas y Arquitectura
 
