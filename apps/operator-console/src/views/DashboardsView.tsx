@@ -13,6 +13,7 @@ import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardCanvas } from './dashboards/DashboardCanvas';
 import { generateId } from '../utils/generateId';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import ConfirmModal from '../components/ConfirmModal';
 import { Button } from '../components/ui/Button';
@@ -53,6 +54,13 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [active, setActive]             = useState<Dashboard | null>(null);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [loading, setLoading]           = useState(true);
+  // Widgets read device state straight from this store (DeviceWidget/RoomWidget/
+  // SectionWidget all do `devices.find(...)`), so the canvas must not mount until
+  // the first snapshot lands — otherwise every widget briefly renders its "not
+  // configured"/placeholder look, then pops into the real (possibly different) state.
+  const snapshotDevices = useDeviceSnapshotStore((state) => state.devices);
+  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const [creating, setCreating]         = useState(false);
   const [newTitle, setNewTitle]         = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -136,8 +144,9 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     finally { setLoading(false); }
   }, [active?.id, initialDashboardId, initialTabId, onDashboardCatalogChange, t]);
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchDashboards(true);
+    void refreshSnapshot();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Run only once on mount.
 
   useEffect(() => {
@@ -500,7 +509,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
     }
   };
 
-  if (loading) {
+  if (loading || (snapshotLoading && snapshotDevices.length === 0)) {
     return <LoadingState label={t('dashboards.loading')} className="min-h-empty-sm" size="md" />;
   }
 

@@ -67,12 +67,17 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC14: Una pestaña nueva en edición conserva el fondo cuadriculado y los placeholders hasta el borde inferior del viewport visible.
 - [x] AC15: Una zona puede reordenarse desde su control de arrastre mediante teclado y una cancelación no deja overlay ni opacidad residual.
 - [x] AC16: Las tarjetas de sensor, clima y cortina mantienen jerarquía visual, controles táctiles y ausencia de overflow horizontal a 320px, 768px y 1440px. Las lecturas y porcentajes siguen siendo legibles sin alterar sus contratos de datos ni comandos.
+- [x] AC17: `DashboardsView` no monta el lienzo de widgets hasta que el snapshot de dispositivos (`useDeviceSnapshotStore`) tuvo su primera carga — evita que `DeviceWidget`/`RoomWidget`/`SectionWidget` muestren brevemente su estado "no configurado" antes de recibir datos reales, mostrando en su lugar el mismo `LoadingState` ya usado para la carga del propio tablero.
 
 ## 7. Notas Técnicas y Arquitectura
 
 - API: `/api/v1/dashboards/*` mediante `DashboardRoutes`.
 - Las estructuras de dashboard pertenecen al contexto de topología; los widgets no contienen reglas de negocio de dispositivos.
 - `DashboardCanvas` y el catálogo de widgets son el único punto de montaje visual de tarjetas.
+- `DashboardsView` sigue el mismo idioma ya usado en `DashboardView.tsx`/`InboxView.tsx`:
+  `snapshotLoading && snapshotDevices.length === 0` gatea el render con `LoadingState`, y la vista
+  llama `refreshSnapshot()` en su efecto de montaje (deduplicado por el propio store) en vez de
+  depender solo de la carga inicial de `App.tsx`.
 
 ## 8. Preguntas Abiertas y TODOs
 
