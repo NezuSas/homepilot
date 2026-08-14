@@ -48,7 +48,10 @@ function firstText(values: unknown[]): string | null {
 }
 
 function normalizedState(value: string | null): string {
-  return value?.trim().toLocaleLowerCase() || 'idle';`r`n}`r`n`r`nfunction numericVolume(value: unknown): number | null {
+  return value?.trim().toLocaleLowerCase() || 'idle';
+}
+
+function numericVolume(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return Math.min(100, Math.max(0, Math.round(value * 100)));
 }
