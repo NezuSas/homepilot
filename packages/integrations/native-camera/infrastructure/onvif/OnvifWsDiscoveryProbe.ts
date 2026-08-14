@@ -1,13 +1,16 @@
 import * as dgram from 'dgram';
+import * as os from 'os';
 import * as crypto from 'crypto';
+import type { DiscoveredNativeCamera } from '../../application/ports/NativeCameraDriver';
 
-export interface DiscoveredDevice {
-  urn: string;
-  name: string;
-  host: string;
-  onvifPort: number;
-}
-
+/**
+ * WS-Discovery (UDP multicast) probe for ONVIF devices on the LAN.
+ *
+ * Moved verbatim from the former `apps/api/OnvifDiscovery.ts` as part of the
+ * Phase 1 package extraction (no behaviour change). The XML/SOAP parsing here
+ * is still regex-based — Phase 2 replaces it with a real XML parser and a
+ * stricter ONVIF-scope check; see `specs/native-camera-onvif-profile-negotiation-v1.md`.
+ */
 const WS_DISCOVERY_MULTICAST = '239.255.255.250';
 const WS_DISCOVERY_PORT = 3702;
 const DISCOVERY_TIMEOUT_MS = 4000;
@@ -34,7 +37,6 @@ function buildProbeMessage(): Buffer {
 }
 
 function extractText(xml: string, tag: string): string | null {
-  // Try namespace-qualified and unqualified
   const patterns = [
     new RegExp(`<[^>]*:${tag}[^>]*>([\\s\\S]*?)<\/[^>]*:${tag}>`, 'i'),
     new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\/${tag}>`, 'i'),
@@ -46,7 +48,7 @@ function extractText(xml: string, tag: string): string | null {
   return null;
 }
 
-function parseProbeMatch(xml: string, remoteAddress: string): DiscoveredDevice | null {
+export function parseProbeMatch(xml: string, remoteAddress: string): DiscoveredNativeCamera | null {
   if (!xml.includes('ProbeMatch') && !xml.includes('Hello')) return null;
 
   // Since we send a generic probe, we must filter out non-ONVIF devices (like Smart TVs)
@@ -57,7 +59,6 @@ function parseProbeMatch(xml: string, remoteAddress: string): DiscoveredDevice |
   const xaddrs = extractText(xml, 'XAddrs') ?? '';
   const scope = extractText(xml, 'Scopes') ?? '';
 
-  // Try to get friendly name from scopes
   let name = '';
   const nameMatch = scope.match(/onvif:\/\/www\.onvif\.org\/name\/([^\s]+)/i);
   if (nameMatch) name = decodeURIComponent(nameMatch[1]);
@@ -83,7 +84,6 @@ function parseProbeMatch(xml: string, remoteAddress: string): DiscoveredDevice |
 }
 
 function getLocalInterfaces(): string[] {
-  const os = require('os');
   const nets = os.networkInterfaces() as Record<string, Array<{ family: string; internal: boolean; address: string }> | undefined>;
   const addresses: string[] = [];
   for (const list of Object.values(nets)) {
@@ -93,14 +93,13 @@ function getLocalInterfaces(): string[] {
       }
     }
   }
-  // Always include 0.0.0.0 as fallback
   if (addresses.length === 0) addresses.push('0.0.0.0');
   return addresses;
 }
 
-export class OnvifDiscovery {
-  public static async discover(): Promise<DiscoveredDevice[]> {
-    const deviceMap = new Map<string, DiscoveredDevice>();
+export class OnvifWsDiscoveryProbe {
+  public async probe(): Promise<ReadonlyArray<DiscoveredNativeCamera>> {
+    const deviceMap = new Map<string, DiscoveredNativeCamera>();
     const message = buildProbeMessage();
     const localAddresses = getLocalInterfaces();
 
@@ -129,7 +128,6 @@ export class OnvifDiscovery {
           try {
             socket.setBroadcast(true);
             socket.setMulticastTTL(128);
-            // Send probe twice for reliability
             socket.send(message, 0, message.length, WS_DISCOVERY_PORT, WS_DISCOVERY_MULTICAST);
             setTimeout(() => {
               try {

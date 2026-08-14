@@ -1,13 +1,12 @@
 import * as http from 'http';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-import type { NativeCameraSourceRepository, NativeCameraSource } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
+import type { NativeCameraSourceRepository } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
+import type { NativeCameraStreamingService } from '../../../packages/integrations/native-camera/application/NativeCameraStreamingService';
 import { ApiRoutes } from './ApiRoutes';
 
 type CameraMediaKind = 'snapshot' | 'stream';
@@ -34,19 +33,14 @@ interface CameraHlsProxySession {
 }
 
 const CAMERA_PROXY_TOKEN_TTL_MS = 30 * 60 * 1000;
-const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
-
-interface NativeHlsRuntime {
-  readonly process: ChildProcessWithoutNullStreams;
-  readonly directory: string;
-  readonly startedAt: number;
-}
 
 export class CameraRoutes extends ApiRoutes {
   private readonly hlsSessions = new Map<string, CameraHlsProxySession>();
-  private readonly nativeHlsRuntimes = new Map<string, NativeHlsRuntime>();
 
-  constructor(private readonly nativeCameraSourceRepository?: NativeCameraSourceRepository) {
+  constructor(
+    private readonly nativeCameraSourceRepository?: NativeCameraSourceRepository,
+    private readonly nativeCameraStreamingService?: NativeCameraStreamingService,
+  ) {
     super();
   }
 
@@ -106,8 +100,8 @@ export class CameraRoutes extends ApiRoutes {
         const encodedToken = encodeURIComponent(cameraProxyToken);
         let hlsPath: string | undefined;
         if (includeHls) {
-          const nativeDirectory = await this.ensureNativeHlsRuntime(device, nativeSource);
-          this.registerHlsSession(cameraProxyToken, device.id, path.join(nativeDirectory, 'index.m3u8'), 'native', nativeDirectory);
+          const runtime = await this.nativeCameraStreamingService!.ensureHlsRuntime(device.id, nativeSource);
+          this.registerHlsSession(cameraProxyToken, device.id, path.join(runtime.directory, 'index.m3u8'), 'native', runtime.directory);
           hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
         }
         this.sendJson(res, {
@@ -286,11 +280,11 @@ export class CameraRoutes extends ApiRoutes {
         return;
       }
       if (kind === 'snapshot') {
-        this.serveNativeCameraSnapshot(res, nativeSource);
+        this.nativeCameraStreamingService!.streamSnapshot(nativeSource, res);
         return;
       }
       if (kind === 'stream') {
-        this.serveNativeCameraStream(res, nativeSource);
+        this.nativeCameraStreamingService!.streamMjpeg(nativeSource, res);
         return;
       }
       this.sendError(res, 400, 'INVALID_MEDIA_KIND', `Unsupported media kind: ${kind}`);
@@ -384,191 +378,8 @@ export class CameraRoutes extends ApiRoutes {
     });
   }
 
-  private getNativeCameraSource(deviceId: string): NativeCameraSource | null {
+  private getNativeCameraSource(deviceId: string) {
     return this.nativeCameraSourceRepository?.findByDeviceId(deviceId) ?? null;
-  }
-
-  private async ensureNativeHlsRuntime(device: Device, source: NativeCameraSource): Promise<string> {
-    const existing = this.nativeHlsRuntimes.get(device.id);
-    const indexPath = existing ? path.join(existing.directory, 'index.m3u8') : '';
-    if (existing && !existing.process.killed && fs.existsSync(indexPath)) return existing.directory;
-
-    if (existing) this.stopNativeHlsRuntime(device.id);
-
-    const directory = path.join(NATIVE_CAMERA_HLS_ROOT, device.id);
-    fs.mkdirSync(directory, { recursive: true });
-    for (const file of fs.readdirSync(directory)) {
-      fs.unlinkSync(path.join(directory, file));
-    }
-
-    const process = spawn('ffmpeg', [
-      '-hide_banner',
-      '-loglevel',
-      'warning',
-      '-rtsp_transport',
-      'tcp',
-      '-probesize',
-      '32768',
-      '-analyzeduration',
-      '100000',
-      '-i',
-      this.buildNativeRtspUrl(source),
-      '-an',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'veryfast',
-      '-tune',
-      'zerolatency',
-      '-profile:v',
-      'baseline',
-      '-level',
-      '3.1',
-      '-pix_fmt',
-      'yuv420p',
-      '-r',
-      '15',
-      '-g',
-      '30',
-      '-keyint_min',
-      '30',
-      '-sc_threshold',
-      '0',
-      '-f',
-      'hls',
-      '-hls_time',
-      '2',
-      '-hls_list_size',
-      '6',
-      '-hls_flags',
-      'delete_segments+independent_segments+program_date_time',
-      '-hls_segment_filename',
-      path.join(directory, 'segment-%05d.ts'),
-      path.join(directory, 'index.m3u8'),
-    ]);
-
-    let ffmpegStderr = '';
-    process.stderr.on('data', (chunk: Buffer) => {
-      ffmpegStderr += chunk.toString();
-    });
-
-    process.on('exit', (code, signal) => {
-      console.log(`[CameraRoutes] ffmpeg process for device ${device.id} exited with code ${code} and signal ${signal}`);
-      if (code !== 0 && code !== null) {
-        console.error(`[CameraRoutes] ffmpeg stderr: ${ffmpegStderr.slice(-500)}`);
-      }
-      const current = this.nativeHlsRuntimes.get(device.id);
-      if (current?.process === process) this.nativeHlsRuntimes.delete(device.id);
-    });
-
-    this.nativeHlsRuntimes.set(device.id, { process, directory, startedAt: Date.now() });
-    try {
-      await this.waitForFile(path.join(directory, 'index.m3u8'), 8000);
-    } catch (err) {
-      this.stopNativeHlsRuntime(device.id);
-      if (ffmpegStderr.includes('401') || ffmpegStderr.toLowerCase().includes('unauthorized') || ffmpegStderr.toLowerCase().includes('authorization failed')) {
-        console.error(`[CameraRoutes] ffmpeg 401 Unauthorized for device ${device.id}. Check camera credentials.`);
-        throw new Error('NATIVE_CAMERA_AUTH_FAILED');
-      }
-      console.error(`[CameraRoutes] ffmpeg failed for device ${device.id}: ${ffmpegStderr.slice(-300)}`);
-      throw err;
-    }
-    return directory;
-  }
-
-  private stopNativeHlsRuntime(deviceId: string): void {
-    const runtime = this.nativeHlsRuntimes.get(deviceId);
-    if (!runtime) return;
-    runtime.process.kill('SIGTERM');
-    this.nativeHlsRuntimes.delete(deviceId);
-  }
-
-  private buildNativeRtspUrl(source: NativeCameraSource): string {
-    const rtspPath = source.rtspPath.startsWith('/') ? source.rtspPath : `/${source.rtspPath}`;
-    const hasEmbeddedCreds = rtspPath.toLowerCase().includes('username=') || 
-                             rtspPath.toLowerCase().includes('password=') || 
-                             rtspPath.toLowerCase().includes('user=') || 
-                             rtspPath.toLowerCase().includes('pwd=');
-    if (hasEmbeddedCreds) {
-      return `rtsp://${source.host}:${source.rtspPort}${rtspPath}`;
-    }
-    const username = encodeURIComponent(source.username);
-    const password = encodeURIComponent(source.password);
-    return `rtsp://${username}:${password}@${source.host}:${source.rtspPort}${rtspPath}`;
-  }
-
-  private serveNativeCameraSnapshot(res: http.ServerResponse, source: NativeCameraSource): void {
-    const rtspUrl = this.buildNativeRtspUrl(source);
-    const process = spawn('ffmpeg', [
-      '-hide_banner',
-      '-loglevel',
-      'warning',
-      '-rtsp_transport',
-      'tcp',
-      '-i',
-      rtspUrl,
-      '-vframes',
-      '1',
-      '-f',
-      'image2',
-      '-',
-    ]);
-
-    res.writeHead(200, {
-      'Content-Type': 'image/jpeg',
-      'Cache-Control': 'no-store, max-age=0',
-    });
-
-    process.stdout.pipe(res);
-    process.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`[CameraRoutes] ffmpeg snapshot exit code ${code}`);
-      }
-    });
-  }
-
-  private serveNativeCameraStream(res: http.ServerResponse, source: NativeCameraSource): void {
-    const rtspUrl = this.buildNativeRtspUrl(source);
-    const process = spawn('ffmpeg', [
-      '-hide_banner',
-      '-loglevel',
-      'warning',
-      '-rtsp_transport',
-      'tcp',
-      '-i',
-      rtspUrl,
-      '-c:v',
-      'mjpeg',
-      '-f',
-      'mpjpeg',
-      '-',
-    ]);
-
-    res.writeHead(200, {
-      'Content-Type': 'multipart/x-mixed-replace; boundary=--ffmpeg',
-      'Cache-Control': 'no-store, max-age=0',
-    });
-
-    process.stdout.pipe(res);
-    res.on('close', () => {
-      process.kill('SIGTERM');
-    });
-  }
-
-  private async waitForFile(filePath: string, timeoutMs: number): Promise<void> {
-    const startedAt = Date.now();
-    while (Date.now() - startedAt < timeoutMs) {
-      if (fs.existsSync(filePath)) {
-        try {
-          const content = fs.readFileSync(filePath, 'utf8');
-          if (content.includes('.ts')) return;
-        } catch {
-          // Ignore read errors during concurrent write
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-    throw new Error('NATIVE_CAMERA_STREAM_TIMEOUT');
   }
 
   private async serveNativeHlsResource(

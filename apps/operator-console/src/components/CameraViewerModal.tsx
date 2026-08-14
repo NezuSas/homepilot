@@ -3,6 +3,7 @@ import { Maximize2, VideoOff, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
+import { CameraPtzControl } from './CameraPtzControl';
 import { IconButton } from './ui/IconButton';
 import { Modal } from './ui/Modal';
 
@@ -15,6 +16,8 @@ interface CameraViewerModalProps {
   snapshotUrl: string;
   preferredMode: CameraFeedMode;
   onClose: () => void;
+  deviceId?: string;
+  ptzSupported?: boolean;
 }
 
 export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
@@ -26,6 +29,8 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   snapshotUrl,
   preferredMode,
   onClose,
+  deviceId,
+  ptzSupported,
 }) => {
   const { t } = useTranslation();
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -96,6 +101,11 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
               }}
               onFailure={() => setHasError(true)}
             />
+          )}
+          {ptzSupported && deviceId && !hasError && (
+            <div className="absolute bottom-4 right-4 rounded-modal border border-border/60 bg-background/80 p-2 backdrop-blur">
+              <CameraPtzControl deviceId={deviceId} />
+            </div>
           )}
         </div>
 

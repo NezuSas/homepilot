@@ -44,6 +44,17 @@ export class HomeAssistantImportService {
     const deviceType = profile.type === 'unknown' ? 'sensor' : profile.type;
     const semanticType = profile.semanticType === 'unknown' ? undefined : profile.semanticType;
 
+    // Best-effort: identifies the underlying integration platform (e.g. "matter")
+    // so it can be recognized in the UI. A lookup failure must never block the
+    // import — it just falls back to the generic "Home Assistant" vendor label.
+    let platform: string | null = null;
+    try {
+      const registryEntry = await client.getEntityRegistryEntry?.(entityId);
+      platform = registryEntry?.platform ?? null;
+    } catch {
+      platform = null;
+    }
+
     const device: Device & { lastKnownState: Record<string, unknown> } = {
       id: deviceId,
       homeId: homeId,
@@ -52,14 +63,15 @@ export class HomeAssistantImportService {
       name: name || (haState.attributes.friendly_name as string) || entityId,
       type: deviceType,
       semanticType,
-      vendor: 'Home Assistant',
+      vendor: platform || 'Home Assistant',
       status: 'PENDING' as const,
       integrationSource: 'ha',
       invertState: false,
-      lastKnownState: { 
+      lastKnownState: {
         on: haState.state === 'on' || haState.state === 'open',
         state: haState.state,
-        current_position: haState.attributes.current_position
+        current_position: haState.attributes.current_position,
+        ...(platform ? { haPlatform: platform } : {})
       },
       entityVersion: 1,
       createdAt: now,

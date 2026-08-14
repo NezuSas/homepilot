@@ -15,7 +15,9 @@ export type DeviceCommandV1 =
   | 'media_pause'
   | 'media_previous_track'
   | 'media_next_track'
-  | 'volume_set';
+  | 'volume_set'
+  | 'ptz_move'
+  | 'ptz_stop';
 
 /**
  * DeviceCommandRequest
@@ -51,6 +53,8 @@ export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
     'media_previous_track',
     'media_next_track',
     'volume_set',
+    'ptz_move',
+    'ptz_stop',
   ];
   return validCommands.includes(cmd as DeviceCommandV1);
 }

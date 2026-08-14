@@ -11,6 +11,7 @@ import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
 import { CameraViewerModal } from './CameraViewerModal';
 import { Button } from './ui/Button';
 import { DeviceTileShell } from './ui/DeviceTileShell';
+import { StatusPill } from './ui/StatusPill';
 
 interface CameraDeviceTileProps {
   device: SnapshotDevice;
@@ -200,7 +201,10 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
         <div className="flex items-center justify-between gap-3 p-3 sm:p-4">
           <div className="min-w-0">
-            <span className="block truncate text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
+              {device.vendor === 'matter' && <StatusPill variant="primary">{t('camera.matter_badge')}</StatusPill>}
+            </div>
             <span className="mt-1 block truncate text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
           </div>
           {(hasFeedError || unavailable) && (
@@ -221,6 +225,8 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           snapshotUrl={absoluteApiUrl(viewerMedia.snapshotPath)}
           preferredMode="stream"
           onClose={closeViewer}
+          deviceId={device.id}
+          ptzSupported={device.capabilities?.some((capability) => capability.type === 'camera_ptz') ?? false}
         />
       )}
     </>

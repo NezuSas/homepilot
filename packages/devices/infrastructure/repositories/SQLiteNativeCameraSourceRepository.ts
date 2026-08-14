@@ -15,6 +15,9 @@ interface NativeCameraSourceRow {
   readonly enabled: number;
   readonly created_at: string;
   readonly updated_at: string;
+  readonly profile_token: string | null;
+  readonly ptz_configuration_token: string | null;
+  readonly ptz_supported: number;
 }
 
 /**
@@ -49,10 +52,10 @@ export class SQLiteNativeCameraSourceRepository implements NativeCameraSourceRep
 
   save(source: NativeCameraSource): void {
     const db = SqliteDatabaseManager.getInstance(this.dbPath);
-    db.prepare(`INSERT INTO native_camera_sources (device_id, home_id, source_type, name, host, onvif_port, rtsp_port, username, password, rtsp_path, enabled, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(device_id) DO UPDATE SET source_type = excluded.source_type, name = excluded.name, host = excluded.host, onvif_port = excluded.onvif_port, rtsp_port = excluded.rtsp_port, username = excluded.username, password = excluded.password, rtsp_path = excluded.rtsp_path, enabled = excluded.enabled, updated_at = excluded.updated_at`)
-      .run(source.deviceId, source.homeId, source.sourceType, source.name, source.host, source.onvifPort, source.rtspPort, source.username, source.password, source.rtspPath, source.enabled ? 1 : 0, source.createdAt, source.updatedAt);
+    db.prepare(`INSERT INTO native_camera_sources (device_id, home_id, source_type, name, host, onvif_port, rtsp_port, username, password, rtsp_path, enabled, created_at, updated_at, profile_token, ptz_configuration_token, ptz_supported)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(device_id) DO UPDATE SET source_type = excluded.source_type, name = excluded.name, host = excluded.host, onvif_port = excluded.onvif_port, rtsp_port = excluded.rtsp_port, username = excluded.username, password = excluded.password, rtsp_path = excluded.rtsp_path, enabled = excluded.enabled, updated_at = excluded.updated_at, profile_token = excluded.profile_token, ptz_configuration_token = excluded.ptz_configuration_token, ptz_supported = excluded.ptz_supported`)
+      .run(source.deviceId, source.homeId, source.sourceType, source.name, source.host, source.onvifPort, source.rtspPort, source.username, source.password, source.rtspPath, source.enabled ? 1 : 0, source.createdAt, source.updatedAt, source.profileToken, source.ptzConfigurationToken, source.ptzSupported ? 1 : 0);
   }
 
   private toSource(row: NativeCameraSourceRow): NativeCameraSource {
@@ -70,6 +73,9 @@ export class SQLiteNativeCameraSourceRepository implements NativeCameraSourceRep
       enabled: row.enabled === 1,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      profileToken: row.profile_token ?? null,
+      ptzConfigurationToken: row.ptz_configuration_token ?? null,
+      ptzSupported: row.ptz_supported === 1,
     };
   }
 }

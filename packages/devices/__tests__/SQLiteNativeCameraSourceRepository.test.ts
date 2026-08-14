@@ -16,7 +16,8 @@ describe('SQLiteNativeCameraSourceRepository', () => {
         device_id TEXT PRIMARY KEY, home_id TEXT NOT NULL, source_type TEXT NOT NULL,
         name TEXT NOT NULL, host TEXT NOT NULL, onvif_port INTEGER NOT NULL,
         rtsp_port INTEGER NOT NULL, username TEXT NOT NULL, password TEXT NOT NULL,
-        rtsp_path TEXT NOT NULL, enabled INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        rtsp_path TEXT NOT NULL, enabled INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+        profile_token TEXT, ptz_configuration_token TEXT, ptz_supported INTEGER NOT NULL DEFAULT 0
       );
     `);
   });
@@ -31,6 +32,7 @@ describe('SQLiteNativeCameraSourceRepository', () => {
     name: 'DVR', host: '192.168.1.20', onvifPort: 80, rtspPort: 554,
     username: 'admin', password: 'secret', rtspPath: '/stream', enabled: true,
     createdAt: '2026-08-11T00:00:00.000Z', updatedAt: '2026-08-11T00:00:00.000Z',
+    profileToken: null, ptzConfigurationToken: null, ptzSupported: false,
     ...overrides,
   });
 

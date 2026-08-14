@@ -14,8 +14,10 @@ import { SonoffLanDiscoveryService } from '../../packages/integrations/sonoff/ap
 import { SQLiteTopologyReferenceAdapter } from '../../packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { AssistantActionService } from '../../packages/assistant/application/AssistantActionService';
 import { DashboardService } from '../../packages/topology/application/DashboardService';
+import { NativeCameraDeviceDriver } from '../../packages/integrations/native-camera/infrastructure/NativeCameraDeviceDriver';
 
 import type { SQLiteDeviceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
+import type { SQLiteNativeCameraSourceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import type { EventBusDeviceEventPublisher } from '../../packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
 import type { HomeAssistantConnectionProvider } from '../../packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
@@ -26,6 +28,7 @@ import type { SQLiteAssistantFindingRepository } from '../../packages/assistant/
 import type { SQLiteAssistantFeedbackRepository } from '../../packages/assistant/infrastructure/repositories/SQLiteAssistantFeedbackRepository';
 import type { AssistantDraftService } from '../../packages/assistant/application/AssistantDraftService';
 import type { SQLiteDashboardRepository } from '../../packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
+import type { NativeCameraDriverRegistry } from '../../packages/integrations/native-camera/application/ports/NativeCameraDriverRegistry';
 
 export interface CommandRouterAssembly {
   commandDispatcher: DeviceCommandService;
@@ -46,6 +49,8 @@ export interface CommandRouterDeps {
   assistantFindingRepository: SQLiteAssistantFindingRepository;
   assistantFeedbackRepository: SQLiteAssistantFeedbackRepository;
   dashboardRepository: SQLiteDashboardRepository;
+  nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
+  nativeCameraDriverRegistry: NativeCameraDriverRegistry;
 }
 
 export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssembly {
@@ -61,6 +66,8 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
     assistantFindingRepository,
     assistantFeedbackRepository,
     dashboardRepository,
+    nativeCameraSourceRepository,
+    nativeCameraDriverRegistry,
   } = deps;
 
   const sharedSyncDeps = {
@@ -112,6 +119,7 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
   driverRegistry.register('home_assistant', new HomeAssistantDeviceDriver(connectionProvider));
   driverRegistry.register('sonoff', new SonoffDeviceDriver());
   driverRegistry.register('local', new LocalDeviceDriver());
+  driverRegistry.register('native-camera', new NativeCameraDeviceDriver(nativeCameraSourceRepository, nativeCameraDriverRegistry));
 
   const deviceCommandService = new DeviceCommandService(
     deviceRepository,

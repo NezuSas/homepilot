@@ -16,6 +16,13 @@ export interface HomeAssistantClientPort extends HomeAssistantStateReader {
   getMediaArtwork(artworkPath: string, signal?: AbortSignal): Promise<Response>;
   getCameraHlsStreamPath(entityId: string): Promise<string | null>;
   getCameraHlsMedia(path: string, signal?: AbortSignal): Promise<Response>;
+  /**
+   * Best-effort lookup of the entity registry entry for `entityId` (integration
+   * platform such as `onvif`, `matter`, `esphome`, etc.). Optional so existing
+   * fakes/mocks of this port are unaffected; callers must treat its absence the
+   * same as a lookup failure (fall back to a legacy default, never block).
+   */
+  getEntityRegistryEntry?(entityId: string): Promise<{ platform: string } | null>;
 }
 
 /** Fábrica de infraestructura para crear clientes con credenciales vigentes. */

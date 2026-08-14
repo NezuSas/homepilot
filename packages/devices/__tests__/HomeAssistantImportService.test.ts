@@ -155,4 +155,39 @@ describe('Feature: Home Assistant device import', () => {
     expect(device.externalId).toBe('ha:cover.tuya_curtain');
     expect(device.semanticType).toBe('cover');
   });
+
+  it('HA entity camera.matter_cam imports with vendor=platform when the entity registry reports Matter', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'camera.matter_cam',
+      state: 'idle',
+      attributes: { friendly_name: 'Camara Matter' },
+      last_changed: '2026-01-01T00:00:00Z',
+      last_updated: '2026-01-01T00:00:00Z'
+    });
+    const clientWithRegistry = mockHAClient as unknown as MockHAClient & { getEntityRegistryEntry: jest.Mock };
+    clientWithRegistry.getEntityRegistryEntry = jest.fn().mockResolvedValue({ platform: 'matter' });
+
+    const device = await service.importDevice('camera.matter_cam', 'user-1');
+
+    expect(device.vendor).toBe('matter');
+    expect(device.lastKnownState.haPlatform).toBe('matter');
+    expect(clientWithRegistry.getEntityRegistryEntry).toHaveBeenCalledWith('camera.matter_cam');
+  });
+
+  it('import still succeeds with the legacy vendor when the entity registry lookup fails', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'camera.ingreso',
+      state: 'idle',
+      attributes: { friendly_name: 'Camara de ingreso' },
+      last_changed: '2026-01-01T00:00:00Z',
+      last_updated: '2026-01-01T00:00:00Z'
+    });
+    const clientWithRegistry = mockHAClient as unknown as MockHAClient & { getEntityRegistryEntry: jest.Mock };
+    clientWithRegistry.getEntityRegistryEntry = jest.fn().mockRejectedValue(new Error('registry unavailable'));
+
+    const device = await service.importDevice('camera.ingreso', 'user-1');
+
+    expect(device.vendor).toBe('Home Assistant');
+    expect(device.lastKnownState.haPlatform).toBeUndefined();
+  });
 });

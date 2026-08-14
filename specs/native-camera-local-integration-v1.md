@@ -15,10 +15,24 @@ RTSP puro no define un mecanismo universal de descubrimiento. Si el DVR o cámar
 Para `onvif-ptz`, la ruta RTSP no se solicita como dato principal porque HomePilot negocia el perfil de video por ONVIF. Para `rtsp-dvr` y `sonoff-rtsp`, la ruta RTSP es obligatoria porque cada fabricante/modelo puede exponer canales con rutas distintas.
 
 ## Arquitectura
-- **Backend (Storage):** Las credenciales y parámetros de conexión (tipo de fuente, host, puerto RTSP, puerto ONVIF, credenciales) se guardan en una nueva tabla `native_camera_sources`.
-- **Backend (API):** Nuevas rutas CRUD en `NativeCameraRoutes.ts` permiten gestionar estas fuentes.
-- **Backend (Streaming):** `CameraRoutes.ts` detecta si la cámara es de tipo `native-camera` (vía `integration_source`). Si es así, spawnea un proceso `ffmpeg` para capturar RTSP y generar segmentos HLS en un directorio temporal.
-- **Frontend (UI):** Una nueva vista `NativeCamerasView` en el panel de Sistema permite a los administradores agregar, editar y eliminar cámaras nativas.
+- **Backend (Storage):** Las credenciales y parámetros de conexión (tipo de fuente, host, puerto RTSP, puerto ONVIF, credenciales) se guardan en la tabla `native_camera_sources` (puerto
+  `NativeCameraSourceRepository`, `packages/devices/domain/repositories/`; implementación
+  `SQLiteNativeCameraSourceRepository`, sin cambios respecto al modelo de datos original).
+- **Backend (lógica de protocolo):** desde la refactorización de
+  [[native-camera-integration-hexagonal-refactor-v1]], toda la lógica específica de protocolo vive en
+  `packages/integrations/native-camera/` siguiendo el mismo patrón hexagonal que
+  `packages/integrations/sonoff` y `packages/integrations/home-assistant`: un driver por protocolo
+  (`OnvifPtzCameraDriver`, `RtspDvrCameraDriver`, `SonoffRtspCameraDriver`) tras el puerto
+  `NativeCameraDriver`, orquestados por `NativeCameraService` (CRUD + descubrimiento) y
+  `NativeCameraStreamingService` (sesión de streaming).
+- **Backend (API):** `NativeCameraRoutes.ts` y `CameraRoutes.ts` son adaptadores HTTP delgados —
+  matching de URL, guard de autenticación, parsing de body, mapeo de errores a status HTTP — que
+  delegan toda la lógica de negocio a los servicios anteriores.
+- **Backend (Streaming):** `FfmpegMediaTranscoder` (infraestructura del paquete) spawnea `ffmpeg`
+  para capturar RTSP y generar segmentos HLS/snapshot/MJPEG en un directorio temporal, detrás del
+  puerto `MediaTranscoderPort`.
+- **Frontend (UI):** Una vista `NativeCamerasView` en el panel de Sistema permite a los
+  administradores agregar, editar y eliminar cámaras nativas (sin cambios en esta iteración).
 
 ## Modelo de Datos
 

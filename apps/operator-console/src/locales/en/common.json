@@ -991,7 +991,16 @@
     "close_viewer": "Close camera",
     "viewer_label": "Camera view of {{name}}",
     "feed_alt": "Image from {{name}}",
-    "fullscreen_hint": "Expanded camera view · Press Escape to close"
+    "fullscreen_hint": "Expanded camera view · Press Escape to close",
+    "ptz": {
+      "pan_up": "Move up",
+      "pan_down": "Move down",
+      "pan_left": "Move left",
+      "pan_right": "Move right",
+      "zoom_in": "Zoom in",
+      "zoom_out": "Zoom out"
+    },
+    "matter_badge": "Matter"
   },
   "native_cameras": {
     "title": "Local IP Cameras",

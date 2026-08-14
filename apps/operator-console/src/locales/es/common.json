@@ -991,7 +991,16 @@
     "close_viewer": "Cerrar cámara",
     "viewer_label": "Vista de cámara de {{name}}",
     "feed_alt": "Imagen de {{name}}",
-    "fullscreen_hint": "Vista ampliada de la cámara · Presiona Escape para cerrar"
+    "fullscreen_hint": "Vista ampliada de la cámara · Presiona Escape para cerrar",
+    "ptz": {
+      "pan_up": "Mover arriba",
+      "pan_down": "Mover abajo",
+      "pan_left": "Mover a la izquierda",
+      "pan_right": "Mover a la derecha",
+      "zoom_in": "Acercar zoom",
+      "zoom_out": "Alejar zoom"
+    },
+    "matter_badge": "Matter"
   },
   "native_cameras": {
     "title": "Cámaras IP Locales",

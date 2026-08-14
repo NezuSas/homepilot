@@ -5,10 +5,43 @@ import { SqliteDatabaseManager } from '../../../packages/shared/infrastructure/d
 import { SQLiteNativeCameraSourceRepository } from '../../../packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { NativeCameraRoutes } from '../routes/NativeCameraRoutes';
+import { NativeCameraService } from '../../../packages/integrations/native-camera/application/NativeCameraService';
+import { DefaultNativeCameraDriverRegistry } from '../../../packages/integrations/native-camera/infrastructure/drivers/DefaultNativeCameraDriverRegistry';
+import { OnvifPtzCameraDriver } from '../../../packages/integrations/native-camera/infrastructure/drivers/OnvifPtzCameraDriver';
+import { RtspDvrCameraDriver } from '../../../packages/integrations/native-camera/infrastructure/drivers/RtspDvrCameraDriver';
+import { SonoffRtspCameraDriver } from '../../../packages/integrations/native-camera/infrastructure/drivers/SonoffRtspCameraDriver';
+import { OnvifWsDiscoveryProbe } from '../../../packages/integrations/native-camera/infrastructure/onvif/OnvifWsDiscoveryProbe';
+import type { NetworkProbePort } from '../../../packages/integrations/native-camera/application/ports/NetworkProbePort';
 
 describe('Feature: Native camera configuration', () => {
   const dbPath = 'native-camera-routes-test.db';
-  const routes = new NativeCameraRoutes(new SQLiteNativeCameraSourceRepository(dbPath));
+
+  // A stubbed network probe replaces real TCP connect attempts — the former test
+  // achieved this by monkey-patching the route's private `checkTcpReachable`;
+  // now that reachability lives behind a port, this is the natural DI seam.
+  const networkProbe: jest.Mocked<NetworkProbePort> = { isReachable: jest.fn().mockResolvedValue(true) };
+  const driverRegistry = new DefaultNativeCameraDriverRegistry([
+    new OnvifPtzCameraDriver(new OnvifWsDiscoveryProbe(), networkProbe),
+    new RtspDvrCameraDriver(networkProbe),
+    new SonoffRtspCameraDriver(networkProbe),
+  ]);
+
+  const homeRepository = { findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }) };
+  const deviceRepository = {
+    saveDevice: jest.fn().mockImplementation(async (device: { id: string }) => {
+      SqliteDatabaseManager.getInstance(dbPath).prepare('INSERT INTO devices VALUES (?)').run(device.id);
+    }),
+    findDeviceById: jest.fn(),
+  };
+
+  const nativeCameraSourceRepository = new SQLiteNativeCameraSourceRepository(dbPath);
+  const nativeCameraService = new NativeCameraService(
+    nativeCameraSourceRepository,
+    deviceRepository as any,
+    homeRepository as any,
+    driverRegistry
+  );
+  const routes = new NativeCameraRoutes(nativeCameraService);
 
   const response = () => ({
     writeHead: jest.fn().mockReturnThis(),
@@ -17,17 +50,13 @@ describe('Feature: Native camera configuration', () => {
 
   const container = (allowed = true) => ({
     guards: { authGuard: { protect: jest.fn().mockResolvedValue(allowed) } },
-    repositories: {
-      homeRepository: { findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }) },
-      deviceRepository: {
-        saveDevice: jest.fn().mockImplementation(async (device: { id: string }) => {
-          SqliteDatabaseManager.getInstance(dbPath).prepare('INSERT INTO devices VALUES (?)').run(device.id);
-        }),
-      },
-    },
+    repositories: { homeRepository, deviceRepository },
   }) as unknown as BootstrapContainer;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    homeRepository.findHomeById.mockResolvedValue({ id: 'home-1' });
+    networkProbe.isReachable.mockResolvedValue(true);
     SqliteDatabaseManager.closeAll();
     const db = SqliteDatabaseManager.getInstance(dbPath);
     db.exec(`
@@ -37,7 +66,8 @@ describe('Feature: Native camera configuration', () => {
         device_id TEXT PRIMARY KEY, home_id TEXT NOT NULL, source_type TEXT NOT NULL DEFAULT 'onvif-ptz',
         name TEXT NOT NULL, host TEXT NOT NULL, onvif_port INTEGER NOT NULL DEFAULT 8000, rtsp_port INTEGER NOT NULL DEFAULT 554,
         username TEXT NOT NULL, password TEXT NOT NULL, rtsp_path TEXT NOT NULL DEFAULT '', enabled INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+        profile_token TEXT, ptz_configuration_token TEXT, ptz_supported INTEGER NOT NULL DEFAULT 0
       );
     `);
   });
@@ -88,8 +118,6 @@ describe('Feature: Native camera configuration', () => {
     const db = SqliteDatabaseManager.getInstance(dbPath);
     db.prepare("INSERT INTO homes VALUES ('home-1')").run();
     const res = response();
-    const target = routes as unknown as { checkTcpReachable: jest.Mock };
-    target.checkTcpReachable = jest.fn().mockResolvedValue(true);
     const dependencies = container();
     const request = {
       url: '/api/v1/native-cameras',
@@ -100,7 +128,7 @@ describe('Feature: Native camera configuration', () => {
     await routes.handle(request, res, '/api/v1/native-cameras', 'POST', dependencies);
 
     expect(res.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
-    expect(dependencies.repositories.deviceRepository.saveDevice).toHaveBeenCalledWith(expect.objectContaining({ type: 'camera', status: 'PENDING', integrationSource: 'native-camera', vendor: 'rtsp-dvr' }));
+    expect(deviceRepository.saveDevice).toHaveBeenCalledWith(expect.objectContaining({ type: 'camera', status: 'PENDING', integrationSource: 'native-camera', vendor: 'rtsp-dvr' }));
     const payload = JSON.parse((res.end as jest.Mock).mock.calls[0][0]) as { camera: Record<string, unknown> };
     expect(payload.camera).toEqual(expect.objectContaining({ sourceType: 'rtsp-dvr', maskedPassword: '••••••••' }));
     expect(payload.camera).not.toHaveProperty('password');

@@ -18,6 +18,7 @@ interface HomeAssistantWebSocketMessage {
   readonly success?: boolean;
   readonly result?: {
     readonly url?: string;
+    readonly platform?: string;
   };
   readonly error?: {
     readonly code?: string;
@@ -225,6 +226,79 @@ export class HomeAssistantClient {
       socket.once('close', () => {
         if (!settled) finish(new Error('HA_CAMERA_STREAM_SOCKET_CLOSED'));
       });
+    });
+  }
+
+  /**
+   * Consulta el registro de entidades de Home Assistant para conocer la plataforma
+   * de integración (`onvif`, `matter`, `esphome`, etc.) que sirve una entidad.
+   * Usado para reconocer cámaras Matter importadas vía HA sin construir un puente
+   * Matter propio (ver specs/matter-camera-bridged-recognition-v1.md). Es una
+   * consulta best-effort: nunca lanza, cualquier fallo resuelve a `null`.
+   */
+  public async getEntityRegistryEntry(entityId: string): Promise<{ platform: string } | null> {
+    const timeout = parseInt(process.env.HA_ENTITY_REGISTRY_TIMEOUT_MS || '8000', 10);
+    const websocketUrl = new URL(this.baseUrl);
+    websocketUrl.protocol = websocketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    websocketUrl.pathname = `${websocketUrl.pathname.replace(/\/$/, '')}/api/websocket`;
+    websocketUrl.search = '';
+    websocketUrl.hash = '';
+
+    return new Promise<{ platform: string } | null>((resolve) => {
+      const socket = new WebSocket(websocketUrl);
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout>;
+
+      const finish = (platform: string | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        socket.close();
+        resolve(platform ? { platform } : null);
+      };
+
+      timer = setTimeout(() => finish(null), timeout);
+
+      socket.on('message', (raw: RawData) => {
+        let message: HomeAssistantWebSocketMessage;
+        try {
+          message = JSON.parse(raw.toString()) as HomeAssistantWebSocketMessage;
+        } catch {
+          finish(null);
+          return;
+        }
+
+        if (message.type === 'auth_required') {
+          socket.send(JSON.stringify({ type: 'auth', access_token: this.token }));
+          return;
+        }
+
+        if (message.type === 'auth_invalid') {
+          finish(null);
+          return;
+        }
+
+        if (message.type === 'auth_ok') {
+          socket.send(JSON.stringify({
+            id: 1,
+            type: 'config/entity_registry/get',
+            entity_id: entityId,
+          }));
+          return;
+        }
+
+        if (message.id !== 1) return;
+        if (!message.success) {
+          finish(null);
+          return;
+        }
+
+        const platform = message.result?.platform;
+        finish(typeof platform === 'string' && platform ? platform : null);
+      });
+
+      socket.once('error', () => finish(null));
+      socket.once('close', () => finish(null));
     });
   }
 

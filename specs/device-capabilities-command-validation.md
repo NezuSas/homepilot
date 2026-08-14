@@ -116,3 +116,11 @@ Centralizar la adaptación de dispositivos importados desde integraciones extern
 - [x] **AC7:** La lista de dominios soportados por descubrimiento se deriva del catálogo de perfiles, no de arrays locales duplicados.
 - [x] **AC8:** La UI puede mostrar el perfil y configuración aplicable usando metadata opcional sin depender de `if` por marca.
 
+### 10.4 Extensión: Capacidad `camera_ptz` (ver [[native-camera-ptz-control-v1]])
+
+Un dispositivo `integrationSource: 'native-camera'` resuelve la capacidad adicional `camera_ptz`
+(comandos `ptz_move` con parámetros `pan`/`tilt`/`zoom` en `[-1, 1]`, y `ptz_stop`) cuando
+`device.lastKnownState.ptz === true` — bandera escrita por `NativeCameraService` según lo que la
+negociación ONVIF de la cámara confirmó. Es el primer caso de una capacidad condicionada a un valor
+de `lastKnownState` en vez de derivarse puramente del `type`/dominio del dispositivo.
+

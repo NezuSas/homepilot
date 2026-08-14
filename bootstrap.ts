@@ -7,6 +7,7 @@ import { buildAutomationModule } from './infrastructure/assemblers/buildAutomati
 import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
+import { buildNativeCameraModule } from './infrastructure/assemblers/buildNativeCameraModule';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
@@ -69,6 +70,8 @@ import type { EventBusTopologyEventPublisher } from './packages/topology/infrast
 import type { EventBus } from './packages/shared/domain/events/EventBus';
 import type { AutomationEngine } from './packages/automation/application/AutomationEngine';
 import type { SceneExecutionService } from './packages/devices/application/SceneExecutionService';
+import type { NativeCameraService } from './packages/integrations/native-camera/application/NativeCameraService';
+import type { NativeCameraStreamingService } from './packages/integrations/native-camera/application/NativeCameraStreamingService';
 
 export interface BootstrapContainer {
   repositories: {
@@ -109,6 +112,8 @@ export interface BootstrapContainer {
     assistantPlannerV2ShadowService: AssistantPlannerV2ShadowService;
     assistantTextToSpeechService: AssistantTextToSpeechService;
     assistantSpeechToTextService: AssistantSpeechToTextService;
+    nativeCameraService: NativeCameraService;
+    nativeCameraStreamingService: NativeCameraStreamingService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -196,6 +201,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     eventBus
   });
 
+  // 4b. Cámaras nativas (necesario por buildCommandRouter para registrar el driver PTZ)
+  const nativeCameraModule = buildNativeCameraModule({
+    nativeCameraSourceRepository: repos.nativeCameraSourceRepository,
+    deviceRepository: repos.deviceRepository,
+    homeRepository: repos.homeRepository,
+  });
+
   // 5. Enrutamiento de Comandos (debe construirse antes del motor de automatización)
   const commandRouterAssembly = buildCommandRouter({
     deviceRepository: repos.deviceRepository,
@@ -209,6 +221,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantFindingRepository: assistantAssembly.assistantRepository,
     assistantFeedbackRepository: assistantAssembly.assistantFeedbackRepository,
     dashboardRepository: repos.dashboardRepository,
+    nativeCameraSourceRepository: repos.nativeCameraSourceRepository,
+    nativeCameraDriverRegistry: nativeCameraModule.nativeCameraDriverRegistry,
   });
 
   // 6. Motor de Automatización (usa el commandDispatcher ya construido)
@@ -340,7 +354,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       assistantConversationService,
       assistantPlannerV2ShadowService: shadowService,
       assistantTextToSpeechService,
-      assistantSpeechToTextService
+      assistantSpeechToTextService,
+      nativeCameraService: nativeCameraModule.nativeCameraService,
+      nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService
     },
     guards: {
       authGuard: authModule.authGuard

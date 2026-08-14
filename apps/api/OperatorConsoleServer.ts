@@ -40,8 +40,8 @@ export class OperatorConsoleServer {
     const handlers: RouteHandler[] = [
         new MediaRoutes(mediaService),
         new MediaPlayerRoutes(),
-        new NativeCameraRoutes(container.repositories.nativeCameraSourceRepository),
-        new CameraRoutes(container.repositories.nativeCameraSourceRepository),
+        new NativeCameraRoutes(container.services.nativeCameraService),
+        new CameraRoutes(container.repositories.nativeCameraSourceRepository, container.services.nativeCameraStreamingService),
         new SystemRoutes(),
         new AuthRoutes(mediaService, loginAttemptRateLimiter),
         new AdminRoutes(),

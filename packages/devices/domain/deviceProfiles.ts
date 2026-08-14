@@ -177,6 +177,21 @@ export function getDeviceProfileForDevice(device: Device): DeviceProfile {
   }
 
   const type = device.type.trim().toLowerCase();
+
+  if (device.integrationSource === 'native-camera' && type === 'camera') {
+    const ptzSupported = device.lastKnownState?.ptz === true;
+    return createProfile({
+      source: 'generic',
+      domain: 'camera',
+      type: 'camera',
+      semanticType: device.semanticType || undefined,
+      displayName: device.type,
+      category: 'unknown',
+      capabilityTypes: ptzSupported ? ['camera', 'camera_ptz'] : ['camera'],
+      configurationSections: [ASSIGNMENT_SECTION, SEMANTIC_SECTION],
+    });
+  }
+
   if (type in CAPABILITY_DEFINITIONS) {
     return createProfile({
       source: 'generic',

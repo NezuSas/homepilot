@@ -13,7 +13,8 @@ export type CapabilityType =
   | 'cover' 
   | 'climate' 
   | 'media_player'
-  | 'camera';
+  | 'camera'
+  | 'camera_ptz';
 
 /**
  * CapabilityCommandParamSchema
@@ -80,7 +81,18 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
       params: [{ name: 'volume', type: 'number', min: 0, max: 100, required: true }]
     },
   ],
-  'camera': []
+  'camera': [],
+  'camera_ptz': [
+    {
+      name: 'ptz_move',
+      params: [
+        { name: 'pan', type: 'number', min: -1, max: 1 },
+        { name: 'tilt', type: 'number', min: -1, max: 1 },
+        { name: 'zoom', type: 'number', min: -1, max: 1 },
+      ]
+    },
+    { name: 'ptz_stop' },
+  ]
 };
 
 /**

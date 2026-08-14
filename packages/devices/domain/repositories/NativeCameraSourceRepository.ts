@@ -14,6 +14,12 @@ export interface NativeCameraSource {
   readonly enabled: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
+  /** ONVIF media profile token chosen at negotiation time; null for non-ONVIF sources. */
+  readonly profileToken: string | null;
+  /** ONVIF PTZ configuration token, if the negotiated profile advertised one. */
+  readonly ptzConfigurationToken: string | null;
+  /** Whether the negotiated profile supports PTZ continuous move (Phase 3). */
+  readonly ptzSupported: boolean;
 }
 
 /**
