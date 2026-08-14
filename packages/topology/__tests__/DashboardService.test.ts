@@ -146,6 +146,42 @@ describe('DashboardService', () => {
     expect(revisions[0].snapshot.tabs[0].background).toBeUndefined();
   });
 
+  it('publishes a shared tab through its dashboard and revokes it when removed', async () => {
+    const stored = createDashboard('dashboard-1', 'Oscar');
+    stored.tabs = [
+      { id: 'tab-private', title: 'Privada', widgets: [], visibility: { users: ['user-1'] } },
+      { id: 'tab-gustavo', title: 'Compartida', widgets: [], visibility: { users: ['gustavo-user'] } },
+    ];
+    const dashboardRepository = createDashboardRepository(stored);
+    const service = new DashboardService(dashboardRepository, createHomeRepository());
+
+    const shared = await service.updateDashboard('user-1', 'admin', stored.id, { tabs: stored.tabs });
+    expect(shared.visibility.users).toEqual(['user-1', 'gustavo-user']);
+
+    const revoked = await service.updateDashboard('user-1', 'admin', stored.id, {
+      tabs: [{ id: 'tab-private', title: 'Privada', widgets: [], visibility: { users: ['user-1'] } }],
+    });
+    expect(revoked.visibility.users).toEqual(['user-1']);
+  });
+
+  it('returns only tabs explicitly shared with a non-owner', async () => {
+    const sharedDashboard = createDashboard('dashboard-1', 'Oscar');
+    sharedDashboard.visibility.users = ['user-1', 'gustavo-user'];
+    sharedDashboard.tabs = [
+      { id: 'tab-private', title: 'Privada', widgets: [], visibility: { users: ['user-1'] } },
+      { id: 'tab-gustavo', title: 'Compartida', widgets: [], visibility: { users: ['gustavo-user'] } },
+    ];
+    const dashboardRepository: DashboardRepository = {
+      ...createDashboardRepository(sharedDashboard),
+      findAllVisibleTo: async () => [sharedDashboard],
+    };
+    const service = new DashboardService(dashboardRepository, createHomeRepository());
+
+    const dashboards = await service.getDashboardsForUser('gustavo-user', 'admin');
+    expect(dashboards).toHaveLength(1);
+    expect(dashboards[0].tabs.map((tab) => tab.id)).toEqual(['tab-gustavo']);
+  });
+
   it('restores a selected revision and archives the current state first', async () => {
     const stored = createDashboard('dashboard-1', 'Actual');
     stored.tabs[0].background = '/media/current-background.jpg';

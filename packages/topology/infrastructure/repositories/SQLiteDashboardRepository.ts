@@ -69,11 +69,11 @@ export class SQLiteDashboardRepository implements DashboardRepository {
     const rows = db.prepare('SELECT * FROM dashboards').all() as LocalDashboardRow[];
     const dashboards = rows.map(r => this.mapRow(r));
     
-    return dashboards.filter(d => {
-      if (d.ownerId === userId) return true;
-      
-      const v = d.visibility;
-      return v.users?.includes(userId) ?? false;
+    return dashboards.filter((dashboard) => {
+      if (dashboard.ownerId === userId) return true;
+      if (dashboard.visibility.users.includes(userId)) return true;
+
+      return dashboard.tabs.some((tab) => tab.visibility?.users.includes(userId));
     });
   }
 

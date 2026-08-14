@@ -21,7 +21,18 @@ export class DashboardService {
   public async getDashboardsForUser(userId: string, userRole: string): Promise<Dashboard[]> {
     const homes = await this.homeRepository.findHomesByUserId(userId);
     const homeIds = homes.map(h => h.id);
-    return this.dashboardRepository.findAllVisibleTo(userId, userRole, homeIds);
+    const dashboards = await this.dashboardRepository.findAllVisibleTo(userId, userRole, homeIds);
+    return dashboards.map((dashboard) => {
+      if (dashboard.ownerId === userId) return dashboard;
+
+      const hasTabVisibility = dashboard.tabs.some((tab) => tab.visibility !== undefined);
+      if (!hasTabVisibility) return dashboard;
+
+      return {
+        ...dashboard,
+        tabs: dashboard.tabs.filter((tab) => tab.visibility?.users.includes(userId)),
+      };
+    }).filter((dashboard) => dashboard.tabs.length > 0);
   }
 
   public async createDashboard(userId: string, title: string): Promise<Dashboard> {
@@ -120,7 +131,9 @@ export class DashboardService {
       ...dashboard,
       title: updates.title ?? dashboard.title,
       tabs: updates.tabs ?? dashboard.tabs,
-      visibility: updates.visibility ?? dashboard.visibility,
+      visibility: updates.tabs
+        ? createVisibilityForTabs(dashboard.ownerId, updates.tabs, updates.visibility ?? dashboard.visibility)
+        : updates.visibility ?? dashboard.visibility,
       updatedAt: now,
     };
 
@@ -188,6 +201,23 @@ export class DashboardService {
   }
 }
 
+function createVisibilityForTabs(
+  ownerId: string,
+  tabs: DashboardTab[],
+  existingVisibility: DashboardVisibility,
+): DashboardVisibility {
+  const sharedUsers = new Set<string>([ownerId]);
+  for (const tab of tabs) {
+    for (const userId of tab.visibility?.users ?? []) {
+      sharedUsers.add(userId);
+    }
+  }
+
+  return {
+    ...existingVisibility,
+    users: [...sharedUsers],
+  };
+}
 function createRevisionSnapshot(dashboard: Dashboard): DashboardRevisionSnapshot {
   return {
     title: dashboard.title,

@@ -25,7 +25,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 1. La navegación principal debe mostrar `Tableros` como padre colapsable en español y `Dashboards` en inglés.
 2. Al abrir el grupo, cada tablero visible debe aparecer como hijo de navegación sin duplicar una lista interna dentro de la pantalla.
 3. Al cargar `/api/v1/dashboards`, el backend debe garantizar que el usuario autenticado tenga al menos un tablero base.
-4. La visibilidad de dashboards y vistas debe resolverse por usuario: ser propietario o estar incluido explícitamente en `visibility.users`.
+4. La visibilidad de dashboards y vistas debe resolverse por usuario: ser propietario o estar incluido explícitamente en `visibility.users`. Al compartir una vista, HomePilot debe publicar el dashboard padre para que el destinatario pueda navegar a esa vista, sin exponer las demás.
 5. El rol `admin` no debe dar visibilidad automática a dashboards o vistas de otros usuarios.
 6. La vista de tablero debe permitir seguir creando, renombrando, editando, agregando pestañas y eliminando con los flujos existentes.
 7. El catálogo de tarjetas de una sección debe incluir una tarjeta de sensor para dispositivos `sensor` y `binary_sensor` ya importados al inventario local de HomePilot.
@@ -63,7 +63,7 @@ La consola mostraba "Paneles" como una pantalla única y además repetía una na
 - **AC15:** El flujo de edición no expone el inspector legacy de widgets ni presets `XS/S/M/L/XL`; las tarjetas se gestionan desde secciones con dimensiones de filas/columnas.
 - **AC16:** La configuración de vista no muestra opciones de diseño no implementadas para el usuario final; conserva el layout existente y permite configurar título, icono, fondo y visibilidad.
 - **AC17:** La visibilidad de una vista se respeta en frontend filtrando pestañas por usuario; el propietario ve sus vistas y un usuario externo solo ve pestañas donde su id esté incluido en `visibility.users`.
-- **AC18:** La visibilidad de dashboards se respeta en backend sin bypass por rol: un admin no ve dashboards de otro usuario salvo que sea propietario o esté incluido en `visibility.users` del tablero; la visibilidad de una pestaña no publica por sí sola el tablero padre.
+- **AC18:** Al compartir una pestaña con un usuario, el backend publica el dashboard padre en su navegación y devuelve únicamente las pestañas autorizadas para ese usuario; al retirarlo de todas las pestañas se revoca dicho acceso. El rol `admin` no crea bypass de visibilidad.
 - **AC19:** Al borrar una pestaña de tablero o remover su fondo, los archivos físicos del fondo en `data/media/dashboards/<dashboardId>/<tabId>` se eliminan.
 - **AC20:** Los tableros visibles se ordenan priorizando el tablero propio del usuario autenticado para que un invitado no aterrice por defecto en un tablero compartido ajeno.
 - **AC21:** Un usuario `guest` puede leer hogares y habitaciones del appliance local para renderizar Inicio/Espacios/Tableros, pero no puede crear, renombrar ni eliminar hogares o habitaciones.

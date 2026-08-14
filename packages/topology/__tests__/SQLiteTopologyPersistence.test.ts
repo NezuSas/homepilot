@@ -147,7 +147,7 @@ describe('SQLite Topology Persistence Integration', () => {
     SqliteDatabaseManager.close(migrationDbPath);
     fs.unlinkSync(migrationDbPath);
   });
-  it('solo publica dashboards a su propietario o a usuarios autorizados en el tablero', async () => {
+  it('publica el dashboard padre cuando una pestaña autoriza al usuario', async () => {
     const now = new Date().toISOString();
     const dashboard: Dashboard = {
       id: 'dashboard-oscar',
@@ -170,7 +170,7 @@ describe('SQLite Topology Persistence Integration', () => {
 
     expect(ownerDashboards.some(item => item.id === dashboard.id)).toBe(true);
     expect(adminDashboards.some(item => item.id === dashboard.id)).toBe(false);
-    expect(gustavoDashboards.some(item => item.id === dashboard.id)).toBe(false);
+    expect(gustavoDashboards.some(item => item.id === dashboard.id)).toBe(true);
   });
 
   it('persists dashboard revisions ordered from newest to oldest', async () => {
