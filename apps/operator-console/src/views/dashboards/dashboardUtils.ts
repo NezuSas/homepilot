@@ -113,7 +113,10 @@ function isSensorDevice(device: SnapshotDevice) {
 }
 
 function isMediaPlayerDevice(device: SnapshotDevice) {
-  return device.type === 'media_player' || device.profile?.category === 'media';
+  return !isCameraDevice(device)
+    && (device.type === 'media_player'
+      || device.profile?.type === 'media_player'
+      || device.profile?.domain === 'media_player');
 }
 
 /** Returns only HomePilot-local devices compatible with a dashboard card. */

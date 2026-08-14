@@ -23,7 +23,12 @@ function createSection(id: string, span?: number, legacyW?: number): DashboardWi
   };
 }
 
-function createDevice(id: string, name: string, type: string, category?: string): SnapshotDevice {
+function createDevice(
+  id: string,
+  name: string,
+  type: string,
+  profile?: Pick<NonNullable<SnapshotDevice['profile']>, 'domain' | 'type' | 'category'>,
+): SnapshotDevice {
   return {
     id,
     homeId: 'home-1',
@@ -32,13 +37,13 @@ function createDevice(id: string, name: string, type: string, category?: string)
     type,
     status: 'ASSIGNED',
     lastKnownState: null,
-    ...(category ? {
+    ...(profile ? {
       profile: {
         source: 'home-assistant',
-        domain: type,
-        type,
+        domain: profile.domain,
+        type: profile.type,
         displayName: name,
-        category,
+        category: profile.category,
         supportedCommands: [],
         configurationSections: [],
       },
@@ -104,12 +109,22 @@ describe('dashboard section devices', () => {
   it('lists only compatible local entities for each card kind', () => {
     const devices = [
       createDevice('light-1', 'Luz', 'light'),
-      createDevice('media-1', 'Speaker', 'media_player', 'media'),
+      createDevice('media-1', 'Speaker', 'media_player', { domain: 'media_player', type: 'media_player', category: 'media' }),
       createDevice('camera-1', 'Cámara', 'camera'),
+      createDevice('camera-sensor-1', 'Cámara importada', 'sensor', { domain: 'camera', type: 'camera', category: 'media' }),
     ];
 
     expect(getAssignableDevicesForSectionCard('light', devices).map((device) => device.id)).toEqual(['light-1']);
     expect(getAssignableDevicesForSectionCard('media', devices).map((device) => device.id)).toEqual(['media-1']);
     expect(getAssignableDevicesForSectionCard('camera', devices).map((device) => device.id)).toEqual(['camera-1']);
+  });
+
+  it('never treats a camera media feed as a media player', () => {
+    const devices = [
+      createDevice('speaker-1', 'Z.TECH SPEAKER', 'sensor', { domain: 'media_player', type: 'media_player', category: 'media' }),
+      createDevice('camera-1', 'Cámara de Ingreso', 'sensor', { domain: 'camera', type: 'camera', category: 'media' }),
+    ];
+
+    expect(getAssignableDevicesForSectionCard('media', devices).map((device) => device.id)).toEqual(['speaker-1']);
   });
 });
