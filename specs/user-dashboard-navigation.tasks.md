@@ -6,6 +6,7 @@
 - [x] **Estructura de secciones y catálogo (AC12–AC16, AC22–AC35).** Código y normalización auditados en `apps/operator-console/src/views/dashboards/` y sus pruebas `dashboardUtils.test.ts` / `sectionCardCatalog.test.ts`.
 - [x] **Cortinas y media (AC20, AC36–AC37).** Componentes auditados en `CurtainDeviceTile.tsx`, widgets de dashboard y suites de dispositivos/integración correspondientes.
 - [x] **Selector multimedia exacto (AC25, AC28).** `dashboardUtils` distingue el perfil `media_player` de una cámara cuyo feed pertenece a la categoría visual `media`, preservando las asignaciones existentes de reproductores y excluyendo cámaras.
+- [x] **Portada multimedia estable (AC40).** MediaPlayerCard renueva la sesión de portada únicamente cuando cambia la ruta de la imagen, no ante cada actualización de estado del dispositivo.
 - [x] **Evidencia E2E de sidebar (AC1, AC2, AC5, AC10).** `apps/operator-console/tests/responsive-shell.spec.ts` comprueba la etiqueta localizada, expansión/colapso independiente y navegación del dashboard hijo autenticado.
 - [x] **Aislamiento de tableros entre usuarios (AC18).** SQLiteDashboardRepository publica un tablero exclusivamente a su propietario o a los usuarios incluidos en su visibilidad raíz; una pestaña compartida no expone el tablero padre.
 - [ ] **Evidencia de aceptación restante de navegación por usuario.** Añadir escenarios E2E explícitos para AC3–AC4, AC8–AC9, AC11 y AC17–AC21.

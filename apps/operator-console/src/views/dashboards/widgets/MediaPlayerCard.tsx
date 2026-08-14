@@ -6,6 +6,7 @@ import { apiFetch } from '../../../lib/apiClient';
 import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../../components/ui/IconButton';
+import { getMediaArtworkSourceKey } from './mediaArtwork';
 
 export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
 
@@ -47,10 +48,7 @@ function firstText(values: unknown[]): string | null {
 }
 
 function normalizedState(value: string | null): string {
-  return value?.trim().toLocaleLowerCase() || 'idle';
-}
-
-function numericVolume(value: unknown): number | null {
+  return value?.trim().toLocaleLowerCase() || 'idle';`r`n}`r`n`r`nfunction numericVolume(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return Math.min(100, Math.max(0, Math.round(value * 100)));
 }
@@ -116,6 +114,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     : commands.has('turn_off') ? 'turn_off' : null;
   const canAct = Boolean(onCommand) && !isProcessing && !unavailable;
   const displayTitle = presentation.mediaTitle || title;
+  const artworkSourceKey = getMediaArtworkSourceKey(device?.lastKnownState);
   const hasPrevious = commands.has('media_previous_track');
   const hasNext = commands.has('media_next_track');
   const hasVolumeControl = commands.has('volume_set');
@@ -146,7 +145,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
 
   useEffect(() => {
     let active = true;
-    if (!device?.id) {
+    if (!device?.id || !artworkSourceKey) {
       setArtworkPath(null);
       return () => { active = false; };
     }
@@ -164,7 +163,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
       });
 
     return () => { active = false; };
-  }, [device?.id, device?.updatedAt]);
+  }, [device?.id, artworkSourceKey]);
 
   const artworkUrl = artworkPath ? absoluteApiUrl(artworkPath) : null;
 
