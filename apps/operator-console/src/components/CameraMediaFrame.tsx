@@ -20,6 +20,11 @@ const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
 const HLS_MAX_RETRIES = 2;
 const HLS_RETRY_DELAY_MS = 1_500;
 const HLS_WATCHDOG_MS = 5_000;
+// hls.js can silently stop advancing (e.g. the upstream feed stalls without a
+// fatal player error) leaving the last frame frozen on screen indefinitely.
+// Poll playback progress and force a reconnect if it stops advancing.
+const STALL_CHECK_INTERVAL_MS = 3_000;
+const STALL_THRESHOLD_MS = 9_000;
 
 function withRefreshMarker(url: string): string {
   const separator = url.includes('?') ? '&' : '?';
@@ -95,12 +100,16 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     let fallbackTriggered = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+    let stallCheckTimer: ReturnType<typeof setInterval> | undefined;
+    let lastPlaybackTime = -1;
+    let lastProgressAt = Date.now();
 
     hasReadyFrameRef.current = false;
 
     const clearTimers = () => {
       if (retryTimer) window.clearTimeout(retryTimer);
       if (watchdogTimer) window.clearTimeout(watchdogTimer);
+      if (stallCheckTimer) window.clearInterval(stallCheckTimer);
     };
 
     const fallbackToStream = () => {
@@ -135,9 +144,15 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       if (Hls.isSupported()) {
         let retryCount = 0;
 
+        const resetStallTracking = () => {
+          lastPlaybackTime = -1;
+          lastProgressAt = Date.now();
+        };
+
         const createPlayer = () => {
           if (cancelled) return;
           if (player) player.destroy();
+          resetStallTracking();
 
           const hlsPlayer = new Hls({
             enableWorker: true,
@@ -184,12 +199,47 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         };
 
         createPlayer();
+
+        stallCheckTimer = window.setInterval(() => {
+          if (cancelled || !hasReadyFrameRef.current || video.paused) return;
+          if (video.currentTime !== lastPlaybackTime) {
+            lastPlaybackTime = video.currentTime;
+            lastProgressAt = Date.now();
+            retryCount = 0;
+            return;
+          }
+          if (Date.now() - lastProgressAt < STALL_THRESHOLD_MS) return;
+
+          console.warn('[CameraMediaFrame] HLS playback stalled (frozen frame), reconnecting...');
+          retryCount += 1;
+          if (retryCount < HLS_MAX_RETRIES) {
+            createPlayer();
+          } else {
+            fallbackToStream();
+          }
+        }, STALL_CHECK_INTERVAL_MS);
         return;
       }
 
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = hlsUrl;
         await tryPlay();
+
+        stallCheckTimer = window.setInterval(() => {
+          if (cancelled || !hasReadyFrameRef.current || video.paused) return;
+          if (video.currentTime !== lastPlaybackTime) {
+            lastPlaybackTime = video.currentTime;
+            lastProgressAt = Date.now();
+            return;
+          }
+          if (Date.now() - lastProgressAt < STALL_THRESHOLD_MS) return;
+
+          console.warn('[CameraMediaFrame] Native HLS playback stalled (frozen frame), reloading source...');
+          lastProgressAt = Date.now();
+          hasReadyFrameRef.current = false;
+          video.src = withRefreshMarker(hlsUrl);
+          void tryPlay();
+        }, STALL_CHECK_INTERVAL_MS);
         return;
       }
 

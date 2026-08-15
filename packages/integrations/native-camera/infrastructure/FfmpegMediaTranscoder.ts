@@ -8,10 +8,19 @@ import type { MediaTranscoderPort, NativeCameraRtspEndpoint, NativeCameraHlsRunt
 const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
 
 interface NativeHlsRuntime {
-  readonly process: ChildProcessWithoutNullStreams;
+  process: ChildProcessWithoutNullStreams;
   readonly directory: string;
-  readonly startedAt: number;
+  startedAt: number;
+  readonly endpoint: NativeCameraRtspEndpoint;
+  healthTimer: ReturnType<typeof setInterval>;
 }
+
+// ffmpeg is configured to emit a new HLS segment every ~2s (see -hls_time
+// below). If index.m3u8 goes this long without being rewritten, the RTSP
+// source has stalled (silently, without ffmpeg exiting) and playback would
+// otherwise freeze on the last segment forever.
+const STALE_SEGMENT_THRESHOLD_MS = 15_000;
+const HEALTH_CHECK_INTERVAL_MS = 5_000;
 
 function buildRtspUrl(endpoint: NativeCameraRtspEndpoint): string {
   const rtspPath = endpoint.rtspPath.startsWith('/') ? endpoint.rtspPath : `/${endpoint.rtspPath}`;
@@ -35,13 +44,64 @@ function buildRtspUrl(endpoint: NativeCameraRtspEndpoint): string {
  */
 export class FfmpegMediaTranscoder implements MediaTranscoderPort {
   private readonly runtimes = new Map<string, NativeHlsRuntime>();
+  private readonly restartsInFlight = new Set<string>();
 
   public async ensureHlsRuntime(deviceId: string, endpoint: NativeCameraRtspEndpoint): Promise<NativeCameraHlsRuntimeHandle> {
     const existing = this.runtimes.get(deviceId);
     const indexPath = existing ? path.join(existing.directory, 'index.m3u8') : '';
-    if (existing && !existing.process.killed && fs.existsSync(indexPath)) return { directory: existing.directory };
+    if (existing && !existing.process.killed && fs.existsSync(indexPath) && !this.isSegmentOutputStale(indexPath)) {
+      return { directory: existing.directory };
+    }
 
     if (existing) this.stopHlsRuntime(deviceId);
+
+    const directory = await this.spawnRuntime(deviceId, endpoint);
+    return { directory };
+  }
+
+  public stopHlsRuntime(deviceId: string): void {
+    const runtime = this.runtimes.get(deviceId);
+    if (!runtime) return;
+    clearInterval(runtime.healthTimer);
+    runtime.process.kill('SIGTERM');
+    this.runtimes.delete(deviceId);
+  }
+
+  private isSegmentOutputStale(indexPath: string): boolean {
+    try {
+      const { mtimeMs } = fs.statSync(indexPath);
+      return Date.now() - mtimeMs > STALE_SEGMENT_THRESHOLD_MS;
+    } catch {
+      return true;
+    }
+  }
+
+  private startHealthWatchdog(deviceId: string): ReturnType<typeof setInterval> {
+    return setInterval(() => {
+      if (this.restartsInFlight.has(deviceId)) return;
+      const runtime = this.runtimes.get(deviceId);
+      if (!runtime) return;
+
+      const indexPath = path.join(runtime.directory, 'index.m3u8');
+      const isDead = runtime.process.killed || runtime.process.exitCode !== null;
+      const isStale = this.isSegmentOutputStale(indexPath);
+      if (!isDead && !isStale) return;
+
+      console.warn(`[FfmpegMediaTranscoder] Native camera ${deviceId} stream ${isDead ? 'died' : 'stalled (no new segments)'}, restarting ffmpeg automatically.`);
+      this.restartsInFlight.add(deviceId);
+      void this.spawnRuntime(deviceId, runtime.endpoint)
+        .catch((err) => console.error(`[FfmpegMediaTranscoder] Auto-restart failed for device ${deviceId}:`, err))
+        .finally(() => this.restartsInFlight.delete(deviceId));
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  private async spawnRuntime(deviceId: string, endpoint: NativeCameraRtspEndpoint): Promise<string> {
+    const previous = this.runtimes.get(deviceId);
+    if (previous) {
+      clearInterval(previous.healthTimer);
+      if (!previous.process.killed) previous.process.kill('SIGTERM');
+      this.runtimes.delete(deviceId);
+    }
 
     const directory = path.join(NATIVE_CAMERA_HLS_ROOT, deviceId);
     fs.mkdirSync(directory, { recursive: true });
@@ -106,10 +166,14 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
         console.error(`[FfmpegMediaTranscoder] ffmpeg stderr: ${ffmpegStderr.slice(-500)}`);
       }
       const current = this.runtimes.get(deviceId);
-      if (current?.process === ffmpegProcess) this.runtimes.delete(deviceId);
+      if (current?.process === ffmpegProcess) {
+        clearInterval(current.healthTimer);
+        this.runtimes.delete(deviceId);
+      }
     });
 
-    this.runtimes.set(deviceId, { process: ffmpegProcess, directory, startedAt: Date.now() });
+    const healthTimer = this.startHealthWatchdog(deviceId);
+    this.runtimes.set(deviceId, { process: ffmpegProcess, directory, startedAt: Date.now(), endpoint, healthTimer });
     try {
       await this.waitForFile(path.join(directory, 'index.m3u8'), 8000);
     } catch (err) {
@@ -121,14 +185,7 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       console.error(`[FfmpegMediaTranscoder] ffmpeg failed for device ${deviceId}: ${ffmpegStderr.slice(-300)}`);
       throw err;
     }
-    return { directory };
-  }
-
-  public stopHlsRuntime(deviceId: string): void {
-    const runtime = this.runtimes.get(deviceId);
-    if (!runtime) return;
-    runtime.process.kill('SIGTERM');
-    this.runtimes.delete(deviceId);
+    return directory;
   }
 
   public streamSnapshot(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void {
