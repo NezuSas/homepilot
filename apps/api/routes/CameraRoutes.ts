@@ -24,7 +24,7 @@ interface CameraProxyTokenPayload {
 
 interface CameraHlsProxySession {
   readonly deviceId: string;
-  readonly expiresAt: number;
+  expiresAt: number;
   readonly source: 'home-assistant' | 'native';
   readonly masterPath: string;
   readonly resourcesById: Map<string, string>;
@@ -174,6 +174,11 @@ export class CameraRoutes extends ApiRoutes {
       this.sendError(res, 401, 'CAMERA_SESSION_EXPIRED', 'Camera HLS session expired');
       return;
     }
+
+    // Sliding expiration: a camera feed actively being watched (manifest or
+    // segment requests keep arriving) must never expire mid-stream. Only a
+    // session left idle for the full TTL gets reaped by removeExpiredHlsSessions.
+    session.expiresAt = Date.now() + CAMERA_PROXY_TOKEN_TTL_MS;
 
     const upstreamPath = resourceId ? session.resourcesById.get(resourceId) : session.masterPath;
     if (!upstreamPath) {

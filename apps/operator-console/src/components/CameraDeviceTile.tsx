@@ -70,7 +70,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_SESSION');
       mediaRef.current = payload;
       setMedia(payload);
-      if (isInitialLoad) setFeedMode('stream');
+      if (isInitialLoad) setFeedMode(payload.hlsPath ? 'hls' : 'stream');
       sessionReady = true;
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -137,7 +137,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setFeedMode('stream');
+    setFeedMode(mediaRef.current?.hlsPath ? 'hls' : 'stream');
     setIsConnecting(true);
     setHasFeedError(false);
     setRetryVersion((version) => version + 1);
@@ -223,7 +223,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           streamUrl={absoluteApiUrl(viewerMedia.streamPath)}
           hlsUrl={viewerMedia.hlsPath ? absoluteApiUrl(viewerMedia.hlsPath) : undefined}
           snapshotUrl={absoluteApiUrl(viewerMedia.snapshotPath)}
-          preferredMode="stream"
+          preferredMode={viewerMedia.hlsPath ? 'hls' : 'stream'}
           onClose={closeViewer}
           deviceId={device.id}
           ptzSupported={device.capabilities?.some((capability) => capability.type === 'camera_ptz') ?? false}

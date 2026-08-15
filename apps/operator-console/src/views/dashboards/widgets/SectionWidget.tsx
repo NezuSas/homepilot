@@ -9,6 +9,7 @@ import {
   Monitor,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
   X,
@@ -102,12 +103,14 @@ function absoluteSessionUrl(path: string): string {
 function SectionCameraCard({ deviceId, title }: { deviceId: string; title: string }) {
   const { t } = useTranslation();
   const [session, setSession] = useState<CameraMediaSession | null>(null);
+  const sessionRef = useRef<CameraMediaSession | null>(null);
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [viewerSession, setViewerSession] = useState<CameraMediaSession | null>(null);
   const viewerSessionControllerRef = useRef<AbortController | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -120,8 +123,9 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
       if (!res.ok) throw new Error(`SESSION_${res.status}`);
       const payload: unknown = await res.json();
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_SESSION');
+      sessionRef.current = payload;
       setSession(payload);
-      setFeedMode('stream');
+      setFeedMode(payload.hlsPath ? 'hls' : 'stream');
       setIsConnecting(false);
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -130,9 +134,25 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
     });
 
     return () => controller.abort();
-  }, [deviceId]);
+  }, [deviceId, retryVersion]);
+
+  // Refresh the media session well before its access token expires so a
+  // camera card left open on a kiosk/dashboard never goes dark on its own.
+  useEffect(() => {
+    if (!session) return;
+    const timer = window.setInterval(() => setRetryVersion((version) => version + 1), 25 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [session]);
 
   useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
+
+  const retry = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setFeedMode(sessionRef.current?.hlsPath ? 'hls' : 'stream');
+    setIsConnecting(true);
+    setHasFeedError(false);
+    setRetryVersion((version) => version + 1);
+  };
 
   if (isConnecting && !session) {
     return (
@@ -144,10 +164,20 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
   if (hasFeedError || !session) {
     return (
-      <div className="grid h-full w-full place-items-center bg-scene-preview">
+      <div className="relative grid h-full w-full place-items-center bg-scene-preview">
         <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
           <Camera className="h-9 w-9" />
         </div>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          onClick={retry}
+          aria-label={t('camera.retry')}
+          className="absolute bottom-3 right-3 shrink-0 rounded-pill"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </div>
     );
   }
@@ -219,7 +249,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
           streamUrl={absoluteSessionUrl(viewerSession.streamPath)}
           hlsUrl={viewerSession.hlsPath ? absoluteSessionUrl(viewerSession.hlsPath) : undefined}
           snapshotUrl={absoluteSessionUrl(viewerSession.snapshotPath)}
-          preferredMode="stream"
+          preferredMode={viewerSession.hlsPath ? 'hls' : 'stream'}
           onClose={closeViewer}
         />
       )}
