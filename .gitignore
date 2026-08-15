@@ -1,3 +1,6 @@
+# Machine-local Docker Compose overrides (not shared defaults for other installs)
+docker-compose.override.yml
+
 # Logs
 logs
 *.log
