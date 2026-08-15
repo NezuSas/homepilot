@@ -11,7 +11,10 @@ export class DirectorySsoVerifier {
     let payload: DirectorySsoPayload;
     try { payload = JSON.parse(Buffer.from(payloadPart, 'base64url').toString()) as DirectorySsoPayload; } catch { throw new DirectorySsoError('SSO_TOKEN_INVALID'); }
     if (!verify(null, Buffer.from(payloadPart), createPublicKey(this.publicKeyPem.replace(/\\n/g, '\n')), Buffer.from(signaturePart, 'base64url'))) throw new DirectorySsoError('SSO_TOKEN_INVALID');
-    if (!payload.directoryAccountId || !payload.homeId || !payload.jti || !Number.isInteger(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) throw new DirectorySsoError('SSO_TOKEN_EXPIRED');
+    if (!payload.directoryAccountId || !payload.homeId || !payload.jti || !Number.isInteger(payload.iat) || !Number.isInteger(payload.exp)) {
+      throw new DirectorySsoError('SSO_TOKEN_INVALID');
+    }
+    if (payload.exp <= Math.floor(Date.now() / 1000)) throw new DirectorySsoError('SSO_TOKEN_EXPIRED');
     await this.usedTokens.purgeExpired();
     if (await this.usedTokens.isUsed(payload.jti)) throw new DirectorySsoError('SSO_TOKEN_REPLAYED');
     return payload;

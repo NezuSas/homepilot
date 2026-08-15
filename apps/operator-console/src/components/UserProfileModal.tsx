@@ -8,6 +8,7 @@ import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { RangeInput } from './ui/RangeInput';
+import { DirectorySsoLinksSection } from './DirectorySsoLinksSection';
 
 interface UserProfile {
   id: string;
@@ -322,6 +323,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
               className="h-12 rounded-2xl px-4 font-bold shadow-inner"
             />
 
+            <DirectorySsoLinksSection />
             {error && <p className="text-body text-destructive font-bold text-center bg-destructive/5 py-2 rounded-xl border border-destructive/10">{error}</p>}
         </div>
       )}

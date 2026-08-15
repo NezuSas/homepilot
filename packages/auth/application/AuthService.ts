@@ -30,7 +30,13 @@ export class AuthService {
     return { token, user };
   }
 
-  public async login(username: string, passwordPlain: string): Promise<{ token: string; user: User } | null> {
+  public async createSessionForUserId(userId: string): Promise<{ token: string; user: User } | null> {
+    const user = await this.userRepository.findById(userId);
+    if (!user || !user.isActive) return null;
+    return this.createSessionForUser(user);
+  }
+
+  public async login(username: string, passwordPlain: string, afterCredentialsVerified?: (user: User) => Promise<void>): Promise<{ token: string; user: User } | null> {
     const user = await this.userRepository.findByUsername(username);
 
     if (!user || !user.isActive) {
@@ -43,6 +49,7 @@ export class AuthService {
       return null;
     }
 
+    if (afterCredentialsVerified) await afterCredentialsVerified(user);
     return this.createSessionForUser(user);
   }
 

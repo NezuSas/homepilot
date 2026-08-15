@@ -12,6 +12,9 @@ import { AuthGuard } from '../../packages/auth/infrastructure/AuthGuard';
 import { SqliteSystemSetupRepository } from '../../packages/system-setup/infrastructure/SqliteSystemSetupRepository';
 import { SystemSetupService } from '../../packages/system-setup/application/SystemSetupService';
 import { UserManagementService } from '../../packages/auth/application/UserManagementService';
+import { SqliteDirectorySsoRepository } from '../../packages/auth/infrastructure/SqliteDirectorySsoRepository';
+import { DirectorySsoVerifier } from '../../packages/auth/application/DirectorySsoVerifier';
+import { DirectorySsoService } from '../../packages/auth/application/DirectorySsoService';
 import {
   getInstallationProfile,
   getRuntimeTarget,
@@ -32,6 +35,8 @@ export interface AuthModuleAssembly {
   authGuard: AuthGuard;
   systemSetupService: SystemSetupService;
   userManagementService: UserManagementService;
+  directorySsoRepository: SqliteDirectorySsoRepository;
+  directorySsoService: DirectorySsoService;
 }
 
 export interface AuthModuleDeps {
@@ -52,6 +57,12 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
   const cryptoService = new CryptoService();
   const authService = new AuthService(userRepository, sessionRepository, cryptoService);
   const authGuard = new AuthGuard(authService);
+  const directorySsoRepository = new SqliteDirectorySsoRepository(db);
+  const directorySsoService = new DirectorySsoService(
+    new DirectorySsoVerifier(directorySsoRepository),
+    directorySsoRepository,
+    authService
+  );
 
   if (process.env.NODE_ENV === 'test') {
     authGuard.setRoleChecker(() => true);
@@ -99,6 +110,8 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
     authService,
     authGuard,
     systemSetupService,
-    userManagementService
+    userManagementService,
+    directorySsoRepository,
+    directorySsoService
   };
 }

@@ -8,6 +8,7 @@ import { Input } from '../components/ui/Input';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: UserContext) => void;
+  ssoLinkToken?: string | null;
 }
 
 interface LoginResponse {
@@ -15,7 +16,7 @@ interface LoginResponse {
   user: UserContext;
 }
 
-export function LoginView({ onLoginSuccess }: LoginViewProps) {
+export function LoginView({ onLoginSuccess, ssoLinkToken = null }: LoginViewProps) {
   const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +34,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, ...(ssoLinkToken ? { ssoLinkToken } : {}) })
       });
 
       if (!resp.ok) {

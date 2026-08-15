@@ -33,7 +33,7 @@ import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeA
 import { createSpeechAudioUrl } from './lib/audioRecording';
 import { HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
-import { useSession } from './lib/useSession';
+import { useSession, type UserContext } from './lib/useSession';
 import { LoginView } from './views/LoginView';
 import { FirstAdminSetupView } from './views/FirstAdminSetupView';
 import { ChangePasswordModal } from './views/ChangePasswordModal';
@@ -201,6 +201,38 @@ function App() {
   }, [resetAppShellState, resetAssistantState, resetSnapshotState]);
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
+  const [directorySsoToken, setDirectorySsoToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.pathname !== '/sso/directory') return;
+    const token = new URLSearchParams(location.search).get('token');
+    window.history.replaceState(null, '', '/sso/directory');
+    if (!token) {
+      navigate('/', { replace: true });
+      return;
+    }
+    let active = true;
+    void fetch(`${API_BASE_URL}/api/v1/auth/sso/directory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    }).then(async (response) => {
+      const result = await response.json() as { linked?: boolean; token?: string; user?: UserContext };
+      if (!response.ok) throw new Error('No se pudo validar el acceso del Directorio.');
+      if (!active) return;
+      if (result.linked && result.token && result.user) {
+        setDirectorySsoToken(null);
+        handleLoginSuccess(result.token, result.user);
+        navigate('/', { replace: true });
+        return;
+      }
+      setDirectorySsoToken(token);
+      navigate('/', { replace: true });
+    }).catch(() => {
+      if (active) navigate('/', { replace: true });
+    });
+    return () => { active = false; };
+  }, [handleLoginSuccess, location.pathname, location.search, navigate]);
 
   // ─── Verification Orchestration ───────────────────────────────────────
   useEffect(() => {
@@ -537,7 +569,7 @@ function App() {
       return <FirstAdminSetupView onCompleted={handleLoginSuccess} />;
     }
 
-    return <LoginView onLoginSuccess={handleLoginSuccess} />;
+    return <LoginView onLoginSuccess={handleLoginSuccess} ssoLinkToken={directorySsoToken} />;
   }
 
   if (loadingSetup) {

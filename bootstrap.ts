@@ -48,6 +48,7 @@ import { AssistantSuggestionService } from './packages/assistant/application/Ass
 import type { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import type { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
 import type { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
+import type { SqliteDirectorySsoRepository } from './packages/auth/infrastructure/SqliteDirectorySsoRepository';
 import type { SqliteSystemSetupRepository } from './packages/system-setup/infrastructure/SqliteSystemSetupRepository';
 import type { SqliteSystemVariableRepository } from './packages/system-vars/infrastructure/SqliteSystemVariableRepository';
 import type { DashboardService } from './packages/topology/application/DashboardService';
@@ -55,6 +56,7 @@ import type { HomeAssistantSettingsService } from './packages/integrations/home-
 import type { AuthService } from './packages/auth/application/AuthService';
 import type { SystemSetupService } from './packages/system-setup/application/SystemSetupService';
 import type { UserManagementService } from './packages/auth/application/UserManagementService';
+import type { DirectorySsoService } from './packages/auth/application/DirectorySsoService';
 import type { AssistantService } from './packages/assistant/application/AssistantService';
 import type { AssistantActionService } from './packages/assistant/application/AssistantActionService';
 import type { HomeAssistantImportService } from './packages/devices/application/HomeAssistantImportService';
@@ -89,6 +91,7 @@ export interface BootstrapContainer {
     settingsRepository: SQLiteSettingsRepository;
     userRepository: SqliteUserRepository;
     sessionRepository: SqliteSessionRepository;
+    directorySsoRepository: SqliteDirectorySsoRepository;
     systemSetupRepository: SqliteSystemSetupRepository;
     systemVariableRepository: SqliteSystemVariableRepository;
   };
@@ -99,6 +102,7 @@ export interface BootstrapContainer {
     authService: AuthService;
     systemSetupService: SystemSetupService;
     userManagementService: UserManagementService;
+    directorySsoService: DirectorySsoService;
     assistantService: AssistantService;
     assistantActionService: AssistantActionService;
     haImportService: HomeAssistantImportService;
@@ -333,6 +337,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       ...repos,
       userRepository: authModule.userRepository,
       sessionRepository: authModule.sessionRepository,
+      directorySsoRepository: authModule.directorySsoRepository,
       systemSetupRepository: authModule.systemSetupRepository
     },
     services: {
@@ -342,6 +347,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       authService: authModule.authService,
       systemSetupService: authModule.systemSetupService,
       userManagementService: authModule.userManagementService,
+      directorySsoService: authModule.directorySsoService,
       assistantService: assistantAssembly.assistantService,
       assistantActionService: commandRouterAssembly.assistantActionService,
       haImportService: haModule.haImportService,

@@ -10,6 +10,7 @@ export interface DirectoryLinkRepository {
   create(directoryAccountId: string, localUserId: string): Promise<void>;
   delete(directoryAccountId: string, localUserId: string): Promise<boolean>;
   listByLocalUserId(localUserId: string): Promise<DirectoryAccountLink[]>;
+  linkAndConsume(directoryAccountId: string, localUserId: string, jti: string, expiresAt: string): Promise<void>;
 }
 
 export interface UsedSsoTokenRepository {

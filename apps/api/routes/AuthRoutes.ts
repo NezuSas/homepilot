@@ -4,6 +4,7 @@ import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 import type { LoginAttemptRateLimiter } from '../../../packages/auth/application/LoginAttemptRateLimiter';
+import { DirectorySsoError } from '../../../packages/auth/application/DirectorySsoVerifier';
 
 /**
  * Auth routes: /api/v1/auth/*
@@ -28,10 +29,26 @@ export class AuthRoutes extends ApiRoutes {
     // Authentication responses can contain session material and must never be stored by browsers or intermediaries.
     res.setHeader('Cache-Control', 'no-store');
 
+    // POST /api/v1/auth/sso/directory (public)
+    if (method === 'POST' && pathname === '/api/v1/auth/sso/directory') {
+      try {
+        const payload = await this.parseBody<{ token?: string }>(req);
+        if (!payload.token) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing SSO token'), true;
+        const result = await container.services.directorySsoService.login(payload.token);
+        if (!result.linked) {
+          this.sendJson(res, { linked: false });
+          return true;
+        }
+        this.sendJson(res, { linked: true, token: result.token, user: this.serializeUser(result.user) });
+      } catch (error: unknown) {
+        this.sendDirectorySsoError(res, error);
+      }
+      return true;
+    }
     // POST /api/v1/auth/login (public)
     if (method === 'POST' && pathname === '/api/v1/auth/login') {
       try {
-        const payload = await this.parseBody<{ username?: string; password?: string }>(req);
+        const payload = await this.parseBody<{ username?: string; password?: string; ssoLinkToken?: string }>(req);
         if (!payload.username || !payload.password) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing credentials'), true;
         }
@@ -43,7 +60,13 @@ export class AuthRoutes extends ApiRoutes {
           return this.sendError(res, 429, 'AUTH_RATE_LIMITED', 'Too many login attempts'), true;
         }
 
-        const result = await container.services.authService.login(payload.username, payload.password);
+        const result = await container.services.authService.login(
+          payload.username,
+          payload.password,
+          payload.ssoLinkToken
+            ? async (user) => container.services.directorySsoService.linkAfterLocalLogin(payload.ssoLinkToken!, user.id)
+            : undefined
+        );
 
         if (!result) {
           const lockoutSeconds = this.loginAttemptRateLimiter.registerFailure(loginKey);
@@ -89,8 +112,9 @@ export class AuthRoutes extends ApiRoutes {
             isActive: result.user.isActive,
           },
         });
-      } catch {
-        this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Login Error');
+      } catch (error: unknown) {
+        if (error instanceof DirectorySsoError) this.sendDirectorySsoError(res, error);
+        else this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Login Error');
       }
       return true;
     }
@@ -99,6 +123,21 @@ export class AuthRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
+    // GET /api/v1/auth/sso/links
+    if (method === 'GET' && pathname === '/api/v1/auth/sso/links') {
+      this.sendJson(res, { links: await container.services.directorySsoService.listLinks(req.user!.id) });
+      return true;
+    }
+
+    // DELETE /api/v1/auth/sso/links/:directoryAccountId
+    const unlinkMatch = pathname.match(/^\/api\/v1\/auth\/sso\/links\/([^/]+)$/);
+    if (method === 'DELETE' && unlinkMatch) {
+      const directoryAccountId = decodeURIComponent(unlinkMatch[1]);
+      const deleted = await container.services.directorySsoService.unlink(directoryAccountId, req.user!.id);
+      if (!deleted) return this.sendError(res, 403, 'SSO_LINK_FORBIDDEN', 'Directory link does not belong to this user'), true;
+      this.sendJson(res, { success: true });
+      return true;
+    }
     // POST /api/v1/auth/logout
     if (method === 'POST' && pathname === '/api/v1/auth/logout') {
       const token = req.headers['authorization']?.replace('Bearer ', '').trim();
@@ -175,6 +214,17 @@ export class AuthRoutes extends ApiRoutes {
     return true;
   }
 
+  private serializeUser(user: { id: string; username: string; displayName: string | null; avatarDataUri: string | null; role: string; isActive: boolean }) {
+    return { id: user.id, username: user.username, displayName: user.displayName, avatarDataUri: user.avatarDataUri, role: user.role, isActive: user.isActive };
+  }
+
+  private sendDirectorySsoError(res: http.ServerResponse, error: unknown): void {
+    if (error instanceof DirectorySsoError) {
+      this.sendError(res, error.code === 'SSO_NOT_CONFIGURED' ? 503 : 401, error.code, 'Directory SSO token is not valid');
+      return;
+    }
+    this.sendError(res, 500, 'INTERNAL_ERROR', 'Directory SSO login failed');
+  }
   private createLoginAttemptKey(req: HomePilotRequest, username: string): string {
     const normalizedUsername = username.trim().toLocaleLowerCase().slice(0, 80);
     const clientAddress = req.socket.remoteAddress ?? 'unknown';
