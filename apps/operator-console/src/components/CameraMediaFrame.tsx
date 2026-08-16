@@ -158,6 +158,12 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
             enableWorker: true,
             lowLatencyMode: true,
             backBufferLength: 30,
+            // Native camera segments are ~1s; without these, hls.js's default
+            // liveSyncDurationCount (3 segments) starts playback ~6-8s behind
+            // the live edge (regular HLS, no LL-HLS partial segments to give
+            // lowLatencyMode above anything to work with).
+            liveSyncDurationCount: 2,
+            maxLiveSyncPlaybackRate: 1.3,
           });
           player = hlsPlayer;
           hlsPlayer.attachMedia(video);

@@ -15,8 +15,8 @@ interface NativeHlsRuntime {
   healthTimer: ReturnType<typeof setInterval>;
 }
 
-// ffmpeg is configured to emit a new HLS segment every ~2s (see -hls_time
-// below). If index.m3u8 goes this long without being rewritten, the RTSP
+// ffmpeg is configured to emit a new HLS segment every ~1s (see -hls_time
+// below). If index.m3u8 goes 15x that long without being rewritten, the RTSP
 // source has stalled (silently, without ffmpeg exiting) and playback would
 // otherwise freeze on the last segment forever.
 const STALE_SEGMENT_THRESHOLD_MS = 15_000;
@@ -167,17 +167,17 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       '-r',
       '15',
       '-g',
-      '30',
+      '15',
       '-keyint_min',
-      '30',
+      '15',
       '-sc_threshold',
       '0',
       '-f',
       'hls',
       '-hls_time',
-      '2',
+      '1',
       '-hls_list_size',
-      '6',
+      '8',
       '-hls_flags',
       'delete_segments+independent_segments+program_date_time',
       '-hls_segment_filename',
