@@ -53,8 +53,9 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       return { directory: existing.directory };
     }
 
-    if (existing) this.stopHlsRuntime(deviceId);
-
+    // spawnRuntime looks up and properly awaits termination of any existing
+    // runtime for this device itself — don't race it by tearing the old one
+    // down here first (stopHlsRuntime's process kill is fire-and-forget).
     const directory = await this.spawnRuntime(deviceId, endpoint);
     return { directory };
   }
@@ -63,8 +64,37 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     const runtime = this.runtimes.get(deviceId);
     if (!runtime) return;
     clearInterval(runtime.healthTimer);
-    runtime.process.kill('SIGTERM');
     this.runtimes.delete(deviceId);
+    void this.terminateProcess(runtime.process);
+  }
+
+  // ffmpeg can be blocked in a network read against an unresponsive RTSP
+  // source and ignore SIGTERM indefinitely. Reusing the same HLS directory
+  // (same index.m3u8/segment filenames) before that old process is actually
+  // gone lets it and the freshly spawned one write concurrently, corrupting
+  // the manifest in a way no client reload can recover from. SIGKILL after a
+  // grace period guarantees the old writer is gone before we touch the files.
+  private terminateProcess(proc: ChildProcessWithoutNullStreams, timeoutMs = 3000): Promise<void> {
+    return new Promise((resolve) => {
+      if (proc.killed || proc.exitCode !== null) {
+        resolve();
+        return;
+      }
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(sigkillTimer);
+        resolve();
+      };
+      proc.once('exit', finish);
+      proc.kill('SIGTERM');
+      const sigkillTimer = setTimeout(() => {
+        if (settled) return;
+        proc.kill('SIGKILL');
+        setTimeout(finish, 500);
+      }, timeoutMs);
+    });
   }
 
   private isSegmentOutputStale(indexPath: string): boolean {
@@ -99,8 +129,8 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     const previous = this.runtimes.get(deviceId);
     if (previous) {
       clearInterval(previous.healthTimer);
-      if (!previous.process.killed) previous.process.kill('SIGTERM');
       this.runtimes.delete(deviceId);
+      await this.terminateProcess(previous.process);
     }
 
     const directory = path.join(NATIVE_CAMERA_HLS_ROOT, deviceId);
@@ -172,12 +202,10 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       }
     });
 
-    const healthTimer = this.startHealthWatchdog(deviceId);
-    this.runtimes.set(deviceId, { process: ffmpegProcess, directory, startedAt: Date.now(), endpoint, healthTimer });
     try {
       await this.waitForFile(path.join(directory, 'index.m3u8'), 8000);
     } catch (err) {
-      this.stopHlsRuntime(deviceId);
+      await this.terminateProcess(ffmpegProcess);
       if (ffmpegStderr.includes('401') || ffmpegStderr.toLowerCase().includes('unauthorized') || ffmpegStderr.toLowerCase().includes('authorization failed')) {
         console.error(`[FfmpegMediaTranscoder] ffmpeg 401 Unauthorized for device ${deviceId}. Check camera credentials.`);
         throw new Error('NATIVE_CAMERA_AUTH_FAILED');
@@ -185,6 +213,13 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       console.error(`[FfmpegMediaTranscoder] ffmpeg failed for device ${deviceId}: ${ffmpegStderr.slice(-300)}`);
       throw err;
     }
+
+    // Only start monitoring once the stream has actually produced output.
+    // Registering the watchdog earlier let it observe the pre-existing
+    // index.m3u8 as "stale" during this same startup window and trigger a
+    // second concurrent restart before this attempt had even finished.
+    const healthTimer = this.startHealthWatchdog(deviceId);
+    this.runtimes.set(deviceId, { process: ffmpegProcess, directory, startedAt: Date.now(), endpoint, healthTimer });
     return directory;
   }
 

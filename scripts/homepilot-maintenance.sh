@@ -77,8 +77,15 @@ configure_profile() {
   esac
 
   compose_files=("$compose_file")
-  if [[ "$compose_explicit" == false && "$profile" != "ha_companion" ]] && is_docker_desktop; then
-    compose_files=("docker-compose.office.yml" "docker-compose.desktop.yml")
+  if [[ "$compose_explicit" == false ]] && is_docker_desktop; then
+    case "$profile" in
+      bridge_ha|native_only)
+        compose_files=("docker-compose.office.yml" "docker-compose.desktop.yml")
+        ;;
+      ha_companion)
+        compose_files=("docker-compose.yml" "docker-compose.ha-companion.desktop.yml")
+        ;;
+    esac
   fi
 }
 

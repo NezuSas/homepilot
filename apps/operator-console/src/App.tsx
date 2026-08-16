@@ -76,6 +76,7 @@ const BASIC_HOME_ROLES = new Set(['admin', 'operator', 'parent', 'child', 'guest
 const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
 const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
 const SYSTEM_ROLES = new Set(['admin', 'operator']);
+const REALTIME_REFRESH_DEBOUNCE_MS = 300;
 
 function ViewLoadingState() {
   const { t } = useTranslation();
@@ -177,6 +178,7 @@ function App() {
   const globalWakeConversationAbortRef = useRef<AbortController | null>(null);
   const globalWakeConversationIdRef = useRef(0);
   const globalWakeStartedAtRef = useRef(0);
+  const refreshBurstTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
   const resetAppShellState = useAppShellStore((state) => state.resetAppShellState);
   const resetAssistantState = useAssistantStore((state) => state.resetAssistantState);
@@ -384,12 +386,24 @@ function App() {
       'DeviceAssignedToRoomEvent'
     ];
 
-    if (REFRESH_TRIGGER_EVENTS.includes(lastRealtimeEvent.type)) {
+    if (!REFRESH_TRIGGER_EVENTS.includes(lastRealtimeEvent.type)) {
+      return;
+    }
+
+    // A single user action (e.g. toggling a light) emits a burst of distinct
+    // realtime events (dispatch + state-updated) in quick succession. Debounce
+    // so that burst collapses into one refresh cycle instead of one per event.
+    // refreshAssistantFindings already refreshes the summary internally, so it
+    // isn't triggered separately here.
+    if (refreshBurstTimerRef.current !== null) {
+      window.clearTimeout(refreshBurstTimerRef.current);
+    }
+    refreshBurstTimerRef.current = window.setTimeout(() => {
+      refreshBurstTimerRef.current = null;
       void refreshDeviceSnapshot({ force: true });
       refreshAssistantFindings();
-      refreshAssistantSummary();
-    }
-  }, [status, lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshAssistantSummary, refreshDeviceSnapshot]);
+    }, REALTIME_REFRESH_DEBOUNCE_MS);
+  }, [status, lastRealtimeEvent, pulseSyncStatus, refreshAssistantFindings, refreshDeviceSnapshot]);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -487,6 +501,14 @@ function App() {
     window.addEventListener(HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, handleHomeConversationSpeechActivity);
     return () => {
       window.removeEventListener(HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, handleHomeConversationSpeechActivity);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (refreshBurstTimerRef.current !== null) {
+        window.clearTimeout(refreshBurstTimerRef.current);
+      }
     };
   }, []);
 

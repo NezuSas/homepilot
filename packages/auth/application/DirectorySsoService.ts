@@ -46,9 +46,11 @@ export class DirectorySsoService {
   }
 
   private isUsedTokenConstraint(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
-    const code = 'code' in error && typeof error.code === 'string' ? error.code : '';
-    return code === 'SQLITE_CONSTRAINT' || code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || /UNIQUE constraint failed: directory_sso_used_tokens\.jti/.test(error.message);
+    if (typeof error !== 'object' || error === null) return false;
+    const sqliteError = error as { code?: unknown; message?: unknown };
+    const code = typeof sqliteError.code === 'string' ? sqliteError.code : '';
+    const message = typeof sqliteError.message === 'string' ? sqliteError.message : '';
+    return code === 'SQLITE_CONSTRAINT' || code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || /UNIQUE constraint failed: directory_sso_used_tokens\.jti/.test(message);
   }
   async listLinks(localUserId: string): Promise<DirectoryAccountLink[]> {
     return this.links.listByLocalUserId(localUserId);

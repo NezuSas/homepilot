@@ -51,29 +51,46 @@ async function readJsonResponse<T>(response: Response): Promise<T | null> {
   return response.json() as Promise<T>;
 }
 
+let findingsRequest: Promise<void> | null = null;
+
 export const useAssistantStore = create<AssistantStoreState>((set, get) => ({
   ...initialState,
 
-  refreshFindings: async () => {
+  refreshFindings: () => {
+    if (findingsRequest) {
+      return findingsRequest;
+    }
+
     const hasData = get().findings.length > 0;
     set({ isLoading: !hasData });
 
-    try {
-      const response = await apiFetch(API_ENDPOINTS.assistant.findings);
-      const findings = await readJsonResponse<AssistantFinding[]>(response);
+    const request = (async () => {
+      try {
+        const response = await apiFetch(API_ENDPOINTS.assistant.findings);
+        const findings = await readJsonResponse<AssistantFinding[]>(response);
 
-      if (Array.isArray(findings)) {
-        set({ findings });
-        await useAppShellStore.getState().refreshAssistantSummary();
-      } else if (findings !== null) {
-         // Log unexpected non-null, non-array shape
-         console.warn('[AssistantStore] Expected array of findings but received:', findings);
+        if (Array.isArray(findings)) {
+          set({ findings });
+          await useAppShellStore.getState().refreshAssistantSummary();
+        } else if (findings !== null) {
+           // Log unexpected non-null, non-array shape
+           console.warn('[AssistantStore] Expected array of findings but received:', findings);
+        }
+      } catch (error) {
+        console.error('[AssistantStore] Failed to fetch findings:', error);
+      } finally {
+        set({ isLoading: false });
       }
-    } catch (error) {
-      console.error('[AssistantStore] Failed to fetch findings:', error);
-    } finally {
-      set({ isLoading: false });
-    }
+    })();
+
+    findingsRequest = request;
+    void request.finally(() => {
+      if (findingsRequest === request) {
+        findingsRequest = null;
+      }
+    });
+
+    return request;
   },
 
   scanFindings: async () => {

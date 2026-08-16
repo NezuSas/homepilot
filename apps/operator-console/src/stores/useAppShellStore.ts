@@ -45,6 +45,7 @@ const SYNC_STATUS_RESET_DELAY_MS = 1500;
 const MAX_RECENT_REALTIME_EVENTS = 20;
 
 let syncStatusResetTimer: ReturnType<typeof window.setTimeout> | null = null;
+let summaryRequest: Promise<void> | null = null;
 
 const getInitialTheme = (): 'dark' | 'light' => {
   if (typeof window !== 'undefined') {
@@ -83,25 +84,40 @@ export const useAppShellStore = create<AppShellState>((set) => ({
     set({ assistantSummary });
   },
 
-  refreshAssistantSummary: async () => {
-    try {
-      const response = await apiFetch(API_ENDPOINTS.assistant.summary);
-      const contentType = response.headers.get('content-type');
-
-      if (!response.ok || !contentType || !contentType.includes('application/json')) {
-        return;
-      }
-
-      const rawSummary: unknown = await response.json();
-      
-      if (isAssistantSummary(rawSummary)) {
-        set({ assistantSummary: rawSummary });
-      } else {
-        console.warn('[AppShellStore] Received invalid assistant summary shape:', rawSummary);
-      }
-    } catch {
-      // Keep current summary state if refresh fails.
+  refreshAssistantSummary: () => {
+    if (summaryRequest) {
+      return summaryRequest;
     }
+
+    const request = (async () => {
+      try {
+        const response = await apiFetch(API_ENDPOINTS.assistant.summary);
+        const contentType = response.headers.get('content-type');
+
+        if (!response.ok || !contentType || !contentType.includes('application/json')) {
+          return;
+        }
+
+        const rawSummary: unknown = await response.json();
+
+        if (isAssistantSummary(rawSummary)) {
+          set({ assistantSummary: rawSummary });
+        } else {
+          console.warn('[AppShellStore] Received invalid assistant summary shape:', rawSummary);
+        }
+      } catch {
+        // Keep current summary state if refresh fails.
+      }
+    })();
+
+    summaryRequest = request;
+    void request.finally(() => {
+      if (summaryRequest === request) {
+        summaryRequest = null;
+      }
+    });
+
+    return request;
   },
 
   setRealtimeConnected: (isRealtimeConnected) => {
