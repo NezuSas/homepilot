@@ -23,7 +23,6 @@ interface CameraMediaSession {
   snapshotPath: string;
   streamPath: string;
   hlsPath?: string;
-  livePath?: string;
 }
 
 function absoluteApiUrl(path: string): string {
@@ -35,14 +34,7 @@ function isCameraMediaSession(value: unknown): value is CameraMediaSession {
   const session = value as Record<string, unknown>;
   return typeof session.snapshotPath === 'string'
     && typeof session.streamPath === 'string'
-    && (session.hlsPath === undefined || typeof session.hlsPath === 'string')
-    && (session.livePath === undefined || typeof session.livePath === 'string');
-}
-
-function preferredModeFor(session: Pick<CameraMediaSession, 'livePath' | 'hlsPath'>): CameraFeedMode {
-  if (session.livePath) return 'live';
-  if (session.hlsPath) return 'hls';
-  return 'stream';
+    && (session.hlsPath === undefined || typeof session.hlsPath === 'string');
 }
 
 export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, roomName, isDuplicateName }) => {
@@ -78,7 +70,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_SESSION');
       mediaRef.current = payload;
       setMedia(payload);
-      if (isInitialLoad) setFeedMode(preferredModeFor(payload));
+      if (isInitialLoad) setFeedMode(payload.hlsPath ? 'hls' : 'stream');
       sessionReady = true;
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -145,13 +137,12 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setFeedMode(mediaRef.current ? preferredModeFor(mediaRef.current) : 'stream');
+    setFeedMode(mediaRef.current?.hlsPath ? 'hls' : 'stream');
     setIsConnecting(true);
     setHasFeedError(false);
     setRetryVersion((version) => version + 1);
   };
 
-  const liveUrl = media?.livePath ? absoluteApiUrl(media.livePath) : undefined;
   const hlsUrl = media?.hlsPath ? absoluteApiUrl(media.hlsPath) : undefined;
   const streamUrl = media ? absoluteApiUrl(media.streamPath) : '';
   const snapshotUrl = media ? absoluteApiUrl(media.snapshotPath) : '';
@@ -176,7 +167,6 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           {media && !hasFeedError && !unavailable && (
             <CameraMediaFrame
               active={!isViewerOpen}
-              liveUrl={liveUrl}
               hlsUrl={hlsUrl}
               streamUrl={streamUrl}
               snapshotUrl={snapshotUrl}
@@ -231,10 +221,9 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           name={displayName}
           roomName={roomName}
           streamUrl={absoluteApiUrl(viewerMedia.streamPath)}
-          liveUrl={viewerMedia.livePath ? absoluteApiUrl(viewerMedia.livePath) : undefined}
           hlsUrl={viewerMedia.hlsPath ? absoluteApiUrl(viewerMedia.hlsPath) : undefined}
           snapshotUrl={absoluteApiUrl(viewerMedia.snapshotPath)}
-          preferredMode={preferredModeFor(viewerMedia)}
+          preferredMode={viewerMedia.hlsPath ? 'hls' : 'stream'}
           onClose={closeViewer}
           deviceId={device.id}
           ptzSupported={device.capabilities?.some((capability) => capability.type === 'camera_ptz') ?? false}

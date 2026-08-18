@@ -88,19 +88,12 @@ interface CameraMediaSession {
   snapshotPath: string;
   streamPath: string;
   hlsPath?: string;
-  livePath?: string;
 }
 
 function isCameraMediaSession(v: unknown): v is CameraMediaSession {
   if (!v || typeof v !== 'object') return false;
   const s = v as Record<string, unknown>;
   return typeof s.snapshotPath === 'string' && typeof s.streamPath === 'string';
-}
-
-function preferredModeFor(session: Pick<CameraMediaSession, 'livePath' | 'hlsPath'>): CameraFeedMode {
-  if (session.livePath) return 'live';
-  if (session.hlsPath) return 'hls';
-  return 'stream';
 }
 
 function absoluteSessionUrl(path: string): string {
@@ -132,7 +125,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_SESSION');
       sessionRef.current = payload;
       setSession(payload);
-      setFeedMode(preferredModeFor(payload));
+      setFeedMode(payload.hlsPath ? 'hls' : 'stream');
       setIsConnecting(false);
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -155,7 +148,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
   const retry = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setFeedMode(sessionRef.current ? preferredModeFor(sessionRef.current) : 'stream');
+    setFeedMode(sessionRef.current?.hlsPath ? 'hls' : 'stream');
     setIsConnecting(true);
     setHasFeedError(false);
     setRetryVersion((version) => version + 1);
@@ -192,7 +185,6 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
   const streamUrl = absoluteSessionUrl(session.streamPath);
   const snapshotUrl = absoluteSessionUrl(session.snapshotPath);
   const hlsUrl = session.hlsPath ? absoluteSessionUrl(session.hlsPath) : undefined;
-  const liveUrl = session.livePath ? absoluteSessionUrl(session.livePath) : undefined;
   const openViewer = () => {
     viewerSessionControllerRef.current?.abort();
     const controller = new AbortController();
@@ -235,7 +227,6 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
       >
         <CameraMediaFrame
           active={!isViewerOpen}
-          liveUrl={liveUrl}
           hlsUrl={hlsUrl}
           streamUrl={streamUrl}
           snapshotUrl={snapshotUrl}
@@ -256,10 +247,9 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
           isOpen={isViewerOpen}
           name={title}
           streamUrl={absoluteSessionUrl(viewerSession.streamPath)}
-          liveUrl={viewerSession.livePath ? absoluteSessionUrl(viewerSession.livePath) : undefined}
           hlsUrl={viewerSession.hlsPath ? absoluteSessionUrl(viewerSession.hlsPath) : undefined}
           snapshotUrl={absoluteSessionUrl(viewerSession.snapshotPath)}
-          preferredMode={preferredModeFor(viewerSession)}
+          preferredMode={viewerSession.hlsPath ? 'hls' : 'stream'}
           onClose={closeViewer}
         />
       )}
