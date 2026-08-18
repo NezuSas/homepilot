@@ -1,64 +1,65 @@
-# Tareas: Asistente Doméstico Nezu V1
+# Tasks: Nezu Domestic Assistant V1
 
-Especificación principal: [nezu-domestic-assistant-v1.md](./nezu-domestic-assistant-v1.md)
+Primary specification: [nezu-domestic-assistant-v1.md](./nezu-domestic-assistant-v1.md)
 
-## Preparación de producto
+## Product preparation
 
-- [x] Definir identidad residencial Nezu sin introducir un asistente paralelo.
-- [x] Delimitar alcance, exclusiones y fuente de verdad HomePilot.
-- [x] Definir ciclo de interacción, cancelación y prevención de respuestas obsoletas.
-- [x] Definir requisitos de permisos, confirmación, privacidad, i18n y accesibilidad.
-- [x] Registrar criterios de aceptación y decisiones pendientes.
+- [x] Define the Nezu residential identity without introducing a parallel assistant.
+- [x] Bound scope, exclusions, and the HomePilot source of truth.
+- [x] Define the interaction lifecycle, cancellation, and stale-response prevention.
+- [x] Define requirements for permissions, confirmation, privacy, i18n, and accessibility.
+- [x] Record acceptance criteria and open decisions.
 
-## Fase A — Contratos y ciclo
+## Phase A — Contracts and lifecycle
 
-- [ ] Inventariar los estados actuales de chat, activador, STT, TTS y ejecución contra RF-01 y RF-02.
-- [ ] Definir el contrato interno de turno sin cambiar rutas HTTP públicas.
-- [ ] Centralizar invalidación de callbacks por `turnId` y origen.
-- [ ] Añadir pruebas para cancelación y carreras de respuestas tardías.
+- [x] Inventory current chat, wake-word, STT, TTS, and execution states against RF-01 and RF-02. Evidence: `assistant-interaction-turn-lifecycle-v1.md`.
+- [x] Define the internal turn contract without changing public HTTP routes. Evidence: `AssistantTurnCoordinator`.
+- [x] Centralize callback invalidation by `turnId` and origin.
+- [x] Add tests for cancellation and late-response races.
 
-## Fase B — Voz robusta
+## Phase B — Robust voice
 
-- [ ] Verificar una solicitud STT por captura aceptada.
-- [ ] Cubrir 409, timeout, transcript vacío e interrupción sin dejar bloqueos.
-- [ ] Verificar que el activador limpia el turno previo y emite un solo sonido.
-- [ ] Confirmar fallback escrito ante fallo de TTS.
+- [ ] Verify one STT request for each accepted capture.
+- [x] Cover 409, timeout, empty transcript, and interruption without leaving interaction locks. Evidence: assistant API cancellation and recovery tests.
+- [ ] Verify that the wake-word listener clears the previous turn and emits only one acknowledgement sound.
+- [x] Confirm a written fallback when TTS fails or is cancelled. Evidence: `assistantApi.test.ts`.
 
-## Fase C — Contexto y seguridad
+## Phase C — Context and safety
 
-- [ ] Verificar que el contexto solo contenga entidades autorizadas.
-- [ ] Validar la política de confirmación por origen y sensibilidad.
-- [ ] Reducir auditorías técnicas repetitivas y conservar datos accionables.
-- [ ] Asegurar que secretos, audio y prompts no lleguen a la UI ni a logs ordinarios.
+- [x] Verify that context contains only authorized entities. Evidence: `assistant_home_isolation.test.ts`.
+- [x] Validate the confirmation policy by origin and sensitivity. Evidence: `assistant_bulk_confirmation.test.ts` and `assistant_bulk_room_parity.test.ts`.
+- [x] Reduce repetitive technical audit events while retaining actionable data. Evidence: `assistant-audit-noise-reduction-v1.md` and `HomeAssistantRealtimeSyncManager.test.ts`.
+- [x] Ensure secrets, audio, and prompts never reach the UI or ordinary logs. Evidence: sanitized assistant telemetry and privacy tests.
 
-## Fase D — Experiencia residencial
+## Phase D — Residential experience
 
-- [ ] Definir el contrato de resultado semántico y el catálogo de claves de respuesta, sin frases completas en servicios de dominio.
-- [ ] Migrar textos de éxito, error, aclaración, confirmación y cancelación del asistente a catálogos i18n centrales con parámetros tipados.
-- [ ] Añadir validación que detecte claves del asistente ausentes en español o inglés y textos literales nuevos fuera de los catálogos autorizados.
-- [ ] Verificar que las variantes de tono no alteren el resultado confirmado ni revelen datos fuera de contexto.
+- [x] Define the bounded semantic-result contract and response-key catalog without changing the public conversation response. Evidence: `assistant-semantic-response-contract-v1.md`.
+- [ ] Migrate assistant success, error, clarification, confirmation, and cancellation copy to central i18n catalogs with typed parameters.
+- [ ] Add validation that detects missing assistant keys in Spanish or English and new literal text outside approved catalogs.
+- [x] Verify that tone variants never alter the confirmed result or reveal out-of-context data. Evidence: `assistant-personalization-safety-v1.md` and `assistant_home_isolation.test.ts`.
 
-- [x] Aplicar respuestas concisas y sin inventario no solicitado.
-- [x] Persistir por usuario una preferencia local de respuestas breves, normales o detalladas sin modificar acciones, confirmaciones ni permisos.
-- [ ] Confirmar traducción completa en español e inglés, incluido TTS.
-- [ ] Verificar compositor de chat y voz en escritorio, tableta, móvil y teclado virtual.
-- [ ] Validar sincronización de estados en todas las superficies relevantes.
+- [x] Apply concise responses without unsolicited inventory.
+- [x] Persist a per-user local preference for concise, standard, or detailed responses without changing actions, confirmations, or permissions.
+- [x] Preserve natural Spanish and English phrasing for unambiguous single-entity follow-ups without bypassing safety. Evidence: `assistant-natural-follow-up-resolution-v1.md`.
+- [ ] Confirm complete Spanish and English translation, including TTS.
+- [ ] Verify the chat and voice composer on desktop, tablet, mobile, and virtual keyboard.
+- [ ] Validate state synchronization across every relevant surface.
 
-## Fase E — Proveedores y calidad de voz
+## Phase E — Providers and voice quality
 
-- [ ] Inventariar el activador, Whisper local y Piper contra los contratos de proveedor definidos en la spec.
-- [ ] Centralizar `turnId`, cancelación e invalidación de callbacks en todos los orígenes de interacción.
-- [ ] Añadir configuración administrativa explícita y segura para proveedores premium opcionales.
-- [ ] Verificar fallback a Piper ante proveedor premium ausente, fallido o sin cuota.
-- [ ] Prohibir clonación, imitación o atribución de voces de terceros en configuración y documentación.
-- [ ] Ejecutar evaluación controlada de `Ok Nezu` en español: precisión, falsos positivos, silencio y ruido residencial.
-- [ ] Verificar que el idioma de HomePilot gobierne texto y TTS sin depender del navegador.
+- [x] Inventory the wake-word listener, local Whisper, and Piper against the provider contracts defined in the specification. Evidence: `assistant-voice-provider-baseline-v1.md`.
+- [x] Centralize `turnId`, cancellation, and callback invalidation for every interaction origin. Evidence: `AssistantTurnCoordinator`.
+- [ ] Add explicit, secure administrative configuration for optional premium providers.
+- [x] Verify fallback to Piper or written text when TTS is unavailable, fails, or is cancelled. Evidence: `assistantApi.test.ts`.
+- [x] Prohibit cloning, imitation, or attribution of third-party voices in configuration and documentation. Evidence: `assistant-voice-provider-baseline-v1.md`.
+- [ ] Run a controlled Spanish `Ok Nezu` evaluation: precision, false positives, silence, and residential noise.
+- [x] Verify that the HomePilot language governs text and TTS independently from the browser. Evidence: `apiClient.test.ts` and `AssistantRoutes.test.ts`.
 
-## Fase F — Calidad y despliegue
+## Phase F — Quality and deployment
 
-- [ ] Añadir pruebas de integración para casos UC-01 a UC-07.
-- [ ] Ejecutar `npm run typecheck`.
-- [ ] Ejecutar `npm run build`.
-- [ ] Ejecutar `npm run build --prefix apps/operator-console`.
-- [ ] Ejecutar `npm run test`.
-- [ ] Validar `docker compose up --build` en un entorno de instalación soportado.
+- [x] Verify integration coverage for UC-01 through UC-07. Evidence: `assistant-domestic-use-case-verification-v1.md`.
+- [x] Run `npm run typecheck`.
+- [x] Run `npm run build`.
+- [x] Run `npm run build --prefix apps/operator-console`.
+- [x] Run `npm run test`.
+- [x] Validate `docker compose up --build` in a supported installation environment.

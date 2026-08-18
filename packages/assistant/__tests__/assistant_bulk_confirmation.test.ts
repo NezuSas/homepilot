@@ -163,6 +163,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     });
     mockMemory.getShortTermMemory.mockResolvedValue(null);
 
+    const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
     const res = await service.converse({ prompt: 'ejecuta la rutina combinada dos', userId: 'u1' }, 'es');
 
     // Guard: this prompt must actually reach the semantic path, not be intercepted
@@ -173,6 +174,11 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
       command: 'turn_on', deviceIds: ['d1', 'd2']
     }));
+    const confirmationLog = consoleInfoSpy.mock.calls
+      .map(([value]) => String(value))
+      .find(value => value.includes('[ASSISTANT_CONFIRMATION_REQUIRED]'));
+    expect(confirmationLog).toContain('count');
+    expect(confirmationLog).not.toContain('ejecuta la rutina combinada dos');
 
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
     mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
@@ -181,6 +187,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     expect(confirmRes.type).toBe('execution');
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
+    consoleInfoSpy.mockRestore();
   });
 
   it('triggers confirmation when a category is resolved', async () => {

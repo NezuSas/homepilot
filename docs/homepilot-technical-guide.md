@@ -464,8 +464,8 @@ Relevant Docker Compose variables:
 | OLLAMA_BASE_URL | Internal Ollama URL from the API |
 | OLLAMA_MODEL | Model used by the assistant |
 | OLLAMA_TIMEOUT_MS | Model request timeout |
-| ASSISTANT_PLANNER_V2_SHADOW | Runs Planner V2 in shadow mode for comparison |
-| ASSISTANT_PLANNER_V2_EXECUTION | Allows Planner V2 to execute actions when enabled |
+| ASSISTANT_PLANNER_V2_SHADOW | Runs sampled Planner V2 shadow evaluation for comparison; enabled by default in Docker |
+| ASSISTANT_PLANNER_V2_EXECUTION | Allows Planner V2 to execute actions only after the documented rollout criteria are met |
 | STT_PROVIDER | STT provider, for example whisper-local |
 | STT_BASE_URL | Internal STT service URL |
 | STT_TIMEOUT_MS | Transcription timeout |
@@ -562,7 +562,7 @@ Migrations are stored in migrations and recorded in _migrations. Do not edit the
 | Assistant | assistant_findings, assistant_feedback_events, assistant_drafts, assistant_memory, assistant_learning_events | Persists suggestions, feedback, memory, and learning |
 ## Relevant environment variables
 
-These are the local WSL development values used to run the real test runtime. They are visible here because they explain the working environment; never commit real secrets.
+These are the safe production rollout defaults for Planner V2. A local operator may override them in an untracked environment file for controlled testing; never commit real secrets.
 
 ~~~bash
 HOMEPILOT_DEV_BOOTSTRAP=true
@@ -574,12 +574,12 @@ OLLAMA_MODEL=phi3
 OLLAMA_TIMEOUT_MS=30000
 
 ASSISTANT_PLANNER_V2_SHADOW=true
-ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE=1
+ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE=0.1
 ASSISTANT_PLANNER_V2_SHADOW_FORCE=true
 ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT=true
 ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT=true
 ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS=20000
-ASSISTANT_PLANNER_V2_EXECUTION=true
+ASSISTANT_PLANNER_V2_EXECUTION=false
 ASSISTANT_PLANNER_V2_SHADOW_MODEL=qwen2.5:1.5b
 
 TTS_PROVIDER=piper
@@ -600,7 +600,7 @@ WHISPER_VAD_SPEECH_PAD_MS=400
 WHISPER_MAX_AUDIO_BYTES=9000000
 ~~~
 
-| Variable | Current local value | Description |
+| Variable | Safe production rollout default | Description |
 |---|---|---|
 | HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
@@ -610,12 +610,12 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | OLLAMA_MODEL | phi3 | Main assistant model |
 | OLLAMA_TIMEOUT_MS | 30000 | Maximum wait for a model response |
 | ASSISTANT_PLANNER_V2_SHADOW | true | Runs Planner V2 in comparison/validation mode |
-| ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE | 1 | Executes shadow mode for 100 percent of eligible cases |
+| ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE | 0.1 | Samples 10 percent of eligible cases to protect low-power Edge hardware |
 | ASSISTANT_PLANNER_V2_SHADOW_FORCE | true | Forces shadow execution even when ordinary sampling would skip it |
 | ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT | true | Uses a lightweight prompt as planner-shadow fallback |
 | ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT | true | Uses an ultra-light prompt to reduce local latency/cost |
 | ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS | 20000 | Planner V2 shadow timeout |
-| ASSISTANT_PLANNER_V2_EXECUTION | true | Allows Planner V2 actions; operate carefully because devices can be controlled |
+| ASSISTANT_PLANNER_V2_EXECUTION | false | Opt-in live Planner V2 execution; enable only after the production rollout criteria in `assistant-planner-v2-production-rollout-v1.md` are met |
 | ASSISTANT_PLANNER_V2_SHADOW_MODEL | qwen2.5:1.5b | Alternative model for the shadow planner |
 | TTS_PROVIDER | piper | Voice synthesis engine |
 | TTS_BASE_URL | http://homepilot-tts:8088 | Internal Docker URL for TTS |
@@ -632,6 +632,22 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | WHISPER_VAD_MIN_SILENCE_MS | 650 | Minimum silence used to split voice segments |
 | WHISPER_VAD_SPEECH_PAD_MS | 400 | Padding added around detected speech |
 | WHISPER_MAX_AUDIO_BYTES | 9000000 | Maximum audio size accepted by STT |
+
+### Planner V2 shadow review
+
+Keep `ASSISTANT_PLANNER_V2_EXECUTION=false` while shadow diagnostics are collected. On the target appliance, aggregate only the structured diagnostic logs:
+
+~~~bash
+docker compose logs --no-log-prefix homepilot-api | node scripts/review-planner-v2-shadow.mjs
+~~~
+
+Use `--strict` to make the command fail when the automatable sample-size, valid-plan-resolution, or p95-latency checks are not met:
+
+~~~bash
+docker compose logs --no-log-prefix homepilot-api | node scripts/review-planner-v2-shadow.mjs --strict
+~~~
+
+The report intentionally contains aggregate metrics only. It does not print prompts, audio, credentials, tokens, or a promotion decision. The manual safety, candidate-review, and circuit-breaker evidence in `assistant-planner-v2-production-rollout-v1.md` remains mandatory before enabling live execution.
 
 Additional container variables:
 

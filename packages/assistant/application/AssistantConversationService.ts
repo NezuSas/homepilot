@@ -46,6 +46,7 @@ import {
   normalizeAssistantPreferredAddress
 } from './response/AssistantConversationProfile';
 import { AssistantQuickResponseService } from './AssistantQuickResponseService';
+import { getAssistantResponseText } from './response/AssistantResponseCatalog';
 import { extractNezuWakeCommand } from '../../shared/domain/nezuWakePhrases';
 import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
 import { detectAssistantLanguage, detectAssistantLanguageOverride } from './AssistantLanguagePolicy';
@@ -171,6 +172,13 @@ export class AssistantConversationService {
   private static readonly CONFIRMATION_TICKET_TTL_MS = 120_000;
 
   /**
+   * The pre-existing conversational confirmation window for a single pending intent.
+   * UI and natural-language confirmations share this exact bound so neither origin can
+   * execute a stale intent.
+   */
+  private static readonly PENDING_INTENT_CONFIRMATION_TTL_MS = 300_000;
+
+  /**
    * Persists a single-use, TTL-bound confirmation ticket for a proposed bulk/multi-device
    * action. No-op if no ConfirmationTicketRepository is wired (legacy/test contexts) —
    * callers degrade gracefully to "propose but never confirmable", never to
@@ -248,7 +256,7 @@ export class AssistantConversationService {
       await this.memoryService.setUserPreference(userId, 'preferred_language', langOverride);
       return {
         type: 'answer',
-        message: langOverride === 'en' ? "Got it. I'll speak in English from now on." : "Perfecto. A partir de ahora hablaré en español."
+        message: getAssistantResponseText('language.updated', langOverride, {})
       };
     }
     const detectedLang = detectAssistantLanguage(prompt);
@@ -281,15 +289,15 @@ export class AssistantConversationService {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
       if (isAffirmative) return this.returnWithShadow(activePrompt, userId, language, await this.executeManagementAction(memory.pendingManagementAction, userId, language));
-      if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }); }
+      if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }); }
     }
 
     // B) Alias Delete Confirmation
     if (memory?.pendingAliasDelete) {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
-      if (isAffirmative) { await this.memoryService.deleteAlias(userId, memory.pendingAliasDelete.alias); await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? `Done, I deleted the alias '${memory.pendingAliasDelete.alias}'.` : `Listo, eliminé el alias '${memory.pendingAliasDelete.alias}'.` }; }
-      if (isNegative) { await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }; }
+      if (isAffirmative) { await this.memoryService.deleteAlias(userId, memory.pendingAliasDelete.alias); await this.clearPendingAction(userId); return { type: 'answer', message: getAssistantResponseText('alias.deleted', language, { alias: memory.pendingAliasDelete.alias }) }; }
+      if (isNegative) { await this.clearPendingAction(userId); return { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }; }
     }
 
     // C) Bulk Action Confirmation — persisted ticket, single-use, TTL enforced by the
@@ -307,17 +315,27 @@ export class AssistantConversationService {
       const isAffirmative = request.selectedOptionId === 'confirm' || this.isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || this.isNegativeConfirmation(normalized);
       if (isAffirmative) {
-        try { await this.draftService.activateDraft(memory.pendingDraft.id, userId); await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Ready. Scene activated successfully. Systems aligned." : "Listo. Escena activada correctamente. Sistemas alineados." }); }
-        catch (err: unknown) { return this.returnWithShadow(activePrompt, userId, language, { type: 'error', message: language === 'en' ? "Failed to activate draft." : "No se pudo activar la escena." }); }
+        try { await this.draftService.activateDraft(memory.pendingDraft.id, userId); await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('draft.activated', language, {}) }); }
+        catch (err: unknown) { return this.returnWithShadow(activePrompt, userId, language, { type: 'error', message: getAssistantResponseText('draft.activation_failed', language, {}) }); }
       }
-      if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Understood, I didn't activate the scene." : "Entendido, no activé la escena." }); }
+      if (isNegative) { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('draft.cancelled', language, {}) }); }
     }
 
     // E) Selected Option Flow (UI clicks)
     if (request.selectedOptionId) {
+      if (memory?.source === 'sensor_reading') {
+        return await this.handleSensorReadingSelection(userId, request.selectedOptionId, language);
+      }
       if (memory?.pendingIntent && (request.selectedOptionId === 'confirm' || request.selectedOptionId === 'cancel')) {
+        if (!this.isPendingIntentConfirmationActive(memory.pendingIntent)) {
+          await this.clearPendingAction(userId);
+          return {
+            type: 'answer',
+            message: getAssistantResponseText('confirmation.expired', language, {})
+          };
+        }
         if (request.selectedOptionId === 'confirm') { request.confirmed = true; return this.returnWithShadow(activePrompt, userId, language, await this.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory)); }
-        else { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }); }
+        else { await this.clearPendingAction(userId); return this.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }); }
       }
       return await this.handleSelection(request, language);
     }
@@ -325,11 +343,15 @@ export class AssistantConversationService {
     // F) Natural Language Confirmations (Yes/No)
     if (this.isConfirmation(normalized)) {
       if (memory?.pendingIntent) {
-        const now = Date.now();
-        const pendingTime = new Date(memory.pendingIntent.timestamp).getTime();
-        if (now - pendingTime < 300000) {
+        if (this.isPendingIntentConfirmationActive(memory.pendingIntent)) {
           if (this.isPositiveConfirmation(normalized)) { request.confirmed = true; return await this.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory); }
-          else if (this.isNegativeConfirmation(normalized)) { await this.clearPendingAction(userId); return { type: 'answer', message: language === 'en' ? "Action cancelled." : "Acción cancelada." }; }
+          else if (this.isNegativeConfirmation(normalized)) { await this.clearPendingAction(userId); return { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }; }
+        } else {
+          await this.clearPendingAction(userId);
+          return {
+            type: 'answer',
+            message: getAssistantResponseText('confirmation.expired', language, {})
+          };
         }
       }
       const pendingSuggestion = memory?.pendingSuggestion;
@@ -338,7 +360,7 @@ export class AssistantConversationService {
         if (this.isSuggestionReject(normalized)) return await this.handleSuggestionReject(userId, language, pendingSuggestion);
         if (this.isSuggestionPostpone(normalized)) return await this.handleSuggestionPostpone(userId, language, pendingSuggestion);
       }
-      if (this.isPositiveConfirmation(normalized)) return { type: 'answer', message: language === 'en' ? "Confirm what? I don't have any pending actions." : "¿Confirmar qué? No tengo ninguna acción pendiente." };
+      if (this.isPositiveConfirmation(normalized)) return { type: 'answer', message: getAssistantResponseText('confirmation.none_pending', language, {}) };
     }
 
     // --- 2. NATURAL-LANGUAGE CLARIFICATION SELECTION FROM MEMORY ---
@@ -369,6 +391,9 @@ export class AssistantConversationService {
         if (normalized.startsWith('y ') || normalized.startsWith('and ')) selectionPrompt = normalized.substring(normalized.startsWith('y ') ? 2 : 4).trim();
         const selectedId = this.resolveSelectionFromMemory(selectionPrompt, memory.clarificationOptions, language);
         if (selectedId) {
+          if (memory.source === 'sensor_reading') {
+            return await this.handleSensorReadingSelection(userId, selectedId, language);
+          }
           const selectedOption = memory.clarificationOptions.find(opt => opt.id === selectedId);
           let command = memory.pendingIntent?.type === 'command' ? memory.pendingIntent.command : undefined;
           if (!command) command = this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
@@ -453,6 +478,7 @@ export class AssistantConversationService {
     if (this.isEquivalenceQuery(resolvedNormalized)) return this.handleEquivalenceQuery(language);
     if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language, userId);
     if (this.isDraftCreation(resolvedNormalized)) return await this.handleDraftCreation(resolvedNormalized, language, userId);
+    if (this.isSensorReadingQuery(resolvedNormalized)) return await this.handleSensorReadingQuery(resolvedNormalized, language, userId);
     if (this.isPointStateQuery(resolvedNormalized)) return await this.handlePointStateQuery(resolvedNormalized, language, userId);
     if (this.isStateQuery(resolvedNormalized)) return await this.handleStateQuery(resolvedNormalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
     if (this.isManagementIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language);
@@ -475,8 +501,8 @@ export class AssistantConversationService {
 
     if (!this.isLikelyHomeControlPrompt(resolvedNormalized)) {
       const conversationalResponse = await this.smallTalkService.handle(activePrompt, language, userName, userId);
-      if (isAssistantConversationTone(storedConversationTone) && storedConversationTone !== 'neutral') {
-        const prefix = storedConversationTone === 'warm'
+      if (conversationTone !== 'neutral') {
+        const prefix = conversationTone === 'warm'
           ? (language === 'en' ? 'Of course. ' : 'Con gusto. ')
           : (language === 'en' ? 'Understood. ' : 'Entendido. ');
         conversationalResponse.message = `${prefix}${conversationalResponse.message}`;
@@ -528,9 +554,7 @@ export class AssistantConversationService {
       if (this.isLikelyHomeControlPrompt(normalizeAssistantPrompt(prompt))) {
         return {
           type: 'answer',
-          message: language === 'en'
-            ? "I did not understand that command. Give me the device and room, for example: turn off the living room light."
-            : "No entendí ese comando. Indícame dispositivo y estancia, por ejemplo: apaga la luz de la sala."
+          message: getAssistantResponseText('command.not_understood', language, {})
         };
       }
 
@@ -739,13 +763,13 @@ export class AssistantConversationService {
       try {
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
-        const result = await this.executeAuthorizedCommand(userId, intent.deviceId, intent.command, intent.prompt, correlationId);
+        const result = await this.executeAuthorizedCommand(userId, intent.deviceId, intent.command, intent.prompt, correlationId, intent.params);
 
         if (result.status === 'failed') {
           this.learningService.recordCommandResult(userId, intent.deviceId, false, result.actions[0]?.error || 'Unknown error').catch(() => {});
           return this.withJarvisStyle({
             type: 'error',
-            message: result.actions[0]?.userMessage || result.actions[0]?.error || (language === 'en' ? "Execution failed." : "La ejecución falló."),
+            message: result.actions[0]?.userMessage || result.actions[0]?.error || getAssistantResponseText('execution.failed', language, {}),
             execution: result
           }, {
             status: 'failed',
@@ -785,7 +809,7 @@ export class AssistantConversationService {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           type: 'error',
-          message: errorMessage || (language === 'en' ? "Unknown error during execution." : "Error desconocido durante la ejecución.")
+          message: errorMessage || getAssistantResponseText('execution.unknown_error', language, {})
         };
       }
     }
@@ -828,7 +852,7 @@ export class AssistantConversationService {
         for (const action of intent.actions) {
           const device = await this.deviceRepository.findDeviceById(action.deviceId);
           const deviceName = device?.name ?? action.targetName ?? action.deviceId;
-          const result = await this.executeAuthorizedCommand(userId, action.deviceId, action.command, intent.prompt, correlationId);
+          const result = await this.executeAuthorizedCommand(userId, action.deviceId, action.command, intent.prompt, correlationId, action.params);
           results.push({ action, deviceName, result });
           if (device) {
             entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
@@ -861,7 +885,7 @@ export class AssistantConversationService {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           type: 'error',
-          message: errorMessage || (language === 'en' ? "Unknown error during execution." : "Error desconocido durante la ejecución.")
+          message: errorMessage || getAssistantResponseText('execution.unknown_error', language, {})
         };
       }
     }
@@ -894,6 +918,14 @@ export class AssistantConversationService {
         originalPrompt: undefined
       });
     }
+  }
+
+  private isPendingIntentConfirmationActive(pendingIntent: NonNullable<AssistantMemoryState['pendingIntent']>): boolean {
+    const pendingAt = new Date(pendingIntent.timestamp).getTime();
+    if (!Number.isFinite(pendingAt)) return false;
+
+    const elapsed = Date.now() - pendingAt;
+    return elapsed >= 0 && elapsed < AssistantConversationService.PENDING_INTENT_CONFIRMATION_TTL_MS;
   }
 
   private isConfirmation(normalized: string): boolean {
@@ -1176,7 +1208,7 @@ export class AssistantConversationService {
       : (request.selectedOptionId ?? request.pendingAction?.targetId);
 
     if (!rawTargetId) {
-      return { type: 'error', message: language === 'en' ? "Missing target for selection." : "Falta el objetivo para la selección." };
+      return { type: 'error', message: getAssistantResponseText('selection.target_required', language, {}) };
     }
 
     // Load memory to resolve from label if it looks like a label (Requirement B)
@@ -1226,7 +1258,7 @@ export class AssistantConversationService {
         type: 'execution',
         message: result.status === 'success'
           ? (language === 'en' ? `Executed scene ${scene.name}.` : `Ejecuté la escena ${scene.name}.`)
-          : (language === 'en' ? "Execution failed." : "La ejecución falló."),
+          : getAssistantResponseText('execution.failed', language, {}),
         execution: result
       };
     }
@@ -1282,7 +1314,7 @@ export class AssistantConversationService {
         type: 'execution',
         message: result.status === 'success'
           ? this.buildCommandSuccessMessage(command, deviceName, request.userName || null, language)
-          : (language === 'en' ? "Execution failed." : "La ejecución falló."),
+          : getAssistantResponseText('execution.failed', language, {}),
         execution: result
       }, {
         status: result.status === 'success' ? 'success' : 'failed',
@@ -1295,7 +1327,7 @@ export class AssistantConversationService {
 
     return {
       type: 'error',
-      message: language === 'en' ? "Invalid selection or pending action." : "Selección o acción pendiente inválida."
+      message: getAssistantResponseText('selection.invalid', language, {})
     };
   }
 
@@ -1783,7 +1815,7 @@ export class AssistantConversationService {
             return fuzzyResult;
           }
 
-          console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] Unknown target: "${targetPhrase}"`);
+          console.info(`[ASSISTANT_SAFETY_GATE_BLOCK] ${JSON.stringify({ reason: 'unknown_target', targetLength: targetPhrase.length })}`);
           return this.withJarvisStyle({
             type: 'answer',
             message: language === 'en'
@@ -2060,13 +2092,13 @@ export class AssistantConversationService {
     }, userId, language, memory, 'multi_command');
   }
 
-  private async handleBulkActionReject(userId: string, language: string, ticket: ConfirmationTicket): Promise<AssistantConversationResponse> {
+  private async handleBulkActionReject(userId: string, language: 'es' | 'en', ticket: ConfirmationTicket): Promise<AssistantConversationResponse> {
     console.info(`[ASSISTANT_BULK_EXECUTION_CANCELLED] ${JSON.stringify({ count: ticket.deviceIds.length, command: ticket.command })}`);
     if (this.confirmationTicketRepository) await this.confirmationTicketRepository.consume(ticket.id);
     await this.clearPendingAction(userId);
     return {
       type: 'answer',
-      message: language === 'en' ? "Action cancelled." : "Acción cancelada."
+      message: getAssistantResponseText('action.cancelled', language, {})
     };
   }
 
@@ -2103,7 +2135,7 @@ export class AssistantConversationService {
 
           await this.memoryService.setAlias(userId, alias, targetEntity.id);
 
-          console.info(`[ASSISTANT_USER_ALIAS_CREATED] {"userId":"${userId}","alias":"${alias}","targetId":"${targetEntity.id}","targetName":"${targetEntity.name}","type":"${type}"}`);
+          console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, targetId: targetEntity.id, type })}`);
 
           message = isEn
             ? `Alias created: from now on I'll understand "${alias}" as "${targetEntity.name}".`
@@ -2118,12 +2150,12 @@ export class AssistantConversationService {
               ? `I cannot use "${alias}" as an alias because a device already has that name.`
               : `No puedo usar "${alias}" como alias porque un dispositivo ya tiene ese nombre.`;
           } else if (totalMatches > 1) {
-            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] {"userId":"${userId}","alias":"${alias}","target":"${target}","reason":"ambiguous"}`);
+            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, reason: 'ambiguous' })}`);
             message = isEn
               ? `I found multiple items named "${target}". Please be more specific.`
               : `Encontré varios elementos llamados "${target}". Por favor, sé más específico.`;
           } else {
-            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] {"userId":"${userId}","alias":"${alias}","target":"${target}","reason":"not_found"}`);
+            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, reason: 'not_found' })}`);
             message = isEn
               ? `I couldn't find the device or room "${target}" to create the alias.`
               : `No encontré el dispositivo o estancia "${target}" para crear el alias.`;
@@ -2759,6 +2791,94 @@ export class AssistantConversationService {
     return scored.slice(0, 3).map(item => item.device);
   }
 
+  // --- SENSOR READING QUERIES ---
+
+  private isSensorReadingQuery(normalized: string): boolean {
+    const metricTerms = ['temperatura', 'temperature', 'humedad', 'humidity'];
+    if (metricTerms.some((term) => normalized.includes(term))) return true;
+
+    const sensorTerms = ['sensor', 'lectura', 'reading'];
+    const questionTerms = ['cual', 'cuál', 'cuanto', 'cuánto', 'valor', 'value', 'dime', 'tell me', 'what is', 'how much'];
+    return sensorTerms.some((term) => normalized.includes(term))
+      && questionTerms.some((term) => normalized.includes(term));
+  }
+
+  private async handleSensorReadingQuery(normalized: string, language: string, userId: string): Promise<AssistantConversationResponse> {
+    const sensors = (await this.permissionGate.getAuthorizedDevices(userId))
+      .filter((device) => device.type === 'sensor' || device.type === 'binary_sensor');
+    const metricTerms = ['temperatura', 'temperature', 'humedad', 'humidity'].filter((term) => normalized.includes(term));
+    const matches = sensors.filter((device) => {
+      const normalizedName = normalizeAssistantPrompt(device.name);
+      const normalizedExternalId = normalizeAssistantPrompt(device.externalId);
+      const explicitlyNamed = normalized.includes(normalizedName);
+      const metricMatch = metricTerms.some((term) => normalizedName.includes(term) || normalizedExternalId.includes(term));
+      return explicitlyNamed || metricMatch;
+    });
+
+    if (matches.length === 0) {
+      return { type: 'answer', message: getAssistantResponseText('sensor.not_found', language, {}) };
+    }
+
+    if (matches.length > 1) {
+      const options = matches.map((device) => ({ id: device.id, label: device.name, kind: 'device' as const }));
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'sensor_reading',
+        source: 'sensor_reading',
+        entities: matches.map((device) => ({ id: device.id, name: device.name, type: device.type, roomId: device.roomId })),
+        clarificationOptions: options,
+        originalPrompt: normalized,
+        timestamp: new Date().toISOString(),
+      });
+      return {
+        type: 'clarification',
+        message: getAssistantResponseText('sensor.clarification', language, {}),
+        clarification: {
+          question: getAssistantResponseText('sensor.clarification_question', language, {}),
+          options,
+          pendingAction: { originalPrompt: normalized },
+        },
+      };
+    }
+
+    return this.buildSensorReadingResponse(matches[0], language);
+  }
+
+  private async handleSensorReadingSelection(userId: string, sensorId: string, language: string): Promise<AssistantConversationResponse> {
+    const sensor = (await this.permissionGate.getAuthorizedDevices(userId))
+      .find((device) => device.id === sensorId && (device.type === 'sensor' || device.type === 'binary_sensor'));
+    if (!sensor) {
+      return { type: 'answer', message: getAssistantResponseText('sensor.selection_unavailable', language, {}) };
+    }
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'sensor_reading',
+      source: 'sensor_reading',
+      entities: [{ id: sensor.id, name: sensor.name, type: sensor.type, roomId: sensor.roomId }],
+      timestamp: new Date().toISOString(),
+    });
+    return this.buildSensorReadingResponse(sensor, language);
+  }
+
+  private buildSensorReadingResponse(sensor: Device, language: string): AssistantConversationResponse {
+    const state = sensor.lastKnownState?.state;
+    const normalizedState = typeof state === 'string' ? state.trim().toLowerCase() : '';
+    if (state === undefined || state === null || state === '' || normalizedState === 'unknown' || normalizedState === 'unavailable') {
+      return { type: 'answer', message: getAssistantResponseText('sensor.unavailable', language, { name: sensor.name }) };
+    }
+
+    const rawAttributes = sensor.lastKnownState?.attributes;
+    const attributes = rawAttributes && typeof rawAttributes === 'object'
+      ? rawAttributes as Record<string, unknown>
+      : {};
+    const unit = typeof attributes.unit_of_measurement === 'string' && attributes.unit_of_measurement.trim()
+      ? ' ' + attributes.unit_of_measurement.trim()
+      : '';
+    return {
+      type: 'answer',
+      message: getAssistantResponseText('sensor.reading', language, { name: sensor.name, value: String(state), unit }),
+    };
+  }
+
   // --- POINT STATE QUERIES ---
 
   private isPointStateQuery(normalized: string): boolean {
@@ -3236,10 +3356,14 @@ export class AssistantConversationService {
     deviceId: string,
     command: DeviceCommandV1,
     prompt: string,
-    correlationId: string
+    correlationId: string,
+    params?: Record<string, unknown>
   ): Promise<SceneExecutionResult> {
+    const hasParams = params !== undefined && Object.keys(params).length > 0;
     if (!this.homeRepository && process.env.NODE_ENV === 'test') {
-      return this.executeSingleCommand(deviceId, command, prompt, correlationId);
+      return hasParams
+        ? this.executeSingleCommand(deviceId, command, prompt, correlationId, params)
+        : this.executeSingleCommand(deviceId, command, prompt, correlationId);
     }
 
     const device = deviceId === 'all' ? null : await this.deviceRepository.findDeviceById(deviceId);
@@ -3249,9 +3373,11 @@ export class AssistantConversationService {
 
     if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
     await this.permissionGate.assertHomeAuthorized(userId, homeId);
-    return this.executeSingleCommand(deviceId, command, prompt, correlationId);
+    return hasParams
+      ? this.executeSingleCommand(deviceId, command, prompt, correlationId, params)
+      : this.executeSingleCommand(deviceId, command, prompt, correlationId);
   }
-  private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string): Promise<SceneExecutionResult> {
+  private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string, params?: Record<string, unknown>): Promise<SceneExecutionResult> {
     let homeId: string | undefined;
     let roomId: string | null = null;
 
@@ -3273,7 +3399,7 @@ export class AssistantConversationService {
       name: `Assistant Chat: ${prompt}`,
       actions: [{
         deviceId: deviceId,
-        command: { name: command, params: {} }
+        command: { name: command, params: params ?? {} }
       }],
       executionMode: 'parallel',
       createdAt: new Date().toISOString(),
@@ -3705,7 +3831,7 @@ export class AssistantConversationService {
     if (exactMatches.length === 1) return { status: 'resolved', rooms: [exactMatches[0].room] };
     if (exactMatches.length > 1) {
       const candidates = exactMatches.map(e => e.room.name);
-      console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'exact', candidates })}`);
+      console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ type: 'exact', candidateCount: candidates.length })}`);
       return { status: 'ambiguous', rooms: [], candidates };
     }
 
@@ -3714,7 +3840,7 @@ export class AssistantConversationService {
     if (fuzzyMatches.length === 1) return { status: 'resolved', rooms: [fuzzyMatches[0].room] };
     if (fuzzyMatches.length > 1) {
       const candidates = fuzzyMatches.map(e => e.room.name);
-      console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'fuzzy', candidates })}`);
+      console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ type: 'fuzzy', candidateCount: candidates.length })}`);
       return { status: 'ambiguous', rooms: [], candidates };
     }
 
@@ -3739,14 +3865,14 @@ export class AssistantConversationService {
         const targetId = bestMatches[0].targetId;
         const room = rooms.find(r => r.id === targetId);
         if (room) {
-          console.info(`[ASSISTANT_USER_ALIAS_RESOLVED] ${JSON.stringify({ alias: bestMatches[0].norm, input: roomName, resolved: room.name })}`);
+          console.info(`[ASSISTANT_USER_ALIAS_RESOLVED] ${JSON.stringify({ targetId })}`);
           return { status: 'resolved', rooms: [room] };
         } else {
           // If target is not a room, check if it's a device. If it's a device, we ignore it here (room context)
           // but if it's neither, we log invalid.
           const isDevice = devices.some(d => d.id === targetId);
           if (!isDevice) {
-            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias: roomName, targetId, reason: 'entity_not_found' })}`);
+            console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, targetId, reason: 'entity_not_found' })}`);
           }
         }
       } else {
@@ -3754,7 +3880,7 @@ export class AssistantConversationService {
           const r = rooms.find(room => room.id === m.targetId);
           return r?.name || m.targetId;
         });
-        console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ input: roomName, type: 'user_alias', candidates: candidateNames })}`);
+        console.info(`[ASSISTANT_ROOM_ALIAS_AMBIGUOUS] ${JSON.stringify({ type: 'user_alias', candidateCount: candidateNames.length })}`);
         return { status: 'ambiguous', rooms: [], candidates: candidateNames };
       }
     }
@@ -3778,7 +3904,7 @@ export class AssistantConversationService {
       this.permissionGate.getAuthorizedRooms(userId)
     ]);
 
-    console.info(`[ASSISTANT_USER_ALIAS_LOOKUP] ${JSON.stringify({ userId, aliases: userAliases, roomName })}`);
+    console.info(`[ASSISTANT_USER_ALIAS_LOOKUP] ${JSON.stringify({ userId, aliasCount: Object.keys(userAliases).length, requestedRoomLength: roomName.length })}`);
     const resolution = this.resolveRoomAlias(roomName, Array.from(rooms), Array.from(devices), userId, userAliases);
 
     if (resolution.status === 'ambiguous') {
@@ -4009,11 +4135,11 @@ export class AssistantConversationService {
 
     const targetDevice = devices.find(d => d.id === match.targetId);
     if (!targetDevice) {
-      console.warn(`[ASSISTANT_DEVICE_ALIAS_INVALID] ${JSON.stringify({ alias: match.alias, targetId: match.targetId })}`);
+      console.warn(`[ASSISTANT_DEVICE_ALIAS_INVALID] ${JSON.stringify({ targetId: match.targetId })}`);
       return null;
     }
 
-    console.info(`[ASSISTANT_DEVICE_ALIAS_RESOLVED] ${JSON.stringify({ alias: match.alias, targetId: targetDevice.id, command })}`);
+    console.info(`[ASSISTANT_DEVICE_ALIAS_RESOLVED] ${JSON.stringify({ targetId: targetDevice.id, command })}`);
     const execResult = await this.executeAuthorizedCommand(userId, targetDevice.id, command, activePrompt, `alias-fastpath-${Date.now()}`);
 
     if (execResult.status === 'success') {
@@ -4023,7 +4149,7 @@ export class AssistantConversationService {
         entities: [{ id: targetDevice.id, name: targetDevice.name, type: targetDevice.type, roomId: targetDevice.roomId }],
         timestamp: new Date().toISOString()
       });
-      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'device_alias', deviceId: targetDevice.id, deviceName: targetDevice.name, alias: match.alias })}`);
+      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'device_alias', deviceId: targetDevice.id })}`);
 
       return await this.attachSuggestionIfNeeded({
         type: 'execution',
@@ -4044,9 +4170,9 @@ export class AssistantConversationService {
 
     const device = devices.find((d) => d.id === result.deviceId);
     if (!device) return null;
-    if (!this.scopeFilter.isControllableDevice(device, result.command)) return null;
+    if (!this.scopeFilter.isControllableDevice(device, result.command, result.params)) return null;
 
-    const execResult = await this.executeAuthorizedCommand(userId, result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`);
+    const execResult = await this.executeAuthorizedCommand(userId, result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`, result.params);
 
     if (execResult.status === 'success') {
       await this.clearPendingAction(userId);
@@ -4094,7 +4220,7 @@ export class AssistantConversationService {
 
     // Multi-Target Guard
     if ((v2Result.resolvedIds && v2Result.resolvedIds.length > 1) || v2Result.resolvedType === 'category') {
-      console.info(`[ASSISTANT_CONFIRMATION_REQUIRED] prompt="${activePrompt}" count=${v2Result.resolvedIds?.length}`);
+      console.info(`[ASSISTANT_CONFIRMATION_REQUIRED] ${JSON.stringify({ count: v2Result.resolvedIds?.length ?? 0, command: v2Result.command, resolvedType: v2Result.resolvedType })}`);
 
       const resolvedIds = v2Result.resolvedIds || [];
       const firstDevice = resolvedIds[0] ? await this.deviceRepository.findDeviceById(resolvedIds[0]) : null;
@@ -4140,7 +4266,7 @@ export class AssistantConversationService {
       type: 'execution',
       message: execResult.status === 'success'
         ? this.buildCommandSuccessMessage(v2Result.command as DeviceCommandV1, deviceName, userName, language)
-        : (language === 'en' ? "Execution failed." : "La ejecución falló."),
+        : getAssistantResponseText('execution.failed', language, {}),
       execution: execResult
     };
   }

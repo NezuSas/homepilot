@@ -140,11 +140,28 @@ describe('Feature: assistant voice API contracts', () => {
     await expect(synthesizeAssistantSpeech('Hola')).resolves.toBeNull();
   });
 
+  it('cancels a pending TTS request without removing the written response', async () => {
+    const controller = new AbortController();
+    mockApiFetch.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+
+    const request = synthesizeAssistantSpeech('Hola', { signal: controller.signal });
+    controller.abort();
+
+    await expect(request).resolves.toBeNull();
+  });
+
   it('degrades safely when speech payloads are malformed or unavailable', async () => {
     mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => { throw new Error('invalid json'); } });
     await expect(synthesizeAssistantSpeech('Hola')).resolves.toBeNull();
 
     mockApiFetch.mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'unavailable' }) });
+    await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).resolves.toBeNull();
+  });
+  it('releases the voice interaction when Whisper reports a capture conflict', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: 'capture already active' }) });
+
     await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).resolves.toBeNull();
   });
   it('accepts only valid local speech-to-text payloads and propagates non-timeout transport failures', async () => {
@@ -156,6 +173,17 @@ describe('Feature: assistant voice API contracts', () => {
 
     mockApiFetch.mockRejectedValueOnce(new Error('network unavailable'));
     await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).rejects.toThrow('network unavailable');
+  });
+  it('cancels a speech-to-text request when its assistant turn is invalidated', async () => {
+    const controller = new AbortController();
+    mockApiFetch.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+
+    const request = transcribeAssistantSpeech('YWJj', 'audio/webm', { signal: controller.signal });
+    controller.abort();
+
+    await expect(request).resolves.toBeNull();
   });
   it('forwards an already-aborted caller signal to the assistant request without creating a timeout', async () => {
     const controller = new AbortController();

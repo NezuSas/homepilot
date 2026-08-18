@@ -42,6 +42,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     process.env = { ...originalEnv };
     process.env.NODE_ENV = 'development';
     process.env.OLLAMA_MODEL = 'phi3';
+    process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE = '1';
     delete process.env.ASSISTANT_PLANNER_V2_SHADOW_MODEL;
     delete process.env.ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT;
 
@@ -92,6 +93,21 @@ describe('Assistant Planner V2 Shadow Mode', () => {
 
     await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
     expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
+  });
+
+  it.each(['not-a-number', '-0.1', '1.1'])('uses the conservative 0.1 fallback when the sample rate is invalid (%s)', async (sampleRate) => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE = sampleRate;
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation();
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    await shadowService.runShadow('test', 'u1', 'es', { type: 'answer', message: 'ok' });
+
+    expect(llmInterpreter.interpretV2).not.toHaveBeenCalled();
+    expect(infoSpy.mock.calls.map(([message]) => String(message)).some(message => message.includes('"sampleRate":0.1'))).toBe(true);
+    randomSpy.mockRestore();
+    infoSpy.mockRestore();
   });
 
   it('should skip execution for internal selection prompts', async () => {
@@ -173,6 +189,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
   it('should log resolved OLLAMA_MODEL when shadow model override is empty', async () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
     process.env.OLLAMA_MODEL = 'phi3';
+    process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE = '1';
     // No ASSISTANT_PLANNER_V2_SHADOW_MODEL set
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
 

@@ -52,7 +52,10 @@ export class AssistantPlannerV2ShadowService {
     const force = process.env.ASSISTANT_PLANNER_V2_SHADOW_FORCE === 'true';
 
     this.isShadowEnabled = flag && (isDev || force);
-    this.sampleRate = parseFloat(process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE || '1.0');
+    const configuredSampleRate = Number(process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE ?? '0.1');
+    this.sampleRate = Number.isFinite(configuredSampleRate) && configuredSampleRate >= 0 && configuredSampleRate <= 1
+      ? configuredSampleRate
+      : 0.1;
     const ultraLightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT !== 'false'; // Default: true
     const lightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT === 'true'; // Fallback
     

@@ -264,4 +264,24 @@ describe('HomeAssistantDeviceDriver', () => {
     await expect(driver.executeCommand(mockDevice, { name: 'turn_on' }, { userId: 'u1', correlationId: 'c3' }))
       .resolves.toEqual({ success: false, error: 'Error desconocido en Home Assistant' });
   });
+  it('maps validated climate commands to Home Assistant climate services', async () => {
+    const climate = {
+      ...mockDevice,
+      externalId: 'ha:climate.sala',
+      type: 'climate',
+      lastKnownState: { state: 'cool', temperature: 24, fan_mode: 'medium' },
+    };
+    const context = { userId: 'u1', correlationId: 'climate-1' };
+
+    const temperatureResult = await driver.executeCommand(climate, { name: 'set_temperature', params: { temperature: 22 } }, context);
+    const hvacResult = await driver.executeCommand(climate, { name: 'set_hvac_mode', params: { hvac_mode: 'heat' } }, context);
+    const fanResult = await driver.executeCommand(climate, { name: 'set_fan_mode', params: { fan_mode: 'low' } }, context);
+
+    expect(mockClient.callService).toHaveBeenNthCalledWith(1, 'climate', 'set_temperature', 'climate.sala', { temperature: 22 });
+    expect(mockClient.callService).toHaveBeenNthCalledWith(2, 'climate', 'set_hvac_mode', 'climate.sala', { hvac_mode: 'heat' });
+    expect(mockClient.callService).toHaveBeenNthCalledWith(3, 'climate', 'set_fan_mode', 'climate.sala', { fan_mode: 'low' });
+    expect(temperatureResult.newState).toMatchObject({ temperature: 22 });
+    expect(hvacResult.newState).toMatchObject({ state: 'heat', hvac_mode: 'heat' });
+    expect(fanResult.newState).toMatchObject({ fan_mode: 'low' });
+  });
 });

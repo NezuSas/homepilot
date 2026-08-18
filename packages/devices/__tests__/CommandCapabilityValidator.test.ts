@@ -90,4 +90,15 @@ describe('Feature: validación de capacidades de dispositivos', () => {
     const result = validateDeviceCommand(unknown, { name: 'turn_on' });
     expect(result.valid).toBe(true);
   });
+  it('validates climate commands while preserving sensors as read-only', () => {
+    const climate: Device = { ...baseDevice, type: 'climate', externalId: 'ha:climate.sala' };
+    const binarySensor: Device = { ...baseDevice, type: 'binary_sensor', externalId: 'ha:binary_sensor.window' };
+
+    expect(validateDeviceCommand(climate, { name: 'set_temperature', params: { temperature: 22 } }).valid).toBe(true);
+    expect(validateDeviceCommand(climate, { name: 'set_temperature' }).valid).toBe(false);
+    expect(validateDeviceCommand(climate, { name: 'set_hvac_mode', params: { hvac_mode: 'cool' } }).valid).toBe(true);
+    expect(validateDeviceCommand(climate, { name: 'set_fan_mode', params: { fan_mode: 'low' } }).valid).toBe(true);
+    expect(validateDeviceCommand(climate, { name: 'set_hvac_mode', params: { hvac_mode: '' } }).valid).toBe(false);
+    expect(validateDeviceCommand(binarySensor, { name: 'turn_on' }).valid).toBe(false);
+  });
 });

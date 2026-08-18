@@ -538,3 +538,32 @@ for (const viewport of viewports.filter((viewport) => viewport.name !== 'desktop
     await expect(backdrop).toBeVisible();
   });
 }
+for (const viewport of viewports) {
+  test(`Feature: Home conversation composer — Scenario: Given the ${viewport.name} shell When an operator focuses and writes a command Then the composer remains visible, reachable, and free of horizontal overflow`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+
+    await page.goto('/home-conversation');
+
+    const composer = page.getByTestId('home-conversation-composer');
+    const input = page.getByRole('textbox', { name: /dime algo|tell me something/i });
+    const send = page.getByRole('button', { name: /enviar|send/i });
+
+    await expect(composer).toBeVisible();
+    await expect(input).toBeVisible();
+    await input.focus();
+    await expect(input).toBeFocused();
+    await input.fill('Enciende la luz de la sala');
+    await expect(send).toBeEnabled();
+
+    const layout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+
+    const composerBox = await composer.boundingBox();
+    expect(composerBox).not.toBeNull();
+    expect((composerBox?.y ?? 0) + (composerBox?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
+  });
+}

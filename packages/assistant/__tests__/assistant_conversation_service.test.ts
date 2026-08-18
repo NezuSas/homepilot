@@ -192,8 +192,106 @@ describe('AssistantConversationService', () => {
       );
       expect(response.type).toBe('execution');
     });
+
+    it('Scenario: Given stored response and tone preferences When a confirmed device command is executed Then preferences do not change the target, action, result, or authorization flow', async () => {
+      const intent = { type: 'command' as const, deviceId: 'light-1', command: 'turn_off' as const, prompt: 'apaga luz sala' };
+      mockInterpreter.interpret.mockResolvedValue(intent);
+      mockDeviceRepo.findDeviceById.mockResolvedValue(
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } })
+      );
+
+      const variants = [
+        { tone: 'neutral', responseStyle: 'standard' },
+        { tone: 'warm', responseStyle: 'concise' },
+        { tone: 'formal', responseStyle: 'detailed' }
+      ] as const;
+      let baselineMessage: string | null = null;
+
+      for (const variant of variants) {
+        mockMemory.getUserPreference.mockImplementation(async (_userId, key) => {
+          if (key === 'assistant_conversation_tone') return variant.tone;
+          if (key === 'assistant_response_style') return variant.responseStyle;
+          return null;
+        });
+        mockDispatcher.dispatch.mockClear();
+        mockSmallTalk.handle.mockClear();
+
+        const response = await service.converse({ prompt: intent.prompt, userId: 'profile-' + variant.tone, confirmed: true }, 'es');
+        const dispatch = mockDispatcher.dispatch.mock.calls[0];
+
+        expect(response).toMatchObject({
+          type: 'execution',
+          execution: {
+            status: 'success',
+            actions: [{ deviceId: 'light-1', commandName: 'turn_off', status: 'success' }]
+          }
+        });
+        expect(dispatch).toEqual([
+          'light-1',
+          expect.objectContaining({ name: 'turn_off', metadata: expect.objectContaining({ source: 'scene' }) })
+        ]);
+        expect(mockSmallTalk.handle).not.toHaveBeenCalled();
+
+        if (baselineMessage !== null) {
+          expect(response.message).toBe(baselineMessage);
+        } else {
+          baselineMessage = response.message;
+        }
+      }
+    });
   });
   describe('Feature: expiring conversational confirmations', () => {
+    it('Scenario: Given an expired pending command When the user confirms it from the UI Then it clears the stale intent without dispatching it', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
+        entities: [],
+        timestamp: new Date(Date.now() - 300_001).toISOString(),
+        originalPrompt: 'enciende luz sala',
+        pendingIntent: {
+          type: 'command',
+          deviceId: 'light-1',
+          command: 'turn_on',
+          prompt: 'enciende luz sala',
+          timestamp: new Date(Date.now() - 300_001).toISOString(),
+        },
+      });
+
+      const response = await service.converse({ prompt: 'Confirmar', selectedOptionId: 'confirm', userId: 'expiry-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'La confirmación ya venció. Indícame nuevamente la acción que deseas realizar.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('expiry-user', expect.objectContaining({
+        pendingIntent: undefined,
+      }));
+    });
+    it('Scenario: Given a future pending command timestamp When the user confirms it from the UI Then it rejects and clears the invalid state', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
+        entities: [],
+        timestamp: new Date(Date.now() + 60_000).toISOString(),
+        pendingIntent: {
+          type: 'command',
+          deviceId: 'light-1',
+          command: 'turn_on',
+          prompt: 'enciende luz sala',
+          timestamp: new Date(Date.now() + 60_000).toISOString(),
+        },
+      });
+
+      const response = await service.converse({ prompt: 'Confirmar', selectedOptionId: 'confirm', userId: 'future-expiry-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'La confirmación ya venció. Indícame nuevamente la acción que deseas realizar.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('future-expiry-user', expect.objectContaining({
+        pendingIntent: undefined,
+      }));
+    });
     it('Scenario: Given an expired pending command When the user confirms it naturally Then it never executes the stale command', async () => {
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'command',
@@ -213,9 +311,12 @@ describe('AssistantConversationService', () => {
 
       expect(response).toEqual({
         type: 'answer',
-        message: '¿Confirmar qué? No tengo ninguna acción pendiente.',
+        message: 'La confirmación ya venció. Indícame nuevamente la acción que deseas realizar.',
       });
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('expiry-user', expect.objectContaining({
+        pendingIntent: undefined,
+      }));
 
     });
   });
@@ -2005,4 +2106,119 @@ describe('Feature: interpreter ambiguity persistence', () => {
     expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
   });
 });
+  it('preserves a climate parameter through authorized transient-scene execution', async () => {
+    const climate = createTestDevice({ id: 'climate-1', type: 'climate', homeId: 'h1', name: 'Aire Sala' });
+    mockDeviceRepo.findDeviceById.mockResolvedValue(climate);
+    const internals = service as unknown as {
+      executeAuthorizedCommand(userId: string, deviceId: string, command: 'set_temperature', prompt: string, correlationId: string, params: Record<string, unknown>): Promise<unknown>;
+    };
+
+    await internals.executeAuthorizedCommand('user-1', climate.id, 'set_temperature', 'pon aire sala a 22 grados', 'climate-parameter-test', { temperature: 22 });
+
+    expect(mockDispatcher.dispatch).toHaveBeenCalledWith(climate.id, expect.objectContaining({
+      name: 'set_temperature',
+      params: { temperature: 22 },
+    }));
+  });
+  describe('Feature: authorized sensor reading queries', () => {
+    it('Scenario: Given an authorized Spanish temperature sensor When its reading is requested Then reports its persisted value and unit without dispatching', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({
+          id: 'temperature-sala',
+          name: 'Temperatura Sala',
+          type: 'sensor',
+          lastKnownState: { state: 22.5, attributes: { unit_of_measurement: '°C' } },
+        }),
+      ]);
+
+      await expect(service.converse({ prompt: 'cual es la temperatura de sala', userId: 'sensor-reader' }, 'es')).resolves.toEqual({
+        type: 'answer',
+        message: 'La lectura de Temperatura Sala es 22.5 °C.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given an authorized English humidity sensor When its reading is requested Then reports its persisted value and unit', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({
+          id: 'humidity-patio',
+          name: 'Patio Humidity',
+          type: 'sensor',
+          lastKnownState: { state: 56, attributes: { unit_of_measurement: '%' } },
+        }),
+      ]);
+
+      await expect(service.converse({ prompt: 'what is the patio humidity', userId: 'sensor-reader' }, 'en')).resolves.toEqual({
+        type: 'answer',
+        message: 'The Patio Humidity reading is 56 %.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given multiple authorized matching sensors When a reading is requested Then saves a bounded clarification without dispatching', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'temperature-sala', name: 'Temperatura Sala', type: 'sensor', lastKnownState: { state: 22 } }),
+        createTestDevice({ id: 'temperature-patio', name: 'Temperatura Patio', type: 'sensor', lastKnownState: { state: 24 } }),
+      ]);
+
+      const response = await service.converse({ prompt: 'cual es la temperatura', userId: 'sensor-reader' }, 'es');
+
+      expect(response).toMatchObject({
+        type: 'clarification',
+        message: 'Encontré varias lecturas de sensores. ¿A cuál te refieres?',
+        clarification: { options: [{ id: 'temperature-sala' }, { id: 'temperature-patio' }] },
+      });
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('sensor-reader', expect.objectContaining({
+        source: 'sensor_reading',
+        clarificationOptions: expect.arrayContaining([expect.objectContaining({ id: 'temperature-sala' })]),
+      }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given an unavailable sensor When its reading is requested Then returns availability without dispatching', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'temperature-sala', name: 'Temperatura Sala', type: 'sensor', lastKnownState: { state: 'unavailable' } }),
+      ]);
+
+      await expect(service.converse({ prompt: 'dime la temperatura de sala', userId: 'sensor-reader' }, 'es')).resolves.toEqual({
+        type: 'answer',
+        message: 'La lectura de Temperatura Sala no está disponible.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given a stored sensor clarification When its option is selected Then revalidates the authorized sensor and returns only its reading', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({
+          id: 'humidity-patio',
+          name: 'Patio Humidity',
+          type: 'sensor',
+          lastKnownState: { state: 56, attributes: { unit_of_measurement: '%' } },
+        }),
+      ]);
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'sensor_reading',
+        source: 'sensor_reading',
+        entities: [],
+        clarificationOptions: [{ id: 'humidity-patio', label: 'Patio Humidity', kind: 'device' }],
+        timestamp: new Date().toISOString(),
+      });
+
+      await expect(service.converse({ prompt: 'Patio Humidity', selectedOptionId: 'humidity-patio', userId: 'sensor-reader' }, 'en')).resolves.toEqual({
+        type: 'answer',
+        message: 'The Patio Humidity reading is 56 %.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given no authorized matching sensor When a reading is requested Then does not disclose any value', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+
+      await expect(service.converse({ prompt: 'what is the humidity', userId: 'sensor-reader' }, 'en')).resolves.toEqual({
+        type: 'answer',
+        message: 'I could not find an authorized sensor reading for that request.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
 });

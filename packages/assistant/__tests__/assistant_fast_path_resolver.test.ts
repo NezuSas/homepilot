@@ -162,4 +162,34 @@ describe('AssistantFastPathResolver', () => {
     const result = resolver.resolve('apaga todas las luces sala', mockDevices);
     expect(result).toBeNull();
   });
+  it('logs only sanitized metadata when a development fast path is skipped', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const debugSpy = jest.spyOn(console, 'debug').mockImplementation();
+    process.env.NODE_ENV = 'development';
+
+    try {
+      resolver.resolve('private-command-7f0e3b', mockDevices);
+      const log = debugSpy.mock.calls.map(([value]) => String(value)).find(value => value.includes('[ASSISTANT_FAST_PATH_SKIPPED]'));
+
+      expect(log).toContain('promptLength');
+      expect(log).not.toContain('private-command-7f0e3b');
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      debugSpy.mockRestore();
+    }
+  });
+
+  it('resolves an explicit climate setpoint with its numeric parameter', () => {
+    const result = resolver.resolve('pon aire sala a 22 grados', [
+      { id: 'climate-1', name: 'Aire Sala', type: 'climate', roomId: 'r2', status: 'ASSIGNED' } as Device,
+    ]);
+
+    expect(result).toEqual({
+      deviceId: 'climate-1',
+      deviceName: 'Aire Sala',
+      command: 'set_temperature',
+      confidence: 1.0,
+      params: { temperature: 22 },
+    });
+  });
 });

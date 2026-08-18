@@ -80,7 +80,7 @@ export class AssistantAliasManagementService {
     const normAlias = normalizeAssistantPrompt(alias);
     const existingRoom = rooms.find(r => normalizeAssistantPrompt(r.name) === normAlias);
     if (existingRoom) {
-      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, alias, targetName: existingRoom.name, collisionType: 'room' })}`);
+      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, collisionType: 'room' })}`);
       return {
         type: 'answer',
         message: language === 'en'
@@ -90,7 +90,7 @@ export class AssistantAliasManagementService {
     }
     const existingDevice = devices.find(d => normalizeAssistantPrompt(d.name) === normAlias);
     if (existingDevice) {
-      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, alias, targetName: existingDevice.name, collisionType: 'device' })}`);
+      console.info(`[ASSISTANT_USER_ALIAS_COLLISION] ${JSON.stringify({ userId, collisionType: 'device' })}`);
       return {
         type: 'answer',
         message: language === 'en'
@@ -103,7 +103,7 @@ export class AssistantAliasManagementService {
     const targetRoom = rooms.find(r => normalizeAssistantPrompt(r.name) === normalizeAssistantPrompt(targetName));
     if (targetRoom) {
       await this.memoryService.setAlias(userId, alias, targetRoom.id);
-      console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, alias, targetId: targetRoom.id, targetName: targetRoom.name, type: 'room' })}`);
+      console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, targetId: targetRoom.id, type: 'room' })}`);
       return {
         type: 'answer',
         message: language === 'en'
@@ -116,7 +116,7 @@ export class AssistantAliasManagementService {
     const targetDevice = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(targetName));
     if (targetDevice) {
       await this.memoryService.setAlias(userId, alias, targetDevice.id);
-      console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, alias, targetId: targetDevice.id, targetName: targetDevice.name, type: 'device' })}`);
+      console.info(`[ASSISTANT_USER_ALIAS_CREATED] ${JSON.stringify({ userId, targetId: targetDevice.id, type: 'device' })}`);
       return {
         type: 'answer',
         message: language === 'en'
@@ -125,7 +125,7 @@ export class AssistantAliasManagementService {
       };
     }
 
-    console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias, targetName, reason: 'target_not_found' })}`);
+    console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, reason: 'target_not_found' })}`);
     return {
       type: 'answer',
       message: language === 'en'
@@ -173,7 +173,7 @@ export class AssistantAliasManagementService {
       if (targetName) {
         lines.push(`• ${alias} → ${targetName}`);
       } else {
-        console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, alias, targetId, reason: 'entity_not_found' })}`);
+        console.warn(`[ASSISTANT_USER_ALIAS_INVALID] ${JSON.stringify({ userId, targetId, reason: 'entity_not_found' })}`);
         lines.push(language === 'en' ? `• ${alias} → target not found` : `• ${alias} → objetivo no encontrado`);
       }
     }
@@ -250,7 +250,7 @@ export class AssistantAliasManagementService {
     }
 
     if (match.status === 'not_found') {
-      console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, alias: targetAlias, found: false })}`);
+      console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, found: false })}`);
       return {
         type: 'answer',
         message: language === 'en' ? "I didn't find that alias." : "No encontré ese alias."
@@ -281,7 +281,7 @@ export class AssistantAliasManagementService {
       };
     }
 
-    console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, alias: matchedKey, found: true })}`);
+    console.info(`[ASSISTANT_USER_ALIAS_MEANING] ${JSON.stringify({ userId, found: true })}`);
     return {
       type: 'answer',
       message: language === 'en'
@@ -316,7 +316,7 @@ export class AssistantAliasManagementService {
     }
 
     if (match.status === 'not_found') {
-      console.info(`[ASSISTANT_USER_ALIAS_DELETE_NOT_FOUND] ${JSON.stringify({ userId, alias: targetAlias })}`);
+      console.info(`[ASSISTANT_USER_ALIAS_DELETE_NOT_FOUND] ${JSON.stringify({ userId })}`);
       return {
         type: 'answer',
         message: language === 'en' ? "I didn't find that alias." : "No encontré ese alias."
@@ -348,7 +348,7 @@ export class AssistantAliasManagementService {
       }
     });
 
-    console.info(`[ASSISTANT_USER_ALIAS_DELETE_CONFIRMATION_REQUIRED] ${JSON.stringify({ userId, alias: matchedKey, targetName })}`);
+    console.info(`[ASSISTANT_USER_ALIAS_DELETE_CONFIRMATION_REQUIRED] ${JSON.stringify({ userId, targetId })}`);
 
     return {
       type: 'clarification',

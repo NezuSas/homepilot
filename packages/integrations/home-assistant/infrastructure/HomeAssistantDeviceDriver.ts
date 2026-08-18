@@ -53,7 +53,34 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       }
     }
 
-    if (dispatchedCommand === 'turn_on') service = 'turn_on';
+    if (haDomain === 'climate' && ['turn_on', 'turn_off', 'toggle'].includes(dispatchedCommand)) {
+      domain = 'climate';
+      service = dispatchedCommand;
+    } else if (dispatchedCommand === 'set_temperature' && haDomain === 'climate') {
+      const temperature = command.params?.temperature;
+      if (typeof temperature !== 'number' || !Number.isFinite(temperature)) {
+        return { success: false, error: 'Parameter temperature is required for set_temperature' };
+      }
+      domain = 'climate';
+      service = 'set_temperature';
+      data = { temperature };
+    } else if (dispatchedCommand === 'set_hvac_mode' && haDomain === 'climate') {
+      const hvacMode = command.params?.hvac_mode;
+      if (typeof hvacMode !== 'string' || hvacMode.trim() === '') {
+        return { success: false, error: 'Parameter hvac_mode is required for set_hvac_mode' };
+      }
+      domain = 'climate';
+      service = 'set_hvac_mode';
+      data = { hvac_mode: hvacMode };
+    } else if (dispatchedCommand === 'set_fan_mode' && haDomain === 'climate') {
+      const fanMode = command.params?.fan_mode;
+      if (typeof fanMode !== 'string' || fanMode.trim() === '') {
+        return { success: false, error: 'Parameter fan_mode is required for set_fan_mode' };
+      }
+      domain = 'climate';
+      service = 'set_fan_mode';
+      data = { fan_mode: fanMode };
+    } else if (dispatchedCommand === 'turn_on') service = 'turn_on';
     else if (dispatchedCommand === 'turn_off') service = 'turn_off';
     else if (dispatchedCommand === 'toggle') service = 'toggle';
     else if (dispatchedCommand === 'media_play' && haDomain === 'media_player') {
@@ -186,6 +213,13 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
     } else if (command === 'volume_set') {
       const volume = params?.volume as number;
       newState.volume_level = volume / 100;
+    } else if (command === 'set_temperature') {
+      newState.temperature = params?.temperature;
+    } else if (command === 'set_hvac_mode') {
+      newState.hvac_mode = params?.hvac_mode;
+      newState.state = params?.hvac_mode;
+    } else if (command === 'set_fan_mode') {
+      newState.fan_mode = params?.fan_mode;
     }
 
     return newState;

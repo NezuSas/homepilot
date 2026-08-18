@@ -87,6 +87,12 @@ export function validateDeviceCommand(device: Device, command: DeviceCommandRequ
           };
         }
 
+        if (schema.type === 'string' && typeof value === 'string' && value.trim() === '') {
+          return {
+            valid: false,
+            error: `El parámetro "${schema.name}" no puede estar vacío.`
+          };
+        }
         if (schema.type === 'number') {
           const num = value as number;
           if (schema.min !== undefined && num < schema.min) {

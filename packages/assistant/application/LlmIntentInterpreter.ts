@@ -56,6 +56,7 @@ Instructions:
 - Tolerate minor typos and variations in natural language.
 - Compare the user's text against the names of devices and scenes using semantic similarity.
 - If the user uses pronouns like 'it', 'that', 'them', infer the target device or scene from recentActions.
+- Map climate temperature requests such as "pon el aire de sala a 22 grados" or "set bedroom thermostat to 72" to set_temperature with a numeric temperature parameter. Use set_hvac_mode and set_fan_mode only when the user explicitly names a mode.
 - Map the intent based on keywords:
   - "apagar", "turn off", "off", "quitar" -> turn_off
   - "prende", "enciende", "turn on", "on", "activar" -> turn_on
@@ -68,7 +69,7 @@ Required Output Format:
   "type": "scene" | "command" | "unknown",
   "sceneId": "string (if type is scene)",
   "deviceId": "string (if type is command)",
-  "command": "turn_on" | "turn_off" | "toggle" | "open" | "close" | "stop" | "set_position" (if type is command),
+  "command": "turn_on" | "turn_off" | "toggle" | "open" | "close" | "stop" | "set_position" | "set_temperature" | "set_hvac_mode" | "set_fan_mode" (if type is command),
   "params": {},
   "reason": "string (if type is unknown)"
 }

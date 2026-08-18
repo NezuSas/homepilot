@@ -88,4 +88,50 @@ describe('FollowUpResolver', () => {
     expect(resolver.resolve('turn it off', { ...mockMemory, entities: [] }, 'en'))
       .toEqual({ resolvedPrompt: 'turn it off', handled: false, referencesMemory: false });
   });
+  it('resolves a natural Spanish pronoun reference inside a full command when one entity is in context', () => {
+    const singleMemory: AssistantMemoryState = {
+      ...mockMemory,
+      entities: [mockMemory.entities[0]],
+    };
+
+    expect(resolver.resolve('¿Podrías apagarla por favor?', singleMemory, 'es')).toMatchObject({
+      resolvedPrompt: '¿Podrías apagar Luz Escritorio por favor?',
+      referencesMemory: true,
+    });
+  });
+
+  it('resolves an English pronoun reference inside a polite command when one entity is in context', () => {
+    const singleMemory: AssistantMemoryState = {
+      ...mockMemory,
+      entities: [mockMemory.entities[0]],
+    };
+
+    expect(resolver.resolve('Could you turn it off, please?', singleMemory, 'en')).toMatchObject({
+      resolvedPrompt: 'Could you turn Luz Escritorio off, please?',
+      referencesMemory: true,
+    });
+  });
+  it.each([
+    ['¿Podrías prenderla por favor?', 'es', '¿Podrías prender Luz Escritorio por favor?'],
+    ['Could you switch it off, please?', 'en', 'Could you switch Luz Escritorio off, please?'],
+    ['Can you switch that on please?', 'en', 'Can you switch Luz Escritorio on please?'],
+  ] as const)('resolves an unambiguous natural control reference: %s', (prompt, language, expected) => {
+    const singleMemory: AssistantMemoryState = {
+      ...mockMemory,
+      entities: [mockMemory.entities[0]],
+    };
+
+    expect(resolver.resolve(prompt, singleMemory, language)).toMatchObject({
+      resolvedPrompt: expected,
+      referencesMemory: true,
+    });
+  });
+  it('keeps a natural reference unresolved when more than one entity is in context', () => {
+    expect(resolver.resolve('Could you turn it off, please?', mockMemory, 'en'))
+      .toEqual({
+        resolvedPrompt: 'Could you turn it off, please?',
+        handled: false,
+        referencesMemory: false,
+      });
+  });
 });

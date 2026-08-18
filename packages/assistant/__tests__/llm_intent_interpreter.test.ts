@@ -182,4 +182,22 @@ describe('LlmIntentInterpreter', () => {
     expect(result.metadata.devicesCount).toBe(0);
     expect(result.error?.message).toBe('timeout');
   });
+  it('maps a valid climate setpoint intent with its temperature parameter', async () => {
+    const climate = createTestDevice({ id: 'climate-1', type: 'climate', name: 'Aire Sala' });
+    mockOllama.generateJson.mockResolvedValue({
+      type: 'command',
+      deviceId: 'climate-1',
+      command: 'set_temperature',
+      params: { temperature: 22 },
+    });
+    mockDeviceRepo.findDeviceById.mockResolvedValue(climate);
+
+    await expect(interpreter.interpret('pon aire sala a 22 grados')).resolves.toEqual({
+      type: 'command',
+      deviceId: 'climate-1',
+      command: 'set_temperature',
+      params: { temperature: 22 },
+      prompt: 'pon aire sala a 22 grados',
+    });
+  });
 });

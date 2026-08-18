@@ -31,6 +31,7 @@ import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
 import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { createSpeechAudioUrl } from './lib/audioRecording';
+import { AssistantTurnCoordinator, type AssistantTurn } from './lib/assistantTurnCoordinator';
 import { HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { useSession, type UserContext } from './lib/useSession';
@@ -175,8 +176,7 @@ function App() {
   const globalWakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const globalWakeAudioUrlRef = useRef<string | null>(null);
   const globalWakeRequestIdRef = useRef(0);
-  const globalWakeConversationAbortRef = useRef<AbortController | null>(null);
-  const globalWakeConversationIdRef = useRef(0);
+  const [assistantTurnCoordinator] = useState(() => new AssistantTurnCoordinator());
   const globalWakeStartedAtRef = useRef(0);
   const refreshBurstTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
@@ -456,15 +456,15 @@ function App() {
     }
   }, []);
 
-  const speakGlobalWakeResponse = useCallback(async (text: string) => {
-    if (!text.trim() || typeof Audio === 'undefined') return;
+  const speakGlobalWakeResponse = useCallback(async (text: string, turn?: AssistantTurn) => {
+    if (!text.trim() || typeof Audio === 'undefined' || (turn && !assistantTurnCoordinator.isCurrent(turn))) return;
 
     globalWakeRequestIdRef.current += 1;
     const requestId = globalWakeRequestIdRef.current;
     stopGlobalWakeSpeech();
 
-    const speech = await synthesizeAssistantSpeech(text);
-    if (!speech || requestId !== globalWakeRequestIdRef.current) return;
+    const speech = await synthesizeAssistantSpeech(text, turn ? { signal: turn.signal } : undefined);
+    if (!speech || requestId !== globalWakeRequestIdRef.current || (turn && !assistantTurnCoordinator.isCurrent(turn))) return;
 
     try {
       const audioUrl = createSpeechAudioUrl(speech.audioBase64, speech.audioContentType);
@@ -482,15 +482,21 @@ function App() {
     } catch {
       stopGlobalWakeSpeech();
     }
-  }, [stopGlobalWakeSpeech]);
+  }, [assistantTurnCoordinator, stopGlobalWakeSpeech]);
 
   useEffect(() => () => {
-    globalWakeConversationIdRef.current += 1;
-    globalWakeConversationAbortRef.current?.abort();
-    globalWakeConversationAbortRef.current = null;
+    assistantTurnCoordinator.cancel();
     globalWakeRequestIdRef.current += 1;
     stopGlobalWakeSpeech();
-  }, [stopGlobalWakeSpeech]);
+  }, [assistantTurnCoordinator, stopGlobalWakeSpeech]);
+
+  useEffect(() => assistantTurnCoordinator.onInvalidated(turn => {
+    if (turn.origin !== 'wake_word') return;
+
+    globalWakeRequestIdRef.current += 1;
+    setIsGlobalWakeProcessing(false);
+    stopGlobalWakeSpeech();
+  }), [assistantTurnCoordinator, stopGlobalWakeSpeech]);
 
   useEffect(() => {
     const handleHomeConversationSpeechActivity = (event: Event) => {
@@ -536,15 +542,13 @@ function App() {
   }, [t]);
 
   const handleGlobalWakeInterrupt = useCallback(() => {
-    globalWakeConversationIdRef.current += 1;
-    globalWakeConversationAbortRef.current?.abort();
-    globalWakeConversationAbortRef.current = null;
+    assistantTurnCoordinator.cancel();
     globalWakeRequestIdRef.current += 1;
     setGlobalWakeNotice(null);
     setIsGlobalWakeProcessing(false);
     stopGlobalWakeSpeech();
     window.dispatchEvent(new Event(HOME_CONVERSATION_STOP_SPEECH_EVENT));
-  }, [stopGlobalWakeSpeech]);
+  }, [assistantTurnCoordinator, stopGlobalWakeSpeech]);
 
   if (status === 'checking') {
     return (
@@ -672,11 +676,8 @@ function App() {
 
     if (currentView !== 'home-conversation') {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      globalWakeConversationAbortRef.current?.abort();
-      const conversationController = new AbortController();
-      globalWakeConversationAbortRef.current = conversationController;
-      globalWakeConversationIdRef.current += 1;
-      const conversationId = globalWakeConversationIdRef.current;
+      window.dispatchEvent(new Event(HOME_CONVERSATION_STOP_SPEECH_EVENT));
+      const turn = assistantTurnCoordinator.begin('wake_word');
       globalWakeStartedAtRef.current = Date.now();
       recordHomeConversationTelemetry('global_wake_detected', {
         sourceView: currentView,
@@ -690,9 +691,9 @@ function App() {
         interactionMode: 'voice',
       }, {
         timeoutMs: ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS,
-        signal: conversationController.signal
+        signal: turn.signal
       }).then(response => {
-        if (conversationId !== globalWakeConversationIdRef.current) return;
+        if (!assistantTurnCoordinator.isCurrent(turn)) return;
         recordHomeConversationTelemetry('global_wake_processed', {
           sourceView: currentView,
           responseType: response.type,
@@ -709,25 +710,26 @@ function App() {
         if (response.type === 'execution' && response.execution?.status !== 'failed') {
           void refreshDeviceSnapshot();
         }
-        void speakGlobalWakeResponse(response.message);
+        void speakGlobalWakeResponse(response.message, turn);
       }).catch(() => {
-        if (conversationId !== globalWakeConversationIdRef.current || conversationController.signal.aborted) return;
+        if (!assistantTurnCoordinator.isCurrent(turn) || turn.signal.aborted) return;
         const message = t('assistant.conversation.voice_processing_error');
         recordHomeConversationTelemetry('global_wake_failed', {
           sourceView: currentView,
           elapsedMs: Date.now() - globalWakeStartedAtRef.current
         });
         setGlobalWakeNotice({ id, message, tone: 'error', status: 'idle' });
-        void speakGlobalWakeResponse(message);
+        void speakGlobalWakeResponse(message, turn);
       }).finally(() => {
-        if (conversationId === globalWakeConversationIdRef.current) {
-          globalWakeConversationAbortRef.current = null;
+        if (assistantTurnCoordinator.isCurrent(turn)) {
           setIsGlobalWakeProcessing(false);
         }
       });
       return;
     }
 
+    window.dispatchEvent(new Event(HOME_CONVERSATION_STOP_SPEECH_EVENT));
+    assistantTurnCoordinator.cancel();
     setPendingHomeConversationPrompt({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       text,
@@ -1265,6 +1267,7 @@ function App() {
                {currentView === 'home-conversation' && (
                  <HomeConversationView
                    pendingPrompt={pendingHomeConversationPrompt}
+                   assistantTurnCoordinator={assistantTurnCoordinator}
                    onPendingPromptConsumed={(id) => {
                      setPendingHomeConversationPrompt(current => current?.id === id ? null : current);
                    }}

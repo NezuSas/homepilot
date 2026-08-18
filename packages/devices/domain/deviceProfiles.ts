@@ -121,7 +121,7 @@ const HOME_ASSISTANT_DEVICE_PROFILES: Record<string, DeviceProfile> = {
     displayName: 'Climatización',
     category: 'climate',
     capabilityTypes: ['climate'],
-    configurationSections: [ASSIGNMENT_SECTION, READ_ONLY_SECTION, STATE_SYNC_SECTION],
+    configurationSections: [ASSIGNMENT_SECTION, SEMANTIC_SECTION, STATE_SYNC_SECTION],
   }),
   media_player: createProfile({
     source: 'home_assistant',

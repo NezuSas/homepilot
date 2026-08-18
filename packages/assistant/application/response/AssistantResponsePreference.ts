@@ -1,3 +1,5 @@
+import { getAssistantResponseText } from './AssistantResponseCatalog';
+
 export type AssistantResponsePreference = 'concise' | 'standard' | 'detailed';
 export type AssistantResponseLanguage = 'es' | 'en';
 
@@ -74,25 +76,7 @@ export function getAssistantResponsePreferenceAcknowledgement(
   preference: AssistantResponsePreference,
   language: AssistantResponseLanguage
 ): string {
-  const acknowledgements: Record<
-    AssistantResponsePreference,
-    Record<AssistantResponseLanguage, string>
-  > = {
-    concise: {
-      es: 'Entendido. Responderé de forma breve.',
-      en: 'Understood. I will keep my responses concise.'
-    },
-    standard: {
-      es: 'Entendido. Responderé de forma normal.',
-      en: 'Understood. I will use a balanced response style.'
-    },
-    detailed: {
-      es: 'Entendido. Incluiré más detalle cuando sea útil.',
-      en: 'Understood. I will include more detail when useful.'
-    }
-  };
-
-  return acknowledgements[preference][language];
+  return getAssistantResponseText('preference.response_style', language, { preference });
 }
 
 export function applyAssistantResponsePreference(
@@ -113,10 +97,7 @@ export function applyAssistantResponsePreference(
     return trimmed;
   }
 
-  return `${trimmed}${language === 'en'
-    ? ' I can expand on any part if useful.'
-    : ' Puedo ampliar cualquier parte si te sirve.'
-  }`;
+  return `${trimmed}${getAssistantResponseText('preference.detail_offer', language, {})}`;
 }
 
 function makeConcise(text: string): string {

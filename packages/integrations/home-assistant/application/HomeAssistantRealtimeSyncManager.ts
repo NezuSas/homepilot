@@ -60,6 +60,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function areStructuredValuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length
+      && left.every((value, index) => areStructuredValuesEqual(value, right[index]));
+  }
+
+  if (!isRecord(left) || !isRecord(right)) return false;
+
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  if (leftKeys.length !== rightKeys.length) return false;
+
+  return leftKeys.every((key, index) => (
+    key === rightKeys[index] && areStructuredValuesEqual(left[key], right[key])
+  ));
+}
+
+function isDuplicateRealtimeSnapshot(
+  lastKnownState: Record<string, unknown> | null,
+  state: string,
+  attributes: Record<string, unknown>,
+): boolean {
+  return lastKnownState?.state === state
+    && areStructuredValuesEqual(lastKnownState.attributes ?? {}, attributes);
+}
 function parseStateChangePayload(data: unknown): HomeAssistantStateChangePayload | null {
   if (!isRecord(data) || typeof data.entity_id !== 'string' || !isRecord(data.new_state)) {
     return null;
@@ -274,6 +301,8 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
       const device = await this.deviceRepository.findByExternalId(externalId);
       if (!device) return;
+
+      if (isDuplicateRealtimeSnapshot(device.lastKnownState, String(newState), attributes)) return;
 
       const previousState = device.lastKnownState
         ? { state: device.lastKnownState.state as string, attributes: device.lastKnownState.attributes as Record<string, unknown> }

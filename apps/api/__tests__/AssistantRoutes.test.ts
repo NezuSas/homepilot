@@ -193,6 +193,18 @@ describe('Feature: Local assistant speech transport', () => {
     }));
   });
 
+  it('uses the selected English locale for TTS instead of the browser default', async () => {
+    (mockReq as any).headers = { 'accept-language': 'en-US,en;q=0.9' };
+    (mockReq as any)._fastifyParsedBody = JSON.stringify({ text: 'Home ready' });
+
+    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/tts', 'POST', mockContainer as BootstrapContainer);
+
+    expect(mockAssistantTextToSpeechService.synthesize).toHaveBeenCalledWith({
+      text: 'Home ready',
+      language: 'en'
+    });
+  });
+
   it('Scenario: Given local recorded audio When Whisper transcribes it Then the route returns the normalized transcript', async () => {
     (mockReq as any)._fastifyParsedBody = JSON.stringify({
       audioBase64: 'YWJj',

@@ -23,9 +23,9 @@ export class ScopeFilter {
     return device.lastKnownState?.state !== 'unavailable';
   }
 
-  public supportsCommand(device: Device, command: DeviceCommandV1): boolean {
+  public supportsCommand(device: Device, command: DeviceCommandV1, params: Record<string, unknown> = {}): boolean {
     // A. Priority: Capability Validation
-    const validation = validateDeviceCommand(device, { name: command, params: {} });
+    const validation = validateDeviceCommand(device, { name: command, params });
     if (validation.valid) return true;
 
     // B. Fallback: Known controllable domain types if capabilities missing/incomplete
@@ -102,13 +102,13 @@ export class ScopeFilter {
     return false;
   }
 
-  public isControllableDevice(device: Device, command: DeviceCommandV1): boolean {
+  public isControllableDevice(device: Device, command: DeviceCommandV1, params: Record<string, unknown> = {}): boolean {
     if (!this.isDeviceAvailable(device)) return false;
 
     // Always exclude pure sensors/cameras — these are never controllable
     const type = device.type.toLowerCase();
     if (['sensor', 'binary_sensor', 'camera'].includes(type)) return false;
 
-    return this.supportsCommand(device, command);
+    return this.supportsCommand(device, command, params);
   }
 }

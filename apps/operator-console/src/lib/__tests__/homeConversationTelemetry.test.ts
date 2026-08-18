@@ -39,6 +39,7 @@ describe('homeConversationTelemetry', () => {
 
     try {
       recordHomeConversationTelemetry('global_wake_processed', {
+        sourceView: 'home-conversation',
         elapsedMs: 120,
         responseType: 'answer'
       });
@@ -48,6 +49,7 @@ describe('homeConversationTelemetry', () => {
         type: HOME_CONVERSATION_TELEMETRY_EVENT,
         detail: {
           phase: 'global_wake_processed',
+          sourceView: 'home-conversation',
           elapsedMs: 120,
           responseType: 'answer',
         },
@@ -72,7 +74,7 @@ describe('homeConversationTelemetry', () => {
     if (originalWindow) Reflect.deleteProperty(globalThis, 'window');
 
     try {
-      expect(() => recordHomeConversationTelemetry('global_wake_failed', { reason: 'ssr' })).not.toThrow();
+      expect(() => recordHomeConversationTelemetry('global_wake_failed', { sourceView: 'home-conversation', elapsedMs: 0 })).not.toThrow();
     } finally {
       if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
     }

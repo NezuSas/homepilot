@@ -63,7 +63,7 @@ export const HomeConversationComposer: React.FC<HomeConversationComposerProps> =
   onToggleListening,
   onToggleSpeech
 }) => (
-  <footer className="sticky bottom-0 z-30 shrink-0 border-t border-border/60 bg-background/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4 md:px-6">
+  <footer data-testid="home-conversation-composer" className="sticky bottom-0 z-30 shrink-0 border-t border-border/60 bg-background/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4 md:px-6">
     <div className="mx-auto min-w-0 w-full max-w-7xl">
       {suggestions.length > 0 && (
         <div className="mb-2 flex flex-wrap justify-center gap-2" aria-label={placeholder}>

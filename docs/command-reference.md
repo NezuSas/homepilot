@@ -88,6 +88,19 @@ curl -fsS http://127.0.0.1:3000/health
 On Docker Desktop, the API is normally exposed on port `13000` and the UI on
 port `8080`.
 
+## Planner V2 Shadow Review
+
+Aggregate the secret-free Planner V2 shadow diagnostics on the appliance:
+
+```bash
+docker compose logs --no-log-prefix homepilot-api | npm run review:planner-v2-shadow
+```
+
+Use strict automated eligibility checks without enabling Planner V2 execution:
+
+```bash
+docker compose logs --no-log-prefix homepilot-api | npm run review:planner-v2-shadow:strict
+```
 ## Quality and Release Validation
 
 Run the complete engineering validation suite:

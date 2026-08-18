@@ -7,6 +7,7 @@ export interface FastPathResult {
   deviceName: string;
   command: DeviceCommandV1;
   confidence: number;
+  params?: Record<string, unknown>;
 }
 
 interface CommandMatch {
@@ -206,10 +207,19 @@ export class AssistantFastPathResolver {
     return matches[0] || null;
   }
 
+  private findTemperatureMatch(normPrompt: string): { targetPhrase: string; temperature: number } | null {
+    const match = /(?:pon|ajusta|establece|configura|set)\s+(.+?)\s+(?:a|en|to)\s+(-?\d+(?:[.,]\d+)?)\s*(?:grados?|degrees?)?$/u.exec(normPrompt);
+    if (!match) return null;
+
+    const temperature = Number(match[2].replace(',', '.'));
+    if (!Number.isFinite(temperature)) return null;
+
+    return { targetPhrase: match[1].trim(), temperature };
+  }
   public resolve(prompt: string, devices: Device[]): FastPathResult | null {
     const skip = (reason: string) => {
       if (process.env.NODE_ENV === 'development') {
-        console.debug(`[ASSISTANT_FAST_PATH_SKIPPED] ${JSON.stringify({ prompt, reason })}`);
+        console.debug(`[ASSISTANT_FAST_PATH_SKIPPED] ${JSON.stringify({ promptLength: prompt.length, reason })}`);
       }
       return null;
     };
@@ -219,8 +229,14 @@ export class AssistantFastPathResolver {
     if (normPrompt.split(/\s+/).some(token => this.MANAGEMENT_TERMS.has(token))) return skip('management_prompt');
     if (this.PERSONAL_ROOM_PHRASES.some(phrase => normPrompt.includes(phrase))) return skip('personal_room_alias_required');
 
-    // 1. Extract the command verb from the already normalized conversational prompt.
-    const commandMatch = this.findCommandMatch(normPrompt);
+    // 1. Extract a typed command from the already normalized conversational prompt.
+    // A setpoint requires an explicit named target and numeric value; all other
+    // requests continue through the existing command-word resolver unchanged.
+    const temperatureMatch = this.findTemperatureMatch(normPrompt);
+    const commandMatch = temperatureMatch
+      ? { command: 'set_temperature' as const, targetPhrase: temperatureMatch.targetPhrase }
+      : this.findCommandMatch(normPrompt);
+    const commandParams = temperatureMatch ? { temperature: temperatureMatch.temperature } : undefined;
 
     if (!commandMatch) return skip('no_command_verb_found');
     if (!commandMatch.targetPhrase) return skip('no_target_phrase');
@@ -259,7 +275,8 @@ export class AssistantFastPathResolver {
         deviceId: device.id,
         deviceName: device.name,
         command: commandMatch.command,
-        confidence: 1.0
+        confidence: 1.0,
+        ...(commandParams ? { params: commandParams } : {})
       };
     }
 
@@ -324,7 +341,8 @@ export class AssistantFastPathResolver {
       deviceId: bestMatch.device.id,
       deviceName: bestMatch.device.name,
       command: commandMatch.command,
-      confidence: bestMatch.score
+      confidence: bestMatch.score,
+      ...(commandParams ? { params: commandParams } : {})
     };
   }
 }

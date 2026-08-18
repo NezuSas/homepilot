@@ -17,7 +17,10 @@ export type DeviceCommandV1 =
   | 'media_next_track'
   | 'volume_set'
   | 'ptz_move'
-  | 'ptz_stop';
+  | 'ptz_stop'
+  | 'set_temperature'
+  | 'set_hvac_mode'
+  | 'set_fan_mode';
 
 /**
  * DeviceCommandRequest
@@ -55,6 +58,9 @@ export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
     'volume_set',
     'ptz_move',
     'ptz_stop',
+    'set_temperature',
+    'set_hvac_mode',
+    'set_fan_mode',
   ];
   return validCommands.includes(cmd as DeviceCommandV1);
 }

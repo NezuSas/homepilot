@@ -1,3 +1,5 @@
+import { getAssistantResponseText } from './AssistantResponseCatalog';
+
 export type AssistantConversationTone = 'neutral' | 'warm' | 'formal';
 
 export const ASSISTANT_PREFERRED_ADDRESS_KEY = 'assistant_preferred_address';
@@ -57,18 +59,11 @@ export function detectAssistantConversationToneCommand(prompt: string): Assistan
 }
 
 export function getAssistantPreferredAddressAcknowledgement(address: string, language: string): string {
-  return language === 'en'
-    ? `Understood. I will address you as ${address} in general conversation.`
-    : `Entendido. Me dirigiré a ti como ${address} en la conversación general.`;
+  return getAssistantResponseText('profile.preferred_address', language === 'en' ? 'en' : 'es', { address });
 }
 
 export function getAssistantConversationToneAcknowledgement(tone: AssistantConversationTone, language: string): string {
-  const label = language === 'en'
-    ? ({ neutral: 'neutral', warm: 'warm', formal: 'formal' }[tone])
-    : ({ neutral: 'neutral', warm: 'cálido', formal: 'formal' }[tone]);
-  return language === 'en'
-    ? `Understood. I will use a ${label} tone in general conversation.`
-    : `Entendido. Usaré un tono ${label} en la conversación general.`;
+  return getAssistantResponseText('profile.tone', language === 'en' ? 'en' : 'es', { tone });
 }
 
 export function getAssistantConversationTonePrompt(tone: AssistantConversationTone): string {

@@ -238,6 +238,61 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     }));
   });
 
+  it('ignores a duplicate realtime snapshot even when Home Assistant changes attribute key order', async () => {
+    const device: Device = {
+      ...createDevice('living-room-light', 'light.living_room'),
+      lastKnownState: {
+        state: 'on',
+        attributes: { brightness: 180, color_mode: 'rgb' },
+      },
+    };
+    const findByExternalId = jest.fn().mockResolvedValue(device);
+    const saveDevice = jest.fn().mockResolvedValue(undefined);
+    const saveActivity = jest.fn().mockResolvedValue(undefined);
+    const manager = new HomeAssistantRealtimeSyncManager(
+      { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
+      { findByExternalId, saveDevice } as unknown as DeviceRepository,
+      { saveActivity } as unknown as ActivityLogRepository,
+    );
+    const systemEvent = jest.fn();
+    manager.on('system_event', systemEvent);
+
+    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+      entity_id: 'light.living_room',
+      new_state: { state: 'on', attributes: { color_mode: 'rgb', brightness: 180 } },
+    });
+
+    expect(saveDevice).not.toHaveBeenCalled();
+    expect(systemEvent).not.toHaveBeenCalled();
+    expect(saveActivity).not.toHaveBeenCalled();
+  });
+  it('keeps an attribute-only realtime change observable and auditable', async () => {
+    const device: Device = {
+      ...createDevice('living-room-light', 'light.living_room'),
+      lastKnownState: { state: 'on', attributes: { brightness: 180 } },
+    };
+    const findByExternalId = jest.fn().mockResolvedValue(device);
+    const saveDevice = jest.fn().mockResolvedValue(undefined);
+    const saveActivity = jest.fn().mockResolvedValue(undefined);
+    const manager = new HomeAssistantRealtimeSyncManager(
+      { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
+      { findByExternalId, saveDevice } as unknown as DeviceRepository,
+      { saveActivity } as unknown as ActivityLogRepository,
+    );
+    const systemEvent = jest.fn();
+    manager.on('system_event', systemEvent);
+
+    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+      entity_id: 'light.living_room',
+      new_state: { state: 'on', attributes: { brightness: 181 } },
+    });
+
+    expect(saveDevice).toHaveBeenCalledWith(expect.objectContaining({
+      lastKnownState: { state: 'on', attributes: { brightness: 181 } },
+    }));
+    expect(systemEvent).toHaveBeenCalledTimes(1);
+    expect(saveActivity).toHaveBeenCalledWith(expect.objectContaining({ type: 'STATE_CHANGED' }));
+  });
   it('ignores malformed events without mutating local devices', async () => {
     const findByExternalId = jest.fn();
     const saveDevice = jest.fn();

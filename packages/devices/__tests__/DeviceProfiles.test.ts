@@ -47,4 +47,12 @@ describe('DeviceProfiles', () => {
     expect(profile.category).toBe('media');
     expect(profile.supportedCommands).toEqual([]);
   });
+  it('defines climate as a controllable profile with parameterized commands', () => {
+    const profile = getHomeAssistantDeviceProfile('climate.sala');
+
+    expect(profile.supportedCommands).toEqual([
+      'turn_on', 'turn_off', 'toggle', 'set_temperature', 'set_hvac_mode', 'set_fan_mode',
+    ]);
+    expect(profile.configurationSections.map((section) => section.id)).not.toContain('read_only');
+  });
 });

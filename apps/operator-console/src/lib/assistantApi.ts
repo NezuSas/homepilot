@@ -21,6 +21,11 @@ interface AssistantConversationOptions {
 
 interface AssistantSpeechToTextOptions {
   timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
+interface AssistantTextToSpeechOptions {
+  signal?: AbortSignal;
 }
 
 function getAssistantErrorMessage(value: unknown, status: number): string {
@@ -89,19 +94,34 @@ function isAssistantTextToSpeechResponse(value: unknown): value is AssistantText
   );
 }
 
-export async function synthesizeAssistantSpeech(text: string): Promise<AssistantTextToSpeechResponse | null> {
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/assistant/tts`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text }),
-  });
+export async function synthesizeAssistantSpeech(
+  text: string,
+  options: AssistantTextToSpeechOptions = {}
+): Promise<AssistantTextToSpeechResponse | null> {
+  const controller = options.signal ? new AbortController() : null;
+  const abortFromCaller = () => controller?.abort();
+  options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (options.signal?.aborted) abortFromCaller();
 
-  if (!response.ok) return null;
+  try {
+    const response = await apiFetch(`${API_BASE_URL}/api/v1/assistant/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+      ...(controller ? { signal: controller.signal } : {})
+    });
 
-  const payload: unknown = await response.json().catch(() => null);
-  return isAssistantTextToSpeechResponse(payload) ? payload : null;
+    if (!response.ok) return null;
+
+    const payload: unknown = await response.json().catch(() => null);
+    return isAssistantTextToSpeechResponse(payload) ? payload : null;
+  } catch {
+    return null;
+  } finally {
+    options.signal?.removeEventListener('abort', abortFromCaller);
+  }
 }
 
 function isAssistantSpeechToTextResponse(value: unknown): value is AssistantSpeechToTextResponse {
@@ -115,7 +135,10 @@ export async function transcribeAssistantSpeech(
   audioContentType: string,
   options: AssistantSpeechToTextOptions = {}
 ): Promise<AssistantSpeechToTextResponse | null> {
-  const controller = options.timeoutMs ? new AbortController() : null;
+  const controller = options.timeoutMs || options.signal ? new AbortController() : null;
+  const abortFromCaller = () => controller?.abort();
+  options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (options.signal?.aborted) abortFromCaller();
   const timeoutId = options.timeoutMs
     ? globalThis.setTimeout(() => controller?.abort(), options.timeoutMs)
     : null;
@@ -139,5 +162,6 @@ export async function transcribeAssistantSpeech(
     throw error;
   } finally {
     if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', abortFromCaller);
   }
 }

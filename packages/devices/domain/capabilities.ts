@@ -68,7 +68,14 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
     { name: 'turn_off' },
     { name: 'toggle' }
   ],
-  'climate': [],
+  'climate': [
+    { name: 'turn_on' },
+    { name: 'turn_off' },
+    { name: 'toggle' },
+    { name: 'set_temperature', params: [{ name: 'temperature', type: 'number', required: true }] },
+    { name: 'set_hvac_mode', params: [{ name: 'hvac_mode', type: 'string', required: true }] },
+    { name: 'set_fan_mode', params: [{ name: 'fan_mode', type: 'string', required: true }] },
+  ],
   'media_player': [
     { name: 'turn_on' },
     { name: 'turn_off' },

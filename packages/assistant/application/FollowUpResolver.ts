@@ -118,17 +118,57 @@ export class FollowUpResolver implements FollowUpResolverPort {
       }
     }
 
-    // 4. Resolve commands "apaga esa", "enciende la"
-    const commandTriggers = [
-      { triggers: ['apaga esa', 'apagala', 'apagalas', 'apaga eso', 'turn off that', 'turn it off', 'apagarla'], action: 'apaga' },
-      { triggers: ['enciende esa', 'enciendela', 'enciendelas', 'enciende eso', 'prende esa', 'prendela', 'turn on that', 'turn it on', 'encenderla'], action: 'enciende' }
+    // 4. Resolve command references while preserving the user's surrounding phrase.
+    // Resolution only substitutes a single entity already present in short-term memory;
+    // downstream authorization, capability validation, and confirmation remain unchanged.
+    const commandReferences: Array<{
+      triggers: string[];
+      replacement: (entityName: string, trigger: string) => string;
+    }> = [
+      {
+        triggers: ['apaga esa', 'apagala', 'apagalas', 'apaga eso', 'apagarla', 'turn off that', 'turn it off', 'switch that off', 'switch it off'],
+        replacement: (entityName, trigger) => trigger === 'turn it off'
+          ? `turn ${entityName} off`
+          : trigger === 'turn off that'
+            ? `turn off ${entityName}`
+            : trigger === 'switch it off'
+              ? `switch ${entityName} off`
+              : trigger === 'switch that off'
+                ? `switch ${entityName} off`
+                : trigger === 'apagarla'
+                  ? `apagar ${entityName}`
+                  : `apaga ${entityName}`
+      },
+      {
+        triggers: ['enciende esa', 'enciendela', 'enciendelas', 'enciende eso', 'prende esa', 'prendela', 'prenderla', 'encenderla', 'turn on that', 'turn it on', 'switch that on', 'switch it on'],
+        replacement: (entityName, trigger) => trigger === 'turn it on'
+          ? `turn ${entityName} on`
+          : trigger === 'turn on that'
+            ? `turn on ${entityName}`
+            : trigger === 'switch it on'
+              ? `switch ${entityName} on`
+              : trigger === 'switch that on'
+                ? `switch ${entityName} on`
+                : trigger === 'encenderla'
+                  ? `encender ${entityName}`
+                  : trigger === 'prenderla'
+                    ? `prender ${entityName}`
+                    : `enciende ${entityName}`
+      }
     ];
 
-    for (const cmd of commandTriggers) {
-      if (cmd.triggers.some(t => normalized.includes(t))) {
-        if (memory.entities.length === 1) {
+    if (memory.entities.length === 1) {
+      for (const reference of commandReferences) {
+        const trigger = reference.triggers.find(candidate => normalized.includes(candidate));
+        if (!trigger) continue;
+
+        const resolvedPrompt = currentPrompt.replace(
+          new RegExp(this.escapeRegularExpression(trigger), 'i'),
+          reference.replacement(memory.entities[0].name, trigger)
+        );
+        if (resolvedPrompt !== currentPrompt) {
           return finalize({
-            resolvedPrompt: `${cmd.action} ${memory.entities[0].name}`,
+            resolvedPrompt,
             handled: false,
             referencesMemory: true
           });
@@ -141,6 +181,10 @@ export class FollowUpResolver implements FollowUpResolverPort {
       handled: false,
       referencesMemory: false
     });
+  }
+
+  private escapeRegularExpression(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private normalize(text: string): string {

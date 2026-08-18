@@ -23,7 +23,7 @@
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:ui-primitives": "node scripts/check-ui-primitives.mjs",
     "test:responsive": "npm run test:responsive --prefix apps/operator-console",
-    "verify:quality": "npm run check:i18n && npm run check:ui-primitives && npm run check:spec-coverage && npm run check:no-production-any && npm run check:architecture-boundaries && npm run check:bdd-traceability && npm run check:module-test-coverage && npm run check:tuya-policy && npm run check:docker-profiles && npm run test:responsive && npm run lint --prefix apps/operator-console && npm run test:coverage && npm run typecheck && npm run build && npm run build --prefix apps/operator-console",
+    "verify:quality": "npm run check:i18n && npm run check:assistant-response-catalog && npm run check:ui-primitives && npm run check:spec-coverage && npm run check:no-production-any && npm run check:architecture-boundaries && npm run check:bdd-traceability && npm run check:module-test-coverage && npm run check:tuya-policy && npm run check:docker-profiles && npm run test:responsive && npm run lint --prefix apps/operator-console && npm run test:coverage && npm run typecheck && npm run build && npm run build --prefix apps/operator-console",
     "start": "node dist/main.js",
     "check:no-production-any": "node scripts/check-no-production-any.mjs",
     "check:architecture-boundaries": "node scripts/check-architecture-boundaries.mjs",
@@ -31,7 +31,10 @@
     "check:module-test-coverage": "node scripts/check-module-test-coverage.mjs",
     "check:tuya-policy": "node scripts/check-tuya-policy.mjs",
     "check:docker-profiles": "node scripts/check-docker-profiles.mjs",
-    "verify:release": "ts-node scripts/verify_release_v1.ts"
+    "verify:release": "ts-node scripts/verify_release_v1.ts",
+    "check:assistant-response-catalog": "node scripts/check-assistant-response-catalog.mjs",
+    "review:planner-v2-shadow": "node scripts/review-planner-v2-shadow.mjs",
+    "review:planner-v2-shadow:strict": "node scripts/review-planner-v2-shadow.mjs --strict"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

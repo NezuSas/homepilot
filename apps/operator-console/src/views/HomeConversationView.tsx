@@ -4,6 +4,7 @@ import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeA
 import { blobToBase64, canUseLocalSpeechRecording, createSpeechAudioUrl, getPreferredAudioMimeType } from '../lib/audioRecording';
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
+import { AssistantTurnCoordinator, type AssistantTurn } from '../lib/assistantTurnCoordinator';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { AssistantConversationResponse, ChatMessage } from '../types/assistantConversation';
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
@@ -26,9 +27,10 @@ const SPEECH_LEVEL_THRESHOLD = 0.018;
 interface HomeConversationViewProps {
   pendingPrompt?: { id: string; text: string; interactionMode: 'voice' } | null;
   onPendingPromptConsumed?: (id: string) => void;
+  assistantTurnCoordinator: AssistantTurnCoordinator;
 }
 
-export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed }) => {
+export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed, assistantTurnCoordinator }) => {
   const { t } = useTranslation();
   const { user } = useSession(noopSessionCleared);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -58,7 +60,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
   const speechRequestIdRef = useRef(0);
-  const conversationAbortRef = useRef<AbortController | null>(null);
+  const activeConversationTurnRef = useRef<AssistantTurn | null>(null);
   const conversationRequestIdRef = useRef(0);
   const consumedPendingPromptIdRef = useRef<string | null>(null);
 
@@ -131,8 +133,8 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     mediaStreamRef.current = null;
     speechRequestIdRef.current += 1;
     conversationRequestIdRef.current += 1;
-    conversationAbortRef.current?.abort();
-    conversationAbortRef.current = null;
+    assistantTurnCoordinator.cancel(activeConversationTurnRef.current ?? undefined);
+    activeConversationTurnRef.current = null;
     stopProfessionalSpeech();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Cleanup uses the current audio refs on unmount.
 
@@ -166,12 +168,21 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     }
   };
 
+  useEffect(() => assistantTurnCoordinator.onInvalidated(turn => {
+    if (turn.origin === 'wake_word') return;
+
+    speechRequestIdRef.current += 1;
+    conversationRequestIdRef.current += 1;
+    activeConversationTurnRef.current = null;
+    setIsLoading(false);
+    stopProfessionalSpeech();
+  }), [assistantTurnCoordinator]); // eslint-disable-line react-hooks/exhaustive-deps -- Speech cleanup intentionally uses current audio refs.
   useEffect(() => {
     const handleStopSpeech = () => {
       speechRequestIdRef.current += 1;
       conversationRequestIdRef.current += 1;
-      conversationAbortRef.current?.abort();
-      conversationAbortRef.current = null;
+      assistantTurnCoordinator.cancel(activeConversationTurnRef.current ?? undefined);
+      activeConversationTurnRef.current = null;
       setIsLoading(false);
       stopProfessionalSpeech();
     };
@@ -182,15 +193,15 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- The global stop event binds once for this conversation.
 
-  const speakAssistantResponse = async (text: string) => {
-    if (!speechEnabledRef.current || !text.trim()) return;
+  const speakAssistantResponse = async (text: string, turn?: AssistantTurn) => {
+    if (!speechEnabledRef.current || !text.trim() || (turn && !assistantTurnCoordinator.isCurrent(turn))) return;
 
     speechRequestIdRef.current += 1;
     const requestId = speechRequestIdRef.current;
     stopProfessionalSpeech();
 
-    const professionalSpeech = await synthesizeAssistantSpeech(text);
-    if (requestId !== speechRequestIdRef.current || !speechEnabledRef.current) return;
+    const professionalSpeech = await synthesizeAssistantSpeech(text, turn ? { signal: turn.signal } : undefined);
+    if (requestId !== speechRequestIdRef.current || !speechEnabledRef.current || (turn && !assistantTurnCoordinator.isCurrent(turn))) return;
 
     if (!professionalSpeech) return;
 
@@ -208,7 +219,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     }
   };
 
-  const handleResponse = (response: AssistantConversationResponse) => {
+  const handleResponse = (response: AssistantConversationResponse, turn: AssistantTurn) => {
     addMessage({
       role: 'assistant',
       content: response.message,
@@ -219,7 +230,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     if (response.type === 'execution' && response.execution?.status !== 'failed') {
       void refreshDeviceSnapshot({ force: true });
     }
-    void speakAssistantResponse(response.message);
+    void speakAssistantResponse(response.message, turn);
   };
 
   const addErrorMessage = (error: unknown) => {
@@ -233,13 +244,14 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     return resolvedMessage;
   };
 
-  const handleSend = async (text: string = input, responseTimeoutMs?: number, replaceActive = false, interactionMode: 'chat' | 'voice' = 'chat') => {
+  const handleSend = async (text: string = input, responseTimeoutMs?: number, replaceActive = false, interactionMode: 'chat' | 'voice' = 'chat', existingTurn?: AssistantTurn) => {
     if (!text.trim() || (isLoading && !replaceActive)) return;
 
     const userText = text.trim();
-    if (replaceActive) conversationAbortRef.current?.abort();
-    const conversationController = new AbortController();
-    conversationAbortRef.current = conversationController;
+    const turn = existingTurn && assistantTurnCoordinator.isCurrent(existingTurn)
+      ? existingTurn
+      : assistantTurnCoordinator.begin(interactionMode === 'voice' ? 'manual_voice' : 'chat');
+    activeConversationTurnRef.current = turn;
     conversationRequestIdRef.current += 1;
     const requestId = conversationRequestIdRef.current;
     setSpeechNotice('');
@@ -251,16 +263,18 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const response = await converseWithAssistant({
         prompt: userText,
         interactionMode,
-      }, { timeoutMs: responseTimeoutMs, signal: conversationController.signal });
-      if (requestId !== conversationRequestIdRef.current) return;
-      handleResponse(response);
+      }, { timeoutMs: responseTimeoutMs, signal: turn.signal });
+      if (requestId !== conversationRequestIdRef.current || !assistantTurnCoordinator.isCurrent(turn)) return;
+      handleResponse(response, turn);
     } catch (error: unknown) {
-      if (requestId !== conversationRequestIdRef.current || conversationController.signal.aborted) return;
+      if (requestId !== conversationRequestIdRef.current || turn.signal.aborted || !assistantTurnCoordinator.isCurrent(turn)) return;
       const errorMessage = addErrorMessage(error);
-      if (responseTimeoutMs) void speakAssistantResponse(errorMessage);
+      if (responseTimeoutMs) void speakAssistantResponse(errorMessage, turn);
     } finally {
       if (requestId === conversationRequestIdRef.current) {
-        conversationAbortRef.current = null;
+        if (activeConversationTurnRef.current?.id === turn.id) {
+          activeConversationTurnRef.current = null;
+        }
         setIsLoading(false);
       }
     }
@@ -380,13 +394,18 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       return;
     }
 
+    const turn = assistantTurnCoordinator.begin('manual_voice');
+    activeConversationTurnRef.current = turn;
     setSpeechNotice(t('assistant.conversation.voice_transcribing'));
 
     try {
       const audioBase64 = await blobToBase64(audioBlob);
-      const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm');
-      const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
+      const transcription = await transcribeAssistantSpeech(audioBase64, audioBlob.type || 'audio/webm', {
+        signal: turn.signal
+      });
+      if (!assistantTurnCoordinator.isCurrent(turn)) return;
 
+      const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
       if (!spokenText) {
         setSpeechNotice(t('assistant.conversation.voice_no_speech'));
         return;
@@ -398,9 +417,11 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       }
 
       setInput(spokenText);
-      await handleSend(spokenText, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, false, 'voice');
+      await handleSend(spokenText, ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, false, 'voice', turn);
     } catch {
-      setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
+      if (assistantTurnCoordinator.isCurrent(turn)) {
+        setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
+      }
     }
   };
 
@@ -497,8 +518,8 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       role: 'user',
       content: t('assistant.conversation.selected_option', { label })
     });
-    const conversationController = new AbortController();
-    conversationAbortRef.current = conversationController;
+    const turn = assistantTurnCoordinator.begin('chat');
+    activeConversationTurnRef.current = turn;
     conversationRequestIdRef.current += 1;
     const requestId = conversationRequestIdRef.current;
     setIsLoading(true);
@@ -507,15 +528,17 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const response = await converseWithAssistant({
         prompt: `Selected: ${label}`,
         selectedOptionId: optionId
-      }, { signal: conversationController.signal });
-      if (requestId !== conversationRequestIdRef.current) return;
-      handleResponse(response);
+      }, { signal: turn.signal });
+      if (requestId !== conversationRequestIdRef.current || !assistantTurnCoordinator.isCurrent(turn)) return;
+      handleResponse(response, turn);
     } catch (error: unknown) {
-      if (requestId !== conversationRequestIdRef.current || conversationController.signal.aborted) return;
+      if (requestId !== conversationRequestIdRef.current || turn.signal.aborted || !assistantTurnCoordinator.isCurrent(turn)) return;
       addErrorMessage(error);
     } finally {
       if (requestId === conversationRequestIdRef.current) {
-        conversationAbortRef.current = null;
+        if (activeConversationTurnRef.current?.id === turn.id) {
+          activeConversationTurnRef.current = null;
+        }
         setIsLoading(false);
       }
     }
