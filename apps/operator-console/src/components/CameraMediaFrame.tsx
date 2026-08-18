@@ -209,6 +209,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       const ms = new MediaSource();
       mediaSource = ms;
       objectUrl = URL.createObjectURL(ms);
+      video.playbackRate = 1;
       video.src = objectUrl;
 
       watchdogTimer = window.setTimeout(() => {
@@ -258,6 +259,16 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
               buffer.remove(0, video.currentTime - 10);
             } catch { /* ignore */ }
           }
+          // Without this, any jitter (network burst, brief decode hiccup)
+          // permanently adds to the gap between playback and the live edge —
+          // there's no HLS-style playlist position to re-sync against, so
+          // catch up by playing slightly faster until the gap closes. This is
+          // what kept this feed noticeably behind Home Assistant's cameras.
+          if (!buffer.updating && buffer.buffered.length > 0 && hasReadyFrameRef.current) {
+            const bufferedEnd = buffer.buffered.end(buffer.buffered.length - 1);
+            const lagSeconds = bufferedEnd - video.currentTime;
+            video.playbackRate = lagSeconds > 1.2 ? 1.5 : lagSeconds > 0.6 ? 1.15 : 1;
+          }
           processQueue();
         });
 
@@ -270,9 +281,15 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
               const { done, value } = await reader.read();
               if (cancelled) return;
               if (done) {
-                if (mediaSource === ms && ms.readyState === 'open') {
-                  try { ms.endOfStream(); } catch { /* ignore */ }
-                }
+                // A live camera feed should never legitimately "end" while
+                // this component is mounted and active — the backend closes
+                // the response when the RTSP source stalls (see the
+                // FfmpegMediaTranscoder stall watchdog) or the connection
+                // otherwise drops. Reconnect instead of leaving the last
+                // decoded frame frozen on screen forever.
+                if (cancelled || abortController?.signal.aborted) return;
+                console.warn('[CameraMediaFrame] Live stream ended unexpectedly, reconnecting...');
+                scheduleRetryOrFallback();
                 return;
               }
               if (value) queue.push(value);

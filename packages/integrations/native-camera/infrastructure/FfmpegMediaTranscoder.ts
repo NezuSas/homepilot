@@ -22,6 +22,15 @@ interface NativeHlsRuntime {
 const STALE_SEGMENT_THRESHOLD_MS = 15_000;
 const HEALTH_CHECK_INTERVAL_MS = 5_000;
 
+// The live fMP4 pipeline has no playlist to go stale — if the RTSP source
+// stops responding, ffmpeg just blocks on its network read and stdout goes
+// silent forever, with no error and no process exit. Nothing else would ever
+// notice, so this pipeline needs its own "no bytes in N ms" watchdog to kill
+// the hung process and end the response, letting the client's own retry
+// logic take over instead of hanging indefinitely until the user reopens it.
+const LIVE_STREAM_STALL_THRESHOLD_MS = 8_000;
+const LIVE_STREAM_HEALTH_CHECK_INTERVAL_MS = 3_000;
+
 function buildRtspUrl(endpoint: NativeCameraRtspEndpoint): string {
   const rtspPath = endpoint.rtspPath.startsWith('/') ? endpoint.rtspPath : `/${endpoint.rtspPath}`;
   const hasEmbeddedCreds = rtspPath.toLowerCase().includes('username=') ||
@@ -309,19 +318,34 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       'Cache-Control': 'no-store, max-age=0',
     });
 
+    let lastDataAt = Date.now();
+    ffmpegProcess.stdout.on('data', () => {
+      lastDataAt = Date.now();
+    });
     ffmpegProcess.stdout.pipe(res);
 
     let ffmpegStderr = '';
     ffmpegProcess.stderr.on('data', (chunk: Buffer) => {
       ffmpegStderr += chunk.toString();
     });
+
+    const stallWatchdog = setInterval(() => {
+      if (Date.now() - lastDataAt <= LIVE_STREAM_STALL_THRESHOLD_MS) return;
+      console.warn('[FfmpegMediaTranscoder] Native camera live stream stalled (no bytes), ending response.');
+      clearInterval(stallWatchdog);
+      void this.terminateProcess(ffmpegProcess);
+      if (!res.destroyed) res.end();
+    }, LIVE_STREAM_HEALTH_CHECK_INTERVAL_MS);
+
     ffmpegProcess.on('exit', (code) => {
+      clearInterval(stallWatchdog);
       if (code !== 0 && code !== null) {
         console.error(`[FfmpegMediaTranscoder] ffmpeg live stream exit code ${code}: ${ffmpegStderr.slice(-300)}`);
       }
     });
 
     res.on('close', () => {
+      clearInterval(stallWatchdog);
       void this.terminateProcess(ffmpegProcess);
     });
   }
