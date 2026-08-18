@@ -253,6 +253,79 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     });
   }
 
+  // Fragmented MP4 pushed straight to the response as ffmpeg produces it,
+  // fed into the browser via MediaSource. No HLS playlist/segment-close
+  // latency: a viewer only waits for encode + network time (~1-2s), and it
+  // travels over plain HTTP so it works through the same reverse
+  // proxy/tunnel as everything else (no WebRTC/ICE/UDP required).
+  public streamLive(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void {
+    const rtspUrl = buildRtspUrl(endpoint);
+    const ffmpegProcess = spawn('ffmpeg', [
+      '-hide_banner',
+      '-loglevel',
+      'warning',
+      '-rtsp_transport',
+      'tcp',
+      '-probesize',
+      '32768',
+      '-analyzeduration',
+      '100000',
+      '-i',
+      rtspUrl,
+      '-an',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-tune',
+      'zerolatency',
+      '-profile:v',
+      'baseline',
+      '-level',
+      '3.1',
+      '-pix_fmt',
+      'yuv420p',
+      '-r',
+      '15',
+      '-g',
+      '15',
+      '-keyint_min',
+      '15',
+      '-sc_threshold',
+      '0',
+      '-f',
+      'mp4',
+      '-movflags',
+      'frag_keyframe+empty_moov+default_base_moof',
+      '-frag_duration',
+      '200000',
+      '-max_muxing_queue_size',
+      '1024',
+      '-',
+    ]);
+
+    res.writeHead(200, {
+      'Content-Type': 'video/mp4',
+      'Cache-Control': 'no-store, max-age=0',
+    });
+
+    ffmpegProcess.stdout.pipe(res);
+
+    let ffmpegStderr = '';
+    ffmpegProcess.stderr.on('data', (chunk: Buffer) => {
+      ffmpegStderr += chunk.toString();
+    });
+    ffmpegProcess.on('exit', (code) => {
+      if (code !== 0 && code !== null) {
+        console.error(`[FfmpegMediaTranscoder] ffmpeg live stream exit code ${code}: ${ffmpegStderr.slice(-300)}`);
+      }
+    });
+
+    res.on('close', () => {
+      void this.terminateProcess(ffmpegProcess);
+    });
+  }
+
   public streamMjpeg(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void {
     const rtspUrl = buildRtspUrl(endpoint);
     const ffmpegProcess = spawn('ffmpeg', [

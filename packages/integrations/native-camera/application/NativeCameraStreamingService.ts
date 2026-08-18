@@ -37,4 +37,8 @@ export class NativeCameraStreamingService {
   public streamMjpeg(source: NativeCameraSource, res: http.ServerResponse): void {
     this.transcoder.streamMjpeg(toRtspEndpoint(source), res);
   }
+
+  public streamLive(source: NativeCameraSource, res: http.ServerResponse): void {
+    this.transcoder.streamLive(toRtspEndpoint(source), res);
+  }
 }

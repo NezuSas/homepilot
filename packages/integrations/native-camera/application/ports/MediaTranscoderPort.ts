@@ -22,4 +22,5 @@ export interface MediaTranscoderPort {
   stopHlsRuntime(deviceId: string): void;
   streamSnapshot(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void;
   streamMjpeg(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void;
+  streamLive(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void;
 }

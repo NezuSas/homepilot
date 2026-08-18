@@ -22,6 +22,7 @@ describe('NativeCameraStreamingService', () => {
       stopHlsRuntime: jest.fn(),
       streamSnapshot: jest.fn(),
       streamMjpeg: jest.fn(),
+      streamLive: jest.fn(),
     };
     service = new NativeCameraStreamingService(transcoder);
   });
@@ -60,6 +61,17 @@ describe('NativeCameraStreamingService', () => {
     service.streamMjpeg(source, fakeRes);
 
     expect(transcoder.streamMjpeg).toHaveBeenCalledWith({
+      host: '192.168.1.20', rtspPort: 554, rtspPath: '/stream', username: 'admin', password: 'secret'
+    }, fakeRes);
+  });
+
+  it('delegates live streaming with the translated endpoint', () => {
+    const source = createTestSource();
+    const fakeRes = {} as any;
+
+    service.streamLive(source, fakeRes);
+
+    expect(transcoder.streamLive).toHaveBeenCalledWith({
       host: '192.168.1.20', rtspPort: 554, rtspPath: '/stream', username: 'admin', password: 'secret'
     }, fakeRes);
   });

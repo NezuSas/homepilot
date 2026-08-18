@@ -9,12 +9,13 @@ import type { NativeCameraSourceRepository } from '../../../packages/devices/dom
 import type { NativeCameraStreamingService } from '../../../packages/integrations/native-camera/application/NativeCameraStreamingService';
 import { ApiRoutes } from './ApiRoutes';
 
-type CameraMediaKind = 'snapshot' | 'stream';
+type CameraMediaKind = 'snapshot' | 'stream' | 'live';
 
 interface CameraSessionResponse {
   readonly snapshotPath: string;
   readonly streamPath: string;
   readonly hlsPath?: string;
+  readonly livePath?: string;
 }
 
 interface CameraProxyTokenPayload {
@@ -61,7 +62,7 @@ export class CameraRoutes extends ApiRoutes {
     }
 
     const mediaMatch = method === 'GET'
-      ? pathname.match(/^\/api\/v1\/devices\/([^/]+)\/camera\/(snapshot|stream)$/)
+      ? pathname.match(/^\/api\/v1\/devices\/([^/]+)\/camera\/(snapshot|stream|live)$/)
       : null;
 
     if (mediaMatch) {
@@ -104,10 +105,12 @@ export class CameraRoutes extends ApiRoutes {
         const runtime = await this.nativeCameraStreamingService!.ensureHlsRuntime(device.id, nativeSource);
         this.registerHlsSession(cameraProxyToken, device.id, path.join(runtime.directory, 'index.m3u8'), 'native', runtime.directory);
         const hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
+        const livePath = `/api/v1/devices/${encodedDeviceId}/camera/live?token=${encodedToken}`;
         this.sendJson(res, {
           snapshotPath: `/api/v1/devices/${encodedDeviceId}/camera/snapshot?token=${encodedToken}`,
           streamPath: `/api/v1/devices/${encodedDeviceId}/camera/stream?token=${encodedToken}`,
           ...(hlsPath ? { hlsPath } : {}),
+          livePath,
         });
         return true;
       }
@@ -292,7 +295,16 @@ export class CameraRoutes extends ApiRoutes {
         this.nativeCameraStreamingService!.streamMjpeg(nativeSource, res);
         return;
       }
+      if (kind === 'live') {
+        this.nativeCameraStreamingService!.streamLive(nativeSource, res);
+        return;
+      }
       this.sendError(res, 400, 'INVALID_MEDIA_KIND', `Unsupported media kind: ${kind}`);
+      return;
+    }
+
+    if (kind === 'live') {
+      this.sendError(res, 400, 'INVALID_MEDIA_KIND', 'Low-latency live streaming is only available for native cameras');
       return;
     }
 

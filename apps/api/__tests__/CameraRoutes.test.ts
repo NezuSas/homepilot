@@ -157,6 +157,7 @@ describe('CameraRoutes', () => {
       stopHlsRuntime: jest.fn(),
       streamSnapshot: jest.fn(),
       streamMjpeg: jest.fn(),
+      streamLive: jest.fn(),
     };
     const nativeCameraStreamingService = new NativeCameraStreamingService(mediaTranscoder);
     const container = createContainer();

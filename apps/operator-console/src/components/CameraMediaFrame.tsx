@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export type CameraFeedMode = 'hls' | 'stream' | 'snapshot';
+export type CameraFeedMode = 'live' | 'hls' | 'stream' | 'snapshot';
 
 interface CameraMediaFrameProps {
   active: boolean;
+  liveUrl?: string;
   hlsUrl?: string;
   streamUrl: string;
   snapshotUrl: string;
@@ -33,6 +34,7 @@ function withRefreshMarker(url: string): string {
 
 export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
   active,
+  liveUrl,
   hlsUrl,
   streamUrl,
   snapshotUrl,
@@ -67,6 +69,22 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       return;
     }
 
+    if (preferredMode === 'live') {
+      if (!liveUrl) {
+        if (hlsUrl) {
+          setMode('hls');
+          onModeChangeRef.current('hls');
+        } else {
+          setMode('stream');
+          setSource(streamUrl);
+          onModeChangeRef.current('stream');
+        }
+        return;
+      }
+      setSource('');
+      return;
+    }
+
     if (preferredMode === 'hls') {
       if (!hlsUrl) {
         setMode('stream');
@@ -88,9 +106,227 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     }
 
     setSource(currentObjectUrlRef.current || '');
-  }, [active, hlsUrl, preferredMode, snapshotUrl, streamUrl]);
+  }, [active, liveUrl, hlsUrl, preferredMode, snapshotUrl, streamUrl]);
 
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+
+  // Live mode: fetch a fragmented-MP4 byte stream and feed it into a
+  // MediaSource as it arrives, instead of polling an HLS playlist. No
+  // segment-close/playlist-refresh latency — only encode + network time.
+  useEffect(() => {
+    const video = videoElementRef.current;
+    if (!active || mode !== 'live' || !liveUrl || !video) return;
+
+    let cancelled = false;
+    let fallbackTriggered = false;
+    let retryCount = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+    let stallCheckTimer: ReturnType<typeof setInterval> | undefined;
+    let lastPlaybackTime = -1;
+    let lastProgressAt = Date.now();
+    let mediaSource: MediaSource | null = null;
+    let sourceBuffer: SourceBuffer | null = null;
+    let abortController: AbortController | undefined;
+    let objectUrl: string | null = null;
+
+    hasReadyFrameRef.current = false;
+
+    const clearTimers = () => {
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (watchdogTimer) window.clearTimeout(watchdogTimer);
+      if (stallCheckTimer) window.clearInterval(stallCheckTimer);
+    };
+
+    const teardown = () => {
+      clearTimers();
+      abortController?.abort();
+      abortController = undefined;
+      sourceBuffer = null;
+      mediaSource = null;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    };
+
+    const fallbackToHls = () => {
+      if (fallbackTriggered) return;
+      fallbackTriggered = true;
+      clearTimers();
+      teardown();
+      if (hlsUrl) {
+        setMode('hls');
+        onModeChangeRef.current('hls');
+      } else {
+        setMode('stream');
+        setSource(streamUrl);
+        onModeChangeRef.current('stream');
+      }
+    };
+
+    const tryPlay = async () => {
+      try {
+        video.muted = true;
+        video.defaultMuted = true;
+        await video.play();
+      } catch (err: unknown) {
+        if (cancelled) return;
+        console.warn('[CameraMediaFrame] Live video.play() threw an error:', err);
+      }
+    };
+
+    const pickMimeType = (): string | null => {
+      if (typeof window.MediaSource === 'undefined') return null;
+      const candidates = [
+        'video/mp4; codecs="avc1.42E01F"',
+        'video/mp4; codecs="avc1.42e01f"',
+        'video/mp4; codecs="avc1.42001F"',
+      ];
+      return candidates.find((type) => window.MediaSource.isTypeSupported(type)) ?? null;
+    };
+
+    const scheduleRetryOrFallback = () => {
+      if (cancelled) return;
+      retryCount += 1;
+      teardown();
+      if (retryCount < HLS_MAX_RETRIES) {
+        retryTimer = window.setTimeout(start, HLS_RETRY_DELAY_MS);
+      } else {
+        fallbackToHls();
+      }
+    };
+
+    const start = () => {
+      if (cancelled) return;
+
+      const mimeType = pickMimeType();
+      if (!mimeType) {
+        fallbackToHls();
+        return;
+      }
+
+      const ms = new MediaSource();
+      mediaSource = ms;
+      objectUrl = URL.createObjectURL(ms);
+      video.src = objectUrl;
+
+      watchdogTimer = window.setTimeout(() => {
+        if (cancelled || hasReadyFrameRef.current) return;
+        console.warn('[CameraMediaFrame] Live watchdog timeout, retrying...');
+        scheduleRetryOrFallback();
+      }, HLS_WATCHDOG_MS);
+
+      ms.addEventListener('sourceopen', () => {
+        if (cancelled || mediaSource !== ms) return;
+
+        let buffer: SourceBuffer;
+        try {
+          buffer = ms.addSourceBuffer(mimeType);
+        } catch (err) {
+          console.warn('[CameraMediaFrame] Failed to create MSE source buffer:', err);
+          fallbackToHls();
+          return;
+        }
+        sourceBuffer = buffer;
+
+        const queue: Uint8Array[] = [];
+        let appending = false;
+
+        const processQueue = () => {
+          if (cancelled || appending || sourceBuffer !== buffer || buffer.updating || queue.length === 0) return;
+          const chunk = queue.shift()!;
+          appending = true;
+          try {
+            const transferableChunk = new Uint8Array(chunk.byteLength);
+            transferableChunk.set(chunk);
+            buffer.appendBuffer(transferableChunk);
+          } catch (err) {
+            appending = false;
+            console.warn('[CameraMediaFrame] MSE appendBuffer failed:', err);
+            scheduleRetryOrFallback();
+          }
+        };
+
+        buffer.addEventListener('updateend', () => {
+          appending = false;
+          if (cancelled || sourceBuffer !== buffer) return;
+          // Trim old buffered ranges so a long-running session doesn't grow
+          // memory unbounded.
+          if (!buffer.updating && video.currentTime > 15) {
+            try {
+              buffer.remove(0, video.currentTime - 10);
+            } catch { /* ignore */ }
+          }
+          processQueue();
+        });
+
+        abortController = new AbortController();
+        fetch(withRefreshMarker(liveUrl), { signal: abortController.signal, cache: 'no-store' })
+          .then(async (response) => {
+            if (!response.ok || !response.body) throw new Error(`CAMERA_LIVE_${response.status}`);
+            const reader = response.body.getReader();
+            const pump = async (): Promise<void> => {
+              const { done, value } = await reader.read();
+              if (cancelled) return;
+              if (done) {
+                if (mediaSource === ms && ms.readyState === 'open') {
+                  try { ms.endOfStream(); } catch { /* ignore */ }
+                }
+                return;
+              }
+              if (value) queue.push(value);
+              processQueue();
+              return pump();
+            };
+            await pump();
+          })
+          .catch((err: unknown) => {
+            if (cancelled || abortController?.signal.aborted) return;
+            console.warn('[CameraMediaFrame] Live stream fetch failed:', err);
+            scheduleRetryOrFallback();
+          });
+      });
+
+      void tryPlay();
+    };
+
+    const markReady = () => {
+      hasReadyFrameRef.current = true;
+      if (watchdogTimer) window.clearTimeout(watchdogTimer);
+    };
+    video.addEventListener('canplay', markReady);
+    video.addEventListener('error', fallbackToHls);
+
+    start();
+
+    stallCheckTimer = window.setInterval(() => {
+      if (cancelled || !hasReadyFrameRef.current || video.paused) return;
+      if (video.currentTime !== lastPlaybackTime) {
+        lastPlaybackTime = video.currentTime;
+        lastProgressAt = Date.now();
+        retryCount = 0;
+        return;
+      }
+      if (Date.now() - lastProgressAt < STALL_THRESHOLD_MS) return;
+
+      console.warn('[CameraMediaFrame] Live playback stalled (frozen frame), reconnecting...');
+      lastProgressAt = Date.now();
+      hasReadyFrameRef.current = false;
+      scheduleRetryOrFallback();
+    }, STALL_CHECK_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimers();
+      video.removeEventListener('canplay', markReady);
+      video.removeEventListener('error', fallbackToHls);
+      teardown();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [active, liveUrl, hlsUrl, mode, streamUrl]);
 
   useEffect(() => {
     const video = videoElementRef.current;
@@ -326,7 +562,7 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     if (staleObjectUrlRef.current) URL.revokeObjectURL(staleObjectUrlRef.current);
   }, []);
 
-  if (mode === 'hls' && active && hlsUrl) {
+  if ((mode === 'live' && active && liveUrl) || (mode === 'hls' && active && hlsUrl)) {
     return (
       <video
         ref={videoElementRef}

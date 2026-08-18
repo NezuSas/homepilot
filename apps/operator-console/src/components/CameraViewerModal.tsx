@@ -12,6 +12,7 @@ interface CameraViewerModalProps {
   name: string;
   roomName?: string;
   streamUrl: string;
+  liveUrl?: string;
   hlsUrl?: string;
   snapshotUrl: string;
   preferredMode: CameraFeedMode;
@@ -25,6 +26,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   name,
   roomName,
   streamUrl,
+  liveUrl,
   hlsUrl,
   snapshotUrl,
   preferredMode,
@@ -85,6 +87,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
           ) : (
             <CameraMediaFrame
               active={isOpen}
+              liveUrl={liveUrl}
               hlsUrl={hlsUrl}
               streamUrl={streamUrl}
               snapshotUrl={snapshotUrl}
